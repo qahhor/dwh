@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.kwh.service;
+package com.smartup24.cms.instance.webhook.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -83,9 +83,9 @@ class WebhookTargetPolicyTest {
                 .isInstanceOf(ApiException.class);
     }
 
-    private static KwhWebhookProperties properties(
+    private static WebhookProperties properties(
             boolean enabled, Set<String> allowedHosts, boolean allowPrivateAddresses) {
-        var properties = new KwhWebhookProperties();
+        var properties = new WebhookProperties();
         properties.setEnabled(enabled);
         properties.setAllowedHosts(allowedHosts);
         properties.setAllowPrivateAddresses(allowPrivateAddresses);

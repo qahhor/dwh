@@ -9,7 +9,7 @@ import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.api.CreateTokenRequest;
 import com.smartup24.cms.instance.kauth.controller.KauthApiTokenController;
-import com.smartup24.cms.instance.kwh.controller.KwhSubscriptionController;
+import com.smartup24.cms.instance.webhook.controller.WebhookSubscriptionController;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
@@ -132,8 +132,8 @@ class IdempotencyFilterTest {
                         .getMethod("createToken", CreateTokenRequest.class)
                         .isAnnotationPresent(ReturnsSecret.class))
                 .isTrue();
-        assertThat(KwhSubscriptionController.class
-                        .getMethod("createSubscription", KwhSubscriptionController.CreateSubscriptionDto.class)
+        assertThat(WebhookSubscriptionController.class
+                        .getMethod("createSubscription", WebhookSubscriptionController.CreateSubscriptionDto.class)
                         .isAnnotationPresent(ReturnsSecret.class))
                 .isTrue();
     }

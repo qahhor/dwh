@@ -16,7 +16,7 @@
    - **`audit` (Audit & Security):** `com.smartup24.cms.instance.audit` — журнал изменений (JSONB) и security-события.
    - **`common` (Platform):** `com.smartup24.cms.instance.common` — модель сущности (`entity`), реестр полей (`query`), массовые действия, история, провайдеры.
    - **`jobs`, `warehouse`, `units`:** `com.smartup24.cms.instance.{jobs,warehouse,units}` — общая очередь фоновых заданий, вторая база (pg-dwh) с журналом загрузок, единицы измерения (бывший `fnd`, ADR-0030).
-   - **`upl`, `report`, `search`, `kwh`:** загрузки данных, экспорт списков, поиск, вебхуки.
+   - **`upl`, `report`, `search`, `webhook`:** загрузки данных, экспорт списков, поиск, вебхуки (`webhook` до пункта 4.3 назывался `kwh`, таблицы `kwh_*` прежние). Полный список — [карта модулей](docs/architecture/module-map.md).
 2. **Именование классов с модульным префиксом:**
    - **Контроллеры:** `{Prefix}{Entity}Controller` (например, `MdUserController`, `KauthAuthController`, `MsTaskController`, `MfFileController`).
    - **Сервисы и Фасады:** `{Prefix}{Entity}Service` / `{Prefix}{Entity}Facade` (например, `MdUserService`, `KauthSessionService`, `MsTaskService`, `MsNotificationService`).

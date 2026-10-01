@@ -55,6 +55,26 @@ class MdFormCatalogIntegrationTest {
     }
 
     @Test
+    @DisplayName("4.3: the webhook form belongs to the module webhook, and no catalog row keeps the old code kwh")
+    void webhookFormBelongsToWebhookModule() {
+        // V155 moves the stored rows; the sync writes the same owner from PermissionAreas (ADR-0028).
+        assertThat(moduleOfForm("webhook.subscriptions")).isEqualTo("webhook");
+        permissionService.syncFormCatalog(realPairs());
+        assertThat(moduleOfForm("webhook.subscriptions")).isEqualTo("webhook");
+        assertThat(jdbc.sql("select count(*) from md_forms where module = 'kwh'")
+                        .query(Long.class)
+                        .single())
+                .isZero();
+    }
+
+    private static String moduleOfForm(String code) {
+        return jdbc.sql("select module from md_forms where code = :code")
+                .param("code", code)
+                .query(String.class)
+                .single();
+    }
+
+    @Test
     @DisplayName("Пара из кода, которой не было в каталоге, появляется живой")
     void newPairFromCodeIsRegistered() {
         permissionService.syncFormCatalog(withRealPairs("reports.sales.view"));

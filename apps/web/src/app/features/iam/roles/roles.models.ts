@@ -27,7 +27,7 @@ export const MODULE_ICON_MAP: Record<string, string> = {
   platform: 'hub',
   audit: 'history',
   mf: 'folder_open',
-  kwh: 'database',
+  webhook: 'webhook',
 };
 
 export const MODULE_NAME_KEY_MAP: Record<string, string> = {
@@ -38,7 +38,8 @@ export const MODULE_NAME_KEY_MAP: Record<string, string> = {
   platform: 'iam.roles.module_platform',
   audit: 'iam.roles.module_audit',
   mf: 'iam.roles.module_files',
-  kwh: 'iam.roles.module_warehouse',
+  webhook: 'settings.webhooks.tab',
+  warehouse: 'iam.roles.module_warehouse',
 };
 
 export function buildModuleGroups(items: FormTreeItem[], getModuleName: (modCode: string) => string): ModuleGroup[] {

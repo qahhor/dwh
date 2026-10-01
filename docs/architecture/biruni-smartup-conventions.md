@@ -15,9 +15,13 @@ Flyway-миграции и Angular-код.
 ## Java-пакеты и модули
 
 Базовый пакет сервера — `com.smartup24.cms.instance`. Внутри него предметные
-пакеты отражают фактические границы: `md`, `kauth`, `ms.task`, `ms.notify`,
-`mf`, `audit`, `kwh`, `search`, `analytics` и `report`; общие runtime-компоненты
-располагаются в `common` и `config`.
+пакеты отражают фактические границы: `md`, `kauth`, `ms.task`, `ms.note`,
+`ms.notify`, `mf`, `audit`, `webhook`, `search`, `analytics`, `report`, `jobs`,
+`units`, `upl` и `warehouse`; общие runtime-компоненты располагаются в `common`
+и `config`. Назначение, таблицы и точки входа каждого модуля — в
+[карте модулей](module-map.md). Префиксы Biruni `md` (master data), `ms`
+(messaging & services), `mf` (files) и `kauth` (authentication) остаются;
+остальные модули названы словом предметной области.
 
 Используйте существующий модульный префикс там, где он уже является частью
 контракта:
@@ -40,7 +44,9 @@ Flyway-миграции и Angular-код.
 
 Имена таблиц и столбцов используют lowercase `snake_case`. Существующие
 предметные семейства таблиц имеют префиксы `md_`, `kauth_`, `ms_`, `mf_` и
-`kwh_`; журналы используют явные имена `audit_log` и `security_events`.
+`kwh_` (таблицы модуля `webhook`: имена таблиц не меняются при
+переименовании модуля, ADR-0020); журналы используют явные имена `audit_log` и
+`security_events`.
 
 - `id` — суррогатный первичный ключ там, где сущности адресуются по числовому
   идентификатору.

@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.kwh.controller;
+package com.smartup24.cms.instance.webhook.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
@@ -6,8 +6,8 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
-import com.smartup24.cms.instance.kwh.pref.KwhPref;
-import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
+import com.smartup24.cms.instance.webhook.pref.WebhookPref;
+import com.smartup24.cms.instance.webhook.service.WebhookService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -19,18 +19,18 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/webhooks/subscriptions")
-public class KwhSubscriptionController {
+public class WebhookSubscriptionController {
 
-    private final KwhWebhookService webhookService;
+    private final WebhookService webhookService;
 
-    public KwhSubscriptionController(KwhWebhookService webhookService) {
+    public WebhookSubscriptionController(WebhookService webhookService) {
         this.webhookService = webhookService;
     }
 
     @Operation(summary = "List webhook subscriptions", description = "The webhook subscriptions of the installation.")
     @GetMapping
-    @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "view")
-    public ResponseEntity<List<KwhWebhookService.SubscriptionView>> listSubscriptions() {
+    @RequiresPermission(form = WebhookPref.FORM_WEBHOOKS, action = "view")
+    public ResponseEntity<List<WebhookService.SubscriptionView>> listSubscriptions() {
         return ResponseEntity.ok(webhookService.listSubscriptions());
     }
 
@@ -39,10 +39,10 @@ public class KwhSubscriptionController {
             description =
                     "Subscribes a target URL to events; the signing key is returned once and never stored for replay.")
     @PostMapping
-    @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
+    @RequiresPermission(form = WebhookPref.FORM_WEBHOOKS, action = "manage")
     @ReturnsSecret
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<KwhWebhookService.CreatedSubscription> createSubscription(
+    public ResponseEntity<WebhookService.CreatedSubscription> createSubscription(
             @Valid @RequestBody CreateSubscriptionDto body) {
 
         Long currentUserId = SecurityContext.getCurrentUserId();
@@ -55,7 +55,7 @@ public class KwhSubscriptionController {
             summary = "Update a webhook subscription",
             description = "Changes the name, target, events or state of a subscription.")
     @PatchMapping("/{id}")
-    @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
+    @RequiresPermission(form = WebhookPref.FORM_WEBHOOKS, action = "manage")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @AnswersRevision
     public ResponseEntity<Void> updateSubscription(
@@ -69,7 +69,7 @@ public class KwhSubscriptionController {
 
     @Operation(summary = "Delete a webhook subscription", description = "Removes a webhook subscription.")
     @DeleteMapping("/{id}")
-    @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
+    @RequiresPermission(form = WebhookPref.FORM_WEBHOOKS, action = "manage")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteSubscription(@PathVariable("id") Long id) {
         webhookService.deleteSubscription(id);

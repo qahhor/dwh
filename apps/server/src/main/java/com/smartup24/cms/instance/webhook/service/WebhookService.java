@@ -1,11 +1,11 @@
-package com.smartup24.cms.instance.kwh.service;
+package com.smartup24.cms.instance.webhook.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.web.Revisioned;
-import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
-import com.smartup24.cms.instance.kwh.repository.KwhSubscriptionRepository;
+import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
+import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -21,19 +21,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class KwhWebhookService {
+public class WebhookService {
 
-    private static final Logger log = LoggerFactory.getLogger(KwhWebhookService.class);
+    private static final Logger log = LoggerFactory.getLogger(WebhookService.class);
 
-    private final KwhSubscriptionRepository subscriptionRepository;
-    private final KwhOutboxRepository outboxRepository;
+    private final WebhookSubscriptionRepository subscriptionRepository;
+    private final WebhookOutboxRepository outboxRepository;
     private final SecureRandom secureRandom = new SecureRandom();
     private final AuditLogService auditLogService;
     private final WebhookTargetPolicy targetPolicy;
 
-    public KwhWebhookService(
-            KwhSubscriptionRepository subscriptionRepository,
-            KwhOutboxRepository outboxRepository,
+    public WebhookService(
+            WebhookSubscriptionRepository subscriptionRepository,
+            WebhookOutboxRepository outboxRepository,
             AuditLogService auditLogService,
             WebhookTargetPolicy targetPolicy) {
         this.subscriptionRepository = subscriptionRepository;
@@ -134,7 +134,7 @@ public class KwhWebhookService {
                 null);
     }
 
-    private KwhSubscriptionRepository.SubscriptionRecord requireSubscription(Long id) {
+    private WebhookSubscriptionRepository.SubscriptionRecord requireSubscription(Long id) {
         return subscriptionRepository
                 .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.webhook.subscription_not_found"));
@@ -142,7 +142,8 @@ public class KwhWebhookService {
 
     @Transactional
     public void publishEvent(String eventType, Map<String, Object> payload) {
-        List<KwhSubscriptionRepository.SubscriptionRecord> active = subscriptionRepository.findActiveByEvent(eventType);
+        List<WebhookSubscriptionRepository.SubscriptionRecord> active =
+                subscriptionRepository.findActiveByEvent(eventType);
         for (var sub : active) {
             outboxRepository.enqueue(sub.id(), eventType, payload);
         }
@@ -175,7 +176,7 @@ public class KwhWebhookService {
         }
     }
 
-    private SubscriptionView toView(KwhSubscriptionRepository.SubscriptionRecord subscription) {
+    private SubscriptionView toView(WebhookSubscriptionRepository.SubscriptionRecord subscription) {
         return new SubscriptionView(
                 subscription.id(),
                 subscription.name(),

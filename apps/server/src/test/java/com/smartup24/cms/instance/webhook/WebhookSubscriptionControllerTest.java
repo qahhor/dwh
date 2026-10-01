@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.kwh;
+package com.smartup24.cms.instance.webhook;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -13,8 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
-import com.smartup24.cms.instance.kwh.controller.KwhSubscriptionController;
-import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
+import com.smartup24.cms.instance.webhook.controller.WebhookSubscriptionController;
+import com.smartup24.cms.instance.webhook.service.WebhookService;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -23,10 +23,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /** Plan 10/10, item 3.6: a webhook is changed from the revision the administrator read. */
-class KwhSubscriptionControllerTest {
+class WebhookSubscriptionControllerTest {
 
-    private final KwhWebhookService service = mock(KwhWebhookService.class);
-    private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new KwhSubscriptionController(service))
+    private final WebhookService service = mock(WebhookService.class);
+    private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new WebhookSubscriptionController(service))
             .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
             .build();
 
@@ -34,7 +34,7 @@ class KwhSubscriptionControllerTest {
     @DisplayName("3.6: the list carries each webhook's revision")
     void listCarriesRevisions() throws Exception {
         when(service.listSubscriptions())
-                .thenReturn(List.of(new KwhWebhookService.SubscriptionView(
+                .thenReturn(List.of(new WebhookService.SubscriptionView(
                         7L,
                         "Hook",
                         "https://hooks.example.invalid/***",

@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.kwh.repository;
+package com.smartup24.cms.instance.webhook.repository;
 
 import com.smartup24.cms.instance.common.security.StoredSecretColumn;
 import com.smartup24.cms.instance.common.security.StoredSecrets;
@@ -10,7 +10,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class KwhSubscriptionRepository implements StoredSecretColumn {
+public class WebhookSubscriptionRepository implements StoredSecretColumn {
 
     /** The signing key of a subscription is encrypted at rest (ADR-0029); this is its encryption context. */
     public static final String SECRET_COLUMN = "kwh_subscriptions.secret_token";
@@ -18,7 +18,7 @@ public class KwhSubscriptionRepository implements StoredSecretColumn {
     private final JdbcClient jdbcClient;
     private final StoredSecrets secrets;
 
-    public KwhSubscriptionRepository(JdbcClient jdbcClient, StoredSecrets secrets) {
+    public WebhookSubscriptionRepository(JdbcClient jdbcClient, StoredSecrets secrets) {
         this.jdbcClient = jdbcClient;
         this.secrets = secrets;
     }

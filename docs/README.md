@@ -129,6 +129,8 @@ Historical, fully superseded decisions are retained for traceability only:
 - [How the API behaves](api/README.md) — errors, paging, If-Match, idempotency,
   deprecations and where `openapi.json` comes from.
 - [Extension points](architecture/extension-points.md)
+- [Module map](architecture/module-map.md) — one row per server module:
+  purpose, owned tables, permission areas and entry points.
 - [Biruni and Smartup architecture conventions](architecture/biruni-smartup-conventions.md)
 - [Monorepo structure](architecture/monorepo-structure.md)
 - [Database migration guidelines](guidelines/database-migrations.md)

@@ -15,6 +15,6 @@ import org.springframework.stereotype.Component;
 public class SchemaVersionGate extends AbstractFlywaySchemaGate {
 
     public SchemaVersionGate(DataSource dataSource, @Value("${smc.schema-gate.enabled:true}") boolean enabled) {
-        super(dataSource, enabled, "classpath:db/migration", "Instance (md, kauth, tsk, ms, mf, audit, kwh)");
+        super(dataSource, enabled, "classpath:db/migration", "Instance (CMS database)");
     }
 }

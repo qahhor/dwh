@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.kwh.service;
+package com.smartup24.cms.instance.webhook.service;
 
 import com.smartup24.cms.instance.common.retention.RetentionPolicy;
 import org.springframework.context.annotation.Bean;
@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 /** The journals of webhook delivery and how long they live (plan 10/10, item 3.13). */
 @Configuration(proxyBeanMethods = false)
-public class KwhRetentionPolicies {
+public class WebhookRetentionPolicies {
 
     @Bean
     RetentionPolicy webhookLogsRetention() {

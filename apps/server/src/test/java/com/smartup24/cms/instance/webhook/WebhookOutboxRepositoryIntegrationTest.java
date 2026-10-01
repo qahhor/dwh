@@ -1,10 +1,10 @@
-package com.smartup24.cms.instance.kwh;
+package com.smartup24.cms.instance.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
-import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
 import com.smartup24.cms.instance.support.TestStoredSecrets;
+import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
 import java.util.Map;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
@@ -20,7 +20,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.ObjectMapper;
 
 @Testcontainers(disabledWithoutDocker = true)
-class KwhOutboxRepositoryIntegrationTest {
+class WebhookOutboxRepositoryIntegrationTest {
 
     @Container
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
@@ -29,8 +29,8 @@ class KwhOutboxRepositoryIntegrationTest {
             .withPassword("test_pass");
 
     static JdbcClient jdbc;
-    static KwhOutboxRepository firstWorkerRepository;
-    static KwhOutboxRepository secondWorkerRepository;
+    static WebhookOutboxRepository firstWorkerRepository;
+    static WebhookOutboxRepository secondWorkerRepository;
     static Long subscriptionId;
 
     @BeforeAll
@@ -51,9 +51,9 @@ class KwhOutboxRepositoryIntegrationTest {
                              'test-secret', array['release.ready'], 'A')
                         returning id
                         """).query(Long.class).single();
-        firstWorkerRepository = new KwhOutboxRepository(jdbc, new ObjectMapper(), TestStoredSecrets.secrets());
-        secondWorkerRepository =
-                new KwhOutboxRepository(JdbcClient.create(dataSource), new ObjectMapper(), TestStoredSecrets.secrets());
+        firstWorkerRepository = new WebhookOutboxRepository(jdbc, new ObjectMapper(), TestStoredSecrets.secrets());
+        secondWorkerRepository = new WebhookOutboxRepository(
+                JdbcClient.create(dataSource), new ObjectMapper(), TestStoredSecrets.secrets());
     }
 
     @BeforeEach

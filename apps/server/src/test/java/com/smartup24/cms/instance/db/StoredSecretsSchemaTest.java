@@ -6,9 +6,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.smartup24.cms.instance.common.security.StoredSecrets;
 import com.smartup24.cms.instance.common.security.StoredSecretsSealing;
 import com.smartup24.cms.instance.kauth.repository.SsoProviderRepository;
-import com.smartup24.cms.instance.kwh.repository.KwhSubscriptionRepository;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.instance.support.TestStoredSecrets;
+import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +26,7 @@ class StoredSecretsSchemaTest {
 
     /** Columns that hold a secret the server must read back: AES-256-GCM with the installation key. */
     static final List<String> ENCRYPTED =
-            List.of(KwhSubscriptionRepository.SECRET_COLUMN, SsoProviderRepository.SECRET_COLUMN);
+            List.of(WebhookSubscriptionRepository.SECRET_COLUMN, SsoProviderRepository.SECRET_COLUMN);
 
     /** Columns named like a secret that hold something else, with the reason. */
     static final Map<String, String> NOT_PLAIN_SECRETS = Map.of(
@@ -54,7 +54,7 @@ class StoredSecretsSchemaTest {
 
     private static JdbcClient jdbc;
     private static StoredSecrets secrets;
-    private static KwhSubscriptionRepository subscriptions;
+    private static WebhookSubscriptionRepository subscriptions;
     private static SsoProviderRepository providers;
     private static StoredSecretsSealing sealing;
 
@@ -62,7 +62,7 @@ class StoredSecretsSchemaTest {
     static void migrate() {
         jdbc = JdbcClient.create(TestDatabases.migratedCopy("stored_secrets"));
         secrets = TestStoredSecrets.secrets();
-        subscriptions = new KwhSubscriptionRepository(jdbc, secrets);
+        subscriptions = new WebhookSubscriptionRepository(jdbc, secrets);
         providers = new SsoProviderRepository(jdbc, secrets);
         sealing = new StoredSecretsSealing(List.of(subscriptions, providers), secrets);
     }
@@ -108,7 +108,7 @@ class StoredSecretsSchemaTest {
         assertThat(subscriptions.findById(created.id()).orElseThrow().secretToken())
                 .isEqualTo("fresh-plain-key");
         assertThat(subscriptions.listSubscriptions())
-                .extracting(KwhSubscriptionRepository.SubscriptionRecord::secretToken)
+                .extracting(WebhookSubscriptionRepository.SubscriptionRecord::secretToken)
                 .contains("legacy-plain-key", "fresh-plain-key");
         String seed = jdbc.sql("select client_secret from md_sso_providers where provider_id = 'google'")
                 .query(String.class)
@@ -127,7 +127,7 @@ class StoredSecretsSchemaTest {
         new SecureRandom().nextBytes(other);
         StoredSecrets wrong = StoredSecrets.withKey(other);
         var wrongSealing = new StoredSecretsSealing(
-                List.of(new KwhSubscriptionRepository(jdbc, wrong), new SsoProviderRepository(jdbc, wrong)), wrong);
+                List.of(new WebhookSubscriptionRepository(jdbc, wrong), new SsoProviderRepository(jdbc, wrong)), wrong);
 
         assertThatThrownBy(wrongSealing::sealAll)
                 .isInstanceOf(IllegalStateException.class)
