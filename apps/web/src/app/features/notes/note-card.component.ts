@@ -18,6 +18,7 @@ import { Note } from './notes.api';
   host: {
     '[class]': "'note-card color-' + (note().color || 'default')",
     '[class.is-pinned]': 'note().isPinned',
+    '[class.is-archived]': '!!note().archived',
   },
 })
 export class NoteCardComponent {
@@ -32,8 +33,11 @@ export class NoteCardComponent {
   readonly togglePin = output<void>();
   readonly edit = output<void>();
   readonly remove = output<void>();
+  /** Asks to move the note to the archive, or back when it is archived (ADR-0032 5.4). */
+  readonly toggleArchive = output<void>();
 
   readonly canPin = computed(() => canDo(this.meta(), 'pin'));
+  readonly canArchive = computed(() => canDo(this.meta(), 'archive'));
   readonly canEdit = computed(() => canDo(this.meta(), 'update'));
   readonly canDelete = computed(() => canDo(this.meta(), 'delete'));
   readonly values = computed(() => recordValues(this.meta(), { ...this.note() }));

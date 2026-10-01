@@ -10,9 +10,18 @@ export class EntitiesApi {
 
   /** Deletes the chosen records of an entity; the result names the ones that failed and why. */
   bulkDelete(code: string, ids: number[]): Observable<BulkResult> {
+    return this.bulk(code, 'delete', ids);
+  }
+
+  /** Moves the chosen records of an archivable entity to the archive (ADR-0032 5.4). */
+  bulkArchive(code: string, ids: number[]): Observable<BulkResult> {
+    return this.bulk(code, 'archive', ids);
+  }
+
+  private bulk(code: string, action: string, ids: number[]): Observable<BulkResult> {
     return this.api.post<BulkResult>(
       `/entities/${encodeURIComponent(code)}/bulk`,
-      { action: 'delete', ids },
+      { action, ids },
       { notifyError: false },
     );
   }

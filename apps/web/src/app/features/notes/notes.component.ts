@@ -168,6 +168,18 @@ export class NotesComponent {
     });
   }
 
+  /** Moves the note to the archive, or back from it, from the revision on screen (ADR-0032 5.4). */
+  toggleArchive(note: Note): void {
+    const archived = !note.archived;
+    this.notesApi.setArchived(note.id, archived, note.revision).subscribe({
+      next: () => {
+        this.toast.success(this.i18n.translate(archived ? 'notes.list.archived' : 'notes.list.restored'));
+        this.firstPage.reload();
+      },
+      error: () => this.toast.error(this.i18n.translate('notes.list.archive_error')),
+    });
+  }
+
   /** Asks first; the dialog stays open while the note is deleted and shows the failure. */
   remove(note: Note): void {
     const t = (key: string, params?: Record<string, string>) => this.i18n.translate(key, params);

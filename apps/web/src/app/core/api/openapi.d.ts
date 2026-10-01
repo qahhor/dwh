@@ -1836,9 +1836,29 @@ export interface paths {
         post?: never;
         /**
          * Delete a note
-         * @description Removes a note of the caller.
+         * @description Removes a note of the caller; with If-Match, only from the revision it names.
          */
         delete: operations["deleteNote"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{id}/archived": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Archive or restore a note
+         * @description Moves a note of the caller to the archive or back; names the revision it was read at.
+         */
+        put: operations["setArchived"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3161,6 +3181,9 @@ export interface components {
             /** Format: int64 */
             userId?: number;
         };
+        ArchivedRequest: {
+            archived?: boolean;
+        };
         AssignRolesDto: {
             roleIds: number[];
         };
@@ -3667,6 +3690,7 @@ export interface components {
             optionLabelPrefix?: string;
             options?: string[];
             pattern?: string;
+            readonly?: boolean;
             ref?: components["schemas"]["QueryRef"];
             required?: boolean;
             type?: string;
@@ -4095,6 +4119,9 @@ export interface components {
             url?: string;
         };
         NoteView: {
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
             attributes?: {
                 [key: string]: unknown;
             };
@@ -9100,6 +9127,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
+                "If-Match"?: string;
                 /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
                 "Idempotency-Key"?: string;
             };
@@ -9116,6 +9144,83 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    setArchived: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchivedRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteView"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {

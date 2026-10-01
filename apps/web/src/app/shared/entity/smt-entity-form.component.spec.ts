@@ -126,6 +126,22 @@ describe('SMTEntityFormComponent', () => {
     expect(host.values()['unit']).toBe('hq');
   });
 
+  // ADR-0032 5.2: a field the viewer may not change is shown, not edited.
+  it('shows a read-only field without letting it be changed', async () => {
+    const { root } = await render((host) =>
+      host.meta.set({
+        ...NOTES_FORM_META,
+        fields: NOTES_FORM_META.fields.map((field) =>
+          field.key === 'title' || field.key === 'contentMd' ? { ...field, readonly: true } : field,
+        ),
+      }),
+    );
+
+    expect((root.querySelector('[data-field="title"] input') as HTMLInputElement).disabled).toBe(true);
+    expect(root.querySelector('[data-field="contentMd"] ui-markdown-editor')).toBeNull();
+    expect(root.querySelector('[data-field="contentMd"] ui-markdown-view')).not.toBeNull();
+  });
+
   it('lets a screen replace one field and keeps the rest', async () => {
     const { fixture, root, host } = await render((host) => host.replaceColor.set(true));
 

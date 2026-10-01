@@ -51,6 +51,20 @@ describe('RefLookups', () => {
     expect(refs.name(UNITS, null)).toBeNull();
   });
 
+  it('names an archived row by its own read, with its mark (ADR-0032 5.4)', async () => {
+    const notes: QueryRefMeta = { path: '/notes', labelField: 'title', keyField: 'id', paged: true };
+    const get = vi.fn(() => of({ id: 4, title: 'Старая заметка', archived: true }));
+    const { refs } = setup(get);
+
+    expect(refs.name(notes, 4)).toBeNull();
+    await Promise.resolve();
+
+    const name = refs.name(notes, 4);
+    expect(name).toContain('Старая заметка');
+    expect(name).not.toBe('Старая заметка');
+    expect(get).toHaveBeenCalledWith('/notes/4', undefined, { notifyError: false });
+  });
+
   it('a whole list is searched on the screen', async () => {
     const { refs } = setup(
       vi.fn(() =>

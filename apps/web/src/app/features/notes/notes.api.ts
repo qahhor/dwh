@@ -23,6 +23,9 @@ export interface Note {
   modifiedAt: string;
   /** What a change of the record names in If-Match (plan item 3.6). */
   revision?: number;
+  /** In the archive (ADR-0032 5.4): out of the list until the archive is shown, still read by id. */
+  archived?: boolean;
+  archivedAt?: string | null;
 }
 
 /**
@@ -54,6 +57,11 @@ export class NotesApi {
   /** Pins or unpins the note: the request states the result, so a repeat leaves the same note. */
   setPin(id: number, pinned: boolean): Observable<Note> {
     return this.api.put<Note>(`/notes/${id}/pin`, { pinned }, { notifyError: false });
+  }
+
+  /** Moves the note to the archive or back, from the revision it was read at; a stale one is refused. */
+  setArchived(id: number, archived: boolean, revision?: number): Observable<Note> {
+    return this.api.put<Note>(`/notes/${id}/archived`, { archived }, { notifyError: false, ifMatch: revision });
   }
 
   remove(id: number): Observable<void> {

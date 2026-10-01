@@ -16,6 +16,7 @@ import { fieldLabel, optionLabel } from '@core/services/form-meta.service';
 import { I18nService } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownEditorComponent } from '../ui/ui-markdown-editor.component';
+import { UiMarkdownViewComponent } from '../ui/ui-markdown-view.component';
 import { SMTControlComponent } from '../ui-kit/components/forms/control/control.component';
 import {
   SMTDynamicFieldComponent,
@@ -59,13 +60,20 @@ interface DrawnSection {
 /**
  * One form for every declared entity (ADR-0019 2.5, roadmap item 55), drawn from `form-meta`: its sections in
  * order, each field with the kit control for its type, its label, required mark and problem. Custom fields come
- * in their own section like any other. The value is the record's values by field key (`recordValues`); the
+ * in their own section like any other. A field the viewer may not change is shown but not editable (ADR-0032 5.2);
+ * one they may not see the server leaves out. The value is the record's values by field key (`recordValues`); the
  * screen saves them (`recordPayload`) and hands back the server's problems.
  */
 @Component({
   selector: 'smt-entity-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgTemplateOutlet, SMTControlComponent, SMTDynamicFieldComponent, UiMarkdownEditorComponent],
+  imports: [
+    NgTemplateOutlet,
+    SMTControlComponent,
+    SMTDynamicFieldComponent,
+    UiMarkdownEditorComponent,
+    UiMarkdownViewComponent,
+  ],
   host: { class: 'smt-entity-form' },
   template: `
     @for (drawn of drawnSections(); track drawn.section.key) {
@@ -84,6 +92,10 @@ interface DrawnSection {
             >
               @if (replacement(field.meta.key); as custom) {
                 <ng-container *ngTemplateOutlet="custom; context: contextOf(field.meta)" />
+              } @else if (field.meta.type === 'markdown' && field.meta.readonly) {
+                <smt-control [smtLabel]="field.label">
+                  <ui-markdown-view [content]="textOf(field.meta.key)" />
+                </smt-control>
               } @else if (field.meta.type === 'markdown') {
                 <smt-control
                   [smtLabel]="field.label"
@@ -101,7 +113,7 @@ interface DrawnSection {
                 <smt-dynamic-field
                   [field]="field.def"
                   [source]="field.source"
-                  [disabled]="disabled()"
+                  [disabled]="disabled() || !!field.meta.readonly"
                   [error]="problemOf(field.meta.key)"
                   [value]="value()[field.meta.key] ?? null"
                   (valueChange)="set(field.meta.key, $event)"

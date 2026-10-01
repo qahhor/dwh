@@ -37,16 +37,29 @@ describe('NoteCardComponent', () => {
     expect(host.querySelector('.card-actions button')?.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('asks the screen to pin, edit and delete through its buttons', () => {
+  it('asks the screen to pin, edit, archive and delete through its buttons', () => {
     const { component, host } = setup();
     const asked: string[] = [];
     component.togglePin.subscribe(() => asked.push('pin'));
     component.edit.subscribe(() => asked.push('edit'));
+    component.toggleArchive.subscribe(() => asked.push('archive'));
     component.remove.subscribe(() => asked.push('remove'));
 
     host.querySelectorAll<HTMLButtonElement>('.card-actions button').forEach((button) => button.click());
 
-    expect(asked).toEqual(['pin', 'edit', 'remove']);
+    expect(asked).toEqual(['pin', 'edit', 'archive', 'remove']);
+  });
+
+  // ADR-0032 5.4: an archived note offers to come back.
+  it('offers to restore an archived note', () => {
+    const fixture = TestBed.createComponent(NoteCardComponent);
+    fixture.componentRef.setInput('note', { ...note, archived: true });
+    fixture.componentRef.setInput('meta', NOTES_FORM_META);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.classList).toContain('is-archived');
+    expect(host.querySelector('[data-testid="note-archive"]')?.textContent).toContain('unarchive');
   });
 
   it('shows no action the note form does not allow', () => {
