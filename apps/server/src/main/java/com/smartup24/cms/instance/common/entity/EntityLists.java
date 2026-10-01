@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldSource;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListSource;
@@ -18,7 +17,8 @@ import org.springframework.stereotype.Component;
  * modules' services, and those the registry of lists.
  *
  * <p>The list of an entity: its code is the entity's list code, its right {@code <form>.view}; it reads
- * {@code <table> <alias>}; it selects the system columns, every field as {@code <sql> as "<key>"} and the record's
+ * {@code <table> <alias>}; it selects the system columns, every field as {@code <sql> as "<key>"} ({@link EntitySelect})
+ * and the record's
  * {@code attributes} as text — columns every entity table has (ADR-0032, 14.1) — so a row is read by the record's
  * keys; its fields are the list parts of the entity's fields in declaration order. Only an entity that takes custom
  * fields offers them in the list ({@code customEntity}, {@code attributesSql}).
@@ -72,8 +72,7 @@ public class EntityLists implements QueryListSource {
             columns.add(alias + "." + column.column() + " as \"" + column.key() + "\"");
         }
         for (EntityField field : model.fields()) {
-            if (field.source() instanceof FieldSource.SystemValue) continue;
-            columns.add(field.source().sql(alias) + " as \"" + field.key() + "\"");
+            columns.addAll(EntitySelect.columns(field, alias));
         }
         columns.add(alias + "." + ATTRIBUTES + "::text as \"" + ATTRIBUTES + "\"");
         return String.join(", ", columns);

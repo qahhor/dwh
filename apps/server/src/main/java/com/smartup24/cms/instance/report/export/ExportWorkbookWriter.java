@@ -17,7 +17,8 @@ import org.dhatim.fastexcel.Worksheet;
  * One export as an xlsx sheet (ADR-0018): a header row of the list's column
  * titles, then a row per item. Values keep their kind — numbers as numbers,
  * dates and moments as Excel dates in UTC, flags as yes/no, choices by their
- * words — so the file can be sorted and summed at once.
+ * words, money in its currency's format ({@link ExportFormats}) — so the file
+ * can be sorted and summed at once.
  */
 final class ExportWorkbookWriter implements AutoCloseable {
 
@@ -60,13 +61,15 @@ final class ExportWorkbookWriter implements AutoCloseable {
     void add(Map<String, Object> item) {
         for (int c = 0; c < fields.size(); c++) {
             QueryField field = fields.get(c);
-            Object value = field.attribute() != null ? attribute(item, field.attribute()) : item.get(field.key());
+            Object value =
+                    field.attribute() != null ? attribute(item, field.attribute()) : ExportFormats.value(field, item);
             if (value == null) continue;
             if (field.attribute() != null) {
                 // Written by people before validation existed: shape is not guaranteed, so never fail the file on it.
                 customValue(c, field, value);
                 continue;
             }
+            if (ExportFormats.write(sheet, row, c, field, value)) continue;
             switch (field.type()) {
                 case NUMBER -> {
                     if (value instanceof Number number) sheet.value(row, c, number);

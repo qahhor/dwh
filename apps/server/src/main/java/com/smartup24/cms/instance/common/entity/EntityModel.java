@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Where an entity's records live and the fields they have (ADR-0032, 3.2): the table and its alias, every field
@@ -22,9 +23,15 @@ import java.util.stream.Stream;
  * @param fields            every field, in the order of the form and the list
  * @param defaultSort       the key of the list's default sort field, a sortable list field
  * @param defaultDescending the default sort runs from the largest value
+ * @param reference         its rows are the items of enumerations (ADR-0032, 4.5), or null
  */
 public record EntityModel(
-        String table, String alias, List<EntityField> fields, String defaultSort, boolean defaultDescending) {
+        String table,
+        String alias,
+        List<EntityField> fields,
+        String defaultSort,
+        boolean defaultDescending,
+        @Nullable EntityReference reference) {
 
     /** The record property of the custom field values. */
     public static final String ATTRIBUTES = "attributes";
@@ -49,6 +56,13 @@ public record EntityModel(
                         + " is the record's own; only its system field may use it");
             }
         }
+        EntityModelRules.check(table, fields);
+    }
+
+    /** A model of an entity that is no reference. */
+    public EntityModel(
+            String table, String alias, List<EntityField> fields, String defaultSort, boolean defaultDescending) {
+        this(table, alias, fields, defaultSort, defaultDescending, null);
     }
 
     /** The fields of the form, in declaration order. */
@@ -61,7 +75,7 @@ public record EntityModel(
     /** The fields of the list, in declaration order, read over the alias. */
     public List<QueryField> listFields() {
         return fields.stream()
-                .flatMap(field -> Stream.ofNullable(field.queryField(alias)))
+                .flatMap(field -> field.queryFields(alias).stream())
                 .toList();
     }
 

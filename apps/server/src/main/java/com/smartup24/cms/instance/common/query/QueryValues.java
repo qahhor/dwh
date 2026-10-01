@@ -48,7 +48,22 @@ final class QueryValues {
                     case "false" -> Boolean.FALSE;
                     default -> throw new IllegalArgumentException("not a boolean");
                 };
+            case REF_SET -> parseKey(text);
+            case OBJECT -> throw new IllegalArgumentException("takes no value");
         };
+    }
+
+    /** A row key of a set of references: a positive whole number. */
+    private static Long parseKey(String text) {
+        try {
+            long key = Long.parseLong(text.strip());
+            if (key < 1) {
+                throw new IllegalArgumentException("not a key");
+            }
+            return key;
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("not a key", e);
+        }
     }
 
     static String format(QueryFieldType type, Object value) {
@@ -80,6 +95,7 @@ final class QueryValues {
                 boolean flag = rs.getBoolean(column);
                 yield rs.wasNull() ? null : flag;
             }
+            case REF_SET, OBJECT -> throw new IllegalStateException("A " + type.wire() + " is never sorted: " + column);
         };
         if (value == null) {
             throw new IllegalStateException("Sort column " + column + " is null; sortable fields must not be");

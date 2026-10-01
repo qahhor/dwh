@@ -49,6 +49,7 @@ public final class Entity {
     private @Nullable String auditTable;
     private @Nullable String defaultSort;
     private boolean defaultDescending;
+    private @Nullable EntityReference reference;
     private final List<EntityField> fields = new ArrayList<>();
     private final List<FormSection> layout = new ArrayList<>();
     private final List<EntityAction> actions = new ArrayList<>();
@@ -118,6 +119,20 @@ public final class Entity {
         return this;
     }
 
+    /**
+     * Its rows are the items of enumerations (ADR-0032, 4.5): the code column, the name column, in the order of
+     * {@code sort_order}.
+     */
+    public Entity reference(String codeColumn, String nameColumn) {
+        return reference(codeColumn, nameColumn, "sort_order");
+    }
+
+    /** Its rows are the items of enumerations, in the order of {@code orderColumn}. */
+    public Entity reference(String codeColumn, String nameColumn, String orderColumn) {
+        this.reference = new EntityReference(codeColumn, nameColumn, orderColumn);
+        return this;
+    }
+
     /** Administrator-defined fields of {@code entityType} ({@code NOTE}) in the record's attributes (ADR-0019, 2.3). */
     public Entity customFields(String entityType) {
         this.customEntity = entityType;
@@ -144,8 +159,9 @@ public final class Entity {
                     Objects.requireNonNull(alias, "alias"),
                     fields,
                     Objects.requireNonNull(defaultSort, "Entity " + code + " names its list's default sort"),
-                    defaultDescending);
-        } else if (fields.stream().anyMatch(field -> field.list() != null)) {
+                    defaultDescending,
+                    reference);
+        } else if (reference != null || fields.stream().anyMatch(field -> field.list() != null)) {
             throw new IllegalArgumentException("Entity " + code + ": a list field needs the entity's table");
         }
         List<FormField> formFields = fields.stream()

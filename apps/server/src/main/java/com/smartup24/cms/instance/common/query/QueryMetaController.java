@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +29,11 @@ public class QueryMetaController {
         this.registry = registry;
     }
 
+    /**
+     * A list field as the client sees it; {@code format} names the entity field type when the list type alone does not
+     * say how to show the value, {@code enumLabels} the words of an enumeration read from its reference entity
+     * (ADR-0032, 4.1 and 4.5).
+     */
     public record FieldMeta(
             String key,
             String labelKey,
@@ -41,7 +47,9 @@ public class QueryMetaController {
             boolean searchable,
             @Nullable String label,
             @Nullable String attribute,
-            @Nullable QueryRef ref) {
+            @Nullable QueryRef ref,
+            @Nullable String format,
+            @Nullable Map<String, String> enumLabels) {
 
         static FieldMeta of(QueryField field) {
             List<String> ops = field.ops().stream().map(QueryOp::wire).toList();
@@ -58,7 +66,9 @@ public class QueryMetaController {
                     field.searchable(),
                     field.label(),
                     field.attribute(),
-                    field.ref());
+                    field.ref(),
+                    field.format(),
+                    field.enumLabels());
         }
     }
 

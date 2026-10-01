@@ -3,17 +3,17 @@ package com.smartup24.cms.instance.common.entity.field;
 import com.smartup24.cms.instance.common.entity.FormField;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
-import java.util.EnumSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
  * One field of an entity, declared once (ADR-0032, 3.1; plan 10/10, item 5.1): the form field ({@link #formField()})
- * and the list field ({@link #queryField(String)}) are derived from it, so the form and the list cannot disagree on
- * the key, the label, the kind of value, the options or the reference. Built with {@link EntityFields}.
+ * and the list fields ({@link #queryFields(String)}) are derived from it, so the form and the list cannot disagree on
+ * the key, the label, the kind of value, the options or the reference. Built with {@link EntityFields}; what each
+ * type needs is checked by {@link FieldTypeRules} (plan 10/10, item 5.2).
  *
  * @param key        the record property in the API and the DSL
  * @param labelKey   the dictionary key of its label; empty when {@code label} is given
@@ -45,9 +45,11 @@ public record EntityField(
     /** One rule for the form, the list and the DSL (plan 10/10, item 5.0). */
     private static final Pattern KEY = Pattern.compile("^[a-z][a-zA-Z0-9]{0,63}$");
 
-    /** Kinds of value an attribute holds as text, so its list field reads it without a cast (until item 5.2). */
-    private static final Set<FieldType> TEXT_ATTRIBUTES =
-            EnumSet.of(FieldType.TEXT, FieldType.TEXTAREA, FieldType.MARKDOWN, FieldType.SELECT);
+    /** The key suffix of the hidden list field that filters money by its currency (ADR-0032, 4.1). */
+    public static final String CURRENCY_SUFFIX = "Currency";
+
+    /** The format of that currency field: its value is the currency of the money field it belongs to. */
+    public static final String CURRENCY_FORMAT = "currency";
 
     public EntityField {
         Objects.requireNonNull(type, "type");
@@ -60,34 +62,28 @@ public record EntityField(
         if (form == null && list == null) {
             throw new IllegalArgumentException("Entity field " + key + " is on neither the form nor the list");
         }
-        if (form != null && !source.writable()) {
-            throw new IllegalArgumentException(
-                    "Entity field " + key + ": only a column or an attribute is written by the form");
-        }
-        if ((type == FieldType.SELECT) == options.options().isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Entity field " + key + ": options go with a select, and a select needs them");
-        }
-        if ((type == FieldType.REF) != (options.ref() != null)) {
-            throw new IllegalArgumentException(
-                    "Entity field " + key + ": a reference field names its source, and only it");
+        if (form != null && !source.writable() && !(source instanceof FieldSource.Computed)) {
+            throw new IllegalArgumentException("Entity field " + key
+                    + ": only a column, an attribute, money columns, a link table or a computed value is on the form");
         }
         if (source instanceof FieldSource.SystemValue system
                 && !system.column().key().equals(key)) {
             throw new IllegalArgumentException("Entity field " + key + ": a system column answers as "
                     + system.column().key());
         }
-        if (source instanceof FieldSource.Attribute
-                && (!TEXT_ATTRIBUTES.contains(type) || (list != null && list.isSortable()))) {
-            throw new IllegalArgumentException("Entity field " + key
-                    + ": an attribute holds text or a select option and is never sorted (ADR-0019, 2.3)");
-        }
+        FieldTypeRules.check(key, type, source, form, list, options);
     }
 
     /** The field of the form, or null when the field is only in the list. */
     public @Nullable FormField formField() {
         if (form == null) return null;
         FieldRules rules = form.rules();
+        boolean computed = source instanceof FieldSource.Computed;
+        FormFlags flags = new FormFlags(
+                computed ? FieldReadonly.ALWAYS : form.readonly(), form.defaultValue(), form.visibleWhen(), computed);
+        FieldRules typed = type == FieldType.IMAGE && rules.contentTypes().isEmpty()
+                ? rules.withFiles(rules.maxBytes(), FieldTypeRules.IMAGE_TYPES)
+                : rules;
         return new FormField(
                 key,
                 labelKey,
@@ -102,7 +98,9 @@ public record EntityField(
                 options.options(),
                 options.optionLabelPrefix(),
                 options.ref(),
-                attribute());
+                attribute(),
+                flags,
+                FieldParams.of(typed, options));
     }
 
     /**
@@ -112,23 +110,67 @@ public record EntityField(
     public @Nullable QueryField queryField(String alias) {
         if (list == null) return null;
         QueryFieldType listType = type.listType();
+        boolean enumeration = listType == QueryFieldType.ENUM;
         return new QueryField(
                 key,
                 labelKey,
                 listType,
-                source.sql(alias),
+                sql(alias),
                 list.isFilterable(),
                 list.isSortable(),
-                list.isNullable(),
+                list.isNullable() || !listType.sortable() || source instanceof FieldSource.Attribute,
                 list.isDefaultVisible(),
-                listType == QueryFieldType.ENUM ? options.options() : List.of(),
-                listType == QueryFieldType.ENUM ? options.optionLabelPrefix() : null,
+                enumeration ? options.options() : List.of(),
+                enumeration ? options.optionLabelPrefix() : null,
                 list.isSearchable(),
                 access.requiredForm(),
                 access.requiredAction(),
                 label,
                 attribute(),
-                options.ref());
+                options.ref(),
+                type.formatted() ? type.wire() : null,
+                null);
+    }
+
+    /**
+     * The fields of the entity's list: the field itself and, for money, the hidden field that filters it by its
+     * currency ({@code totalCurrency}, an enumeration of its currencies; ADR-0032, 4.1). Empty when the field is only
+     * on the form.
+     */
+    public List<QueryField> queryFields(String alias) {
+        QueryField field = queryField(alias);
+        if (field == null) return List.of();
+        List<QueryField> fields = new ArrayList<>();
+        fields.add(field);
+        if (source instanceof FieldSource.MoneyColumns money) {
+            fields.add(new QueryField(
+                    key + CURRENCY_SUFFIX,
+                    labelKey,
+                    QueryFieldType.ENUM,
+                    money.currencySql(alias, options.currencies().getFirst()),
+                    field.filterable(),
+                    false,
+                    false,
+                    false,
+                    options.currencies(),
+                    null,
+                    false,
+                    field.requiredForm(),
+                    field.requiredAction(),
+                    label,
+                    null,
+                    null,
+                    CURRENCY_FORMAT,
+                    null));
+        }
+        return fields;
+    }
+
+    /** The value as SQL over the table aliased {@code alias}: an attribute cast to the field's type. */
+    public String sql(String alias) {
+        return source instanceof FieldSource.Attribute attribute
+                ? AttributeCasts.read(alias, attribute.code(), type)
+                : source.sql(alias);
     }
 
     /** The attribute code of a field kept in the record's {@code attributes}, or null. */
