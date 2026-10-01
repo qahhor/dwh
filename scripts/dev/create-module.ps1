@@ -10,6 +10,7 @@
        declaration (Entity) with its records bean (ADR-0019). Every field is declared once, as an EntityField: the
        form and the list in the field registry are derived from it (ADR-0032, plan 10/10, item 5.1).
     The area of the module's right is registered in PermissionAreas, so the right has its owning module (ADR-0028).
+    The test sources get the entity's contract test, one subclass of EntityContractTestKit (plan 10/10, item 6.2).
     3. Catalog keys in ru/uz/en (apps/server/src/main/resources/i18n): the error, the menu item and the labels.
     What is left to do by hand is printed at the end; scripts/dev/test-create-module.ps1 checks the output compiles
     and passes the architecture tests.
@@ -234,8 +235,8 @@ package ${pkg}.api;
 
 import java.util.Map;
 
-/** The body of POST /api/v1/$cleanCode. */
-public record ${createClass}(String name, String code, Map<String, Object> attributes) {}
+/** The body of POST /api/v1/${cleanCode}: every field the form writes; a null status takes the default. */
+public record ${createClass}(String name, String code, String status, Map<String, Object> attributes) {}
 "@
 
 Write-Utf8 (Join-Path $apiDir "${updateClass}.java") @"
@@ -309,13 +310,14 @@ public class ${repoClass} {
                 .optional();
     }
 
-    public ItemRecord create(String name, String code, Map<String, Object> attributes, Long userId) {
+    public ItemRecord create(String name, String code, String status, Map<String, Object> attributes, Long userId) {
         return jdbcClient
-                .sql("insert into $tableName as t (name, code, attributes, created_by, modified_by)"
-                        + " values (:name, :code, cast(:attributes as jsonb), :userId, :userId) returning "
-                        + COLUMNS)
+                .sql("insert into $tableName as t (name, code, status, attributes, created_by, modified_by)"
+                        + " values (:name, :code, coalesce(:status, 'active'), cast(:attributes as jsonb), :userId,"
+                        + " :userId) returning " + COLUMNS)
                 .param("name", name)
                 .param("code", code.toLowerCase().trim())
+                .param("status", status)
                 .param("attributes", jsonColumns.object(attributes))
                 .param("userId", userId)
                 .query(this::mapItem)
@@ -531,9 +533,10 @@ public class ${serviceClass} {
     }
 
     @Transactional
-    public ${viewClass} createItem(String name, String code, Map<String, Object> attributes, Long userId) {
-        EntityValidator.check(${entityClass}.DEFINITION, values(name, code, null), false);
-        var item = repository.create(name.trim(), code, attributes, userId);
+    public ${viewClass} createItem(
+            String name, String code, String status, Map<String, Object> attributes, Long userId) {
+        EntityValidator.check(${entityClass}.DEFINITION, values(name, code, status), false);
+        var item = repository.create(name.trim(), code, status, attributes, userId);
         auditLogService.logChange(
                 "$tableName",
                 String.valueOf(item.id()),
@@ -569,8 +572,8 @@ public class ${serviceClass} {
                 "$tableName",
                 String.valueOf(id),
                 "D",
-                List.of("name", "code"),
-                Map.of("name", item.name(), "code", item.code()),
+                List.of("name", "code", "status"),
+                Map.of("name", item.name(), "code", item.code(), "status", item.status()),
                 null);
     }
 
@@ -670,8 +673,8 @@ public class ${ctrlClass} {
     @RequiresPermission(form = "$cleanCode", action = "create")
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<${viewClass}> createItem(@RequestBody ${createClass} body) {
-        ${viewClass} item =
-                service.createItem(body.name(), body.code(), body.attributes(), SecurityContext.getCurrentUserId());
+        ${viewClass} item = service.createItem(
+                body.name(), body.code(), body.status(), body.attributes(), SecurityContext.getCurrentUserId());
         return Created.at("/api/v1/$cleanCode/{id}", item.id(), item);
     }
 
@@ -705,6 +708,38 @@ public class ${ctrlClass} {
 "@
 
 Write-Host "-> Java: $pkg (api, repository, service, controller)" -ForegroundColor Yellow
+
+# The entity's contract test (plan 10/10, item 6.2; ADR-0032, 11): one subclass of the kit gives the module the checks
+# of CRUD, rights, scope, validation, audit and export, and EntityContractCoverageTest finds it.
+$testBase = Join-Path $Root "apps\server\src\test\java\com\smartup24\cms\instance\${prefixLower}\${cleanCode}"
+New-Item -ItemType Directory -Force -Path $testBase | Out-Null
+$contractClass = "${prefixUpper}${capitalName}ContractTest"
+Write-Utf8 (Join-Path $testBase "${contractClass}.java") @"
+package ${pkg};
+
+import com.smartup24.cms.instance.support.entity.EntityContractTestKit;
+import com.smartup24.cms.instance.support.entity.EntityTransport;
+
+/**
+ * The $cleanCode entity passes the entity contract (ADR-0032, 11; plan 10/10, item 6.2) through its own controller
+ * until the general runtime serves it (plan 10/10, item 5.4). Values the kit cannot make up (a reference, a file, an
+ * enumeration item) go into fixture(...).
+ */
+class ${contractClass} extends EntityContractTestKit {
+
+    @Override
+    protected String entity() {
+        return "$listCode";
+    }
+
+    @Override
+    protected EntityTransport transport() {
+        // The generated delete does not take If-Match (ADR-0032, 5.3).
+        return EntityTransport.module("/api/v1/$cleanCode").deleteWithoutIfMatch();
+    }
+}
+"@
+Write-Host "-> Contract test: ${contractClass} (EntityContractTestKit)" -ForegroundColor Yellow
 
 # The area of the right and its owning module (ADR-0028): the form $cleanCode belongs to ${prefixLower}.${cleanCode}, the
 # module its EntityRights name (EntityActionPermissionContractTest, PermissionCodesTest).
@@ -758,7 +793,8 @@ Write-Host "     ($tableVersion and $seedVersion are the next free numbers now: 
 Write-Host "  2. Check the uz/en texts of the added keys; then in apps/web: npm run i18n:sync-ru"
 Write-Host "  3. API description: mvn -B -pl apps/server test -Dtest=OpenApiContractTest -Dopenapi.update=true; in apps/web: npm run api:types"
 Write-Host "  4. Screen: a route to /$cleanCode with smt-entity-form, smt-entity-card and smt-entity-toolbar; PUT sends ifMatch: revision"
-Write-Host "  5. Tests as for notes (MsNoteControllerTest); a line for $prefixLower.$cleanCode in apps/server/coverage-floors.csv;"
+Write-Host "  5. The contract test ${contractClass} runs the entity kit; add the module's own rules as tests; a line for"
+Write-Host "     $prefixLower.$cleanCode in apps/server/coverage-floors.csv;"
 Write-Host "     $prefixLower.$cleanCode in ModuleBoundariesTest.MODULES and its table prefix; a growing table: LARGE_TABLES, a RetentionPolicy"
 Write-Host "     the purpose in package-info.java and a row in docs/architecture/module-map.md (ModuleMapTest)"
 Write-Host "  6. mvn -B verify (Checkstyle, Spotless, architecture tests); scripts/dev/test-create-module.ps1 checks this generator"

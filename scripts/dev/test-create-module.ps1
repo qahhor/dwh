@@ -36,6 +36,9 @@ $tests = @(
     # Plan 10/10, item 5.1: every field is declared once, the list is derived from it; the right has its area.
     'EntityFieldsSingleSourceTest',
     'PermissionCodesTest',
+    # Plan 10/10, item 6.2: the generated entity passes the contract kit, and every entity with a table has its test.
+    'MsProbeContractTest',
+    'EntityContractCoverageTest',
     'MdPermissionEntityNamesTest',
     'MdFormCatalogTest',
     # Embedded PostgreSQL, no Docker: the migrations apply, the declared rights are in the catalog, the role
@@ -84,6 +87,8 @@ try {
     Assert-That ($java.Contains('"error.probe.not_found"')) 'not found is an ApiException with a catalog key'
     Assert-That (-not ($java -match '[Ѐ-ӿ]')) 'the generated Java has no Cyrillic outside the title'
     Assert-That ($java.Contains('Entity.define(') -and -not $java.Contains('new QueryList(') -and -not $java.Contains('QueryField.')) 'every field is declared once, as an EntityField'
+    $contract = Join-Path $work 'apps/server/src/test/java/com/smartup24/cms/instance/ms/probe/MsProbeContractTest.java'
+    Assert-That ((Test-Path -LiteralPath $contract) -and (Get-Content -LiteralPath $contract -Raw -Encoding UTF8).Contains('extends EntityContractTestKit')) 'the entity gets its contract test (EntityContractTestKit)'
     $areas = Get-Content -LiteralPath (Join-Path $work 'apps/server/src/main/java/com/smartup24/cms/instance/md/pref/PermissionAreas.java') -Raw -Encoding UTF8
     Assert-That ($areas.Contains('"probe", "ms.probe"')) 'the right''s area is registered for its module'
 
