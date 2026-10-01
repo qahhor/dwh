@@ -169,12 +169,6 @@ public class SearchGenerationRepository {
                 .param("id", generation)
                 .update();
         complete(proof, job, owner, "ACTIVATING");
-        Long actor = proof.sql("select actor_id from search_jobs where id=:job")
-                .param("job", job)
-                .query((rs, row) -> rs.getObject("actor_id", Long.class))
-                .optional()
-                .orElse(null);
-        SearchJobRepository.audit(proof, job, actor, "SWITCH");
         return true;
     }
 

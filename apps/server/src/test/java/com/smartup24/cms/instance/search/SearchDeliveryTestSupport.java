@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.search;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
+import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
@@ -195,7 +197,11 @@ abstract class SearchDeliveryTestSupport {
         worker.startLifecycle(owner);
         jobRepository = SearchRevisionIntegrationTest.proxied(new SearchJobRepository(jdbc, mapper), manager);
         generationRepository = new SearchGenerationRepository(jdbc);
-        generationService = new SearchGenerationService(generationRepository, new SearchSettingsRepository(jdbc), 4);
+        var jobAudit = new SearchJobAudit(
+                jobRepository,
+                new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor()));
+        generationService =
+                new SearchGenerationService(generationRepository, new SearchSettingsRepository(jdbc), jobAudit, 4);
         storage = new SearchStoragePreflight(client.health(), reader);
         reconciliation = new SearchReconciliationService(database, reader, client.collections(), client.documents());
         jobService = SearchRevisionIntegrationTest.proxied(
@@ -205,6 +211,7 @@ abstract class SearchDeliveryTestSupport {
                         state,
                         generationService,
                         storage,
+                        jobAudit,
                         manager,
                         Optional.of(metrics)),
                 manager);

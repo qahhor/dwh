@@ -28,7 +28,7 @@ public class MsTaskCommentRepository {
                 select i.id, i.task_id, i.user_id, i.text_markdown, i.created_at,
                        u.name as user_name, u.login as user_login
                 from inserted i
-                left join md_users u on u.id = i.user_id
+                left join md_pub_users u on u.id = i.user_id
                 """)
                 .param("taskId", taskId)
                 .param("userId", userId)
@@ -69,7 +69,7 @@ public class MsTaskCommentRepository {
                        u.name as user_name, u.login as user_login,
                        coalesce(array_agg(cf.file_id) filter (where cf.file_id is not null), '{}') as file_ids_arr
                 from ms_task_comments c
-                left join md_users u on u.id = c.user_id
+                left join md_pub_users u on u.id = c.user_id
                 left join ms_task_comment_files cf on cf.comment_id = c.id
                 where c.task_id = :taskId
                 """ + (after == null ? "" : " and (c.created_at, c.id) > (:afterAt, :afterId)") + """

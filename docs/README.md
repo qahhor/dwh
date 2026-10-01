@@ -76,6 +76,10 @@ Current ADRs that are not superseded:
 - [ADR-0025 — retention of journals and the cache across nodes](adr/ADR-0025-retention-and-cluster-cache.md)
   — modules declare how long their journals live and a nightly job trims them;
   a cache cleared on one node is cleared on all after the commit.
+- [ADR-0026 — published read views](adr/ADR-0026-published-read-views.md)
+  — a module publishes read-only `<prefix>_pub_*` views of the columns other
+  modules read; their repositories join the views, never the base tables, and
+  change another module's data only through its service.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

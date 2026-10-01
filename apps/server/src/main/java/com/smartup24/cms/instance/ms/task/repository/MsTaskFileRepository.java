@@ -36,7 +36,7 @@ public class MsTaskFileRepository {
                 .sql("""
                 select tf.file_id, f.original_name, f.size_bytes, f.mime_type, tf.created_at
                 from ms_task_files tf
-                join mf_files f on f.id = tf.file_id
+                join mf_pub_files f on f.id = tf.file_id
                 where tf.task_id = :taskId
                 order by tf.created_at asc
                 """)
