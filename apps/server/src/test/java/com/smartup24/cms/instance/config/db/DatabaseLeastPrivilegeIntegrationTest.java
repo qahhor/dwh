@@ -149,11 +149,11 @@ class DatabaseLeastPrivilegeIntegrationTest {
             GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO smartupcms;
             GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO smartupcms;
 
-            -- РЇРІРЅС‹Р№ РѕС‚Р·С‹РІ РѕРїР°СЃРЅС‹С… РїСЂРёРІРёР»РµРіРёР№
+            -- Явный отзыв опасных привилегий
             REVOKE TRUNCATE ON ALL TABLES IN SCHEMA public FROM smartupcms;
             REVOKE UPDATE, DELETE, TRUNCATE ON audit_log, audit_log_default FROM smartupcms;
 
-            -- Р РµР·РµСЂРІРЅРѕРµ РєРѕРїРёСЂРѕРІР°РЅРёРµ
+            -- Резервное копирование
             GRANT CONNECT ON DATABASE smartupcms TO smartupcms_backup;
             GRANT USAGE ON SCHEMA public TO smartupcms_backup;
             REVOKE CREATE ON SCHEMA public FROM smartupcms_backup;
@@ -169,7 +169,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ СЃСѓРїРµСЂРїРѕР»СЊР·РѕРІР°С‚РµР»СЊ Рё РЅРµ РјРѕР¶РµС‚ СЃРѕР·РґР°РІР°С‚СЊ СЂРѕР»Рё РёР»Рё Р±Р°Р·С‹")
+                "Пользователь приложения не суперпользователь и не может создавать роли или базы")
         void appUserIsNotSuperuser() {
             var roleInfo = appJdbc.sql("""
                     select rolsuper, rolcreatedb, rolcreaterole
@@ -187,7 +187,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ СЃРѕР·РґР°РІР°С‚СЊ С‚Р°Р±Р»РёС†С‹ (DDL CREATE TABLE Р·Р°РїСЂРµС‰РµРЅ)")
+                "Пользователь приложения не может создавать таблицы (DDL CREATE TABLE запрещен)")
         void appUserCannotCreateTable() {
             assertThatThrownBy(() -> appJdbc.sql("create table probe_least_privilege(id int)")
                             .update())
@@ -198,7 +198,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ СѓРґР°Р»СЏС‚СЊ С‚Р°Р±Р»РёС†С‹ (DDL DROP TABLE Р·Р°РїСЂРµС‰РµРЅ)")
+                "Пользователь приложения не может удалять таблицы (DDL DROP TABLE запрещен)")
         void appUserCannotDropTable() {
             assertThatThrownBy(() -> appJdbc.sql("drop table md_users").update())
                     .isInstanceOf(DataAccessException.class)
@@ -208,7 +208,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ РјРµРЅСЏС‚СЊ СЃС‚СЂСѓРєС‚СѓСЂСѓ С‚Р°Р±Р»РёС† (DDL ALTER TABLE Р·Р°РїСЂРµС‰РµРЅ)")
+                "Пользователь приложения не может менять структуру таблиц (DDL ALTER TABLE запрещен)")
         void appUserCannotAlterTable() {
             assertThatThrownBy(() -> appJdbc.sql("alter table md_users add column attacker_probe text")
                             .update())
@@ -219,7 +219,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ РѕС‡РёС‰Р°С‚СЊ С‚Р°Р±Р»РёС†С‹ С‡РµСЂРµР· TRUNCATE")
+                "Пользователь приложения не может очищать таблицы через TRUNCATE")
         void appUserCannotTruncateTables() {
             assertThatThrownBy(() -> appJdbc.sql("truncate table md_users").update())
                     .isInstanceOf(DataAccessException.class)
@@ -234,7 +234,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ РѕС‚РєР»СЋС‡РёС‚СЊ С‚СЂРёРіРіРµСЂС‹ РЅРµРёР·РјРµРЅСЏРµРјРѕСЃС‚Рё audit_log")
+                "Пользователь приложения не может отключить триггеры неизменяемости audit_log")
         void appUserCannotDisableTriggers() {
             assertThatThrownBy(() -> appJdbc.sql("alter table audit_log disable trigger all")
                             .update())
@@ -245,7 +245,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РјРѕР¶РµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РѕР±С‹С‡РЅС‹Р№ DML (SELECT, INSERT, UPDATE, DELETE)")
+                "Пользователь приложения может выполнять обычный DML (SELECT, INSERT, UPDATE, DELETE)")
         void appUserCanPerformStandardDml() {
             long userCount = appJdbc.sql("select count(*) from md_users")
                     .query(Long.class)
@@ -266,7 +266,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "AuditPartitionRepository СЃРѕР·РґР°РµС‚ Рё РѕС‚С†РµРїР»СЏРµС‚ РїР°СЂС‚РёС†РёРё Р±РµР· DDL-РїСЂР°РІ РїСЂРёР»РѕР¶РµРЅРёСЏ")
+                "AuditPartitionRepository создает и отцепляет партиции без DDL-прав приложения")
         void auditPartitionWorkerCanManagePartitionsViaSecurityDefiner() {
             var repo = new AuditPartitionRepository(appJdbc);
 
@@ -324,7 +324,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "SchemaVersionGate СѓСЃРїРµС€РЅРѕ РїСЂРѕС…РѕРґРёС‚ РїСЂРѕРІРµСЂРєСѓ СЃС…РµРјС‹ РїРѕРґ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј РїСЂРёР»РѕР¶РµРЅРёСЏ")
+                "SchemaVersionGate успешно проходит проверку схемы под пользователем приложения")
         void schemaVersionGatePassesForAppUser() {
             var gate = new SchemaVersionGate(appDataSource, true);
             gate.verifySchemaMatchesApplication();
@@ -336,7 +336,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
     class BackupUserPrivileges {
 
         @Test
-        @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р±СЌРєР°РїР° РјРѕР¶РµС‚ С‡РёС‚Р°С‚СЊ РІСЃРµ С‚Р°Р±Р»РёС†С‹")
+        @DisplayName("Пользователь бэкапа может читать все таблицы")
         void backupUserCanReadTables() {
             long count = backupJdbc
                     .sql("select count(*) from md_users")
@@ -347,7 +347,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
         @Test
         @DisplayName(
-                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р±СЌРєР°РїР° РЅРµ РјРѕР¶РµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РѕРїРµСЂР°С†РёРё Р·Р°РїРёСЃРё")
+                "Пользователь бэкапа не может выполнять операции записи")
         void backupUserCannotWrite() {
             assertThatThrownBy(() -> backupJdbc.sql("""
                     insert into audit_log (table_name, row_pk, event, changed_at)
