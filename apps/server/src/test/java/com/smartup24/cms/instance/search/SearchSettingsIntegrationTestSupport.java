@@ -165,7 +165,15 @@ abstract class SearchSettingsIntegrationTestSupport {
 
     @BeforeEach
     void resetData() {
-        actorId = actorSequence.incrementAndGet();
+        // search_jobs.actor_id and search_settings.updated_by reference md_users (plan 10/10, item 4.6): the actor of
+        // each test is a real row, not a bare number.
+        long fixture = actorSequence.incrementAndGet();
+        actorId = jdbc.sql("insert into md_users (name, login, email) values ('Search fixture', :login, :email)"
+                        + " returning id")
+                .param("login", "search-fixture-" + fixture)
+                .param("email", "search-fixture-" + fixture + "@example.invalid")
+                .query(Long.class)
+                .single();
         requests.clear();
         paths.clear();
         responses.clear();

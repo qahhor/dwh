@@ -56,8 +56,8 @@ public final class StoredSecrets {
                 return new StoredSecrets(null);
             }
             throw new IllegalStateException(
-                    KEY_VARIABLE + " is not set: the server encrypts the secrets it keeps in the"
-                            + " database with it. Generate one with `openssl rand -base64 32` (docs/ops/deployment-guide.md).");
+                    KEY_VARIABLE + " is not set: the server encrypts the secrets it keeps in the database with it."
+                            + " Generate one with `openssl rand -base64 32` (docs/ops/deployment-guide.md).");
         }
         SecretCipher cipher;
         try {
