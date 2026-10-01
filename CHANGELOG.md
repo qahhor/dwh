@@ -9,6 +9,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Phase 4, wave A (plan 10/10, items 4.1, 4.4, 4.6). Product settings are
+  named `smc.*` / `SMC_*`, warehouse settings `warehouse.*` / `WAREHOUSE_*`
+  (ADR-0027); `docs/ops/configuration-reference.md` is generated from the
+  code and checked for drift. Permission form codes name their owning module
+  (ADR-0028). Webhook signing keys and SSO client secrets are encrypted at
+  rest with AES-256-GCM under `SMC_SECRETS_KEY` (ADR-0029); the schema gains
+  the missing foreign keys, `attributes` object checks and loses two
+  redundant indexes (V149–V151), all guarded by `SchemaOrderTest` and
+  `StoredSecretsSchemaTest`.
+
 - Phase 3 debts closed (2026-10-01). Modules read each other's data only
   through published read views `<owner>_pub_*` (ADR-0026, V141); the
   foreign-SQL list and the frozen module-boundary store are empty, so both
@@ -777,6 +787,23 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Apache-2.0 community, governance, security, and contribution policies.
 
 ### Changed
+
+- **Upgrade-breaking (phase 4, wave A):**
+  - Old `dwh.*` / `DWH_*` / `app.dwh.*` / `APP_DWH_*` names are still read
+    until 2026-12-31 with a warning (compose falls back to them too); rename
+    them in `.env` (`deploy.sh` lists the ones found).
+  - Outside the dev and test profiles the server refuses to start while the
+    Typesense key, the first admin password or a database password keeps its
+    published development value.
+  - `SMC_SECRETS_KEY` (32 random bytes, base64) is required in production;
+    keep it with the backups: a database restored without it loses webhook
+    keys and SSO secrets. Upgrade all nodes together: an old node signs
+    webhooks with the encrypted value.
+- **API-breaking (item 4.4):** permission form codes change (V147 moves
+  every grant): `iam.*`, `rbac.*`, `platform.*` become `md.*`,
+  `notify.announcements`, `mf.files`, `search`, `webhook.subscriptions`.
+  `/auth/me`, the role matrix and effective rights answer the new codes; old
+  codes are accepted on input until 2026-12-31.
 
 - **API-breaking (phase 3 debts):** `GET /settings/system` answers
   `{values, revision}` with an `ETag` instead of a bare map;
