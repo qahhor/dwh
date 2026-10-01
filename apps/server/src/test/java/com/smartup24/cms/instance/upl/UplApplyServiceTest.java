@@ -94,7 +94,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
 
     @Autowired
     @Qualifier(FndPref.DWH)
-    private JdbcClient dwhJdbc;
+    private JdbcClient warehouseJdbc;
 
     @Autowired
     private TransactionTemplate tx;
@@ -114,7 +114,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from fnd_job_queue").update();
             jdbc.sql("delete from fnd_job_runs").update();
         });
-        dwhJdbc.sql("delete from raw.rows").update();
+        warehouseJdbc.sql("delete from raw.rows").update();
         sourceId = UplPackageTestData.publishedSource(sources, userId, LocalDate.of(2026, 1, 1));
     }
 
@@ -151,7 +151,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         assertThat(applied.rowsTotal()).isEqualTo(10);
         long loadId = applied.loadId();
         assertThat(rawCount(loadId)).isEqualTo(10);
-        assertThat(dwhJdbc.sql("select count(*) from raw.rows where load_id = :id and sheet = :sheet"
+        assertThat(warehouseJdbc
+                        .sql("select count(*) from raw.rows where load_id = :id and sheet = :sheet"
                                 + " and source_row_no is not null and source_file_id = :file")
                         .param("id", loadId)
                         .param("sheet", UplPackageTestData.SHEET)
@@ -201,7 +202,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
 
         assertConflict(() -> applies.request(row.publicId().toString(), userId), "error.upl.pkg_not_verified");
         assertThat(rawCount(queued.loadId())).isEqualTo(10);
-        assertThat(dwhJdbc.sql("select count(*) from raw.rows")
+        assertThat(warehouseJdbc
+                        .sql("select count(*) from raw.rows")
                         .query(Long.class)
                         .single())
                 .isEqualTo(10);
@@ -232,7 +234,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                         .query(Long.class)
                         .single())
                 .isZero();
-        assertThat(dwhJdbc.sql("select count(*) from raw.rows")
+        assertThat(warehouseJdbc
+                        .sql("select count(*) from raw.rows")
                         .query(Long.class)
                         .single())
                 .isEqualTo(10);
@@ -448,7 +451,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     }
 
     private long rawCount(long loadId) {
-        return dwhJdbc.sql("select count(*) from raw.rows where load_id = :id")
+        return warehouseJdbc
+                .sql("select count(*) from raw.rows where load_id = :id")
                 .param("id", loadId)
                 .query(Long.class)
                 .single();

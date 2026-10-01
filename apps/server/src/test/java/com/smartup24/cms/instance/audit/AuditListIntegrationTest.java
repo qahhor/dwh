@@ -39,7 +39,7 @@ class AuditListIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_audit_list_test");
+        var ds = TestDatabases.migratedCopy("smc_audit_list_test");
         jdbc = JdbcClient.create(ds);
         var repository = new AuditLogRepository(jdbc, new ObjectMapper());
         audit = new AuditListService(

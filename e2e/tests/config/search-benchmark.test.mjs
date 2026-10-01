@@ -65,7 +65,7 @@ async function startControlledBenchmarkServer({
     };
     if (request.method === 'POST' && url.pathname === '/api/v1/auth/login') {
       sendJson(200, { step: 'success', user: { id: 1, forcePasswordChange: false } }, {
-        'set-cookie': ['DWH_SESSION=fixture-session; Path=/; HttpOnly', 'XSRF-TOKEN=fixture-csrf; Path=/'],
+        'set-cookie': ['SMC_SESSION=fixture-session; Path=/; HttpOnly', 'XSRF-TOKEN=fixture-csrf; Path=/'],
       });
       return;
     }

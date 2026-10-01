@@ -71,13 +71,13 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
                         .single())
                 .isEqualTo("IMPORT_REJECTED");
         assertThat(metricRegistry
-                        .find("dwh.search.import.rows")
+                        .find("smc.search.import.rows")
                         .tag("outcome", "SUCCESS")
                         .counter()
                         .count())
                 .isOne();
         assertThat(metricRegistry
-                        .find("dwh.search.import.rows")
+                        .find("smc.search.import.rows")
                         .tag("outcome", "FAILURE")
                         .counter()
                         .count())
@@ -86,7 +86,7 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
         clock.advance(Duration.ofSeconds(2));
         worker.runOnce();
         assertThat(delivered("USER", rejected)).isOne();
-        assertThat(metricRegistry.find("dwh.search.delivery.retries").counter().count())
+        assertThat(metricRegistry.find("smc.search.delivery.retries").counter().count())
                 .isOne();
     }
 
@@ -139,20 +139,20 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
         for (int i = 0; i < 40 && !jobRepository.find(job).orElseThrow().state().equals("SUCCEEDED"); i++) runCycle();
         assertThat(jobRepository.find(job).orElseThrow().state()).isEqualTo("SUCCEEDED");
         assertThat(metricRegistry
-                        .find("dwh.search.job.states")
+                        .find("smc.search.job.states")
                         .tag("state", "SUCCEEDED")
                         .counter())
                 .isNotNull();
-        assertThat(metricRegistry.find("dwh.search.job.duration").timer()).isNotNull();
-        assertThat(metricRegistry.find("dwh.search.generation.switches").counter())
+        assertThat(metricRegistry.find("smc.search.job.duration").timer()).isNotNull();
+        assertThat(metricRegistry.find("smc.search.generation.switches").counter())
                 .isNotNull();
         assertThat(metricRegistry
-                        .find("dwh.search.import.rows")
+                        .find("smc.search.import.rows")
                         .tag("outcome", "SUCCESS")
                         .counter())
                 .isNotNull();
         assertThat(metricRegistry
-                        .find("dwh.search.delivery.pending")
+                        .find("smc.search.delivery.pending")
                         .tag("role", "ACTIVE")
                         .gauge())
                 .isNotNull();

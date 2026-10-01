@@ -5,12 +5,13 @@ import org.springframework.boot.actuate.info.Info;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.stereotype.Component;
 
+/** Adds the system information of {@link SystemInfoService} to /actuator/info under {@code smartupcms}. */
 @Component
-public class DwhInfoContributor implements InfoContributor {
+public class PlatformInfoContributor implements InfoContributor {
 
     private final SystemInfoService systemInfoService;
 
-    public DwhInfoContributor(SystemInfoService systemInfoService) {
+    public PlatformInfoContributor(SystemInfoService systemInfoService) {
         this.systemInfoService = systemInfoService;
     }
 

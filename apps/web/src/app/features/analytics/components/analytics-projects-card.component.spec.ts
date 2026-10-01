@@ -16,7 +16,7 @@ const project = (projectId: number, projectName: string, completedTasks: number,
 const PROJECTS = [
   project(1, 'Alpha ERP', 5, 10),
   project(2, 'Beta CRM', 6, 8),
-  project(3, 'Gamma DWH', 4, 4),
+  project(3, 'Gamma BI', 4, 4),
   project(4, 'Delta Mobile', 0, 12),
 ];
 
@@ -43,7 +43,7 @@ describe('AnalyticsProjectsCardComponent', () => {
   it('shows every project with its progress and done out of total', () => {
     const { host, names } = render();
 
-    expect(names()).toEqual(['Alpha ERP', 'Beta CRM', 'Gamma DWH', 'Delta Mobile']);
+    expect(names()).toEqual(['Alpha ERP', 'Beta CRM', 'Gamma BI', 'Delta Mobile']);
     const first = host.querySelector('.project-item') as HTMLElement;
     expect(first.querySelector('.project-pct')?.textContent?.trim()).toBe('50%');
     expect(first.querySelector('.project-tasks-count')?.textContent?.trim()).toBe('(5/10)');

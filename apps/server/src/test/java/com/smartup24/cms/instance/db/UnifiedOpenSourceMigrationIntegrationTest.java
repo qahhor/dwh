@@ -3,8 +3,11 @@ package com.smartup24.cms.instance.db;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationInfo;
 import org.flywaydb.core.api.MigrationVersion;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -68,9 +71,11 @@ class UnifiedOpenSourceMigrationIntegrationTest {
                              'PROCESSING', gen_random_uuid())
                         """).update();
 
+        // Up to the last version before V152, which drops md_custom_modules (plan 10/10, item 4.7).
         FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .locations("classpath:db/migration")
+                .target(lastVersionBefore("152"))
                 .load()
                 .migrate();
 
@@ -131,6 +136,28 @@ class UnifiedOpenSourceMigrationIntegrationTest {
                         join md_roles r on r.id = rp.role_id
                         where r.pcode = 'admin' and rp.form_code = 'notify.announcements'
                         """).query(Long.class).single()).isEqualTo(5);
+
+        FlywayUtcConfiguration.configure(Flyway.configure())
+                .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
+        assertThat(columns(jdbc, "md_custom_modules")).isEmpty();
+    }
+
+    /** The newest migration on the classpath older than {@code version}. */
+    private static MigrationVersion lastVersionBefore(String version) {
+        MigrationVersion limit = MigrationVersion.fromVersion(version);
+        return Arrays.stream(FlywayUtcConfiguration.configure(Flyway.configure())
+                        .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                        .locations("classpath:db/migration")
+                        .load()
+                        .info()
+                        .all())
+                .map(MigrationInfo::getVersion)
+                .filter(candidate -> candidate != null && candidate.compareTo(limit) < 0)
+                .max(Comparator.naturalOrder())
+                .orElseThrow();
     }
 
     private static List<String> columns(JdbcClient jdbc, String tableName) {

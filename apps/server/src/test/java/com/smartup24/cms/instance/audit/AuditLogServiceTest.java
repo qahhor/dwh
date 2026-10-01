@@ -127,7 +127,7 @@ class AuditLogServiceTest {
         Map<String, Object> setting = new LinkedHashMap<>();
         setting.put("key", "oauth.client_secret");
         setting.put("value", "live-client-secret");
-        setting.put("token_prefix", "dwh_public_prefix");
+        setting.put("token_prefix", "smc_public_prefix");
         setting.put("claim_token", "coordination-id");
         setting.put("reservation_token", "reservation-id");
         setting.put("authorization_url", "https://id.example.test/authorize");
@@ -151,7 +151,7 @@ class AuditLogServiceTest {
         assertThat(newRowCaptor.getValue())
                 .containsEntry("key", "oauth.client_secret")
                 .containsEntry("value", "[REDACTED]")
-                .containsEntry("token_prefix", "dwh_public_prefix")
+                .containsEntry("token_prefix", "smc_public_prefix")
                 .containsEntry("claim_token", "[REDACTED]")
                 .containsEntry("reservation_token", "[REDACTED]")
                 .containsEntry("authorization_url", "https://id.example.test/authorize")

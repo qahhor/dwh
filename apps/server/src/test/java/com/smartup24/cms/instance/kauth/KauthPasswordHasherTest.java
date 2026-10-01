@@ -25,7 +25,7 @@ class KauthPasswordHasherTest {
     @Test
     @DisplayName("SHA-256 должен выдавать корректный 64-символьный hex хеш")
     void shouldGenerateSha256HashCorrectly() {
-        String token = "dwh_test_token_12345";
+        String token = "smc_test_token_12345";
         String hash = KauthPasswordHasher.sha256(token);
 
         assertThat(hash).isNotNull().hasSize(64);

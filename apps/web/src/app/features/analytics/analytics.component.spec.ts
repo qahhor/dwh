@@ -383,7 +383,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
       { projectId: 2, projectName: 'Beta CRM', totalTasks: 8, activeTasks: 2, completedTasks: 6, progressPercent: 75 },
       {
         projectId: 3,
-        projectName: 'Gamma DWH',
+        projectName: 'Gamma BI',
         totalTasks: 4,
         activeTasks: 0,
         completedTasks: 4,

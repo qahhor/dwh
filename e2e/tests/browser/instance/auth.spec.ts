@@ -29,7 +29,7 @@ test('login page publishes a reachable browser icon', async ({ page, request }) 
 });
 
 test('login applies the saved dark theme with accessible mobile controls', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('dwh_theme', 'dark'));
+  await page.addInitScript(() => localStorage.setItem('smc_theme', 'dark'));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();

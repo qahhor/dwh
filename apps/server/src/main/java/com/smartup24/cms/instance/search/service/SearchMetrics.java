@@ -29,7 +29,7 @@ public class SearchMetrics {
         String safeEntity = finite(entity, Set.of("ALL", "TASK", "PROJECT", "USER"));
         String safeSource = finite(source, Set.of("POSTGRES", "TYPESENSE"));
         registry.timer(
-                        "dwh.search.query.duration",
+                        "smc.search.query.duration",
                         "entity",
                         safeEntity,
                         "source",
@@ -38,34 +38,34 @@ public class SearchMetrics {
                         error ? "ERROR" : "SUCCESS")
                 .record(Math.max(0, elapsedNanos), TimeUnit.NANOSECONDS);
         if (error)
-            registry.counter("dwh.search.query.errors", "entity", safeEntity).increment();
+            registry.counter("smc.search.query.errors", "entity", safeEntity).increment();
         if (fallback)
-            registry.counter("dwh.search.fallback", "entity", safeEntity).increment();
+            registry.counter("smc.search.fallback", "entity", safeEntity).increment();
     }
 
     public void engine(String entity, long milliseconds) {
         if (registry != null)
-            registry.timer("dwh.search.engine.duration", "entity", finite(entity, Set.of("TASK", "PROJECT", "USER")))
+            registry.timer("smc.search.engine.duration", "entity", finite(entity, Set.of("TASK", "PROJECT", "USER")))
                     .record(Math.max(0, milliseconds), TimeUnit.MILLISECONDS);
     }
 
     public void rejected() {
-        if (registry != null) registry.counter("dwh.search.rate.rejections").increment();
+        if (registry != null) registry.counter("smc.search.rate.rejections").increment();
     }
 
     public void imported(boolean success, long rows) {
         if (registry != null && rows > 0)
-            registry.counter("dwh.search.import.rows", "outcome", success ? "SUCCESS" : "FAILURE")
+            registry.counter("smc.search.import.rows", "outcome", success ? "SUCCESS" : "FAILURE")
                     .increment(rows);
     }
 
     public void retry() {
-        if (registry != null) registry.counter("dwh.search.delivery.retries").increment();
+        if (registry != null) registry.counter("smc.search.delivery.retries").increment();
     }
 
     public void queue(boolean active, long pending, long lagSeconds) {
-        gauge("dwh.search.delivery.pending", active ? "ACTIVE" : "CANDIDATE", pending);
-        gauge("dwh.search.delivery.lag.seconds", active ? "ACTIVE" : "CANDIDATE", lagSeconds);
+        gauge("smc.search.delivery.pending", active ? "ACTIVE" : "CANDIDATE", pending);
+        gauge("smc.search.delivery.lag.seconds", active ? "ACTIVE" : "CANDIDATE", lagSeconds);
     }
 
     public void job(String action, String state, Duration duration) {
@@ -73,16 +73,16 @@ public class SearchMetrics {
         String safeAction = finite(action, Set.of("CHECK", "REBUILD", "ROLLBACK"));
         String safeState = finite(
                 state, Set.of("QUEUED", "RUNNING", "VERIFYING", "ACTIVATING", "SUCCEEDED", "FAILED", "CANCELLED"));
-        registry.counter("dwh.search.job.states", "action", safeAction, "state", safeState)
+        registry.counter("smc.search.job.states", "action", safeAction, "state", safeState)
                 .increment();
         if (duration != null)
-            registry.timer("dwh.search.job.duration", "action", safeAction, "state", safeState)
+            registry.timer("smc.search.job.duration", "action", safeAction, "state", safeState)
                     .record(duration.isNegative() ? Duration.ZERO : duration);
     }
 
     public void switched(String action) {
         if (registry != null)
-            registry.counter("dwh.search.generation.switches", "action", finite(action, Set.of("REBUILD", "ROLLBACK")))
+            registry.counter("smc.search.generation.switches", "action", finite(action, Set.of("REBUILD", "ROLLBACK")))
                     .increment();
     }
 

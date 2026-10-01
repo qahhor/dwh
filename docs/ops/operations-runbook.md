@@ -57,7 +57,7 @@ Check in order:
    container is taken out of traffic, not restarted. pg-dwh, Typesense (if
    enabled) and ClamAV (if scanning is required) appear in
    `/actuator/health` but do not affect readiness: search falls back to
-   PostgreSQL, uploads fail closed and the DWH module degrades alone.
+   PostgreSQL, uploads fail closed and warehouse loads degrade alone.
 3. PostgreSQL health, disk capacity, and filesystem errors.
 4. Whether a migration failed or the release tag changed unexpectedly.
 
@@ -235,7 +235,7 @@ Mutations to tasks, files, and notes are staged transactionally in `search_outbo
 - If search results become stale, check the outbox queue status and trigger reconciliation via the management API:
   ```bash
   curl -X POST http://127.0.0.1:8080/api/v1/search/management/reconcile \
-    -H "Authorization: Bearer dwh_operator_token"
+    -H "Authorization: Bearer $SMC_API_TOKEN"  # a personal API token (smc_...)
   ```
 - Alternatively, restarting the server container triggers non-blocking startup reconciliation automatically.
 
@@ -328,7 +328,7 @@ Each batch is its own short transaction; two nodes may run the job at once.
 
 `0` keeps a table's rows forever. The audit log is not here: its partitions leave the database only through
 the verified archive ("Audit log archive"). The log line `retention_purged policy=… rows=…` and the metric
-`dwh_retention_deleted_rows_total{policy}` show each run; `retention_failed` names a table the run could not
+`smc_retention_deleted_rows_total{policy}` show each run; `retention_failed` names a table the run could not
 clean (the others are cleaned regardless, and the next run retries it). A bad value of one setting is logged
 the same way and leaves the other tables cleaned. The job deletes by `ctid`, so it refuses a partitioned table:
 the application does not start while a retention policy names one.

@@ -266,7 +266,7 @@ describe('SourcesListComponent', () => {
     fixture.detectChanges();
 
     expect(headers(fixture)).toHaveLength(4);
-    expect(JSON.parse(localStorage.getItem('dwh.table-columns.v1.upl.sources')!).hidden).toEqual([
+    expect(JSON.parse(localStorage.getItem('smc.table-columns.v1.upl.sources')!).hidden).toEqual([
       'lastPublishedVersion',
     ]);
   });

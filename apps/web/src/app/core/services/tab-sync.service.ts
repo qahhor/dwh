@@ -9,7 +9,7 @@ export type TabSyncMessage =
   /** Somebody is working in that tab: an idle lock elsewhere waits (roadmap item 28). */
   | { kind: 'activity' };
 
-const CHANNEL = 'dwh-session';
+const CHANNEL = 'smc-session';
 
 /**
  * Keeps the open tabs of one browser in step (roadmap item 27, an idea from

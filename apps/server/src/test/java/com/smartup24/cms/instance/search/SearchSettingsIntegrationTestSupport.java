@@ -261,7 +261,7 @@ abstract class SearchSettingsIntegrationTestSupport {
     }
 
     static MockHttpServletRequestBuilder auth(MockHttpServletRequestBuilder request) {
-        return request.cookie(new Cookie("DWH_SESSION", "fixture-session"), new Cookie("XSRF-TOKEN", "fixture-csrf"))
+        return request.cookie(new Cookie("SMC_SESSION", "fixture-session"), new Cookie("XSRF-TOKEN", "fixture-csrf"))
                 .header("X-XSRF-TOKEN", "fixture-csrf")
                 .contentType("application/json");
     }

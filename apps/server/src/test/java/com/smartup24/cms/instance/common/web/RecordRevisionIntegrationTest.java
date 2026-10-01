@@ -285,7 +285,7 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
         MockHttpServletResponse saved = send(
                 admin,
                 patch("/api/v1/settings/system").header("If-Match", Revisions.etag(revision + 1)),
-                Map.of("system.company_name", "Smartup DWH Platform", "system.default_timezone", "Asia/Tashkent"));
+                Map.of("system.company_name", "SmartupCMS", "system.default_timezone", "Asia/Tashkent"));
         assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(204);
         assertThat(saved.getHeader("ETag")).isEqualTo(Revisions.etag(revision + 2));
     }

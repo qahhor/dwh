@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.kauth.security;
 
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import com.smartup24.cms.instance.md.pref.MdPref;
@@ -10,7 +10,6 @@ import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -18,6 +17,8 @@ import java.util.List;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -30,7 +31,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Takes part ONLY in the Spring Security chain (see SecurityConfig:
  * auto-registration in the servlet container is disabled). Fills both contexts:
  * our thread-local SecurityContext (RBAC interceptor) and SecurityContextHolder
- * (Spring Security authorization).
+ * (Spring Security authorization). A session found under the old cookie name is moved to the new one on this
+ * response (plan 10/10, item 4.7).
  */
 @Component
 public class KauthAuthenticationFilter extends OncePerRequestFilter {
@@ -41,6 +43,21 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
     private final KauthApiTokenService apiTokenService;
     private final MdUserService userService;
     private final MdPermissionService permissionService;
+    private final KauthSessionCookies sessionCookies;
+
+    @Autowired
+    public KauthAuthenticationFilter(
+            KauthSessionService sessionService,
+            KauthApiTokenService apiTokenService,
+            MdUserService userService,
+            MdPermissionService permissionService,
+            ObjectProvider<ClientIpResolver> clientIpResolver) {
+        this.sessionService = sessionService;
+        this.apiTokenService = apiTokenService;
+        this.userService = userService;
+        this.permissionService = permissionService;
+        this.sessionCookies = new KauthSessionCookies(clientIpResolver.getIfAvailable());
+    }
 
     public KauthAuthenticationFilter(
             KauthSessionService sessionService,
@@ -51,6 +68,7 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
         this.apiTokenService = apiTokenService;
         this.userService = userService;
         this.permissionService = permissionService;
+        this.sessionCookies = new KauthSessionCookies(null);
     }
 
     @Override
@@ -77,20 +95,7 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
 
             // 2. Try Cookie Session
             if (!SecurityContext.isAuthenticated()) {
-                String sessionCookieValue = extractSessionCookie(request);
-                if (sessionCookieValue != null) {
-                    var sessionOpt = sessionService.getActiveSession(sessionCookieValue);
-                    if (sessionOpt.isPresent()) {
-                        var session = sessionOpt.get();
-                        authenticateUser(
-                                session.userId(),
-                                session.authenticationVersion(),
-                                () -> sessionService.updateLastSeen(session.id()),
-                                session.id(),
-                                false,
-                                null);
-                    }
-                }
+                KauthSessionCookies.read(request).ifPresent(cookie -> authenticateSession(cookie, request, response));
             }
 
             filterChain.doFilter(request, response);
@@ -99,6 +104,27 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
             // clearing it by hand here would wipe the authentication BEFORE
             // ExceptionTranslationFilter (higher up the chain) handles the exception.
             SecurityContext.clear();
+        }
+    }
+
+    private void authenticateSession(
+            KauthSessionCookies.SessionCookie cookie, HttpServletRequest request, HttpServletResponse response) {
+        var sessionOpt = sessionService.getActiveSession(cookie.value());
+        if (sessionOpt.isEmpty()) {
+            return;
+        }
+        var session = sessionOpt.get();
+        authenticateUser(
+                session.userId(),
+                session.authenticationVersion(),
+                () -> sessionService.updateLastSeen(session.id()),
+                session.id(),
+                false,
+                null);
+        if (cookie.legacy() && SecurityContext.isAuthenticated()) {
+            // Plan 10/10, item 4.7: the old cookie name is read until ApiDeprecations.SUNSET; the browser gets the
+            // same session under the new name now, so it no longer depends on the old one.
+            sessionCookies.issue(request, response, cookie.value());
         }
     }
 
@@ -143,17 +169,5 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
         var authority = new SimpleGrantedAuthority(principal.isApi() ? "ROLE_API" : "ROLE_USER");
         var authentication = UsernamePasswordAuthenticationToken.authenticated(principal, null, List.of(authority));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-    }
-
-    private String extractSessionCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) {
-            return null;
-        }
-        for (Cookie cookie : request.getCookies()) {
-            if (KauthPref.SESSION_COOKIE_NAME.equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
-        return null;
     }
 }

@@ -50,7 +50,7 @@ class ReadinessHealthTest {
     @Test
     @DisplayName("Database: UP on a live database, DOWN on an unreachable one")
     void database() {
-        JdbcClient live = JdbcClient.create(TestDatabases.migratedCopy("dwh_readiness"));
+        JdbcClient live = JdbcClient.create(TestDatabases.migratedCopy("smc_readiness"));
         JdbcClient dead =
                 JdbcClient.create(new DriverManagerDataSource("jdbc:postgresql://127.0.0.1:1/none", "none", ""));
 

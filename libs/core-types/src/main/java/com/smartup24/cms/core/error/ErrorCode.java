@@ -1,7 +1,7 @@
 package com.smartup24.cms.core.error;
 
 /**
- * Standard machine-readable error codes across DWH Platform according to TRD-04 Section 8.
+ * Standard machine-readable error codes of SmartupCMS (ADR-0021).
  */
 public enum ErrorCode {
     // 400 Bad Request

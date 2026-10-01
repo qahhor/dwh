@@ -155,7 +155,7 @@ describe('sessionExpiredInterceptor', () => {
 
   it('knows which calls need a session', () => {
     expect(isSessionBound('/api/v1/ms/tasks?page=1')).toBe(true);
-    expect(isSessionBound('https://dwh.example.test/api/v1/md/users')).toBe(true);
+    expect(isSessionBound('https://cms.example.test/api/v1/md/users')).toBe(true);
     expect(isSessionBound('/api/v1/auth/me')).toBe(false);
     expect(isSessionBound('/api/v1/auth')).toBe(false);
     expect(isSessionBound('/assets/i18n/ru.json')).toBe(false);

@@ -3,6 +3,17 @@ title = "SmartupCMS gitleaks configuration"
 [extend]
 useDefault = true
 
+# Personal API tokens of SmartupCMS: the prefix and 32 random bytes in unpadded base64url (KauthApiTokenService).
+# Plan 10/10, item 4.7: new tokens start with smc_; tokens issued before it start with dwh_ and authenticate until
+# 2026-12-31, so a leaked token of either prefix is still a live secret.
+[[rules]]
+id = "smartupcms-api-token"
+description = "SmartupCMS personal API token"
+regex = '''\b((?:smc|dwh)_[A-Za-z0-9_-]{43})(?:[^A-Za-z0-9_-]|$)'''
+secretGroup = 1
+entropy = 3.5
+keywords = ["smc_", "dwh_"]
+
 [[allowlists]]
 description = "Graphify stat index stores only generated SHA-256 content hashes"
 paths = ['''(?:^|/)graphify-out/cache/stat-index\.json$''']

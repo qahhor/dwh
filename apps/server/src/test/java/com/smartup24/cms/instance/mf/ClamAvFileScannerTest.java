@@ -34,7 +34,7 @@ class ClamAvFileScannerTest {
             assertThat(result.threatName()).isEqualTo("Eicar-Test-Signature");
             assertThat(received.get(1, TimeUnit.SECONDS)).containsExactly(content);
             assertThat(meterRegistry
-                            .get("dwh.file.scanner")
+                            .get("smc.file.scanner")
                             .tag("provider", "clamav")
                             .tag("outcome", "infected")
                             .timer()

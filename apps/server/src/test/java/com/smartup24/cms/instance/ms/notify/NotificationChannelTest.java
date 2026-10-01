@@ -74,7 +74,7 @@ class NotificationChannelTest {
         JavaMailSender sender = Mockito.mock(JavaMailSender.class);
         when(sender.createMimeMessage()).thenReturn(emptyMime());
 
-        var result = new SmtpMailProvider(sender, "no-reply@dwh.local", "DWH").send(LETTER);
+        var result = new SmtpMailProvider(sender, "no-reply@example.test", "SmartupCMS").send(LETTER);
 
         assertThat(result.isSuccess()).isTrue();
         verify(sender).send(any(MimeMessage.class));
@@ -87,7 +87,7 @@ class NotificationChannelTest {
         when(sender.createMimeMessage()).thenReturn(emptyMime());
         doThrow(new MailSendException("шлюз недоступен")).when(sender).send(any(MimeMessage.class));
 
-        var result = new SmtpMailProvider(sender, "no-reply@dwh.local", "DWH").send(LETTER);
+        var result = new SmtpMailProvider(sender, "no-reply@example.test", "SmartupCMS").send(LETTER);
 
         assertThat(result.isSuccess()).isFalse();
         assertThat(result.errorCode()).isEqualTo("smtp_send_failed");

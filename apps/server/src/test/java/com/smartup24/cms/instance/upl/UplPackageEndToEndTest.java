@@ -96,7 +96,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
 
     @Autowired
     @Qualifier(FndPref.DWH)
-    private JdbcClient dwhJdbc;
+    private JdbcClient warehouseJdbc;
 
     @Autowired
     private FndLoadService loads;
@@ -242,14 +242,16 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
         long firstLoad = applyPackage(admin, firstId, first);
 
         assertThat(rawRows(firstLoad)).isEqualTo(first.total());
-        assertThat(dwhJdbc.sql("select count(distinct source_row_no) from raw.rows where load_id = :id"
+        assertThat(warehouseJdbc
+                        .sql("select count(distinct source_row_no) from raw.rows where load_id = :id"
                                 + " and sheet = :sheet and source_row_no is not null")
                         .param("id", firstLoad)
                         .param("sheet", sheet.sheetName())
                         .query(Long.class)
                         .single())
                 .isEqualTo(first.total());
-        assertThat(dwhJdbc.sql("select min(source_row_no) from raw.rows where load_id = :id")
+        assertThat(warehouseJdbc
+                        .sql("select min(source_row_no) from raw.rows where load_id = :id")
                         .param("id", firstLoad)
                         .query(Long.class)
                         .single())
@@ -294,7 +296,8 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
     }
 
     private long rawRows(long loadId) {
-        return dwhJdbc.sql("select count(*) from raw.rows where load_id = :id")
+        return warehouseJdbc
+                .sql("select count(*) from raw.rows where load_id = :id")
                 .param("id", loadId)
                 .query(Long.class)
                 .single();

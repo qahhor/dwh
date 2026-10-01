@@ -129,12 +129,12 @@ class SearchImportHttpTest {
                             .extracting(TypesenseDocuments.ImportAck::success)
                             .containsExactly(true, false);
                     assertThat(acknowledgements.get(1).errorCode()).isEqualTo("IMPORT_REJECTED");
-                    assertThat(registry.find("dwh.search.import.rows")
+                    assertThat(registry.find("smc.search.import.rows")
                                     .tag("outcome", "SUCCESS")
                                     .counter()
                                     .count())
                             .isOne();
-                    assertThat(registry.find("dwh.search.import.rows")
+                    assertThat(registry.find("smc.search.import.rows")
                                     .tag("outcome", "FAILURE")
                                     .counter()
                                     .count())

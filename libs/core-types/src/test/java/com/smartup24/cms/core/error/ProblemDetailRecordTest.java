@@ -18,7 +18,7 @@ class ProblemDetailRecordTest {
 
         assertThat(problem.code()).isEqualTo("user_not_found");
         assertThat(problem.status()).isEqualTo(404);
-        assertThat(problem.type()).endsWith("/user_not_found");
+        assertThat(problem.type()).isEqualTo("urn:smartupcms:problem:user_not_found");
         assertThat(problem.messageKey()).isEqualTo("error.md.user_missing");
         assertThat(problem.params()).containsEntry("id", 7);
         assertThat(problem.detail()).isEqualTo("Нет пользователя 7");
@@ -39,6 +39,7 @@ class ProblemDetailRecordTest {
         var problem = ProblemDetailRecord.ofValidation("error.validation_failed", Map.of(), "Ошибка", "/api/x", errors);
         assertThat(problem.status()).isEqualTo(422);
         assertThat(problem.code()).isEqualTo("validation_failed");
+        assertThat(problem.type()).isEqualTo("urn:smartupcms:problem:validation_failed");
         assertThat(problem.errors()).isEqualTo(errors);
         assertThat(problem.messageKey()).isEqualTo("error.validation_failed");
 
