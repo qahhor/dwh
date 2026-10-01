@@ -115,7 +115,7 @@ describe('RolesComponent', () => {
       panel.confirmSave();
       const readsBeforeRevocation = scopeReads();
 
-      permissions.setPermissions(['rbac.roles.view', 'rbac.roles.grant', 'iam.org_units.assign']);
+      permissions.setPermissions(['md.roles.view', 'md.roles.grant', 'md.org_units.assign']);
       fixture.detectChanges();
 
       expect(panelOf(fixture)).toBe(panel);

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 import com.smartup24.cms.instance.kauth.repository.SsoProviderRepository;
+import com.smartup24.cms.instance.md.pref.PermissionAreas;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.io.IOException;
@@ -265,6 +266,12 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
         long rolesBefore = count("md_roles");
         long permissionsBefore = count("md_role_permissions");
         long providersBefore = count("md_sso_providers");
+        // V147 (ADR-0028) renamed most forms V110 names, so a replay over today's catalog can rebuild only the pairs
+        // whose codes it still writes.
+        List<String> restorable = ANALYST_PAIRS.stream()
+                .filter(pair -> !PermissionAreas.LEGACY_FORMS.containsValue(pair.substring(0, pair.indexOf(':'))))
+                .toList();
+        assertThat(restorable).isNotEmpty();
 
         // Everything runs in one rolled-back transaction: the shared test database stays clean whatever the outcome,
         // and the rollback undoes the script's set lock_timeout/statement_timeout (PostgreSQL rolls back a plain SET)
@@ -276,8 +283,8 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
                     delete from md_role_permissions
                     where role_id = (select id from md_roles where pcode = 'analyst')
                       and form_code || ':' || action in (:pairs)
-                    """).param("pairs", ANALYST_PAIRS).update();
-            assertThat(count("md_role_permissions")).isEqualTo(permissionsBefore - ANALYST_PAIRS.size());
+                    """).param("pairs", restorable).update();
+            assertThat(count("md_role_permissions")).isEqualTo(permissionsBefore - restorable.size());
 
             jdbc.sql(script).update();
             assertThat(count("md_roles")).isEqualTo(rolesBefore);

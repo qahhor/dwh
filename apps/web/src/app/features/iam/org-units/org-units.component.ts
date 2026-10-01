@@ -116,7 +116,7 @@ export class OrgUnitsComponent implements OnInit {
   }
   can(action: string): boolean {
     return (
-      this.permissions.hasPermission('iam.org_units', 'view') && this.permissions.hasPermission('iam.org_units', action)
+      this.permissions.hasPermission('md.org_units', 'view') && this.permissions.hasPermission('md.org_units', action)
     );
   }
   get canCreate(): boolean {

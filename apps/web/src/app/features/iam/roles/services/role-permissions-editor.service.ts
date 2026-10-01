@@ -92,9 +92,7 @@ export class RolePermissionsEditor {
   });
 
   canGrant(): boolean {
-    return (
-      this.permService.hasPermission('rbac.roles', 'grant') || this.permService.hasPermission('iam.roles', 'grant')
-    );
+    return this.permService.hasPermission('md.roles', 'grant');
   }
 
   /** Only the matrix loaded for the selected role is editable, never while it loads or saves. */

@@ -139,37 +139,35 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   // Permissions
   canCreateUser() {
-    return this.permService.canCreate('iam.users') || this.permService.canCreate('md_users');
+    return this.permService.canCreate('md.users');
   }
   canUpdateUser() {
-    return this.permService.canUpdate('iam.users') || this.permService.canUpdate('md_users');
+    return this.permService.canUpdate('md.users');
   }
   canDeleteUser() {
-    return this.permService.canDelete('iam.users') || this.permService.canDelete('md_users');
+    return this.permService.canDelete('md.users');
   }
   canBlockUser() {
-    return this.permService.hasPermission('iam.users', 'block') || this.permService.hasPermission('md_users', 'block');
+    return this.permService.hasPermission('md.users', 'block');
   }
   canUnblockUser() {
-    return (
-      this.permService.hasPermission('iam.users', 'unblock') || this.permService.hasPermission('md_users', 'unblock')
-    );
+    return this.permService.hasPermission('md.users', 'unblock');
   }
   canViewOrgUnits() {
     return (
-      this.permService.hasPermission('iam.org_units', 'view') ||
-      this.permService.hasPermission('iam.org_units', 'assign') ||
+      this.permService.hasPermission('md.org_units', 'view') ||
+      this.permService.hasPermission('md.org_units', 'assign') ||
       this.orgPanelBusy()
     );
   }
   canViewAssignments() {
     return (
-      this.permService.hasPermission('rbac.assignments', 'view') ||
-      this.permService.hasPermission('rbac.assignments', 'assign')
+      this.permService.hasPermission('md.assignments', 'view') ||
+      this.permService.hasPermission('md.assignments', 'assign')
     );
   }
   canAssignPermissions() {
-    return this.permService.hasPermission('rbac.assignments', 'assign');
+    return this.permService.hasPermission('md.assignments', 'assign');
   }
   canLeaveRecordPage(): boolean | Observable<boolean> {
     return this.userOrgUnitsPanel?.canLeave() ?? true;

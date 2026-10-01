@@ -48,7 +48,7 @@ describe('RolePermissionsEditor', () => {
         { provide: I18nService, useValue: { translate: translateTest, currentLang: signal('ru') } },
       ],
     });
-    TestBed.inject(PermissionService).setPermissions(['rbac.roles.view', 'rbac.roles.grant']);
+    TestBed.inject(PermissionService).setPermissions(['md.roles.view', 'md.roles.grant']);
     return { editor: TestBed.inject(RolePermissionsEditor), api, toast };
   }
   /** The matrix is a resource: its request starts on a tick and its answer lands on a later task. */
@@ -106,7 +106,7 @@ describe('RolePermissionsEditor', () => {
 
     editor.load(role(1));
     await settle();
-    TestBed.inject(PermissionService).setPermissions(['rbac.roles.view', 'rbac.roles.update']);
+    TestBed.inject(PermissionService).setPermissions(['md.roles.view', 'md.roles.update']);
     editor.toggleAllPermissions(audit, true);
     editor.savePermissions();
     expect(editor.rolePermissions().size).toBe(0);

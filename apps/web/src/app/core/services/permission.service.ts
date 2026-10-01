@@ -1,49 +1,31 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 
+/**
+ * Form codes of the previous release by their successors (ADR-0028). A permission set loaded before the server moved
+ * to the new codes still opens the screens until the sunset of the old codes (2026-12-31); then this table goes.
+ */
+export const LEGACY_FORM_CODES: Readonly<Record<string, string>> = {
+  'md.users': 'iam.users',
+  'md.profile': 'iam.profile',
+  'md.org_units': 'iam.org_units',
+  'md.roles': 'rbac.roles',
+  'md.assignments': 'rbac.assignments',
+  'md.settings': 'platform.settings',
+  'md.navigation': 'platform.navigation',
+  'md.modules': 'platform.modules',
+  'notify.announcements': 'platform.announcements',
+  'mf.files': 'platform.files',
+  search: 'platform.search',
+  'webhook.subscriptions': 'platform.webhooks',
+};
+
 @Injectable({
   providedIn: 'root',
 })
 export class PermissionService {
   readonly permissions = signal<Set<string>>(new Set());
   readonly permissionVersion = signal<number>(1);
-
-  private readonly formAliases: Record<string, string[]> = {
-    md_users: ['iam.users', 'md_users'],
-    'iam.users': ['iam.users', 'md_users'],
-    md_roles: ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
-    'iam.roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
-    'rbac.roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
-    'md.roles': ['rbac.roles', 'iam.roles', 'md_roles', 'md.roles'],
-    'rbac.assignments': ['rbac.assignments', 'iam.assignments'],
-    'md.custom_fields': ['md.custom_fields', 'system.custom_fields', 'md_custom_fields'],
-    'system.custom_fields': ['md.custom_fields', 'system.custom_fields', 'md_custom_fields'],
-    md_custom_fields: ['md.custom_fields', 'system.custom_fields', 'md_custom_fields'],
-    'iam.profile': ['iam.profile', 'md_profile'],
-    md_profile: ['iam.profile', 'md_profile'],
-    tasks: ['tasks.items', 'tasks'],
-    'tasks.items': ['tasks.items', 'tasks'],
-    'tasks.projects': ['tasks.projects', 'projects'],
-    projects: ['tasks.projects', 'projects'],
-    audit: ['audit.log', 'audit.logs', 'audit'],
-    'audit.log': ['audit.log', 'audit.logs', 'audit'],
-    'audit.logs': ['audit.log', 'audit.logs', 'audit'],
-    'platform.files': ['platform.files', 'files'],
-    files: ['platform.files', 'files'],
-    'platform.settings': ['platform.settings', 'settings'],
-    settings: ['platform.settings', 'settings'],
-    'platform.announcements': ['platform.announcements', 'announcements'],
-    announcements: ['platform.announcements', 'announcements'],
-    'notify.inbox': ['notify.inbox', 'notifications'],
-    notifications: ['notify.inbox', 'notifications'],
-    'platform.webhooks': ['platform.webhooks', 'webhooks'],
-    webhooks: ['platform.webhooks', 'webhooks'],
-    'platform.modules': ['platform.modules', 'modules'],
-    modules: ['platform.modules', 'modules'],
-    'platform.navigation': ['platform.navigation', 'navigation'],
-    navigation: ['platform.navigation', 'navigation'],
-    notes: ['notes'],
-  };
 
   setPermissions(perms: string[], version: number = 1) {
     this.permissions.set(new Set(perms));
@@ -63,16 +45,11 @@ export class PermissionService {
     if (perms.has(`${form}.${action}`) || perms.has(`${form}.*`)) {
       return true;
     }
-    const aliases = this.formAliases[form] || [form];
-    for (const alias of aliases) {
-      if (perms.has(`${alias}.${action}`) || perms.has(`${alias}.*`)) {
-        return true;
-      }
-    }
-    return false;
+    const legacy = LEGACY_FORM_CODES[form];
+    return legacy !== undefined && (perms.has(`${legacy}.${action}`) || perms.has(`${legacy}.*`));
   }
 
-  /** Checks a `form.action` pair written as one key, e.g. `platform.navigation.manage`. */
+  /** Checks a `form.action` pair written as one key, e.g. `md.navigation.manage`. */
   hasPermissionKey(key: string): boolean {
     const dot = key.lastIndexOf('.');
     return dot > 0 && dot < key.length - 1 && this.hasPermission(key.slice(0, dot), key.slice(dot + 1));

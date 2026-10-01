@@ -100,19 +100,19 @@ export class AnnouncementsStore {
   }
 
   canCreate(): boolean {
-    return this.permissions.canCreate('platform.announcements');
+    return this.permissions.canCreate('notify.announcements');
   }
 
   canUpdate(): boolean {
-    return this.permissions.canUpdate('platform.announcements');
+    return this.permissions.canUpdate('notify.announcements');
   }
 
   canPublish(): boolean {
-    return this.permissions.hasPermission('platform.announcements', 'publish');
+    return this.permissions.hasPermission('notify.announcements', 'publish');
   }
 
   canArchive(): boolean {
-    return this.permissions.hasPermission('platform.announcements', 'archive');
+    return this.permissions.hasPermission('notify.announcements', 'archive');
   }
 
   openCreate(): void {

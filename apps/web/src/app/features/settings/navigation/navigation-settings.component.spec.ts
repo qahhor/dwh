@@ -19,7 +19,7 @@ describe('NavigationSettingsComponent', () => {
       targetType: 'EMBEDDED_IFRAME',
       url: 'https://superset.example.com/sales',
       openInIframe: true,
-      requiredPermission: 'platform.navigation.manage',
+      requiredPermission: 'md.navigation.manage',
       parentId: 7,
       sortOrder: 10,
       state: 'A',
@@ -51,7 +51,7 @@ describe('NavigationSettingsComponent', () => {
       deleteItem: vi.fn().mockReturnValue(of(undefined)),
       loadPermissionChoices: vi.fn().mockReturnValue(
         of([
-          { permission: 'platform.navigation.manage', formName: 'Navigation', actionName: 'Manage' },
+          { permission: 'md.navigation.manage', formName: 'Navigation', actionName: 'Manage' },
           { permission: 'tasks.items.view', formName: 'Tasks', actionName: 'View' },
         ]),
       ),
@@ -188,13 +188,13 @@ describe('NavigationSettingsComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.openEditModal(sampleItems[0]);
-    expect(fixture.componentInstance.formRequiredPermission).toBe('platform.navigation.manage');
+    expect(fixture.componentInstance.formRequiredPermission).toBe('md.navigation.manage');
     fixture.componentInstance.saveItem();
 
     expect(navService.updateItem).toHaveBeenCalledWith(
       1,
       expect.objectContaining({
-        requiredPermission: 'platform.navigation.manage',
+        requiredPermission: 'md.navigation.manage',
         parentId: 7,
       }),
       undefined,

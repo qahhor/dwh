@@ -87,7 +87,7 @@ export class ProfileComponent {
   readonly isLoadingTokens = computed(() => this.tokensRead.isLoading());
   readonly isLoadingChannels = computed(() => this.channelsRead.isLoading());
 
-  readonly canManageChannels = computed(() => this.permissionService.hasPermission('iam.profile', 'manage_channels'));
+  readonly canManageChannels = computed(() => this.permissionService.hasPermission('md.profile', 'manage_channels'));
 
   /* Reads only: the reload after ending a session, revoking a token or changing a channel
      asks for the list again and never repeats the action. */

@@ -160,7 +160,7 @@ export class ModulesComponent {
   });
 
   canManage(): boolean {
-    return this.permissions.canManage('platform.modules');
+    return this.permissions.canManage('md.modules');
   }
 
   loadModules(): void {

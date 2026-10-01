@@ -156,15 +156,15 @@ export class SearchSettingsStore {
   }
 
   canSearch(): boolean {
-    return this.permissions.hasPermission('platform.search', 'view');
+    return this.permissions.hasPermission('search', 'view');
   }
 
   canReadSettings(): boolean {
-    return this.permissions.hasPermission('platform.settings', 'view');
+    return this.permissions.hasPermission('md.settings', 'view');
   }
 
   canMaintain(): boolean {
-    return this.statusAuthorized() && this.permissions.hasPermission('platform.settings', 'update');
+    return this.statusAuthorized() && this.permissions.hasPermission('md.settings', 'update');
   }
 
   canSave(): boolean {

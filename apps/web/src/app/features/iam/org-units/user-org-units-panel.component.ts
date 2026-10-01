@@ -113,8 +113,8 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
 
   constructor() {
     effect(() => {
-      const canView = this.permissions.hasPermission('iam.org_units', 'view');
-      this.permissions.hasPermission('iam.org_units', 'assign');
+      const canView = this.permissions.hasPermission('md.org_units', 'view');
+      this.permissions.hasPermission('md.org_units', 'assign');
       if (!canView) this.clearRevokedView();
     });
     inject(DestroyRef).onDestroy(() => {
@@ -136,7 +136,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
 
   can(action: 'view' | 'assign'): boolean {
     return (
-      this.permissions.hasPermission('iam.org_units', 'view') && this.permissions.hasPermission('iam.org_units', action)
+      this.permissions.hasPermission('md.org_units', 'view') && this.permissions.hasPermission('md.org_units', action)
     );
   }
   get dirty(): boolean {
