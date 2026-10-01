@@ -47,16 +47,11 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 | API | REST `/api/v1`, описание генерируется из кода (`docs/api/openapi.json`), поведение — [docs/api/README.md](api/README.md) |
 | Поставка | Docker Compose, отдельный шаг `migrate`, зашифрованный backup, ClamAV в production |
 
-Бизнес-модули сервера (`com.smartup24.cms.instance.*`, список —
-`ModuleBoundariesTest.MODULES`): `analytics`, `audit`, `jobs`, `kauth`, `kwh`,
-`md`, `mf`, `ms.note`, `ms.notify`, `ms.task`, `report`, `search`, `units`, `upl`,
-`warehouse` (бывший `fnd` разделён на очередь заданий, хранилище и единицы,
-[ADR-0030](adr/ADR-0030-fnd-split.md); в `fnd` остался только устаревший псевдоним
-шага миграции до 2026-12-31).
-Инфраструктура: `common` (платформа: сущность, реестр полей, ошибки, веб,
-JSON, сроки хранения, версии с датой действия, актор аудита) и `config`
-(безопасность, фильтры, кэш кластера, задание очистки журналов,
-идемпотентность, OpenAPI, такт очереди заданий `JobQueueWorker`). Точки
+Модули сервера (`com.smartup24.cms.instance.*`) — назначение, таблицы,
+области прав и точки входа каждого — в
+[карте модулей](architecture/module-map.md); список бизнес-модулей задаёт
+`ModuleBoundariesTest.MODULES`, соответствие карты и `package-info.java`
+проверяет `ModuleMapTest`. Точки
 расширения — в [extension-points.md](architecture/extension-points.md),
 порядок работы над модулем — в
 [руководстве](guidelines/module-development-guide.md).

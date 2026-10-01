@@ -178,6 +178,18 @@ $serviceDir = Join-Path $javaBase "service"
 $ctrlDir = Join-Path $javaBase "controller"
 foreach ($dir in @($apiDir, $repoDir, $serviceDir, $ctrlDir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
 
+# Every module says what it is for (plan 10/10, item 4.3, ModuleMapTest); the English title keeps the comment English.
+$titleComment = $TitleEn.Replace('*/', '').Trim()
+Write-Utf8 (Join-Path $javaBase "package-info.java") @"
+/**
+ * Module {@code ${prefixLower}.${cleanCode}}: $titleComment.
+ *
+ * <p>Declared through {@code EntityDefinition} by scripts/dev/create-module.ps1 (ADR-0019). Describe here what the
+ * module is for, and give it a row in docs/architecture/module-map.md (plan 10/10, item 4.3).
+ */
+package ${pkg};
+"@
+
 $viewClass = "${prefixUpper}${capitalName}View"
 $createClass = "${prefixUpper}${capitalName}CreateRequest"
 $updateClass = "${prefixUpper}${capitalName}UpdateRequest"
@@ -755,4 +767,5 @@ Write-Host "  3. API description: mvn -B -pl apps/server test -Dtest=OpenApiCont
 Write-Host "  4. Screen: a route to /$cleanCode with smt-entity-form, smt-entity-card and smt-entity-toolbar; PUT sends ifMatch: revision"
 Write-Host "  5. Tests as for notes (MsNoteControllerTest); a line for $prefixLower.$cleanCode in apps/server/coverage-floors.csv;"
 Write-Host "     $prefixLower.$cleanCode in ModuleBoundariesTest.MODULES and ownerOf; a growing table: LARGE_TABLES, withEstimatedTotal(), a RetentionPolicy"
+Write-Host "     the purpose in package-info.java and a row in docs/architecture/module-map.md (ModuleMapTest)"
 Write-Host "  6. mvn -B verify (Checkstyle, Spotless, architecture tests); scripts/dev/test-create-module.ps1 checks this generator"
