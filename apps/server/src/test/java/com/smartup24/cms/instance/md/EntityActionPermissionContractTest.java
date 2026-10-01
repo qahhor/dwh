@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.md.pref.PermissionAreas;
+import com.smartup24.cms.instance.md.service.MdFormCatalogSynchronizer;
 import com.smartup24.cms.instance.support.TestFixtureExcludeFilter;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -17,25 +18,35 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 
 /**
- * Every action an entity offers (ADR-0019, 2.2) is a right an endpoint really checks: {@code form-meta} shows a
- * button by that right, so a right no endpoint declares would show a button the server then refuses, or hide one
- * it allows.
+ * Every action an entity offers (ADR-0019, 2.2) is a right the server really checks and the permission matrix names:
+ * {@code form-meta} shows a button by that right. Since the general runtime (ADR-0032, 6.10) the right is checked by
+ * the runtime from the declaration, not by an annotation: every pair of a declaration — {@code view}, the right of each
+ * action — is named in its {@code EntityRights}, reaches the form catalog ({@link MdFormCatalogSynchronizer}) and lives
+ * in a form of the module the declaration names.
  */
 class EntityActionPermissionContractTest {
 
     @Test
-    void everyEntityActionAndViewIsADeclaredPermission() throws Exception {
-        Set<String> declared = MdFormCatalogTest.declaredPairsFromSources();
+    void everyEntityActionAndViewIsNamedAndReachesTheCatalog() throws Exception {
         List<EntityDefinition> entities = declaredEntities();
         assertThat(entities).extracting(EntityDefinition::code).contains("ms.notes");
+        Set<String> catalog = MdFormCatalogSynchronizer.entityPairs(entities);
 
         List<String> missing = new ArrayList<>();
         for (EntityDefinition entity : entities) {
-            if (!declared.contains(entity.form() + ".view")) missing.add(entity.code() + " view");
-            for (EntityDefinition.EntityAction action : entity.actions()) {
-                if (!declared.contains(entity.form() + "." + action.permission())) {
-                    missing.add(
-                            entity.code() + " " + action.code() + " → " + entity.form() + "." + action.permission());
+            EntityDefinition.EntityRights rights = entity.rights();
+            if (rights == null) {
+                missing.add(entity.code() + " names no rights for the permission matrix");
+                continue;
+            }
+            List<String> permissions = new ArrayList<>(List.of("view"));
+            entity.actions().forEach(action -> permissions.add(action.permission()));
+            for (String permission : permissions) {
+                if (!rights.actionKeys().containsKey(permission)) {
+                    missing.add(entity.code() + " " + permission + " has no name");
+                }
+                if (!catalog.contains(entity.form() + "." + permission)) {
+                    missing.add(entity.code() + " " + entity.form() + "." + permission + " misses the catalog");
                 }
             }
         }

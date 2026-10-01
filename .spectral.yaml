@@ -17,14 +17,16 @@ rules:
       function: truthy
 
   smc-path-kebab-case:
-    description: A path segment is lower-case kebab-case; a variable is camelCase.
+    description: >-
+      A path segment is lower-case kebab-case; a variable is camelCase. The segment after /entities/ may be the dotted
+      code of an entity (ADR-0032, 6.13: /api/v1/entities/ms.notes).
     severity: error
     given: $.paths
     then:
       field: '@key'
       function: pattern
       functionOptions:
-        match: '^(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))+$'
+        match: '^(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))*(/entities/[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+)?(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))*$'
 
   smc-query-camel-case:
     description: A query parameter is camelCase; its snake_case name stays only as a deprecated alias.
@@ -39,10 +41,11 @@ rules:
   smc-post-states-its-status:
     description: >-
       A POST that creates answers 201, one that starts work answers 202 and one without a body answers 204; 200 is
-      left to actions and queries, whose path ends with the action.
+      left to actions and queries, whose path ends with the action, and to the record actions of an entity
+      (ADR-0032, 6.13: .../{id}/actions/<code>).
     severity: error
     given: >-
-      $.paths[?(!@property.match(/\/(login|logout|otp|password|confirm|request|archive|publish|read|read-all|bulk|block|unblock|force-password-change|reset-2fa|reorder|status|view|apply|cancel|retry|preview)$/))][?(@property === 'post' && @.deprecated != true)].responses
+      $.paths[?(!@property.match(/\/(login|logout|otp|password|confirm|request|archive|publish|read|read-all|bulk|block|unblock|force-password-change|reset-2fa|reorder|status|view|apply|cancel|retry|preview|actions\/[a-z][a-z0-9_]*)$/))][?(@property === 'post' && @.deprecated != true)].responses
     then:
       function: schema
       functionOptions:

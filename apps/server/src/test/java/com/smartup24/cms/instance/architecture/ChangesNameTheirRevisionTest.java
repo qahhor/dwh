@@ -38,7 +38,6 @@ class ChangesNameTheirRevisionTest {
 
     /** Handlers that set a state whatever the client read: repeating them changes nothing (idempotent). */
     private static final Map<String, String> STATE_SETTERS = Map.ofEntries(
-            Map.entry("MsNoteController#setPin", "the pin the viewer asks for"),
             Map.entry("ModuleRegistryController#setEnabled", "on or off, as asked"),
             Map.entry("NavigationItemController#setActive", "shown or hidden, as asked"),
             Map.entry("MsNotificationController#updatePreferences", "the viewer's own delivery choices"),

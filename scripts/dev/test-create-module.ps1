@@ -77,18 +77,22 @@ try {
     }
     Assert-That $refused 'a second run over an existing module must be refused'
 
-    # 3. What the phase 3 rules require of the generated code, beyond what the tests below see.
-    $java = (Get-ChildItem -LiteralPath (Join-Path $work $javaRelative) -Recurse -Filter '*.java' |
-        ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 }) -join "`n"
-    Assert-That (Test-Path -LiteralPath (Join-Path $work "$javaRelative/api/MsProbeView.java")) 'DTOs live in the api package'
-    Assert-That ($java.Contains('Created.at(') -and $java.Contains('@ResponseStatus(HttpStatus.CREATED)')) 'create answers 201 with Location'
-    Assert-That ($java.Contains('Revisions.required(ifMatch)') -and $java.Contains('implements Revisioned')) 'a change takes If-Match and the answer carries the ETag'
-    Assert-That ($java.Contains('new JsonColumns(') -and -not ($java -match 'toJson\(|parseJson\(')) 'JSON columns go through JsonColumns'
-    Assert-That ($java.Contains('"error.probe.not_found"')) 'not found is an ApiException with a catalog key'
+    # 3. What the rules require of the generated code, beyond what the tests below see. On the general runtime
+    # (ADR-0032, 6; plan 10/10, item 5.4) an entity is its declaration and its hooks: two server files, no controller,
+    # service or repository, and the contract test runs on the runtime.
+    $javaFiles = @(Get-ChildItem -LiteralPath (Join-Path $work $javaRelative) -Recurse -Filter '*.java' |
+        Where-Object { $_.Name -ne 'package-info.java' })
+    $java = ($javaFiles | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 }) -join "`n"
+    Assert-That ($javaFiles.Count -eq 2) "an entity is two server files (declaration and hooks), found $($javaFiles.Count)"
+    Assert-That ((Test-Path -LiteralPath (Join-Path $work "$javaRelative/service/MsProbeEntity.java")) -and
+        (Test-Path -LiteralPath (Join-Path $work "$javaRelative/service/MsProbeHooks.java"))) 'the declaration and the hooks'
+    Assert-That (-not ($java -match '@RestController|@Repository|JdbcClient')) 'no controller and no SQL: the runtime serves the records'
+    Assert-That ($java.Contains('implements EntityHooks')) 'the hooks are an EntityHooks bean'
     Assert-That (-not ($java -match '[Ѐ-ӿ]')) 'the generated Java has no Cyrillic outside the title'
     Assert-That ($java.Contains('Entity.define(') -and -not $java.Contains('new QueryList(') -and -not $java.Contains('QueryField.')) 'every field is declared once, as an EntityField'
     $contract = Join-Path $work 'apps/server/src/test/java/com/smartup24/cms/instance/ms/probe/MsProbeContractTest.java'
-    Assert-That ((Test-Path -LiteralPath $contract) -and (Get-Content -LiteralPath $contract -Raw -Encoding UTF8).Contains('extends EntityContractTestKit')) 'the entity gets its contract test (EntityContractTestKit)'
+    $contractText = if (Test-Path -LiteralPath $contract) { Get-Content -LiteralPath $contract -Raw -Encoding UTF8 } else { '' }
+    Assert-That ($contractText.Contains('extends EntityContractTestKit') -and -not $contractText.Contains('transport()')) 'the entity gets its contract test on the runtime (EntityContractTestKit)'
     $areas = Get-Content -LiteralPath (Join-Path $work 'apps/server/src/main/java/com/smartup24/cms/instance/md/pref/PermissionAreas.java') -Raw -Encoding UTF8
     Assert-That ($areas.Contains('"probe", "ms.probe"')) 'the right''s area is registered for its module'
 
@@ -102,7 +106,7 @@ try {
     foreach ($language in @('ru', 'en', 'uz')) {
         $catalogPath = Join-Path $work "apps/server/src/main/resources/i18n/$language.json"
         $catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        foreach ($key in @('error.probe.not_found', 'nav.probe', 'probe.col.name', 'probe.status.active', 'probe.rights.view')) {
+        foreach ($key in @('nav.probe', 'probe.col.name', 'probe.status.active', 'probe.rights.view')) {
             Assert-That ($null -ne $catalog.$key) "$language.json has $key"
         }
     }

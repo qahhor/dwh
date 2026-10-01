@@ -170,8 +170,7 @@ class EntityFieldRightsTest {
 
     @Test
     void theHistoryHidesTheField() {
-        EntityRegistry registry =
-                new EntityRegistry(List.of(STAFF), List.of(), List.of(EntityFeaturesTest.records(STAFF.code())));
+        EntityRegistry registry = new EntityRegistry(List.of(STAFF), List.of());
         RecordHistorySource history = registry.historySources().getFirst();
 
         signIn(VIEWER);

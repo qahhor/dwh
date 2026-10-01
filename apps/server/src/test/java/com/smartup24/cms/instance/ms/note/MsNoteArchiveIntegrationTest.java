@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
@@ -72,7 +73,7 @@ class MsNoteArchiveIntegrationTest extends EmbeddedPostgresTest {
 
         MockHttpServletResponse done = send(
                 s,
-                put("/api/v1/notes/" + archived + "/archived").header("If-Match", "\"1\""),
+                put("/api/v1/entities/ms.notes/" + archived + "/archived").header("If-Match", "\"1\""),
                 Map.of("archived", true));
         assertThat(done.getStatus()).as(done.getContentAsString()).isEqualTo(200);
         assertThat(done.getHeader("ETag")).isEqualTo("\"2\"");
@@ -85,17 +86,19 @@ class MsNoteArchiveIntegrationTest extends EmbeddedPostgresTest {
                 .isTrue();
 
         // The default list — and the paged list a reference picks from — leaves it out.
-        assertThat(ids(send(s, get("/api/v1/notes").param("q", tag), null))).containsExactly(kept);
-        assertThat(ids(send(s, get("/api/v1/notes").param("q", tag).param("filter", ARCHIVED_ONLY), null)))
+        assertThat(ids(send(s, get("/api/v1/entities/ms.notes").param("q", tag), null)))
+                .containsExactly(kept);
+        assertThat(ids(send(s, get("/api/v1/entities/ms.notes").param("q", tag).param("filter", ARCHIVED_ONLY), null)))
                 .containsExactly(archived);
-        assertThat(ids(send(s, get("/api/v1/notes").param("q", tag).param("filter", IN_USE_ONLY), null)))
+        assertThat(ids(send(s, get("/api/v1/entities/ms.notes").param("q", tag).param("filter", IN_USE_ONLY), null)))
                 .containsExactly(kept);
 
         // A read by id still answers, with its mark: an old reference resolves.
-        MockHttpServletResponse read = send(s, get("/api/v1/notes/" + archived), null);
+        MockHttpServletResponse read = send(s, get("/api/v1/entities/ms.notes/" + archived), null);
         assertThat(read.getStatus()).isEqualTo(200);
         assertThat(object(read)).containsEntry("archived", true).containsEntry("title", tag + " old");
-        assertThat(object(send(s, get("/api/v1/notes/" + kept), null))).containsEntry("archived", false);
+        assertThat(object(send(s, get("/api/v1/entities/ms.notes/" + kept), null)))
+                .containsEntry("archived", false);
 
         // The global search reads the published view, which leaves archived notes out.
         assertThat(jdbc.sql("select count(*) from ms_note_pub_notes where id in (:ids)")
@@ -117,7 +120,7 @@ class MsNoteArchiveIntegrationTest extends EmbeddedPostgresTest {
         Session s = login(user());
         String tag = "sw" + UUID.randomUUID().toString().substring(0, 8);
         long id = note(s, tag);
-        String path = "/api/v1/notes/" + id + "/archived";
+        String path = "/api/v1/entities/ms.notes/" + id + "/archived";
 
         assertThat(send(s, put(path), Map.of("archived", true)).getStatus()).isEqualTo(428);
         assertThat(send(s, put(path).header("If-Match", "\"1\""), Map.of("archived", true))
@@ -137,7 +140,8 @@ class MsNoteArchiveIntegrationTest extends EmbeddedPostgresTest {
         assertThat(restored.getStatus()).isEqualTo(200);
         assertThat(object(restored)).containsEntry("archived", false).containsEntry("revision", 3);
         assertThat(object(restored).get("archivedAt")).isNull();
-        assertThat(ids(send(s, get("/api/v1/notes").param("q", tag), null))).containsExactly(id);
+        assertThat(ids(send(s, get("/api/v1/entities/ms.notes").param("q", tag), null)))
+                .containsExactly(id);
     }
 
     @Test
@@ -145,18 +149,24 @@ class MsNoteArchiveIntegrationTest extends EmbeddedPostgresTest {
     void aDeleteFromAStaleRevisionIsAConflict() throws Exception {
         Session s = login(user());
         long id = note(s, "Delete probe");
-        assertThat(send(s, put("/api/v1/notes/" + id).header("If-Match", "\"1\""), Map.of("title", "Changed"))
+        assertThat(send(
+                                s,
+                                patch("/api/v1/entities/ms.notes/" + id).header("If-Match", "\"1\""),
+                                Map.of("title", "Changed"))
                         .getStatus())
                 .isEqualTo(200);
 
-        MockHttpServletResponse stale = send(s, delete("/api/v1/notes/" + id).header("If-Match", "\"1\""), null);
+        MockHttpServletResponse stale =
+                send(s, delete("/api/v1/entities/ms.notes/" + id).header("If-Match", "\"1\""), null);
         assertThat(stale.getStatus()).isEqualTo(409);
-        assertThat(send(s, get("/api/v1/notes/" + id), null).getStatus()).isEqualTo(200);
-        assertThat(send(s, delete("/api/v1/notes/" + id).header("If-Match", "\"2\""), null)
+        assertThat(send(s, get("/api/v1/entities/ms.notes/" + id), null).getStatus())
+                .isEqualTo(200);
+        assertThat(send(s, delete("/api/v1/entities/ms.notes/" + id).header("If-Match", "\"2\""), null)
                         .getStatus())
                 .isEqualTo(204);
         long other = note(s, "Delete probe 2");
-        assertThat(send(s, delete("/api/v1/notes/" + other), null).getStatus()).isEqualTo(204);
+        assertThat(send(s, delete("/api/v1/entities/ms.notes/" + other), null).getStatus())
+                .isEqualTo(204);
     }
 
     @Test
@@ -172,7 +182,8 @@ class MsNoteArchiveIntegrationTest extends EmbeddedPostgresTest {
                 send(s, post("/api/v1/entities/ms.notes/bulk"), Map.of("action", "archive", "ids", List.of(archived)));
         assertThat(bulk.getStatus()).as(bulk.getContentAsString()).isEqualTo(200);
         assertThat(object(bulk)).containsEntry("succeeded", 1).containsEntry("failed", 0);
-        assertThat(object(send(s, get("/api/v1/notes/" + archived), null))).containsEntry("archived", true);
+        assertThat(object(send(s, get("/api/v1/entities/ms.notes/" + archived), null)))
+                .containsEntry("archived", true);
 
         MockHttpServletResponse queued =
                 send(s, post("/api/v1/exports"), Map.of("list", "ms.notes", "q", tag, "lang", "en"));
@@ -200,7 +211,7 @@ class MsNoteArchiveIntegrationTest extends EmbeddedPostgresTest {
     }
 
     private long note(Session s, String title) throws Exception {
-        MockHttpServletResponse created = send(s, post("/api/v1/notes"), Map.of("title", title));
+        MockHttpServletResponse created = send(s, post("/api/v1/entities/ms.notes"), Map.of("title", title));
         assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
         return ((Number) object(created).get("id")).longValue();
     }

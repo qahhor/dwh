@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.config.openapi;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.runtime.EntityController;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -29,7 +32,8 @@ import tools.jackson.databind.SerializationFeature;
 /**
  * Plan 10/10, item 3.3: the API description comes from the code. Every handler of the application is in it, and the
  * committed copy {@code docs/api/openapi.json} — what the web types and the breaking-change check read — is the one
- * the code generates. After a deliberate API change regenerate it with
+ * the code generates; the entity runtime is described by each entity's own paths (ADR-0032, 6.13). After a deliberate
+ * API change regenerate it with
  * {@code mvn test -pl apps/server -Dtest=OpenApiContractTest -Dopenapi.update=true}.
  */
 class OpenApiContractTest extends EmbeddedPostgresTest {
@@ -45,6 +49,9 @@ class OpenApiContractTest extends EmbeddedPostgresTest {
     @Autowired
     @Qualifier("requestMappingHandlerMapping")
     private RequestMappingHandlerMapping handlers;
+
+    @Autowired
+    private List<EntityDefinition> entities;
 
     @Test
     @DisplayName("3.3: every handler of the application is described, with the platform's security schemes")
@@ -65,14 +72,16 @@ class OpenApiContractTest extends EmbeddedPostgresTest {
             Set<String> patterns = info.getPatternValues();
             Set<RequestMethod> verbs = info.getMethodsCondition().getMethods();
             for (String pattern : patterns) {
-                String path = pattern.replaceAll("\\{([^}:]+):[^}]*}", "{$1}");
-                if (NOT_API.contains(path)) {
+                String template = pattern.replaceAll("\\{([^}:]+):[^}]*}", "{$1}");
+                if (NOT_API.contains(template)) {
                     continue;
                 }
-                JsonNode described = spec.path("paths").path(path);
-                for (RequestMethod verb : verbs.isEmpty() ? Set.of(RequestMethod.GET) : verbs) {
-                    if (!described.has(verb.name().toLowerCase(Locale.ROOT))) {
-                        missing.add(verb + " " + path + " (" + method.getShortLogMessage() + ")");
+                for (String path : described(method, template)) {
+                    JsonNode described = spec.path("paths").path(path);
+                    for (RequestMethod verb : verbs.isEmpty() ? Set.of(RequestMethod.GET) : verbs) {
+                        if (!described.has(verb.name().toLowerCase(Locale.ROOT))) {
+                            missing.add(verb + " " + path + " (" + method.getShortLogMessage() + ")");
+                        }
                     }
                 }
             }
@@ -80,6 +89,61 @@ class OpenApiContractTest extends EmbeddedPostgresTest {
         assertThat(new TreeSet<>(missing))
                 .as("handlers missing in the API description")
                 .isEmpty();
+    }
+
+    /**
+     * The paths that describe a handler: its own template, or — for the entity runtime, hidden as a template (ADR-0032,
+     * 6.13) — the concrete paths of every entity it serves that declares the handler's operation.
+     */
+    private List<String> described(HandlerMethod method, String template) {
+        if (method.getBeanType() != EntityController.class) {
+            return List.of(template);
+        }
+        String operation = method.getMethod().getName();
+        List<String> paths = new ArrayList<>();
+        for (EntityDefinition entity : entities) {
+            if (entity.model() == null) continue;
+            String path = template.replace("{code}", entity.code());
+            switch (operation) {
+                case "list", "get" -> paths.add(path);
+                case "create", "update", "delete", "archive" -> {
+                    if (entity.action(operation).isPresent()) paths.add(path);
+                }
+                default ->
+                    entity.actions().stream()
+                            .map(EntityDefinition.EntityAction::code)
+                            .filter(code -> !Set.of("create", "update", "delete", "archive")
+                                    .contains(code))
+                            .forEach(code -> paths.add(path.replace("{action}", code)));
+            }
+        }
+        return paths;
+    }
+
+    @Test
+    @DisplayName("ADR-0032, 6.13: every entity on the runtime has its own paths, operations and schemas")
+    void everyEntityHasItsOwnPathsAndSchemas() throws Exception {
+        JsonNode spec = generated();
+        JsonNode notes = spec.path("paths").path("/api/v1/entities/ms.notes/{id}");
+        assertThat(notes.path("patch").path("operationId").asString()).isEqualTo("patchMsNotes");
+        assertThat(notes.path("patch").path("tags").get(0).asString()).isEqualTo("ms.notes");
+        assertThat(spec.path("paths")
+                        .path("/api/v1/entities/ms.notes")
+                        .path("get")
+                        .path("operationId")
+                        .asString())
+                .isEqualTo("listMsNotes");
+        assertThat(spec.path("paths").path("/api/v1/entities/{code}").isMissingNode())
+                .as("the runtime's template is not described")
+                .isTrue();
+        JsonNode schemas = spec.path("components").path("schemas");
+        assertThat(schemas.path("MsNotesRecord").path("properties").has("title"))
+                .isTrue();
+        assertThat(schemas.path("MsNotesCreate").path("required").toString()).contains("title");
+        assertThat(schemas.path("MsNotesCreate").path("properties").has("revision"))
+                .as("a create sends no system property")
+                .isFalse();
+        assertThat(schemas.path("MsNotesPage").path("properties").has("items")).isTrue();
     }
 
     @Test
@@ -103,7 +167,7 @@ class OpenApiContractTest extends EmbeddedPostgresTest {
     void commonHeadersAreDeclared() throws Exception {
         JsonNode paths = generated().path("paths");
 
-        JsonNode noteUpdate = paths.path("/api/v1/notes/{id}").path("put");
+        JsonNode noteUpdate = paths.path("/api/v1/entities/ms.notes/{id}").path("patch");
         assertThat(parameterNames(noteUpdate)).contains("If-Match", "Idempotency-Key");
         assertThat(noteUpdate.path("responses").has("409")).isTrue();
         assertThat(noteUpdate.path("responses").has("428")).isTrue();

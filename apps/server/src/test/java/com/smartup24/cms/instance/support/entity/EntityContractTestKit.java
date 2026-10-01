@@ -98,7 +98,8 @@ public abstract class EntityContractTestKit extends EmbeddedPostgresTest {
                         group("field rights (ADR-0032, 5.2)", new KitFieldRightChecks(world)::fieldRights),
                         group("validation (ADR-0032, 4.2)", data::validation),
                         group("audit (ADR-0017)", data::audit),
-                        group("export (ADR-0018)", new KitExportChecks(world)::export))
+                        group("export (ADR-0018)", new KitExportChecks(world)::export),
+                        group("events (ADR-0032, 6.9)", new KitEventChecks(world)::events))
                 .flatMap(Stream::ofNullable);
     }
 

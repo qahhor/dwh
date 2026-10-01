@@ -1,7 +1,12 @@
 package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityModel;
+import com.smartup24.cms.instance.common.entity.field.EntityField;
+import com.smartup24.cms.instance.common.entity.field.FieldAccess;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import org.slf4j.Logger;
@@ -16,9 +21,10 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 /**
  * Synchronizes the form catalog with the code (FR-PERM-1).
  *
- * The single source of truth about whether a permission exists is the
- * {@code @RequiresPermission} annotation on a handler: it is what actually guards the
- * endpoint. The catalog in the database derives from it, not the other way round.
+ * The source of truth about whether a permission exists is what actually guards an
+ * endpoint: the {@code @RequiresPermission} annotation on a handler, and the declaration of
+ * an entity whose records the general runtime checks against it (ADR-0032, 6.10). The
+ * catalog in the database derives from them, not the other way round.
  *
  * Why this was needed: the catalog was filled by migrations, and the registration method
  * was never called from code. As a result the permission matrix held pairs with no
@@ -36,16 +42,21 @@ public class MdFormCatalogSynchronizer {
 
     private final RequestMappingHandlerMapping handlerMapping;
     private final MdPermissionService permissionService;
+    private final List<EntityDefinition> entities;
 
     public MdFormCatalogSynchronizer(
-            RequestMappingHandlerMapping handlerMapping, MdPermissionService permissionService) {
+            RequestMappingHandlerMapping handlerMapping,
+            MdPermissionService permissionService,
+            List<EntityDefinition> entities) {
         this.handlerMapping = handlerMapping;
         this.permissionService = permissionService;
+        this.entities = List.copyOf(entities);
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void synchronizeOnStartup() {
         Set<String> declared = declaredPairs(handlerMapping.getHandlerMethods().values());
+        declared.addAll(entityPairs(entities));
         var result = permissionService.syncFormCatalog(declared);
 
         log.info(
@@ -59,6 +70,30 @@ public class MdFormCatalogSynchronizer {
                     "Устаревшие права в каталоге (за ними нет эндпоинта, выдать их нельзя): {}",
                     String.join(", ", result.deprecatedPairs()));
         }
+    }
+
+    /**
+     * The {@code form.action} pairs the entities declare (ADR-0032, 6.10): the runtime checks them, not an annotation —
+     * {@code view} of every entity, the right of each of its actions and the rights its fields need.
+     */
+    public static Set<String> entityPairs(Collection<EntityDefinition> entities) {
+        Set<String> pairs = new TreeSet<>();
+        for (EntityDefinition entity : entities) {
+            pairs.add(entity.form() + ".view");
+            entity.actions().forEach(action -> pairs.add(entity.form() + "." + action.permission()));
+            EntityModel model = entity.model();
+            if (model == null) continue;
+            for (EntityField field : model.fields()) {
+                FieldAccess access = field.access();
+                if (access.requiredForm() != null) {
+                    pairs.add(access.requiredForm() + "." + access.requiredAction());
+                }
+                if (access.readonlyForm() != null) {
+                    pairs.add(access.readonlyForm() + "." + access.readonlyAction());
+                }
+            }
+        }
+        return pairs;
     }
 
     /**

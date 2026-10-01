@@ -13,6 +13,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
@@ -142,10 +143,21 @@ public class WebhookService {
 
     @Transactional
     public void publishEvent(String eventType, Map<String, Object> payload) {
+        publishEvent(eventType, () -> payload);
+    }
+
+    /**
+     * Writes the event for every active subscription to it, in the caller's transaction (ADR-0032, 6.9); the payload
+     * is built only when someone is subscribed.
+     */
+    @Transactional
+    public void publishEvent(String eventType, Supplier<Map<String, Object>> payload) {
         List<WebhookSubscriptionRepository.SubscriptionRecord> active =
                 subscriptionRepository.findActiveByEvent(eventType);
+        if (active.isEmpty()) return;
+        Map<String, Object> body = payload.get();
         for (var sub : active) {
-            outboxRepository.enqueue(sub.id(), eventType, payload);
+            outboxRepository.enqueue(sub.id(), eventType, body);
         }
     }
 

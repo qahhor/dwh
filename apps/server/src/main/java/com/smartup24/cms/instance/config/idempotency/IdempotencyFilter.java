@@ -38,6 +38,12 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     public static final int MAX_REQUEST_BODY_BYTES = 65_536; // 64 KB
     public static final int MAX_RESPONSE_BODY_BYTES = 65_536; // 64 KB
 
+    /**
+     * The limit of a request and of a stored answer under {@code /api/v1/entities/} (ADR-0032, 6.2): a record with its
+     * fields is larger than the other changes, and the entity body limit there is the same 512 KB.
+     */
+    public static final int MAX_ENTITY_BODY_BYTES = 524_288; // 512 KB
+
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
 
     private static final Logger log = LoggerFactory.getLogger(IdempotencyFilter.class);
@@ -166,9 +172,10 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
 
         // 4. Read and cache request body up to limit + 1 byte (handles chunked/unknown content-length safely)
-        byte[] requestBody = request.getInputStream().readNBytes(MAX_REQUEST_BODY_BYTES + 1);
-        if (requestBody.length > MAX_REQUEST_BODY_BYTES) {
-            answers.problem(request, response, 413, ErrorCode.PAYLOAD_TOO_LARGE, "error.idempotency_body_too_large");
+        int limit = bodyLimit(request);
+        byte[] requestBody = request.getInputStream().readNBytes(limit + 1);
+        if (requestBody.length > limit) {
+            answers.problem(request, response, 413, ErrorCode.PAYLOAD_TOO_LARGE, tooLargeKey(limit));
             return;
         }
         CachedBodyHttpServletRequest wrappedRequest = new CachedBodyHttpServletRequest(request, requestBody);
@@ -210,12 +217,21 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
 
         int contentLength = request.getContentLength();
-        if (contentLength > MAX_REQUEST_BODY_BYTES) {
-            answers.problem(request, response, 413, ErrorCode.PAYLOAD_TOO_LARGE, "error.idempotency_body_too_large");
+        int limit = bodyLimit(request);
+        if (contentLength > limit) {
+            answers.problem(request, response, 413, ErrorCode.PAYLOAD_TOO_LARGE, tooLargeKey(limit));
             return true;
         }
 
         return false;
+    }
+
+    private static int bodyLimit(HttpServletRequest request) {
+        return IdempotencyAnswers.bodyLimit(request);
+    }
+
+    private static String tooLargeKey(int limit) {
+        return IdempotencyAnswers.tooLargeKey(limit);
     }
 
     /** The key as a UUID, or null after answering 400 for a key of another shape. */
@@ -273,7 +289,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             answerInternalError(request, responseWrapper, key, reservationToken);
         } else {
             transactionManager.rollback(tx);
-            record(key, reservationToken, responseWrapper, status, body);
+            record(request, key, reservationToken, responseWrapper, status, body);
         }
         responseWrapper.copyBodyToResponse();
     }
@@ -295,6 +311,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         try {
             // An answer that cannot be kept (too large, not JSON) still commits; only its replay is lost.
             record(
+                    request,
                     key,
                     reservationToken,
                     responseWrapper,
@@ -331,8 +348,14 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     }
 
     /** Stores the answer for a replay when it can be kept, otherwise frees the key. */
-    private void record(UUID key, UUID reservationToken, HttpServletResponse response, int status, byte[] body) {
-        if (IdempotencyAnswers.storable(response, status, body, MAX_RESPONSE_BODY_BYTES)) {
+    private void record(
+            HttpServletRequest request,
+            UUID key,
+            UUID reservationToken,
+            HttpServletResponse response,
+            int status,
+            byte[] body) {
+        if (IdempotencyAnswers.storable(response, status, body, IdempotencyAnswers.answerLimit(request))) {
             idempotencyService.complete(key, reservationToken, IdempotencyAnswers.answer(response, status, body));
         } else {
             idempotencyService.release(key, reservationToken);
@@ -355,6 +378,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             try {
                 if (chainCompleted) {
                     record(
+                            request,
                             key,
                             reservationToken,
                             responseWrapper,

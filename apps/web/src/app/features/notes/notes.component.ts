@@ -162,7 +162,7 @@ export class NotesComponent {
   }
 
   togglePin(note: Note): void {
-    this.notesApi.setPin(note.id, !note.isPinned).subscribe({
+    this.notesApi.setPin(note.id, !note.isPinned, note.revision).subscribe({
       next: () => this.firstPage.reload(),
       error: () => this.toast.error(this.i18n.translate('notes.pin_error')),
     });

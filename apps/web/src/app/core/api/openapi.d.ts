@@ -512,6 +512,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entities/ms.notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List records of ms.notes
+         * @description List records of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["listMsNotes"];
+        put?: never;
+        /**
+         * Create a record of ms.notes
+         * @description Create a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["createMsNotes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.notes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a record of ms.notes
+         * @description Get a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["getMsNotes"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a record of ms.notes
+         * @description Delete a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        delete: operations["deleteMsNotes"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a record of ms.notes
+         * @description Change a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        patch: operations["patchMsNotes"];
+        trace?: never;
+    };
+    "/api/v1/entities/ms.notes/{id}/archived": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Archive or restore a record of ms.notes
+         * @description Archive or restore a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        put: operations["archiveMsNotes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/entities/{code}/bulk": {
         parameters: {
             query?: never;
@@ -1805,98 +1877,6 @@ export interface paths {
          * @description Sets whether a menu item is shown; the body states the result, so a repeat changes nothing.
          */
         put: operations["setActive"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/notes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List my notes
-         * @description The caller's notes.
-         */
-        get: operations["getNotes"];
-        put?: never;
-        /**
-         * Create a note
-         * @description Adds a note with its title, Markdown text, colour and custom field values.
-         */
-        post: operations["createNote"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/notes/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a note
-         * @description One note of the caller.
-         */
-        get: operations["getNote"];
-        /**
-         * Update a note
-         * @description Replaces a note of the caller; names the revision it was read at.
-         */
-        put: operations["updateNote"];
-        post?: never;
-        /**
-         * Delete a note
-         * @description Removes a note of the caller; with If-Match, only from the revision it names.
-         */
-        delete: operations["deleteNote"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/notes/{id}/archived": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Archive or restore a note
-         * @description Moves a note of the caller to the archive or back; names the revision it was read at.
-         */
-        put: operations["setArchived"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/notes/{id}/pin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Pin or unpin a note
-         * @description Sets whether a note is pinned; the same call twice leaves the same note.
-         */
-        put: operations["setPin"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3201,9 +3181,6 @@ export interface components {
             /** Format: int64 */
             userId?: number;
         };
-        ArchivedRequest: {
-            archived?: boolean;
-        };
         AssignRolesDto: {
             roleIds: number[];
         };
@@ -3420,15 +3397,6 @@ export interface components {
             titleKey?: string;
             url?: string;
         };
-        CreateNoteRequest: {
-            attributes?: {
-                [key: string]: unknown;
-            };
-            color?: string;
-            contentMd?: string;
-            isPinned?: boolean;
-            title?: string;
-        };
         CreateOrgUnitDto: {
             code: string;
             kind?: string;
@@ -3587,6 +3555,10 @@ export interface components {
         EffectivePermissionsResponse: {
             items?: components["schemas"]["EffectivePermission"][];
         };
+        /** @description The state the archive switch sets */
+        EntityArchivedRequest: {
+            archived: boolean;
+        };
         EntityDocumentCounts: {
             /** Format: int64 */
             PROJECT?: number;
@@ -3594,6 +3566,21 @@ export interface components {
             TASK?: number;
             /** Format: int64 */
             USER?: number;
+        };
+        /** @description A stored file of a file or image field; a save sends its id */
+        EntityFile: {
+            contentType?: string;
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** Format: int64 */
+            size?: number;
+        };
+        /** @description An amount, as text so no digit is lost, and its ISO 4217 currency */
+        EntityMoney: {
+            /** @example 1250.00 */
+            amount: string;
+            currency: string;
         };
         ErrorItem: {
             code?: string;
@@ -3957,14 +3944,6 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
-        KeysetPageNoteView: {
-            hasMore?: boolean;
-            items?: components["schemas"]["NoteView"][];
-            nextCursor?: string;
-            /** Format: int64 */
-            totalEstimated?: number;
-            totalExact?: boolean;
-        };
         KeysetPageNotificationView: {
             hasMore?: boolean;
             items?: components["schemas"]["NotificationView"][];
@@ -4146,6 +4125,68 @@ export interface components {
             route?: string;
             section?: string;
         };
+        /** @description A new record of ms.notes; any other property is refused (unknown_field) */
+        MsNotesCreate: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            color?: "default" | "blue" | "green" | "yellow" | "purple" | "red";
+            contentMd?: string;
+            isPinned?: boolean;
+            title: string;
+        };
+        MsNotesPage: {
+            hasMore?: boolean;
+            items?: components["schemas"]["MsNotesRecord"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        /** @description The fields to change of a record of ms.notes; any other property is refused (unknown_field) */
+        MsNotesPatch: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            color?: "default" | "blue" | "green" | "yellow" | "purple" | "red";
+            contentMd?: string;
+            isPinned?: boolean;
+            title?: string;
+        };
+        /** @description A record of ms.notes as the viewer may read it */
+        MsNotesRecord: {
+            /** @description What the viewer may do with this record */
+            actions?: string[];
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            color?: "default" | "blue" | "green" | "yellow" | "purple" | "red";
+            contentMd?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            /** Format: int64 */
+            id: number;
+            isPinned?: boolean;
+            /** Format: date-time */
+            modifiedAt?: string;
+            /** Format: int64 */
+            modifiedBy?: number;
+            readonly rank?: string;
+            /** Format: int64 */
+            revision: number;
+            title?: string;
+        };
         NavigationItemView: {
             code?: string;
             /** Format: date-time */
@@ -4173,28 +4214,6 @@ export interface components {
             title?: string;
             titleKey?: string;
             url?: string;
-        };
-        NoteView: {
-            archived?: boolean;
-            /** Format: date-time */
-            archivedAt?: string;
-            attributes?: {
-                [key: string]: unknown;
-            };
-            color?: string;
-            contentMd?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: int64 */
-            createdBy?: number;
-            /** Format: int64 */
-            id?: number;
-            isPinned?: boolean;
-            /** Format: date-time */
-            modifiedAt?: string;
-            /** Format: int64 */
-            revision?: number;
-            title?: string;
         };
         NotificationPrefUpdate: {
             channel?: string;
@@ -4315,9 +4334,6 @@ export interface components {
             permissionsVersion?: number;
             /** Format: int64 */
             revision?: number;
-        };
-        PinRequest: {
-            pinned?: boolean;
         };
         PreviewResult: {
             activeProfile?: string;
@@ -4855,15 +4871,6 @@ export interface components {
             title?: string;
             titleKey?: string;
             url?: string;
-        };
-        UpdateNoteRequest: {
-            attributes?: {
-                [key: string]: unknown;
-            };
-            color?: string;
-            contentMd?: string;
-            isPinned?: boolean;
-            title?: string;
         };
         UpdateOrgUnitDto: {
             kind?: string;
@@ -5973,6 +5980,286 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MenuItem"][];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    listMsNotes: {
+        parameters: {
+            query?: {
+                q?: string;
+                filter?: string;
+                sort?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the list (ADR-0016) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsNotesPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createMsNotes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsNotesCreate"];
+            };
+        };
+        responses: {
+            /** @description The created record */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsNotesRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    getMsNotes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsNotesRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    deleteMsNotes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    patchMsNotes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsNotesPatch"];
+            };
+        };
+        responses: {
+            /** @description The changed record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsNotesRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    archiveMsNotes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityArchivedRequest"];
+            };
+        };
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsNotesRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -9032,323 +9319,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NavigationItemView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getNotes: {
-        parameters: {
-            query?: {
-                q?: string;
-                limit?: number;
-                cursor?: string;
-                filter?: string;
-                sort?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeysetPageNoteView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    createNote: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateNoteRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NoteView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getNote: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NoteView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateNote: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateNoteRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NoteView"];
-                };
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    deleteNote: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    setArchived: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ArchivedRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NoteView"];
-                };
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    setPin: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PinRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NoteView"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */

@@ -89,12 +89,18 @@ public class EntityScopes {
      * field that holds the unit. Only an org-unit entity has a unit to check.
      */
     public void requireUnit(EntityDefinition entity, String fieldKey, long userId, long orgUnitId) {
-        if (!(modelOf(entity).scope() instanceof EntityScope.OrgUnit) || dataScopes.unitVisible(userId, orgUnitId)) {
-            return;
+        Optional<FieldErrorItem> problem = unitProblem(entity, fieldKey, userId, orgUnitId);
+        if (problem.isPresent()) {
+            throw ApiException.validation("error.common.record_fields_invalid", List.of(problem.get()));
         }
-        throw ApiException.validation(
-                "error.common.record_fields_invalid",
-                List.of(FieldErrorItem.keyed(fieldKey, OUT_OF_SCOPE, "error.field.out_of_scope")));
+    }
+
+    /** The problem {@link #requireUnit} refuses, or none: the runtime answers it with the other problems of a save. */
+    public Optional<FieldErrorItem> unitProblem(EntityDefinition entity, String fieldKey, long userId, long orgUnitId) {
+        if (!(modelOf(entity).scope() instanceof EntityScope.OrgUnit) || dataScopes.unitVisible(userId, orgUnitId)) {
+            return Optional.empty();
+        }
+        return Optional.of(FieldErrorItem.keyed(fieldKey, OUT_OF_SCOPE, "error.field.out_of_scope"));
     }
 
     /** A filter as a fragment of a query that ends in {@code where 1=1}. */

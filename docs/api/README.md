@@ -4,7 +4,7 @@
 одном месте. Нормативны ADR, на которые ссылается каждый раздел; при
 расхождении прав ADR и код.
 
-Описание операций и схем — [`openapi.json`](openapi.json) (раздел 7).
+Описание операций и схем — [`openapi.json`](openapi.json) (раздел 8).
 
 ## 1. Ошибки — [ADR-0021](../adr/ADR-0021-error-model.md)
 
@@ -16,11 +16,10 @@
   "title": "NOT_FOUND",
   "status": 404,
   "code": "not_found",
-  "detail": "Заметка не найдена: 42",
-  "instance": "/api/v1/notes/42",
+  "detail": "Запись не найдена",
+  "instance": "/api/v1/entities/ms.notes/42",
   "timestamp": "2026-10-01T09:00:00Z",
-  "messageKey": "error.note.not_found",
-  "params": { "id": 42 }
+  "messageKey": "error.common.record_not_found"
 }
 ```
 
@@ -47,15 +46,15 @@
 | `204` | успех без тела (удаление, сохранение без ответа) |
 
 Один путь на операцию, параметры запроса в camelCase. Переключатель принимает
-состояние (`PUT /notes/{id}/pin {"pinned": true}`), поэтому повтор запроса
-ничего не меняет.
+состояние (`PUT /entities/ms.notes/{id}/archived {"archived": true}`), поэтому
+повтор запроса ничего не меняет.
 
 ## 3. Постраничное чтение — план 10/10, пункт 3.5
 
 Растущая коллекция читается страницами с keyset-курсором:
 
 ```
-GET /api/v1/notes?limit=50&cursor=<nextCursor прошлой страницы>
+GET /api/v1/entities/ms.notes?limit=50&cursor=<nextCursor прошлой страницы>
 ```
 
 ```json
@@ -101,12 +100,53 @@ GET /api/v1/notes?limit=50&cursor=<nextCursor прошлой страницы>
 - тот же ключ с другим телом — **409**
   (`error.idempotency_key_payload_mismatch`); ключ, запрос по которому ещё
   выполняется, — 409 (`error.idempotency_request_in_progress`);
-- ключ не UUID — 400; тело больше 64 КБ — 413; `multipart` и пути
-  `/api/v1/auth/**` ключ не принимают (400);
+- ключ не UUID — 400; тело больше 64 КБ — 413 (у `/api/v1/entities/**` —
+  512 КБ, как и лимит тела записи); `multipart` и пути `/api/v1/auth/**` ключ
+  не принимают (400);
 - ключи хранятся 14 дней (`SMC_IDEMPOTENCY_RETENTION_DAYS`); ответ,
   содержащий секрет, не сохраняется.
 
-## 6. Устаревшие формы — [ADR-0023](../adr/ADR-0023-uniform-rest.md), §2.5 и §5
+## 6. Сущности: общий runtime — [ADR-0032](../adr/ADR-0032-low-code-platform-v2.md), §6
+
+Каждая сущность, объявленная с таблицей, отвечает на одних и тех же путях
+(код сущности — с точкой, `ms.notes`; id — число):
+
+| Метод и путь | Что делает | Право | Ответ |
+|---|---|---|---|
+| `GET /api/v1/entities/{code}` | страница списка: `q`, `filter`, `sort`, `limit`, `cursor` | `view` | 200 `KeysetPage` записей |
+| `GET /api/v1/entities/{code}/{id}` | запись (архивная тоже, `archived: true`) | `view` | 200 + `ETag` |
+| `POST /api/v1/entities/{code}` | создание | `create` | 201 + `Location` + `ETag` |
+| `PATCH /api/v1/entities/{code}/{id}` | изменение: отсутствующее свойство не меняется, `null` очищает | `update` | 200 + `ETag`; `If-Match` обязателен |
+| `DELETE /api/v1/entities/{code}/{id}` | удаление (если объявлено) | `delete` | 204; `If-Match` необязателен |
+| `PUT /api/v1/entities/{code}/{id}/archived` | архив и восстановление `{"archived": true}` | `archive` (по умолчанию право `delete`) | 200 + `ETag`; `If-Match` |
+| `POST /api/v1/entities/{code}/{id}/actions/{action}` | действие записи | право действия | 200 + `ETag`; `If-Match` |
+| `POST /api/v1/entities/{code}/bulk` | массовое удаление и архив | право действия | 200 `BulkResult` |
+| `GET /api/v1/entities/{code}/{id}/files/{fileId}` | файл поля записи | `view` | 200 поток |
+
+- Запись — системные свойства (`id`, `revision`, `createdAt`, `createdBy`,
+  `modifiedAt`, `modifiedBy`, `archived`), поля, которые зрителю видны по
+  правам на поля, `attributes` (доп. поля) и `actions` — что этот зритель может
+  сделать с записью.
+- Неизвестная сущность, сущность без `view` и сущность выключенного модуля —
+  одинаковый **404** `error.common.entity_not_found`; запись вне скоупа —
+  **404** `error.common.record_not_found`, как несуществующая.
+- Тело — только записываемые поля формы и `attributes`: неизвестное или
+  скрытое правом свойство, системное (`id`, `revision`, `createdBy`…),
+  `labels`, `actions` — **422** `unknown_field`; значение неверного типа JSON —
+  **422** `invalid`; все ошибки полей, ссылок и правил — в одном 422. Ссылка —
+  на запись цели, видимую автору (иначе `not_found`), и не архивную (иначе
+  `archived`). Тело больше 512 КБ — **413**.
+- Дробное число лучше отправлять строкой: так сохраняются все знаки.
+- Описание API у каждой сущности своё: пути `/api/v1/entities/<код>…`,
+  `operationId` (`listMsNotes`, `createMsNotes`, `patchMsNotes`…), схемы
+  `<Код>Record`, `<Код>Create`, `<Код>Patch`, `<Код>Page`; поле, которое
+  требует права, помечено `x-requires`.
+- Изменение записи публикует событие: подписка на вебхук `<форма>.created`,
+  `updated`, `deleted`, `archived`, `restored` или `<действие>` (например,
+  `notes.updated`) получает конверт `{id, type, occurredAt, entity, recordId,
+  revision, changedFields, data}`; в `data` нет полей, требующих права.
+
+## 7. Устаревшие формы — [ADR-0023](../adr/ADR-0023-uniform-rest.md), §2.5 и §5
 
 Сейчас устаревших форм нет: формы первого релиза (псевдонимы путей вроде
 `/tasks/items`, `/rbac`, `/notify`, переключатели `POST …/toggle`,
@@ -139,11 +179,13 @@ request или трейлером коммита `Api-Breaking: <что и по�
 ([ADR-0022](../adr/ADR-0022-openapi-from-code.md), §2.4). Без этого CI
 (`scripts/api/test-api-contract.ps1`, openapi-diff) не пропускает изменение.
 
-## 7. Откуда `openapi.json` — [ADR-0022](../adr/ADR-0022-openapi-from-code.md)
+## 8. Откуда `openapi.json` — [ADR-0022](../adr/ADR-0022-openapi-from-code.md)
 
 - Описание генерирует springdoc по контроллерам и DTO (DTO — в пакете `api`
   модуля); `ApiDocsConfig` добавляет схемы входа и ответ `default`
-  `application/problem+json`. Сервер отдаёт его по `/api/v1/openapi.json`.
+  `application/problem+json`, `EntityOpenApiCustomizer` — пути и схемы каждой
+  сущности на runtime из её объявления. Сервер отдаёт его по
+  `/api/v1/openapi.json`.
 - `docs/api/openapi.json` — копия в каноническом виде. После изменения
   контроллера или DTO:
 

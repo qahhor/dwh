@@ -28,7 +28,7 @@ describe('NoteFormDialogComponent', () => {
     const api = {
       get: vi.fn((..._args: unknown[]): Observable<unknown> => of([])),
       post: vi.fn(() => of(note)),
-      put: vi.fn(() => of(note)),
+      patch: vi.fn(() => of(note)),
     };
     const toast = { success: vi.fn(), error: vi.fn(), show: vi.fn() };
     TestBed.configureTestingModule({
@@ -95,7 +95,7 @@ describe('NoteFormDialogComponent', () => {
     component.save();
 
     expect(api.post).toHaveBeenCalledWith(
-      '/notes',
+      '/entities/ms.notes',
       expect.objectContaining({ title: 'Список покупок', contentMd: '- хлеб', isPinned: true }),
       { notifyError: false },
     );
@@ -114,7 +114,7 @@ describe('NoteFormDialogComponent', () => {
     component.save();
 
     expect(api.post).toHaveBeenCalledWith(
-      '/notes',
+      '/entities/ms.notes',
       {
         title: 'Новая заметка',
         contentMd: 'Текст',
@@ -134,14 +134,18 @@ describe('NoteFormDialogComponent', () => {
     expect(screen.querySelector('ui-record-history')).not.toBeNull();
     component.save();
 
-    expect(api.put).toHaveBeenCalledWith('/notes/1', expect.objectContaining({ title: note.title, color: 'blue' }), {
-      notifyError: false,
-    });
+    expect(api.patch).toHaveBeenCalledWith(
+      '/entities/ms.notes/1',
+      expect.objectContaining({ title: note.title, color: 'blue' }),
+      {
+        notifyError: false,
+      },
+    );
   });
 
   it('puts the server rejection on the field it names and stays open', () => {
     const { component, api, toast, saved } = setup({ note });
-    api.put.mockReturnValueOnce(
+    api.patch.mockReturnValueOnce(
       throwError(() => ({
         status: 422,
         detail: 'Проверьте поля записи',
@@ -159,7 +163,7 @@ describe('NoteFormDialogComponent', () => {
 
   it('shows the server reason when it names no field', () => {
     const { component, api, toast } = setup({ note });
-    api.put.mockReturnValueOnce(throwError(() => ({ status: 422, detail: 'Заметка изменена другим пользователем' })));
+    api.patch.mockReturnValueOnce(throwError(() => ({ status: 422, detail: 'Заметка изменена другим пользователем' })));
 
     component.save();
 
@@ -168,7 +172,7 @@ describe('NoteFormDialogComponent', () => {
 
   it('shows the conflict text once and offers to read the note again (plan item 3.6)', () => {
     const { component, api, toast } = setup({ note: { ...note, revision: 1 } });
-    api.put.mockReturnValueOnce(
+    api.patch.mockReturnValueOnce(
       throwError(() => ({
         status: 409,
         code: 'revision_conflict',
@@ -189,13 +193,17 @@ describe('NoteFormDialogComponent', () => {
     api.get.mockReturnValueOnce(of({ ...note, title: 'Сохранено другим', revision: 2 }));
     action.run();
 
-    expect(api.get).toHaveBeenCalledWith('/notes/1', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/entities/ms.notes/1', undefined, { notifyError: false });
     expect(component.values()['title']).toBe('Сохранено другим');
     component.save();
-    expect(api.put).toHaveBeenLastCalledWith('/notes/1', expect.objectContaining({ title: 'Сохранено другим' }), {
-      notifyError: false,
-      ifMatch: 2,
-    });
+    expect(api.patch).toHaveBeenLastCalledWith(
+      '/entities/ms.notes/1',
+      expect.objectContaining({ title: 'Сохранено другим' }),
+      {
+        notifyError: false,
+        ifMatch: 2,
+      },
+    );
   });
 
   it('closes on request, but not while saving', () => {
