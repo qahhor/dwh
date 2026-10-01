@@ -131,6 +131,31 @@ final class IdempotencyAnswers {
                 response.getHeader(HttpHeaders.ETAG));
     }
 
+    /** The largest request body kept for a replay: 512 KB for an entity record (ADR-0032, 6.2), 64 KB for the rest. */
+    static int bodyLimit(HttpServletRequest request) {
+        return entityPath(request) ? IdempotencyFilter.MAX_ENTITY_BODY_BYTES : IdempotencyFilter.MAX_REQUEST_BODY_BYTES;
+    }
+
+    /** The largest answer kept for a replay, by the same rule. */
+    static int answerLimit(HttpServletRequest request) {
+        return entityPath(request)
+                ? IdempotencyFilter.MAX_ENTITY_BODY_BYTES
+                : IdempotencyFilter.MAX_RESPONSE_BODY_BYTES;
+    }
+
+    /** The text of a refusal over the limit: each limit names its size. */
+    static String tooLargeKey(int limit) {
+        return limit == IdempotencyFilter.MAX_ENTITY_BODY_BYTES
+                ? "error.idempotency_entity_body_too_large"
+                : "error.idempotency_body_too_large";
+    }
+
+    private static boolean entityPath(HttpServletRequest request) {
+        return request.getRequestURI()
+                .substring(request.getContextPath().length())
+                .startsWith("/api/v1/entities/");
+    }
+
     static boolean carriesBody(int status) {
         return status >= 200 && status != 204 && status != 205 && status != 304;
     }

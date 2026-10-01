@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,6 +82,34 @@ public class EntityFieldValues {
             @Nullable Map<String, ?> current,
             @Nullable Long recordId,
             long userId) {
+        Prepared prepared = prepareAll(entity, values, current, recordId, userId);
+        if (!prepared.errors().isEmpty()) {
+            throw ApiException.validation("error.common.record_fields_invalid", prepared.errors());
+        }
+        return prepared.values();
+    }
+
+    /**
+     * The values to write and every problem found, without refusing: the runtime adds the problems of the body, the
+     * references and the rules and answers them all in one 422 (ADR-0032, 6.3, step 8).
+     *
+     * @param values the values to write by field key; complete only when {@code errors} is empty
+     * @param errors the problems, each addressed to its field
+     */
+    public record Prepared(Map<String, Object> values, List<FieldErrorItem> errors) {
+        public Prepared {
+            values = Collections.unmodifiableMap(new LinkedHashMap<>(values));
+            errors = List.copyOf(errors);
+        }
+    }
+
+    /** {@link #prepare} without refusing: the values and the problems. */
+    public Prepared prepareAll(
+            EntityDefinition entity,
+            Map<String, ?> values,
+            @Nullable Map<String, ?> current,
+            @Nullable Long recordId,
+            long userId) {
         boolean creating = current == null;
         Map<String, ?> before = current == null ? Map.of() : current;
         List<FieldErrorItem> errors = writeProblems(entity, values, current, before, creating);
@@ -114,10 +143,7 @@ public class EntityFieldValues {
         if (errors.isEmpty()) {
             errors.addAll(lookupProblems(entity, prepared, before, recordId, userId));
         }
-        if (!errors.isEmpty()) {
-            throw ApiException.validation("error.common.record_fields_invalid", errors);
-        }
-        return prepared;
+        return new Prepared(prepared, errors);
     }
 
     /**

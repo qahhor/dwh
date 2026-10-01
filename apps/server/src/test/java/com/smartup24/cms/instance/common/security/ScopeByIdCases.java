@@ -49,6 +49,12 @@ final class ScopeByIdCases {
         return new Case(handler, "", kind, NO_VARS, body, inScope);
     }
 
+    /** A by-id handler of the entity runtime, on a note: its code is the path variable {@code code}. */
+    private static Case entity(String handler, BiFunction<ScopeFixture, Object, Object> body, Set<Integer> inScope) {
+        return new Case(
+                handler, MsNoteEntity.CODE, Kind.NOTE, (f, id) -> Map.of("code", MsNoteEntity.CODE), body, inScope);
+    }
+
     private static Case history(String key, Kind kind) {
         return new Case("RecordHistoryController#history", key, kind, (f, id) -> Map.of("kind", key), NO_BODY, OK);
     }
@@ -132,16 +138,16 @@ final class ScopeByIdCases {
                     (f, id) -> Map.of("textMarkdown", "TEST comment"),
                     Set.of(201)),
             history("tasks", Kind.TASK),
-            // notes (ms.note): personal, so another person's note is outside the scope
-            read("MsNoteController#getNote", Kind.NOTE),
-            write(
-                    "MsNoteController#updateNote",
-                    Kind.NOTE,
+            // notes on the general entity runtime (ADR-0032, 6): personal, so another person's note is outside the
+            // scope
+            entity("EntityController#get", NO_BODY, OK),
+            entity(
+                    "EntityController#update",
                     (f, id) -> Map.of("title", "TEST changed", "contentMd", "body", "color", "default"),
                     OK),
-            write("MsNoteController#setPin", Kind.NOTE, (f, id) -> Map.of("pinned", true), OK),
-            write("MsNoteController#setArchived", Kind.NOTE, (f, id) -> Map.of("archived", true), OK),
-            write("MsNoteController#deleteNote", Kind.NOTE, NO_CONTENT),
+            entity("EntityController#update", (f, id) -> Map.of("isPinned", true), OK),
+            entity("EntityController#archive", (f, id) -> Map.of("archived", true), OK),
+            entity("EntityController#delete", NO_BODY, NO_CONTENT),
             history(MsNoteEntity.DEFINITION.code(), Kind.NOTE),
             // files (mf)
             read("MfFileController#getFileMetadata", Kind.FILE),
@@ -155,8 +161,13 @@ final class ScopeByIdCases {
     static final Map<String, String> ALLOWLIST = Map.ofEntries(
             Map.entry("EntityBulkController#bulk", "an entity code; every record passes the entity's own by-id path"),
             Map.entry(
+                    "EntityController#action",
+                    "a declared record action: no entity of the application declares one; the record is read in its"
+                            + " scope for update as for every change (EntityRuntimeIntegrationTest, the kit's scope"
+                            + " group of an entity with an action)"),
+            Map.entry(
                     "EntityFileController#download",
-                    "a record's file: the entity's own EntityRecords.requireVisible decides (EntityFileControllerTest);"
+                    "a record's file: the runtime's read in the entity's scope decides (EntityFileControllerTest);"
                             + " no entity of the application has a file field yet"),
             Map.entry("FormMetaController#get", "metadata of an entity code, no record"),
             Map.entry("QueryMetaController#get", "metadata of a list code, no record"),

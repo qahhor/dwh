@@ -118,6 +118,12 @@ class MdFormCatalogTest {
                 // A controller from the test classpath has no place in the catalog.
             }
         }
+        // The pairs the runtime checks from the entities' declarations (ADR-0032, 6.10).
+        try {
+            pairs.addAll(MdFormCatalogSynchronizer.entityPairs(EntityActionPermissionContractTest.declaredEntities()));
+        } catch (Exception e) {
+            throw new IllegalStateException("The application's entities could not be read", e);
+        }
         return pairs;
     }
 

@@ -6,7 +6,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityRecords;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.FormCatalogItem;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
@@ -35,14 +34,7 @@ class MdPermissionEntityNamesTest {
             Pattern.compile("^[a-z][a-z0-9]*(?:_[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:_[a-z0-9]+)*){2,}$");
 
     private static EntityRegistry notes() {
-        EntityRecords records = new EntityRecords() {
-            public String entity() {
-                return MsNoteEntity.DEFINITION.code();
-            }
-
-            public void requireVisible(long id) {}
-        };
-        return new EntityRegistry(List.of(MsNoteEntity.DEFINITION), List.of(), List.of(records));
+        return new EntityRegistry(List.of(MsNoteEntity.DEFINITION), List.of());
     }
 
     @Test

@@ -6,8 +6,10 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityRights;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
 import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.entity.field.EntityFields;
+import com.smartup24.cms.instance.common.entity.hook.EntityRule;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,6 +58,7 @@ public final class Entity {
     private final List<FormSection> layout = new ArrayList<>();
     private final List<EntityAction> actions = new ArrayList<>();
     private final Set<EntityCapability> capabilities = EnumSet.noneOf(EntityCapability.class);
+    private final Map<String, EntityRule> rules = new LinkedHashMap<>();
 
     private Entity(String code, String form) {
         this.code = Objects.requireNonNull(code, "code");
@@ -135,6 +138,17 @@ public final class Entity {
         return this;
     }
 
+    /**
+     * A cross-field rule (ADR-0032, 6.6), named for the review: {@code .rule("period", Rules.notBefore("endDate",
+     * "startDate"))}. Its problems join the problems of the fields in one 422 of every save.
+     */
+    public Entity rule(String name, EntityRule rule) {
+        if (rules.put(Objects.requireNonNull(name, "name"), Objects.requireNonNull(rule, "rule")) != null) {
+            throw new IllegalArgumentException("Entity " + code + ": duplicate rule " + name);
+        }
+        return this;
+    }
+
     /** The list's default order: a sortable list field. */
     public Entity defaultSort(String key, Sort direction) {
         this.defaultSort = key;
@@ -188,7 +202,10 @@ public final class Entity {
                     Objects.requireNonNull(defaultSort, "Entity " + code + " names its list's default sort"),
                     defaultDescending,
                     scope,
-                    reference);
+                    reference,
+                    rules);
+        } else if (!rules.isEmpty()) {
+            throw new IllegalArgumentException("Entity " + code + ": a rule checks the records of its table");
         } else if (reference != null || fields.stream().anyMatch(field -> field.list() != null)) {
             throw new IllegalArgumentException("Entity " + code + ": a list field needs the entity's table");
         } else if (scope != null) {

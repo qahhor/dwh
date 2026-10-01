@@ -78,21 +78,25 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
         Session s = login(user());
         long id = note(s);
 
-        MockHttpServletResponse missing = send(s, put("/api/v1/notes/" + id), Map.of("title", "No revision"));
+        MockHttpServletResponse missing =
+                send(s, patch("/api/v1/entities/ms.notes/" + id), Map.of("title", "No revision"));
         assertThat(missing.getStatus()).isEqualTo(428);
         assertThat(object(missing).get("code")).isEqualTo("precondition_required");
-        assertThat(send(s, put("/api/v1/notes/" + id).header("If-Match", "latest"), Map.of("title", "Bad"))
+        assertThat(send(
+                                s,
+                                patch("/api/v1/entities/ms.notes/" + id).header("If-Match", "latest"),
+                                Map.of("title", "Bad"))
                         .getStatus())
                 .isEqualTo(422);
 
         MockHttpServletResponse saved =
-                send(s, put("/api/v1/notes/" + id).header("If-Match", "\"1\""), Map.of("title", "First"));
+                send(s, patch("/api/v1/entities/ms.notes/" + id).header("If-Match", "\"1\""), Map.of("title", "First"));
         assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(200);
         assertThat(saved.getHeader("ETag")).isEqualTo("\"2\"");
         assertThat(object(saved).get("revision")).isEqualTo(2);
 
-        MockHttpServletResponse stale =
-                send(s, put("/api/v1/notes/" + id).header("If-Match", "\"1\""), Map.of("title", "Over it"));
+        MockHttpServletResponse stale = send(
+                s, patch("/api/v1/entities/ms.notes/" + id).header("If-Match", "\"1\""), Map.of("title", "Over it"));
         assertThat(stale.getStatus()).isEqualTo(409);
         assertThat(object(stale).get("code")).isEqualTo("revision_conflict");
         assertThat(object(stale).get("messageKey")).isEqualTo("error.common.revision_conflict");
@@ -110,7 +114,10 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
             for (String title : List.of("Alice", "Bob")) {
                 saves.add(pool.submit(() -> {
                     start.await();
-                    return send(s, put("/api/v1/notes/" + id).header("If-Match", "\"1\""), Map.of("title", title))
+                    return send(
+                                    s,
+                                    patch("/api/v1/entities/ms.notes/" + id).header("If-Match", "\"1\""),
+                                    Map.of("title", title))
                             .getStatus();
                 }));
             }
@@ -389,7 +396,7 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
     }
 
     private long note(Session s) throws Exception {
-        MockHttpServletResponse created = send(s, post("/api/v1/notes"), Map.of("title", "Revision probe"));
+        MockHttpServletResponse created = send(s, post("/api/v1/entities/ms.notes"), Map.of("title", "Revision probe"));
         assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
         assertThat(created.getHeader("ETag")).isEqualTo("\"1\"");
         return ((Number) object(created).get("id")).longValue();

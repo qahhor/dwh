@@ -167,8 +167,7 @@ class EntityDefinitionTest {
         FormFieldExtender extender = entity -> List.of(
                 FormField.of("cfBudget", "", FieldType.NUMBER).custom("Бюджет", "budget"),
                 FormField.of("title", "", FieldType.TEXT).custom("Дубль", "title"));
-        EntityRegistry registry = new EntityRegistry(
-                List.of(NOTES), List.of(extender), List.of(EntityFeaturesTest.records(NOTES.code())));
+        EntityRegistry registry = new EntityRegistry(List.of(NOTES), List.of(extender));
 
         EntityDefinition resolved = registry.find(NOTES.code()).orElseThrow();
 
@@ -190,7 +189,7 @@ class EntityDefinitionTest {
 
         FormMetaController.FormMeta meta = controller.get(NOTES.code()).getBody();
 
-        assertThat(meta.actions()).containsExactly("update", "pin");
+        assertThat(meta.actions()).containsExactly("update");
         assertThat(meta.listCode()).isEqualTo("ms.notes");
         assertThat(meta.capabilities())
                 .containsExactly("archive", "bulk", "custom_fields", "export", "history", "saved_views");

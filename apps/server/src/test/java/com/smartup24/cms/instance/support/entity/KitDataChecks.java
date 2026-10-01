@@ -10,7 +10,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
+import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.entity.field.EntityField;
+import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.entity.EntitySamples.Sample;
 import com.smartup24.cms.instance.support.entity.KitWorld.Created;
@@ -49,7 +51,8 @@ final class KitDataChecks {
     List<DynamicTest> validation() {
         List<DynamicTest> tests = new ArrayList<>();
         for (EntityField field : world.writable()) {
-            if (world.form(field).required()) {
+            // A required field with a default is filled by the server when a create leaves it out (ADR-0032, 4.3).
+            if (world.form(field).required() && world.form(field).flags().defaultValue() == null) {
                 tests.add(dynamicTest(field.key() + " left out of a create is 422 required", () -> {
                     Map<String, Object> values = world.validValues(world.owner);
                     values.remove(field.key());
@@ -70,6 +73,24 @@ final class KitDataChecks {
                 values.put("kitUnknown", "x");
                 expectProblem(values, new Sample("kitUnknown", "x", EntityFieldRights.UNKNOWN_FIELD, true));
             }));
+            // ADR-0032, 12 "mass assignment": the server writes the record's own properties.
+            for (String own : List.of("id", "revision", "createdBy", "modifiedAt", "archived", "actions")) {
+                tests.add(dynamicTest("the record's own property " + own + " is 422 unknown_field", () -> {
+                    Map<String, Object> values = world.validValues(world.owner);
+                    values.put(own, 7);
+                    expectProblem(values, new Sample(own, 7, EntityFieldRights.UNKNOWN_FIELD, true));
+                }));
+            }
+            world.writable().stream()
+                    .filter(field -> field.type() != FieldType.MULTI_REF && field.type() != FieldType.JSON)
+                    .findFirst()
+                    .ifPresent(field -> tests.add(dynamicTest(
+                            field.key() + " sent as a JSON array is 422 invalid (a wrong JSON type)", () -> {
+                                Map<String, Object> values = world.validValues(world.owner);
+                                values.put(field.key(), List.of("x"));
+                                expectProblem(
+                                        values, new Sample(field.key(), List.of("x"), EntityValidator.INVALID, true));
+                            })));
         }
         return tests;
     }

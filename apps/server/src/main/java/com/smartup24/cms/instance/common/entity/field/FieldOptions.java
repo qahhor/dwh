@@ -7,7 +7,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The parameters of a field's type (ADR-0032, 3.1): the options of a select and the dictionary prefix of their labels,
- * the source of a reference, the currencies of money, the reference entity of an enumeration and the root of JSON.
+ * the source of a reference and the entity it names, the currencies of money, the reference entity of an enumeration
+ * and the root of JSON.
  *
  * @param options           the values a select offers, in order
  * @param optionLabelPrefix dictionary prefix of the option labels ({@code notes.color_}); null shows the value
@@ -15,6 +16,9 @@ import org.jspecify.annotations.Nullable;
  * @param currencies        the ISO 4217 codes money may be in, the first the one offered first; empty for other types
  * @param enumeration       the code of the reference entity an enumeration's items come from (ADR-0032, 4.5), or null
  * @param jsonRoot          what the root of a JSON value must be, or null for an object or an array
+ * @param target            the code of the entity whose rows a reference names ({@code md.users}, ADR-0032, 4.6): the
+ *                          runtime checks a new value against that entity's scope and archive; null for a reference
+ *                          declared by its path only
  */
 public record FieldOptions(
         List<String> options,
@@ -22,10 +26,11 @@ public record FieldOptions(
         @Nullable QueryRef ref,
         List<String> currencies,
         @Nullable String enumeration,
-        @Nullable JsonRoot jsonRoot) {
+        @Nullable JsonRoot jsonRoot,
+        @Nullable String target) {
 
     /** No parameters. */
-    public static final FieldOptions NONE = new FieldOptions(List.of(), null, null, List.of(), null, null);
+    public static final FieldOptions NONE = new FieldOptions(List.of(), null, null, List.of(), null, null, null);
 
     /** The root a JSON value must have. */
     public enum JsonRoot {
@@ -45,30 +50,48 @@ public record FieldOptions(
                 throw new IllegalArgumentException("Bad currency: " + currency);
             }
         }
+        if (target != null && (ref == null || !ref.path().equals(QueryRef.entityPath(target)))) {
+            throw new IllegalArgumentException("A reference to " + target + " is picked from that entity's list");
+        }
     }
 
     /** A select's options. */
     public static FieldOptions choice(List<String> options, @Nullable String optionLabelPrefix) {
-        return new FieldOptions(options, optionLabelPrefix, null, List.of(), null, null);
+        return new FieldOptions(options, optionLabelPrefix, null, List.of(), null, null, null);
     }
 
     /** A reference's source. */
     public static FieldOptions refersTo(QueryRef source) {
-        return new FieldOptions(List.of(), null, source, List.of(), null, null);
+        return new FieldOptions(List.of(), null, source, List.of(), null, null, null);
+    }
+
+    /**
+     * A reference to the rows of the entity {@code entity} (ADR-0032, 4.6): picked from its runtime list
+     * ({@code /entities/<code>}) and named there by {@code labelField}.
+     */
+    public static FieldOptions targets(String entity, String labelField) {
+        return new FieldOptions(
+                List.of(),
+                null,
+                QueryRef.paged(QueryRef.entityPath(entity), labelField),
+                List.of(),
+                null,
+                null,
+                entity);
     }
 
     /** Money's currencies. */
     public static FieldOptions money(List<String> currencies) {
-        return new FieldOptions(List.of(), null, null, currencies, null, null);
+        return new FieldOptions(List.of(), null, null, currencies, null, null, null);
     }
 
     /** An enumeration's reference entity. */
     public static FieldOptions enumeration(String reference) {
-        return new FieldOptions(List.of(), null, null, List.of(), reference, null);
+        return new FieldOptions(List.of(), null, null, List.of(), reference, null, null);
     }
 
     /** JSON with this root, or either. */
     public static FieldOptions json(@Nullable JsonRoot root) {
-        return new FieldOptions(List.of(), null, null, List.of(), null, root);
+        return new FieldOptions(List.of(), null, null, List.of(), null, root, null);
     }
 }

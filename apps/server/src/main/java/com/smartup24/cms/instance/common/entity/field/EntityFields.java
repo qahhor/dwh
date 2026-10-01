@@ -71,6 +71,11 @@ public final class EntityFields {
         return new Builder(key, labelKey, FieldType.REF, FieldOptions.refersTo(source));
     }
 
+    /** The key of a row of another entity, named by {@link Builder#target} (ADR-0032, 4.6). */
+    public static Builder ref(String key, String labelKey) {
+        return new Builder(key, labelKey, FieldType.REF, FieldOptions.NONE);
+    }
+
     /** An e-mail address, kept in lower case. */
     public static Builder email(String key, String labelKey) {
         return new Builder(key, labelKey, FieldType.EMAIL, FieldOptions.NONE);
@@ -99,6 +104,11 @@ public final class EntityFields {
     /** The keys of several rows of another list, picked by name from {@code source}; lives in {@link Builder#link}. */
     public static Builder multiRef(String key, String labelKey, QueryRef source) {
         return new Builder(key, labelKey, FieldType.MULTI_REF, FieldOptions.refersTo(source));
+    }
+
+    /** The keys of several rows of another entity, named by {@link Builder#target}; lives in {@link Builder#link}. */
+    public static Builder multiRef(String key, String labelKey) {
+        return new Builder(key, labelKey, FieldType.MULTI_REF, FieldOptions.NONE);
     }
 
     /** A stored file, its id in a {@code uuid} column (ADR-0032, 4.7). */
@@ -140,7 +150,7 @@ public final class EntityFields {
         private final String key;
         private final String labelKey;
         private final FieldType type;
-        private final FieldOptions options;
+        private FieldOptions options;
         private @Nullable FieldSource source;
         private boolean required;
         private FieldRules rules = FieldRules.NONE;
@@ -187,6 +197,19 @@ public final class EntityFields {
         /** The amount column and the currency column of money; no currency column for money in one currency. */
         public Builder money(String amountColumn, @Nullable String currencyColumn) {
             return from(new FieldSource.MoneyColumns(amountColumn, currencyColumn));
+        }
+
+        /**
+         * The entity whose rows a reference names, by its code (ADR-0032, 4.6): the rows are picked from its runtime
+         * list and named there by its field {@code labelField}; a new value must be a row the saver sees in that
+         * entity's scope and, for an archivable entity, one in use.
+         */
+        public Builder target(String entity, String labelField) {
+            if (type != FieldType.REF && type != FieldType.MULTI_REF) {
+                throw new IllegalArgumentException("Entity field " + key + ": only a reference names its target");
+            }
+            this.options = FieldOptions.targets(entity, labelField);
+            return this;
         }
 
         /** The link table of several references: a row per key, ordered by its {@code position}. */

@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityLists;
-import com.smartup24.cms.instance.common.entity.EntityRecords;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.FormField;
 import com.smartup24.cms.instance.common.entity.field.FieldType;
@@ -96,16 +95,8 @@ class EntityFieldContractTest {
                         List.of(new EntityLists(List.of(notes))),
                         List.of(new MdCustomFieldQueryFields(service)))
                 .get(notes.listCode());
-        EntityRecords records = new EntityRecords() {
-            public String entity() {
-                return notes.code();
-            }
-
-            public void requireVisible(long id) {}
-        };
-        EntityDefinition resolved = new EntityRegistry(
-                        List.of(notes), List.of(new MdCustomFieldFormFields(service)), List.of(records))
-                .resolve(notes);
+        EntityDefinition resolved =
+                new EntityRegistry(List.of(notes), List.of(new MdCustomFieldFormFields(service))).resolve(notes);
 
         List<FormField> custom = resolved.fields().stream()
                 .filter(field -> field.attribute() != null)

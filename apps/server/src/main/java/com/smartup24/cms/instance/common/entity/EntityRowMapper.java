@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.RowMapper;
 import tools.jackson.core.type.TypeReference;
@@ -33,10 +34,26 @@ public final class EntityRowMapper implements RowMapper<Map<String, Object>> {
 
     private final EntityModel model;
     private final JsonColumns json;
+    private final boolean archivable;
 
     public EntityRowMapper(EntityModel model, ObjectMapper mapper) {
+        this(model, mapper, false);
+    }
+
+    /**
+     * A mapper that also reads the archive of an archivable entity (ADR-0032, 5.4): {@code archived} — whether the
+     * record is archived — and {@code archivedAt} when it is.
+     */
+    public EntityRowMapper(EntityModel model, ObjectMapper mapper, boolean archivable) {
         this.model = model;
         this.json = new JsonColumns(mapper, model.table());
+        this.archivable = archivable;
+    }
+
+    /** The mapper of an entity's records: with the archive when the entity is archivable. */
+    public static EntityRowMapper of(EntityDefinition entity, ObjectMapper mapper) {
+        EntityModel model = Objects.requireNonNull(entity.model(), entity.code());
+        return new EntityRowMapper(model, mapper, entity.capabilities().contains(EntityCapability.ARCHIVE));
     }
 
     @Override
@@ -53,6 +70,11 @@ public final class EntityRowMapper implements RowMapper<Map<String, Object>> {
             putNotNull(record, field.key(), value(rs, field));
         }
         record.put(EntityModel.ATTRIBUTES, json.readObject(rs.getString(EntityModel.ATTRIBUTES)));
+        if (archivable) {
+            String archivedAt = instant(rs, EntityModel.ARCHIVED_AT);
+            record.put(EntityModel.ARCHIVED, archivedAt != null);
+            putNotNull(record, EntityModel.ARCHIVED_AT, archivedAt);
+        }
         return record;
     }
 
