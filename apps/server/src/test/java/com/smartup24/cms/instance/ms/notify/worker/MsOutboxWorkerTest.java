@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.ms.notify.repository.MsOutboxRepository;
 import com.smartup24.cms.spi.mail.MailMessage;
 import com.smartup24.cms.spi.mail.MailProvider;
@@ -27,12 +28,33 @@ import org.mockito.Mockito;
 class MsOutboxWorkerTest {
 
     private final MsOutboxRepository outboxRepository = Mockito.mock(MsOutboxRepository.class);
-    private final MailProvider mailProvider = Mockito.mock(MailProvider.class);
+    // With SMTP configured the console stub stays in the context: the worker must pick the active provider.
+    private final MailProvider consoleMailProvider = mailProvider("console_mail");
+    private final MailProvider mailProvider = mailProvider("smtp");
     private final SmsProvider smsProvider = Mockito.mock(SmsProvider.class);
     private final MessengerProvider messengerProvider = Mockito.mock(MessengerProvider.class);
 
-    private final MsOutboxWorker worker =
-            new MsOutboxWorker(outboxRepository, mailProvider, smsProvider, messengerProvider);
+    private final MsOutboxWorker worker = new MsOutboxWorker(outboxRepository, registry());
+
+    private static MailProvider mailProvider(String code) {
+        MailProvider provider = Mockito.mock(MailProvider.class);
+        when(provider.getProviderCode()).thenReturn(code);
+        return provider;
+    }
+
+    private ProviderRegistry registry() {
+        when(smsProvider.getProviderCode()).thenReturn("console_sms");
+        when(messengerProvider.getProviderCode()).thenReturn("console_messenger");
+        return new ProviderRegistry(
+                List.of(),
+                List.of(consoleMailProvider, mailProvider),
+                List.of(smsProvider),
+                List.of(messengerProvider),
+                "local_disk",
+                "smtp",
+                "console_sms",
+                "console_messenger");
+    }
 
     @Test
     @DisplayName("Успешная доставка Email отмечает запись как SUCCESS")
@@ -66,6 +88,7 @@ class MsOutboxWorkerTest {
         assertThat(captor.getValue().recipientEmail()).isEqualTo("dev@example.com");
         assertThat(captor.getValue().subject()).isEqualTo("Новая задача");
         assertThat(captor.getValue().htmlBody()).isEqualTo("Вам назначена задача #42");
+        verify(consoleMailProvider, never()).send(any(MailMessage.class));
 
         verify(outboxRepository).markSuccess(1L, claimToken);
     }
