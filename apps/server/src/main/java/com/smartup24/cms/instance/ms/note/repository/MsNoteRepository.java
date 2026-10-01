@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
@@ -40,7 +41,8 @@ public class MsNoteRepository {
             Long modifiedBy,
             Instant createdAt,
             Instant modifiedAt,
-            long revision) {}
+            long revision,
+            @Nullable Instant archivedAt) {}
 
     public NoteRecord create(
             String title,
@@ -54,7 +56,7 @@ public class MsNoteRepository {
                 .sql("""
                 insert into ms_notes(title, content_md, color, is_pinned, attributes, created_by, modified_by, created_at, modified_at)
                 values(:title, :contentMd, :color, :isPinned, cast(:attributes as jsonb), :userId, :userId, clock_timestamp(), clock_timestamp())
-                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision
+                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision, archived_at
                 """)
                 .param("title", title)
                 .param("contentMd", contentMd != null ? contentMd : "")
@@ -67,24 +69,36 @@ public class MsNoteRepository {
     }
 
     public Optional<NoteRecord> findById(Long id) {
-        return jdbcClient.sql("""
-                select id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision
-                from ms_notes
-                where id = :id
-                """).param("id", id).query(this::mapNote).optional();
+        return findVisible(id, new QueryPlan.SqlFragment("", Map.of()));
     }
 
     /**
-     * A page of the owner's notes by the registry plan ({@code ms.notes}). Notes are personal (SELF scope): the
-     * owner predicate goes into the same SQL, so a page and its total only ever see the owner's notes. The list is
-     * derived from the entity declaration (ADR-0032, 3.4), so its rows carry the record's keys.
+     * The note with this id if it lies in the viewer's scope: {@code scope} is the entity's predicate over the alias
+     * {@code n} (ADR-0032, 5.1), so another person's note is never selected. An archived note is found too.
      */
-    public KeysetPage<NoteRecord> pageByOwner(QueryPlan plan, Long ownerId) {
-        return new QueryListRepository(jdbcClient)
-                .page(
-                        plan,
-                        this::mapListed,
-                        new QueryPlan.SqlFragment(" and n.created_by = :ownerId", Map.of("ownerId", ownerId)));
+    public Optional<NoteRecord> findVisible(Long id, QueryPlan.SqlFragment scope) {
+        Map<String, Object> params = new LinkedHashMap<>(scope.params());
+        params.put("id", id);
+        return jdbcClient
+                .sql("""
+                select n.id, n.title, n.content_md, n.color, n.is_pinned, n.attributes::text as attributes_str,
+                       n.created_by, n.modified_by, n.created_at, n.modified_at, n.revision, n.archived_at
+                from ms_notes n
+                where n.id = :id
+                """ + scope.sql())
+                .params(params)
+                .query(this::mapNote)
+                .optional();
+    }
+
+    /**
+     * A page of notes by the registry plan ({@code ms.notes}). {@code predicate} is the entity's list predicate
+     * (ADR-0032, 5.1 and 5.4): the declared owner scope and, unless the plan asks for the archive, notes in use only —
+     * it goes into the same SQL, so a page and its total only ever see those notes. The list is derived from the entity
+     * declaration (ADR-0032, 3.4), so its rows carry the record's keys.
+     */
+    public KeysetPage<NoteRecord> page(QueryPlan plan, QueryPlan.SqlFragment predicate) {
+        return new QueryListRepository(jdbcClient).page(plan, this::mapListed, predicate);
     }
 
     /** A row of the derived list: the columns are named by the record's keys. */
@@ -100,7 +114,8 @@ public class MsNoteRepository {
                 rs.getLong("modifiedBy"),
                 instant(rs.getTimestamp("createdAt")),
                 instant(rs.getTimestamp("modifiedAt")),
-                rs.getLong("revision"));
+                rs.getLong("revision"),
+                instant(rs.getTimestamp("archivedAt")));
     }
 
     private static @Nullable Instant instant(@Nullable Timestamp timestamp) {
@@ -129,7 +144,7 @@ public class MsNoteRepository {
                     modified_at = clock_timestamp(),
                     revision = revision + 1
                 where id = :id and (cast(:expectedRevision as bigint) is null or revision = :expectedRevision)
-                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision
+                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision, archived_at
                 """)
                 .param("id", id)
                 .param("title", title)
@@ -154,7 +169,7 @@ public class MsNoteRepository {
                 update ms_notes
                 set is_pinned = :pinned, modified_by = :userId, modified_at = clock_timestamp(), revision = revision + 1
                 where id = :id and is_pinned <> :pinned
-                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision
+                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision, archived_at
                 """)
                 .param("id", id)
                 .param("pinned", pinned)
@@ -163,10 +178,45 @@ public class MsNoteRepository {
                 .optional();
     }
 
-    public boolean delete(Long id) {
+    /**
+     * Archives or restores the note in one statement (ADR-0032, 5.4): the row is written only when its state changes
+     * and, when a revision is named, only from that revision; the archive keeps who archived it and when. Empty when
+     * nothing was written — the state was already the asked one, or the revision is stale.
+     */
+    public Optional<NoteRecord> setArchived(Long id, boolean archived, Long userId, @Nullable Long expectedRevision) {
         return jdbcClient
-                        .sql("delete from ms_notes where id = :id")
+                .sql("""
+                update ms_notes
+                set archived_at = case when cast(:archived as boolean) then clock_timestamp() end,
+                    archived_by = case when cast(:archived as boolean) then cast(:userId as bigint) end,
+                    modified_by = :userId,
+                    modified_at = clock_timestamp(),
+                    revision = revision + 1
+                where id = :id
+                  and (archived_at is not null) <> cast(:archived as boolean)
+                  and (cast(:expectedRevision as bigint) is null or revision = :expectedRevision)
+                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision, archived_at
+                """)
+                .param("id", id)
+                .param("archived", archived)
+                .param("userId", userId)
+                .param("expectedRevision", expectedRevision)
+                .query(this::mapNote)
+                .optional();
+    }
+
+    /**
+     * Deletes the note; when a revision is named, only from that revision (ADR-0032, 5.3), so a stale screen cannot
+     * delete a note changed since it was read. False when nothing was deleted.
+     */
+    public boolean delete(Long id, @Nullable Long expectedRevision) {
+        return jdbcClient
+                        .sql("""
+                        delete from ms_notes
+                        where id = :id and (cast(:expectedRevision as bigint) is null or revision = :expectedRevision)
+                        """)
                         .param("id", id)
+                        .param("expectedRevision", expectedRevision)
                         .update()
                 > 0;
     }
@@ -187,6 +237,7 @@ public class MsNoteRepository {
                 rs.getTimestamp("modified_at") != null
                         ? rs.getTimestamp("modified_at").toInstant()
                         : null,
-                rs.getLong("revision"));
+                rs.getLong("revision"),
+                instant(rs.getTimestamp("archived_at")));
     }
 }

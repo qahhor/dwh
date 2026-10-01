@@ -70,7 +70,10 @@ class EntityFieldsSingleSourceTest {
                 problems.add(entity.code() + ": form fields other than its model's");
             }
             QueryList list = EntityLists.queryList(entity);
-            if (!list.fields().equals(model.listFields())) {
+            // After the declared fields only what the platform adds: the archived flag (ADR-0032, 5.4).
+            List<QueryField> derived = new ArrayList<>(model.listFields());
+            derived.addAll(EntityLists.platformFields(entity));
+            if (!list.fields().equals(derived)) {
                 problems.add(entity.code() + ": list fields other than its model's");
             }
         }

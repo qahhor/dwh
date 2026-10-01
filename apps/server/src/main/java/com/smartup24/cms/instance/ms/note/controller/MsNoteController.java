@@ -104,14 +104,38 @@ public class MsNoteController {
         return ResponseEntity.ok(noteService.setPinned(id, userId, body.pinned()));
     }
 
-    @Operation(summary = "Delete a note", description = "Removes a note of the caller.")
+    public record ArchivedRequest(boolean archived) {}
+
+    /**
+     * Archives or restores the note (ADR-0032, 5.4): it leaves the list and the search but still reads by id. The
+     * right is the note right's {@code delete} — the default of ADR-0032, 19 (question 11), an assumption until the
+     * product owner answers it.
+     */
+    @Operation(
+            summary = "Archive or restore a note",
+            description = "Moves a note of the caller to the archive or back; names the revision it was read at.")
+    @PutMapping("/{id}/archived")
+    @RequiresPermission(form = "notes", action = "delete")
+    public ResponseEntity<NoteView> setArchived(
+            @PathVariable Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody ArchivedRequest body) {
+        Long userId = SecurityContext.getCurrentUserId();
+        if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
+        return ResponseEntity.ok(noteService.setArchived(id, userId, body.archived(), Revisions.required(ifMatch)));
+    }
+
+    @Operation(
+            summary = "Delete a note",
+            description = "Removes a note of the caller; with If-Match, only from the revision it names.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = "notes", action = "delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> deleteNote(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteNote(
+            @PathVariable Long id, @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
-        noteService.deleteNote(id, userId);
+        noteService.deleteNote(id, userId, Revisions.optional(ifMatch));
         return ResponseEntity.noContent().build();
     }
 }

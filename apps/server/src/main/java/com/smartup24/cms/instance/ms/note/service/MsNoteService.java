@@ -5,13 +5,17 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.EntityAuditRow;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityFieldRights;
 import com.smartup24.cms.instance.common.entity.EntityLists;
+import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
+import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.web.Revisioned;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.ms.note.repository.MsNoteRepository;
@@ -20,11 +24,19 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Notes by their declaration (ADR-0032; plan 10/10, items 5.1 and 5.3): the list and every read by id take the
+ * entity's declared scope ({@link EntityScopes}), a save is checked against the field rights
+ * ({@link EntityFieldRights}) and the field rules ({@link EntityValidator}), and a note is archived and restored
+ * instead of only deleted (the ARCHIVE capability).
+ */
 @Service
 public class MsNoteService {
 
@@ -36,6 +48,7 @@ public class MsNoteService {
     private final ModuleRegistryService moduleRegistryService;
     private QueryListRegistry registry;
     private ObjectProvider<EntityRegistry> entities;
+    private EntityScopes scopes = EntityScopes.withoutOrgUnits();
 
     @Autowired
     public MsNoteService(
@@ -71,12 +84,19 @@ public class MsNoteService {
         this.entities = entities;
     }
 
+    /** The predicates of the declared scope; built by hand, the owner scope of a note needs no md module. */
+    @Autowired(required = false)
+    public void setEntityScopes(EntityScopes scopes) {
+        this.scopes = scopes;
+    }
+
     private void checkModuleActive() {
         if (moduleRegistryService != null && !moduleRegistryService.isModuleActive("notes")) {
             throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.note.module_disabled");
         }
     }
 
+    /** A note as the API answers it; {@code archived} is true once it is archived (ADR-0032, 5.4). */
     public record NoteView(
             Long id,
             String title,
@@ -87,7 +107,9 @@ public class MsNoteService {
             Long createdBy,
             Instant createdAt,
             Instant modifiedAt,
-            long revision)
+            long revision,
+            boolean archived,
+            @Nullable Instant archivedAt)
             implements Revisioned {
         public static NoteView from(NoteRecord r) {
             return new NoteView(
@@ -100,11 +122,16 @@ public class MsNoteService {
                     r.createdBy(),
                     r.createdAt(),
                     r.modifiedAt(),
-                    r.revision());
+                    r.revision(),
+                    r.archivedAt() != null,
+                    r.archivedAt());
         }
     }
 
-    /** A page of the owner's notes through the registry ({@code ms.notes}): filter, sort and search {@code q}. */
+    /**
+     * A page of the owner's notes through the registry ({@code ms.notes}): filter, sort and search {@code q}. Archived
+     * notes are left out unless the filter names {@code archived} (ADR-0032, 5.4).
+     */
     @Transactional(readOnly = true)
     public KeysetPage<NoteView> getNotes(
             Long userId, Integer limit, String cursor, String filter, String sort, String search) {
@@ -116,10 +143,11 @@ public class MsNoteService {
                 limit,
                 cursor,
                 search);
-        var page = noteRepository.pageByOwner(plan, userId);
+        var page = noteRepository.page(plan, scopes.listPredicate(MsNoteEntity.DEFINITION, plan, userId));
         return page.map(NoteView::from);
     }
 
+    /** One note of the owner; an archived one too, so an old reference to it still reads (ADR-0032, 5.4). */
     @Transactional(readOnly = true)
     public NoteView getNote(Long id, Long userId) {
         return NoteView.from(ownNote(id, userId));
@@ -134,7 +162,9 @@ public class MsNoteService {
             Map<String, Object> attributes,
             Long userId) {
         checkModuleActive();
-        EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), false);
+        Map<String, Object> values = values(title, contentMd, color, isPinned);
+        EntityFieldRights.checkWrite(MsNoteEntity.DEFINITION, values, null);
+        EntityValidator.check(MsNoteEntity.DEFINITION, values, false);
 
         var note =
                 noteRepository.create(title.trim(), contentMd, color, isPinned, checkedAttributes(attributes), userId);
@@ -156,7 +186,12 @@ public class MsNoteService {
             Long userId,
             long expectedRevision) {
         var existing = ownNote(id, userId);
-        EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), true);
+        Map<String, Object> values = values(title, contentMd, color, isPinned);
+        EntityFieldRights.checkWrite(
+                MsNoteEntity.DEFINITION,
+                values,
+                values(existing.title(), existing.contentMd(), existing.color(), existing.isPinned()));
+        EntityValidator.check(MsNoteEntity.DEFINITION, values, true);
 
         var updated = noteRepository.update(
                 id, title, contentMd, color, isPinned, checkedAttributes(attributes), userId, expectedRevision);
@@ -215,23 +250,55 @@ public class MsNoteService {
     }
 
     /**
+     * Archives or restores the note (ADR-0032, 5.4): a switch of ADR-0023 — written and audited only when the state
+     * changes. With a revision ({@code If-Match}) the change is made only from it: a stale one is 409, while asking for
+     * the state the note already has answers it as it is. Without one — the bulk action — it runs as asked.
+     */
+    @Transactional
+    public NoteView setArchived(Long id, Long userId, boolean archived, @Nullable Long expectedRevision) {
+        var before = ownNote(id, userId);
+        Optional<NoteRecord> changed = noteRepository.setArchived(id, archived, userId, expectedRevision);
+        if (changed.isPresent()) {
+            auditLogService.logChange(
+                    AUDIT_TABLE,
+                    String.valueOf(id),
+                    "U",
+                    List.of(EntityModel.ARCHIVED),
+                    Map.of(EntityModel.ARCHIVED, !archived),
+                    Map.of(EntityModel.ARCHIVED, archived));
+            return NoteView.from(changed.get());
+        }
+        if (expectedRevision != null && before.revision() != expectedRevision) {
+            throw Revisions.conflict();
+        }
+        return NoteView.from(before);
+    }
+
+    /**
      * The owner's note. Another person's note answers exactly as a missing one, 404 (plan 10/10, item 5.0): the
-     * answer must not tell that a note with this id exists.
+     * declared owner scope is in the query (ADR-0032, 5.1), so the answer does not tell that a note with this id exists.
      */
     private NoteRecord ownNote(Long id, Long userId) {
         checkModuleActive();
         return noteRepository
-                .findById(id)
-                .filter(note -> note.createdBy().equals(userId))
+                .findVisible(id, scopes.rows(MsNoteEntity.DEFINITION, userId))
                 .orElseThrow(
                         () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
     }
 
     @Transactional
     public void deleteNote(Long id, Long userId) {
+        deleteNote(id, userId, null);
+    }
+
+    /** Deletes the note; with a revision ({@code If-Match}), only from it — a stale one is 409 (ADR-0032, 5.3). */
+    @Transactional
+    public void deleteNote(Long id, Long userId, @Nullable Long expectedRevision) {
         var existing = ownNote(id, userId);
 
-        noteRepository.delete(id);
+        if (!noteRepository.delete(id, expectedRevision)) {
+            throw Revisions.conflict();
+        }
 
         Map<String, Object> row = audited(existing);
         auditLogService.logChange(AUDIT_TABLE, String.valueOf(id), "D", List.copyOf(row.keySet()), row, null);

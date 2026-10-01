@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.DataScopes;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.RoleRule;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.UserAssignments;
@@ -29,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
  * in different units.
  */
 @Service
-public class MdScopeService {
+public class MdScopeService implements DataScopes {
 
     public static final String RULE_ALL = "ALL";
     public static final String RULE_SUBTREE = "SUBTREE";
@@ -204,16 +205,21 @@ public class MdScopeService {
      * @param orgUnitColumn the column linking a row to a unit, for example {@code md_users.org_unit_id}
      * @param ownerColumn   the row owner column for the SELF rule
      */
+    @Override
     @Transactional(readOnly = true)
-    public ScopeFilter filterFor(Long userId, String orgUnitColumn, String ownerColumn) {
-        if (userId == null) {
-            return ScopeFilter.unrestricted();
-        }
+    public ScopeFilter filterFor(long userId, String orgUnitColumn, String ownerColumn) {
         return switch (scopeRepository.getUserRule(userId)) {
             case RULE_SUBTREE, RULE_UNITS -> ScopeFilter.byOrgUnit(orgUnitColumn, userId);
             case RULE_SELF -> ScopeFilter.byOwner(ownerColumn, userId);
             default -> ScopeFilter.unrestricted();
         };
+    }
+
+    /** Whether the user may put a record in the unit (ADR-0032, 5.1): the unit lies in the user's scope. */
+    @Override
+    @Transactional(readOnly = true)
+    public boolean unitVisible(long userId, long orgUnitId) {
+        return scopeRepository.isUnitAvailable(userId, orgUnitId, scopeRepository.getUserRule(userId));
     }
 
     /** Row visibility for queries whose task table alias is {@code t}. */

@@ -169,6 +169,9 @@ public class EntityRegistry {
                 resolve(entity).fields().stream()
                         .filter(field -> !field.labelKey().isEmpty())
                         .forEach(field -> labels.put(field.key(), field.labelKey()));
+                if (entity.capabilities().contains(EntityCapability.ARCHIVE)) {
+                    labels.put(EntityModel.ARCHIVED, EntityLists.ARCHIVED_LABEL);
+                }
                 return labels;
             }
 
@@ -179,6 +182,12 @@ public class EntityRegistry {
                         .filter(field -> field.labelKey().isEmpty() && field.label() != null)
                         .forEach(field -> names.put(field.key(), field.label()));
                 return names;
+            }
+
+            // The fields that do not exist for the viewer stay out of their history (ADR-0032, 5.2).
+            @Override
+            public Set<String> hiddenFields() {
+                return EntityFieldRights.hidden(entity);
             }
 
             @Override
