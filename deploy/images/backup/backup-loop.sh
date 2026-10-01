@@ -13,7 +13,8 @@ PGPORT="${PGPORT:-5432}"
 PGDATABASE="${PGDATABASE:-smartupcms}"
 # ADR-0001: the DWH lives in its own database and goes into its own archive with
 # the same timestamp. Set it empty only where no DWH exists (a bare test).
-DWH_DB_NAME="${DWH_DB_NAME-smartupcms_dwh}"
+# DWH_DB_NAME is the name before ADR-0027, read until 2026-12-31.
+WAREHOUSE_DB_NAME="${WAREHOUSE_DB_NAME-${DWH_DB_NAME-smartupcms_dwh}}"
 PGUSER="${PGUSER:-smartupcms_backup}"
 export BACKUP_STATUS_FILE PGHOST PGPORT PGDATABASE PGUSER
 
@@ -103,8 +104,8 @@ run_backup() {
     umask 077
     PGPASSFILE="$(mktemp /tmp/.pgpass.XXXXXX)"
     printf '%s:%s:%s:%s:%s\n' "$PGHOST" "$PGPORT" "$PGDATABASE" "$PGUSER" "$db_password" > "$PGPASSFILE"
-    if [ -n "$DWH_DB_NAME" ]; then
-        printf '%s:%s:%s:%s:%s\n' "$PGHOST" "$PGPORT" "$DWH_DB_NAME" "$PGUSER" "$db_password" >> "$PGPASSFILE"
+    if [ -n "$WAREHOUSE_DB_NAME" ]; then
+        printf '%s:%s:%s:%s:%s\n' "$PGHOST" "$PGPORT" "$WAREHOUSE_DB_NAME" "$PGUSER" "$db_password" >> "$PGPASSFILE"
     fi
     chmod 0600 "$PGPASSFILE"
     export PGPASSFILE
@@ -117,7 +118,7 @@ run_backup() {
         return 1
     fi
     # A set without the DWH does not restore the product, so the status fails.
-    if [ -n "$DWH_DB_NAME" ] && ! dump_database "$DWH_DB_NAME" smartupcms_dwh; then
+    if [ -n "$WAREHOUSE_DB_NAME" ] && ! dump_database "$WAREHOUSE_DB_NAME" smartupcms_dwh; then
         failed DATABASE_DUMP_FAILED
         return 1
     fi

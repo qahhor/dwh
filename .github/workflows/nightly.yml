@@ -94,7 +94,7 @@ jobs:
       - name: Build, migrate and start the stack
         env:
           COMPOSE_FILE: docker-compose.yml:scripts/dev/api-smoke.compose.yml
-          DWH_RATE_LIMIT_USER_PER_MINUTE: '6000'
+          SMC_RATE_LIMIT_USER_PER_MINUTE: '6000'
         run: |
           docker compose build --pull
           docker compose run --rm migrate

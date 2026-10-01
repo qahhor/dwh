@@ -175,10 +175,10 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 
 ### Секреты, которые вне профилей dev и test не могут сохранять значение по умолчанию
 
-- SMC_TYPESENSE_API_KEY (TYPESENSE_API_KEY in Compose) — `smc.typesense.api-key`
-- SMC_INSTANCE_ADMIN_PASSWORD (ADMIN_PASSWORD in Compose) — `smc.instance.admin-password`
-- DB_PASSWORD — `spring.datasource.password`
-- WAREHOUSE_PASSWORD (DB_PASSWORD in Compose) — `warehouse.password`
+- `SMC_TYPESENSE_API_KEY` (в `.env` для Compose — `TYPESENSE_API_KEY`) — `smc.typesense.api-key`
+- `SMC_INSTANCE_ADMIN_PASSWORD` (в `.env` для Compose — `ADMIN_PASSWORD`) — `smc.instance.admin-password`
+- `DB_PASSWORD` — `spring.datasource.password`
+- `WAREHOUSE_PASSWORD` (в `.env` для Compose — `DB_PASSWORD`) — `warehouse.password`
 
 <!-- generated:end -->
 

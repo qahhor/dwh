@@ -431,7 +431,7 @@ Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (M18 KWH
 $randWh = Get-Random -Minimum 1000 -Maximum 9999
 $whBody = @{
     name = "Integration Webhook $randWh"
-    # The server itself, allowed by scripts/dev/api-smoke.compose.yml (DWH_WEBHOOKS_ALLOWED_HOSTS=server).
+    # The server itself, allowed by scripts/dev/api-smoke.compose.yml (SMC_WEBHOOKS_ALLOWED_HOSTS=server).
     targetUrl = "http://server:9090/actuator/health"
     subscribedEvents = @("task.created", "user.created", "file.uploaded")
 } | ConvertTo-Json

@@ -10,11 +10,12 @@ APP_DB_USER="${APP_DB_USER:-${DB_USER:-smartupcms}}"
 BACKUP_DB_USER="${BACKUP_DB_USER:-smartupcms_backup}"
 # ADR-0001: the DWH database, owned by the application role (db/dwh migrations
 # create its schemas). Empty only where no DWH exists (a bare test).
-DWH_DB_NAME="${DWH_DB_NAME-smartupcms_dwh}"
+# DWH_DB_NAME is the name before ADR-0027, read until 2026-12-31.
+WAREHOUSE_DB_NAME="${WAREHOUSE_DB_NAME-${DWH_DB_NAME-smartupcms_dwh}}"
 export PGHOST PGPORT PGDATABASE PGUSER
 
-if [ -n "$DWH_DB_NAME" ] && [ "$DWH_DB_NAME" = "$PGDATABASE" ]; then
-    echo 'DWH_DB_NAME must differ from the CMS database name' >&2
+if [ -n "$WAREHOUSE_DB_NAME" ] && [ "$WAREHOUSE_DB_NAME" = "$PGDATABASE" ]; then
+    echo 'WAREHOUSE_DB_NAME must differ from the CMS database name' >&2
     exit 64
 fi
 
@@ -49,8 +50,8 @@ umask 077
 pgpass_file="$(mktemp /tmp/.pgpass.XXXXXX)"
 trap 'rm -f "$pgpass_file"' EXIT HUP INT TERM
 printf '%s:%s:%s:%s:%s\n' "$PGHOST" "$PGPORT" "$PGDATABASE" "$PGUSER" "$admin_password" > "$pgpass_file"
-if [ -n "$DWH_DB_NAME" ]; then
-    printf '%s:%s:%s:%s:%s\n' "$PGHOST" "$PGPORT" "$DWH_DB_NAME" "$PGUSER" "$admin_password" >> "$pgpass_file"
+if [ -n "$WAREHOUSE_DB_NAME" ]; then
+    printf '%s:%s:%s:%s:%s\n' "$PGHOST" "$PGPORT" "$WAREHOUSE_DB_NAME" "$PGUSER" "$admin_password" >> "$pgpass_file"
 fi
 chmod 0600 "$pgpass_file"
 export PGPASSFILE="$pgpass_file"
@@ -178,12 +179,12 @@ SQL
 
 unset migrate_password app_password backup_password
 
-if [ -n "$DWH_DB_NAME" ]; then
+if [ -n "$WAREHOUSE_DB_NAME" ]; then
     # init-dwh.sh creates the DWH database only on an empty PGDATA; an installation
     # upgraded from before the DWH gets it here. CREATE DATABASE cannot run inside
     # a transaction, so it is a statement of its own.
     psql --set=ON_ERROR_STOP=1 --no-psqlrc --quiet \
-        --set=dwh_database="$DWH_DB_NAME" --set=app_user="$APP_DB_USER" <<'SQL'
+        --set=dwh_database="$WAREHOUSE_DB_NAME" --set=app_user="$APP_DB_USER" <<'SQL'
 SELECT format('CREATE DATABASE %I OWNER %I', :'dwh_database', :'app_user')
 WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'dwh_database') \gexec
 SQL
@@ -191,7 +192,7 @@ SQL
     # The backup role reads every DWH schema: those that exist now and, through
     # default privileges of the owning application role, those that migrations
     # add later. It writes nothing (default_transaction_read_only above).
-    psql --set=ON_ERROR_STOP=1 --no-psqlrc --quiet --dbname="$DWH_DB_NAME" \
+    psql --set=ON_ERROR_STOP=1 --no-psqlrc --quiet --dbname="$WAREHOUSE_DB_NAME" \
         --set=app_user="$APP_DB_USER" --set=backup_user="$BACKUP_DB_USER" <<'SQL'
 SELECT format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), :'backup_user') \gexec
 SELECT format('GRANT USAGE ON SCHEMA %I TO %I', nspname, :'backup_user')

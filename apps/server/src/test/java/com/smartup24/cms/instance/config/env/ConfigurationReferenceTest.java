@@ -97,7 +97,9 @@ class ConfigurationReferenceTest {
         for (DefaultSecretsGuard.Secret secret : DefaultSecretsGuard.SECRETS) {
             out.append("- `").append(secret.variable()).append('`');
             if (secret.composeVariable() != null) {
-                out.append(" (в `.env` для Compose — `").append(secret.composeVariable()).append("`)");
+                out.append(" (в `.env` для Compose — `")
+                        .append(secret.composeVariable())
+                        .append("`)");
             }
             out.append(" — `").append(secret.property()).append("`\n");
         }

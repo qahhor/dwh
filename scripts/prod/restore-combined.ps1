@@ -206,10 +206,10 @@ try {
         & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath cp $dwhPlain "postgres:/tmp/restore-dwh.dump"
         if ($LASTEXITCODE -ne 0) { throw 'Failed to copy decrypted DWH dump into postgres container.' }
         & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath exec -T postgres `
-            sh -ec 'exec pg_restore --exit-on-error --no-owner --no-acl --role="$APP_DB_USER" -U "$POSTGRES_USER" -d "$DWH_DB_NAME" /tmp/restore-dwh.dump && rm -f /tmp/restore-dwh.dump'
+            sh -ec 'exec pg_restore --exit-on-error --no-owner --no-acl --role="$APP_DB_USER" -U "$POSTGRES_USER" -d "$WAREHOUSE_DB_NAME" /tmp/restore-dwh.dump && rm -f /tmp/restore-dwh.dump'
         if ($LASTEXITCODE -ne 0) { throw 'Isolated DWH restore failed.' }
         $dwhTableCount = ("select count(*) from pg_tables where schemaname not in ('pg_catalog', 'information_schema');" | & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath exec -T postgres `
-            sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$DWH_DB_NAME"') -join ''
+            sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$WAREHOUSE_DB_NAME"') -join ''
         if ($LASTEXITCODE -ne 0) { throw 'Restored DWH table-count query failed.' }
         $evidence.dwhTableCount = [int]$dwhTableCount.Trim()
         if ($evidence.dwhTableCount -lt 1) { throw 'The restored DWH database has no tables.' }

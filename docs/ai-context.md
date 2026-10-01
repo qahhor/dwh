@@ -99,6 +99,11 @@ JSON, сроки хранения) и `config` (безопасность, фил
   новый файл добавляется `-Dmigrations.manifest.append=true`); с V128 —
   правила ADR-0020; DDL и данные в разных файлах; изменение данных помечается
   заголовком `destructive: approved` с причиной и утвердившим.
+- **Конфигурация** — продукт `smc.*` / `SMC_*`, хранилище `warehouse.*` /
+  `WAREHOUSE_*`; старые `dwh` читаются с предупреждением до 2026-12-31; класс
+  `@ConfigurationProperties` помечен `@Validated`; после изменения настроек —
+  `-Dconfig.reference.update=true` для
+  [справочника](ops/configuration-reference.md) (ADR-0027).
 - Не коммитить `.env`, секреты, дампы, данные клиентов, `graphify-out/`.
 - Русский каталог `apps/server/src/main/resources/i18n/ru.json` — источник
   ключей; `uz` и `en` полные; после изменений — `npm run i18n:sync-ru`.

@@ -84,8 +84,8 @@ Data is retained only as long as operationally necessary or legally mandated. Au
 
 ### 4.2. Idempotency records
 - Used to protect mutation endpoints (e.g. task creation).
-- Kept for 14 days (`DWH_IDEMPOTENCY_RETENTION_DAYS`).
-- `IdempotencyCleanupWorker` purges older records daily at 02:15 UTC (`DWH_IDEMPOTENCY_CLEANUP_CRON`).
+- Kept for 14 days (`SMC_IDEMPOTENCY_RETENTION_DAYS`).
+- `IdempotencyCleanupWorker` purges older records daily at 02:15 UTC (`SMC_IDEMPOTENCY_CLEANUP_CRON`).
 
 ### 4.2a. Sessions
 - `KauthSessionCleanupWorker` runs hourly and closes every session idle for more than 12 hours

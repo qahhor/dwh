@@ -43,8 +43,8 @@ WORKDIR /app
 # томом; S3-compatible provider хранит bytes вне контейнера.
 RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup /var/lib/smartupcms/logs /var/lib/smartupcms/audit-archive /opt/smartupcms/jna \
  && chown -R dwh:dwh /var/lib/smartupcms /opt/smartupcms/jna
-ENV DWH_STORAGE_LOCAL_PATH=/var/lib/smartupcms/storage \
-    DWH_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json
+ENV SMC_STORAGE_LOCAL_PATH=/var/lib/smartupcms/storage \
+    SMC_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json
 VOLUME ["/var/lib/smartupcms"]
 
 # Порядок COPY = порядок изменчивости (реже меняется — раньше): зависимости,

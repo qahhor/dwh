@@ -10,8 +10,8 @@ fi
 BACKUP_FILE="$(realpath "$1")"
 IDENTITY_FILE="$(realpath "$2")"
 CHECKSUM_FILE="${BACKUP_FILE}.sha256"
-DWH_BACKUP_FILE=""
-[[ $# -eq 3 ]] && DWH_BACKUP_FILE="$(realpath "$3")"
+WAREHOUSE_BACKUP_FILE=""
+[[ $# -eq 3 ]] && WAREHOUSE_BACKUP_FILE="$(realpath "$3")"
 COMPOSE_FILE="${COMPOSE_FILE:-deploy/compose/docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.production}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-180}"
@@ -38,7 +38,7 @@ decrypt() {
 [[ -f "$IDENTITY_FILE" ]] || { echo "[ERROR] age identity file does not exist." >&2; exit 1; }
 [[ -f "$ENV_FILE" ]] || { echo "[ERROR] Environment file does not exist." >&2; exit 1; }
 verify_checksum "$BACKUP_FILE"
-[[ -z "$DWH_BACKUP_FILE" ]] || verify_checksum "$DWH_BACKUP_FILE"
+[[ -z "$WAREHOUSE_BACKUP_FILE" ]] || verify_checksum "$WAREHOUSE_BACKUP_FILE"
 
 "${compose[@]}" config --quiet
 [[ -n "$("${compose[@]}" ps -a -q postgres)" ]] \
@@ -46,8 +46,8 @@ verify_checksum "$BACKUP_FILE"
 
 echo '[1/6] Validating encrypted archives and pg_restore catalogs...'
 decrypt "$BACKUP_FILE" | "${compose[@]}" exec -T postgres pg_restore --list >/dev/null
-if [[ -n "$DWH_BACKUP_FILE" ]]; then
-    decrypt "$DWH_BACKUP_FILE" | "${compose[@]}" exec -T postgres pg_restore --list >/dev/null
+if [[ -n "$WAREHOUSE_BACKUP_FILE" ]]; then
+    decrypt "$WAREHOUSE_BACKUP_FILE" | "${compose[@]}" exec -T postgres pg_restore --list >/dev/null
 else
     echo '[WARN] No DWH archive given: the DWH database is left as it is.' >&2
 fi
@@ -63,26 +63,26 @@ psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "select pg_terminate_
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "alter database \"$POSTGRES_DB\" rename to \"$previous\""
 psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "create database \"$POSTGRES_DB\" owner \"$POSTGRES_USER\""
 ' restore "$TIMESTAMP"
-if [[ -n "$DWH_BACKUP_FILE" ]]; then
+if [[ -n "$WAREHOUSE_BACKUP_FILE" ]]; then
     # The application role owns the DWH (ADR-0001): the new database is its own.
     "${compose[@]}" exec -T postgres sh -ec '
-case "$DWH_DB_NAME$APP_DB_USER$POSTGRES_USER" in *[!A-Za-z0-9_]*) echo "Unsafe database identifier" >&2; exit 1;; esac
-previous="${DWH_DB_NAME}_pre_restore_$1"
-psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = '\''$DWH_DB_NAME'\'' and pid <> pg_backend_pid()"
-if psql -At -U "$POSTGRES_USER" -d postgres -c "select 1 from pg_database where datname = '\''$DWH_DB_NAME'\''" | grep -q 1; then
-    psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "alter database \"$DWH_DB_NAME\" rename to \"$previous\""
+case "$WAREHOUSE_DB_NAME$APP_DB_USER$POSTGRES_USER" in *[!A-Za-z0-9_]*) echo "Unsafe database identifier" >&2; exit 1;; esac
+previous="${WAREHOUSE_DB_NAME}_pre_restore_$1"
+psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = '\''$WAREHOUSE_DB_NAME'\'' and pid <> pg_backend_pid()"
+if psql -At -U "$POSTGRES_USER" -d postgres -c "select 1 from pg_database where datname = '\''$WAREHOUSE_DB_NAME'\''" | grep -q 1; then
+    psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "alter database \"$WAREHOUSE_DB_NAME\" rename to \"$previous\""
 fi
-psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "create database \"$DWH_DB_NAME\" owner \"$APP_DB_USER\""
+psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "create database \"$WAREHOUSE_DB_NAME\" owner \"$APP_DB_USER\""
 ' restore "$TIMESTAMP"
 fi
 
 echo '[4/6] Streaming decrypted data directly into PostgreSQL...'
 decrypt "$BACKUP_FILE" | "${compose[@]}" exec -T postgres sh -ec \
     'exec pg_restore --exit-on-error --no-owner --no-acl -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
-if [[ -n "$DWH_BACKUP_FILE" ]]; then
+if [[ -n "$WAREHOUSE_BACKUP_FILE" ]]; then
     # --role makes the application role own what is restored, as migrations left it.
-    decrypt "$DWH_BACKUP_FILE" | "${compose[@]}" exec -T postgres sh -ec \
-        'exec pg_restore --exit-on-error --no-owner --no-acl --role="$APP_DB_USER" -U "$POSTGRES_USER" -d "$DWH_DB_NAME"'
+    decrypt "$WAREHOUSE_BACKUP_FILE" | "${compose[@]}" exec -T postgres sh -ec \
+        'exec pg_restore --exit-on-error --no-owner --no-acl --role="$APP_DB_USER" -U "$POSTGRES_USER" -d "$WAREHOUSE_DB_NAME"'
 fi
 
 echo '[5/6] Applying migrations and refreshing the backup role...'
