@@ -67,8 +67,8 @@ public class InstanceBootstrap implements ApplicationRunner {
         if (count > 0) {
             return;
         }
-        require(props.clientCode(), "dwh.instance.client-code");
-        require(props.clientName(), "dwh.instance.client-name");
+        require(props.clientCode(), "smc.instance.client-code");
+        require(props.clientName(), "smc.instance.client-name");
         jdbc.sql("""
                         insert into md_instance_info
                             (client_code, client_name, resource_profile)
@@ -86,9 +86,9 @@ public class InstanceBootstrap implements ApplicationRunner {
         if (users > 0) {
             return;
         }
-        require(props.adminLogin(), "dwh.instance.admin-login");
-        require(props.adminEmail(), "dwh.instance.admin-email");
-        require(props.adminPassword(), "dwh.instance.admin-password");
+        require(props.adminLogin(), "smc.instance.admin-login");
+        require(props.adminEmail(), "smc.instance.admin-email");
+        require(props.adminPassword(), "smc.instance.admin-password");
 
         String hash = passwordHasher.hashPassword(props.adminPassword());
         Long userId = jdbc.sql("""

@@ -280,6 +280,8 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         var app = new SpringApplication(BootstrapConfiguration.class);
         app.setWebApplicationType(WebApplicationType.NONE);
         app.setRegisterShutdownHook(false);
+        // The development secrets of application.yml are refused outside the dev and test profiles (ADR-0027).
+        app.setAdditionalProfiles("test");
         try (var executor = Executors.newSingleThreadExecutor()) {
             var startup = executor.submit(() -> app.run());
             ConfigurableApplicationContext context = null;

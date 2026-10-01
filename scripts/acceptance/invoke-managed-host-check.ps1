@@ -82,11 +82,11 @@ if ($webPort.Count -ne 1 -or "$($webPort[0].host_ip)" -notin @('127.0.0.1', '::1
     throw 'The Compose web origin must bind only to loopback.'
 }
 if (-not $rendered.networks.backend.internal) { throw 'The backend network must remain internal.' }
-if ("$($rendered.services.server.environment.DWH_PROVIDER_STORAGE)" -ne 's3') {
+if ("$($rendered.services.server.environment.SMC_PROVIDER_STORAGE)" -ne 's3') {
     throw 'Smartup-managed host must use the S3-compatible R2 provider.'
 }
-if ("$($rendered.services.server.environment.DWH_FILE_SCANNER_REQUIRED)" -ne 'true' -or
-    "$($rendered.services.server.environment.DWH_FILE_SCANNER_CLAMAV_ENABLED)" -ne 'true') {
+if ("$($rendered.services.server.environment.SMC_FILE_SCANNER_REQUIRED)" -ne 'true' -or
+    "$($rendered.services.server.environment.SMC_FILE_SCANNER_CLAMAV_ENABLED)" -ne 'true') {
     throw 'Smartup-managed host must enforce the ClamAV scanner.'
 }
 

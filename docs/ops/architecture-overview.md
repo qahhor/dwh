@@ -75,12 +75,12 @@ connection is part of the runtime.
 
 ## Storage choices
 
-`DWH_PROVIDER_STORAGE=local_disk` stores uploaded objects in `server-data`. This
+`SMC_PROVIDER_STORAGE=local_disk` stores uploaded objects in `server-data`. This
 survives container recreation but not loss of the Docker volume or host.
 Production operators using local disk must implement an independent encrypted
 copy and restore drill for that volume.
 
-`DWH_PROVIDER_STORAGE=s3` supports S3-compatible endpoints. Smartup-managed
+`SMC_PROVIDER_STORAGE=s3` supports S3-compatible endpoints. Smartup-managed
 installations use Cloudflare R2; self-hosters may select another compatible
 provider. Bucket encryption, versioning, lifecycle, retention, and recovery are
 operator/provider responsibilities and must be tested before launch.

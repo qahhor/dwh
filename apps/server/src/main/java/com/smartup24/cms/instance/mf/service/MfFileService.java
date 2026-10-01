@@ -51,7 +51,7 @@ public class MfFileService {
             List<FileScanner> fileScanners,
             MfFileObjectLock objectLock,
             MdScopeService scopeService,
-            @Value("${dwh.files.max-concurrent-uploads:10}") int maxConcurrentUploads) {
+            @Value("${smc.files.max-concurrent-uploads:10}") int maxConcurrentUploads) {
         this.metadataService = metadataService;
         this.storageProvider = storageProvider;
         this.contentInspector = contentInspector;

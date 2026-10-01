@@ -50,12 +50,13 @@ try {
 
     $composeText = Get-Content (Join-Path $repositoryRoot "docker-compose.yml") -Raw
     $requiredLocalDefaults = @(
-        'DWH_PROVIDER_STORAGE: ${DWH_PROVIDER_STORAGE:-local_disk}',
-        'DWH_PROVIDER_MAIL: ${DWH_PROVIDER_MAIL:-console_mail}',
-        'DWH_PROVIDER_SMS: ${DWH_PROVIDER_SMS:-console_sms}',
-        'DWH_PROVIDER_MESSENGER: ${DWH_PROVIDER_MESSENGER:-console_messenger}',
-        'DWH_WEBHOOKS_ENABLED: ${DWH_WEBHOOKS_ENABLED:-false}',
-        'DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES: ${DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false}'
+        # Until 2026-12-31 a value falls back to the name before ADR-0027.
+        'SMC_PROVIDER_STORAGE: ${SMC_PROVIDER_STORAGE:-${DWH_PROVIDER_STORAGE:-local_disk}}',
+        'SMC_PROVIDER_MAIL: ${SMC_PROVIDER_MAIL:-${DWH_PROVIDER_MAIL:-console_mail}}',
+        'SMC_PROVIDER_SMS: ${SMC_PROVIDER_SMS:-${DWH_PROVIDER_SMS:-console_sms}}',
+        'SMC_PROVIDER_MESSENGER: ${SMC_PROVIDER_MESSENGER:-${DWH_PROVIDER_MESSENGER:-console_messenger}}',
+        'SMC_WEBHOOKS_ENABLED: ${SMC_WEBHOOKS_ENABLED:-${DWH_WEBHOOKS_ENABLED:-false}}',
+        'SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES: ${SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-${DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false}}'
     )
     foreach ($requiredDefault in $requiredLocalDefaults) {
         if (-not $composeText.Contains($requiredDefault)) {

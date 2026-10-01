@@ -39,7 +39,7 @@ public class BackupStatusReader {
 
     @Autowired
     public BackupStatusReader(
-            @Value("${dwh.backup.status-file:/var/lib/smartupcms/backup/status.json}") String statusFile,
+            @Value("${smc.backup.status-file:/var/lib/smartupcms/backup/status.json}") String statusFile,
             ObjectMapper objectMapper) {
         this(Path.of(statusFile), objectMapper);
     }

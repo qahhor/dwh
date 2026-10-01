@@ -94,7 +94,7 @@ try {
         "TYPESENSE_API_KEY=$typesenseKey",
         "HTTP_BIND=127.0.0.1",
         "HTTP_PORT=$HttpPort",
-        "DWH_PROVIDER_STORAGE=local_disk",
+        "SMC_PROVIDER_STORAGE=local_disk",
         "BACKUP_AGE_RECIPIENT=$($recipientMatch.Value)",
         "BACKUP_STORAGE_MODE=local",
         "BACKUP_INTERVAL_SECONDS=86400",

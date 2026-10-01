@@ -35,7 +35,7 @@ public class ReportService {
     public ReportService(
             ReportRepository reportRepository,
             MdScopeService scopeService,
-            @Value("${dwh.reports.export.max-rows:50000}") int maxExportRows) {
+            @Value("${smc.reports.export.max-rows:50000}") int maxExportRows) {
         this.reportRepository = reportRepository;
         this.scopeService = scopeService;
         this.maxExportRows = maxExportRows > 0 ? maxExportRows : ReportRepository.DEFAULT_MAX_EXPORT_ROWS;

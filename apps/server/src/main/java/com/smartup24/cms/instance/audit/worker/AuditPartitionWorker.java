@@ -39,8 +39,8 @@ public class AuditPartitionWorker {
 
     public AuditPartitionWorker(
             AuditPartitionRepository partitionRepository,
-            @Value("${dwh.audit.partition-runway-days:31}") int runwayDays,
-            @Value("${dwh.audit.retention-months:12}") int retentionMonths) {
+            @Value("${smc.audit.partition-runway-days:31}") int runwayDays,
+            @Value("${smc.audit.retention-months:12}") int retentionMonths) {
         this.partitionRepository = partitionRepository;
         this.runwayDays = runwayDays;
         this.retentionMonths = retentionMonths;
@@ -52,7 +52,7 @@ public class AuditPartitionWorker {
         ensureRunway();
     }
 
-    @Scheduled(cron = "${dwh.audit.partition-cron:0 30 3 * * *}", zone = "UTC")
+    @Scheduled(cron = "${smc.audit.partition-cron:0 30 3 * * *}", zone = "UTC")
     public void ensureRunway() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         ensureRunwayFrom(today);

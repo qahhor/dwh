@@ -71,13 +71,20 @@ deploy/compose/.secrets/backup-s3-access-key-id
 deploy/compose/.secrets/backup-s3-secret-access-key
 ```
 
-For application file storage, `DWH_PROVIDER_STORAGE=local_disk` requires an
-operator backup for `server-data`. With `DWH_PROVIDER_STORAGE=s3`, configure the
+Every server variable, its property and default are listed in the
+[configuration reference](configuration-reference.md) (ADR-0027). Names before
+ADR-0027 (`DWH_*`, `APP_DWH_*`) are still read until 2026-12-31; the deploy
+scripts list them so they can be renamed. The server refuses to start without
+the `dev` profile while `TYPESENSE_API_KEY`, `ADMIN_PASSWORD` or `DB_PASSWORD`
+keeps a development value published in this repository.
+
+For application file storage, `SMC_PROVIDER_STORAGE=local_disk` requires an
+operator backup for `server-data`. With `SMC_PROVIDER_STORAGE=s3`, configure the
 S3-compatible application variables and verify upload, download, delete, and
 recovery against the selected provider. Smartup-managed deployments use
 Cloudflare R2.
 
-Set `DWH_BACKUP_MAX_AGE` to the installation's approved maximum recovery-point
+Set `SMC_BACKUP_MAX_AGE` to the installation's approved maximum recovery-point
 age using a Spring duration such as `26h`. The default `0s` deliberately means
 "not configured": the System page reports the policy gap and never treats a
 successful backup as current. This threshold is independent of
@@ -88,7 +95,7 @@ Every upload is checked against executable signatures and strict MIME magic
 bytes before storage. Production Compose starts the official multi-architecture
 ClamAV image pinned by version and digest, persists signatures in `clamav-data`,
 and waits for its built-in health check before starting the server. Both
-`DWH_FILE_SCANNER_REQUIRED` and the ClamAV provider are forced on in this
+`SMC_FILE_SCANNER_REQUIRED` and the ClamAV provider are forced on in this
 supported topology. The temporary object remains under an unpublished
 quarantine key until every active scanner returns `CLEAN`; an infected verdict
 or scanner failure deletes it. Operators may override `CLAMAV_IMAGE` only with
@@ -98,9 +105,9 @@ scanner memory on the host.
 ## 3. Validate before first start
 
 Outbound webhooks are disabled by default. If the installation needs them, set
-`DWH_WEBHOOKS_ENABLED=true` and list each exact destination host, without scheme,
-path, or wildcard, in comma-separated `DWH_WEBHOOKS_ALLOWED_HOSTS`. Keep
-`DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false` for Smartup-managed and public
+`SMC_WEBHOOKS_ENABLED=true` and list each exact destination host, without scheme,
+path, or wildcard, in comma-separated `SMC_WEBHOOKS_ALLOWED_HOSTS`. Keep
+`SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false` for Smartup-managed and public
 installations. Client-owned internal destinations require a documented network
 review before opting in. Host OS/firewall egress policy remains the final
 network boundary.

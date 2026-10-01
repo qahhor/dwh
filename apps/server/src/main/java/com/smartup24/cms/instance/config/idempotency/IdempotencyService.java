@@ -34,7 +34,7 @@ public class IdempotencyService {
     @Autowired
     public IdempotencyService(
             IdempotencyRepository idempotencyRepository,
-            @Value("${dwh.idempotency.lease-seconds:120}") int leaseSeconds) {
+            @Value("${smc.idempotency.lease-seconds:120}") int leaseSeconds) {
         this(idempotencyRepository, Duration.ofSeconds(leaseSeconds));
     }
 

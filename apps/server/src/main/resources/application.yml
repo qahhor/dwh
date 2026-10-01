@@ -148,6 +148,16 @@ smc:
     # would go nowhere. Off in development, where the log is the intended channel.
     enforce: ${SMC_DELIVERY_ENFORCE:true}
   audit:
+    # How many days of daily audit_log partitions to keep ahead (FR-AUD-2, V127). A partition not
+    # created in time is a dead end: audit rows go to default, where retention and the archive
+    # cannot reach them, and PostgreSQL refuses to create the right partition after the fact.
+    partition-runway-days: ${SMC_AUDIT_PARTITION_RUNWAY_DAYS:31}
+    partition-cron: ${SMC_AUDIT_PARTITION_CRON:0 30 3 * * *}
+    # Retention of the operational log (FR-AUD-2). Partitions older than the window
+    # are detached and renamed to audit_log_archived_YYYY_MM; the data
+    # stays in the database, and operations decide what happens to it.
+    # 0 means detach nothing.
+    retention-months: ${SMC_AUDIT_RETENTION_MONTHS:12}
     # Archive of the audit log (decision of 2026-09-27): closed daily partitions go into one gzip file of JSON
     # lines every week or as soon as they reach 100 MB; the file is read back and verified. Files are kept 90 days.
     # A partition leaves the database only with delete-after-archive on, and only once a verified archive holds it.
@@ -170,114 +180,100 @@ smc:
         bucket: ${SMC_AUDIT_ARCHIVE_S3_BUCKET:}
         prefix: ${SMC_AUDIT_ARCHIVE_S3_PREFIX:audit/}
         path-style-access: ${SMC_AUDIT_ARCHIVE_S3_PATH_STYLE:true}
-
-dwh:
   providers:
     # The active provider of each channel (ADR-0011). A console_* value means
     # a stub: messages are written to the log and go nowhere.
-    storage: ${DWH_PROVIDER_STORAGE:local_disk}
-    mail: ${DWH_PROVIDER_MAIL:console_mail}
-    sms: ${DWH_PROVIDER_SMS:console_sms}
-    messenger: ${DWH_PROVIDER_MESSENGER:console_messenger}
+    storage: ${SMC_PROVIDER_STORAGE:local_disk}
+    mail: ${SMC_PROVIDER_MAIL:console_mail}
+    sms: ${SMC_PROVIDER_SMS:console_sms}
+    messenger: ${SMC_PROVIDER_MESSENGER:console_messenger}
   mail:
-    from: ${DWH_MAIL_FROM:no-reply@localhost}
-    from-name: ${DWH_MAIL_FROM_NAME:SmartupCMS}
+    from: ${SMC_MAIL_FROM:no-reply@localhost}
+    from-name: ${SMC_MAIL_FROM_NAME:SmartupCMS}
   telegram:
     # FR-NOTIF-4. Empty -> TelegramBotMessengerProvider is not created.
     bot-token: ${TELEGRAM_BOT_TOKEN:}
     api-url: ${TELEGRAM_API_URL:https://api.telegram.org}
-  audit:
-    # How many days of daily audit_log partitions to keep ahead (FR-AUD-2, V127). A partition not
-    # created in time is a dead end: audit rows go to default, where retention and the archive
-    # cannot reach them, and PostgreSQL refuses to create the right partition after the fact.
-    partition-runway-days: ${DWH_AUDIT_PARTITION_RUNWAY_DAYS:31}
-    partition-cron: ${DWH_AUDIT_PARTITION_CRON:0 30 3 * * *}
-    # Retention of the operational log (FR-AUD-2). Partitions older than the window
-    # are detached and renamed to audit_log_archived_YYYY_MM; the data
-    # stays in the database, and operations decide what happens to it.
-    # 0 means detach nothing.
-    retention-months: ${DWH_AUDIT_RETENTION_MONTHS:12}
   backup:
     # Status is written atomically by the local backup command/sidecar.
-    status-file: ${DWH_BACKUP_STATUS_FILE:/var/lib/smartupcms/backup/status.json}
+    status-file: ${SMC_BACKUP_STATUS_FILE:/var/lib/smartupcms/backup/status.json}
     # Zero keeps the policy explicitly unconfigured and prevents a successful
     # backup from being reported as current without an approved RPO.
-    max-age: ${DWH_BACKUP_MAX_AGE:0s}
+    max-age: ${SMC_BACKUP_MAX_AGE:0s}
   system:
     # Manual status checks return a partial safe snapshot instead of waiting on
     # a degraded external provider's longer transport timeout.
-    health-timeout: ${DWH_SYSTEM_HEALTH_TIMEOUT:2s}
+    health-timeout: ${SMC_SYSTEM_HEALTH_TIMEOUT:2s}
   files:
-    max-concurrent-uploads: ${DWH_FILES_MAX_CONCURRENT_UPLOADS:10}
+    max-concurrent-uploads: ${SMC_FILES_MAX_CONCURRENT_UPLOADS:10}
     scanner:
-      required: ${DWH_FILE_SCANNER_REQUIRED:false}
+      required: ${SMC_FILE_SCANNER_REQUIRED:false}
       clamav:
-        enabled: ${DWH_FILE_SCANNER_CLAMAV_ENABLED:false}
-        host: ${DWH_FILE_SCANNER_CLAMAV_HOST:clamav}
-        port: ${DWH_FILE_SCANNER_CLAMAV_PORT:3310}
-        connect-timeout: ${DWH_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT:3s}
-        read-timeout: ${DWH_FILE_SCANNER_CLAMAV_READ_TIMEOUT:60s}
+        enabled: ${SMC_FILE_SCANNER_CLAMAV_ENABLED:false}
+        host: ${SMC_FILE_SCANNER_CLAMAV_HOST:clamav}
+        port: ${SMC_FILE_SCANNER_CLAMAV_PORT:3310}
+        connect-timeout: ${SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT:3s}
+        read-timeout: ${SMC_FILE_SCANNER_CLAMAV_READ_TIMEOUT:60s}
   reports:
     export:
-      max-rows: ${DWH_REPORTS_EXPORT_MAX_ROWS:50000}
+      max-rows: ${SMC_REPORTS_EXPORT_MAX_ROWS:50000}
   webhooks:
     # Outbound webhooks are a deliberate egress boundary. The default install
     # is fail-closed; enabling requires an exact, comma-separated host allow-list.
-    enabled: ${DWH_WEBHOOKS_ENABLED:false}
-    allowed-hosts: ${DWH_WEBHOOKS_ALLOWED_HOSTS:}
+    enabled: ${SMC_WEBHOOKS_ENABLED:false}
+    allowed-hosts: ${SMC_WEBHOOKS_ALLOWED_HOSTS:}
     # Client-owned installations may explicitly allow an internal destination.
     # Keep false for internet-facing and Smartup-managed installations.
-    allow-private-addresses: ${DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:false}
-    connect-timeout: ${DWH_WEBHOOKS_CONNECT_TIMEOUT:3s}
-    read-timeout: ${DWH_WEBHOOKS_READ_TIMEOUT:10s}
+    allow-private-addresses: ${SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:false}
+    connect-timeout: ${SMC_WEBHOOKS_CONNECT_TIMEOUT:3s}
+    read-timeout: ${SMC_WEBHOOKS_READ_TIMEOUT:10s}
   storage:
-    local-path: ${DWH_STORAGE_LOCAL_PATH:./data/storage}
+    local-path: ${SMC_STORAGE_LOCAL_PATH:./data/storage}
     s3:
-      endpoint: ${DWH_S3_ENDPOINT:}
-      region: ${DWH_S3_REGION:auto}
-      access-key: ${DWH_S3_ACCESS_KEY:}
-      secret-key: ${DWH_S3_SECRET_KEY:}
-      bucket: ${DWH_S3_BUCKET:}
-      path-style-access: ${DWH_S3_PATH_STYLE:true}
-      connect-timeout: ${DWH_S3_CONNECT_TIMEOUT:5s}
-      read-timeout: ${DWH_S3_READ_TIMEOUT:30s}
+      endpoint: ${SMC_S3_ENDPOINT:}
+      region: ${SMC_S3_REGION:auto}
+      access-key: ${SMC_S3_ACCESS_KEY:}
+      secret-key: ${SMC_S3_SECRET_KEY:}
+      bucket: ${SMC_S3_BUCKET:}
+      path-style-access: ${SMC_S3_PATH_STYLE:true}
+      connect-timeout: ${SMC_S3_CONNECT_TIMEOUT:5s}
+      read-timeout: ${SMC_S3_READ_TIMEOUT:30s}
   sse:
     timeout-ms: 1800000            # 30 min; EventSource reconnects by itself
     heartbeat-ms: 25000            # keep-alive < proxy timeout (usually 60 s)
     max-connections-per-user: 5    # protects against leaked tabs on the client
   security:
-    trusted-proxies: ${DWH_SECURITY_TRUSTED_PROXIES:127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10}
+    trusted-proxies: ${SMC_SECURITY_TRUSTED_PROXIES:127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10}
   rate-limit:
     enabled: true
-    max-entries: ${DWH_RATE_LIMIT_MAX_ENTRIES:10000}
-    ip-per-minute: ${DWH_RATE_LIMIT_IP_PER_MINUTE:60}                  # sign-in and other anonymous requests
-    public-read-per-minute: ${DWH_RATE_LIMIT_PUBLIC_READ_PER_MINUTE:600} # public i18n dictionaries behind a shared NAT
-    user-per-minute: ${DWH_RATE_LIMIT_USER_PER_MINUTE:600}             # cookie sessions
-    token-per-minute: ${DWH_RATE_LIMIT_TOKEN_PER_MINUTE:300}           # Bearer, per token owner
-    expensive-per-minute: ${DWH_RATE_LIMIT_EXPENSIVE_PER_MINUTE:10}    # expensive operations (paths below)
+    max-entries: ${SMC_RATE_LIMIT_MAX_ENTRIES:10000}
+    ip-per-minute: ${SMC_RATE_LIMIT_IP_PER_MINUTE:60}                  # sign-in and other anonymous requests
+    public-read-per-minute: ${SMC_RATE_LIMIT_PUBLIC_READ_PER_MINUTE:600} # public i18n dictionaries behind a shared NAT
+    user-per-minute: ${SMC_RATE_LIMIT_USER_PER_MINUTE:600}             # cookie sessions
+    token-per-minute: ${SMC_RATE_LIMIT_TOKEN_PER_MINUTE:300}           # Bearer, per token owner
+    expensive-per-minute: ${SMC_RATE_LIMIT_EXPENSIVE_PER_MINUTE:10}    # expensive operations (paths below)
     expensive-paths:
       - /api/v1/audit/stats
       - /api/v1/audit/logs
       - /api/v1/audit/security-events
       - /api/v1/search/**
   typesense:
-    url: ${DWH_TYPESENSE_URL:http://typesense:8108}
-    api-key: ${DWH_TYPESENSE_API_KEY:dwh_typesense_local_dev_key}
-    enabled: ${DWH_TYPESENSE_ENABLED:true}
+    url: ${SMC_TYPESENSE_URL:http://typesense:8108}
+    api-key: ${SMC_TYPESENSE_API_KEY:smartupcms_typesense_local_dev}
+    enabled: ${SMC_TYPESENSE_ENABLED:true}
     sync-on-startup: true
   idempotency:
-    retention-days: ${DWH_IDEMPOTENCY_RETENTION_DAYS:14}
-    cleanup-cron: ${DWH_IDEMPOTENCY_CLEANUP_CRON:0 15 2 * * *}
-    lease-seconds: ${DWH_IDEMPOTENCY_LEASE_SECONDS:120}
-  fnd:
-    jobs:
-      # Job queue (plan 10/10, item 3.8): a failed job is retried after a pause that doubles each time, up to the
-      # limit, then marked failed; a node renews the lease of the job it runs, and a job whose lease ran out (the
-      # node died) is taken by another.
-      max-attempts: ${DWH_JOBS_MAX_ATTEMPTS:5}
-      retry-backoff: ${DWH_JOBS_RETRY_BACKOFF:30s}
-      retry-backoff-max: ${DWH_JOBS_RETRY_BACKOFF_MAX:1h}
-      lease: ${DWH_JOBS_LEASE:5m}
+    retention-days: ${SMC_IDEMPOTENCY_RETENTION_DAYS:14}
+    cleanup-cron: ${SMC_IDEMPOTENCY_CLEANUP_CRON:0 15 2 * * *}
+    lease-seconds: ${SMC_IDEMPOTENCY_LEASE_SECONDS:120}
+  jobs:
+    # Job queue (plan 10/10, item 3.8): a failed job is retried after a pause that doubles each time, up to the
+    # limit, then marked failed; a node renews the lease of the job it runs, and a job whose lease ran out (the
+    # node died) is taken by another.
+    max-attempts: ${SMC_JOBS_MAX_ATTEMPTS:5}
+    retry-backoff: ${SMC_JOBS_RETRY_BACKOFF:30s}
+    retry-backoff-max: ${SMC_JOBS_RETRY_BACKOFF_MAX:1h}
+    lease: ${SMC_JOBS_LEASE:5m}
 
 
 logging:
@@ -295,17 +291,17 @@ logging:
       max-history: ${SMC_LOG_MAX_HISTORY:12}
       total-size-cap: ${SMC_LOG_TOTAL_SIZE_CAP:2GB}
 
-# Foundation (fnd): the second database, pg-dwh. There are deliberately no defaults: without the environment
-# variables startup fails, and without a connect timeout it fails even when the url is set. The variable names are
-# listed in .env.example and docker-compose.yml.
-app:
-  dwh:
-    url: ${APP_DWH_URL}
-    username: ${APP_DWH_USERNAME}
-    password: ${APP_DWH_PASSWORD}
-    connect-timeout: ${APP_DWH_CONNECT_TIMEOUT}
-    # Pool limit on one query and on idle time inside a transaction; maintenance jobs have their own, longer one.
-    statement-timeout: ${APP_DWH_STATEMENT_TIMEOUT:60s}
-    maintenance-statement-timeout: ${APP_DWH_MAINTENANCE_STATEMENT_TIMEOUT:30m}
-    # Plan 10/10, item 3.9: one streamed write of a load into raw (a UPL apply) lasts while its file is parsed.
-    raw-write-timeout: ${APP_DWH_RAW_WRITE_TIMEOUT:30m}
+# The warehouse: the second database, pg-dwh (ADR-0001). Product settings live under smc, warehouse settings under
+# warehouse (ADR-0027). There are deliberately no defaults: without the environment variables startup fails, and
+# without a connect timeout it fails even when the url is set. The variable names are listed in .env.example,
+# docker-compose.yml and docs/ops/configuration-reference.md.
+warehouse:
+  url: ${WAREHOUSE_URL}
+  username: ${WAREHOUSE_USERNAME}
+  password: ${WAREHOUSE_PASSWORD}
+  connect-timeout: ${WAREHOUSE_CONNECT_TIMEOUT}
+  # Pool limit on one query and on idle time inside a transaction; maintenance jobs have their own, longer one.
+  statement-timeout: ${WAREHOUSE_STATEMENT_TIMEOUT:60s}
+  maintenance-statement-timeout: ${WAREHOUSE_MAINTENANCE_STATEMENT_TIMEOUT:30m}
+  # Plan 10/10, item 3.9: one streamed write of a load into raw (a UPL apply) lasts while its file is parsed.
+  raw-write-timeout: ${WAREHOUSE_RAW_WRITE_TIMEOUT:30m}

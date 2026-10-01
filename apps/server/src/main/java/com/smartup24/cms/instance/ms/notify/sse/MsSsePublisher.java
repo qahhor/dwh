@@ -40,7 +40,7 @@ public class MsSsePublisher {
     }
 
     /** Keep-alive: proxies drop connections without traffic (usually after 60 s). */
-    @Scheduled(fixedDelayString = "${dwh.sse.heartbeat-ms:25000}")
+    @Scheduled(fixedDelayString = "${smc.sse.heartbeat-ms:25000}")
     public void heartbeat() {
         registry.sendHeartbeat();
     }

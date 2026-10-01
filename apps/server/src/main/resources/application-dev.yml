@@ -7,8 +7,6 @@ smc:
   audit:
     archive:
       local-path: ${java.io.tmpdir}/smartupcms-audit-archive
-
-dwh:
   schema-gate:
     enabled: true
   instance:

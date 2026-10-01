@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Profile("!migrate")
 public class SchemaVersionGate extends AbstractFlywaySchemaGate {
 
-    public SchemaVersionGate(DataSource dataSource, @Value("${dwh.schema-gate.enabled:true}") boolean enabled) {
+    public SchemaVersionGate(DataSource dataSource, @Value("${smc.schema-gate.enabled:true}") boolean enabled) {
         super(dataSource, enabled, "classpath:db/migration", "Instance (md, kauth, tsk, ms, mf, audit, kwh)");
     }
 }

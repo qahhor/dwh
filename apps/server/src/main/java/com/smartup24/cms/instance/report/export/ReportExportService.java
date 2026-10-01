@@ -103,7 +103,7 @@ public class ReportExportService {
             @Lazy FndJobQueue jobs,
             AuditLogService audit,
             ObjectMapper json,
-            @Value("${dwh.reports.export.max-rows:50000}") int maxRows) {
+            @Value("${smc.reports.export.max-rows:50000}") int maxRows) {
         this.repo = repo;
         this.registry = registry;
         // The modules' own exporters and those the declared entities get from their declaration (roadmap item 56).

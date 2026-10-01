@@ -48,6 +48,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,6 +57,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * ADR-0008, section 2.2: exceeding the limit gives 429 with Retry-After and a rate_limit_exceeded event in the
  * security log (exactly one per window, so the log cannot be flooded).
  */
+// The development secrets of application.yml are refused outside the dev and test profiles (ADR-0027).
+@ActiveProfiles("test")
 @WebMvcTest(controllers = SecurityTestController.class)
 @AutoConfigureMockMvc(print = MockMvcPrint.NONE)
 @Import({
@@ -71,11 +74,11 @@ import org.springframework.test.web.servlet.MockMvc;
 @TestPropertySource(
         properties = {
             "logging.level.org.springframework.boot.security.autoconfigure=ERROR",
-            "dwh.rate-limit.ip-per-minute=2",
-            "dwh.rate-limit.public-read-per-minute=4",
-            "dwh.rate-limit.user-per-minute=30",
-            "dwh.rate-limit.token-per-minute=5",
-            "dwh.rate-limit.expensive-per-minute=1"
+            "smc.rate-limit.ip-per-minute=2",
+            "smc.rate-limit.public-read-per-minute=4",
+            "smc.rate-limit.user-per-minute=30",
+            "smc.rate-limit.token-per-minute=5",
+            "smc.rate-limit.expensive-per-minute=1"
         })
 class RateLimitFilterTest {
 

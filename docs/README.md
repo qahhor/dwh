@@ -80,6 +80,10 @@ Current ADRs that are not superseded:
   — a module publishes read-only `<prefix>_pub_*` views of the columns other
   modules read; their repositories join the views, never the base tables, and
   change another module's data only through its service.
+- [ADR-0027 — configuration names: smc and warehouse](adr/ADR-0027-configuration-names.md)
+  — product settings are `smc.*` / `SMC_*`, warehouse settings `warehouse.*` /
+  `WAREHOUSE_*`; old `dwh` names are read with a warning until 2026-12-31;
+  published development secrets stop a start outside dev and test.
 - [ADR-0028 — permission codes by module](adr/ADR-0028-permission-codes.md)
   — a form code is `<area>.<entity-or-screen>` and its area names the owning
   module; a controller guards its endpoints with its own module's forms or
@@ -130,6 +134,7 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 
 - [Operations architecture](ops/architecture-overview.md)
 - [Production deployment](ops/deployment-guide.md)
+- [Server configuration reference](ops/configuration-reference.md)
 - [Maintenance, backup, and restore](ops/maintenance-guide.md)
 - [Search and index maintenance](ops/search-and-index-maintenance.md)
 - [Operations runbook](ops/operations-runbook.md)

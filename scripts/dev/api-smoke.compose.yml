@@ -9,6 +9,6 @@ services:
     environment:
       # The smoke subscribes a webhook to the server itself: the operator allow-list names that one host, and the
       # disposable network is private.
-      DWH_WEBHOOKS_ENABLED: "true"
-      DWH_WEBHOOKS_ALLOWED_HOSTS: server
-      DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES: "true"
+      SMC_WEBHOOKS_ENABLED: "true"
+      SMC_WEBHOOKS_ALLOWED_HOSTS: server
+      SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES: "true"

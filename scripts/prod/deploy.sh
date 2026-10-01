@@ -50,6 +50,12 @@ on_error() {
 trap on_error ERR
 
 [[ -f "$ENV_FILE" ]] || { echo "[ERROR] Environment file '$ENV_FILE' was not found." >&2; exit 1; }
+# ADR-0027: names before smc/warehouse still work until 2026-12-31; say which ones to rename (names only, no values).
+legacy_names="$(grep -oE '^(APP_)?DWH_[A-Z0-9_]+=' "$ENV_FILE" | tr -d '=' | tr '\n' ' ' || true)"
+if [[ -n "$legacy_names" ]]; then
+    echo "[WARN] $ENV_FILE uses configuration names read only until 2026-12-31: $legacy_names" >&2
+    echo '[WARN] Rename them (DWH_* -> SMC_*, APP_DWH_* -> WAREHOUSE_*): docs/ops/configuration-reference.md' >&2
+fi
 [[ "$HEALTH_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] \
     || { echo '[ERROR] HEALTH_TIMEOUT_SECONDS must be a positive integer.' >&2; exit 1; }
 

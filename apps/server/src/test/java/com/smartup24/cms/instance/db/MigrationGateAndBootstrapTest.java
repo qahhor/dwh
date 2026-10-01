@@ -88,7 +88,7 @@ class MigrationGateAndBootstrapTest {
         InstanceBootstrap bootstrap = bootstrap(new InstanceBootstrapProperties(null, null, null, null, null, null));
         assertThatThrownBy(() -> bootstrap.run(null))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("dwh.instance.client-code");
+                .hasMessageContaining("smc.instance.client-code");
     }
 
     @Test
