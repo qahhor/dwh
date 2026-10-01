@@ -1,11 +1,11 @@
-package com.smartup24.cms.instance.kwh;
+package com.smartup24.cms.instance.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
-import com.smartup24.cms.instance.kwh.service.KwhWebhookProperties;
-import com.smartup24.cms.instance.kwh.service.WebhookTargetPolicy;
-import com.smartup24.cms.instance.kwh.worker.KwhOutboxWorker;
+import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
+import com.smartup24.cms.instance.webhook.service.WebhookProperties;
+import com.smartup24.cms.instance.webhook.service.WebhookTargetPolicy;
+import com.smartup24.cms.instance.webhook.worker.WebhookOutboxWorker;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -18,14 +18,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tools.jackson.databind.ObjectMapper;
 
-class KwhOutboxWorkerSecurityTest {
+class WebhookOutboxWorkerSecurityTest {
 
     @Test
     void doesNotReadOrDispatchTheOutboxWhileWebhooksAreDisabled() {
-        var repository = Mockito.mock(KwhOutboxRepository.class);
+        var repository = Mockito.mock(WebhookOutboxRepository.class);
         var properties = properties(false, Set.of(), false);
-        var worker =
-                new KwhOutboxWorker(repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
+        var worker = new WebhookOutboxWorker(
+                repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
 
         worker.processWebhooks();
 
@@ -34,11 +34,11 @@ class KwhOutboxWorkerSecurityTest {
 
     @Test
     void anEmptyOutboxEndsTheRoundWithoutFurtherWork() {
-        var repository = Mockito.mock(KwhOutboxRepository.class);
+        var repository = Mockito.mock(WebhookOutboxRepository.class);
         var properties = properties(true, Set.of("127.0.0.1"), false);
         Mockito.when(repository.fetchPending(20)).thenReturn(java.util.List.of());
-        var worker =
-                new KwhOutboxWorker(repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
+        var worker = new WebhookOutboxWorker(
+                repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
 
         worker.processWebhooks();
 
@@ -48,10 +48,10 @@ class KwhOutboxWorkerSecurityTest {
 
     @Test
     void revalidatesTheStoredTargetImmediatelyBeforeDispatch() {
-        var repository = Mockito.mock(KwhOutboxRepository.class);
+        var repository = Mockito.mock(WebhookOutboxRepository.class);
         var properties = properties(true, Set.of("127.0.0.1"), false);
         UUID claimToken = UUID.randomUUID();
-        var item = new KwhOutboxRepository.KwhOutboxRecord(
+        var item = new WebhookOutboxRepository.OutboxRecord(
                 5L,
                 9L,
                 "task.created",
@@ -69,8 +69,8 @@ class KwhOutboxWorkerSecurityTest {
                 "http://127.0.0.1/internal",
                 "signing-secret");
         Mockito.when(repository.fetchPending(20)).thenReturn(List.of(item));
-        var worker =
-                new KwhOutboxWorker(repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
+        var worker = new WebhookOutboxWorker(
+                repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
 
         worker.processWebhooks();
 
@@ -103,12 +103,12 @@ class KwhOutboxWorkerSecurityTest {
         });
         server.start();
         try {
-            var repository = Mockito.mock(KwhOutboxRepository.class);
+            var repository = Mockito.mock(WebhookOutboxRepository.class);
             var properties = properties(true, Set.of("127.0.0.1"), true);
             properties.setConnectTimeout(Duration.ofMillis(100));
             properties.setReadTimeout(Duration.ofMillis(100));
             UUID claimToken = UUID.randomUUID();
-            var item = new KwhOutboxRepository.KwhOutboxRecord(
+            var item = new WebhookOutboxRepository.OutboxRecord(
                     11L,
                     12L,
                     "task.created",
@@ -126,7 +126,7 @@ class KwhOutboxWorkerSecurityTest {
                     "http://127.0.0.1:" + server.getAddress().getPort() + "/slow",
                     "signing-secret");
             Mockito.when(repository.fetchPending(20)).thenReturn(List.of(item));
-            var worker = new KwhOutboxWorker(
+            var worker = new WebhookOutboxWorker(
                     repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
 
             long startedAt = System.nanoTime();
@@ -148,9 +148,9 @@ class KwhOutboxWorkerSecurityTest {
         }
     }
 
-    private static KwhWebhookProperties properties(
+    private static WebhookProperties properties(
             boolean enabled, Set<String> allowedHosts, boolean allowPrivateAddresses) {
-        var properties = new KwhWebhookProperties();
+        var properties = new WebhookProperties();
         properties.setEnabled(enabled);
         properties.setAllowedHosts(allowedHosts);
         properties.setAllowPrivateAddresses(allowPrivateAddresses);

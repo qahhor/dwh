@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.kwh.service;
+package com.smartup24.cms.instance.webhook.service;
 
 import java.time.Duration;
 import java.util.LinkedHashSet;
@@ -8,7 +8,7 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "smc.webhooks")
-public class KwhWebhookProperties {
+public class WebhookProperties {
 
     private boolean enabled;
     private Set<String> allowedHosts = new LinkedHashSet<>();

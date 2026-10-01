@@ -38,7 +38,7 @@ class CollectionsArePagedTest {
             Map.entry("KauthChannelController#listChannels", "one per delivery channel"),
             Map.entry("KauthSessionController#listActiveSessions", "live sessions of the viewer; they expire"),
             Map.entry("KauthSessionController#listUserSessions", "live sessions of one user; they expire"),
-            Map.entry("KwhSubscriptionController#listSubscriptions", "webhooks an administrator configures"),
+            Map.entry("WebhookSubscriptionController#listSubscriptions", "webhooks an administrator configures"),
             Map.entry("MdCustomFieldController#getFields", "custom fields an administrator declares"),
             Map.entry("MdI18nController#listLanguages", "the installed languages"),
             Map.entry("MdListViewController#list", "20 views per list and user (MdListViewService)"),

@@ -1,10 +1,10 @@
-package com.smartup24.cms.instance.kwh.worker;
+package com.smartup24.cms.instance.webhook.worker;
 
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
-import com.smartup24.cms.instance.kwh.service.KwhWebhookProperties;
-import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
-import com.smartup24.cms.instance.kwh.service.WebhookTargetPolicy;
+import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
+import com.smartup24.cms.instance.webhook.service.WebhookProperties;
+import com.smartup24.cms.instance.webhook.service.WebhookService;
+import com.smartup24.cms.instance.webhook.service.WebhookTargetPolicy;
 import java.net.http.HttpClient;
 import java.time.Instant;
 import java.util.List;
@@ -18,20 +18,20 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
-public class KwhOutboxWorker {
+public class WebhookOutboxWorker {
 
-    private static final Logger log = LoggerFactory.getLogger(KwhOutboxWorker.class);
+    private static final Logger log = LoggerFactory.getLogger(WebhookOutboxWorker.class);
 
-    private final KwhOutboxRepository outboxRepository;
+    private final WebhookOutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
     private final RestClient restClient;
-    private final KwhWebhookProperties properties;
+    private final WebhookProperties properties;
     private final WebhookTargetPolicy targetPolicy;
 
-    public KwhOutboxWorker(
-            KwhOutboxRepository outboxRepository,
+    public WebhookOutboxWorker(
+            WebhookOutboxRepository outboxRepository,
             ObjectMapper objectMapper,
-            KwhWebhookProperties properties,
+            WebhookProperties properties,
             WebhookTargetPolicy targetPolicy) {
         this.outboxRepository = outboxRepository;
         this.objectMapper = objectMapper;
@@ -48,10 +48,10 @@ public class KwhOutboxWorker {
     }
 
     /** One signed delivery to the subscription's checked address. */
-    private org.springframework.http.ResponseEntity<Void> post(KwhOutboxRepository.KwhOutboxRecord item) {
+    private org.springframework.http.ResponseEntity<Void> post(WebhookOutboxRepository.OutboxRecord item) {
         var target = targetPolicy.validate(item.targetUrl());
         String payloadJson = objectMapper.writeValueAsString(item.payload());
-        String signature = KwhWebhookService.computeHmacSha256(payloadJson, item.secretToken());
+        String signature = WebhookService.computeHmacSha256(payloadJson, item.secretToken());
         long timestamp = Instant.now().getEpochSecond();
         return restClient
                 .post()
@@ -71,7 +71,7 @@ public class KwhOutboxWorker {
         if (!properties.isEnabled()) {
             return;
         }
-        List<KwhOutboxRepository.KwhOutboxRecord> items = outboxRepository.fetchPending(20);
+        List<WebhookOutboxRepository.OutboxRecord> items = outboxRepository.fetchPending(20);
         if (items.isEmpty()) {
             return;
         }

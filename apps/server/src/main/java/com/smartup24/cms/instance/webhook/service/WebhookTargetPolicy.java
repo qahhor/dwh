@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.kwh.service;
+package com.smartup24.cms.instance.webhook.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -21,15 +21,15 @@ public class WebhookTargetPolicy {
 
     private static final Logger log = LoggerFactory.getLogger(WebhookTargetPolicy.class);
 
-    private final KwhWebhookProperties properties;
+    private final WebhookProperties properties;
     private final HostResolver hostResolver;
 
     @Autowired
-    public WebhookTargetPolicy(KwhWebhookProperties properties) {
+    public WebhookTargetPolicy(WebhookProperties properties) {
         this(properties, host -> Arrays.asList(InetAddress.getAllByName(host)));
     }
 
-    WebhookTargetPolicy(KwhWebhookProperties properties, HostResolver hostResolver) {
+    WebhookTargetPolicy(WebhookProperties properties, HostResolver hostResolver) {
         this.properties = properties;
         this.hostResolver = hostResolver;
     }

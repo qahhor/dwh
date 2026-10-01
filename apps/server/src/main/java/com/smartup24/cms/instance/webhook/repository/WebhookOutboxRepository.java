@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.kwh.repository;
+package com.smartup24.cms.instance.webhook.repository;
 
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.security.StoredSecrets;
@@ -11,14 +11,14 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
-public class KwhOutboxRepository {
+public class WebhookOutboxRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
     private final JsonColumns jsonColumns;
     private final StoredSecrets secrets;
 
-    public KwhOutboxRepository(JdbcClient jdbcClient, ObjectMapper objectMapper, StoredSecrets secrets) {
+    public WebhookOutboxRepository(JdbcClient jdbcClient, ObjectMapper objectMapper, StoredSecrets secrets) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
         this.jsonColumns = new JsonColumns(objectMapper, "kwh_outbox");
@@ -39,7 +39,7 @@ public class KwhOutboxRepository {
                 .update();
     }
 
-    public List<KwhOutboxRecord> fetchPending(int limit) {
+    public List<OutboxRecord> fetchPending(int limit) {
         UUID claimToken = UUID.randomUUID();
         return jdbcClient
                 .sql("""
@@ -146,8 +146,8 @@ public class KwhOutboxRepository {
                 .update();
     }
 
-    private KwhOutboxRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
-        return new KwhOutboxRecord(
+    private OutboxRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new OutboxRecord(
                 rs.getLong("id"),
                 rs.getLong("subscription_id"),
                 rs.getString("event_type"),
@@ -167,10 +167,10 @@ public class KwhOutboxRepository {
                         ? rs.getTimestamp("claimed_at").toInstant()
                         : null,
                 rs.getString("target_url"),
-                secrets.open(rs.getString("secret_token"), KwhSubscriptionRepository.SECRET_COLUMN));
+                secrets.open(rs.getString("secret_token"), WebhookSubscriptionRepository.SECRET_COLUMN));
     }
 
-    public record KwhOutboxRecord(
+    public record OutboxRecord(
             Long id,
             Long subscriptionId,
             String eventType,

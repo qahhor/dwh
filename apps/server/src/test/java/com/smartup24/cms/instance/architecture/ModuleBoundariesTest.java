@@ -50,7 +50,6 @@ class ModuleBoundariesTest {
             "audit",
             "jobs",
             "kauth",
-            "kwh",
             "md",
             "mf",
             "ms.note",
@@ -60,7 +59,8 @@ class ModuleBoundariesTest {
             "search",
             "units",
             "upl",
-            "warehouse");
+            "warehouse",
+            "webhook");
 
     private static JavaClasses classes;
 
@@ -268,7 +268,8 @@ class ModuleBoundariesTest {
      * from V017 but only kauth reads it (SSO sign-in): the code that holds a table owns it (ADR-0026). The tables of the
      * former foundation keep their {@code fnd_} names (ADR-0020): {@code fnd_job_*} belong to jobs, {@code fnd_unit*}
      * to units, {@code fnd_load*} to warehouse; {@code fnd_versioned_tables} and {@code fnd_audit_tables} are registries
-     * of the platform in common, which owns no module (ADR-0030).
+     * of the platform in common, which owns no module (ADR-0030). The {@code kwh_} tables keep their names as well and
+     * belong to webhook (plan 10/10, item 4.3).
      */
     static Optional<String> ownerOf(String table) {
         if (table.startsWith("audit_log") || table.equals("security_events")) return Optional.of("audit");
@@ -280,7 +281,8 @@ class ModuleBoundariesTest {
         if (table.startsWith("fnd_job_")) return Optional.of("jobs");
         if (table.startsWith("fnd_unit")) return Optional.of("units");
         if (table.startsWith("fnd_load")) return Optional.of("warehouse");
-        for (String module : List.of("kauth", "kwh", "md", "mf", "report", "search", "upl")) {
+        if (table.startsWith("kwh_")) return Optional.of("webhook");
+        for (String module : List.of("kauth", "md", "mf", "report", "search", "upl")) {
             if (table.startsWith(module + "_")) return Optional.of(module);
         }
         return Optional.empty();
