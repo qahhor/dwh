@@ -370,7 +370,6 @@ search.returned_found
 settings.builtin
 settings.changed_count
 settings.company_name
-settings.confirm_legacy_migration
 settings.custom
 settings.date_format
 settings.default_language
@@ -384,9 +383,6 @@ settings.import_json
 settings.imported_rows
 settings.interface_text
 settings.language_added
-settings.legacy_packages_found
-settings.migrate
-settings.migrating
 settings.notifications_sound
 settings.packaged_russian
 settings.password_length

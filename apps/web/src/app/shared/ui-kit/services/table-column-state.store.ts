@@ -10,14 +10,12 @@ import { Injectable } from '@angular/core';
 import { TableColumnState } from '../components/table/column-state';
 
 const PREFIX = 'smc.table-columns.v1.';
-/** The prefix before plan 10/10, item 4.7: a state saved under it is moved to the new key on the first load. */
-const LEGACY_PREFIX = 'dwh.table-columns.v1.';
 
 @Injectable({ providedIn: 'root' })
 export class TableColumnStateStore {
   load(tableId: string): TableColumnState | null {
     try {
-      const raw = localStorage.getItem(PREFIX + tableId) ?? moveLegacy(tableId);
+      const raw = localStorage.getItem(PREFIX + tableId);
       return raw === null ? null : parseState(JSON.parse(raw));
     } catch {
       return null;
@@ -35,21 +33,10 @@ export class TableColumnStateStore {
   clear(tableId: string): void {
     try {
       localStorage.removeItem(PREFIX + tableId);
-      localStorage.removeItem(LEGACY_PREFIX + tableId);
     } catch {
       // Nothing stored that could be removed.
     }
   }
-}
-
-/** The state saved under the old prefix, moved to the new one; null when there is none. */
-function moveLegacy(tableId: string): string | null {
-  const legacy = localStorage.getItem(LEGACY_PREFIX + tableId);
-  if (legacy !== null) {
-    localStorage.setItem(PREFIX + tableId, legacy);
-    localStorage.removeItem(LEGACY_PREFIX + tableId);
-  }
-  return legacy;
 }
 
 /** Only a well-formed state is trusted; anything else counts as "nothing stored". */

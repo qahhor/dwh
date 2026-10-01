@@ -31,16 +31,6 @@ describe('TableColumnStateStore', () => {
     expect(store.load('c')).toBeNull();
   });
 
-  it('moves a state saved under the old prefix to the new one (plan 10/10, item 4.7)', () => {
-    const store = new TableColumnStateStore();
-    const state = { order: ['name'], hidden: [], widths: {} };
-    localStorage.setItem('dwh.table-columns.v1.upl.sources', JSON.stringify(state));
-
-    expect(store.load('upl.sources')).toEqual(state);
-    expect(localStorage.getItem('smc.table-columns.v1.upl.sources')).toBe(JSON.stringify(state));
-    expect(localStorage.getItem('dwh.table-columns.v1.upl.sources')).toBeNull();
-  });
-
   it('keeps working when the browser refuses storage', () => {
     const store = new TableColumnStateStore();
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
