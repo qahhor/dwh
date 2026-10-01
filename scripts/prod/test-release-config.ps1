@@ -51,11 +51,10 @@ Assert-Matches $composeSource 'clamav:[\s\S]*resources:\s*limits:\s*cpus:\s*"1\.
 Assert-Matches $composeSource '/opt/smartupcms/jna:rw,nosuid,nodev,exec,size=16m,uid=10001,gid=10001,mode=0700' 'Argon2/JNA must have a private executable tmpfs owned by the non-root server user.'
 Assert-Matches $composeSource '/var/lib/nginx/tmp:rw,nosuid,nodev,noexec,uid=10001,gid=10001,mode=0700' 'NGINX temporary files must use a private non-executable tmpfs owned by the web user.'
 Assert-Matches $composeSource '/run/nginx:rw,nosuid,nodev,noexec,uid=10001,gid=10001,mode=0750' 'NGINX PID files must use a private non-executable tmpfs owned by the web user.'
-# Until 2026-12-31 a value falls back to the name before ADR-0027: ${SMC_X:-${DWH_X:-default}}.
-Assert-Matches $composeSource 'SMC_WEBHOOKS_ENABLED:\s*\$\{SMC_WEBHOOKS_ENABLED:-\$\{DWH_WEBHOOKS_ENABLED:-false\}\}' 'Outbound webhooks must be disabled by default.'
-Assert-Matches $composeSource 'SMC_WEBHOOKS_ALLOWED_HOSTS:\s*\$\{SMC_WEBHOOKS_ALLOWED_HOSTS:-\$\{DWH_WEBHOOKS_ALLOWED_HOSTS:-\}\}' 'Outbound webhooks must require an explicit host allow-list.'
-Assert-Matches $composeSource 'SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:\s*\$\{SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-\$\{DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false\}\}' 'Private webhook destinations must require an explicit opt-in.'
-Assert-DoesNotMatch $composeSource '(?m)^\s+(?:APP_)?DWH_[A-Z0-9_]+:' 'The server must receive configuration under the names of ADR-0027 (SMC_*, WAREHOUSE_*).'
+Assert-Matches $composeSource 'SMC_WEBHOOKS_ENABLED:\s*\$\{SMC_WEBHOOKS_ENABLED:-false\}' 'Outbound webhooks must be disabled by default.'
+Assert-Matches $composeSource 'SMC_WEBHOOKS_ALLOWED_HOSTS:\s*\$\{SMC_WEBHOOKS_ALLOWED_HOSTS:-\}' 'Outbound webhooks must require an explicit host allow-list.'
+Assert-Matches $composeSource 'SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:\s*\$\{SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false\}' 'Private webhook destinations must require an explicit opt-in.'
+Assert-DoesNotMatch $composeSource '(?<![A-Z0-9_])(?:APP_)?DWH_[A-Z0-9_]+' 'Compose must use only the configuration names of ADR-0027 (SMC_*, WAREHOUSE_*).'
 foreach ($variable in @('SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_STARTTLS', 'SMC_MAIL_FROM',
         'TELEGRAM_BOT_TOKEN', 'SMC_PROVIDER_MAIL', 'SMC_PROVIDER_MESSENGER', 'SMC_PUBLIC_URL')) {
     Assert-Matches $composeSource ([regex]::Escape($variable) + ':\s*\$\{' + [regex]::Escape($variable) + ':-')

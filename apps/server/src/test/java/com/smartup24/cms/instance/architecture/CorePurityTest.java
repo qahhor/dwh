@@ -21,7 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * The core names neither the customer's units, nor multipliers "in code", nor the customers themselves. Our
  * packages {@code ..instance.{jobs,warehouse,units,upl,ref,reg,vit}}, the versioning and actor contracts of
- * {@code common} (the former foundation, plan 10/10, item 4.2), the alias left in {@code fnd} and our migrations
+ * {@code common} (the former foundation, plan 10/10, item 4.2) and our migrations
  * ({@code V1xx}, {@code db/dwh}) are checked; the framework (upstream) code is not. The term list is the test resource {@code forbidden-terms.txt}, it is not
  * in {@code src/main}. The fixtures of the configurations A and B are test resources only too.
  */
@@ -29,7 +29,7 @@ class CorePurityTest {
 
     private static final Path INSTANCE = Path.of("src/main/java/com/smartup24/cms/instance");
     private static final List<String> OUR_MODULES = List.of(
-            "jobs", "warehouse", "units", "common/versioning", "common/actor", "fnd", "upl", "ref", "reg", "vit");
+            "jobs", "warehouse", "units", "common/versioning", "common/actor", "upl", "ref", "reg", "vit");
     private static final Path OLTP_MIGRATIONS = Path.of("src/main/resources/db/migration");
     private static final Path DWH_MIGRATIONS = Path.of("src/main/resources/db/dwh");
     private static final Path TERMS = Path.of("src/test/resources/forbidden-terms.txt");

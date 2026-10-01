@@ -10,8 +10,7 @@ APP_DB_USER="${APP_DB_USER:-${DB_USER:-smartupcms}}"
 BACKUP_DB_USER="${BACKUP_DB_USER:-smartupcms_backup}"
 # ADR-0001: the DWH database, owned by the application role (db/dwh migrations
 # create its schemas). Empty only where no DWH exists (a bare test).
-# DWH_DB_NAME is the name before ADR-0027, read until 2026-12-31.
-WAREHOUSE_DB_NAME="${WAREHOUSE_DB_NAME-${DWH_DB_NAME-smartupcms_dwh}}"
+WAREHOUSE_DB_NAME="${WAREHOUSE_DB_NAME-smartupcms_dwh}"
 export PGHOST PGPORT PGDATABASE PGUSER
 
 if [ -n "$WAREHOUSE_DB_NAME" ] && [ "$WAREHOUSE_DB_NAME" = "$PGDATABASE" ]; then

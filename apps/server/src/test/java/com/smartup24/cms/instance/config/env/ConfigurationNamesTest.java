@@ -3,7 +3,6 @@ package com.smartup24.cms.instance.config.env;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.common.env.LegacyConfigNames;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -38,6 +37,9 @@ class ConfigurationNamesTest {
     private static final Path SOURCES = Path.of("src/main/java");
     private static final Path RESOURCES = Path.of("src/main/resources");
 
+    /** A property key named before ADR-0027: the product under {@code dwh}, the warehouse under {@code app.dwh}. */
+    private static final Pattern OLD_KEY = Pattern.compile("(?:app\\.)?dwh\\.");
+
     /** A property key in code: a placeholder, a conditional property name or a properties prefix. */
     private static final Pattern OLD_KEY_IN_CODE =
             Pattern.compile("\\$\\{(?:app\\.)?dwh\\.|(?:name|prefix) = \"(?:app\\.)?dwh[.\"]");
@@ -67,7 +69,7 @@ class ConfigurationNamesTest {
                 for (PropertySource<?> document :
                         new YamlPropertySourceLoader().load(file.toString(), new FileSystemResource(file))) {
                     for (String key : ((EnumerablePropertySource<?>) document).getPropertyNames()) {
-                        if (LegacyConfigNames.property(key).isPresent()) {
+                        if (OLD_KEY.matcher(key).lookingAt()) {
                             old.add(file.getFileName() + ": " + key);
                         }
                     }

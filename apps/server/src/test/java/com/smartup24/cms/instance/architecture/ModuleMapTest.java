@@ -31,11 +31,8 @@ class ModuleMapTest {
     private static final Path MODULE_MAP = Path.of("../../docs/architecture/module-map.md");
     /** Infrastructure packages: described like modules, but not business modules. */
     private static final List<String> INFRASTRUCTURE = List.of("common", "config");
-    /**
-     * Packages under the root that are neither: {@code ms} groups three modules under one Biruni prefix, {@code fnd}
-     * keeps only the deprecated migrate entry point until 2026-12-31 (ADR-0030).
-     */
-    private static final Set<String> NOT_MODULES = Set.of("ms", "fnd");
+    /** Packages under the root that are neither: {@code ms} groups three modules under one Biruni prefix. */
+    private static final Set<String> NOT_MODULES = Set.of("ms");
 
     /** A row of the map: {@code | `code` | `com.smartup24.cms.instance.<package>` | ...}. */
     private static final Pattern ROW = Pattern.compile("^\\|\\s*`([a-z][a-z0-9.]*)`\\s*\\|\\s*`"

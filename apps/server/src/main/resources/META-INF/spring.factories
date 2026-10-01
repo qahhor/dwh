@@ -1,4 +1,3 @@
-# Configuration names (ADR-0027): old names as aliases, then the refusal to start with published secrets.
+# Configuration names (ADR-0027): the refusal to start with published secrets.
 org.springframework.boot.EnvironmentPostProcessor=\
-com.smartup24.cms.instance.config.env.LegacyConfigAliases,\
 com.smartup24.cms.instance.config.env.DefaultSecretsGuard

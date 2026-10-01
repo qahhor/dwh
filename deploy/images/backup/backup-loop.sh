@@ -13,8 +13,7 @@ PGPORT="${PGPORT:-5432}"
 PGDATABASE="${PGDATABASE:-smartupcms}"
 # ADR-0001: the DWH lives in its own database and goes into its own archive with
 # the same timestamp. Set it empty only where no DWH exists (a bare test).
-# DWH_DB_NAME is the name before ADR-0027, read until 2026-12-31.
-WAREHOUSE_DB_NAME="${WAREHOUSE_DB_NAME-${DWH_DB_NAME-smartupcms_dwh}}"
+WAREHOUSE_DB_NAME="${WAREHOUSE_DB_NAME-smartupcms_dwh}"
 PGUSER="${PGUSER:-smartupcms_backup}"
 export BACKUP_STATUS_FILE PGHOST PGPORT PGDATABASE PGUSER
 

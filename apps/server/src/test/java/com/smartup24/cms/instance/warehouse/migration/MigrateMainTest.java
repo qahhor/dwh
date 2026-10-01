@@ -6,7 +6,7 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** The migration scope {@code SMC_MIGRATE_SCOPE} and the old names (ADR-0027): checks without Spring and a database. */
+/** The migration scope {@code SMC_MIGRATE_SCOPE} and the names it reads (ADR-0027): checks without a database. */
 class MigrateMainTest {
 
     @Test
@@ -26,19 +26,20 @@ class MigrateMainTest {
     }
 
     @Test
-    @DisplayName("старые имена DWH_MIGRATE_SCOPE=dwh ещё читаются как область warehouse")
-    void legacyScopeStillWorks() {
-        assertThatThrownBy(() -> MigrateMain.run(Map.of("DWH_MIGRATE_SCOPE", "dwh")))
+    @DisplayName("старая область dwh отвергается")
+    void oldScopeIsRejected() {
+        assertThatThrownBy(() -> MigrateMain.run(Map.of("SMC_MIGRATE_SCOPE", "dwh")))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageEndingWith("WAREHOUSE_URL");
+                .hasMessageContaining("SMC_MIGRATE_SCOPE");
     }
 
     @Test
-    @DisplayName("старое имя адреса хранилища DWH_DATA_DB_URL читается как WAREHOUSE_URL")
-    void legacyWarehouseUrlIsRead() {
-        // An unreachable address: the run gets past the missing-variable check and fails on the connection.
+    @DisplayName("старые имена DWH_MIGRATE_SCOPE и DWH_DATA_DB_URL не читаются")
+    void oldNamesAreIgnored() {
         assertThatThrownBy(() -> MigrateMain.run(Map.of(
-                        "SMC_MIGRATE_SCOPE", "warehouse", "DWH_DATA_DB_URL", "jdbc:postgresql://127.0.0.1:1/none")))
+                        "DWH_MIGRATE_SCOPE", "dwh", "DWH_DATA_DB_URL", "jdbc:postgresql://127.0.0.1:1/none")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageEndingWith("DB_URL")
                 .hasMessageNotContaining("WAREHOUSE_URL");
     }
 
