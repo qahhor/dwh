@@ -165,11 +165,21 @@ CRUD модуль **не пишет** — серверная часть сущн
    в snake_case, без транслита и хэшей
    ([ADR-0031](../adr/ADR-0031-semantic-translation-keys.md)); это проверяет
    `npm run i18n:audit`.
-7. **Экран:** маршрут в `app.routes.ts`; данные — `/api/v1/entities/<код>`
-   (`PATCH` с `ifMatch: revision`); форма — `smt-entity-form`, просмотр —
-   `smt-entity-card`, виды, экспорт и массовое удаление — `smt-entity-toolbar`;
-   кнопки — по `actions` из `form-meta` и записи, а не по своим проверкам прав.
-   Пункт меню появится сам (`GET /entities/menu`).
+7. **Экран — не пишется.** Пункт меню объявляется без маршрута
+   (`new EntityMenu("nav.<код>", "<иконка>", "workspace", <порядок>, "<модуль>")`)
+   и ведёт на общий экран `/e/<префикс>.<код>` (ADR-0032, §7.1): список
+   (`ui-server-table` по `query-meta`: колонки, сортировка, фильтр, сохранённые
+   виды, выгрузка, архив, массовые действия), создание `/new`, карточка `/:id`
+   (поля по секциям, история, файлы, кнопки по `actions` записи) и правка
+   `/:id/edit` (`smt-entity-form`, `If-Match`, 422 — под полями, 409/428 —
+   `SaveErrorNotifier`). Всё — из `form-meta`, `query-meta` и записи runtime;
+   права решает сервер. Точечная правка (своя ячейка списка, свой контрол
+   поля, своя секция карточки, своя вкладка) — `provideEntityOverrides` в
+   `apps/web/src/main.ts` (раздел «Экран сущности» ниже). Свой экран — только
+   для **другого способа работы** (доска, календарь, карта, мастер из шагов,
+   экран нескольких сущностей, ADR-0032 §7.2): тогда пункт меню называет свой
+   маршрут (`new EntityMenu("/<путь>", …)`), а экран берёт данные из
+   `/api/v1/entities/<код>` (`EntitiesApi`) и части `smt-entity-*`.
 8. **Проверки:** `EntityActionPermissionContractTest` — у каждой пары
    объявления (`view`, право каждого действия) есть название в `EntityRights`
    и она попадает в каталог прав (`MdFormCatalogSynchronizer` берёт пары
@@ -191,7 +201,8 @@ CRUD модуль **не пишет** — серверная часть сущн
 `@RequiresPermission` на CRUD, свой аудит, вызов `WebhookService`, свой
 источник истории, свой экспортёр, свой endpoint массовых действий, бин
 `EntityRecords` (он только для сущности без таблицы), пункт меню в
-`app-shell.models.ts`. Описание API строится из объявления
+`app-shell.models.ts`, маршрут в `app.routes.ts` и файлы экрана в
+`apps/web/src/app/features`. Описание API строится из объявления
 (`EntityOpenApiCustomizer`: пути `/api/v1/entities/<код>…`, схемы
 `<Код>Record`/`Create`/`Patch`/`Page`) — после нового поля перегенерируйте
 `docs/api/openapi.json` и типы веба.
@@ -243,11 +254,42 @@ class MsNoteContractTest extends EntityContractTestKit {
 `readonly(ключ)`, `keys()`; для формы в диалоге корнем служит
 `inScreen(fixture.nativeElement)`.
 
-### Экран сущности: пример
+Общий экран `/e/:code` проверяется помощниками
+`apps/web/src/testing/entity-page.ts`: `renderEntityScreen(url, {meta, list,
+records, …})` рисует страницу настоящим роутером поверх API, который отвечает
+только из фикстур (`queryMetaFixture`, `entityRecord`, `problem`); так спека
+показывает, что сущность, о которой веб ничего не знает, получает список,
+форму и карточку (`shared/entity/page/entity-page.spec.ts`).
 
-Форма целиком приходит с сервера; экран только загружает `form-meta`, держит
-значения и сохраняет. Эталонный экран — `apps/web/src/app/features/notes`:
-новый экран копирует его устройство, а не старые фичи.
+### Экран сущности: общий экран и точечные правки
+
+Новая сущность получает экран без кода веба: `/e/<код>` (компоненты
+`apps/web/src/app/shared/entity/page/`). Если нужна мелочь — своя ячейка
+списка, свой контрол поля, своя секция или вкладка карточки, — она задаётся
+по ключу один раз среди провайдеров приложения (`apps/web/src/main.ts`),
+а не своим экраном:
+
+```ts
+provideEntityOverrides('sales.orders', {
+  cells: { status: OrderStatusCell },        // входы: row, field
+  fields: { color: ColorPickerControl },     // входы: field, value, problem, disabled, set
+  sections: { totals: OrderTotalsSection },  // входы: meta, record, values
+  tabs: [{ key: 'map', labelKey: 'sales.orders.tab_map', component: OrderMapTab }], // входы: meta, record
+});
+```
+
+Компоненты переопределений — обычные standalone-компоненты с `input()`;
+контрол поля меняет значение вызовом `set(значение)`. Сущность без
+переопределений — ноль файлов веба.
+
+### Свой экран сущности: пример
+
+Свой экран оправдан только для другого способа работы (ADR-0032, §7.2). Форма
+целиком приходит с сервера; экран только загружает `form-meta`, держит
+значения и сохраняет. Эталон своего экрана — доска заметок
+`apps/web/src/app/features/notes` (карточки с закреплением; та же сущность
+открывается и на общем экране `/e/ms.notes`): новый свой экран копирует его
+устройство, а не старые фичи.
 
 | Файл | Что в нём |
 |---|---|
@@ -267,8 +309,8 @@ export class InventoryApi {
   // revision — ревизия загруженной записи: без If-Match сервер ответит 428, устаревшая — 409
   save(id: number | null, payload: Record<string, unknown>, revision?: number): Observable<Item> {
     return id === null
-      ? this.api.post<Item>('/inventory', payload, { notifyError: false })
-      : this.api.put<Item>(`/inventory/${id}`, payload, { notifyError: false, ifMatch: revision });
+      ? this.api.post<Item>('/entities/ms.inventory', payload, { notifyError: false })
+      : this.api.patch<Item>(`/entities/ms.inventory/${id}`, payload, { notifyError: false, ifMatch: revision });
   }
 }
 

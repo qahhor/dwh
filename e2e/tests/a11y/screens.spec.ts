@@ -132,6 +132,32 @@ const screens: Screen[] = [
       await expect(dialog.getByText('Иван Петров').first()).toBeVisible();
     },
   },
+  // ADR-0032 7.1: the general entity screen, drawn from metadata alone, here for the notes.
+  {
+    name: 'general entity list',
+    path: '/e/ms.notes',
+    open: async page => {
+      await expect(page.getByRole('table', { name: 'Заметки' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Планёрка филиала 1', exact: true })).toBeVisible();
+    },
+  },
+  {
+    name: 'general entity form',
+    path: '/e/ms.notes/new',
+    open: async page => {
+      await expect(page.getByRole('textbox', { name: 'Заголовок' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Сохранить' })).toBeVisible();
+    },
+  },
+  {
+    name: 'general entity record with its history',
+    path: '/e/ms.notes/1',
+    open: async page => {
+      await expect(page.getByRole('heading', { name: 'Планёрка филиала 1' })).toBeVisible();
+      await page.getByRole('tab', { name: 'История' }).click();
+      await expect(page.getByText('Иван Петров').first()).toBeVisible();
+    },
+  },
 ];
 
 for (const theme of ['light', 'dark'] as const) {
