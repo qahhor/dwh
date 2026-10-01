@@ -17,7 +17,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
-/** Разовое задание в очереди основы: аргументы, неизвестный обработчик и общая транзакция с вызывающим. */
+/** A one-off job in the foundation queue: arguments, an unknown handler and a transaction shared with the caller. */
 class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
 
     private static final String HANDLER = "test.once";

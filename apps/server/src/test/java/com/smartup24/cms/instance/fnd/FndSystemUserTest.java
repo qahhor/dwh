@@ -12,8 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * Техническая учётка {@code system} создаётся кодом основы, а не миграцией: после миграций
- * на свежей базе {@code md_users} пуста (пользователей заводит только первичная настройка).
+ * The technical account {@code system} is created by the foundation code, not by a migration: after the
+ * migrations {@code md_users} is empty on a fresh database (only the initial setup creates users).
  */
 class FndSystemUserTest extends EmbeddedPostgresTest {
 

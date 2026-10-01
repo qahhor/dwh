@@ -20,12 +20,12 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * И1 шаги 1.3–1.4 (a1-on-cms), AC-9/AC-14/AC-16: роли экземпляра из V110,
- * эффективные права analyst и строка OneID.
+ * The instance roles from V110 for the A1 integration on the CMS: the roles themselves, the effective permissions
+ * of analyst and the OneID provider row.
  */
 class A1InstanceRolesTest extends EmbeddedPostgresTest {
 
-    /** Точный набор analyst из V110 п.3 (M-2): набор роли user без tasks.*. */
+    /** The exact analyst set from V110, part 3: the set of the user role without tasks.*. */
     static final List<String> ANALYST_PAIRS = List.of(
             "iam.profile:view",
             "iam.profile:update",
@@ -39,7 +39,10 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
             "notify.preferences:update",
             "platform.announcements:view");
 
-    /** Правило И3+: модули добавляют analyst свои рабочие пары своей миграцией (V112 — upl.sources, V115 — upl.packages); V116 — upl.packages:apply только chief_admin и admin. */
+    /**
+     * Modules add their working pairs to analyst in their own migration (V112: upl.sources, V115: upl.packages);
+     * V116 grants upl.packages:apply to chief_admin and admin only.
+     */
     static final List<String> LATER_MODULE_ANALYST_PAIRS =
             List.of("upl.sources:view", "upl.packages:view", "upl.packages:upload");
 
@@ -50,7 +53,10 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
 
     private static final String TEST_ANALYST_LOGIN = "test-analyst-a1";
 
-    /** S-11/S-12 / AC-9, п.2 приёмки: ФИО узбекской кириллицей (Ў, Ҳ, Ғ, қ) и латинский апостроф — ловит перекос кодировки JDBC/БД и экранирование. */
+    /**
+     * A full name in Uzbek Cyrillic with its own letters and a Latin apostrophe: catches an encoding skew between
+     * JDBC and the database, and broken escaping.
+     */
     private static final String TEST_ANALYST_NAME = "TEST Ўринбоева Ҳуррият Ғайрат қизи (G'ijduvon)";
 
     @Autowired
@@ -67,7 +73,7 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
 
     @AfterEach
     void removeTestAnalyst() {
-        // Каскад md_user_roles / md_effective_permissions / md_user_permission_versions (V001)
+        // Cascades to md_user_roles / md_effective_permissions / md_user_permission_versions (V001)
         jdbc.sql("delete from md_users where login = :login")
                 .param("login", TEST_ANALYST_LOGIN)
                 .update();
@@ -197,15 +203,14 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
                 List.of(analystRoleId),
                 systemId);
 
-        // M-4 (решение 15.09, вариант 1): роль user каркас выдаёт только при пустом списке ролей — здесь её быть не
-        // должно
+        // The framework grants the user role only when the role list is empty, so it must not be here
         List<Long> roleIds = jdbc.sql("select role_id from md_user_roles where user_id = :id")
                 .param("id", user.id())
                 .query(Long.class)
                 .list();
         assertThat(roleIds).containsExactly(analystRoleId);
 
-        // S-11: ФИО кириллицей прошло через JDBC и БД без перекоса — сверка строки и байтов
+        // The Cyrillic full name passed through JDBC and the database unchanged: the string and its bytes are compared
         Map<String, Object> stored = jdbc.sql("select name, octet_length(name) as bytes from md_users where id = :id")
                 .param("id", user.id())
                 .query()
@@ -214,7 +219,7 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
         assertThat(((Number) stored.get("bytes")).intValue())
                 .isEqualTo(TEST_ANALYST_NAME.getBytes(StandardCharsets.UTF_8).length);
 
-        // M-3: эффективные права материализованы каркасом при создании (scopeService.recalculateFor)
+        // The framework materialized the effective permissions at creation (scopeService.recalculateFor)
         List<String> effective = jdbc.sql(
                         "select form_code || ':' || action from md_effective_permissions where user_id = :id")
                 .param("id", user.id())
@@ -261,12 +266,12 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
         long permissionsBefore = count("md_role_permissions");
         long providersBefore = count("md_sso_providers");
 
-        // S-10: всё в одной транзакции с откатом — общая БД прогона не отравляется при любом исходе,
-        // а set lock_timeout/statement_timeout из скрипта снимаются откатом (PostgreSQL откатывает и обычный SET)
+        // Everything runs in one rolled-back transaction: the shared test database stays clean whatever the outcome,
+        // and the rollback undoes the script's set lock_timeout/statement_timeout (PostgreSQL rolls back a plain SET)
         tx.executeWithoutResult(status -> {
             status.setRollbackOnly();
 
-            // Частичное состояние (обрыв прошлого применения): роль есть, прав analyst нет
+            // Partial state (a previous run was cut off): the role exists, the analyst permissions do not
             jdbc.sql("""
                     delete from md_role_permissions
                     where role_id = (select id from md_roles where pcode = 'analyst')
@@ -279,14 +284,14 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
             assertThat(count("md_role_permissions")).isEqualTo(permissionsBefore);
             assertThat(count("md_sso_providers")).isEqualTo(providersBefore);
 
-            // Второй повтор — уже ничего не добавляет
+            // The second repeat adds nothing
             jdbc.sql(script).update();
             assertThat(count("md_role_permissions")).isEqualTo(permissionsBefore);
         });
 
-        // После отката: права analyst на месте. S-13: проверку show lock_timeout/statement_timeout сняли — вне
-        // транзакции
-        // соединение пула не гарантировано то же; сброс SET после rollback гарантирует сам PostgreSQL.
+        // After the rollback the analyst permissions are in place. There is no show lock_timeout/statement_timeout
+        // check: outside the transaction the pool may hand out another connection, and PostgreSQL itself resets SET
+        // on rollback.
         assertThat(count("md_role_permissions")).isEqualTo(permissionsBefore);
     }
 

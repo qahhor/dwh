@@ -31,7 +31,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
-/** AC-31: обслуживающие задания основы — очистка неудачных загрузок и сверка двух баз. */
+/** The foundation maintenance jobs: cleaning up failed loads and reconciling the two databases. */
 class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
 
     private static final String SOURCE = "src_test_jobs";
@@ -148,7 +148,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
         assertThat(events).hasSize(2);
         assertThat(events).anyMatch(details -> details.contains("999999"));
         assertThat(events).anyMatch(details -> details.contains(orphanFile.toString()));
-        // Данные сверка не трогает
+        // The reconciliation does not touch the data
         assertThat(dwhJdbc.sql("select count(*) from raw.rows")
                         .query(Long.class)
                         .single())
@@ -210,7 +210,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
                         .query(Long.class)
                         .single())
                 .isGreaterThanOrEqualTo(2L);
-        // Сразу после постановки срок следующего запуска ещё не наступил
+        // Right after enqueueing, the next run is not due yet
         assertThat(jobs.enqueueDue()).isZero();
         assertThat(jobs.runQueued()).isGreaterThanOrEqualTo(2);
         assertThat(jdbc.sql("select count(*) from fnd_job_runs where status = 'done'")
@@ -219,7 +219,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
                 .isGreaterThanOrEqualTo(2L);
     }
 
-    // ---------- AC-7: очередь под нагрузкой, путь failed, выключатель ----------
+    // ---------- the queue under load, the failed path, the switch ----------
 
     @Autowired
     private ObjectMapper json;
@@ -227,7 +227,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     @Autowired
     private PlatformTransactionManager transactions;
 
-    /** Воркер с тестовыми обработчиками: бины расписания не нужны — очередь принимает любой код обработчика. */
+    /** A worker with test handlers: no schedule beans are needed, the queue takes any handler code. */
     private FndJobRunner testRunner(FndJobHandler... handlers) {
         return new FndJobRunner(jdbc, json, transactions, List.of(handlers));
     }

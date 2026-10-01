@@ -62,10 +62,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * R2 (ремедиация, ADR-0008): CSRF double-submit, интеграция аутентификации
- * в Spring Security, заголовки безопасности, RFC 9457 на 401/403.
- * Матрица результатов ТЗ-01 разд. 8.2, блок SEC:
- * «мутирующий запрос без CSRF-токена -> 403».
+ * ADR-0008: CSRF double-submit, authentication integrated into Spring Security, security headers, RFC 9457 on
+ * 401/403. From the result matrix of the technical specification, security block: "a mutating request without
+ * a CSRF token gives 403".
  */
 @WebMvcTest(
         controllers = {
@@ -163,7 +162,7 @@ class SecurityConfigTest {
         when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of("*.*"));
         when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
 
-        // Double-submit как делает Angular: cookie XSRF-TOKEN + тот же токен в X-XSRF-TOKEN
+        // Double-submit the way Angular does it: the XSRF-TOKEN cookie and the same token in X-XSRF-TOKEN
         mvc.perform(post("/api/v1/security-test")
                         .cookie(new Cookie(SESSION_COOKIE, "raw-session"), new Cookie("XSRF-TOKEN", "test-csrf-token"))
                         .header("X-XSRF-TOKEN", "test-csrf-token"))
@@ -479,7 +478,7 @@ class SecurityConfigTest {
     }
 
     // ------------------------------------------------------------------
-    // Д-7: смена своего пароля живёт в контуре аутентификации
+    // Changing one's own password lives in the authentication boundary
     // ------------------------------------------------------------------
 
     @Test
@@ -489,7 +488,7 @@ class SecurityConfigTest {
                 .thenReturn(Optional.of(new KauthSessionRepository.SessionRecord(
                         11L, 7L, "hash", "127.0.0.1", "ua", null, Instant.now(), Instant.now(), null, 0)));
         when(userService.getUserIdentity(7L)).thenReturn(activeUser());
-        // Пусто — ни одного права: ровно положение роли auditor (ТЗ-01 разд. 4.4.1)
+        // Empty, not a single permission: exactly the position of the auditor role
         when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of());
         when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
 

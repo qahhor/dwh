@@ -22,9 +22,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Блок B основы, AC-6: изменения fnd-таблиц пишет в {@code audit_log} каркаса триггер {@code fnd_audit_trigger}
- * (V100), актор — числовой {@code app.user_id} из {@code md_users}. Поведение проверяется на {@code fnd_units}:
- * триггер один на все таблицы реестра {@code fnd_audit_tables}, поэтому у остальных таблиц оно то же.
+ * Changes of the fnd tables are written to the framework's {@code audit_log} by the trigger
+ * {@code fnd_audit_trigger} (V100); the actor is the numeric {@code app.user_id} from {@code md_users}. The behavior
+ * is checked on {@code fnd_units}: one trigger serves every table of the {@code fnd_audit_tables} registry, so the
+ * other tables behave the same.
  */
 class FndAuditTest extends EmbeddedPostgresTest {
 
@@ -54,7 +55,7 @@ class FndAuditTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from fnd_unit_coefficient_versions").update();
             jdbc.sql("delete from fnd_unit_coefficients").update();
             jdbc.sql("delete from fnd_units").update();
-            // audit_log каркаса не чистится (FR-AUD-1): проверки идут по row_pk, а id единиц не повторяются
+            // the framework's audit_log is never cleaned (FR-AUD-1): checks go by row_pk, and unit ids never repeat
         });
     }
 
@@ -174,7 +175,7 @@ class FndAuditTest extends EmbeddedPostgresTest {
                 .isEqualTo("I");
     }
 
-    // ---------- вспомогательное ----------
+    // ---------- helpers ----------
 
     private long insertUnit(String code, String nameUz) {
         return jdbc.sql("insert into fnd_units (code, name_i18n, base_unit_code)"

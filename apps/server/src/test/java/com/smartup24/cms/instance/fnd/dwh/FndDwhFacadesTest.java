@@ -34,7 +34,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
-/** Блок F основы: фасады второй базы — запись raw и чтение витрин (AC-33…AC-36). */
+/** The facades of the second database: writing raw rows and reading marts. */
 class FndDwhFacadesTest extends EmbeddedPostgresTest {
 
     private static final String SOURCE = "src_test_dwh";
@@ -121,7 +121,7 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
         assertThat(codeOf(() -> rawWriter.write(-1, fileId, List.of(new FndRawRow(1, null, null, Map.of())))))
                 .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
 
-        // Фасад умеет только писать, считать и читать: правки и удаления в контракте нет
+        // The facade can only write, count and read: the contract has no updates or deletes
         // Synthetic methods (a default method's lambda, coverage probes) are not part of the contract.
         assertThat(java.util.Arrays.stream(FndRawWriter.class.getDeclaredMethods())
                         .filter(method -> !method.isSynthetic()))
@@ -212,7 +212,7 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
                         writer.write(loadId, null, List.of(new FndRawRow(1, null, null, Map.of("n", 1))));
                     }))
                     .isInstanceOf(DwhUnavailableException.class);
-            // Транзакция OLTP откатана: строки журнала, вставленной до обращения к pg-dwh, нет
+            // The OLTP transaction is rolled back: the log row inserted before the pg-dwh call is gone
             assertThat(jdbc.sql("select count(*) from fnd_load_log where package_ref = :p")
                             .param("p", packageRef)
                             .query(Long.class)
@@ -221,7 +221,7 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
         }
     }
 
-    // ---------- вспомогательное ----------
+    // ---------- helpers ----------
 
     private HikariDataSource closedPortDataSource() {
         HikariDataSource dataSource = new HikariDataSource();
@@ -255,7 +255,7 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
                 .single());
     }
 
-    /** Источник строк, который ломается на заданной строке: имитирует сбой разбора файла (AC-34). */
+    /** A row source that breaks on a given row: imitates a file parsing failure. */
     private static Iterable<FndRawRow> failingAt(int total, int failAt) {
         return () -> new Iterator<>() {
             private int next = 1;

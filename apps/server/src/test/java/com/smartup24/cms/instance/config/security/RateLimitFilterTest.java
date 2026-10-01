@@ -53,8 +53,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * R3 (ремедиация, ADR-0008 разд. 2.2): DoD — превышение лимита -> 429 + Retry-After
- * + событие rate_limit_exceeded в security-журнале (ровно одно на окно, анти-флуд).
+ * ADR-0008, section 2.2: exceeding the limit gives 429 with Retry-After and a rate_limit_exceeded event in the
+ * security log (exactly one per window, so the log cannot be flooded).
  */
 @WebMvcTest(controllers = SecurityTestController.class)
 @AutoConfigureMockMvc(print = MockMvcPrint.NONE)

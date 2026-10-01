@@ -44,9 +44,9 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Д-9 (AUDIT-05): клиентская ошибка не должна выдаваться за серверную.
- * Ровно этот дефект наблюдался вживую: POST /api/v1/files отдавал 500 internal_error
- * вместо 405 — и попутно писал в журнал «Unhandled exception», маскируя настоящие сбои.
+ * A client error must not pass for a server error. Exactly this defect was seen live: POST /api/v1/files
+ * answered 500 internal_error instead of 405 and also wrote "Unhandled exception" to the log, hiding real
+ * failures.
  */
 class GlobalExceptionHandlerTest {
 

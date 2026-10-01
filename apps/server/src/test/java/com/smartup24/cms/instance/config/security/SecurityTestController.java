@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Тестовый эндпоинт для проверки CSRF/аутентификации/заголовков (только test-classpath). */
+/** A test endpoint for checking CSRF, authentication and headers (test classpath only). */
 @RestController
 @RequestMapping("/api/v1/security-test")
 class SecurityTestController {
