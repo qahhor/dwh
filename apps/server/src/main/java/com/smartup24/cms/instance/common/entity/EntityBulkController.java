@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,10 @@ public class EntityBulkController {
     }
 
     /** Anyone signed in may ask; the entity's own right is checked below. */
+    @Operation(
+            summary = "Run a bulk action on records",
+            description =
+                    "Applies a bulk action of an entity to the selected records; the entity's own right is checked.")
     @PostMapping("/{code}/bulk")
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<BulkResult> bulk(@PathVariable String code, @RequestBody BulkRequest body) {

@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.ms.task.api.AttachFileRequest;
 import com.smartup24.cms.instance.ms.task.api.TaskFileView;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.service.MsTaskFileService;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -30,12 +31,14 @@ public class MsTaskFileController {
         this.files = files;
     }
 
+    @Operation(summary = "List task files", description = "The files attached to a task.")
     @GetMapping("/{id}/files")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<TaskFileView>> getTaskFiles(@PathVariable("id") Long id) {
         return ResponseEntity.ok(files.listTaskFiles(id, SecurityContext.getCurrentUserId()));
     }
 
+    @Operation(summary = "Attach a file to a task", description = "Attaches a stored file to a task.")
     @PostMapping("/{id}/files")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -44,6 +47,7 @@ public class MsTaskFileController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Detach a file from a task", description = "Removes the link between a task and a file.")
     @DeleteMapping("/{id}/files/{fileId}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)

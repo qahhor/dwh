@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.upl.api;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.fnd.api.FndUnits;
 import com.smartup24.cms.instance.upl.UplPref;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ public class UplUnitController {
         this.json = json;
     }
 
+    @Operation(summary = "List units of measure", description = "The units of measure.")
     @GetMapping
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<List<UnitItem>> list() {

@@ -11,6 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get tasks by project
+         * @description How tasks are distributed between projects, for the dashboard.
+         */
         get: operations["getProjects"];
         put?: never;
         post?: never;
@@ -27,6 +31,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the task summary
+         * @description Task counts for the dashboard summary.
+         */
         get: operations["getSummary"];
         put?: never;
         post?: never;
@@ -43,6 +51,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get task trends
+         * @description Task counts over time for the dashboard chart.
+         */
         get: operations["getTrends"];
         put?: never;
         post?: never;
@@ -59,6 +71,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the workload of users
+         * @description Task load per user, for the dashboard.
+         */
         get: operations["getWorkload"];
         put?: never;
         post?: never;
@@ -75,9 +91,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List active announcements
+         * @deprecated
+         * @description The published announcements addressed to the caller.
+         */
         get: operations["getAnnouncements"];
         put?: never;
+        /**
+         * Create an announcement
+         * @description Adds an announcement.
+         */
         post: operations["create_3"];
         delete?: never;
         options?: never;
@@ -92,6 +116,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List active announcements
+         * @description The published announcements addressed to the caller.
+         */
         get: operations["getAnnouncements_1"];
         put?: never;
         post?: never;
@@ -108,6 +136,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List announcements to manage
+         * @description Every announcement, for its managers, a keyset page at a time.
+         */
         get: operations["manage"];
         put?: never;
         post?: never;
@@ -125,6 +157,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        /**
+         * Update an announcement
+         * @description Replaces an announcement.
+         */
         put: operations["update_2"];
         post?: never;
         delete?: never;
@@ -142,6 +178,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Archive an announcement
+         * @description Archives an announcement.
+         */
         post: operations["archive"];
         delete?: never;
         options?: never;
@@ -158,6 +198,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Publish an announcement
+         * @description Makes an announcement visible to its audience.
+         */
         post: operations["publish_1"];
         delete?: never;
         options?: never;
@@ -174,6 +218,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Mark an announcement read
+         * @description Records that the caller has read an announcement.
+         */
         post: operations["markAsRead_2"];
         delete?: never;
         options?: never;
@@ -188,6 +236,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List audit records
+         * @description The audit journal of data changes, a keyset page at a time with filters.
+         */
         get: operations["listLogs"];
         put?: never;
         post?: never;
@@ -204,6 +256,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List security events
+         * @description The journal of security events, a keyset page at a time with filters.
+         */
         get: operations["listSecurityEvents"];
         put?: never;
         post?: never;
@@ -220,6 +276,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get audit statistics
+         * @description Counters of the audit journal.
+         */
         get: operations["getStats"];
         put?: never;
         post?: never;
@@ -238,6 +298,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Sign in
+         * @description Signs in with a login and password; when a second factor is on, the sign-in completes with a one-time code.
+         */
         post: operations["login"];
         delete?: never;
         options?: never;
@@ -254,6 +318,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Sign out
+         * @description Closes the current session.
+         */
         post: operations["logout"];
         delete?: never;
         options?: never;
@@ -268,6 +336,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the current user
+         * @description The signed-in user with their permissions.
+         */
         get: operations["me"];
         put?: never;
         post?: never;
@@ -284,6 +356,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List sign-in providers
+         * @description The external OAuth 2 providers a user may sign in with.
+         */
         get: operations["getProviders"];
         put?: never;
         post?: never;
@@ -302,6 +378,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Confirm sign-in with a one-time code
+         * @description Completes a sign-in that asked for a one-time code and opens the session.
+         */
         post: operations["verifyOtp"];
         delete?: never;
         options?: never;
@@ -318,6 +398,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Change my password
+         * @description Changes the caller's password after checking the current one.
+         */
         post: operations["changeMyPassword"];
         delete?: never;
         options?: never;
@@ -334,6 +418,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Reset a password
+         * @description Sets a new password with the token of a reset link.
+         */
         post: operations["confirm"];
         delete?: never;
         options?: never;
@@ -350,6 +438,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Request a password reset
+         * @description Asks for a password reset link to be sent to the user.
+         */
         post: operations["request_1"];
         delete?: never;
         options?: never;
@@ -364,8 +456,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List custom fields
+         * @description The custom field definitions, of one entity type or of all.
+         */
         get: operations["getFields"];
         put?: never;
+        /**
+         * Create a custom field
+         * @description Adds a custom field to an entity type: its code, type, whether it is required, its default and options.
+         */
         post: operations["createField"];
         delete?: never;
         options?: never;
@@ -383,9 +483,17 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Delete a custom field
+         * @description Removes a custom field definition.
+         */
         delete: operations["deleteField"];
         options?: never;
         head?: never;
+        /**
+         * Update a custom field
+         * @description Changes the name, requirement, default, options or order of a custom field; names the revision it was read at.
+         */
         patch: operations["updateField"];
         trace?: never;
     };
@@ -396,6 +504,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the entity menu
+         * @description The menu items of the declared entities, each filtered by the caller's right on its entity.
+         */
         get: operations["menu"];
         put?: never;
         post?: never;
@@ -414,6 +526,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Run a bulk action on records
+         * @description Applies a bulk action of an entity to the selected records; the entity's own right is checked.
+         */
         post: operations["bulk_2"];
         delete?: never;
         options?: never;
@@ -428,6 +544,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Subscribe to events
+         * @description A stream of server-sent events for the caller, kept open by the client.
+         */
         get: operations["stream"];
         put?: never;
         post?: never;
@@ -444,8 +564,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List my exports
+         * @description The caller's requested exports with their state.
+         */
         get: operations["journal"];
         put?: never;
+        /**
+         * Request an export
+         * @description Requests the export of a list to a file.
+         */
         post: operations["request"];
         delete?: never;
         options?: never;
@@ -460,6 +588,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Download an export
+         * @description The file of a finished export.
+         */
         get: operations["file"];
         put?: never;
         post?: never;
@@ -476,6 +608,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List files
+         * @description The stored files the caller may see.
+         */
         get: operations["listFiles"];
         put?: never;
         post?: never;
@@ -492,6 +628,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get storage statistics
+         * @description Usage of the file storage.
+         */
         get: operations["getStorageStats"];
         put?: never;
         post?: never;
@@ -510,6 +650,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Upload a file
+         * @description Stores an uploaded file and returns its metadata.
+         */
         post: operations["uploadFile"];
         delete?: never;
         options?: never;
@@ -524,9 +668,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get file metadata
+         * @description The name, type, size and owner of a stored file.
+         */
         get: operations["getFileMetadata"];
         put?: never;
         post?: never;
+        /**
+         * Delete a file
+         * @description Removes a stored file.
+         */
         delete: operations["deleteFile"];
         options?: never;
         head?: never;
@@ -540,6 +692,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Download a file
+         * @description The content of a stored file.
+         */
         get: operations["downloadFile"];
         put?: never;
         post?: never;
@@ -556,6 +712,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a form description
+         * @description The fields, layout and rules of an entity form, built from its declaration; the entity's own right is checked.
+         */
         get: operations["get_4"];
         put?: never;
         post?: never;
@@ -572,6 +732,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List record kinds with history
+         * @description The kinds of records whose change history can be read.
+         */
         get: operations["kinds"];
         put?: never;
         post?: never;
@@ -588,6 +752,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the history of a record
+         * @description The recorded changes of one record, a keyset page at a time.
+         */
         get: operations["history_1"];
         put?: never;
         post?: never;
@@ -606,6 +774,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Add an interface language
+         * @description Adds a language to the interface.
+         */
         post: operations["createLanguage"];
         delete?: never;
         options?: never;
@@ -620,6 +792,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Export a language
+         * @description The texts of an interface language as one key-to-text map.
+         */
         get: operations["export"];
         put?: never;
         post?: never;
@@ -636,7 +812,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the translation editor
+         * @description The keys and texts of an interface language, for the translation editor.
+         */
         get: operations["getEditor"];
+        /**
+         * Update translations
+         * @description Saves the edited texts of an interface language.
+         */
         put: operations["updateTranslations"];
         post?: never;
         delete?: never;
@@ -652,6 +836,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List interface languages
+         * @description The languages the interface is available in.
+         */
         get: operations["listLanguages"];
         put?: never;
         post?: never;
@@ -668,6 +856,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a dictionary
+         * @description The interface texts of one language, key to text.
+         */
         get: operations["getDictionary"];
         put?: never;
         post?: never;
@@ -684,6 +876,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the permission catalog
+         * @description The forms and their actions on which permissions are granted.
+         */
         get: operations["getFormCatalog_1"];
         put?: never;
         post?: never;
@@ -700,8 +896,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List org units
+         * @description The organisation structure as a flat list of units.
+         */
         get: operations["list_3"];
         put?: never;
+        /**
+         * Create an org unit
+         * @description Adds a unit to the organisation structure.
+         */
         post: operations["create_2"];
         delete?: never;
         options?: never;
@@ -716,7 +920,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the visibility rule of a role
+         * @description The data visibility rule of a role; a role without a rule sees all.
+         */
         get: operations["getRoleRule"];
+        /**
+         * Set the visibility rule of a role
+         * @description Sets what a role sees: all, a subtree, chosen units or own records only.
+         */
         put: operations["setRoleRule"];
         post?: never;
         delete?: never;
@@ -732,7 +944,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the units of a user
+         * @description The units a user is explicitly assigned to.
+         */
         get: operations["getUserAssignments"];
+        /**
+         * Replace the units of a user
+         * @description Replaces the whole set of units a user is assigned to.
+         */
         put: operations["assignUser"];
         post?: never;
         delete?: never;
@@ -748,6 +968,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the data scope of a user
+         * @description The rule and the units that decide which records a user sees.
+         */
         get: operations["getUserScope"];
         put?: never;
         post?: never;
@@ -764,12 +988,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get an org unit
+         * @description One unit of the organisation structure.
+         */
         get: operations["getById"];
         put?: never;
         post?: never;
+        /**
+         * Delete an org unit
+         * @description Removes a unit of the organisation structure.
+         */
         delete: operations["delete_1"];
         options?: never;
         head?: never;
+        /**
+         * Update an org unit
+         * @description Changes the name, parent or state of a unit; names the revision it was read at.
+         */
         patch: operations["update_3"];
         trace?: never;
     };
@@ -780,8 +1016,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List my delivery channels
+         * @description The delivery channels (e-mail, messengers) bound to the caller's profile.
+         */
         get: operations["listChannels"];
         put?: never;
+        /**
+         * Start binding a channel
+         * @description Sends a confirmation code to the address; the binding completes with the confirm call.
+         */
         post: operations["bindChannel"];
         delete?: never;
         options?: never;
@@ -798,6 +1042,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Confirm a channel
+         * @description Completes the binding of a delivery channel with the code sent to its address.
+         */
         post: operations["confirmChannel"];
         delete?: never;
         options?: never;
@@ -815,6 +1063,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Unbind a channel
+         * @description Removes a delivery channel from the caller's profile.
+         */
         delete: operations["unbindChannel"];
         options?: never;
         head?: never;
@@ -828,6 +1080,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List my sessions
+         * @description The open sessions of the caller.
+         */
         get: operations["listActiveSessions_1"];
         put?: never;
         post?: never;
@@ -847,6 +1103,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Close my other sessions
+         * @description Closes every session of the caller except the current one.
+         */
         delete: operations["closeOtherSessions_1"];
         options?: never;
         head?: never;
@@ -860,11 +1120,19 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List the sessions of a user
+         * @deprecated
+         * @description The open sessions of a user, for an administrator.
+         */
         get: operations["listUserSessions_1"];
         put?: never;
         post?: never;
-        /** @deprecated */
+        /**
+         * Close the sessions of a user
+         * @deprecated
+         * @description Closes every open session of a user.
+         */
         delete: operations["closeAllUserSessions_1"];
         options?: never;
         head?: never;
@@ -880,7 +1148,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Force a password change
+         * @deprecated
+         * @description Makes the user change the password at the next sign-in.
+         */
         post: operations["forcePasswordChange_1"];
         delete?: never;
         options?: never;
@@ -897,7 +1169,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Reset the second factor
+         * @deprecated
+         * @description Resets the second factor of a user.
+         */
         post: operations["reset2fa_1"];
         delete?: never;
         options?: never;
@@ -912,7 +1188,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * Get the security summary of a user
+         * @deprecated
+         * @description The security summary of a user, for an administrator.
+         */
         get: operations["getUserSecuritySummary"];
         put?: never;
         post?: never;
@@ -932,7 +1212,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** @deprecated */
+        /**
+         * Close a session of a user
+         * @deprecated
+         * @description Closes one session of a user.
+         */
         delete: operations["closeUserSession_1"];
         options?: never;
         head?: never;
@@ -949,6 +1233,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Close one of my sessions
+         * @description Closes one session of the caller.
+         */
         delete: operations["closeSession_1"];
         options?: never;
         head?: never;
@@ -962,8 +1250,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List my API tokens
+         * @description The personal API tokens of the caller, without their secrets.
+         */
         get: operations["listTokens"];
         put?: never;
+        /**
+         * Create an API token
+         * @description Issues a personal API token; its secret is returned once and never stored for replay.
+         */
         post: operations["createToken"];
         delete?: never;
         options?: never;
@@ -981,6 +1277,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Revoke an API token
+         * @description Revokes one personal API token of the caller.
+         */
         delete: operations["revokeToken"];
         options?: never;
         head?: never;
@@ -994,8 +1294,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List roles
+         * @description The roles of the installation.
+         */
         get: operations["listRoles"];
         put?: never;
+        /**
+         * Create a role
+         * @description Adds a role with its code and name.
+         */
         post: operations["createRole"];
         delete?: never;
         options?: never;
@@ -1010,6 +1318,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Count users per role
+         * @description How many users each role is assigned to.
+         */
         get: operations["getRoleUserCounts"];
         put?: never;
         post?: never;
@@ -1029,9 +1341,17 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Delete a role
+         * @description Removes a role.
+         */
         delete: operations["deleteRole"];
         options?: never;
         head?: never;
+        /**
+         * Update a role
+         * @description Changes the name or state of a role; names the revision it was read at.
+         */
         patch: operations["updateRole"];
         trace?: never;
     };
@@ -1042,7 +1362,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the permissions of a role
+         * @description The form actions granted to a role.
+         */
         get: operations["getRolePermissions"];
+        /**
+         * Replace the permissions of a role
+         * @description Replaces the whole set of form actions granted to a role.
+         */
         put: operations["setRolePermissions"];
         post?: never;
         delete?: never;
@@ -1058,7 +1386,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List my sessions
+         * @deprecated
+         * @description The open sessions of the caller.
+         */
         get: operations["listActiveSessions"];
         put?: never;
         post?: never;
@@ -1078,7 +1410,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** @deprecated */
+        /**
+         * Close my other sessions
+         * @deprecated
+         * @description Closes every session of the caller except the current one.
+         */
         delete: operations["closeOtherSessions"];
         options?: never;
         head?: never;
@@ -1095,7 +1431,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** @deprecated */
+        /**
+         * Close one of my sessions
+         * @deprecated
+         * @description Closes one session of the caller.
+         */
         delete: operations["closeSession"];
         options?: never;
         head?: never;
@@ -1109,8 +1449,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List users
+         * @description The users the caller may see, with filters, sort and search.
+         */
         get: operations["listUsers"];
         put?: never;
+        /**
+         * Create a user
+         * @description Adds a user with their login, contacts, roles and custom field values.
+         */
         post: operations["createUser"];
         delete?: never;
         options?: never;
@@ -1127,7 +1475,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Change my password
+         * @deprecated
+         * @description Changes the caller's password after checking the current one.
+         */
         post: operations["changeMyPassword_1"];
         delete?: never;
         options?: never;
@@ -1142,12 +1494,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a user
+         * @description One user.
+         */
         get: operations["getUser"];
         put?: never;
         post?: never;
+        /**
+         * Delete a user
+         * @description Removes a user.
+         */
         delete: operations["deleteUser"];
         options?: never;
         head?: never;
+        /**
+         * Update a user
+         * @description Changes a user's profile, roles or custom field values; names the revision it was read at.
+         */
         patch: operations["updateUser"];
         trace?: never;
     };
@@ -1160,6 +1524,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Block a user
+         * @description Blocks a user, so they cannot sign in.
+         */
         post: operations["blockUser"];
         delete?: never;
         options?: never;
@@ -1176,6 +1544,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Unblock a user
+         * @description Lets a blocked user sign in again.
+         */
         post: operations["unblockUser"];
         delete?: never;
         options?: never;
@@ -1190,6 +1562,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the effective permissions of a user
+         * @description Every permission a user has, with where it comes from: a role or a personal grant (FR-PERM-10).
+         */
         get: operations["getEffectivePermissions"];
         put?: never;
         post?: never;
@@ -1208,6 +1584,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Force a password change
+         * @description Makes the user change the password at the next sign-in.
+         */
         post: operations["forcePasswordChange"];
         delete?: never;
         options?: never;
@@ -1222,7 +1602,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the personal permissions of a user
+         * @description The permissions granted to a user directly, beside their roles.
+         */
         get: operations["getPersonalPermissions"];
+        /**
+         * Replace the personal permissions of a user
+         * @description Replaces the whole set of permissions granted to a user directly.
+         */
         put: operations["replacePersonalPermissions"];
         post?: never;
         delete?: never;
@@ -1240,6 +1628,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Reset the second factor
+         * @description Resets the second factor of a user.
+         */
         post: operations["reset2fa"];
         delete?: never;
         options?: never;
@@ -1254,7 +1646,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the roles of a user
+         * @description The roles assigned to a user.
+         */
         get: operations["getUserRoles"];
+        /**
+         * Replace the roles of a user
+         * @description Replaces the whole set of roles assigned to a user.
+         */
         put: operations["assignRoles"];
         post?: never;
         delete?: never;
@@ -1270,6 +1670,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the security summary of a user
+         * @description The security summary of a user, for an administrator.
+         */
         get: operations["getUserSecuritySummary_1"];
         put?: never;
         post?: never;
@@ -1286,9 +1690,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List the sessions of a user
+         * @description The open sessions of a user, for an administrator.
+         */
         get: operations["listUserSessions"];
         put?: never;
         post?: never;
+        /**
+         * Close the sessions of a user
+         * @description Closes every open session of a user.
+         */
         delete: operations["closeAllUserSessions"];
         options?: never;
         head?: never;
@@ -1305,6 +1717,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Close a session of a user
+         * @description Closes one session of a user.
+         */
         delete: operations["closeUserSession"];
         options?: never;
         head?: never;
@@ -1318,8 +1734,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List saved views
+         * @description The saved views (filters, columns, sort) of a list.
+         */
         get: operations["list_2"];
         put?: never;
+        /**
+         * Save a view
+         * @description Saves the current filters, columns and sort of a list as a named view.
+         */
         post: operations["create_1"];
         delete?: never;
         options?: never;
@@ -1335,8 +1759,16 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        /**
+         * Update a saved view
+         * @description Replaces a saved view of a list.
+         */
         put: operations["update_1"];
         post?: never;
+        /**
+         * Delete a saved view
+         * @description Removes a saved view of a list.
+         */
         delete: operations["delete"];
         options?: never;
         head?: never;
@@ -1350,9 +1782,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List modules
+         * @description Every registered module with its state.
+         */
         get: operations["getAllModules"];
         put?: never;
-        /** @deprecated */
+        /**
+         * Register a module (deprecated)
+         * @deprecated
+         * @description Registers a module, replacing an existing registration. Deprecated for PUT /api/v1/modules/{code}; answers until its sunset.
+         */
         post: operations["registerModule"];
         delete?: never;
         options?: never;
@@ -1367,6 +1807,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List active modules
+         * @description The modules that are switched on.
+         */
         get: operations["getActiveModules"];
         put?: never;
         post?: never;
@@ -1383,7 +1827,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a module
+         * @description One registered module.
+         */
         get: operations["getModule"];
+        /**
+         * Register a module
+         * @description Registers a module or replaces its registration; the same call twice leaves the same module.
+         */
         put: operations["putModule"];
         post?: never;
         delete?: never;
@@ -1400,6 +1852,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        /**
+         * Switch a module on or off
+         * @description Sets the state of a module; the body states the result, so a repeat changes nothing.
+         */
         put: operations["setEnabled"];
         post?: never;
         delete?: never;
@@ -1417,7 +1873,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Toggle a module (deprecated)
+         * @deprecated
+         * @description Flips the state of a module. Deprecated for PUT /api/v1/modules/{code}/enabled; answers until its sunset.
+         */
         post: operations["toggleModule"];
         delete?: never;
         options?: never;
@@ -1432,8 +1892,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List menu items
+         * @description Every menu item, visible or hidden, for the menu editor.
+         */
         get: operations["getAllItems"];
         put?: never;
+        /**
+         * Create a menu item
+         * @description Adds an item to the navigation menu.
+         */
         post: operations["createItem"];
         delete?: never;
         options?: never;
@@ -1448,6 +1916,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the navigation menu
+         * @description The active menu items for the caller.
+         */
         get: operations["getActiveItems"];
         put?: never;
         post?: never;
@@ -1464,6 +1936,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a menu item by code
+         * @description One menu item found by its code.
+         */
         get: operations["getItemByCode"];
         put?: never;
         post?: never;
@@ -1480,6 +1956,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List menu permission choices
+         * @description The catalog pairs a menu item may be restricted by.
+         */
         get: operations["getPermissionChoices"];
         put?: never;
         post?: never;
@@ -1496,9 +1976,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a menu item
+         * @description One menu item.
+         */
         get: operations["getItem"];
+        /**
+         * Update a menu item
+         * @description Replaces a menu item; names the revision it was read at.
+         */
         put: operations["updateItem"];
         post?: never;
+        /**
+         * Delete a menu item
+         * @description Removes a menu item.
+         */
         delete: operations["deleteItem"];
         options?: never;
         head?: never;
@@ -1513,6 +2005,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        /**
+         * Show or hide a menu item
+         * @description Sets whether a menu item is shown; the body states the result, so a repeat changes nothing.
+         */
         put: operations["setActive"];
         post?: never;
         delete?: never;
@@ -1530,7 +2026,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Toggle a menu item (deprecated)
+         * @deprecated
+         * @description Flips whether a menu item is shown. Deprecated for PUT /api/v1/navigation/items/{id}/active; answers until its sunset.
+         */
         post: operations["toggleItem"];
         delete?: never;
         options?: never;
@@ -1545,8 +2045,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List my notes
+         * @description The caller's notes.
+         */
         get: operations["getNotes"];
         put?: never;
+        /**
+         * Create a note
+         * @description Adds a note with its title, Markdown text, colour and custom field values.
+         */
         post: operations["createNote"];
         delete?: never;
         options?: never;
@@ -1561,9 +2069,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a note
+         * @description One note of the caller.
+         */
         get: operations["getNote"];
+        /**
+         * Update a note
+         * @description Replaces a note of the caller; names the revision it was read at.
+         */
         put: operations["updateNote"];
         post?: never;
+        /**
+         * Delete a note
+         * @description Removes a note of the caller.
+         */
         delete: operations["deleteNote"];
         options?: never;
         head?: never;
@@ -1578,8 +2098,16 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        /**
+         * Pin or unpin a note
+         * @description Sets whether a note is pinned; the same call twice leaves the same note.
+         */
         put: operations["setPin"];
-        /** @deprecated */
+        /**
+         * Toggle the pin of a note (deprecated)
+         * @deprecated
+         * @description Flips the pin of a note. Deprecated for PUT /api/v1/notes/{id}/pin; answers until its sunset.
+         */
         post: operations["togglePin"];
         delete?: never;
         options?: never;
@@ -1594,6 +2122,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List my notifications
+         * @description The caller's notification inbox.
+         */
         get: operations["getInbox_1"];
         put?: never;
         post?: never;
@@ -1612,6 +2144,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Mark all notifications read
+         * @description Marks every notification of the caller as read.
+         */
         post: operations["markAllAsRead"];
         delete?: never;
         options?: never;
@@ -1628,6 +2164,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Mark a notification read
+         * @description Marks one notification of the caller as read.
+         */
         post: operations["markAsRead_1"];
         delete?: never;
         options?: never;
@@ -1642,7 +2182,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get my notification preferences
+         * @description The caller's notification preferences.
+         */
         get: operations["getPreferences"];
+        /**
+         * Update my notification preferences
+         * @description Replaces the caller's notification preferences.
+         */
         put: operations["updatePreferences"];
         post?: never;
         delete?: never;
@@ -1658,6 +2206,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Count my unread notifications
+         * @description How many notifications of the caller are unread.
+         */
         get: operations["getUnreadCount_1"];
         put?: never;
         post?: never;
@@ -1674,7 +2226,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List my notifications
+         * @deprecated
+         * @description The caller's notification inbox.
+         */
         get: operations["getInbox"];
         put?: never;
         post?: never;
@@ -1693,7 +2249,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Mark all notifications read
+         * @deprecated
+         * @description Marks every notification of the caller as read.
+         */
         post: operations["markAllAsRead_1"];
         delete?: never;
         options?: never;
@@ -1710,7 +2270,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Mark a notification read
+         * @deprecated
+         * @description Marks one notification of the caller as read.
+         */
         post: operations["markAsRead"];
         delete?: never;
         options?: never;
@@ -1725,9 +2289,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * Get my notification preferences
+         * @deprecated
+         * @description The caller's notification preferences.
+         */
         get: operations["getPreferences_1"];
-        /** @deprecated */
+        /**
+         * Update my notification preferences
+         * @deprecated
+         * @description Replaces the caller's notification preferences.
+         */
         put: operations["updatePreferences_1"];
         post?: never;
         delete?: never;
@@ -1743,7 +2315,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * Count my unread notifications
+         * @deprecated
+         * @description How many notifications of the caller are unread.
+         */
         get: operations["getUnreadCount"];
         put?: never;
         post?: never;
@@ -1760,6 +2336,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a list description
+         * @description The fields, filters, sorts and defaults of a registry list, including custom fields; the list's own right is checked.
+         */
         get: operations["get_3"];
         put?: never;
         post?: never;
@@ -1776,7 +2356,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * Get the permission catalog
+         * @deprecated
+         * @description The forms and their actions on which permissions are granted.
+         */
         get: operations["getFormCatalog"];
         put?: never;
         post?: never;
@@ -1793,10 +2377,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List roles
+         * @deprecated
+         * @description The roles of the installation.
+         */
         get: operations["listRoles_1"];
         put?: never;
-        /** @deprecated */
+        /**
+         * Create a role
+         * @deprecated
+         * @description Adds a role with its code and name.
+         */
         post: operations["createRole_1"];
         delete?: never;
         options?: never;
@@ -1811,7 +2403,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * Count users per role
+         * @deprecated
+         * @description How many users each role is assigned to.
+         */
         get: operations["getRoleUserCounts_1"];
         put?: never;
         post?: never;
@@ -1831,11 +2427,19 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** @deprecated */
+        /**
+         * Delete a role
+         * @deprecated
+         * @description Removes a role.
+         */
         delete: operations["deleteRole_1"];
         options?: never;
         head?: never;
-        /** @deprecated */
+        /**
+         * Update a role
+         * @deprecated
+         * @description Changes the name or state of a role; names the revision it was read at.
+         */
         patch: operations["updateRole_1"];
         trace?: never;
     };
@@ -1846,9 +2450,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * Get the permissions of a role
+         * @deprecated
+         * @description The form actions granted to a role.
+         */
         get: operations["getRolePermissions_1"];
-        /** @deprecated */
+        /**
+         * Replace the permissions of a role
+         * @deprecated
+         * @description Replaces the whole set of form actions granted to a role.
+         */
         put: operations["setRolePermissions_1"];
         post?: never;
         delete?: never;
@@ -1864,6 +2476,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Export tasks
+         * @description The tasks as a downloadable CSV or XLSX file.
+         */
         get: operations["exportTasks"];
         put?: never;
         post?: never;
@@ -1880,6 +2496,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Search
+         * @description Full-text search over the records the caller may see.
+         */
         get: operations["search"];
         put?: never;
         post?: never;
@@ -1896,8 +2516,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List search jobs
+         * @description The search index jobs, newest first, a page at a time.
+         */
         get: operations["history"];
         put?: never;
+        /**
+         * Start a search job
+         * @description Queues a check, a rebuild or a rollback of the search index.
+         */
         post: operations["start"];
         delete?: never;
         options?: never;
@@ -1912,6 +2540,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a search job
+         * @description The state and progress of one search index job.
+         */
         get: operations["job"];
         put?: never;
         post?: never;
@@ -1930,6 +2562,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Cancel a search job
+         * @description Cancels a search index job that has not finished.
+         */
         post: operations["cancel"];
         delete?: never;
         options?: never;
@@ -1946,6 +2582,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Retry a search job
+         * @description Queues a failed or cancelled search index job again.
+         */
         post: operations["retry"];
         delete?: never;
         options?: never;
@@ -1962,6 +2602,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Preview a search
+         * @description Runs a query with draft settings, without saving them.
+         */
         post: operations["preview"];
         delete?: never;
         options?: never;
@@ -1976,7 +2620,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get search settings
+         * @description The search settings in force, with their version.
+         */
         get: operations["settings"];
+        /**
+         * Save search settings
+         * @description Replaces the search settings; names the version it was read at.
+         */
         put: operations["save"];
         post?: never;
         delete?: never;
@@ -1992,6 +2644,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the search status
+         * @description The state of the search index and of its engine.
+         */
         get: operations["status"];
         put?: never;
         post?: never;
@@ -2008,6 +2664,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the effective settings
+         * @description The settings in force for the caller.
+         */
         get: operations["getEffectiveSettings"];
         put?: never;
         post?: never;
@@ -2024,6 +2684,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the session settings
+         * @description What a signed-in session needs to know about itself, such as when inactivity closes it.
+         */
         get: operations["getSessionSettings"];
         put?: never;
         post?: never;
@@ -2040,12 +2704,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the system settings
+         * @description The installation-wide settings.
+         */
         get: operations["getSystemSettings"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update the system settings
+         * @description Changes installation-wide settings.
+         */
         patch: operations["updateSystemSettings"];
         trace?: never;
     };
@@ -2056,12 +2728,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get my settings
+         * @description The caller's own settings.
+         */
         get: operations["getUserSettings"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update my settings
+         * @description Changes the caller's own settings.
+         */
         patch: operations["updateUserSettings"];
         trace?: never;
     };
@@ -2072,6 +2752,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get system information
+         * @description The version and build of the running installation.
+         */
         get: operations["getInfo"];
         put?: never;
         post?: never;
@@ -2088,8 +2772,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List tasks
+         * @description The tasks the caller may see, with filters, sort and search.
+         */
         get: operations["listTasks"];
         put?: never;
+        /**
+         * Create a task
+         * @description Adds a task with its project, participants, dates and custom field values.
+         */
         post: operations["createTask"];
         delete?: never;
         options?: never;
@@ -2106,6 +2798,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Run a bulk action on tasks
+         * @description Applies one bulk action to the selected tasks.
+         */
         post: operations["bulk_1"];
         delete?: never;
         options?: never;
@@ -2120,10 +2816,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List tasks
+         * @deprecated
+         * @description The tasks the caller may see, with filters, sort and search.
+         */
         get: operations["listTasks_1"];
         put?: never;
-        /** @deprecated */
+        /**
+         * Create a task
+         * @deprecated
+         * @description Adds a task with its project, participants, dates and custom field values.
+         */
         post: operations["createTask_1"];
         delete?: never;
         options?: never;
@@ -2140,7 +2844,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Run a bulk action on tasks
+         * @deprecated
+         * @description Applies one bulk action to the selected tasks.
+         */
         post: operations["bulk"];
         delete?: never;
         options?: never;
@@ -2155,7 +2863,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * Get task counts per project
+         * @deprecated
+         * @description Task counts per project.
+         */
         get: operations["getProjectStats_1"];
         put?: never;
         post?: never;
@@ -2172,10 +2884,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List task statuses
+         * @deprecated
+         * @description The task statuses in their order.
+         */
         get: operations["listStatuses_1"];
         put?: never;
-        /** @deprecated */
+        /**
+         * Create a task status
+         * @deprecated
+         * @description Adds a task status.
+         */
         post: operations["createStatus_1"];
         delete?: never;
         options?: never;
@@ -2192,7 +2912,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Reorder task statuses
+         * @deprecated
+         * @description Sets the order of the task statuses.
+         */
         post: operations["reorderStatuses"];
         delete?: never;
         options?: never;
@@ -2210,11 +2934,19 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** @deprecated */
+        /**
+         * Delete a task status
+         * @deprecated
+         * @description Removes a task status.
+         */
         delete: operations["deleteStatus_1"];
         options?: never;
         head?: never;
-        /** @deprecated */
+        /**
+         * Update a task status
+         * @deprecated
+         * @description Changes a task status; names the revision it was read at.
+         */
         patch: operations["updateStatus_1"];
         trace?: never;
     };
@@ -2225,10 +2957,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List task types
+         * @deprecated
+         * @description The task types in their order.
+         */
         get: operations["listTypes"];
         put?: never;
-        /** @deprecated */
+        /**
+         * Create a task type
+         * @deprecated
+         * @description Adds a task type.
+         */
         post: operations["createType"];
         delete?: never;
         options?: never;
@@ -2245,7 +2985,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Reorder task types
+         * @deprecated
+         * @description Sets the order of the task types.
+         */
         post: operations["reorderTypes"];
         delete?: never;
         options?: never;
@@ -2263,11 +3007,19 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** @deprecated */
+        /**
+         * Delete a task type
+         * @deprecated
+         * @description Removes a task type.
+         */
         delete: operations["deleteType_1"];
         options?: never;
         head?: never;
-        /** @deprecated */
+        /**
+         * Update a task type
+         * @deprecated
+         * @description Changes a task type; names the revision it was read at.
+         */
         patch: operations["updateType_1"];
         trace?: never;
     };
@@ -2278,14 +3030,22 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * Get a task
+         * @deprecated
+         * @description The task card; reading it changes nothing.
+         */
         get: operations["getTask"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** @deprecated */
+        /**
+         * Update a task
+         * @deprecated
+         * @description Changes the given fields of a task; a field left out keeps its value.
+         */
         patch: operations["updateTask"];
         trace?: never;
     };
@@ -2296,10 +3056,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List task files
+         * @deprecated
+         * @description The files attached to a task.
+         */
         get: operations["getTaskFiles"];
         put?: never;
-        /** @deprecated */
+        /**
+         * Attach a file to a task
+         * @deprecated
+         * @description Attaches a stored file to a task.
+         */
         post: operations["attachFile"];
         delete?: never;
         options?: never;
@@ -2317,7 +3085,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** @deprecated */
+        /**
+         * Detach a file from a task
+         * @deprecated
+         * @description Removes the link between a task and a file.
+         */
         delete: operations["detachFile"];
         options?: never;
         head?: never;
@@ -2333,7 +3105,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Change the status of a task
+         * @deprecated
+         * @description Moves a task to another status of its workflow.
+         */
         post: operations["changeStatus"];
         delete?: never;
         options?: never;
@@ -2348,7 +3124,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List subtasks
+         * @deprecated
+         * @description The direct subtasks of a task.
+         */
         get: operations["getSubtasks_1"];
         put?: never;
         post?: never;
@@ -2367,7 +3147,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @deprecated */
+        /**
+         * Mark a task viewed
+         * @deprecated
+         * @description Records that the caller has seen the task, clearing its new mark for them.
+         */
         post: operations["markViewed"];
         delete?: never;
         options?: never;
@@ -2382,10 +3166,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List task comments
+         * @deprecated
+         * @description The comments of a task.
+         */
         get: operations["listComments"];
         put?: never;
-        /** @deprecated */
+        /**
+         * Comment on a task
+         * @deprecated
+         * @description Adds a comment to a task.
+         */
         post: operations["addComment"];
         delete?: never;
         options?: never;
@@ -2400,9 +3192,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List projects
+         * @deprecated
+         * @description Every project the caller may see. Deprecated: use GET /tasks/projects/page.
+         */
         get: operations["listProjects"];
         put?: never;
+        /**
+         * Create a project
+         * @description Adds a project with its name, description, state and custom field values.
+         */
         post: operations["createProject"];
         delete?: never;
         options?: never;
@@ -2417,6 +3217,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Page through projects
+         * @description The projects a keyset page at a time on the registry: filter, sort, search and the caller's task counts.
+         */
         get: operations["pageProjects"];
         put?: never;
         post?: never;
@@ -2433,7 +3237,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * Get task counts per project
+         * @deprecated
+         * @description Task counts per project.
+         */
         get: operations["getProjectStats"];
         put?: never;
         post?: never;
@@ -2450,12 +3258,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a project
+         * @description One project with its custom field values.
+         */
         get: operations["getProject"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update a project
+         * @description Changes a project; names the revision it was read at.
+         */
         patch: operations["updateProject"];
         trace?: never;
     };
@@ -2466,9 +3282,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @deprecated */
+        /**
+         * List project members (deprecated)
+         * @deprecated
+         * @description Every member of a project at once. Deprecated for GET /api/v1/tasks/projects/{id}/members/page; answers until its sunset.
+         */
         get: operations["getMembers"];
         put?: never;
+        /**
+         * Add a project member
+         * @description Adds a user to a project.
+         */
         post: operations["addMember"];
         delete?: never;
         options?: never;
@@ -2483,6 +3307,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Page through project members
+         * @description The members of a project, by name, a keyset page at a time.
+         */
         get: operations["pageMembers"];
         put?: never;
         post?: never;
@@ -2502,6 +3330,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Remove a project member
+         * @description Removes a user from a project.
+         */
         delete: operations["removeMember"];
         options?: never;
         head?: never;
@@ -2515,8 +3347,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List task statuses
+         * @description The task statuses in their order.
+         */
         get: operations["listStatuses"];
         put?: never;
+        /**
+         * Create a task status
+         * @description Adds a task status.
+         */
         post: operations["createStatus"];
         delete?: never;
         options?: never;
@@ -2533,6 +3373,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Reorder task statuses
+         * @description Sets the order of the task statuses.
+         */
         post: operations["reorderStatuses_1"];
         delete?: never;
         options?: never;
@@ -2550,9 +3394,17 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Delete a task status
+         * @description Removes a task status.
+         */
         delete: operations["deleteStatus"];
         options?: never;
         head?: never;
+        /**
+         * Update a task status
+         * @description Changes a task status; names the revision it was read at.
+         */
         patch: operations["updateStatus"];
         trace?: never;
     };
@@ -2563,8 +3415,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List task types
+         * @description The task types in their order.
+         */
         get: operations["listTypes_1"];
         put?: never;
+        /**
+         * Create a task type
+         * @description Adds a task type.
+         */
         post: operations["createType_1"];
         delete?: never;
         options?: never;
@@ -2581,6 +3441,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Reorder task types
+         * @description Sets the order of the task types.
+         */
         post: operations["reorderTypes_1"];
         delete?: never;
         options?: never;
@@ -2598,9 +3462,17 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Delete a task type
+         * @description Removes a task type.
+         */
         delete: operations["deleteType"];
         options?: never;
         head?: never;
+        /**
+         * Update a task type
+         * @description Changes a task type; names the revision it was read at.
+         */
         patch: operations["updateType"];
         trace?: never;
     };
@@ -2611,12 +3483,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a task
+         * @description The task card; reading it changes nothing.
+         */
         get: operations["getTask_1"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update a task
+         * @description Changes the given fields of a task; a field left out keeps its value.
+         */
         patch: operations["updateTask_1"];
         trace?: never;
     };
@@ -2627,8 +3507,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List task files
+         * @description The files attached to a task.
+         */
         get: operations["getTaskFiles_1"];
         put?: never;
+        /**
+         * Attach a file to a task
+         * @description Attaches a stored file to a task.
+         */
         post: operations["attachFile_1"];
         delete?: never;
         options?: never;
@@ -2646,6 +3534,10 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Detach a file from a task
+         * @description Removes the link between a task and a file.
+         */
         delete: operations["detachFile_1"];
         options?: never;
         head?: never;
@@ -2661,6 +3553,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Change the status of a task
+         * @description Moves a task to another status of its workflow.
+         */
         post: operations["changeStatus_1"];
         delete?: never;
         options?: never;
@@ -2675,6 +3571,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List subtasks
+         * @description The direct subtasks of a task.
+         */
         get: operations["getSubtasks"];
         put?: never;
         post?: never;
@@ -2693,6 +3593,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Mark a task viewed
+         * @description Records that the caller has seen the task, clearing its new mark for them.
+         */
         post: operations["markViewed_1"];
         delete?: never;
         options?: never;
@@ -2707,8 +3611,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List task comments
+         * @description The comments of a task.
+         */
         get: operations["listComments_1"];
         put?: never;
+        /**
+         * Comment on a task
+         * @description Adds a comment to a task.
+         */
         post: operations["addComment_1"];
         delete?: never;
         options?: never;
@@ -2723,6 +3635,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get the upload overview
+         * @description Uploads and their outcomes over the requested number of days, for the overview screen.
+         */
         get: operations["get_2"];
         put?: never;
         post?: never;
@@ -2739,8 +3655,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List data packages
+         * @description The uploaded packages, a keyset page at a time with filters.
+         */
         get: operations["list_1"];
         put?: never;
+        /**
+         * Upload a data package
+         * @description Accepts a file for a source; the package starts as received.
+         */
         post: operations["upload"];
         delete?: never;
         options?: never;
@@ -2755,6 +3679,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a data package
+         * @description One uploaded package with its state and counts.
+         */
         get: operations["get_1"];
         put?: never;
         post?: never;
@@ -2773,6 +3701,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Apply a data package
+         * @description Queues the application of a checked package; the client polls the package until it is applied or refused.
+         */
         post: operations["apply"];
         delete?: never;
         options?: never;
@@ -2787,6 +3719,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List the errors of a package
+         * @description The errors found in an uploaded package.
+         */
         get: operations["errors"];
         put?: never;
         post?: never;
@@ -2803,6 +3739,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Download the errors of a package
+         * @description The errors of an uploaded package as a spreadsheet, in the requested language.
+         */
         get: operations["errorsFile"];
         put?: never;
         post?: never;
@@ -2819,8 +3759,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List data sources
+         * @description The upload sources, a keyset page at a time.
+         */
         get: operations["list"];
         put?: never;
+        /**
+         * Create a data source
+         * @description Adds an upload source.
+         */
         post: operations["create"];
         delete?: never;
         options?: never;
@@ -2835,7 +3783,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a data source
+         * @description One upload source.
+         */
         get: operations["get"];
+        /**
+         * Update a data source
+         * @description Replaces an upload source.
+         */
         put: operations["update"];
         post?: never;
         delete?: never;
@@ -2851,8 +3807,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List format versions
+         * @description The format versions of a source; with the at parameter, the one version in force on that day.
+         */
         get: operations["versions"];
         put?: never;
+        /**
+         * Create a format draft
+         * @description Starts a draft format version of a source, empty or copied from a version.
+         */
         post: operations["createDraft"];
         delete?: never;
         options?: never;
@@ -2867,7 +3831,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get a format version
+         * @description One format version of a source with its sheets and columns.
+         */
         get: operations["getVersion"];
+        /**
+         * Update a format draft
+         * @description Replaces the sheets and columns of a draft format version.
+         */
         put: operations["replaceDraft"];
         post?: never;
         delete?: never;
@@ -2885,6 +3857,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Publish a format version
+         * @description Publishes a draft format version, in force from the given day.
+         */
         post: operations["publish"];
         delete?: never;
         options?: never;
@@ -2899,6 +3875,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Download a format template
+         * @description The file a supplier fills in for a format version, in the requested language.
+         */
         get: operations["template"];
         put?: never;
         post?: never;
@@ -2915,6 +3895,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List units of measure
+         * @description The units of measure.
+         */
         get: operations["list_4"];
         put?: never;
         post?: never;
@@ -2931,8 +3915,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * List webhook subscriptions
+         * @description The webhook subscriptions of the installation.
+         */
         get: operations["listSubscriptions"];
         put?: never;
+        /**
+         * Create a webhook subscription
+         * @description Subscribes a target URL to events; the signing key is returned once and never stored for replay.
+         */
         post: operations["createSubscription"];
         delete?: never;
         options?: never;
@@ -2950,9 +3942,17 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * Delete a webhook subscription
+         * @description Removes a webhook subscription.
+         */
         delete: operations["deleteSubscription"];
         options?: never;
         head?: never;
+        /**
+         * Update a webhook subscription
+         * @description Changes the name, target, events or state of a subscription.
+         */
         patch: operations["updateSubscription"];
         trace?: never;
     };

@@ -138,5 +138,7 @@ request или трейлером коммита `Api-Breaking: <что и по�
   `src/app/core/api/openapi.d.ts`.
 - Проверки: `OpenApiContractTest` (копия совпадает с кодом, каждый обработчик
   описан), `scripts/api/test-api-contract.ps1` (Spectral, свежесть типов,
-  совместимость с базовой веткой), `npm run api:audit` (веб не вызывает
-  устаревшие формы).
+  совместимость с базовой веткой; у каждой операции есть `summary` и
+  `description` из `@Operation` обработчика), `npm run api:audit` в `apps/web`
+  и в `e2e` (ни веб, ни тесты e2e не вызывают устаревшие формы; общая логика —
+  `scripts/api/api-deprecations.mjs`).

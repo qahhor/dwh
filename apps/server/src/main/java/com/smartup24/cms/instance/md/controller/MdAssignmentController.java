@@ -11,6 +11,7 @@ import com.smartup24.cms.instance.md.api.MdAssignmentDtos.ReplacePermissionsDto;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.RoleIdsResponse;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdAssignmentService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,12 +38,16 @@ public class MdAssignmentController {
         this.assignmentService = assignmentService;
     }
 
+    @Operation(summary = "Get the roles of a user", description = "The roles assigned to a user.")
     @GetMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "view")
     public ResponseEntity<RoleIdsResponse> getUserRoles(@PathVariable("userId") Long userId) {
         return ResponseEntity.ok(new RoleIdsResponse(assignmentService.getUserRoleIds(userId)));
     }
 
+    @Operation(
+            summary = "Replace the roles of a user",
+            description = "Replaces the whole set of roles assigned to a user.")
     @PutMapping("/roles")
     @AnswersRevision
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
@@ -55,12 +60,18 @@ public class MdAssignmentController {
         return ResponseEntity.ok().eTag(Revisions.etag(saved.revision())).body(saved);
     }
 
+    @Operation(
+            summary = "Get the personal permissions of a user",
+            description = "The permissions granted to a user directly, beside their roles.")
     @GetMapping("/permissions")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "view")
     public ResponseEntity<GrantsResponse> getPersonalPermissions(@PathVariable("userId") Long userId) {
         return ResponseEntity.ok(new GrantsResponse(assignmentService.getPersonalGrants(userId)));
     }
 
+    @Operation(
+            summary = "Replace the personal permissions of a user",
+            description = "Replaces the whole set of permissions granted to a user directly.")
     @PutMapping("/permissions")
     @AnswersRevision
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
@@ -74,6 +85,10 @@ public class MdAssignmentController {
     }
 
     /** Экран «права глазами пользователя» (FR-PERM-10): что есть и откуда пришло. */
+    @Operation(
+            summary = "Get the effective permissions of a user",
+            description =
+                    "Every permission a user has, with where it comes from: a role or a personal grant (FR-PERM-10).")
     @GetMapping("/effective-permissions")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "view")
     public ResponseEntity<EffectivePermissionsResponse> getEffectivePermissions(@PathVariable("userId") Long userId) {

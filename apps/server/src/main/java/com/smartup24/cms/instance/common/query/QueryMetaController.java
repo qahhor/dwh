@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
@@ -74,6 +75,10 @@ public class QueryMetaController {
      * Любой вошедший пользователь (у всех ролей есть {@code iam.profile:view}); право на сам список
      * проверяется ниже по реестру. Строка, а не {@code MdPref}: {@code common} не зависит от модулей.
      */
+    @Operation(
+            summary = "Get a list description",
+            description =
+                    "The fields, filters, sorts and defaults of a registry list, including custom fields; the list's own right is checked.")
     @GetMapping("/{code}")
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<ListMeta> get(@PathVariable String code) {

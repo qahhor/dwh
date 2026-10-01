@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.ms.notify.api.NotificationPrefView;
 import com.smartup24.cms.instance.ms.notify.api.NotificationView;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,7 @@ public class MsNotificationController {
         this.notificationService = notificationService;
     }
 
+    @Operation(summary = "List my notifications", description = "The caller's notification inbox.")
     @GetMapping("/inbox")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public ResponseEntity<KeysetPage<NotificationView>> getInbox(
@@ -43,6 +45,9 @@ public class MsNotificationController {
                 notificationService.getUserNotifications(userId, TimePage.of(limit, cursor, INBOX_PAGE, INBOX_MAX)));
     }
 
+    @Operation(
+            summary = "Count my unread notifications",
+            description = "How many notifications of the caller are unread.")
     @GetMapping("/unread-count")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public ResponseEntity<Map<String, Integer>> getUnreadCount() {
@@ -53,6 +58,7 @@ public class MsNotificationController {
         return ResponseEntity.ok(Map.of("unread_count", count));
     }
 
+    @Operation(summary = "Mark a notification read", description = "Marks one notification of the caller as read.")
     @PostMapping("/inbox/{id}/read")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -64,6 +70,7 @@ public class MsNotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Mark all notifications read", description = "Marks every notification of the caller as read.")
     @PostMapping("/inbox/read-all")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -75,6 +82,7 @@ public class MsNotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Get my notification preferences", description = "The caller's notification preferences.")
     @GetMapping("/preferences")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public ResponseEntity<List<NotificationPrefView>> getPreferences() {
@@ -84,6 +92,9 @@ public class MsNotificationController {
         return ResponseEntity.ok(notificationService.getUserPreferences(userId));
     }
 
+    @Operation(
+            summary = "Update my notification preferences",
+            description = "Replaces the caller's notification preferences.")
     @PutMapping("/preferences")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     @ResponseStatus(HttpStatus.NO_CONTENT)

@@ -39,6 +39,42 @@ final class IdempotencyAnswers {
     }
 
     /**
+     * Answers a request whose key is already taken: the stored answer is replayed, another payload or a request still
+     * running is refused. False when this request owns the reservation and must run.
+     */
+    boolean answeredByClaim(IdempotencyService.Claim claim, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        switch (claim.state()) {
+            case REPLAY -> {
+                replay(response, claim.existing());
+                return true;
+            }
+            case PAYLOAD_MISMATCH -> {
+                problem(
+                        request,
+                        response,
+                        HttpServletResponse.SC_CONFLICT,
+                        ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH,
+                        "error.idempotency_key_payload_mismatch");
+                return true;
+            }
+            case IN_PROGRESS -> {
+                problem(
+                        request,
+                        response,
+                        HttpServletResponse.SC_CONFLICT,
+                        ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS,
+                        "error.idempotency_request_in_progress");
+                return true;
+            }
+            case ACQUIRED -> {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
      * The stored answer as it went out the first time: status, Location, ETag, Content-Type and body. An answer that
      * has no body (204, 205, 304) is replayed without one; a row stored before its Content-Type was kept is JSON.
      */

@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +26,9 @@ public class MsSseController {
         this.registry = registry;
     }
 
+    @Operation(
+            summary = "Subscribe to events",
+            description = "A stream of server-sent events for the caller, kept open by the client.")
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public SseEmitter stream() {

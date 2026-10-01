@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CustomFieldView;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.UpdateCustomFieldDto;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,9 @@ public class MdCustomFieldController {
         this.customFieldService = customFieldService;
     }
 
+    @Operation(
+            summary = "List custom fields",
+            description = "The custom field definitions, of one entity type or of all.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "view")
     public ResponseEntity<List<CustomFieldView>> getFields(
@@ -33,6 +37,10 @@ public class MdCustomFieldController {
         return ResponseEntity.ok(customFieldService.listFields(entityType));
     }
 
+    @Operation(
+            summary = "Create a custom field",
+            description =
+                    "Adds a custom field to an entity type: its code, type, whether it is required, its default and options.")
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -51,6 +59,10 @@ public class MdCustomFieldController {
         return Created.at("/api/v1/custom-fields/{id}", field.id(), field);
     }
 
+    @Operation(
+            summary = "Update a custom field",
+            description =
+                    "Changes the name, requirement, default, options or order of a custom field; names the revision it was read at.")
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -70,6 +82,7 @@ public class MdCustomFieldController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(summary = "Delete a custom field", description = "Removes a custom field definition.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)

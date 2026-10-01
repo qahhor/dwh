@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.kauth.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.kauth.service.OAuth2AuthService;
 import com.smartup24.cms.instance.md.pref.MdPref;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,9 @@ public class OAuth2AuthController {
         this.oauth2AuthService = oauth2AuthService;
     }
 
+    @Operation(
+            summary = "List sign-in providers",
+            description = "The external OAuth 2 providers a user may sign in with.")
     @GetMapping("/providers")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
     public ResponseEntity<List<OAuth2AuthService.SsoProviderPublicDto>> getProviders() {

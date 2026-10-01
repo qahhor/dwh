@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
@@ -28,7 +29,7 @@ class MdCustomFieldServiceTest {
                 .thenReturn(List.of(new MdCustomFieldRepository.CustomFieldRecord(
                         1L, "USER", "inn", "ИНН", "number", true, null, "[]", 0, Instant.now(), 1L)));
 
-        assertThatThrownBy(() -> service.validateAttributes("USER", Map.of()))
+        assertThatThrownBy(() -> service.checkedAttributes("USER", Map.of()))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.custom_field_attributes_invalid");
     }
@@ -65,7 +66,7 @@ class MdCustomFieldServiceTest {
                                 Instant.now(),
                                 1L)));
 
-        assertThatCode(() -> service.validateAttributes(
+        assertThatCode(() -> service.checkedAttributes(
                         "USER", Map.of("inn", 123456789, "is_vip", true, "birth_date", "2026-08-29")))
                 .doesNotThrowAnyException();
     }
@@ -80,10 +81,10 @@ class MdCustomFieldServiceTest {
                         new MdCustomFieldRepository.CustomFieldRecord(
                                 2L, "TASK", "cost", "Стоимость", "number", false, null, "[]", 1, Instant.now(), 1L)));
 
-        assertThatThrownBy(() -> service.validateAttributes("TASK", Map.of("deadline", "invalid-date")))
+        assertThatThrownBy(() -> service.checkedAttributes("TASK", Map.of("deadline", "invalid-date")))
                 .isInstanceOf(ApiException.class);
 
-        assertThatThrownBy(() -> service.validateAttributes("TASK", Map.of("cost", "not_a_number")))
+        assertThatThrownBy(() -> service.checkedAttributes("TASK", Map.of("cost", "not_a_number")))
                 .isInstanceOf(ApiException.class);
     }
 
@@ -104,10 +105,10 @@ class MdCustomFieldServiceTest {
                         Instant.now(),
                         1L)));
 
-        assertThatCode(() -> service.validateAttributes("TASK", Map.of("priority_level", "medium")))
+        assertThatCode(() -> service.checkedAttributes("TASK", Map.of("priority_level", "medium")))
                 .doesNotThrowAnyException();
 
-        assertThatThrownBy(() -> service.validateAttributes("TASK", Map.of("priority_level", "super_critical")))
+        assertThatThrownBy(() -> service.checkedAttributes("TASK", Map.of("priority_level", "super_critical")))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.custom_field_attributes_invalid");
     }
@@ -120,8 +121,35 @@ class MdCustomFieldServiceTest {
                         1L, "NOTE", "memo", "Заметка", "string", false, null, "[]", 0, Instant.now(), 1L)));
 
         String longStr = "x".repeat(4001);
-        assertThatThrownBy(() -> service.validateAttributes("NOTE", Map.of("memo", longStr)))
+        assertThatThrownBy(() -> service.checkedAttributes("NOTE", Map.of("memo", longStr)))
                 .isInstanceOf(ApiException.class);
+    }
+
+    @Test
+    @DisplayName("3.7: a number or boolean of a string or select field is stored as a string, other types keep theirs")
+    void textFieldValuesAreStoredAsStrings() {
+        when(customFieldRepository.findByEntityType("TASK"))
+                .thenReturn(List.of(
+                        new MdCustomFieldRepository.CustomFieldRecord(
+                                1L, "TASK", "contract", "Contract", "string", false, null, "[]", 0, Instant.now(), 1L),
+                        new MdCustomFieldRepository.CustomFieldRecord(
+                                2L, "TASK", "grade", "Grade", "select", false, null, "[1, 2, 3]", 1, Instant.now(), 1L),
+                        new MdCustomFieldRepository.CustomFieldRecord(
+                                3L, "TASK", "flag", "Flag", "string", false, null, "[]", 2, Instant.now(), 1L),
+                        new MdCustomFieldRepository.CustomFieldRecord(
+                                4L, "TASK", "cost", "Cost", "number", false, null, "[]", 3, Instant.now(), 1L)));
+
+        Map<String, Object> stored = service.checkedAttributes(
+                "TASK", Map.of("contract", 123, "grade", 2, "flag", true, "cost", 15, "other", 7));
+
+        assertThat(stored)
+                .containsEntry("contract", "123")
+                .containsEntry("grade", "2")
+                .containsEntry("flag", "true")
+                .containsEntry("cost", 15)
+                .containsEntry("other", 7);
+        Map<String, Object> strings = Map.of("contract", "A-1");
+        assertThat(service.checkedAttributes("TASK", strings)).isSameAs(strings);
     }
 
     @Test

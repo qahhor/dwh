@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.upl.api;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.overview.UplOverviewService;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +21,9 @@ public class UplOverviewController {
         this.overview = overview;
     }
 
+    @Operation(
+            summary = "Get the upload overview",
+            description = "Uploads and their outcomes over the requested number of days, for the overview screen.")
     @GetMapping
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<UplOverviewService.Overview> get(@RequestParam(defaultValue = "30") int days) {

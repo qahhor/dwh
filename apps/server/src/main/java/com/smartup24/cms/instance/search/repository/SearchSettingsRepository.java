@@ -2,8 +2,11 @@ package com.smartup24.cms.instance.search.repository;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.jdbc.StatementTimeouts;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
+import java.time.Duration;
+import java.util.function.Supplier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +16,14 @@ public class SearchSettingsRepository {
 
     public SearchSettingsRepository(JdbcClient jdbc) {
         this.jdbc = jdbc;
+    }
+
+    /**
+     * Runs a save with each statement limited to {@code limit}: unlike {@code @Transactional(timeout = …)} the limit
+     * holds inside an outer transaction too (an Idempotency-Key request).
+     */
+    public <T> T limited(Duration limit, Supplier<T> work) {
+        return StatementTimeouts.within(jdbc, limit, work);
     }
 
     public SettingsSnapshot current() {

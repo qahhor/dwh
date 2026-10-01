@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.kauth.api.ChannelView;
 import com.smartup24.cms.instance.kauth.api.ConfirmChannelRequest;
 import com.smartup24.cms.instance.kauth.service.KauthChannelService;
 import com.smartup24.cms.instance.md.pref.MdPref;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -41,6 +42,9 @@ public class KauthChannelController {
         this.channelService = channelService;
     }
 
+    @Operation(
+            summary = "List my delivery channels",
+            description = "The delivery channels (e-mail, messengers) bound to the caller's profile.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_channels")
     public ResponseEntity<List<ChannelView>> listChannels() {
@@ -48,6 +52,9 @@ public class KauthChannelController {
     }
 
     /** Starts binding a channel: 202, the binding waits for the code sent to the address (POST /confirm). */
+    @Operation(
+            summary = "Start binding a channel",
+            description = "Sends a confirmation code to the address; the binding completes with the confirm call.")
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_channels")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -56,6 +63,9 @@ public class KauthChannelController {
         return ResponseEntity.accepted().body(new ChannelVerification(verifyToken));
     }
 
+    @Operation(
+            summary = "Confirm a channel",
+            description = "Completes the binding of a delivery channel with the code sent to its address.")
     @PostMapping("/confirm")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_channels")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -64,6 +74,7 @@ public class KauthChannelController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Unbind a channel", description = "Removes a delivery channel from the caller's profile.")
     @DeleteMapping("/{channel}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_channels")
     @ResponseStatus(HttpStatus.NO_CONTENT)

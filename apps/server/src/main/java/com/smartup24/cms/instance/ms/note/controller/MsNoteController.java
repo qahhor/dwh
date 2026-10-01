@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService.NoteView;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,7 @@ public class MsNoteController {
     public record UpdateNoteRequest(
             String title, String contentMd, String color, Boolean isPinned, Map<String, Object> attributes) {}
 
+    @Operation(summary = "List my notes", description = "The caller's notes.")
     @GetMapping
     @RequiresPermission(form = "notes", action = "view")
     public ResponseEntity<KeysetPage<NoteView>> getNotes(
@@ -43,6 +45,7 @@ public class MsNoteController {
         return ResponseEntity.ok(noteService.getNotes(userId, limit, cursor, filter, sort, q));
     }
 
+    @Operation(summary = "Get a note", description = "One note of the caller.")
     @GetMapping("/{id}")
     @RequiresPermission(form = "notes", action = "view")
     public ResponseEntity<NoteView> getNote(@PathVariable Long id) {
@@ -51,6 +54,9 @@ public class MsNoteController {
         return ResponseEntity.ok(noteService.getNote(id, userId));
     }
 
+    @Operation(
+            summary = "Create a note",
+            description = "Adds a note with its title, Markdown text, colour and custom field values.")
     @PostMapping
     @RequiresPermission(form = "notes", action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -62,6 +68,9 @@ public class MsNoteController {
         return Created.at("/api/v1/notes/{id}", note.id(), note);
     }
 
+    @Operation(
+            summary = "Update a note",
+            description = "Replaces a note of the caller; names the revision it was read at.")
     @PutMapping("/{id}")
     @RequiresPermission(form = "notes", action = "update")
     public ResponseEntity<NoteView> updateNote(
@@ -84,6 +93,9 @@ public class MsNoteController {
     public record PinRequest(boolean pinned) {}
 
     /** Pins or unpins the note (plan item 3.4): the same call twice leaves the same note. */
+    @Operation(
+            summary = "Pin or unpin a note",
+            description = "Sets whether a note is pinned; the same call twice leaves the same note.")
     @PutMapping("/{id}/pin")
     @RequiresPermission(form = "notes", action = "update")
     public ResponseEntity<NoteView> setPin(@PathVariable Long id, @RequestBody PinRequest body) {
@@ -93,6 +105,10 @@ public class MsNoteController {
     }
 
     /** Flips the pin: deprecated for PUT /{id}/pin, answers until its sunset (ADR-0023). */
+    @Operation(
+            summary = "Toggle the pin of a note (deprecated)",
+            description =
+                    "Flips the pin of a note. Deprecated for PUT /api/v1/notes/{id}/pin; answers until its sunset.")
     @PostMapping("/{id}/pin")
     @RequiresPermission(form = "notes", action = "update")
     public ResponseEntity<NoteView> togglePin(@PathVariable Long id) {
@@ -101,6 +117,7 @@ public class MsNoteController {
         return ResponseEntity.ok(noteService.togglePinned(id, userId));
     }
 
+    @Operation(summary = "Delete a note", description = "Removes a note of the caller.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = "notes", action = "delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)

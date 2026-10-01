@@ -81,9 +81,8 @@ public class MsTaskService {
         access.requireParticipant(reporterId, responsibleUserId);
         access.requireParticipants(reporterId, executorUserIds);
         access.requireParticipants(reporterId, observerUserIds);
-        if (attributes != null) {
-            customFieldService.validateAttributes("TASK", attributes);
-        }
+        Map<String, Object> storedAttributes =
+                attributes != null ? customFieldService.checkedAttributes("TASK", attributes) : null;
 
         var defaultStatus = statusService.defaultStatus();
         String safePriority = normalizePriority(priority);
@@ -98,7 +97,7 @@ public class MsTaskService {
                         defaultStatus.id(),
                         safePriority,
                         reporterId,
-                        attributes,
+                        storedAttributes,
                         beginTime,
                         endTime),
                 reporterId);
@@ -163,9 +162,7 @@ public class MsTaskService {
     @Transactional
     public void updateTask(Long taskId, MsTaskPatch requested, Long currentUserId) {
         var existing = access.find(taskId, currentUserId);
-        checkPatch(taskId, requested, currentUserId);
-
-        MsTaskPatch rowPatch = MsTaskPatchRules.rowPatch(requested);
+        MsTaskPatch rowPatch = MsTaskPatchRules.rowPatch(checkPatch(taskId, requested, currentUserId));
         MsTaskPatchRules.validateDeadline(existing, rowPatch);
         var oldMembers = memberService.getTaskMembers(taskId);
 
@@ -204,9 +201,8 @@ public class MsTaskService {
         if (parentTaskId != null) {
             requireParent(taskId, parentTaskId, currentUserId);
         }
-        if (attributes != null) {
-            customFieldService.validateAttributes("TASK", attributes);
-        }
+        Map<String, Object> storedAttributes =
+                attributes != null ? customFieldService.checkedAttributes("TASK", attributes) : null;
 
         var existing = access.find(taskId, currentUserId);
         String safePriority = normalizePriority(priority != null ? priority : existing.priority());
@@ -220,7 +216,7 @@ public class MsTaskService {
                         null,
                         safePriority,
                         parentTaskId,
-                        attributes,
+                        storedAttributes,
                         beginTime,
                         endTime,
                         null),
@@ -254,16 +250,20 @@ public class MsTaskService {
                 currentUserId);
     }
 
-    /** What a PATCH refers to must exist and be visible, and the new parent must not close a cycle. */
-    private void checkPatch(Long taskId, MsTaskPatch requested, Long currentUserId) {
+    /**
+     * What a PATCH refers to must exist and be visible, and the new parent must not close a cycle. Returns the patch
+     * with its attributes as they are stored.
+     */
+    private MsTaskPatch checkPatch(Long taskId, MsTaskPatch requested, Long currentUserId) {
         if (requested.projectIdPresent()) {
             access.requireProject(requested.projectId());
         }
         if (requested.parentTaskIdPresent() && requested.parentTaskId() != null) {
             requireParent(taskId, requested.parentTaskId(), currentUserId);
         }
+        MsTaskPatch checked = requested;
         if (requested.attributesPresent() && requested.attributes() != null) {
-            customFieldService.validateAttributes("TASK", requested.attributes());
+            checked = requested.withAttributes(customFieldService.checkedAttributes("TASK", requested.attributes()));
         }
         if (requested.responsibleUserIdPresent()) {
             access.requireParticipant(currentUserId, requested.responsibleUserId());
@@ -274,6 +274,7 @@ public class MsTaskService {
         if (requested.observerUserIdsPresent() && requested.observerUserIds() != null) {
             access.requireParticipants(currentUserId, requested.observerUserIds());
         }
+        return checked;
     }
 
     private void requireParent(Long taskId, Long parentTaskId, Long currentUserId) {

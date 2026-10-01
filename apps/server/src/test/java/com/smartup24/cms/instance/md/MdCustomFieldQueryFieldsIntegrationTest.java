@@ -29,16 +29,22 @@ import com.smartup24.cms.instance.md.service.MdUserQuery;
 import com.smartup24.cms.instance.md.service.MdUserView;
 import com.smartup24.cms.instance.support.TestDatabases;
 import java.util.List;
+import java.util.Map;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import tools.jackson.databind.ObjectMapper;
 
 /** Custom fields as registry fields (ADR-0019 2.3, roadmap item 52), on the user list. */
 class MdCustomFieldQueryFieldsIntegrationTest {
 
+    static DataSource ds;
     static JdbcClient jdbc;
+    static ObjectMapper mapper;
     static MdCustomFieldService fields;
     static QueryListRegistry registry;
     static MdUserListService users;
@@ -46,9 +52,9 @@ class MdCustomFieldQueryFieldsIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_custom_fields_registry_test");
+        ds = TestDatabases.migratedCopy("dwh_custom_fields_registry_test");
         jdbc = JdbcClient.create(ds);
-        var mapper = new ObjectMapper();
+        mapper = new ObjectMapper();
         var audit = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());
         var repository = new MdCustomFieldRepository(jdbc, mapper);
         fields = new MdCustomFieldService(repository, audit);
@@ -157,6 +163,38 @@ class MdCustomFieldQueryFieldsIntegrationTest {
                 .single();
         assertThat(row.get(0)).contains("\"options_json\"").doesNotContain("\\\"c\\\"");
         assertThat(row.get(1)).contains("\"default_value\": \"b\"").contains("\\\"c\\\"");
+    }
+
+    @Test
+    @DisplayName("3.7: a number given to a string or select field is stored as text, so the equality filter finds it")
+    void numberInTextFieldIsFound() {
+        Map<String, Object> stored = fields.checkedAttributes("USER", Map.of("cfr_region", 4501, "cfr_grade", 3));
+        assertThat(stored).containsEntry("cfr_region", "4501").containsEntry("cfr_grade", 3);
+        user("cfr_num_new", mapper.writeValueAsString(stored));
+        assertThat(logins("[{\"field\":\"cfCfrRegion\",\"op\":\"eq\",\"value\":\"4501\"}]"))
+                .containsExactly("cfr_num_new");
+    }
+
+    @Test
+    @DisplayName("3.7: the migration rewrites a number stored in a text field as text; other types keep theirs")
+    void migrationRewritesStoredNumbers() {
+        Long id = user("cfr_num_old", "{\"cfr_region\":4502,\"cfr_grade\":7,\"cfr_shift\":true}");
+        String byRegion = "[{\"field\":\"cfCfrRegion\",\"op\":\"eq\",\"value\":\"4502\"}]";
+        assertThat(logins(byRegion)).as("before the migration").isEmpty();
+
+        new ResourceDatabasePopulator(
+                        new ClassPathResource("db/migration/V145__custom_field_text_values_as_strings.sql"))
+                .execute(ds);
+
+        assertThat(logins(byRegion)).containsExactly("cfr_num_old");
+        String attributes = jdbc.sql("select attributes::text from md_users where id = :id")
+                .param("id", id)
+                .query(String.class)
+                .single();
+        assertThat(attributes)
+                .contains("\"cfr_region\": \"4502\"")
+                .contains("\"cfr_grade\": 7")
+                .contains("\"cfr_shift\": \"true\"");
     }
 
     private static List<String> logins(String filter) {

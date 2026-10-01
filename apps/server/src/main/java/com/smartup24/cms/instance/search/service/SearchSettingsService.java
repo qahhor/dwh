@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
@@ -34,9 +35,16 @@ public class SearchSettingsService {
         return repository.current();
     }
 
+    /** The limit of each statement of a save; inside an outer transaction too, unlike the transaction timeout. */
+    private static final Duration SAVE_LIMIT = Duration.ofSeconds(2);
+
     @Transactional(timeout = 2)
     public SettingsSnapshot save(SaveSettingsRequest request) {
         access.requireSettingsUpdate();
+        return repository.limited(SAVE_LIMIT, () -> saveNow(request));
+    }
+
+    private SettingsSnapshot saveNow(SaveSettingsRequest request) {
         var saved = repository.save(request, SecurityContext.getCurrentUserId());
         audit.logChange(
                 "search_settings",

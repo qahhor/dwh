@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "playwright test",
+    "api:audit": "node scripts/api-deprecation-audit.mjs",
     "test:artifact-security": "node scripts/verify-artifact-security.mjs",
     "test:config": "node --test tests/config/*.test.mjs",
     "test:instance": "playwright test --project=instance",

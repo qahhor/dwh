@@ -21,6 +21,7 @@ import com.smartup24.cms.instance.ms.task.service.MsTaskMemberService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskReadService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskWorkflowService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -63,6 +64,7 @@ public class MsTaskController {
         this.bulkService = bulkService;
     }
 
+    @Operation(summary = "List tasks", description = "The tasks the caller may see, with filters, sort and search.")
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<KeysetPage<TaskView>> listTasks(
@@ -93,6 +95,7 @@ public class MsTaskController {
                         projectId, statusId, priority, hideTerminal, assignedUserId, memberRole, reporterId, overdue)));
     }
 
+    @Operation(summary = "Get task counts per project", description = "Task counts per project.")
     @GetMapping("/projects/stats")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<ProjectTaskStatsView>> getProjectStats() {
@@ -100,6 +103,7 @@ public class MsTaskController {
     }
 
     /** The card; reading it changes nothing (the client reports the view with {@code POST /{id}/view}). */
+    @Operation(summary = "Get a task", description = "The task card; reading it changes nothing.")
     @GetMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<TaskDetail> getTask(@PathVariable("id") Long id) {
@@ -107,6 +111,9 @@ public class MsTaskController {
     }
 
     /** The current user has seen the task: clears its "new" mark for this user. */
+    @Operation(
+            summary = "Mark a task viewed",
+            description = "Records that the caller has seen the task, clearing its new mark for them.")
     @PostMapping("/{id}/view")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -115,12 +122,16 @@ public class MsTaskController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "List subtasks", description = "The direct subtasks of a task.")
     @GetMapping("/{id}/subtasks")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<TaskView>> getSubtasks(@PathVariable("id") Long id) {
         return ResponseEntity.ok(readService.getSubtasks(id, SecurityContext.getCurrentUserId()));
     }
 
+    @Operation(
+            summary = "Create a task",
+            description = "Adds a task with its project, participants, dates and custom field values.")
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -141,6 +152,9 @@ public class MsTaskController {
         return Created.at("/api/v1/tasks/{id}", task.id(), task);
     }
 
+    @Operation(
+            summary = "Update a task",
+            description = "Changes the given fields of a task; a field left out keeps its value.")
     @PatchMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -155,12 +169,14 @@ public class MsTaskController {
     }
 
     /** A bulk action over the selected tasks; the service checks the action and its parameters. */
+    @Operation(summary = "Run a bulk action on tasks", description = "Applies one bulk action to the selected tasks.")
     @PostMapping("/bulk")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     public ResponseEntity<BulkResult> bulk(@RequestBody BulkRequest body) {
         return ResponseEntity.ok(bulkService.run(body, SecurityContext.getCurrentUserId()));
     }
 
+    @Operation(summary = "Change the status of a task", description = "Moves a task to another status of its workflow.")
     @PostMapping("/{id}/status")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)

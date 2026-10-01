@@ -45,11 +45,10 @@ public class MsProjectService {
 
         String normalizedName = validateAndNormalizeName(name, true);
         validateState(state);
-        if (attributes != null) {
-            customFieldService.validateAttributes("PROJECT", attributes);
-        }
+        Map<String, Object> storedAttributes =
+                attributes != null ? customFieldService.checkedAttributes("PROJECT", attributes) : null;
 
-        var project = projectRepository.create(normalizedName, description, state, attributes, createdBy);
+        var project = projectRepository.create(normalizedName, description, state, storedAttributes, createdBy);
         searchChangePublisher.projectChanged(project.id());
 
         auditLogService.logChange(
@@ -88,10 +87,10 @@ public class MsProjectService {
         var before = findProject(id);
         String normalizedName = validateAndNormalizeName(name, false);
         validateState(state);
-        if (attributes != null) {
-            customFieldService.validateAttributes("PROJECT", attributes);
-        }
-        long revision = projectRepository.update(id, normalizedName, description, state, attributes, expectedRevision);
+        Map<String, Object> storedAttributes =
+                attributes != null ? customFieldService.checkedAttributes("PROJECT", attributes) : null;
+        long revision =
+                projectRepository.update(id, normalizedName, description, state, storedAttributes, expectedRevision);
         searchChangePublisher.projectChanged(id);
 
         auditLogService.logChange(

@@ -110,6 +110,7 @@
   "paths" : {
     "/api/v1/analytics/projects" : {
       "get" : {
+        "description" : "How tasks are distributed between projects, for the dashboard.",
         "operationId" : "getProjects",
         "responses" : {
           "200" : {
@@ -136,11 +137,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get tasks by project",
         "tags" : [ "analytics-controller" ]
       }
     },
     "/api/v1/analytics/summary" : {
       "get" : {
+        "description" : "Task counts for the dashboard summary.",
         "operationId" : "getSummary",
         "responses" : {
           "200" : {
@@ -164,11 +167,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the task summary",
         "tags" : [ "analytics-controller" ]
       }
     },
     "/api/v1/analytics/trends" : {
       "get" : {
+        "description" : "Task counts over time for the dashboard chart.",
         "operationId" : "getTrends",
         "parameters" : [ {
           "in" : "query",
@@ -204,11 +209,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get task trends",
         "tags" : [ "analytics-controller" ]
       }
     },
     "/api/v1/analytics/workload" : {
       "get" : {
+        "description" : "Task load per user, for the dashboard.",
         "operationId" : "getWorkload",
         "responses" : {
           "200" : {
@@ -235,12 +242,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the workload of users",
         "tags" : [ "analytics-controller" ]
       }
     },
     "/api/v1/announcements" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The published announcements addressed to the caller.",
         "operationId" : "getAnnouncements",
         "parameters" : [ {
           "in" : "query",
@@ -276,11 +285,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List active announcements",
         "tags" : [ "ms-announcement-controller" ],
         "x-successor" : "GET /api/v1/announcements/active",
         "x-sunset" : "2026-12-31"
       },
       "post" : {
+        "description" : "Adds an announcement.",
         "operationId" : "create_3",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -342,11 +353,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create an announcement",
         "tags" : [ "ms-announcement-admin-controller" ]
       }
     },
     "/api/v1/announcements/active" : {
       "get" : {
+        "description" : "The published announcements addressed to the caller.",
         "operationId" : "getAnnouncements_1",
         "parameters" : [ {
           "in" : "query",
@@ -382,11 +395,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List active announcements",
         "tags" : [ "ms-announcement-controller" ]
       }
     },
     "/api/v1/announcements/manage" : {
       "get" : {
+        "description" : "Every announcement, for its managers, a keyset page at a time.",
         "operationId" : "manage",
         "parameters" : [ {
           "in" : "query",
@@ -426,11 +441,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List announcements to manage",
         "tags" : [ "ms-announcement-admin-controller" ]
       }
     },
     "/api/v1/announcements/{id}" : {
       "put" : {
+        "description" : "Replaces an announcement.",
         "operationId" : "update_2",
         "parameters" : [ {
           "in" : "path",
@@ -492,11 +509,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update an announcement",
         "tags" : [ "ms-announcement-admin-controller" ]
       }
     },
     "/api/v1/announcements/{id}/archive" : {
       "post" : {
+        "description" : "Archives an announcement.",
         "operationId" : "archive",
         "parameters" : [ {
           "in" : "path",
@@ -558,11 +577,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Archive an announcement",
         "tags" : [ "ms-announcement-admin-controller" ]
       }
     },
     "/api/v1/announcements/{id}/publish" : {
       "post" : {
+        "description" : "Makes an announcement visible to its audience.",
         "operationId" : "publish_1",
         "parameters" : [ {
           "in" : "path",
@@ -624,11 +645,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Publish an announcement",
         "tags" : [ "ms-announcement-admin-controller" ]
       }
     },
     "/api/v1/announcements/{id}/read" : {
       "post" : {
+        "description" : "Records that the caller has read an announcement.",
         "operationId" : "markAsRead_2",
         "parameters" : [ {
           "in" : "path",
@@ -663,11 +686,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Mark an announcement read",
         "tags" : [ "ms-announcement-controller" ]
       }
     },
     "/api/v1/audit/logs" : {
       "get" : {
+        "description" : "The audit journal of data changes, a keyset page at a time with filters.",
         "operationId" : "listLogs",
         "parameters" : [ {
           "in" : "query",
@@ -801,11 +826,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List audit records",
         "tags" : [ "audit-log-controller" ]
       }
     },
     "/api/v1/audit/security-events" : {
       "get" : {
+        "description" : "The journal of security events, a keyset page at a time with filters.",
         "operationId" : "listSecurityEvents",
         "parameters" : [ {
           "in" : "query",
@@ -923,11 +950,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List security events",
         "tags" : [ "audit-log-controller" ]
       }
     },
     "/api/v1/audit/stats" : {
       "get" : {
+        "description" : "Counters of the audit journal.",
         "operationId" : "getStats",
         "responses" : {
           "200" : {
@@ -951,11 +980,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get audit statistics",
         "tags" : [ "audit-log-controller" ]
       }
     },
     "/api/v1/auth/login" : {
       "post" : {
+        "description" : "Signs in with a login and password; when a second factor is on, the sign-in completes with a one-time code.",
         "operationId" : "login",
         "requestBody" : {
           "content" : {
@@ -989,11 +1020,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Sign in",
         "tags" : [ "kauth-auth-controller" ]
       }
     },
     "/api/v1/auth/logout" : {
       "post" : {
+        "description" : "Closes the current session.",
         "operationId" : "logout",
         "responses" : {
           "204" : {
@@ -1010,11 +1043,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Sign out",
         "tags" : [ "kauth-auth-controller" ]
       }
     },
     "/api/v1/auth/me" : {
       "get" : {
+        "description" : "The signed-in user with their permissions.",
         "operationId" : "me",
         "responses" : {
           "200" : {
@@ -1038,11 +1073,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the current user",
         "tags" : [ "kauth-auth-controller" ]
       }
     },
     "/api/v1/auth/oauth2/providers" : {
       "get" : {
+        "description" : "The external OAuth 2 providers a user may sign in with.",
         "operationId" : "getProviders",
         "responses" : {
           "200" : {
@@ -1069,11 +1106,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List sign-in providers",
         "tags" : [ "o-auth-2-auth-controller" ]
       }
     },
     "/api/v1/auth/otp" : {
       "post" : {
+        "description" : "Completes a sign-in that asked for a one-time code and opens the session.",
         "operationId" : "verifyOtp",
         "requestBody" : {
           "content" : {
@@ -1107,11 +1146,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Confirm sign-in with a one-time code",
         "tags" : [ "kauth-auth-controller" ]
       }
     },
     "/api/v1/auth/password" : {
       "post" : {
+        "description" : "Changes the caller's password after checking the current one.",
         "operationId" : "changeMyPassword",
         "requestBody" : {
           "content" : {
@@ -1138,11 +1179,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Change my password",
         "tags" : [ "kauth-password-controller" ]
       }
     },
     "/api/v1/auth/password-reset/confirm" : {
       "post" : {
+        "description" : "Sets a new password with the token of a reset link.",
         "operationId" : "confirm",
         "requestBody" : {
           "content" : {
@@ -1169,11 +1212,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Reset a password",
         "tags" : [ "kauth-password-reset-controller" ]
       }
     },
     "/api/v1/auth/password-reset/request" : {
       "post" : {
+        "description" : "Asks for a password reset link to be sent to the user.",
         "operationId" : "request_1",
         "requestBody" : {
           "content" : {
@@ -1200,11 +1245,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Request a password reset",
         "tags" : [ "kauth-password-reset-controller" ]
       }
     },
     "/api/v1/custom-fields" : {
       "get" : {
+        "description" : "The custom field definitions, of one entity type or of all.",
         "operationId" : "getFields",
         "parameters" : [ {
           "in" : "query",
@@ -1248,9 +1295,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List custom fields",
         "tags" : [ "md-custom-field-controller" ]
       },
       "post" : {
+        "description" : "Adds a custom field to an entity type: its code, type, whether it is required, its default and options.",
         "operationId" : "createField",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -1308,11 +1357,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a custom field",
         "tags" : [ "md-custom-field-controller" ]
       }
     },
     "/api/v1/custom-fields/{id}" : {
       "delete" : {
+        "description" : "Removes a custom field definition.",
         "operationId" : "deleteField",
         "parameters" : [ {
           "in" : "path",
@@ -1347,9 +1398,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a custom field",
         "tags" : [ "md-custom-field-controller" ]
       },
       "patch" : {
+        "description" : "Changes the name, requirement, default, options or order of a custom field; names the revision it was read at.",
         "operationId" : "updateField",
         "parameters" : [ {
           "in" : "path",
@@ -1429,11 +1482,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a custom field",
         "tags" : [ "md-custom-field-controller" ]
       }
     },
     "/api/v1/entities/menu" : {
       "get" : {
+        "description" : "The menu items of the declared entities, each filtered by the caller's right on its entity.",
         "operationId" : "menu",
         "responses" : {
           "200" : {
@@ -1460,11 +1515,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the entity menu",
         "tags" : [ "entity-menu-controller" ]
       }
     },
     "/api/v1/entities/{code}/bulk" : {
       "post" : {
+        "description" : "Applies a bulk action of an entity to the selected records; the entity's own right is checked.",
         "operationId" : "bulk_2",
         "parameters" : [ {
           "in" : "path",
@@ -1515,11 +1572,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Run a bulk action on records",
         "tags" : [ "entity-bulk-controller" ]
       }
     },
     "/api/v1/events" : {
       "get" : {
+        "description" : "A stream of server-sent events for the caller, kept open by the client.",
         "operationId" : "stream",
         "responses" : {
           "200" : {
@@ -1543,11 +1602,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Subscribe to events",
         "tags" : [ "ms-sse-controller" ]
       }
     },
     "/api/v1/exports" : {
       "get" : {
+        "description" : "The caller's requested exports with their state.",
         "operationId" : "journal",
         "responses" : {
           "200" : {
@@ -1574,9 +1635,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List my exports",
         "tags" : [ "report-export-controller" ]
       },
       "post" : {
+        "description" : "Requests the export of a list to a file.",
         "operationId" : "request",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -1620,11 +1683,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Request an export",
         "tags" : [ "report-export-controller" ]
       }
     },
     "/api/v1/exports/{id}/file" : {
       "get" : {
+        "description" : "The file of a finished export.",
         "operationId" : "file",
         "parameters" : [ {
           "in" : "path",
@@ -1657,11 +1722,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Download an export",
         "tags" : [ "report-export-controller" ]
       }
     },
     "/api/v1/files" : {
       "get" : {
+        "description" : "The stored files the caller may see.",
         "operationId" : "listFiles",
         "parameters" : [ {
           "in" : "query",
@@ -1730,11 +1797,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List files",
         "tags" : [ "mf-file-controller" ]
       }
     },
     "/api/v1/files/storage/stats" : {
       "get" : {
+        "description" : "Usage of the file storage.",
         "operationId" : "getStorageStats",
         "responses" : {
           "200" : {
@@ -1758,11 +1827,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get storage statistics",
         "tags" : [ "mf-file-controller" ]
       }
     },
     "/api/v1/files/upload" : {
       "post" : {
+        "description" : "Stores an uploaded file and returns its metadata.",
         "operationId" : "uploadFile",
         "requestBody" : {
           "content" : {
@@ -1810,11 +1881,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Upload a file",
         "tags" : [ "mf-file-controller" ]
       }
     },
     "/api/v1/files/{id}" : {
       "delete" : {
+        "description" : "Removes a stored file.",
         "operationId" : "deleteFile",
         "parameters" : [ {
           "in" : "path",
@@ -1849,9 +1922,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a file",
         "tags" : [ "mf-file-controller" ]
       },
       "get" : {
+        "description" : "The name, type, size and owner of a stored file.",
         "operationId" : "getFileMetadata",
         "parameters" : [ {
           "in" : "path",
@@ -1884,11 +1959,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get file metadata",
         "tags" : [ "mf-file-controller" ]
       }
     },
     "/api/v1/files/{id}/download" : {
       "get" : {
+        "description" : "The content of a stored file.",
         "operationId" : "downloadFile",
         "parameters" : [ {
           "in" : "path",
@@ -1922,11 +1999,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Download a file",
         "tags" : [ "mf-file-controller" ]
       }
     },
     "/api/v1/form-meta/{code}" : {
       "get" : {
+        "description" : "The fields, layout and rules of an entity form, built from its declaration; the entity's own right is checked.",
         "operationId" : "get_4",
         "parameters" : [ {
           "in" : "path",
@@ -1958,11 +2037,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a form description",
         "tags" : [ "form-meta-controller" ]
       }
     },
     "/api/v1/history" : {
       "get" : {
+        "description" : "The kinds of records whose change history can be read.",
         "operationId" : "kinds",
         "responses" : {
           "200" : {
@@ -1989,11 +2070,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List record kinds with history",
         "tags" : [ "record-history-controller" ]
       }
     },
     "/api/v1/history/{kind}/{id}" : {
       "get" : {
+        "description" : "The recorded changes of one record, a keyset page at a time.",
         "operationId" : "history_1",
         "parameters" : [ {
           "in" : "path",
@@ -2047,11 +2130,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the history of a record",
         "tags" : [ "record-history-controller" ]
       }
     },
     "/api/v1/i18n/admin/languages" : {
       "post" : {
+        "description" : "Adds a language to the interface.",
         "operationId" : "createLanguage",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -2103,11 +2188,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Add an interface language",
         "tags" : [ "md-i-18n-admin-controller" ]
       }
     },
     "/api/v1/i18n/admin/languages/{code}/export" : {
       "get" : {
+        "description" : "The texts of an interface language as one key-to-text map.",
         "operationId" : "export",
         "parameters" : [ {
           "in" : "path",
@@ -2142,11 +2229,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Export a language",
         "tags" : [ "md-i-18n-admin-controller" ]
       }
     },
     "/api/v1/i18n/admin/languages/{code}/translations" : {
       "get" : {
+        "description" : "The keys and texts of an interface language, for the translation editor.",
         "operationId" : "getEditor",
         "parameters" : [ {
           "in" : "path",
@@ -2178,9 +2267,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the translation editor",
         "tags" : [ "md-i-18n-admin-controller" ]
       },
       "put" : {
+        "description" : "Saves the edited texts of an interface language.",
         "operationId" : "updateTranslations",
         "parameters" : [ {
           "in" : "path",
@@ -2241,11 +2332,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update translations",
         "tags" : [ "md-i-18n-admin-controller" ]
       }
     },
     "/api/v1/i18n/languages" : {
       "get" : {
+        "description" : "The languages the interface is available in.",
         "operationId" : "listLanguages",
         "responses" : {
           "200" : {
@@ -2272,11 +2365,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List interface languages",
         "tags" : [ "md-i-18n-controller" ]
       }
     },
     "/api/v1/i18n/{lang}" : {
       "get" : {
+        "description" : "The interface texts of one language, key to text.",
         "operationId" : "getDictionary",
         "parameters" : [ {
           "in" : "path",
@@ -2311,11 +2406,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a dictionary",
         "tags" : [ "md-i-18n-controller" ]
       }
     },
     "/api/v1/iam/forms" : {
       "get" : {
+        "description" : "The forms and their actions on which permissions are granted.",
         "operationId" : "getFormCatalog_1",
         "responses" : {
           "200" : {
@@ -2342,11 +2439,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the permission catalog",
         "tags" : [ "md-role-controller" ]
       }
     },
     "/api/v1/iam/org-units" : {
       "get" : {
+        "description" : "The organisation structure as a flat list of units.",
         "operationId" : "list_3",
         "responses" : {
           "200" : {
@@ -2373,9 +2472,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List org units",
         "tags" : [ "md-org-unit-controller" ]
       },
       "post" : {
+        "description" : "Adds a unit to the organisation structure.",
         "operationId" : "create_2",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -2433,11 +2534,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create an org unit",
         "tags" : [ "md-org-unit-controller" ]
       }
     },
     "/api/v1/iam/org-units/roles/{roleId}/rule" : {
       "get" : {
+        "description" : "The data visibility rule of a role; a role without a rule sees all.",
         "operationId" : "getRoleRule",
         "parameters" : [ {
           "in" : "path",
@@ -2470,9 +2573,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the visibility rule of a role",
         "tags" : [ "md-org-unit-controller" ]
       },
       "put" : {
+        "description" : "Sets what a role sees: all, a subtree, chosen units or own records only.",
         "operationId" : "setRoleRule",
         "parameters" : [ {
           "in" : "path",
@@ -2517,11 +2622,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Set the visibility rule of a role",
         "tags" : [ "md-org-unit-controller" ]
       }
     },
     "/api/v1/iam/org-units/users/{userId}" : {
       "get" : {
+        "description" : "The units a user is explicitly assigned to.",
         "operationId" : "getUserAssignments",
         "parameters" : [ {
           "in" : "path",
@@ -2554,9 +2661,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the units of a user",
         "tags" : [ "md-org-unit-controller" ]
       },
       "put" : {
+        "description" : "Replaces the whole set of units a user is assigned to.",
         "operationId" : "assignUser",
         "parameters" : [ {
           "in" : "path",
@@ -2601,11 +2710,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Replace the units of a user",
         "tags" : [ "md-org-unit-controller" ]
       }
     },
     "/api/v1/iam/org-units/users/{userId}/scope" : {
       "get" : {
+        "description" : "The rule and the units that decide which records a user sees.",
         "operationId" : "getUserScope",
         "parameters" : [ {
           "in" : "path",
@@ -2638,11 +2749,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the data scope of a user",
         "tags" : [ "md-org-unit-controller" ]
       }
     },
     "/api/v1/iam/org-units/{id}" : {
       "delete" : {
+        "description" : "Removes a unit of the organisation structure.",
         "operationId" : "delete_1",
         "parameters" : [ {
           "in" : "path",
@@ -2677,9 +2790,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete an org unit",
         "tags" : [ "md-org-unit-controller" ]
       },
       "get" : {
+        "description" : "One unit of the organisation structure.",
         "operationId" : "getById",
         "parameters" : [ {
           "in" : "path",
@@ -2720,9 +2835,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get an org unit",
         "tags" : [ "md-org-unit-controller" ]
       },
       "patch" : {
+        "description" : "Changes the name, parent or state of a unit; names the revision it was read at.",
         "operationId" : "update_3",
         "parameters" : [ {
           "in" : "path",
@@ -2802,11 +2919,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update an org unit",
         "tags" : [ "md-org-unit-controller" ]
       }
     },
     "/api/v1/iam/profile/channels" : {
       "get" : {
+        "description" : "The delivery channels (e-mail, messengers) bound to the caller's profile.",
         "operationId" : "listChannels",
         "responses" : {
           "200" : {
@@ -2833,9 +2952,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List my delivery channels",
         "tags" : [ "kauth-channel-controller" ]
       },
       "post" : {
+        "description" : "Sends a confirmation code to the address; the binding completes with the confirm call.",
         "operationId" : "bindChannel",
         "requestBody" : {
           "content" : {
@@ -2869,11 +2990,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Start binding a channel",
         "tags" : [ "kauth-channel-controller" ]
       }
     },
     "/api/v1/iam/profile/channels/confirm" : {
       "post" : {
+        "description" : "Completes the binding of a delivery channel with the code sent to its address.",
         "operationId" : "confirmChannel",
         "requestBody" : {
           "content" : {
@@ -2900,11 +3023,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Confirm a channel",
         "tags" : [ "kauth-channel-controller" ]
       }
     },
     "/api/v1/iam/profile/channels/{channel}" : {
       "delete" : {
+        "description" : "Removes a delivery channel from the caller's profile.",
         "operationId" : "unbindChannel",
         "parameters" : [ {
           "in" : "path",
@@ -2929,11 +3054,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Unbind a channel",
         "tags" : [ "kauth-channel-controller" ]
       }
     },
     "/api/v1/iam/profile/sessions" : {
       "get" : {
+        "description" : "The open sessions of the caller.",
         "operationId" : "listActiveSessions_1",
         "responses" : {
           "200" : {
@@ -2960,11 +3087,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List my sessions",
         "tags" : [ "kauth-session-controller" ]
       }
     },
     "/api/v1/iam/profile/sessions/others" : {
       "delete" : {
+        "description" : "Closes every session of the caller except the current one.",
         "operationId" : "closeOtherSessions_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -2991,12 +3120,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Close my other sessions",
         "tags" : [ "kauth-session-controller" ]
       }
     },
     "/api/v1/iam/profile/sessions/users/{userId}" : {
       "delete" : {
         "deprecated" : true,
+        "description" : "Closes every open session of a user.",
         "operationId" : "closeAllUserSessions_1",
         "parameters" : [ {
           "in" : "path",
@@ -3031,12 +3162,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Close the sessions of a user",
         "tags" : [ "kauth-session-controller" ],
         "x-successor" : "DELETE /api/v1/iam/users/{userId}/sessions",
         "x-sunset" : "2026-12-31"
       },
       "get" : {
         "deprecated" : true,
+        "description" : "The open sessions of a user, for an administrator.",
         "operationId" : "listUserSessions_1",
         "parameters" : [ {
           "in" : "path",
@@ -3072,6 +3205,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List the sessions of a user",
         "tags" : [ "kauth-session-controller" ],
         "x-successor" : "GET /api/v1/iam/users/{userId}/sessions",
         "x-sunset" : "2026-12-31"
@@ -3080,6 +3214,7 @@
     "/api/v1/iam/profile/sessions/users/{userId}/force-password-change" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Makes the user change the password at the next sign-in.",
         "operationId" : "forcePasswordChange_1",
         "parameters" : [ {
           "in" : "path",
@@ -3114,6 +3249,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Force a password change",
         "tags" : [ "kauth-session-controller" ],
         "x-successor" : "POST /api/v1/iam/users/{userId}/force-password-change",
         "x-sunset" : "2026-12-31"
@@ -3122,6 +3258,7 @@
     "/api/v1/iam/profile/sessions/users/{userId}/reset-2fa" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Resets the second factor of a user.",
         "operationId" : "reset2fa_1",
         "parameters" : [ {
           "in" : "path",
@@ -3156,6 +3293,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Reset the second factor",
         "tags" : [ "kauth-session-controller" ],
         "x-successor" : "POST /api/v1/iam/users/{userId}/reset-2fa",
         "x-sunset" : "2026-12-31"
@@ -3164,6 +3302,7 @@
     "/api/v1/iam/profile/sessions/users/{userId}/security" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The security summary of a user, for an administrator.",
         "operationId" : "getUserSecuritySummary",
         "parameters" : [ {
           "in" : "path",
@@ -3196,6 +3335,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the security summary of a user",
         "tags" : [ "kauth-session-controller" ],
         "x-successor" : "GET /api/v1/iam/users/{userId}/security",
         "x-sunset" : "2026-12-31"
@@ -3204,6 +3344,7 @@
     "/api/v1/iam/profile/sessions/users/{userId}/{id}" : {
       "delete" : {
         "deprecated" : true,
+        "description" : "Closes one session of a user.",
         "operationId" : "closeUserSession_1",
         "parameters" : [ {
           "in" : "path",
@@ -3246,6 +3387,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Close a session of a user",
         "tags" : [ "kauth-session-controller" ],
         "x-successor" : "DELETE /api/v1/iam/users/{userId}/sessions/{id}",
         "x-sunset" : "2026-12-31"
@@ -3253,6 +3395,7 @@
     },
     "/api/v1/iam/profile/sessions/{id}" : {
       "delete" : {
+        "description" : "Closes one session of the caller.",
         "operationId" : "closeSession_1",
         "parameters" : [ {
           "in" : "path",
@@ -3287,11 +3430,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Close one of my sessions",
         "tags" : [ "kauth-session-controller" ]
       }
     },
     "/api/v1/iam/profile/tokens" : {
       "get" : {
+        "description" : "The personal API tokens of the caller, without their secrets.",
         "operationId" : "listTokens",
         "responses" : {
           "200" : {
@@ -3318,9 +3463,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List my API tokens",
         "tags" : [ "kauth-api-token-controller" ]
       },
       "post" : {
+        "description" : "Issues a personal API token; its secret is returned once and never stored for replay.",
         "operationId" : "createToken",
         "requestBody" : {
           "content" : {
@@ -3362,11 +3509,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create an API token",
         "tags" : [ "kauth-api-token-controller" ]
       }
     },
     "/api/v1/iam/profile/tokens/{id}" : {
       "delete" : {
+        "description" : "Revokes one personal API token of the caller.",
         "operationId" : "revokeToken",
         "parameters" : [ {
           "in" : "path",
@@ -3401,11 +3550,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Revoke an API token",
         "tags" : [ "kauth-api-token-controller" ]
       }
     },
     "/api/v1/iam/roles" : {
       "get" : {
+        "description" : "The roles of the installation.",
         "operationId" : "listRoles",
         "responses" : {
           "200" : {
@@ -3432,9 +3583,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List roles",
         "tags" : [ "md-role-controller" ]
       },
       "post" : {
+        "description" : "Adds a role with its code and name.",
         "operationId" : "createRole",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -3492,11 +3645,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a role",
         "tags" : [ "md-role-controller" ]
       }
     },
     "/api/v1/iam/roles/user-counts" : {
       "get" : {
+        "description" : "How many users each role is assigned to.",
         "operationId" : "getRoleUserCounts",
         "responses" : {
           "200" : {
@@ -3524,11 +3679,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Count users per role",
         "tags" : [ "md-role-controller" ]
       }
     },
     "/api/v1/iam/roles/{id}" : {
       "delete" : {
+        "description" : "Removes a role.",
         "operationId" : "deleteRole",
         "parameters" : [ {
           "in" : "path",
@@ -3563,9 +3720,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a role",
         "tags" : [ "md-role-controller" ]
       },
       "patch" : {
+        "description" : "Changes the name or state of a role; names the revision it was read at.",
         "operationId" : "updateRole",
         "parameters" : [ {
           "in" : "path",
@@ -3645,11 +3804,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a role",
         "tags" : [ "md-role-controller" ]
       }
     },
     "/api/v1/iam/roles/{id}/permissions" : {
       "get" : {
+        "description" : "The form actions granted to a role.",
         "operationId" : "getRolePermissions",
         "parameters" : [ {
           "in" : "path",
@@ -3686,9 +3847,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the permissions of a role",
         "tags" : [ "md-role-controller" ]
       },
       "put" : {
+        "description" : "Replaces the whole set of form actions granted to a role.",
         "operationId" : "setRolePermissions",
         "parameters" : [ {
           "in" : "path",
@@ -3771,12 +3934,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Replace the permissions of a role",
         "tags" : [ "md-role-controller" ]
       }
     },
     "/api/v1/iam/sessions" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The open sessions of the caller.",
         "operationId" : "listActiveSessions",
         "responses" : {
           "200" : {
@@ -3803,6 +3968,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List my sessions",
         "tags" : [ "kauth-session-controller" ],
         "x-successor" : "GET /api/v1/iam/profile/sessions",
         "x-sunset" : "2026-12-31"
@@ -3811,6 +3977,7 @@
     "/api/v1/iam/sessions/others" : {
       "delete" : {
         "deprecated" : true,
+        "description" : "Closes every session of the caller except the current one.",
         "operationId" : "closeOtherSessions",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -3837,6 +4004,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Close my other sessions",
         "tags" : [ "kauth-session-controller" ],
         "x-successor" : "DELETE /api/v1/iam/profile/sessions/others",
         "x-sunset" : "2026-12-31"
@@ -3845,6 +4013,7 @@
     "/api/v1/iam/sessions/{id}" : {
       "delete" : {
         "deprecated" : true,
+        "description" : "Closes one session of the caller.",
         "operationId" : "closeSession",
         "parameters" : [ {
           "in" : "path",
@@ -3879,6 +4048,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Close one of my sessions",
         "tags" : [ "kauth-session-controller" ],
         "x-successor" : "DELETE /api/v1/iam/profile/sessions/{id}",
         "x-sunset" : "2026-12-31"
@@ -3886,6 +4056,7 @@
     },
     "/api/v1/iam/users" : {
       "get" : {
+        "description" : "The users the caller may see, with filters, sort and search.",
         "operationId" : "listUsers",
         "parameters" : [ {
           "in" : "query",
@@ -4012,9 +4183,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List users",
         "tags" : [ "md-user-controller" ]
       },
       "post" : {
+        "description" : "Adds a user with their login, contacts, roles and custom field values.",
         "operationId" : "createUser",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -4072,12 +4245,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a user",
         "tags" : [ "md-user-controller" ]
       }
     },
     "/api/v1/iam/users/me/password" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Changes the caller's password after checking the current one.",
         "operationId" : "changeMyPassword_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -4114,6 +4289,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Change my password",
         "tags" : [ "kauth-password-controller" ],
         "x-successor" : "POST /api/v1/auth/password",
         "x-sunset" : "2026-12-31"
@@ -4121,6 +4297,7 @@
     },
     "/api/v1/iam/users/{id}" : {
       "delete" : {
+        "description" : "Removes a user.",
         "operationId" : "deleteUser",
         "parameters" : [ {
           "in" : "path",
@@ -4155,9 +4332,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a user",
         "tags" : [ "md-user-controller" ]
       },
       "get" : {
+        "description" : "One user.",
         "operationId" : "getUser",
         "parameters" : [ {
           "in" : "path",
@@ -4198,9 +4377,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a user",
         "tags" : [ "md-user-controller" ]
       },
       "patch" : {
+        "description" : "Changes a user's profile, roles or custom field values; names the revision it was read at.",
         "operationId" : "updateUser",
         "parameters" : [ {
           "in" : "path",
@@ -4280,11 +4461,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a user",
         "tags" : [ "md-user-controller" ]
       }
     },
     "/api/v1/iam/users/{id}/block" : {
       "post" : {
+        "description" : "Blocks a user, so they cannot sign in.",
         "operationId" : "blockUser",
         "parameters" : [ {
           "in" : "path",
@@ -4319,11 +4502,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Block a user",
         "tags" : [ "md-user-controller" ]
       }
     },
     "/api/v1/iam/users/{id}/unblock" : {
       "post" : {
+        "description" : "Lets a blocked user sign in again.",
         "operationId" : "unblockUser",
         "parameters" : [ {
           "in" : "path",
@@ -4358,11 +4543,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Unblock a user",
         "tags" : [ "md-user-controller" ]
       }
     },
     "/api/v1/iam/users/{userId}/effective-permissions" : {
       "get" : {
+        "description" : "Every permission a user has, with where it comes from: a role or a personal grant (FR-PERM-10).",
         "operationId" : "getEffectivePermissions",
         "parameters" : [ {
           "in" : "path",
@@ -4395,11 +4582,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the effective permissions of a user",
         "tags" : [ "md-assignment-controller" ]
       }
     },
     "/api/v1/iam/users/{userId}/force-password-change" : {
       "post" : {
+        "description" : "Makes the user change the password at the next sign-in.",
         "operationId" : "forcePasswordChange",
         "parameters" : [ {
           "in" : "path",
@@ -4434,11 +4623,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Force a password change",
         "tags" : [ "kauth-session-controller" ]
       }
     },
     "/api/v1/iam/users/{userId}/permissions" : {
       "get" : {
+        "description" : "The permissions granted to a user directly, beside their roles.",
         "operationId" : "getPersonalPermissions",
         "parameters" : [ {
           "in" : "path",
@@ -4471,9 +4662,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the personal permissions of a user",
         "tags" : [ "md-assignment-controller" ]
       },
       "put" : {
+        "description" : "Replaces the whole set of permissions granted to a user directly.",
         "operationId" : "replacePersonalPermissions",
         "parameters" : [ {
           "in" : "path",
@@ -4560,11 +4753,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Replace the personal permissions of a user",
         "tags" : [ "md-assignment-controller" ]
       }
     },
     "/api/v1/iam/users/{userId}/reset-2fa" : {
       "post" : {
+        "description" : "Resets the second factor of a user.",
         "operationId" : "reset2fa",
         "parameters" : [ {
           "in" : "path",
@@ -4599,11 +4794,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Reset the second factor",
         "tags" : [ "kauth-session-controller" ]
       }
     },
     "/api/v1/iam/users/{userId}/roles" : {
       "get" : {
+        "description" : "The roles assigned to a user.",
         "operationId" : "getUserRoles",
         "parameters" : [ {
           "in" : "path",
@@ -4636,9 +4833,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the roles of a user",
         "tags" : [ "md-assignment-controller" ]
       },
       "put" : {
+        "description" : "Replaces the whole set of roles assigned to a user.",
         "operationId" : "assignRoles",
         "parameters" : [ {
           "in" : "path",
@@ -4725,11 +4924,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Replace the roles of a user",
         "tags" : [ "md-assignment-controller" ]
       }
     },
     "/api/v1/iam/users/{userId}/security" : {
       "get" : {
+        "description" : "The security summary of a user, for an administrator.",
         "operationId" : "getUserSecuritySummary_1",
         "parameters" : [ {
           "in" : "path",
@@ -4762,11 +4963,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the security summary of a user",
         "tags" : [ "kauth-session-controller" ]
       }
     },
     "/api/v1/iam/users/{userId}/sessions" : {
       "delete" : {
+        "description" : "Closes every open session of a user.",
         "operationId" : "closeAllUserSessions",
         "parameters" : [ {
           "in" : "path",
@@ -4801,9 +5004,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Close the sessions of a user",
         "tags" : [ "kauth-session-controller" ]
       },
       "get" : {
+        "description" : "The open sessions of a user, for an administrator.",
         "operationId" : "listUserSessions",
         "parameters" : [ {
           "in" : "path",
@@ -4839,11 +5044,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List the sessions of a user",
         "tags" : [ "kauth-session-controller" ]
       }
     },
     "/api/v1/iam/users/{userId}/sessions/{id}" : {
       "delete" : {
+        "description" : "Closes one session of a user.",
         "operationId" : "closeUserSession",
         "parameters" : [ {
           "in" : "path",
@@ -4886,11 +5093,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Close a session of a user",
         "tags" : [ "kauth-session-controller" ]
       }
     },
     "/api/v1/list-views/{listCode}" : {
       "get" : {
+        "description" : "The saved views (filters, columns, sort) of a list.",
         "operationId" : "list_2",
         "parameters" : [ {
           "in" : "path",
@@ -4925,9 +5134,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List saved views",
         "tags" : [ "md-list-view-controller" ]
       },
       "post" : {
+        "description" : "Saves the current filters, columns and sort of a list as a named view.",
         "operationId" : "create_1",
         "parameters" : [ {
           "in" : "path",
@@ -4996,11 +5207,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Save a view",
         "tags" : [ "md-list-view-controller" ]
       }
     },
     "/api/v1/list-views/{listCode}/{id}" : {
       "delete" : {
+        "description" : "Removes a saved view of a list.",
         "operationId" : "delete",
         "parameters" : [ {
           "in" : "path",
@@ -5042,9 +5255,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a saved view",
         "tags" : [ "md-list-view-controller" ]
       },
       "put" : {
+        "description" : "Replaces a saved view of a list.",
         "operationId" : "update_1",
         "parameters" : [ {
           "in" : "path",
@@ -5113,11 +5328,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a saved view",
         "tags" : [ "md-list-view-controller" ]
       }
     },
     "/api/v1/modules" : {
       "get" : {
+        "description" : "Every registered module with its state.",
         "operationId" : "getAllModules",
         "responses" : {
           "200" : {
@@ -5144,10 +5361,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List modules",
         "tags" : [ "module-registry-controller" ]
       },
       "post" : {
         "deprecated" : true,
+        "description" : "Registers a module, replacing an existing registration. Deprecated for PUT /api/v1/modules/{code}; answers until its sunset.",
         "operationId" : "registerModule",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -5191,6 +5410,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Register a module (deprecated)",
         "tags" : [ "module-registry-controller" ],
         "x-successor" : "PUT /api/v1/modules/{code}",
         "x-sunset" : "2026-12-31"
@@ -5198,6 +5418,7 @@
     },
     "/api/v1/modules/active" : {
       "get" : {
+        "description" : "The modules that are switched on.",
         "operationId" : "getActiveModules",
         "responses" : {
           "200" : {
@@ -5224,11 +5445,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List active modules",
         "tags" : [ "module-registry-controller" ]
       }
     },
     "/api/v1/modules/{code}" : {
       "get" : {
+        "description" : "One registered module.",
         "operationId" : "getModule",
         "parameters" : [ {
           "in" : "path",
@@ -5260,9 +5483,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a module",
         "tags" : [ "module-registry-controller" ]
       },
       "put" : {
+        "description" : "Registers a module or replaces its registration; the same call twice leaves the same module.",
         "operationId" : "putModule",
         "parameters" : [ {
           "in" : "path",
@@ -5313,11 +5538,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Register a module",
         "tags" : [ "module-registry-controller" ]
       }
     },
     "/api/v1/modules/{code}/enabled" : {
       "put" : {
+        "description" : "Sets the state of a module; the body states the result, so a repeat changes nothing.",
         "operationId" : "setEnabled",
         "parameters" : [ {
           "in" : "path",
@@ -5368,12 +5595,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Switch a module on or off",
         "tags" : [ "module-registry-controller" ]
       }
     },
     "/api/v1/modules/{code}/toggle" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Flips the state of a module. Deprecated for PUT /api/v1/modules/{code}/enabled; answers until its sunset.",
         "operationId" : "toggleModule",
         "parameters" : [ {
           "in" : "path",
@@ -5430,6 +5659,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Toggle a module (deprecated)",
         "tags" : [ "module-registry-controller" ],
         "x-successor" : "PUT /api/v1/modules/{code}/enabled",
         "x-sunset" : "2026-12-31"
@@ -5437,6 +5667,7 @@
     },
     "/api/v1/navigation/items" : {
       "get" : {
+        "description" : "Every menu item, visible or hidden, for the menu editor.",
         "operationId" : "getAllItems",
         "responses" : {
           "200" : {
@@ -5463,9 +5694,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List menu items",
         "tags" : [ "navigation-item-controller" ]
       },
       "post" : {
+        "description" : "Adds an item to the navigation menu.",
         "operationId" : "createItem",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -5523,11 +5756,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a menu item",
         "tags" : [ "navigation-item-controller" ]
       }
     },
     "/api/v1/navigation/items/active" : {
       "get" : {
+        "description" : "The active menu items for the caller.",
         "operationId" : "getActiveItems",
         "responses" : {
           "200" : {
@@ -5554,11 +5789,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the navigation menu",
         "tags" : [ "navigation-item-controller" ]
       }
     },
     "/api/v1/navigation/items/by-code/{code}" : {
       "get" : {
+        "description" : "One menu item found by its code.",
         "operationId" : "getItemByCode",
         "parameters" : [ {
           "in" : "path",
@@ -5598,11 +5835,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a menu item by code",
         "tags" : [ "navigation-item-controller" ]
       }
     },
     "/api/v1/navigation/items/permissions" : {
       "get" : {
+        "description" : "The catalog pairs a menu item may be restricted by.",
         "operationId" : "getPermissionChoices",
         "responses" : {
           "200" : {
@@ -5629,11 +5868,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List menu permission choices",
         "tags" : [ "navigation-item-controller" ]
       }
     },
     "/api/v1/navigation/items/{id}" : {
       "delete" : {
+        "description" : "Removes a menu item.",
         "operationId" : "deleteItem",
         "parameters" : [ {
           "in" : "path",
@@ -5668,9 +5909,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a menu item",
         "tags" : [ "navigation-item-controller" ]
       },
       "get" : {
+        "description" : "One menu item.",
         "operationId" : "getItem",
         "parameters" : [ {
           "in" : "path",
@@ -5711,9 +5954,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a menu item",
         "tags" : [ "navigation-item-controller" ]
       },
       "put" : {
+        "description" : "Replaces a menu item; names the revision it was read at.",
         "operationId" : "updateItem",
         "parameters" : [ {
           "in" : "path",
@@ -5800,11 +6045,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a menu item",
         "tags" : [ "navigation-item-controller" ]
       }
     },
     "/api/v1/navigation/items/{id}/active" : {
       "put" : {
+        "description" : "Sets whether a menu item is shown; the body states the result, so a repeat changes nothing.",
         "operationId" : "setActive",
         "parameters" : [ {
           "in" : "path",
@@ -5864,12 +6111,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Show or hide a menu item",
         "tags" : [ "navigation-item-controller" ]
       }
     },
     "/api/v1/navigation/items/{id}/toggle" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Flips whether a menu item is shown. Deprecated for PUT /api/v1/navigation/items/{id}/active; answers until its sunset.",
         "operationId" : "toggleItem",
         "parameters" : [ {
           "in" : "path",
@@ -5919,6 +6168,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Toggle a menu item (deprecated)",
         "tags" : [ "navigation-item-controller" ],
         "x-successor" : "PUT /api/v1/navigation/items/{id}/active",
         "x-sunset" : "2026-12-31"
@@ -5926,6 +6176,7 @@
     },
     "/api/v1/notes" : {
       "get" : {
+        "description" : "The caller's notes.",
         "operationId" : "getNotes",
         "parameters" : [ {
           "in" : "query",
@@ -5986,9 +6237,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List my notes",
         "tags" : [ "ms-note-controller" ]
       },
       "post" : {
+        "description" : "Adds a note with its title, Markdown text, colour and custom field values.",
         "operationId" : "createNote",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -6046,11 +6299,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a note",
         "tags" : [ "ms-note-controller" ]
       }
     },
     "/api/v1/notes/{id}" : {
       "delete" : {
+        "description" : "Removes a note of the caller.",
         "operationId" : "deleteNote",
         "parameters" : [ {
           "in" : "path",
@@ -6085,9 +6340,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a note",
         "tags" : [ "ms-note-controller" ]
       },
       "get" : {
+        "description" : "One note of the caller.",
         "operationId" : "getNote",
         "parameters" : [ {
           "in" : "path",
@@ -6128,9 +6385,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a note",
         "tags" : [ "ms-note-controller" ]
       },
       "put" : {
+        "description" : "Replaces a note of the caller; names the revision it was read at.",
         "operationId" : "updateNote",
         "parameters" : [ {
           "in" : "path",
@@ -6217,12 +6476,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a note",
         "tags" : [ "ms-note-controller" ]
       }
     },
     "/api/v1/notes/{id}/pin" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Flips the pin of a note. Deprecated for PUT /api/v1/notes/{id}/pin; answers until its sunset.",
         "operationId" : "togglePin",
         "parameters" : [ {
           "in" : "path",
@@ -6272,11 +6533,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Toggle the pin of a note (deprecated)",
         "tags" : [ "ms-note-controller" ],
         "x-successor" : "PUT /api/v1/notes/{id}/pin",
         "x-sunset" : "2026-12-31"
       },
       "put" : {
+        "description" : "Sets whether a note is pinned; the same call twice leaves the same note.",
         "operationId" : "setPin",
         "parameters" : [ {
           "in" : "path",
@@ -6336,11 +6599,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Pin or unpin a note",
         "tags" : [ "ms-note-controller" ]
       }
     },
     "/api/v1/notifications/inbox" : {
       "get" : {
+        "description" : "The caller's notification inbox.",
         "operationId" : "getInbox_1",
         "parameters" : [ {
           "in" : "query",
@@ -6380,11 +6645,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List my notifications",
         "tags" : [ "ms-notification-controller" ]
       }
     },
     "/api/v1/notifications/inbox/read-all" : {
       "post" : {
+        "description" : "Marks every notification of the caller as read.",
         "operationId" : "markAllAsRead",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -6411,11 +6678,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Mark all notifications read",
         "tags" : [ "ms-notification-controller" ]
       }
     },
     "/api/v1/notifications/inbox/{id}/read" : {
       "post" : {
+        "description" : "Marks one notification of the caller as read.",
         "operationId" : "markAsRead_1",
         "parameters" : [ {
           "in" : "path",
@@ -6450,11 +6719,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Mark a notification read",
         "tags" : [ "ms-notification-controller" ]
       }
     },
     "/api/v1/notifications/preferences" : {
       "get" : {
+        "description" : "The caller's notification preferences.",
         "operationId" : "getPreferences",
         "responses" : {
           "200" : {
@@ -6481,9 +6752,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get my notification preferences",
         "tags" : [ "ms-notification-controller" ]
       },
       "put" : {
+        "description" : "Replaces the caller's notification preferences.",
         "operationId" : "updatePreferences",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -6523,11 +6796,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update my notification preferences",
         "tags" : [ "ms-notification-controller" ]
       }
     },
     "/api/v1/notifications/unread-count" : {
       "get" : {
+        "description" : "How many notifications of the caller are unread.",
         "operationId" : "getUnreadCount_1",
         "responses" : {
           "200" : {
@@ -6555,12 +6830,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Count my unread notifications",
         "tags" : [ "ms-notification-controller" ]
       }
     },
     "/api/v1/notify/inbox" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The caller's notification inbox.",
         "operationId" : "getInbox",
         "parameters" : [ {
           "in" : "query",
@@ -6600,6 +6877,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List my notifications",
         "tags" : [ "ms-notification-controller" ],
         "x-successor" : "GET /api/v1/notifications/inbox",
         "x-sunset" : "2026-12-31"
@@ -6608,6 +6886,7 @@
     "/api/v1/notify/inbox/read-all" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Marks every notification of the caller as read.",
         "operationId" : "markAllAsRead_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -6634,6 +6913,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Mark all notifications read",
         "tags" : [ "ms-notification-controller" ],
         "x-successor" : "POST /api/v1/notifications/inbox/read-all",
         "x-sunset" : "2026-12-31"
@@ -6642,6 +6922,7 @@
     "/api/v1/notify/inbox/{id}/read" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Marks one notification of the caller as read.",
         "operationId" : "markAsRead",
         "parameters" : [ {
           "in" : "path",
@@ -6676,6 +6957,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Mark a notification read",
         "tags" : [ "ms-notification-controller" ],
         "x-successor" : "POST /api/v1/notifications/inbox/{id}/read",
         "x-sunset" : "2026-12-31"
@@ -6684,6 +6966,7 @@
     "/api/v1/notify/preferences" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The caller's notification preferences.",
         "operationId" : "getPreferences_1",
         "responses" : {
           "200" : {
@@ -6710,12 +6993,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get my notification preferences",
         "tags" : [ "ms-notification-controller" ],
         "x-successor" : "GET /api/v1/notifications/preferences",
         "x-sunset" : "2026-12-31"
       },
       "put" : {
         "deprecated" : true,
+        "description" : "Replaces the caller's notification preferences.",
         "operationId" : "updatePreferences_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -6755,6 +7040,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update my notification preferences",
         "tags" : [ "ms-notification-controller" ],
         "x-successor" : "PUT /api/v1/notifications/preferences",
         "x-sunset" : "2026-12-31"
@@ -6763,6 +7049,7 @@
     "/api/v1/notify/unread-count" : {
       "get" : {
         "deprecated" : true,
+        "description" : "How many notifications of the caller are unread.",
         "operationId" : "getUnreadCount",
         "responses" : {
           "200" : {
@@ -6790,6 +7077,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Count my unread notifications",
         "tags" : [ "ms-notification-controller" ],
         "x-successor" : "GET /api/v1/notifications/unread-count",
         "x-sunset" : "2026-12-31"
@@ -6797,6 +7085,7 @@
     },
     "/api/v1/query-meta/{code}" : {
       "get" : {
+        "description" : "The fields, filters, sorts and defaults of a registry list, including custom fields; the list's own right is checked.",
         "operationId" : "get_3",
         "parameters" : [ {
           "in" : "path",
@@ -6828,12 +7117,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a list description",
         "tags" : [ "query-meta-controller" ]
       }
     },
     "/api/v1/rbac/forms" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The forms and their actions on which permissions are granted.",
         "operationId" : "getFormCatalog",
         "responses" : {
           "200" : {
@@ -6860,6 +7151,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the permission catalog",
         "tags" : [ "md-role-controller" ],
         "x-successor" : "GET /api/v1/iam/forms",
         "x-sunset" : "2026-12-31"
@@ -6868,6 +7160,7 @@
     "/api/v1/rbac/roles" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The roles of the installation.",
         "operationId" : "listRoles_1",
         "responses" : {
           "200" : {
@@ -6894,12 +7187,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List roles",
         "tags" : [ "md-role-controller" ],
         "x-successor" : "GET /api/v1/iam/roles",
         "x-sunset" : "2026-12-31"
       },
       "post" : {
         "deprecated" : true,
+        "description" : "Adds a role with its code and name.",
         "operationId" : "createRole_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -6957,6 +7252,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a role",
         "tags" : [ "md-role-controller" ],
         "x-successor" : "POST /api/v1/iam/roles",
         "x-sunset" : "2026-12-31"
@@ -6965,6 +7261,7 @@
     "/api/v1/rbac/roles/user-counts" : {
       "get" : {
         "deprecated" : true,
+        "description" : "How many users each role is assigned to.",
         "operationId" : "getRoleUserCounts_1",
         "responses" : {
           "200" : {
@@ -6992,6 +7289,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Count users per role",
         "tags" : [ "md-role-controller" ],
         "x-successor" : "GET /api/v1/iam/roles/user-counts",
         "x-sunset" : "2026-12-31"
@@ -7000,6 +7298,7 @@
     "/api/v1/rbac/roles/{id}" : {
       "delete" : {
         "deprecated" : true,
+        "description" : "Removes a role.",
         "operationId" : "deleteRole_1",
         "parameters" : [ {
           "in" : "path",
@@ -7034,12 +7333,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a role",
         "tags" : [ "md-role-controller" ],
         "x-successor" : "DELETE /api/v1/iam/roles/{id}",
         "x-sunset" : "2026-12-31"
       },
       "patch" : {
         "deprecated" : true,
+        "description" : "Changes the name or state of a role; names the revision it was read at.",
         "operationId" : "updateRole_1",
         "parameters" : [ {
           "in" : "path",
@@ -7119,6 +7420,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a role",
         "tags" : [ "md-role-controller" ],
         "x-successor" : "PATCH /api/v1/iam/roles/{id}",
         "x-sunset" : "2026-12-31"
@@ -7127,6 +7429,7 @@
     "/api/v1/rbac/roles/{id}/permissions" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The form actions granted to a role.",
         "operationId" : "getRolePermissions_1",
         "parameters" : [ {
           "in" : "path",
@@ -7163,12 +7466,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the permissions of a role",
         "tags" : [ "md-role-controller" ],
         "x-successor" : "GET /api/v1/iam/roles/{id}/permissions",
         "x-sunset" : "2026-12-31"
       },
       "put" : {
         "deprecated" : true,
+        "description" : "Replaces the whole set of form actions granted to a role.",
         "operationId" : "setRolePermissions_1",
         "parameters" : [ {
           "in" : "path",
@@ -7251,6 +7556,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Replace the permissions of a role",
         "tags" : [ "md-role-controller" ],
         "x-successor" : "PUT /api/v1/iam/roles/{id}/permissions",
         "x-sunset" : "2026-12-31"
@@ -7258,6 +7564,7 @@
     },
     "/api/v1/reports/tasks/export" : {
       "get" : {
+        "description" : "The tasks as a downloadable CSV or XLSX file.",
         "operationId" : "exportTasks",
         "parameters" : [ {
           "in" : "query",
@@ -7283,11 +7590,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Export tasks",
         "tags" : [ "report-controller" ]
       }
     },
     "/api/v1/search" : {
       "get" : {
+        "description" : "Full-text search over the records the caller may see.",
         "operationId" : "search",
         "parameters" : [ {
           "in" : "query",
@@ -7334,11 +7643,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Search",
         "tags" : [ "search-controller" ]
       }
     },
     "/api/v1/search/jobs" : {
       "get" : {
+        "description" : "The search index jobs, newest first, a page at a time.",
         "operationId" : "history",
         "parameters" : [ {
           "in" : "query",
@@ -7379,9 +7690,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List search jobs",
         "tags" : [ "search-management-controller" ]
       },
       "post" : {
+        "description" : "Queues a check, a rebuild or a rollback of the search index.",
         "operationId" : "start",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -7425,11 +7738,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Start a search job",
         "tags" : [ "search-management-controller" ]
       }
     },
     "/api/v1/search/jobs/{id}" : {
       "get" : {
+        "description" : "The state and progress of one search index job.",
         "operationId" : "job",
         "parameters" : [ {
           "in" : "path",
@@ -7462,11 +7777,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a search job",
         "tags" : [ "search-management-controller" ]
       }
     },
     "/api/v1/search/jobs/{id}/cancel" : {
       "post" : {
+        "description" : "Cancels a search index job that has not finished.",
         "operationId" : "cancel",
         "parameters" : [ {
           "in" : "path",
@@ -7508,11 +7825,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Cancel a search job",
         "tags" : [ "search-management-controller" ]
       }
     },
     "/api/v1/search/jobs/{id}/retry" : {
       "post" : {
+        "description" : "Queues a failed or cancelled search index job again.",
         "operationId" : "retry",
         "parameters" : [ {
           "in" : "path",
@@ -7564,11 +7883,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Retry a search job",
         "tags" : [ "search-management-controller" ]
       }
     },
     "/api/v1/search/preview" : {
       "post" : {
+        "description" : "Runs a query with draft settings, without saving them.",
         "operationId" : "preview",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -7612,11 +7933,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Preview a search",
         "tags" : [ "search-management-controller" ]
       }
     },
     "/api/v1/search/settings" : {
       "get" : {
+        "description" : "The search settings in force, with their version.",
         "operationId" : "settings",
         "responses" : {
           "200" : {
@@ -7640,9 +7963,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get search settings",
         "tags" : [ "search-management-controller" ]
       },
       "put" : {
+        "description" : "Replaces the search settings; names the version it was read at.",
         "operationId" : "save",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -7686,11 +8011,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Save search settings",
         "tags" : [ "search-management-controller" ]
       }
     },
     "/api/v1/search/status" : {
       "get" : {
+        "description" : "The state of the search index and of its engine.",
         "operationId" : "status",
         "responses" : {
           "200" : {
@@ -7714,11 +8041,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the search status",
         "tags" : [ "search-management-controller" ]
       }
     },
     "/api/v1/settings" : {
       "get" : {
+        "description" : "The settings in force for the caller.",
         "operationId" : "getEffectiveSettings",
         "responses" : {
           "200" : {
@@ -7745,11 +8074,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the effective settings",
         "tags" : [ "md-setting-controller" ]
       }
     },
     "/api/v1/settings/session" : {
       "get" : {
+        "description" : "What a signed-in session needs to know about itself, such as when inactivity closes it.",
         "operationId" : "getSessionSettings",
         "responses" : {
           "200" : {
@@ -7777,11 +8108,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the session settings",
         "tags" : [ "md-setting-controller" ]
       }
     },
     "/api/v1/settings/system" : {
       "get" : {
+        "description" : "The installation-wide settings.",
         "operationId" : "getSystemSettings",
         "responses" : {
           "200" : {
@@ -7808,9 +8141,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the system settings",
         "tags" : [ "md-setting-controller" ]
       },
       "patch" : {
+        "description" : "Changes installation-wide settings.",
         "operationId" : "updateSystemSettings",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -7850,11 +8185,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update the system settings",
         "tags" : [ "md-setting-controller" ]
       }
     },
     "/api/v1/settings/user" : {
       "get" : {
+        "description" : "The caller's own settings.",
         "operationId" : "getUserSettings",
         "responses" : {
           "200" : {
@@ -7881,9 +8218,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get my settings",
         "tags" : [ "md-setting-controller" ]
       },
       "patch" : {
+        "description" : "Changes the caller's own settings.",
         "operationId" : "updateUserSettings",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -7923,11 +8262,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update my settings",
         "tags" : [ "md-setting-controller" ]
       }
     },
     "/api/v1/system/info" : {
       "get" : {
+        "description" : "The version and build of the running installation.",
         "operationId" : "getInfo",
         "responses" : {
           "200" : {
@@ -7951,11 +8292,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get system information",
         "tags" : [ "system-info-controller" ]
       }
     },
     "/api/v1/tasks" : {
       "get" : {
+        "description" : "The tasks the caller may see, with filters, sort and search.",
         "operationId" : "listTasks",
         "parameters" : [ {
           "in" : "query",
@@ -8141,9 +8484,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List tasks",
         "tags" : [ "ms-task-controller" ]
       },
       "post" : {
+        "description" : "Adds a task with its project, participants, dates and custom field values.",
         "operationId" : "createTask",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -8195,11 +8540,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a task",
         "tags" : [ "ms-task-controller" ]
       }
     },
     "/api/v1/tasks/bulk" : {
       "post" : {
+        "description" : "Applies one bulk action to the selected tasks.",
         "operationId" : "bulk_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -8243,12 +8590,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Run a bulk action on tasks",
         "tags" : [ "ms-task-controller" ]
       }
     },
     "/api/v1/tasks/items" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The tasks the caller may see, with filters, sort and search.",
         "operationId" : "listTasks_1",
         "parameters" : [ {
           "in" : "query",
@@ -8434,12 +8783,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List tasks",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "GET /api/v1/tasks",
         "x-sunset" : "2026-12-31"
       },
       "post" : {
         "deprecated" : true,
+        "description" : "Adds a task with its project, participants, dates and custom field values.",
         "operationId" : "createTask_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -8491,6 +8842,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a task",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "POST /api/v1/tasks",
         "x-sunset" : "2026-12-31"
@@ -8499,6 +8851,7 @@
     "/api/v1/tasks/items/bulk" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Applies one bulk action to the selected tasks.",
         "operationId" : "bulk",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -8542,6 +8895,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Run a bulk action on tasks",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "POST /api/v1/tasks/bulk",
         "x-sunset" : "2026-12-31"
@@ -8550,6 +8904,7 @@
     "/api/v1/tasks/items/projects/stats" : {
       "get" : {
         "deprecated" : true,
+        "description" : "Task counts per project.",
         "operationId" : "getProjectStats_1",
         "responses" : {
           "200" : {
@@ -8576,6 +8931,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get task counts per project",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "GET /api/v1/tasks/projects/stats",
         "x-sunset" : "2026-12-31"
@@ -8584,6 +8940,7 @@
     "/api/v1/tasks/items/statuses" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The task statuses in their order.",
         "operationId" : "listStatuses_1",
         "responses" : {
           "200" : {
@@ -8610,12 +8967,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List task statuses",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "GET /api/v1/tasks/statuses",
         "x-sunset" : "2026-12-31"
       },
       "post" : {
         "deprecated" : true,
+        "description" : "Adds a task status.",
         "operationId" : "createStatus_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -8673,6 +9032,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a task status",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "POST /api/v1/tasks/statuses",
         "x-sunset" : "2026-12-31"
@@ -8681,6 +9041,7 @@
     "/api/v1/tasks/items/statuses/reorder" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Sets the order of the task statuses.",
         "operationId" : "reorderStatuses",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -8721,6 +9082,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Reorder task statuses",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "POST /api/v1/tasks/statuses/reorder",
         "x-sunset" : "2026-12-31"
@@ -8729,6 +9091,7 @@
     "/api/v1/tasks/items/statuses/{id}" : {
       "delete" : {
         "deprecated" : true,
+        "description" : "Removes a task status.",
         "operationId" : "deleteStatus_1",
         "parameters" : [ {
           "in" : "path",
@@ -8763,12 +9126,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a task status",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "DELETE /api/v1/tasks/statuses/{id}",
         "x-sunset" : "2026-12-31"
       },
       "patch" : {
         "deprecated" : true,
+        "description" : "Changes a task status; names the revision it was read at.",
         "operationId" : "updateStatus_1",
         "parameters" : [ {
           "in" : "path",
@@ -8848,6 +9213,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a task status",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "PATCH /api/v1/tasks/statuses/{id}",
         "x-sunset" : "2026-12-31"
@@ -8856,6 +9222,7 @@
     "/api/v1/tasks/items/types" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The task types in their order.",
         "operationId" : "listTypes",
         "responses" : {
           "200" : {
@@ -8882,12 +9249,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List task types",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "GET /api/v1/tasks/types",
         "x-sunset" : "2026-12-31"
       },
       "post" : {
         "deprecated" : true,
+        "description" : "Adds a task type.",
         "operationId" : "createType",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -8945,6 +9314,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a task type",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "POST /api/v1/tasks/types",
         "x-sunset" : "2026-12-31"
@@ -8953,6 +9323,7 @@
     "/api/v1/tasks/items/types/reorder" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Sets the order of the task types.",
         "operationId" : "reorderTypes",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -8993,6 +9364,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Reorder task types",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "POST /api/v1/tasks/types/reorder",
         "x-sunset" : "2026-12-31"
@@ -9001,6 +9373,7 @@
     "/api/v1/tasks/items/types/{id}" : {
       "delete" : {
         "deprecated" : true,
+        "description" : "Removes a task type.",
         "operationId" : "deleteType_1",
         "parameters" : [ {
           "in" : "path",
@@ -9035,12 +9408,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a task type",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "DELETE /api/v1/tasks/types/{id}",
         "x-sunset" : "2026-12-31"
       },
       "patch" : {
         "deprecated" : true,
+        "description" : "Changes a task type; names the revision it was read at.",
         "operationId" : "updateType_1",
         "parameters" : [ {
           "in" : "path",
@@ -9120,6 +9495,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a task type",
         "tags" : [ "ms-task-status-controller" ],
         "x-successor" : "PATCH /api/v1/tasks/types/{id}",
         "x-sunset" : "2026-12-31"
@@ -9128,6 +9504,7 @@
     "/api/v1/tasks/items/{id}" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The task card; reading it changes nothing.",
         "operationId" : "getTask",
         "parameters" : [ {
           "in" : "path",
@@ -9160,12 +9537,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a task",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "GET /api/v1/tasks/{id}",
         "x-sunset" : "2026-12-31"
       },
       "patch" : {
         "deprecated" : true,
+        "description" : "Changes the given fields of a task; a field left out keeps its value.",
         "operationId" : "updateTask",
         "parameters" : [ {
           "in" : "path",
@@ -9237,6 +9616,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a task",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "PATCH /api/v1/tasks/{id}",
         "x-sunset" : "2026-12-31"
@@ -9245,6 +9625,7 @@
     "/api/v1/tasks/items/{id}/files" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The files attached to a task.",
         "operationId" : "getTaskFiles",
         "parameters" : [ {
           "in" : "path",
@@ -9280,12 +9661,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List task files",
         "tags" : [ "ms-task-file-controller" ],
         "x-successor" : "GET /api/v1/tasks/{id}/files",
         "x-sunset" : "2026-12-31"
       },
       "post" : {
         "deprecated" : true,
+        "description" : "Attaches a stored file to a task.",
         "operationId" : "attachFile",
         "parameters" : [ {
           "in" : "path",
@@ -9330,6 +9713,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Attach a file to a task",
         "tags" : [ "ms-task-file-controller" ],
         "x-successor" : "POST /api/v1/tasks/{id}/files",
         "x-sunset" : "2026-12-31"
@@ -9338,6 +9722,7 @@
     "/api/v1/tasks/items/{id}/files/{fileId}" : {
       "delete" : {
         "deprecated" : true,
+        "description" : "Removes the link between a task and a file.",
         "operationId" : "detachFile",
         "parameters" : [ {
           "in" : "path",
@@ -9380,6 +9765,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Detach a file from a task",
         "tags" : [ "ms-task-file-controller" ],
         "x-successor" : "DELETE /api/v1/tasks/{id}/files/{fileId}",
         "x-sunset" : "2026-12-31"
@@ -9388,6 +9774,7 @@
     "/api/v1/tasks/items/{id}/status" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Moves a task to another status of its workflow.",
         "operationId" : "changeStatus",
         "parameters" : [ {
           "in" : "path",
@@ -9459,6 +9846,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Change the status of a task",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "POST /api/v1/tasks/{id}/status",
         "x-sunset" : "2026-12-31"
@@ -9467,6 +9855,7 @@
     "/api/v1/tasks/items/{id}/subtasks" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The direct subtasks of a task.",
         "operationId" : "getSubtasks_1",
         "parameters" : [ {
           "in" : "path",
@@ -9502,6 +9891,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List subtasks",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "GET /api/v1/tasks/{id}/subtasks",
         "x-sunset" : "2026-12-31"
@@ -9510,6 +9900,7 @@
     "/api/v1/tasks/items/{id}/view" : {
       "post" : {
         "deprecated" : true,
+        "description" : "Records that the caller has seen the task, clearing its new mark for them.",
         "operationId" : "markViewed",
         "parameters" : [ {
           "in" : "path",
@@ -9544,6 +9935,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Mark a task viewed",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "POST /api/v1/tasks/{id}/view",
         "x-sunset" : "2026-12-31"
@@ -9552,6 +9944,7 @@
     "/api/v1/tasks/items/{taskId}/comments" : {
       "get" : {
         "deprecated" : true,
+        "description" : "The comments of a task.",
         "operationId" : "listComments",
         "parameters" : [ {
           "in" : "path",
@@ -9599,12 +9992,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List task comments",
         "tags" : [ "ms-task-comment-controller" ],
         "x-successor" : "GET /api/v1/tasks/{taskId}/comments",
         "x-sunset" : "2026-12-31"
       },
       "post" : {
         "deprecated" : true,
+        "description" : "Adds a comment to a task.",
         "operationId" : "addComment",
         "parameters" : [ {
           "in" : "path",
@@ -9664,6 +10059,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Comment on a task",
         "tags" : [ "ms-task-comment-controller" ],
         "x-successor" : "POST /api/v1/tasks/{taskId}/comments",
         "x-sunset" : "2026-12-31"
@@ -9672,6 +10068,7 @@
     "/api/v1/tasks/projects" : {
       "get" : {
         "deprecated" : true,
+        "description" : "Every project the caller may see. Deprecated: use GET /tasks/projects/page.",
         "operationId" : "listProjects",
         "parameters" : [ {
           "in" : "query",
@@ -9706,11 +10103,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List projects",
         "tags" : [ "ms-project-controller" ],
         "x-successor" : "GET /api/v1/tasks/projects/page",
         "x-sunset" : "2026-12-31"
       },
       "post" : {
+        "description" : "Adds a project with its name, description, state and custom field values.",
         "operationId" : "createProject",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -9768,11 +10167,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a project",
         "tags" : [ "ms-project-controller" ]
       }
     },
     "/api/v1/tasks/projects/page" : {
       "get" : {
+        "description" : "The projects a keyset page at a time on the registry: filter, sort, search and the caller's task counts.",
         "operationId" : "pageProjects",
         "parameters" : [ {
           "in" : "query",
@@ -9840,12 +10241,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Page through projects",
         "tags" : [ "ms-project-controller" ]
       }
     },
     "/api/v1/tasks/projects/stats" : {
       "get" : {
         "deprecated" : true,
+        "description" : "Task counts per project.",
         "operationId" : "getProjectStats",
         "responses" : {
           "200" : {
@@ -9872,6 +10275,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get task counts per project",
         "tags" : [ "ms-task-controller" ],
         "x-successor" : "GET /api/v1/tasks/projects/page",
         "x-sunset" : "2026-12-31"
@@ -9879,6 +10283,7 @@
     },
     "/api/v1/tasks/projects/{id}" : {
       "get" : {
+        "description" : "One project with its custom field values.",
         "operationId" : "getProject",
         "parameters" : [ {
           "in" : "path",
@@ -9919,9 +10324,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a project",
         "tags" : [ "ms-project-controller" ]
       },
       "patch" : {
+        "description" : "Changes a project; names the revision it was read at.",
         "operationId" : "updateProject",
         "parameters" : [ {
           "in" : "path",
@@ -10001,12 +10408,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a project",
         "tags" : [ "ms-project-controller" ]
       }
     },
     "/api/v1/tasks/projects/{id}/members" : {
       "get" : {
         "deprecated" : true,
+        "description" : "Every member of a project at once. Deprecated for GET /api/v1/tasks/projects/{id}/members/page; answers until its sunset.",
         "operationId" : "getMembers",
         "parameters" : [ {
           "in" : "path",
@@ -10042,11 +10451,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List project members (deprecated)",
         "tags" : [ "ms-project-controller" ],
         "x-successor" : "GET /api/v1/tasks/projects/{id}/members/page",
         "x-sunset" : "2026-12-31"
       },
       "post" : {
+        "description" : "Adds a user to a project.",
         "operationId" : "addMember",
         "parameters" : [ {
           "in" : "path",
@@ -10091,11 +10502,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Add a project member",
         "tags" : [ "ms-project-controller" ]
       }
     },
     "/api/v1/tasks/projects/{id}/members/page" : {
       "get" : {
+        "description" : "The members of a project, by name, a keyset page at a time.",
         "operationId" : "pageMembers",
         "parameters" : [ {
           "in" : "path",
@@ -10143,11 +10556,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Page through project members",
         "tags" : [ "ms-project-controller" ]
       }
     },
     "/api/v1/tasks/projects/{id}/members/{userId}" : {
       "delete" : {
+        "description" : "Removes a user from a project.",
         "operationId" : "removeMember",
         "parameters" : [ {
           "in" : "path",
@@ -10190,11 +10605,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Remove a project member",
         "tags" : [ "ms-project-controller" ]
       }
     },
     "/api/v1/tasks/statuses" : {
       "get" : {
+        "description" : "The task statuses in their order.",
         "operationId" : "listStatuses",
         "responses" : {
           "200" : {
@@ -10221,9 +10638,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List task statuses",
         "tags" : [ "ms-task-status-controller" ]
       },
       "post" : {
+        "description" : "Adds a task status.",
         "operationId" : "createStatus",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -10281,11 +10700,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a task status",
         "tags" : [ "ms-task-status-controller" ]
       }
     },
     "/api/v1/tasks/statuses/reorder" : {
       "post" : {
+        "description" : "Sets the order of the task statuses.",
         "operationId" : "reorderStatuses_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -10326,11 +10747,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Reorder task statuses",
         "tags" : [ "ms-task-status-controller" ]
       }
     },
     "/api/v1/tasks/statuses/{id}" : {
       "delete" : {
+        "description" : "Removes a task status.",
         "operationId" : "deleteStatus",
         "parameters" : [ {
           "in" : "path",
@@ -10365,9 +10788,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a task status",
         "tags" : [ "ms-task-status-controller" ]
       },
       "patch" : {
+        "description" : "Changes a task status; names the revision it was read at.",
         "operationId" : "updateStatus",
         "parameters" : [ {
           "in" : "path",
@@ -10447,11 +10872,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a task status",
         "tags" : [ "ms-task-status-controller" ]
       }
     },
     "/api/v1/tasks/types" : {
       "get" : {
+        "description" : "The task types in their order.",
         "operationId" : "listTypes_1",
         "responses" : {
           "200" : {
@@ -10478,9 +10905,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List task types",
         "tags" : [ "ms-task-status-controller" ]
       },
       "post" : {
+        "description" : "Adds a task type.",
         "operationId" : "createType_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -10538,11 +10967,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a task type",
         "tags" : [ "ms-task-status-controller" ]
       }
     },
     "/api/v1/tasks/types/reorder" : {
       "post" : {
+        "description" : "Sets the order of the task types.",
         "operationId" : "reorderTypes_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -10583,11 +11014,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Reorder task types",
         "tags" : [ "ms-task-status-controller" ]
       }
     },
     "/api/v1/tasks/types/{id}" : {
       "delete" : {
+        "description" : "Removes a task type.",
         "operationId" : "deleteType",
         "parameters" : [ {
           "in" : "path",
@@ -10622,9 +11055,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a task type",
         "tags" : [ "ms-task-status-controller" ]
       },
       "patch" : {
+        "description" : "Changes a task type; names the revision it was read at.",
         "operationId" : "updateType",
         "parameters" : [ {
           "in" : "path",
@@ -10704,11 +11139,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a task type",
         "tags" : [ "ms-task-status-controller" ]
       }
     },
     "/api/v1/tasks/{id}" : {
       "get" : {
+        "description" : "The task card; reading it changes nothing.",
         "operationId" : "getTask_1",
         "parameters" : [ {
           "in" : "path",
@@ -10741,9 +11178,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a task",
         "tags" : [ "ms-task-controller" ]
       },
       "patch" : {
+        "description" : "Changes the given fields of a task; a field left out keeps its value.",
         "operationId" : "updateTask_1",
         "parameters" : [ {
           "in" : "path",
@@ -10815,11 +11254,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a task",
         "tags" : [ "ms-task-controller" ]
       }
     },
     "/api/v1/tasks/{id}/files" : {
       "get" : {
+        "description" : "The files attached to a task.",
         "operationId" : "getTaskFiles_1",
         "parameters" : [ {
           "in" : "path",
@@ -10855,9 +11296,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List task files",
         "tags" : [ "ms-task-file-controller" ]
       },
       "post" : {
+        "description" : "Attaches a stored file to a task.",
         "operationId" : "attachFile_1",
         "parameters" : [ {
           "in" : "path",
@@ -10902,11 +11345,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Attach a file to a task",
         "tags" : [ "ms-task-file-controller" ]
       }
     },
     "/api/v1/tasks/{id}/files/{fileId}" : {
       "delete" : {
+        "description" : "Removes the link between a task and a file.",
         "operationId" : "detachFile_1",
         "parameters" : [ {
           "in" : "path",
@@ -10949,11 +11394,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Detach a file from a task",
         "tags" : [ "ms-task-file-controller" ]
       }
     },
     "/api/v1/tasks/{id}/status" : {
       "post" : {
+        "description" : "Moves a task to another status of its workflow.",
         "operationId" : "changeStatus_1",
         "parameters" : [ {
           "in" : "path",
@@ -11025,11 +11472,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Change the status of a task",
         "tags" : [ "ms-task-controller" ]
       }
     },
     "/api/v1/tasks/{id}/subtasks" : {
       "get" : {
+        "description" : "The direct subtasks of a task.",
         "operationId" : "getSubtasks",
         "parameters" : [ {
           "in" : "path",
@@ -11065,11 +11514,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List subtasks",
         "tags" : [ "ms-task-controller" ]
       }
     },
     "/api/v1/tasks/{id}/view" : {
       "post" : {
+        "description" : "Records that the caller has seen the task, clearing its new mark for them.",
         "operationId" : "markViewed_1",
         "parameters" : [ {
           "in" : "path",
@@ -11104,11 +11555,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Mark a task viewed",
         "tags" : [ "ms-task-controller" ]
       }
     },
     "/api/v1/tasks/{taskId}/comments" : {
       "get" : {
+        "description" : "The comments of a task.",
         "operationId" : "listComments_1",
         "parameters" : [ {
           "in" : "path",
@@ -11156,9 +11609,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List task comments",
         "tags" : [ "ms-task-comment-controller" ]
       },
       "post" : {
+        "description" : "Adds a comment to a task.",
         "operationId" : "addComment_1",
         "parameters" : [ {
           "in" : "path",
@@ -11218,11 +11673,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Comment on a task",
         "tags" : [ "ms-task-comment-controller" ]
       }
     },
     "/api/v1/upl/overview" : {
       "get" : {
+        "description" : "Uploads and their outcomes over the requested number of days, for the overview screen.",
         "operationId" : "get_2",
         "parameters" : [ {
           "in" : "query",
@@ -11256,11 +11713,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get the upload overview",
         "tags" : [ "upl-overview-controller" ]
       }
     },
     "/api/v1/upl/packages" : {
       "get" : {
+        "description" : "The uploaded packages, a keyset page at a time with filters.",
         "operationId" : "list_1",
         "parameters" : [ {
           "in" : "query",
@@ -11321,9 +11780,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List data packages",
         "tags" : [ "upl-package-controller" ]
       },
       "post" : {
+        "description" : "Accepts a file for a source; the package starts as received.",
         "operationId" : "upload",
         "parameters" : [ {
           "in" : "query",
@@ -11384,11 +11845,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Upload a data package",
         "tags" : [ "upl-package-controller" ]
       }
     },
     "/api/v1/upl/packages/{id}" : {
       "get" : {
+        "description" : "One uploaded package with its state and counts.",
         "operationId" : "get_1",
         "parameters" : [ {
           "in" : "path",
@@ -11420,11 +11883,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a data package",
         "tags" : [ "upl-package-controller" ]
       }
     },
     "/api/v1/upl/packages/{id}/apply" : {
       "post" : {
+        "description" : "Queues the application of a checked package; the client polls the package until it is applied or refused.",
         "operationId" : "apply",
         "parameters" : [ {
           "in" : "path",
@@ -11465,11 +11930,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Apply a data package",
         "tags" : [ "upl-package-controller" ]
       }
     },
     "/api/v1/upl/packages/{id}/errors" : {
       "get" : {
+        "description" : "The errors found in an uploaded package.",
         "operationId" : "errors",
         "parameters" : [ {
           "in" : "path",
@@ -11501,11 +11968,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List the errors of a package",
         "tags" : [ "upl-package-controller" ]
       }
     },
     "/api/v1/upl/packages/{id}/errors/file" : {
       "get" : {
+        "description" : "The errors of an uploaded package as a spreadsheet, in the requested language.",
         "operationId" : "errorsFile",
         "parameters" : [ {
           "in" : "path",
@@ -11545,11 +12014,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Download the errors of a package",
         "tags" : [ "upl-package-controller" ]
       }
     },
     "/api/v1/upl/sources" : {
       "get" : {
+        "description" : "The upload sources, a keyset page at a time.",
         "operationId" : "list",
         "parameters" : [ {
           "in" : "query",
@@ -11610,9 +12081,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List data sources",
         "tags" : [ "upl-source-controller" ]
       },
       "post" : {
+        "description" : "Adds an upload source.",
         "operationId" : "create",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -11674,11 +12147,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a data source",
         "tags" : [ "upl-source-controller" ]
       }
     },
     "/api/v1/upl/sources/{id}" : {
       "get" : {
+        "description" : "One upload source.",
         "operationId" : "get",
         "parameters" : [ {
           "in" : "path",
@@ -11711,9 +12186,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a data source",
         "tags" : [ "upl-source-controller" ]
       },
       "put" : {
+        "description" : "Replaces an upload source.",
         "operationId" : "update",
         "parameters" : [ {
           "in" : "path",
@@ -11775,11 +12252,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a data source",
         "tags" : [ "upl-source-controller" ]
       }
     },
     "/api/v1/upl/sources/{id}/format-versions" : {
       "get" : {
+        "description" : "The format versions of a source; with the at parameter, the one version in force on that day.",
         "operationId" : "versions",
         "parameters" : [ {
           "in" : "path",
@@ -11827,9 +12306,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List format versions",
         "tags" : [ "upl-source-controller" ]
       },
       "post" : {
+        "description" : "Starts a draft format version of a source, empty or copied from a version.",
         "operationId" : "createDraft",
         "parameters" : [ {
           "in" : "path",
@@ -11888,11 +12369,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a format draft",
         "tags" : [ "upl-source-controller" ]
       }
     },
     "/api/v1/upl/sources/{id}/format-versions/{v}" : {
       "get" : {
+        "description" : "One format version of a source with its sheets and columns.",
         "operationId" : "getVersion",
         "parameters" : [ {
           "in" : "path",
@@ -11933,9 +12416,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Get a format version",
         "tags" : [ "upl-source-controller" ]
       },
       "put" : {
+        "description" : "Replaces the sheets and columns of a draft format version.",
         "operationId" : "replaceDraft",
         "parameters" : [ {
           "in" : "path",
@@ -12005,11 +12490,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a format draft",
         "tags" : [ "upl-source-controller" ]
       }
     },
     "/api/v1/upl/sources/{id}/format-versions/{v}/publish" : {
       "post" : {
+        "description" : "Publishes a draft format version, in force from the given day.",
         "operationId" : "publish",
         "parameters" : [ {
           "in" : "path",
@@ -12062,11 +12549,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Publish a format version",
         "tags" : [ "upl-source-controller" ]
       }
     },
     "/api/v1/upl/sources/{id}/format-versions/{v}/template" : {
       "get" : {
+        "description" : "The file a supplier fills in for a format version, in the requested language.",
         "operationId" : "template",
         "parameters" : [ {
           "in" : "path",
@@ -12115,11 +12604,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Download a format template",
         "tags" : [ "upl-source-controller" ]
       }
     },
     "/api/v1/upl/units" : {
       "get" : {
+        "description" : "The units of measure.",
         "operationId" : "list_4",
         "responses" : {
           "200" : {
@@ -12146,11 +12637,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List units of measure",
         "tags" : [ "upl-unit-controller" ]
       }
     },
     "/api/v1/webhooks/subscriptions" : {
       "get" : {
+        "description" : "The webhook subscriptions of the installation.",
         "operationId" : "listSubscriptions",
         "responses" : {
           "200" : {
@@ -12177,9 +12670,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "List webhook subscriptions",
         "tags" : [ "kwh-subscription-controller" ]
       },
       "post" : {
+        "description" : "Subscribes a target URL to events; the signing key is returned once and never stored for replay.",
         "operationId" : "createSubscription",
         "requestBody" : {
           "content" : {
@@ -12221,11 +12716,13 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Create a webhook subscription",
         "tags" : [ "kwh-subscription-controller" ]
       }
     },
     "/api/v1/webhooks/subscriptions/{id}" : {
       "delete" : {
+        "description" : "Removes a webhook subscription.",
         "operationId" : "deleteSubscription",
         "parameters" : [ {
           "in" : "path",
@@ -12260,9 +12757,11 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Delete a webhook subscription",
         "tags" : [ "kwh-subscription-controller" ]
       },
       "patch" : {
+        "description" : "Changes the name, target, events or state of a subscription.",
         "operationId" : "updateSubscription",
         "parameters" : [ {
           "in" : "path",
@@ -12342,6 +12841,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
+        "summary" : "Update a webhook subscription",
         "tags" : [ "kwh-subscription-controller" ]
       }
     }
