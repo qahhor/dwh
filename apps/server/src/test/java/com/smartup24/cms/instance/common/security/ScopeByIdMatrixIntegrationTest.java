@@ -11,6 +11,7 @@ import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.support.TestSession;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -79,12 +80,12 @@ class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
     private RequestMappingHandlerMapping mappings;
 
     private ScopeFixture fixture;
-    private ScopeSession viewer;
+    private TestSession viewer;
 
     @BeforeAll
     void setUp() throws Exception {
         fixture = new ScopeFixture(jdbc, users, scopes, scopeRepository, roles, tasks, files);
-        viewer = ScopeSession.signIn(wac, fixture.viewerLogin);
+        viewer = TestSession.signIn(wac, fixture.viewerLogin);
     }
 
     @Test

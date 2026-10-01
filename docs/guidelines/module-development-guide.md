@@ -77,8 +77,9 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
 `scripts/dev/create-module.ps1 -ModuleName <код> -ModuleTitle "<Название>" [-TitleEn … -TitleUz …]`:
 две миграции (таблица и данные), пакет `api` (ответ и запросы), репозиторий,
 объявление, сервис и контроллер по серверным правилам выше, ключи ошибки,
-меню и подписей в каталогах ru/uz/en, область права в `PermissionAreas`. В
-конце он печатает, что осталось сделать руками.
+меню и подписей в каталогах ru/uz/en, область права в `PermissionAreas` и
+тест контракта сущности (наследник `EntityContractTestKit`). В конце он
+печатает, что осталось сделать руками.
 `scripts/dev/test-create-module.ps1` проверяет, что результат генератора
 собирается, проходит архитектурные тесты и стартует. Образец в коде — заметки
 (`ms.note`).
@@ -161,8 +162,10 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
    `PermissionAreas`, а модуль — в `EntityRights`),
    `PermissionCodesTest` — что код формы подчиняется правилу ADR-0028,
    `MdFormCatalogTest` — что у каждой пары права есть название; объявление без того, что обещают его возможности, не
-   даёт приложению стартовать. Тесты модуля — как у заметок
-   (`MsNoteControllerTest`, `MsNoteIntegrationTest`). Новый модуль получает
+   даёт приложению стартовать. **Контракт сущности** — один наследник
+   `EntityContractTestKit` (раздел ниже); без него `EntityContractCoverageTest`
+   валит сборку. Свои правила модуля (хуки, расчёты) — отдельными тестами,
+   как у заметок (`MsNoteControllerTest`, `MsNoteIntegrationTest`). Новый модуль получает
    строку порога покрытия в `apps/server/coverage-floors.csv` (без неё
    `scripts/quality/test-coverage-floors.ps1` падает) и своё имя в
    `ModuleBoundariesTest.MODULES` с префиксом таблиц в `ownerOf`, чтобы
@@ -170,6 +173,56 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
 
 Не нужно: записи в `MdFormCatalog`, свой источник истории, свой экспортёр,
 свой endpoint массовых действий, пункт меню в `app-shell.models.ts`.
+
+### Контракт сущности: тест-кит
+
+Каждая сущность с таблицей проходит общий контракт
+([ADR-0032](../adr/ADR-0032-low-code-platform-v2.md), §11; план 10/10, пункт
+6.2). Автор пишет один класс в тестах модуля; генератор создаёт его сам
+(`<Prefix><Name>ContractTest`):
+
+```java
+class MsNoteContractTest extends EntityContractTestKit {
+    @Override protected String entity() { return MsNoteEntity.CODE; }
+
+    @Override protected EntityTransport transport() {
+        // До runtime (пункт 5.4) — свой контроллер модуля и его действия.
+        return EntityTransport.module("/api/v1/notes")
+                .action("pin", HttpMethod.PUT, id -> "/api/v1/notes/" + id + "/pin", Map.of("pinned", true));
+    }
+}
+```
+
+Кит (`apps/server/src/test/java/.../support/entity`) выводит случаи из
+объявления и гоняет их по всему приложению на встроенном PostgreSQL сборки:
+метаданные, CRUD (201 + `Location` + `ETag`, чтение как записано, список,
+повтор с тем же `Idempotency-Key`), ревизия (428/409), архив, права (без
+`view` — отказ на всех путях, с одним `view` изменения — 403, `actions` в
+`form-meta` по правам), скоуп (чужая запись — 404, тот же ответ, что у
+несуществующего id, на каждом пути по id; её нет в списке, массовом действии
+и выгрузке), права на поля, проверка каждого правила каждого поля (422 с
+адресом и кодом), аудит (все объявленные поля в истории с подписями) и
+выгрузка (строки списка зрителя, только его колонки). Пользователей, роли,
+оргединицы и сессии кит создаёт сам (`TestUsers`, `TestSession`).
+
+Что переопределяет автор:
+
+| Метод | Когда |
+|---|---|
+| `entity()` | всегда: код сущности |
+| `transport()` | пока сущность обслуживает свой контроллер: `EntityTransport.module(путь)`, свои действия — `.action(код, метод, путь, тело)`, `PATCH` — `.updateWith(PATCH)`, удаление без `If-Match` — `.deleteWithoutIfMatch()`. По умолчанию — runtime `/api/v1/entities/{code}` |
+| `fixture(ctx)` | значения, которые кит не придумает: ссылка, файл, элемент справочника, текст по шаблону, — `EntityFixture.valid(Map.of(...))`; своё изменение — `.update(...)`; свои недопустимые значения — `.invalid(поле, значение, код)` |
+
+Падение случая называет группу и правило («скоуп: … read is 404»). Чинится
+код модуля, а не кит: обойти случай нельзя, а `EntityContractCoverageTest`
+требует ровно один наследник на сущность.
+
+Веб-экраны на `smt-entity-form` проверяются помощниками
+`apps/web/src/testing/entity-form.ts`: `formMetaFixture(code, fields)` —
+`form-meta` из полей, `renderEntityForm(meta, values, problems)` — форма с
+хостом, `EntityFormHarness` — `fill(ключ, значение)` по типу поля, `problem(ключ)`,
+`readonly(ключ)`, `keys()`; для формы в диалоге корнем служит
+`inScreen(fixture.nativeElement)`.
 
 ### Экран сущности: пример
 
