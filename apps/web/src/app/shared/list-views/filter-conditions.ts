@@ -1,4 +1,5 @@
 import {
+  enumLabel,
   fieldLabel,
   QueryCondition,
   QueryFieldMeta,
@@ -91,8 +92,15 @@ export function draftError(draft: FilterDraft, meta: QueryListMeta): string | nu
 export function toCondition(draft: FilterDraft, meta: QueryListMeta): QueryCondition {
   const field = meta.fields.find((item) => item.key === draft.field)!;
   if (!opTakesValue(draft.op)) return { field: field.key, op: draft.op };
-  if (draft.op === 'in')
-    return { field: field.key, op: 'in', value: inValues(draft, field).map((item) => typed(field, item)) };
+  if (draft.op === 'in') {
+    const condition: QueryCondition = {
+      field: field.key,
+      op: 'in',
+      value: inValues(draft, field).map((item) => typed(field, item)),
+    };
+    // One record picked by name for a set of references (plan 10/10, item 5.2): the chip reads its name.
+    return field.ref && draft.label ? { ...condition, label: draft.label } : condition;
+  }
   if (draft.op === 'between') {
     return { field: field.key, op: 'between', value: [typed(field, draft.value), typed(field, draft.valueTo)] };
   }
@@ -124,8 +132,7 @@ export function displayValue(
   field: QueryFieldMeta | undefined,
   translate: (key: string) => string,
 ): string {
-  if (field?.type === 'enum')
-    return field.enumLabelPrefix ? translate(`${field.enumLabelPrefix}${value}`) : String(value);
+  if (field?.type === 'enum') return enumLabel(field, String(value), translate);
   if (field?.type === 'boolean') return translate(value === true || value === 'true' ? 'common.yes' : 'common.no');
   return String(value);
 }
@@ -143,6 +150,8 @@ function valueFits(field: QueryFieldMeta, text: string): boolean {
   switch (field.type) {
     case 'number':
       return value !== '' && Number.isFinite(Number(value));
+    case 'ref_set':
+      return /^[1-9]\d{0,17}$/.test(value);
     case 'date':
       return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
     case 'instant':
@@ -159,7 +168,7 @@ function valueFits(field: QueryFieldMeta, text: string): boolean {
 }
 
 function errorFor(field: QueryFieldMeta): string {
-  return field.type === 'number'
+  return field.type === 'number' || field.type === 'ref_set'
     ? 'ui.filter.err.number'
     : field.type === 'date' || field.type === 'instant'
       ? 'ui.filter.err.date'
@@ -168,7 +177,7 @@ function errorFor(field: QueryFieldMeta): string {
 
 function typed(field: QueryFieldMeta, text: string): QueryValue {
   const value = text.trim();
-  if (field.type === 'number') return Number(value);
+  if (field.type === 'number' || field.type === 'ref_set') return Number(value);
   if (field.type === 'boolean') return value === 'true';
   if (field.type === 'instant') return new Date(value).toISOString();
   return value;

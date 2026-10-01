@@ -3,7 +3,10 @@ import { Observable } from 'rxjs';
 import type { FieldErrorItem } from '../models/common.models';
 import type { FormFieldMeta, FormMeta, FormProblems, FormValues } from '../models/form-meta.models';
 import { ApiService } from './api.service';
+import { FIELD_VALUE_RULES, fieldReadonly, fieldVisible, localMoment, utcMoment } from './field-values';
 import { MetaCache, MetaCacheState } from './meta-cache';
+
+export { fieldReadonly, fieldVisible, localMoment, utcMoment };
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 type Row = Record<string, unknown>;
@@ -46,69 +49,94 @@ export function optionLabel(field: FormFieldMeta, option: string, translate: Tra
 }
 
 /**
- * A record's values by field key: declared fields from the row, custom ones from its `attributes`. A moment is
- * shown in the viewer's time, as the date picker edits it (`yyyy-MM-ddTHH:mm`).
+ * A record's values by field key: declared fields from the row, custom ones from its `attributes`, each as its
+ * control edits it (a moment in the viewer's time, JSON as text; plan 10/10, item 5.2). A new record (no row) starts
+ * with the fields' defaults the form can know: a fixed value, today, now (ADR-0032 4.3); the server fills the rest.
  */
 export function recordValues(meta: FormMeta, row: Row | null | undefined): FormValues {
   const attributes = (row?.['attributes'] ?? {}) as Row;
   const values: FormValues = {};
   for (const field of meta.fields) {
-    const value = field.attribute ? attributes[field.attribute] : row?.[field.key];
-    if (field.type === 'datetime') {
-      values[field.key] = localMoment(value) ?? value ?? null;
+    const raw = field.attribute ? attributes[field.attribute] : row?.[field.key];
+    const value = raw ?? (row ? null : defaultOf(field));
+    if (field.attribute) {
+      // A custom moment is edited in the viewer's time too (plan 10/10, item 5.0).
+      values[field.key] = field.type === 'datetime' ? (localMoment(value) ?? value ?? null) : (value ?? null);
       continue;
     }
-    values[field.key] = value ?? (field.type === 'boolean' && !field.attribute ? false : null);
+    const edited = FIELD_VALUE_RULES[field.type].formValue(field, value);
+    values[field.key] = edited ?? (field.type === 'boolean' ? false : null);
   }
   return values;
 }
 
-/** A moment as the viewer's local `yyyy-MM-ddTHH:mm`; null when it is not one. */
-export function localMoment(value: unknown): string | null {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
-}
-
-/** A local `yyyy-MM-ddTHH:mm` (or any date and time) as the moment the server keeps, in UTC; null when it is none. */
-export function utcMoment(value: unknown): string | null {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+/** The default a new record's field starts with on the form, or null when the server gives it. */
+function defaultOf(field: FormFieldMeta): unknown {
+  const value = field.defaultValue;
+  switch (value?.kind) {
+    case 'fixed':
+      return field.type === 'boolean' ? value.value === 'true' : (value.value ?? null);
+    case 'today':
+      return localMoment(new Date().toISOString())?.slice(0, 10) ?? null;
+    case 'now':
+      return new Date().toISOString();
+    default:
+      return null;
+  }
 }
 
 /**
  * The body to save: declared fields by key, custom fields in `attributes`. Attributes the form does not show
- * are kept, so a field an administrator removed does not lose its value on the next save.
+ * are kept, so a field an administrator removed does not lose its value on the next save. A computed field is never
+ * sent; a field its condition hides is sent empty, as the server keeps it (ADR-0032 4.4).
  */
 export function recordPayload(meta: FormMeta, values: FormValues, row?: Row | null): Row {
   const attributes: Row = { ...((row?.['attributes'] ?? {}) as Row) };
   const payload: Row = {};
   for (const field of meta.fields) {
+    if (field.computed) continue;
     const raw = values[field.key];
-    const trimmed =
-      typeof raw === 'string' && field.type !== 'markdown' && field.type !== 'textarea' ? raw.trim() : raw;
-    // A moment travels with its offset (plan 10/10, item 5.0); what is not one goes as typed, for the server's 422.
-    const value = field.type === 'datetime' ? (utcMoment(trimmed) ?? trimmed) : trimmed;
     if (field.attribute) {
+      const trimmed = typeof raw === 'string' ? raw.trim() : raw;
+      const value = field.type === 'datetime' ? (utcMoment(trimmed) ?? trimmed) : trimmed;
       attributes[field.attribute] = value === '' ? null : (value ?? null);
-    } else {
-      payload[field.key] = value;
+      continue;
     }
+    const rules = FIELD_VALUE_RULES[field.type];
+    if (!fieldVisible(field, values)) {
+      payload[field.key] = field.type === 'multi_ref' ? [] : null;
+      continue;
+    }
+    payload[field.key] = rules.empty(raw) ? emptyOf(field, raw) : rules.payload(field, raw);
   }
   payload['attributes'] = attributes;
   return payload;
 }
 
+/** The types of plan 10/10, item 5.2 send an empty value as null (several references as an empty list). */
+const SENT_AS_NULL = new Set<FormFieldMeta['type']>([
+  'email',
+  'phone',
+  'url',
+  'money',
+  'enum',
+  'file',
+  'image',
+  'json',
+]);
+
+/** What an empty field is sent as: a list of keys an empty list, a new type null, an older one as typed. */
+function emptyOf(field: FormFieldMeta, raw: unknown): unknown {
+  if (field.type === 'multi_ref') return [];
+  if (SENT_AS_NULL.has(field.type)) return null;
+  return typeof raw === 'string' && field.type !== 'markdown' && field.type !== 'textarea' ? raw.trim() : raw;
+}
+
 /** The problems the server would find in the declared fields, found before the request. */
-export function formProblems(meta: FormMeta, values: FormValues, translate: Translate): FormProblems {
+export function formProblems(meta: FormMeta, values: FormValues, translate: Translate, creating = false): FormProblems {
   const problems: FormProblems = {};
   for (const field of meta.fields) {
+    if (!fieldVisible(field, values) || fieldReadonly(field, values, creating)) continue;
     const problem = fieldProblem(field, values[field.key]);
     if (problem) problems[field.key] = problemText(problem, field, translate);
   }
@@ -136,45 +164,15 @@ export function serverProblems(
   return problems;
 }
 
-const KNOWN_CODES = new Set(['required', 'too_short', 'too_long', 'out_of_range', 'invalid']);
-
-/** A time of day as the server takes it: `HH:mm` or `HH:mm:ss`. */
-const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+const KNOWN_CODES = new Set(['required', 'too_short', 'too_long', 'out_of_range', 'invalid', 'too_many', 'readonly']);
 
 function fieldProblem(field: FormFieldMeta, value: unknown): string | null {
-  if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+  const rules = FIELD_VALUE_RULES[field.type];
+  if (field.attribute ? FIELD_VALUE_RULES.text.empty(value) : rules.empty(value)) {
     return field.required ? 'required' : null;
   }
   if (field.attribute) return null;
-  switch (field.type) {
-    case 'text':
-    case 'textarea':
-    case 'markdown': {
-      const text = String(value);
-      if (field.minLength != null && text.trim().length < field.minLength) return 'too_short';
-      if (field.maxLength != null && text.length > field.maxLength) return 'too_long';
-      if (field.pattern && !new RegExp(`^(?:${field.pattern})$`).test(text)) return 'invalid';
-      return null;
-    }
-    case 'number': {
-      const number = Number(value);
-      if (!Number.isFinite(number)) return 'invalid';
-      return (field.min != null && number < field.min) || (field.max != null && number > field.max)
-        ? 'out_of_range'
-        : null;
-    }
-    case 'select':
-      return field.options?.includes(String(value)) ? null : 'invalid';
-    // The server's rules for a date, a moment and a time of day (EntityValidator), checked before the request.
-    case 'date':
-      return /^\d{4}-\d{2}-\d{2}$/.test(String(value)) && !Number.isNaN(Date.parse(String(value))) ? null : 'invalid';
-    case 'datetime':
-      return utcMoment(value) ? null : 'invalid';
-    case 'time':
-      return TIME_OF_DAY.test(String(value)) ? null : 'invalid';
-    default:
-      return null;
-  }
+  return rules.problem(field, value);
 }
 
 function problemText(code: string, field: FormFieldMeta, translate: Translate): string {
@@ -187,6 +185,10 @@ function problemText(code: string, field: FormFieldMeta, translate: Translate): 
       return translate('ui.entity_form.out_of_range');
     case 'invalid':
       return translate('ui.entity_form.invalid');
+    case 'too_many':
+      return translate('ui.entity_form.too_many', { n: field.maxItems ?? 100 });
+    case 'readonly':
+      return translate('ui.entity_form.readonly');
     default:
       return translate('ui.entity_form.required');
   }

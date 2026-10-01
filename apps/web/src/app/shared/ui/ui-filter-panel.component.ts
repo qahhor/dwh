@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal } from '@angular/core';
 import {
+  enumLabel,
   fieldLabel,
   QueryCondition,
   QueryFieldMeta,
@@ -158,6 +159,8 @@ export class UiFilterPanelComponent {
 
   editorOf(field: QueryFieldMeta, op: QueryOp): 'ref' | 'choice' | 'choices' | 'date' | 'time' | 'input' {
     if (field.ref && (op === 'eq' || op === 'ne')) return 'ref';
+    // A set of references takes one record picked by name (plan 10/10, item 5.2).
+    if (field.ref && field.type === 'ref_set' && op === 'in') return 'ref';
     if (field.type === 'enum' || field.type === 'boolean') return op === 'in' ? 'choices' : 'choice';
     if (field.type === 'date' || field.type === 'instant') return 'date';
     // A time of day is picked as one (plan 10/10, item 5.0); "in" stays a comma-separated list.
@@ -174,7 +177,7 @@ export class UiFilterPanelComponent {
     }
     return field.enumValues.map((value) => ({
       value,
-      label: field.enumLabelPrefix ? this.i18n.translate(`${field.enumLabelPrefix}${value}`) : value,
+      label: enumLabel(field, value, (key) => this.i18n.translate(key)),
     }));
   }
 
@@ -199,7 +202,9 @@ export class UiFilterPanelComponent {
   refValue(row: FilterDraft): SMTLookupKey | null {
     if (row.value === '') return null;
     const field = this.fieldOf(row);
-    return field?.type === 'number' && Number.isFinite(Number(row.value)) ? Number(row.value) : row.value;
+    return (field?.type === 'number' || field?.type === 'ref_set') && Number.isFinite(Number(row.value))
+      ? Number(row.value)
+      : row.value;
   }
 
   refLabel(field: QueryFieldMeta, row: Record<string, unknown> | null): string | undefined {
