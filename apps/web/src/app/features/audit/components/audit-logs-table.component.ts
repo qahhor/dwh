@@ -104,7 +104,7 @@ export class AuditLogsTableComponent {
     const base = registryTableConfig<AuditRecord>(meta, {
       translate: (key) => this.i18n.translate(key),
       trackBy: (_index, item) => item.id,
-      ariaLabel: this.i18n.translate('audit.zhurnal_izmeneniy_dannyh'),
+      ariaLabel: this.i18n.translate('audit.logs.data_change_log'),
       sort: this.views()?.sort() ?? null,
       cells: {
         id: cell(this.idCell),
@@ -146,19 +146,19 @@ export class AuditLogsTableComponent {
 
   tableOptions(): SMTSelectOption<string>[] {
     return this.tableOptionsMemo([this.i18n.currentLang()], () => [
-      { id: 'md_users', label: this.i18n.translate('audit.polzovateli_md_users') },
-      { id: 'ms_tasks', label: this.i18n.translate('audit.zadachi_ms_tasks') },
-      { id: 'ms_projects', label: this.i18n.translate('audit.proekty_ms_projects') },
-      { id: 'md_roles', label: this.i18n.translate('audit.roli_i_prava_md_roles') },
-      { id: 'md_custom_fields', label: this.i18n.translate('audit.dinamicheskie_polya_md_custom_fields') },
+      { id: 'md_users', label: this.i18n.translate('audit.logs.table_users') },
+      { id: 'ms_tasks', label: this.i18n.translate('audit.logs.table_tasks') },
+      { id: 'ms_projects', label: this.i18n.translate('audit.logs.table_projects') },
+      { id: 'md_roles', label: this.i18n.translate('audit.logs.table_roles') },
+      { id: 'md_custom_fields', label: this.i18n.translate('audit.logs.table_custom_fields') },
     ]);
   }
 
   eventOptions(): SMTSelectOption<string>[] {
     return this.eventOptionsMemo([this.i18n.currentLang()], () => [
-      { id: 'I', label: this.i18n.translate('audit.sozdanie_insert') },
-      { id: 'U', label: this.i18n.translate('audit.izmenenie_update') },
-      { id: 'D', label: this.i18n.translate('audit.udalenie_delete') },
+      { id: 'I', label: this.i18n.translate('audit.logs.action_insert') },
+      { id: 'U', label: this.i18n.translate('audit.logs.action_update') },
+      { id: 'D', label: this.i18n.translate('audit.logs.action_delete') },
     ]);
   }
 

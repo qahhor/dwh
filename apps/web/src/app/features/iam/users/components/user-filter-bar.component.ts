@@ -53,8 +53,8 @@ export class UserFilterBarComponent {
   stateOptions(): SMTRadioOption<string>[] {
     return this.stateMemo([this.optionText.currentLang()], () => [
       { value: '', label: this.optionText.translate('common.all') },
-      { value: 'A', label: this.optionText.translate('iam.aktivnye'), color: 'var(--success)' },
-      { value: 'P', label: this.optionText.translate('iam.zablokirovannye'), color: 'var(--danger)' },
+      { value: 'A', label: this.optionText.translate('iam.common.active_plural'), color: 'var(--success)' },
+      { value: 'P', label: this.optionText.translate('iam.users.filter.blocked'), color: 'var(--danger)' },
     ]);
   }
 
@@ -64,8 +64,8 @@ export class UserFilterBarComponent {
 
   twoFactorOptions(): SMTSelectOption<boolean>[] {
     return this.twoFactorMemo([this.optionText.currentLang()], () => [
-      { id: true, label: this.optionText.translate('iam.tolko_s_2fa') },
-      { id: false, label: this.optionText.translate('iam.bez_2fa') },
+      { id: true, label: this.optionText.translate('iam.users.filter.with_two_factor') },
+      { id: false, label: this.optionText.translate('iam.users.filter.without_two_factor') },
     ]);
   }
 

@@ -18,13 +18,13 @@ import { I18nService } from '@core/services/i18n.service';
           class="scope-filter"
           [options]="scopeOptions()"
           [value]="scope()"
-          [smtAriaLabel]="'files.oblast_faylov' | t"
+          [smtAriaLabel]="'files.list.scope' | t"
           (valueChange)="scopeChange.emit($event ?? scope())"
         />
 
         <!-- Search Input -->
         <div class="search-box">
-          <label class="sr-only" for="file-search">{{ 'files.poisk_faylov' | t }}</label>
+          <label class="sr-only" for="file-search">{{ 'files.list.search_files' | t }}</label>
           <smt-input
             class="search-field"
             smtFieldId="file-search"
@@ -32,7 +32,7 @@ import { I18nService } from '@core/services/i18n.service';
             type="search"
             smtIcon="search"
             clearable
-            [placeholder]="'files.poisk_faylov_po_imeni' | t"
+            [placeholder]="'files.list.search_files_by_name' | t"
             [value]="searchQuery()"
             (edited)="searchQueryChange.emit($event === null ? '' : '' + $event)"
             (keyup.enter)="searchSubmit.emit()"
@@ -45,9 +45,9 @@ import { I18nService } from '@core/services/i18n.service';
         <button
           type="button"
           class="icon-refresh-btn"
-          [attr.aria-label]="'files.obnovit_spisok_faylov' | t"
+          [attr.aria-label]="'files.list.refresh_files' | t"
           (click)="refresh.emit()"
-          [title]="'announcements.obnovit_spisok' | t"
+          [title]="'announcements.list.refresh' | t"
         >
           <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
         </button>
@@ -73,8 +73,8 @@ export class FilesToolbarComponent {
 
   scopeOptions(): SMTRadioOption<'all' | 'mine'>[] {
     return this.scopeMemo([this.optionText.currentLang()], () => [
-      { value: 'all', label: this.optionText.translate('files.vse_fayly_kompanii'), icon: 'folder_shared' },
-      { value: 'mine', label: this.optionText.translate('files.moi_fayly'), icon: 'person' },
+      { value: 'all', label: this.optionText.translate('files.list.all_company_files'), icon: 'folder_shared' },
+      { value: 'mine', label: this.optionText.translate('files.list.my_files'), icon: 'person' },
     ]);
   }
 }

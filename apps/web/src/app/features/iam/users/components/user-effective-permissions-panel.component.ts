@@ -178,9 +178,17 @@ export class UserEffectivePermissionsPanelComponent {
   readonly sourceOptions = computed<SMTRadioOption<'all' | 'role' | 'personal'>[]>(() => {
     this.optionText.currentLang();
     return [
-      { value: 'all', label: this.optionText.translate('iam.vse_istochniki'), count: this.effectiveItems().length },
-      { value: 'role', label: this.optionText.translate('iam.istochnik_rol'), count: this.roleCount() },
-      { value: 'personal', label: this.optionText.translate('iam.istochnik_personal'), count: this.personalCount() },
+      {
+        value: 'all',
+        label: this.optionText.translate('iam.users.permissions.all_sources'),
+        count: this.effectiveItems().length,
+      },
+      { value: 'role', label: this.optionText.translate('iam.users.permissions.source_role'), count: this.roleCount() },
+      {
+        value: 'personal',
+        label: this.optionText.translate('iam.users.permissions.source_personal'),
+        count: this.personalCount(),
+      },
     ];
   });
   /** Its own computed, so that another user (still some user) does not ask for the catalog again. */
@@ -263,14 +271,14 @@ export class UserEffectivePermissionsPanelComponent {
       next: (saved) => {
         this.isSaving.set(false);
         this.hasUnsavedChanges.set(false);
-        this.toast.success(this.uiI18n.translate('iam.prava_uspeshno_sohraneny'));
+        this.toast.success(this.uiI18n.translate('iam.users.permissions.saved'));
         if (typeof saved?.revision === 'number') this.revisionChange.emit(saved.revision);
         this.loadAll();
       },
       error: (err: unknown) => {
         this.isSaving.set(false);
         this.saveErrors.show(err, {
-          fallbackKey: 'iam.oshibka_sohraneniya_prav',
+          fallbackKey: 'iam.common.save_permissions_failed',
           reload: () => {
             this.hasUnsavedChanges.set(false);
             this.loadAll();

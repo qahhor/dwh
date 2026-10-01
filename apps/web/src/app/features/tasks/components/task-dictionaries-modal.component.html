@@ -1,9 +1,4 @@
-<smt-dialog
-  [open]="isOpen()"
-  [smtTitle]="'tasks.nastroyka_spravochnikov_zadach' | t"
-  smtSize="md"
-  (closed)="closeModal.emit()"
->
+<smt-dialog [open]="isOpen()" [smtTitle]="'tasks.dictionaries.title' | t" smtSize="md" (closed)="closeModal.emit()">
   <ng-template smtDialogContent>
     <div body class="settings-modal-content">
       <!-- Settings Tabs -->
@@ -11,7 +6,7 @@
         class="settings-tabs"
         [tabs]="dictionaryTabs()"
         [value]="settingsTab"
-        [smtAriaLabel]="'tasks.spravochniki_zadach' | t"
+        [smtAriaLabel]="'tasks.dictionaries.label' | t"
         (valueChange)="settingsTab = $event ?? settingsTab"
       />
 
@@ -33,7 +28,7 @@
                 <span class="dict-name">{{ ty.name }}</span>
                 <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
                 @if (ty.isSystem) {
-                  <span class="sys-badge">{{ 'tasks.sistemnyy' | t }}</span>
+                  <span class="sys-badge">{{ 'tasks.dictionaries.system' | t }}</span>
                 }
               </div>
             </ng-template>
@@ -54,29 +49,29 @@
 
           <!-- Add New Type Form -->
           <div class="add-dict-box">
-            <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_tip_zadachi' | t }}</h5>
+            <h5 class="add-dict-title">{{ 'tasks.dictionaries.add_new_task_type' | t }}</h5>
             <div class="form-grid-3">
               <div class="dict-form-field">
-                <label class="clean-label" for="task-type-code">{{ 'tasks.kod_tipa' | t }}</label>
+                <label class="clean-label" for="task-type-code">{{ 'tasks.dictionaries.type_code' | t }}</label>
                 <smt-input
                   smtFieldId="task-type-code"
                   name="taskTypeCode"
-                  [placeholder]="'tasks.naprimer_doc' | t"
+                  [placeholder]="'tasks.dictionaries.code_placeholder' | t"
                   [value]="newTypeForm().code"
                   (valueChange)="patchTypeForm({ code: text($event) })"
                 />
               </div>
               <div class="dict-form-field">
-                <label class="clean-label" for="task-type-name">{{ 'tasks.nazvanie_tipa' | t }}</label>
+                <label class="clean-label" for="task-type-name">{{ 'tasks.dictionaries.type_name' | t }}</label>
                 <smt-input
                   smtFieldId="task-type-name"
                   name="taskTypeName"
-                  [placeholder]="'tasks.naprimer_dokument' | t"
+                  [placeholder]="'tasks.dictionaries.name_placeholder' | t"
                   [value]="newTypeForm().name"
                   (valueChange)="patchTypeForm({ name: text($event) })"
                 />
               </div>
-              <smt-control class="color-field" [smtLabel]="'tasks.cvet_tipa' | t">
+              <smt-control class="color-field" [smtLabel]="'tasks.dictionaries.type_color' | t">
                 <smt-color-input
                   smtFieldId="task-type-color"
                   name="taskTypeColor"
@@ -87,7 +82,7 @@
             </div>
             <div class="add-dict-actions">
               <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="add" (click)="submitType()">
-                {{ 'tasks.dobavit_tip' | t }}
+                {{ 'tasks.dictionaries.add_type' | t }}
               </button>
             </div>
           </div>
@@ -109,10 +104,10 @@
                 <span class="status-dot" [style.background-color]="s.color"></span>
                 <span class="dict-name">{{ s.name }}</span>
                 @if (s.isTerminal) {
-                  <span class="term-badge">{{ 'tasks.zavershayuschiy' | t }}</span>
+                  <span class="term-badge">{{ 'tasks.dictionaries.final_status' | t }}</span>
                 }
                 @if (s.pcode) {
-                  <span class="sys-badge">{{ 'tasks.bazovyy' | t }}</span>
+                  <span class="sys-badge">{{ 'tasks.dictionaries.base_status' | t }}</span>
                 }
               </div>
             </ng-template>
@@ -133,19 +128,19 @@
 
           <!-- Add New Status Form -->
           <div class="add-dict-box">
-            <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_status' | t }}</h5>
+            <h5 class="add-dict-title">{{ 'tasks.dictionaries.add_new_status' | t }}</h5>
             <div class="form-grid-3">
               <div class="dict-form-field">
-                <label class="clean-label" for="task-status-name">{{ 'tasks.nazvanie_statusa.44a913b' | t }}</label>
+                <label class="clean-label" for="task-status-name">{{ 'tasks.dictionaries.status_name' | t }}</label>
                 <smt-input
                   smtFieldId="task-status-name"
                   name="taskStatusName"
-                  [placeholder]="'tasks.nazvanie_statusa' | t"
+                  [placeholder]="'tasks.dictionaries.status_name_placeholder' | t"
                   [value]="newStatusForm().name"
                   (valueChange)="patchStatusForm({ name: text($event) })"
                 />
               </div>
-              <smt-control class="color-field" [smtLabel]="'tasks.cvet_statusa' | t">
+              <smt-control class="color-field" [smtLabel]="'tasks.dictionaries.status_color' | t">
                 <smt-color-input
                   smtFieldId="task-status-color"
                   name="taskStatusColor"
@@ -160,7 +155,7 @@
                 [checked]="newStatusForm().isTerminal"
                 (checkedChange)="patchStatusForm({ isTerminal: $event })"
               >
-                {{ 'tasks.zavershayuschiy' | t }}
+                {{ 'tasks.dictionaries.final_status' | t }}
               </div>
             </div>
             <div class="add-dict-actions">
@@ -172,7 +167,7 @@
                 smtIcon="add"
                 (click)="submitStatus()"
               >
-                {{ 'tasks.dobavit_status' | t }}
+                {{ 'tasks.dictionaries.add_status' | t }}
               </button>
             </div>
           </div>
@@ -181,7 +176,7 @@
     </div>
     <div footer>
       <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
-        {{ 'audit.zakryt' | t }}
+        {{ 'audit.common.close' | t }}
       </button>
     </div>
   </ng-template>

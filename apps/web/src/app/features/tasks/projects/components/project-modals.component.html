@@ -1,6 +1,6 @@
 <!-- Record View Modal -->
 @if (routeRecordId() !== null) {
-  <smt-dialog [open]="true" [smtTitle]="'projects.proekt' | t" smtSize="sm" (closed)="closeRecordView.emit()">
+  <smt-dialog [open]="true" [smtTitle]="'projects.common.project' | t" smtSize="sm" (closed)="closeRecordView.emit()">
     <ng-template smtDialogContent>
       <div body>
         @if (recordLoading()) {
@@ -48,7 +48,7 @@
 <!-- Create Project Modal -->
 <smt-dialog
   [open]="isCreateModalOpen()"
-  [smtTitle]="'projects.sozdanie_novogo_proekta' | t"
+  [smtTitle]="'projects.editor.create_title' | t"
   smtSize="sm"
   [dismissible]="!isSubmitting()"
   (closed)="requestCloseCreate.emit()"
@@ -58,10 +58,10 @@
       <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting()">
         <smt-control
           class="form-group"
-          [smtLabel]="'projects.nazvanie_proekta' | t"
+          [smtLabel]="'projects.common.project_name' | t"
           [smtError]="
             isCreateSubmitted() && !createForm().name.trim()
-              ? ('projects.pozhaluysta_ukazhite_nazvanie_proekta' | t)
+              ? ('projects.editor.name_required_hint' | t)
               : createNameTouched() && !createForm().name
                 ? ('ui.control.required' | t)
                 : ''
@@ -74,16 +74,16 @@
             [value]="createForm().name"
             (valueChange)="createForm().name = $event?.toString() ?? ''"
             (touch)="createNameTouched.set(true)"
-            [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
+            [placeholder]="'projects.editor.name_placeholder' | t"
           />
         </smt-control>
-        <smt-control class="form-group" [smtLabel]="'projects.opisanie_proekta' | t">
+        <smt-control class="form-group" [smtLabel]="'projects.editor.project_description' | t">
           <smt-textarea
             smtFieldId="project-create-description"
             name="projectCreateDescription"
             [value]="createForm().description"
             (valueChange)="createForm().description = $event"
-            [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
+            [placeholder]="'projects.editor.description_placeholder' | t"
           />
         </smt-control>
         @if (projectCustomFields().length > 0) {
@@ -121,7 +121,7 @@
         smtSize="md"
         [smtLoading]="isSubmitting()"
       >
-        {{ 'projects.sozdat_proekt' | t }}
+        {{ 'projects.editor.create_project' | t }}
       </button>
     </div>
   </ng-template>
@@ -157,7 +157,7 @@
 <!-- Edit Project Modal -->
 <smt-dialog
   [open]="isEditModalOpen()"
-  [smtTitle]="'projects.redaktirovanie_proekta' | t"
+  [smtTitle]="'projects.editor.edit_title' | t"
   smtSize="sm"
   [dismissible]="!isSubmitting()"
   (closed)="requestCloseEdit.emit()"
@@ -188,10 +188,10 @@
         <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting()">
           <smt-control
             class="form-group"
-            [smtLabel]="'projects.nazvanie_proekta' | t"
+            [smtLabel]="'projects.common.project_name' | t"
             [smtError]="
               isEditSubmitted() && !editForm().name.trim()
-                ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t)
+                ? ('projects.editor.name_not_empty' | t)
                 : editNameTouched() && !editForm().name
                   ? ('ui.control.required' | t)
                   : ''
@@ -206,7 +206,7 @@
               (touch)="editNameTouched.set(true)"
             />
           </smt-control>
-          <smt-control class="form-group" [smtLabel]="'iam.status_aktivnosti' | t">
+          <smt-control class="form-group" [smtLabel]="'iam.common.activity_status' | t">
             <smt-select
               smtTriggerId="project-edit-state"
               name="projectEditState"
@@ -216,7 +216,7 @@
               [allowClear]="false"
             ></smt-select>
           </smt-control>
-          <smt-control class="form-group" [smtLabel]="'projects.opisanie' | t">
+          <smt-control class="form-group" [smtLabel]="'projects.common.description' | t">
             <smt-textarea
               smtFieldId="project-edit-description"
               name="projectEditDescription"

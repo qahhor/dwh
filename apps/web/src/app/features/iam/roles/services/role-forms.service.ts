@@ -57,7 +57,7 @@ export class RoleFormsService {
   submitCreateRole(onSuccess: (newRole: Role) => void) {
     this.isCreateSubmitted = true;
     if (!this.newRoleForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('iam.vvedite_nazvanie_roli'));
+      this.toast.warning(this.uiI18n.translate('iam.roles.editor.name_placeholder_short'));
       return;
     }
 
@@ -71,7 +71,7 @@ export class RoleFormsService {
         next: (newRole) => {
           this.isSubmittingRole.set(false);
           this.isCreateModalOpen.set(false);
-          this.toast.success(this.uiI18n.translate('iam.rol_uspeshno_sozdana'));
+          this.toast.success(this.uiI18n.translate('iam.roles.editor.created'));
           onSuccess(newRole);
         },
         error: () => {
@@ -96,7 +96,7 @@ export class RoleFormsService {
     if (!this.editingRole) return;
     this.isEditSubmitted = true;
     if (!this.editRoleForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('iam.nazvanie_roli_obyazatelno'));
+      this.toast.warning(this.uiI18n.translate('iam.roles.editor.name_required'));
       return;
     }
 
@@ -110,7 +110,7 @@ export class RoleFormsService {
         next: () => {
           this.isSubmittingRole.set(false);
           this.isEditModalOpen.set(false);
-          this.toast.success(this.uiI18n.translate('iam.dannye_roli_obnovleny'));
+          this.toast.success(this.uiI18n.translate('iam.roles.editor.updated'));
           onSuccess();
         },
         error: (err: unknown) => {
@@ -149,7 +149,7 @@ export class RoleFormsService {
         this.isSubmittingRole.set(false);
         this.isDeleteModalOpen.set(false);
         this.deletingRole = null;
-        this.toast.success(this.uiI18n.translate('iam.rol_udalena'));
+        this.toast.success(this.uiI18n.translate('iam.roles.editor.deleted'));
         onSuccess();
       },
       error: () => {

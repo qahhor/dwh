@@ -119,7 +119,7 @@ export class ProjectFormsService {
       return;
     this.isCreateSubmitted = true;
     if (!this.createForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('projects.vvedite_nazvanie_proekta'));
+      this.toast.warning(this.uiI18n.translate('projects.editor.name_input_placeholder'));
       return;
     }
 
@@ -144,7 +144,7 @@ export class ProjectFormsService {
           return;
         this.isSubmitting.set(false);
         this.closeCreateModal();
-        this.toast.success(this.uiI18n.translate('projects.proekt_uspeshno_sozdan'));
+        this.toast.success(this.uiI18n.translate('projects.editor.created'));
         this.onProjectCreated?.(created);
       },
       error: (err) => {
@@ -231,7 +231,7 @@ export class ProjectFormsService {
       return;
     this.isEditSubmitted = true;
     if (!this.editForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('projects.nazvanie_proekta_obyazatelno'));
+      this.toast.warning(this.uiI18n.translate('projects.editor.name_required'));
       return;
     }
 
@@ -269,7 +269,7 @@ export class ProjectFormsService {
             return;
           this.isSubmitting.set(false);
           this.closeEditModal();
-          this.toast.success(this.uiI18n.translate('projects.proekt_obnovlen'));
+          this.toast.success(this.uiI18n.translate('projects.editor.updated'));
           this.onProjectUpdated?.();
         },
         error: (err) => {

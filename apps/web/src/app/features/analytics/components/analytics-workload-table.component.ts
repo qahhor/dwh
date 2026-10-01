@@ -26,8 +26,8 @@ import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
     <div class="table-card" style="margin-top: 20px;">
       <div class="card-header-row" style="padding: 14px 20px; border-bottom: 1px solid var(--border-color);">
         <div>
-          <h2 class="card-title">{{ 'analytics.utilizaciya_i_zagruzka_komandy' | t }}</h2>
-          <p class="card-subtitle">{{ 'analytics.raspredelenie_aktivnyh_i_vypolnennyh_zadach_po_i' | t }}</p>
+          <h2 class="card-title">{{ 'analytics.dashboard.team_workload' | t }}</h2>
+          <p class="card-subtitle">{{ 'analytics.dashboard.workload_by_executor' | t }}</p>
         </div>
 
         <!-- Quick User Filter -->
@@ -38,20 +38,15 @@ import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
             smtIcon="search"
             clearable
             smtSize="sm"
-            [placeholder]="'analytics.poisk_sotrudnika' | t"
-            [smtAriaLabel]="'analytics.poisk_sotrudnika' | t"
+            [placeholder]="'analytics.dashboard.search_employee' | t"
+            [smtAriaLabel]="'analytics.dashboard.search_employee' | t"
             [value]="searchUserQuery()"
             (valueChange)="searchUserQuery.set($any($event) ?? '')"
           />
         }
       </div>
 
-      <div
-        class="table-scroll"
-        role="region"
-        tabindex="0"
-        [attr.aria-label]="'analytics.utilizaciya_i_zagruzka_komandy' | t"
-      >
+      <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'analytics.dashboard.team_workload' | t">
         <ui-local-table
           [rows]="filteredWorkload()"
           [config]="config()"
@@ -94,7 +89,7 @@ import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
     </ng-template>
     <ng-template #emptyWorkload>
       @if (!loading() && !error()) {
-        <p class="empty">{{ 'analytics.dannye_po_zagruzke_sotrudnikov_otsutstvuyut' | t }}</p>
+        <p class="empty">{{ 'analytics.dashboard.no_workload_data' | t }}</p>
       }
     </ng-template>
   `,
@@ -134,14 +129,22 @@ export class AnalyticsWorkloadTableComponent {
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     return {
       trackBy: (_index, u) => u.userId,
-      ariaLabel: this.i18n.translate('analytics.utilizaciya_i_zagruzka_komandy'),
+      ariaLabel: this.i18n.translate('analytics.dashboard.team_workload'),
       layout: 'fit',
       columns: {
-        name: { header: header('analytics.sotrudnik'), content: cell(this.userCell), width: '240px' },
+        name: { header: header('analytics.dashboard.employee'), content: cell(this.userCell), width: '240px' },
         login: { header: header('analytics.login'), content: cell(this.loginCell) },
-        assigned: { header: header('analytics.naznacheno_zadach'), content: cell(this.assignedCell), align: 'right' },
-        completed: { header: header('analytics.zaversheno'), content: cell(this.completedCell), align: 'right' },
-        efficiency: { header: header('analytics.effektivnost'), content: cell(this.efficiencyCell) },
+        assigned: {
+          header: header('analytics.dashboard.tasks_assigned'),
+          content: cell(this.assignedCell),
+          align: 'right',
+        },
+        completed: {
+          header: header('analytics.dashboard.completed'),
+          content: cell(this.completedCell),
+          align: 'right',
+        },
+        efficiency: { header: header('analytics.dashboard.efficiency'), content: cell(this.efficiencyCell) },
       },
       columnsOrder: ['name', 'login', 'assigned', 'completed', 'efficiency'],
     };

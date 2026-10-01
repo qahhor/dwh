@@ -30,7 +30,7 @@ import { ProjectListItem } from '../projects.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, UiServerTableComponent, DatePipe],
   template: `
-    <div class="table-card" role="region" [attr.aria-label]="'projects.tablica_proektov' | t">
+    <div class="table-card" role="region" [attr.aria-label]="'projects.list.table' | t">
       @if (tableConfig(); as config) {
         <ui-server-table
           [pager]="pager()"
@@ -112,7 +112,7 @@ import { ProjectListItem } from '../projects.models';
             type="button"
             class="action-link-btn"
             [attr.aria-label]="'projects.open_tasks_named' | t: { name: p.name }"
-            [title]="'projects.pereyti_k_zadacham_proekta' | t"
+            [title]="'projects.list.go_to_project_tasks' | t"
             (click)="viewTasks.emit(p)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
@@ -124,7 +124,7 @@ import { ProjectListItem } from '../projects.models';
             type="button"
             class="icon-ghost-btn"
             [attr.aria-label]="'projects.edit_named' | t: { name: p.name }"
-            [title]="'projects.redaktirovat_proekt' | t"
+            [title]="'projects.common.edit_project' | t"
             (click)="editProject.emit(p)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">edit</span>
@@ -133,7 +133,7 @@ import { ProjectListItem } from '../projects.models';
             type="button"
             class="icon-ghost-btn members-btn"
             [attr.aria-label]="'projects.manage_members_named' | t: { name: p.name }"
-            [title]="'projects.uchastniki_proekta' | t"
+            [title]="'projects.common.project_members' | t"
             (click)="manageMembers.emit(p)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">group</span>
@@ -144,7 +144,7 @@ import { ProjectListItem } from '../projects.models';
     <ng-template #emptyStateTpl>
       <div class="empty-state-cell">
         <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
-        <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
+        <p>{{ 'projects.list.empty' | t }}</p>
       </div>
     </ng-template>
   `,
@@ -197,7 +197,7 @@ export class ProjectTableViewComponent {
     const base = registryTableConfig<ProjectListItem>(meta, {
       translate: (key) => this.i18n.translate(key),
       trackBy: (_index, project) => project.id,
-      ariaLabel: this.i18n.translate('projects.spisok_proektov'),
+      ariaLabel: this.i18n.translate('projects.list.list'),
       sort: this.views()?.sort() ?? null,
       cells: {
         id: cell(this.idCell),

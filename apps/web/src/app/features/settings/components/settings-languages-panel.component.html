@@ -12,7 +12,7 @@
       <div class="legacy-import" role="status">
         <div>
           <strong>{{ 'settings.legacy_packages_found' | t: { count: legacyLanguageCount() } }}</strong>
-          <span>{{ 'settings.perenesite_ih_v_obschee_servernoe_hranilische_ch' | t }}</span>
+          <span>{{ 'settings.languages.migrate_local_hint' | t }}</span>
         </div>
         @if (canUpdateSystemSettings()) {
           <button
@@ -33,14 +33,14 @@
       <div class="card-title-group">
         <span class="material-symbols-outlined card-icon" aria-hidden="true">translate</span>
         <div>
-          <h3 class="card-title">{{ 'settings.upravlenie_yazykovymi_paketami_i_lokalizaciey' | t }}</h3>
-          <p class="card-desc">{{ 'settings.dinamicheskoe_dobavlenie_novyh_yazykov_i_import_' | t }}</p>
+          <h3 class="card-title">{{ 'settings.languages.title' | t }}</h3>
+          <p class="card-desc">{{ 'settings.languages.subtitle' | t }}</p>
         </div>
       </div>
       @if (canUpdateSystemSettings()) {
         <button smt-button type="button" (click)="openAddLangModal.emit()">
           <span class="material-symbols-outlined" aria-hidden="true">add</span>
-          <span>{{ 'settings.dobavit_yazyk' | t }}</span>
+          <span>{{ 'settings.languages.add_language' | t }}</span>
         </button>
       }
     </div>
@@ -67,9 +67,9 @@
 
     <ng-template #statusCell let-lang>
       @if (currentLang() === lang.code) {
-        <span class="badge badge-active">{{ 'settings.tekuschiy_aktivnyy' | t }}</span>
+        <span class="badge badge-active">{{ 'settings.languages.current' | t }}</span>
       } @else {
-        <span class="badge badge-neutral">{{ 'settings.dostupen' | t }}</span>
+        <span class="badge badge-neutral">{{ 'settings.languages.available' | t }}</span>
       }
     </ng-template>
 
@@ -92,7 +92,7 @@
           smtSize="sm"
           type="button"
           (click)="exportLangJson.emit(lang.code)"
-          [title]="'settings.eksportirovat_json' | t"
+          [title]="'settings.languages.export_json' | t"
         >
           <span class="material-symbols-outlined" aria-hidden="true">download</span>
           <span>JSON</span>
@@ -105,7 +105,7 @@
             [attr.data-testid]="'switch-language-' + lang.code"
             (click)="switchLanguage.emit(lang.code)"
           >
-            <span>{{ 'settings.pereklyuchitsya' | t }}</span>
+            <span>{{ 'settings.languages.switch' | t }}</span>
           </button>
         }
       </div>
@@ -117,14 +117,14 @@
 @if (isAddLangModalOpen()) {
   <smt-dialog
     [open]="isAddLangModalOpen()"
-    [smtTitle]="'settings.dobavlenie_novogo_yazyka' | t"
-    [smtAriaLabel]="'settings.dobavlenie_novogo_yazyka' | t"
+    [smtTitle]="'settings.languages.add_title' | t"
+    [smtAriaLabel]="'settings.languages.add_title' | t"
     (closed)="closeAddLangModal.emit()"
   >
     <ng-template smtDialogContent>
       <div class="form-grid">
         <div class="form-group">
-          <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
+          <label class="form-label" for="new-lang-code">{{ 'settings.languages.code_iso' | t }}</label>
           <smt-input
             smtFieldId="new-lang-code"
             [value]="newLangCode()"
@@ -134,16 +134,16 @@
           />
         </div>
         <div class="form-group">
-          <label class="form-label" for="new-lang-name">{{ 'settings.nazvanie_yazyka' | t }}</label>
+          <label class="form-label" for="new-lang-name">{{ 'settings.languages.language_name' | t }}</label>
           <smt-input
             smtFieldId="new-lang-name"
             [value]="newLangName()"
             (valueChange)="newLangNameChange.emit($event === null ? '' : '' + $event)"
-            [placeholder]="'settings.aza_sha_deutsch_etc' | t"
+            [placeholder]="'settings.languages.name_placeholder' | t"
           />
         </div>
         <div class="form-group full-width">
-          <label class="form-label" for="new-lang-json">{{ 'settings.json_slovar_perevodov_opcionalno' | t }}</label>
+          <label class="form-label" for="new-lang-json">{{ 'settings.languages.json_dictionary_optional' | t }}</label>
           <smt-textarea
             class="mono"
             smtFieldId="new-lang-json"
@@ -172,7 +172,7 @@
           (click)="saveNewLanguage.emit()"
           [disabled]="!newLangCode().trim() || !newLangName().trim()"
         >
-          {{ 'settings.sohranit_yazyk' | t }}
+          {{ 'settings.languages.save_language' | t }}
         </button>
       </div>
     </ng-template>

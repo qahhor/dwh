@@ -15,7 +15,7 @@ import { TranslatePipe } from '@core/services/i18n.service';
           <div class="metric-header">
             <div class="metric-title-group">
               <span class="material-symbols-outlined card-icon" aria-hidden="true">corporate_fare</span>
-              <span class="card-title">{{ 'files.diskovoe_prostranstvo_kompanii' | t }}</span>
+              <span class="card-title">{{ 'files.list.company_disk_space' | t }}</span>
             </div>
             <span
               class="percent-badge"
@@ -29,14 +29,14 @@ import { TranslatePipe } from '@core/services/i18n.service';
           <div class="metric-body">
             <div class="metric-values">
               <span class="used-val">{{ formatBytes(s.companyUsedBytes) }}</span>
-              <span class="sep-val">{{ 'files.iz' | t }}</span>
+              <span class="sep-val">{{ 'files.common.of' | t }}</span>
               <span class="quota-val">{{ formatBytes(s.companyQuotaBytes) }}</span>
             </div>
 
             <div
               class="progress-bar-track"
               role="progressbar"
-              [attr.aria-label]="'files.ispolzovanie_hranilischa_kompanii' | t"
+              [attr.aria-label]="'files.list.company_storage_usage' | t"
               aria-valuemin="0"
               aria-valuemax="100"
               [attr.aria-valuenow]="getCompanyPercent(s)"
@@ -61,7 +61,7 @@ import { TranslatePipe } from '@core/services/i18n.service';
           <div class="metric-header">
             <div class="metric-title-group">
               <span class="material-symbols-outlined card-icon" aria-hidden="true">person</span>
-              <span class="card-title">{{ 'files.moya_personalnaya_kvota' | t }}</span>
+              <span class="card-title">{{ 'files.list.my_personal_quota' | t }}</span>
             </div>
             <span
               class="percent-badge user-badge"
@@ -75,14 +75,14 @@ import { TranslatePipe } from '@core/services/i18n.service';
           <div class="metric-body">
             <div class="metric-values">
               <span class="used-val">{{ formatBytes(s.userUsedBytes) }}</span>
-              <span class="sep-val">{{ 'files.iz' | t }}</span>
+              <span class="sep-val">{{ 'files.common.of' | t }}</span>
               <span class="quota-val">{{ formatBytes(s.userQuotaBytes) }}</span>
             </div>
 
             <div
               class="progress-bar-track"
               role="progressbar"
-              [attr.aria-label]="'files.ispolzovanie_personalnoy_kvoty' | t"
+              [attr.aria-label]="'files.list.personal_quota_usage' | t"
               aria-valuemin="0"
               aria-valuemax="100"
               [attr.aria-valuenow]="getUserPercent(s)"

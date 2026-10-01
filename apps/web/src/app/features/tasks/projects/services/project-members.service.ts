@@ -41,7 +41,7 @@ export class ProjectMembersService {
     {
       pageSize: MEMBERS_PAGE,
       destroyRef: inject(DestroyRef),
-      onError: () => this.toast.error(this.uiI18n.translate('projects.oshibka_zagruzki_uchastnikov')),
+      onError: () => this.toast.error(this.uiI18n.translate('projects.members.load_failed')),
     },
   );
 
@@ -66,12 +66,12 @@ export class ProjectMembersService {
     this.projectsApi.addMember(event.projectId, event.userId, event.accessKind).subscribe({
       next: () => {
         this.isAddingMember.set(false);
-        this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_dobavlen'));
+        this.toast.success(this.uiI18n.translate('projects.members.added'));
         this.pager.first();
       },
       error: (err: unknown) => {
         this.isAddingMember.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
+        this.toast.error(problemText(err) || this.uiI18n.translate('projects.members.add_failed'));
       },
     });
   }
@@ -81,22 +81,22 @@ export class ProjectMembersService {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
     this.modal
       .confirm({
-        title: t('projects.udalit_iz_proekta'),
-        message: t('projects.vy_uvereny_chto_hotite_udalit_uchastnika', { name: event.userName }),
-        yesLabel: t('projects.udalit_iz_proekta'),
+        title: t('projects.members.remove_from_project'),
+        message: t('projects.members.remove_confirm', { name: event.userName }),
+        yesLabel: t('projects.members.remove_from_project'),
         noLabel: t('common.cancel'),
         destructive: true,
         action: () => {
           this.removingMemberId.set(event.userId);
           return this.projectsApi.removeMember(event.projectId, event.userId).pipe(
             tap(() => {
-              this.toast.success(t('projects.uchastnik_uspeshno_udalen'));
+              this.toast.success(t('projects.members.removed'));
               this.pager.first();
             }),
             finalize(() => this.removingMemberId.set(null)),
           );
         },
-        actionError: (error) => problemText(error) || t('projects.oshibka_udaleniya_uchastnika'),
+        actionError: (error) => problemText(error) || t('projects.members.remove_failed'),
       })
       .subscribe();
   }

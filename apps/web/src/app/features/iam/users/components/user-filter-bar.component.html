@@ -1,7 +1,7 @@
 <!-- Compact Single-Line Toolbar -->
 <div class="toolbar">
   <div class="search-field">
-    <label class="sr-only" for="user-search">{{ 'iam.poisk_polzovateley' | t }}</label>
+    <label class="sr-only" for="user-search">{{ 'iam.users.filter.search' | t }}</label>
     <smt-input
       smtFieldId="user-search"
       name="userSearch"
@@ -9,7 +9,7 @@
       smtIcon="search"
       clearable
       class="search-input"
-      [placeholder]="'iam.poisk_po_imeni_loginu_email' | t"
+      [placeholder]="'iam.users.filter.search_placeholder' | t"
       [value]="searchQuery()"
       (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)"
       (input)="searchInput.emit()"
@@ -24,7 +24,7 @@
       class="status-filter"
       [options]="stateOptions()"
       [value]="selectedState()"
-      [smtAriaLabel]="'iam.filtr_polzovateley_po_statusu' | t"
+      [smtAriaLabel]="'iam.users.filter.by_status' | t"
       (valueChange)="stateFilterChange.emit($event ?? selectedState())"
     />
 
@@ -42,7 +42,7 @@
         (click)="toggleFilterMenu.emit($event)"
       >
         <span class="material-symbols-outlined icon" aria-hidden="true">tune</span>
-        <span>{{ 'iam.filtry' | t }}</span>
+        <span>{{ 'iam.users.filter.filters' | t }}</span>
         @if (hasExtraFilters()) {
           <span class="filter-dot"></span>
         }
@@ -56,40 +56,40 @@
           id="user-extra-filters"
           class="filter-dropdown"
           role="dialog"
-          [attr.aria-label]="'iam.dopolnitelnye_filtry_polzovateley' | t"
+          [attr.aria-label]="'iam.users.filter.more_filters_label' | t"
           (click)="$event.stopPropagation()"
         >
           <div class="filter-dropdown-header">
-            <span class="dropdown-title">{{ 'iam.dopolnitelnye_filtry' | t }}</span>
+            <span class="dropdown-title">{{ 'iam.users.filter.more_filters' | t }}</span>
             @if (hasExtraFilters()) {
               <button type="button" class="reset-link" (click)="resetExtraFilters.emit()">
-                {{ 'iam.sbrosit' | t }}
+                {{ 'iam.users.filter.reset' | t }}
               </button>
             }
           </div>
 
           <div class="filter-dropdown-body">
             <div class="filter-group">
-              <label class="filter-caption" for="user-role-filter">{{ 'iam.rol_polzovatelya' | t }}</label>
+              <label class="filter-caption" for="user-role-filter">{{ 'iam.users.filter.user_role' | t }}</label>
               <smt-select
                 smtTriggerId="user-role-filter"
                 [value]="selectedRoleId()"
                 (valueChange)="roleFilterChange.emit($event)"
                 [options]="roleOptions()"
-                [placeholder]="'iam.vse_roli' | t"
-                [emptyLabel]="'iam.vse_roli' | t"
+                [placeholder]="'iam.users.filter.all_roles' | t"
+                [emptyLabel]="'iam.users.filter.all_roles' | t"
               />
             </div>
 
             <div class="filter-group">
-              <label class="filter-caption" for="user-2fa-filter">{{ 'iam.dvuhfaktornaya_zaschita_2fa' | t }}</label>
+              <label class="filter-caption" for="user-2fa-filter">{{ 'iam.users.filter.two_factor' | t }}</label>
               <smt-select
                 smtTriggerId="user-2fa-filter"
                 [value]="selected2fa()"
                 (valueChange)="twoFactorFilterChange.emit($event)"
                 [options]="twoFactorOptions()"
-                [placeholder]="'iam.lyuboy_status_2fa' | t"
-                [emptyLabel]="'iam.lyuboy_status_2fa' | t"
+                [placeholder]="'iam.users.filter.any_two_factor' | t"
+                [emptyLabel]="'iam.users.filter.any_two_factor' | t"
               />
             </div>
           </div>
@@ -103,7 +103,7 @@
       smtVariant="ghost"
       smtSize="sm"
       smtIcon="refresh"
-      [attr.aria-label]="'iam.obnovit_spisok_polzovateley' | t"
+      [attr.aria-label]="'iam.users.filter.refresh' | t"
       [smtLoading]="isLoading()"
       [title]="'common.refresh' | t"
       (click)="refresh.emit()"
@@ -114,19 +114,22 @@
 <!-- Active Filters Bar -->
 @if (hasAnyActiveFilters()) {
   <div class="active-filters-bar">
-    <span class="active-filters-label">{{ 'iam.filtry' | t }}:</span>
+    <span class="active-filters-label">{{ 'iam.users.filter.filters' | t }}:</span>
 
     <!-- Status Filter Pill -->
     @if (selectedState()) {
       <div class="filter-pill">
         <span>{{
-          'iam.filtr_status'
-            | t: { status: selectedState() === 'A' ? ('iam.aktivnye' | t) : ('iam.zablokirovannye' | t) }
+          'iam.users.filter.status_chip'
+            | t
+              : {
+                  status: selectedState() === 'A' ? ('iam.common.active_plural' | t) : ('iam.users.filter.blocked' | t),
+                }
         }}</span>
         <button
           type="button"
           class="clear-pill-btn"
-          [attr.aria-label]="'iam.ochistit_filtr' | t"
+          [attr.aria-label]="'iam.users.filter.clear' | t"
           (click)="clearStateFilter.emit()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">close</span>
@@ -137,11 +140,11 @@
     <!-- Role Filter Pill -->
     @if (selectedRoleId()) {
       <div class="filter-pill">
-        <span>{{ 'iam.filtr_po_roli' | t: { name: selectedRoleName() } }}</span>
+        <span>{{ 'iam.users.filter.filter_by_role' | t: { name: selectedRoleName() } }}</span>
         <button
           type="button"
           class="clear-pill-btn"
-          [attr.aria-label]="'iam.ochistit_filtr_roli' | t"
+          [attr.aria-label]="'iam.users.filter.clear_role' | t"
           (click)="clearRoleFilter.emit()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">close</span>
@@ -153,12 +156,13 @@
     @if (selected2fa() !== null) {
       <div class="filter-pill">
         <span>{{
-          'iam.filtr_2fa' | t: { status: selected2fa() ? ('iam.vklyuchena' | t) : ('iam.otklyuchena' | t) }
+          'iam.users.filter.two_factor_chip'
+            | t: { status: selected2fa() ? ('iam.users.enabled_feminine' | t) : ('iam.users.disabled_feminine' | t) }
         }}</span>
         <button
           type="button"
           class="clear-pill-btn"
-          [attr.aria-label]="'iam.ochistit_filtr' | t"
+          [attr.aria-label]="'iam.users.filter.clear' | t"
           (click)="clear2faFilter.emit()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">close</span>
@@ -169,7 +173,7 @@
     <!-- Reset All Button -->
     <button type="button" class="reset-all-filters-btn" (click)="resetAllFilters.emit()">
       <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
-      <span>{{ 'iam.sbrosit_vse_filtry' | t }}</span>
+      <span>{{ 'iam.users.filter.reset_all_filters' | t }}</span>
     </button>
   </div>
 }

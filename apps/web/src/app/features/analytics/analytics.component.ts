@@ -39,14 +39,14 @@ const FIRST_RANGE = '7d';
   template: `
     <div class="analytics-container">
       <!-- Header -->
-      <ui-page-header [title]="'analytics.analitika_i_dashbordy' | t" [count]="'PostgreSQL 18 Analytics'">
+      <ui-page-header [title]="'analytics.dashboard.title' | t" [count]="'PostgreSQL 18 Analytics'">
         <!-- Time Range Selector -->
         <smt-radio-group
           smtAppearance="segmented"
           class="range-picker"
           [options]="rangeOptions()"
           [value]="selectedRange"
-          [smtAriaLabel]="'analytics.period_analitiki' | t"
+          [smtAriaLabel]="'analytics.dashboard.period' | t"
           (valueChange)="setRange($event ?? selectedRange)"
         />
         <button
@@ -56,9 +56,9 @@ const FIRST_RANGE = '7d';
           smtSize="sm"
           smtIcon="download"
           (click)="exportReport()"
-          [title]="'analytics.eksport_spiska_zadach_v_excel' | t"
+          [title]="'analytics.dashboard.export_tasks_excel' | t"
         >
-          {{ 'analytics.eksport' | t }}
+          {{ 'analytics.dashboard.export' | t }}
         </button>
         <button
           smt-button
@@ -236,9 +236,9 @@ export class AnalyticsComponent {
   /** The periods as one segmented bar. */
   rangeOptions(): SMTRadioOption<string>[] {
     return this.rangeMemo([this.optionText.currentLang()], () => [
-      { value: '7d', label: this.optionText.translate('analytics.7_dney') },
-      { value: '30d', label: this.optionText.translate('analytics.30_dney') },
-      { value: '90d', label: this.optionText.translate('analytics.90_dney') },
+      { value: '7d', label: this.optionText.translate('analytics.dashboard.period_7_days') },
+      { value: '30d', label: this.optionText.translate('analytics.dashboard.period_30_days') },
+      { value: '90d', label: this.optionText.translate('analytics.dashboard.period_90_days') },
     ]);
   }
 
@@ -259,7 +259,7 @@ export class AnalyticsComponent {
     return read.pipe(
       catchError((e: { error?: { detail?: string } }) =>
         of({
-          failure: e?.error?.detail || this.uiI18n.translate('analytics.ne_udalos_zagruzit_dannye_analitiki'),
+          failure: e?.error?.detail || this.uiI18n.translate('analytics.dashboard.load_failed'),
         }),
       ),
     );

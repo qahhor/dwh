@@ -79,25 +79,25 @@ export class CustomFieldsFormService {
 
     const name = (formData.name || '').trim();
     if (!name) {
-      fieldErrors.name = this.uiI18n.translate('iam.ukazhite_nazvanie_polya');
+      fieldErrors.name = this.uiI18n.translate('iam.custom_fields.editor.enter_field_name');
     }
 
     const code = (formData.code || '').trim();
     if (!code) {
-      fieldErrors.code = this.uiI18n.translate('iam.ukazhite_kod_polya');
+      fieldErrors.code = this.uiI18n.translate('iam.custom_fields.editor.enter_field_code');
     } else if (!isEditing) {
       const codePattern = /^[a-z][a-z0-9_]{1,63}$/;
       if (!codePattern.test(code)) {
         fieldErrors.code = this.uiI18n.translate('iam.invalid_code_slug');
       } else if (RESERVED_CODES.has(code.toLowerCase())) {
-        fieldErrors.code = this.uiI18n.translate('iam.kod_polya_rezervirovan');
+        fieldErrors.code = this.uiI18n.translate('iam.custom_fields.editor.code_reserved');
       }
     }
 
     if (formData.fieldType === 'select') {
       const options = this.parseOptionsText(formData.optionsText);
       if (options.length === 0) {
-        fieldErrors.optionsText = this.uiI18n.translate('iam.dobavte_hotya_by_odin_variant_spiska');
+        fieldErrors.optionsText = this.uiI18n.translate('iam.custom_fields.editor.options_required');
       }
     }
 
@@ -108,7 +108,7 @@ export class CustomFieldsFormService {
         fieldErrors.name ||
         fieldErrors.code ||
         fieldErrors.optionsText ||
-        this.uiI18n.translate('iam.zapolnite_obyazatelnye_polya');
+        this.uiI18n.translate('iam.common.fill_required_fields');
     }
 
     return { isValid, errorMessage, fieldErrors };

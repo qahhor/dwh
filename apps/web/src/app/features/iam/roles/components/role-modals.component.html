@@ -1,7 +1,7 @@
 <!-- Create Role Modal -->
 <smt-dialog
   [open]="isCreateModalOpen()"
-  [smtTitle]="'iam.sozdanie_novoy_roli' | t"
+  [smtTitle]="'iam.roles.editor.create_title' | t"
   smtSize="sm"
   (closed)="closeCreate.emit()"
 >
@@ -9,7 +9,7 @@
     <div body class="modal-body-form">
       <div class="modal-field">
         <label class="modal-label" for="role-create-name"
-          >{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label
+          >{{ 'iam.roles.editor.role_name' | t }} <span class="req">*</span></label
         >
         <smt-input
           smtFieldId="role-create-name"
@@ -18,14 +18,14 @@
           [smtInvalid]="isCreateSubmitted() && !newRoleForm().name.trim()"
           [smtDescribedBy]="isCreateSubmitted() && !newRoleForm().name.trim() ? 'role-create-name-error' : null"
           [(value)]="newRoleForm().name"
-          [placeholder]="'iam.naprimer_starshiy_analitik_dannyh' | t"
+          [placeholder]="'iam.roles.editor.name_placeholder' | t"
         />
         @if (isCreateSubmitted() && !newRoleForm().name.trim()) {
-          <span id="role-create-name-error" class="field-error">{{ 'iam.ukazhite_nazvanie_roli' | t }}</span>
+          <span id="role-create-name-error" class="field-error">{{ 'iam.roles.editor.enter_role_name' | t }}</span>
         }
       </div>
       <div class="modal-field">
-        <label class="modal-label" for="role-create-order">{{ 'iam.poryadok_otobrazheniya' | t }}</label>
+        <label class="modal-label" for="role-create-order">{{ 'iam.roles.editor.display_order' | t }}</label>
         <smt-input
           smtFieldId="role-create-order"
           name="roleCreateOrder"
@@ -57,7 +57,7 @@
 <!-- Edit Role Modal -->
 <smt-dialog
   [open]="isEditModalOpen()"
-  [smtTitle]="'iam.redaktirovanie_roli' | t"
+  [smtTitle]="'iam.roles.editor.edit_title' | t"
   smtSize="sm"
   (closed)="closeEdit.emit()"
 >
@@ -66,7 +66,7 @@
       <div body class="modal-body-form">
         <div class="modal-field">
           <label class="modal-label" for="role-edit-name"
-            >{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label
+            >{{ 'iam.roles.editor.role_name' | t }} <span class="req">*</span></label
           >
           <smt-input
             smtFieldId="role-edit-name"
@@ -77,11 +77,11 @@
             [(value)]="editRoleForm().name"
           />
           @if (isEditSubmitted() && !editRoleForm().name.trim()) {
-            <span id="role-edit-name-error" class="field-error">{{ 'iam.ukazhite_nazvanie_roli' | t }}</span>
+            <span id="role-edit-name-error" class="field-error">{{ 'iam.roles.editor.enter_role_name' | t }}</span>
           }
         </div>
         <div class="modal-field">
-          <label class="modal-label" for="role-edit-state">{{ 'iam.status_aktivnosti' | t }}</label>
+          <label class="modal-label" for="role-edit-state">{{ 'iam.common.activity_status' | t }}</label>
           <smt-select
             smtTriggerId="role-edit-state"
             name="roleEditState"
@@ -91,11 +91,11 @@
             [disabled]="r.pcode === 'admin'"
           />
           @if (r.pcode === 'admin') {
-            <span class="modal-help">{{ 'iam.rol_superadministratora_vsegda_aktivna' | t }}</span>
+            <span class="modal-help">{{ 'iam.roles.editor.super_admin_always_active' | t }}</span>
           }
         </div>
         <div class="modal-field">
-          <label class="modal-label" for="role-edit-order">{{ 'iam.poryadok_otobrazheniya' | t }}</label>
+          <label class="modal-label" for="role-edit-order">{{ 'iam.roles.editor.display_order' | t }}</label>
           <smt-input
             smtFieldId="role-edit-order"
             name="roleEditOrder"
@@ -127,7 +127,7 @@
 <!-- Delete Role Modal -->
 <smt-dialog
   [open]="isDeleteModalOpen()"
-  [smtTitle]="'iam.udalenie_roli' | t"
+  [smtTitle]="'iam.roles.editor.delete_title' | t"
   smtSize="sm"
   [dismissible]="!isSubmittingRole()"
   (closed)="closeDelete.emit()"
@@ -136,10 +136,10 @@
     @if (deletingRole(); as r) {
       <div body class="modal-delete-body">
         <p class="delete-title">
-          {{ 'iam.vy_deystvitelno_hotite_udalit_polzovatelskuyu_ro' | t }} <strong>{{ r.name }}</strong
+          {{ 'iam.roles.editor.delete_confirm' | t }} <strong>{{ r.name }}</strong
           >?
         </p>
-        <span class="delete-desc">{{ 'iam.vse_naznachennye_prava_etoy_roli_budut_udaleny_e' | t }}</span>
+        <span class="delete-desc">{{ 'iam.roles.editor.delete_warning' | t }}</span>
       </div>
     }
     <div footer>
@@ -170,7 +170,7 @@
 <!-- Unsaved Changes Confirmation Modal -->
 <smt-dialog
   [open]="isDiscardPermissionsModalOpen()"
-  [smtTitle]="'iam.nesohranennye_izmeneniya_prav' | t"
+  [smtTitle]="'iam.roles.editor.unsaved_permission_changes' | t"
   smtSize="sm"
   [dismissible]="!isSaving()"
   (closed)="closeDiscard.emit()"
@@ -179,7 +179,7 @@
     @if (selectedRole(); as r) {
       <div body class="modal-delete-body">
         <p class="delete-title">
-          {{ 'iam.u_vas_est_nesohranennye_izmeneniya_v_matrice' | t: { name: r.name, count: dirtyPermissionsCount() } }}
+          {{ 'iam.roles.editor.unsaved_switch_confirm' | t: { name: r.name, count: dirtyPermissionsCount() } }}
         </p>
       </div>
     }
@@ -202,7 +202,7 @@
         [disabled]="isSaving()"
         (click)="confirmDiscardAndSwitch.emit()"
       >
-        {{ 'iam.sbrosit_i_pereyti' | t }}
+        {{ 'iam.roles.editor.discard_and_switch' | t }}
       </button>
       <button
         smt-button
@@ -212,7 +212,7 @@
         [smtLoading]="isSaving()"
         (click)="saveAndSwitch.emit()"
       >
-        {{ 'iam.sohranit_i_pereyti' | t }}
+        {{ 'iam.roles.editor.save_and_switch' | t }}
       </button>
     </div>
   </ng-template>

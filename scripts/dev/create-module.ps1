@@ -444,7 +444,7 @@ public class ${entityClass} {
                             .asRequired()
                             .length(1, 64)
                             .matching("[a-z0-9_-]+"),
-                    FormField.select("status", "${cleanCode}.col.status", STATUSES, "${cleanCode}.status_")),
+                    FormField.select("status", "${cleanCode}.col.status", STATUSES, "${cleanCode}.status.")),
             List.of(new FormSection("main", "entity.section.main", List.of("name", "code", "status"))),
             List.of(
                     new EntityAction("create", "create"),
@@ -724,8 +724,8 @@ $labels = [ordered]@{
     "${cleanCode}.col.code"          = @{ ru = "Код"; en = "Code"; uz = "Kod" }
     "${cleanCode}.col.status"        = @{ ru = "Статус"; en = "Status"; uz = "Holat" }
     "${cleanCode}.col.modified_at"   = @{ ru = "Изменено"; en = "Modified"; uz = "Oʻzgartirilgan" }
-    "${cleanCode}.status_active"     = @{ ru = "Действует"; en = "Active"; uz = "Faol" }
-    "${cleanCode}.status_archived"   = @{ ru = "В архиве"; en = "Archived"; uz = "Arxivda" }
+    "${cleanCode}.status.active"     = @{ ru = "Действует"; en = "Active"; uz = "Faol" }
+    "${cleanCode}.status.archived"   = @{ ru = "В архиве"; en = "Archived"; uz = "Arxivda" }
 }
 $catalogDir = Join-Path $Root "apps\server\src\main\resources\i18n"
 foreach ($language in @("ru", "en", "uz")) {

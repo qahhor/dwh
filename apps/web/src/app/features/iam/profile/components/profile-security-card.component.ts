@@ -12,7 +12,7 @@ import { User } from '../profile.models';
       <div class="section-header">
         <div class="section-title-box">
           <span class="material-symbols-outlined section-icon" aria-hidden="true">security</span>
-          <h4 class="section-title">{{ 'iam.bezopasnost_i_2fa' | t }}</h4>
+          <h4 class="section-title">{{ 'iam.profile.security.title' | t }}</h4>
         </div>
       </div>
 
@@ -38,11 +38,11 @@ import { User } from '../profile.models';
         <div class="security-tips">
           <div class="tip-item">
             <span class="material-symbols-outlined tip-icon" aria-hidden="true">check_circle</span>
-            <span>{{ 'iam.zaschita_ot_podbora_paroley_5_nevernyh_popytok_b' | t }}</span>
+            <span>{{ 'iam.profile.security.brute_force_note' | t }}</span>
           </div>
           <div class="tip-item">
             <span class="material-symbols-outlined tip-icon" aria-hidden="true">check_circle</span>
-            <span>{{ 'iam.sessii_avtomaticheski_zakryvayutsya_pri_bezdeyst' | t }}</span>
+            <span>{{ 'iam.profile.security.idle_timeout_note' | t }}</span>
           </div>
         </div>
       </div>

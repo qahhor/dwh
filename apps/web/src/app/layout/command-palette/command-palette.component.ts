@@ -316,6 +316,6 @@ export class CommandPaletteComponent implements OnDestroy {
       const detail = (error as { detail?: unknown }).detail;
       if (typeof detail === 'string' && detail.trim()) return detail;
     }
-    return this.uiI18n.translate('layout.command_palette.ne_udalos_vypolnit_poisk_proverte_soedinenie_i_p');
+    return this.uiI18n.translate('layout.command_palette.search_failed');
   }
 }

@@ -141,7 +141,7 @@ export class TaskTableViewComponent {
     const base = registryTableConfig<Task>(meta, {
       translate: (key) => this.i18n.translate(key),
       trackBy: (_index, task) => task.id,
-      ariaLabel: this.i18n.translate('tasks.spisok_zadach'),
+      ariaLabel: this.i18n.translate('tasks.table.list'),
       sort: this.views()?.sort() ?? null,
       cells: {
         id: cell(this.idCell),
@@ -171,7 +171,7 @@ export class TaskTableViewComponent {
         ...base.columns,
         type: {
           key: 'type',
-          header: header(this.i18n.translate('settings.tip')),
+          header: header(this.i18n.translate('settings.common.type')),
           content: cell(this.typeCell),
           width: '120px',
         },
@@ -207,9 +207,14 @@ export class TaskTableViewComponent {
   priorityOptions(): SMTSelectOption<string>[] {
     return this.priorityMemo([this.i18n.currentLang()], () => [
       { id: 'low', label: this.i18n.translate('task.priority.low'), icon: 'flag', color: 'var(--success-text)' },
-      { id: 'medium', label: this.i18n.translate('tasks.sredniy'), icon: 'flag', color: 'var(--info-text)' },
+      { id: 'medium', label: this.i18n.translate('tasks.common.medium'), icon: 'flag', color: 'var(--info-text)' },
       { id: 'high', label: this.i18n.translate('task.priority.high'), icon: 'flag', color: 'var(--warning-text)' },
-      { id: 'critical', label: this.i18n.translate('tasks.kriticheskiy'), icon: 'flag', color: 'var(--danger-text)' },
+      {
+        id: 'critical',
+        label: this.i18n.translate('tasks.common.critical'),
+        icon: 'flag',
+        color: 'var(--danger-text)',
+      },
     ]);
   }
 

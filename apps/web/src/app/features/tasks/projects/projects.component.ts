@@ -371,11 +371,11 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     return this.viewMemo([this.optionText.currentLang()], () => [
       {
         value: 'list',
-        label: this.optionText.translate('projects.spisok'),
+        label: this.optionText.translate('projects.common.list'),
         icon: 'table_rows',
-        title: this.optionText.translate('projects.spisok_tablica'),
+        title: this.optionText.translate('projects.list.view_table'),
       },
-      { value: 'cards', label: this.optionText.translate('projects.kartochki'), icon: 'grid_view' },
+      { value: 'cards', label: this.optionText.translate('projects.list.view_cards'), icon: 'grid_view' },
     ]);
   }
 

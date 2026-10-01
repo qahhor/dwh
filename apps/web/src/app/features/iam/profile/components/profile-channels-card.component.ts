@@ -85,14 +85,19 @@ export class ProfileChannelsCardComponent {
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     return {
       trackBy: (_index, c) => c.id,
-      ariaLabel: this.i18n.translate('iam.kanaly_svyazi'),
+      ariaLabel: this.i18n.translate('iam.profile.channels.title'),
       layout: 'fit',
       columns: {
-        type: { header: header('iam.tip_kanala'), content: cell(this.typeCell), width: '160px' },
-        address: { header: header('iam.adres_ili_login'), content: cell(this.addressCell) },
-        created: { header: header('iam.sozdan'), content: cell(this.createdCell), width: '150px' },
+        type: { header: header('iam.profile.channels.channel_type'), content: cell(this.typeCell), width: '160px' },
+        address: { header: header('iam.profile.channels.address_or_account'), content: cell(this.addressCell) },
+        created: { header: header('iam.common.created_masculine'), content: cell(this.createdCell), width: '150px' },
         status: { header: header('common.status'), content: cell(this.statusCell), width: '200px' },
-        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '260px', align: 'right' },
+        action: {
+          header: header('audit.common.action'),
+          content: cell(this.actionCell),
+          width: '260px',
+          align: 'right',
+        },
       },
       columnsOrder: ['type', 'address', 'created', 'status', 'action'],
     };
@@ -101,9 +106,9 @@ export class ProfileChannelsCardComponent {
   readonly channelTypeOptions = computed<SMTSelectOption<string>[]>(() => {
     this.i18n.currentLang();
     return [
-      { id: 'email', label: this.i18n.translate('iam.kanal_email') },
-      { id: 'telegram', label: this.i18n.translate('iam.kanal_telegram') },
-      { id: 'sms', label: this.i18n.translate('iam.kanal_sms') },
+      { id: 'email', label: this.i18n.translate('iam.profile.channels.type_email') },
+      { id: 'telegram', label: this.i18n.translate('iam.profile.channels.type_telegram') },
+      { id: 'sms', label: this.i18n.translate('iam.profile.channels.type_sms') },
     ];
   });
 
@@ -120,7 +125,9 @@ export class ProfileChannelsCardComponent {
   }
 
   channelStatus(c: UserChannel): string {
-    return this.i18n.translate(c.isVerified ? 'iam.kanal_podtverzhden' : 'iam.ozhidaet_podtverzhdeniya');
+    return this.i18n.translate(
+      c.isVerified ? 'iam.profile.channels.verified' : 'iam.profile.channels.pending_confirmation',
+    );
   }
 
   getChannelIcon(channel: string): string {
@@ -133,9 +140,9 @@ export class ProfileChannelsCardComponent {
 
   getChannelLabelKey(channel: string): string {
     const norm = (channel || '').toLowerCase();
-    if (norm === 'email') return 'iam.kanal_email';
-    if (norm === 'telegram') return 'iam.kanal_telegram';
-    if (norm === 'sms') return 'iam.kanal_sms';
+    if (norm === 'email') return 'iam.profile.channels.type_email';
+    if (norm === 'telegram') return 'iam.profile.channels.type_telegram';
+    if (norm === 'sms') return 'iam.profile.channels.type_sms';
     return channel;
   }
 

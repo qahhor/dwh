@@ -140,7 +140,7 @@ export async function copyPasswordToClipboard(
     if (typeof navigator !== 'undefined' && navigator?.clipboard?.writeText) {
       await navigator.clipboard.writeText(password);
     }
-    toast.success(uiI18n.translate('iam.parol_skopirovan_v_bufer'));
+    toast.success(uiI18n.translate('iam.users.password_copied'));
   } catch {
     toast.info(password);
   }
@@ -182,10 +182,10 @@ export function calculatePasswordStrength(
   if (normalizedLogin && normalizedLogin.length >= 3 && !pwd.toLowerCase().includes(normalizedLogin.toLowerCase()))
     score += 0.5;
 
-  if (score < 1.5) return { score: 1, label: uiI18n.translate('iam.parol_slabyy'), color: 'var(--danger)' };
-  if (score < 2.5) return { score: 2, label: uiI18n.translate('iam.parol_sredniy'), color: 'var(--warning)' };
-  if (score < 3.5) return { score: 3, label: uiI18n.translate('iam.parol_horoshiy'), color: 'var(--info)' };
-  return { score: 4, label: uiI18n.translate('iam.parol_otlichnyy'), color: 'var(--success)' };
+  if (score < 1.5) return { score: 1, label: uiI18n.translate('iam.common.password_weak'), color: 'var(--danger)' };
+  if (score < 2.5) return { score: 2, label: uiI18n.translate('iam.common.password_medium'), color: 'var(--warning)' };
+  if (score < 3.5) return { score: 3, label: uiI18n.translate('iam.common.password_good'), color: 'var(--info)' };
+  return { score: 4, label: uiI18n.translate('iam.common.password_strong'), color: 'var(--success)' };
 }
 
 export interface EffectivePermissionItem {

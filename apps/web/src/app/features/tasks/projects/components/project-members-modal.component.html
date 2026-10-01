@@ -1,6 +1,6 @@
 <smt-dialog
   [open]="isOpen()"
-  [smtTitle]="'projects.uchastniki_proekta_title' | t: { name: project()?.name || '' }"
+  [smtTitle]="'projects.members.title' | t: { name: project()?.name || '' }"
   smtSize="lg"
   (closed)="closeModal.emit()"
 >
@@ -11,20 +11,20 @@
         <div class="add-member-panel">
           <div class="panel-header">
             <span class="material-symbols-outlined panel-icon" aria-hidden="true">person_add</span>
-            <span class="panel-title">{{ 'projects.dobavit_uchastnika' | t }}</span>
+            <span class="panel-title">{{ 'projects.members.add_member' | t }}</span>
           </div>
 
           <div class="add-member-controls">
             <!-- User Search / Selector -->
             <div class="user-search-wrapper">
               <label class="form-label" for="project-member-search">
-                {{ 'projects.vyberite_polzovatelya' | t }} <span class="req">*</span>
+                {{ 'projects.members.select_user' | t }} <span class="req">*</span>
               </label>
               <div class="search-input-box">
                 <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
                 <smt-input
                   smtFieldId="project-member-search"
-                  [placeholder]="selectedUser()?.name ?? ('projects.poisk_polzovatelya' | t)"
+                  [placeholder]="selectedUser()?.name ?? ('projects.members.search_placeholder' | t)"
                   [value]="userSearchQuery()"
                   (valueChange)="onSearchInput($event)"
                   (focusin)="isUserDropdownOpen.set(true)"
@@ -59,7 +59,7 @@
                       </div>
                       @if (isUserAlreadyMember(u.id)) {
                         <span class="already-member-tag">
-                          {{ 'projects.polzovatel_uzhe_uchastnik' | t }}
+                          {{ 'projects.members.already_member' | t }}
                         </span>
                       }
                     </button>
@@ -71,7 +71,7 @@
             <!-- Role / Access Kind -->
             <div class="access-kind-wrapper">
               <label class="form-label" for="project-member-role">
-                {{ 'projects.uroven_dostupa' | t }} <span class="req">*</span>
+                {{ 'projects.members.access_level' | t }} <span class="req">*</span>
               </label>
               <smt-select
                 smtTriggerId="project-member-role"
@@ -104,12 +104,7 @@
       }
 
       <!-- Members Table -->
-      <div
-        class="table-wrapper"
-        role="region"
-        [attr.aria-label]="'projects.tablica_uchastnikov_proekta' | t"
-        tabindex="0"
-      >
+      <div class="table-wrapper" role="region" [attr.aria-label]="'projects.members.table' | t" tabindex="0">
         <ui-local-table
           data-testid="project-members-table"
           [rows]="rows()"
@@ -174,5 +169,5 @@
   </div>
 </ng-template>
 <ng-template #emptyMembers
-  ><p class="empty-cell">{{ 'projects.net_uchastnikov_proekta' | t }}</p></ng-template
+  ><p class="empty-cell">{{ 'projects.members.empty' | t }}</p></ng-template
 >

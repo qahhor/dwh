@@ -100,7 +100,7 @@ export function getTypeObj(task: Task, taskTypes: TaskType[]): TaskType | null {
 
 export function getTypeLabel(task: Task, taskTypes: TaskType[], uiI18n: I18nService): string {
   const obj = getTypeObj(task, taskTypes);
-  return obj ? obj.name : uiI18n.translate('tasks.zadacha');
+  return obj ? obj.name : uiI18n.translate('tasks.common.task');
 }
 
 export function getTypeIcon(task: Task, taskTypes: TaskType[]): string {
@@ -132,9 +132,9 @@ export function getStatusName(
   statuses: TaskStatus[],
   uiI18n: I18nService,
 ): string {
-  if (!statusId) return uiI18n.translate('tasks.novaya');
+  if (!statusId) return uiI18n.translate('tasks.list.status_new');
   const s = statuses.find((x) => x.id === statusId);
-  return s ? s.name : uiI18n.translate('tasks.v_rabote');
+  return s ? s.name : uiI18n.translate('tasks.list.status_in_progress');
 }
 
 export function getStatusColor(statusId: number | null | undefined, statuses: TaskStatus[]): string {
@@ -147,12 +147,12 @@ export function getPriorityLabel(priority: string, uiI18n: I18nService): string 
   switch (priority) {
     case 'critical':
     case 'urgent':
-      return uiI18n.translate('tasks.kriticheskiy');
+      return uiI18n.translate('tasks.common.critical');
     case 'high':
       return uiI18n.translate('task.priority.high');
     case 'medium':
     case 'normal':
-      return uiI18n.translate('tasks.sredniy');
+      return uiI18n.translate('tasks.common.medium');
     default:
       return uiI18n.translate('task.priority.low');
   }
@@ -234,13 +234,13 @@ export function getInvolveKindLabel(kind: string | undefined, uiI18n: I18nServic
     case 'R':
       return uiI18n.translate('task.responsible');
     case 'E':
-      return uiI18n.translate('tasks.ispolnitel');
+      return uiI18n.translate('tasks.common.executor');
     case 'O':
-      return uiI18n.translate('tasks.nablyudatel');
+      return uiI18n.translate('tasks.common.observer');
     case 'A':
-      return uiI18n.translate('tasks.avtor');
+      return uiI18n.translate('tasks.common.author');
     default:
-      return uiI18n.translate('tasks.uchastnik');
+      return uiI18n.translate('tasks.common.participant');
   }
 }
 

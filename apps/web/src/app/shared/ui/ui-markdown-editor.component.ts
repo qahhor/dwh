@@ -63,7 +63,7 @@ export class UiMarkdownEditorComponent {
     const el = this.textareaRef()?.nativeElement;
     if (!el) {
       if (type === 'bold')
-        this.onTextChange((this.value() || '') + this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst'));
+        this.onTextChange((this.value() || '') + this.uiI18n.translate('ui.markdown_editor.bold_sample_wrapped'));
       return;
     }
 
@@ -77,31 +77,31 @@ export class UiMarkdownEditorComponent {
 
     switch (type) {
       case 'bold':
-        replacement = `**${selected || this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst.4df48c2')}**`;
+        replacement = `**${selected || this.uiI18n.translate('ui.markdown_editor.bold_sample')}**`;
         cursorOffset = selected ? replacement.length : 2;
         break;
       case 'italic':
-        replacement = `*${selected || this.uiI18n.translate('ui.markdown_editor.kursiv.64bef33')}*`;
+        replacement = `*${selected || this.uiI18n.translate('ui.markdown_editor.italic_sample')}*`;
         cursorOffset = selected ? replacement.length : 1;
         break;
       case 'strike':
-        replacement = `~~${selected || this.uiI18n.translate('ui.markdown_editor.zacherknutyy_tekst')}~~`;
+        replacement = `~~${selected || this.uiI18n.translate('ui.markdown_editor.strikethrough_sample')}~~`;
         cursorOffset = selected ? replacement.length : 2;
         break;
       case 'h2':
-        replacement = `\n## ${selected || this.uiI18n.translate('ui.markdown_editor.zagolovok')}\n`;
+        replacement = `\n## ${selected || this.uiI18n.translate('ui.markdown_editor.heading')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'bullet-list':
-        replacement = `\n- ${selected || this.uiI18n.translate('ui.markdown_editor.element_spiska')}\n- ${this.uiI18n.translate('ui.markdown_editor.vtoroy_element')}\n`;
+        replacement = `\n- ${selected || this.uiI18n.translate('ui.markdown_editor.list_item_sample')}\n- ${this.uiI18n.translate('ui.markdown_editor.second_list_item_sample')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'num-list':
-        replacement = `\n1. ${selected || this.uiI18n.translate('ui.markdown_editor.pervyy_punkt')}\n2. ${this.uiI18n.translate('ui.markdown_editor.vtoroy_punkt')}\n`;
+        replacement = `\n1. ${selected || this.uiI18n.translate('ui.markdown_editor.first_item_sample')}\n2. ${this.uiI18n.translate('ui.markdown_editor.second_item_sample')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'task-list':
-        replacement = `\n- [ ] ${selected || this.uiI18n.translate('ui.markdown_editor.podzadacha_ili_punkt_chek_lista')}\n- [x] ${this.uiI18n.translate('ui.markdown_editor.vypolnennyy_punkt')}\n`;
+        replacement = `\n- [ ] ${selected || this.uiI18n.translate('ui.markdown_editor.checklist_item_sample')}\n- [x] ${this.uiI18n.translate('ui.markdown_editor.done_item_sample')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'code':
@@ -113,15 +113,15 @@ export class UiMarkdownEditorComponent {
         cursorOffset = replacement.length;
         break;
       case 'quote':
-        replacement = `\n> ${selected || this.uiI18n.translate('ui.markdown_editor.citata_ili_vazhnoe_primechanie')}\n`;
+        replacement = `\n> ${selected || this.uiI18n.translate('ui.markdown_editor.quote_sample')}\n`;
         cursorOffset = replacement.length;
         break;
       case 'link':
-        replacement = `[${selected || this.uiI18n.translate('ui.markdown_editor.tekst_ssylki')}](https://)`;
+        replacement = `[${selected || this.uiI18n.translate('ui.markdown_editor.link_text_sample')}](https://)`;
         cursorOffset = replacement.length - 1;
         break;
       case 'table':
-        replacement = this.uiI18n.translate('ui.markdown_editor.parametr_znachenie_status_odobreno');
+        replacement = this.uiI18n.translate('ui.markdown_editor.table_sample');
         cursorOffset = replacement.length;
         break;
       default:
@@ -189,14 +189,14 @@ export class UiMarkdownEditorComponent {
     return this.tabsMemo([this.tabText.currentLang()], () => [
       {
         value: 'edit',
-        label: this.tabText.translate('ui.markdown_editor.redaktor'),
+        label: this.tabText.translate('ui.markdown_editor.editor'),
         icon: 'edit_note',
         id: this.editTabId,
         panelId: this.editPanelId,
       },
       {
         value: 'preview',
-        label: this.tabText.translate('ui.markdown_editor.predprosmotr'),
+        label: this.tabText.translate('ui.markdown_editor.preview'),
         icon: 'visibility',
         id: this.previewTabId,
         panelId: this.previewPanelId,

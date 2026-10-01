@@ -16,7 +16,7 @@ import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/form
         class="status-tab-bar"
         [tabs]="statusTabs()"
         [value]="statusFilter()"
-        [smtAriaLabel]="'announcements.vse_statusy' | t"
+        [smtAriaLabel]="'announcements.list.all_statuses' | t"
         (valueChange)="$event && filterChange.emit($event)"
       />
 
@@ -25,8 +25,8 @@ import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/form
         type="search"
         smtIcon="search"
         clearable
-        [placeholder]="'announcements.poisk' | t"
-        [smtAriaLabel]="'announcements.poisk' | t"
+        [placeholder]="'announcements.list.search' | t"
+        [smtAriaLabel]="'announcements.list.search' | t"
         [value]="searchQuery()"
         (valueChange)="onSearch($event)"
       />
@@ -93,7 +93,7 @@ export class AnnouncementsToolbarComponent {
     return this.tabsMemo(
       [this.tabText.currentLang(), this.totalCount(), this.publishedCount(), this.draftCount(), this.archivedCount()],
       () => [
-        { value: 'ALL', label: this.tabText.translate('announcements.vse_statusy'), count: this.totalCount() },
+        { value: 'ALL', label: this.tabText.translate('announcements.list.all_statuses'), count: this.totalCount() },
         {
           value: 'PUBLISHED',
           label: this.tabText.translate('announcements.status_published'),

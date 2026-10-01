@@ -13,7 +13,7 @@ import { UiToastContainerComponent } from './shared/ui/ui-toast.component';
     @if (authService.isLoading()) {
       <div class="app-loader">
         <div class="loader-spinner"></div>
-        <div class="loader-text">{{ 'app.inicializaciya_smartupcms' | t }}</div>
+        <div class="loader-text">{{ 'app.startup.initializing' | t }}</div>
       </div>
     }
 

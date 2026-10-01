@@ -10,14 +10,12 @@
       cdkTrapFocus
       [cdkTrapFocusAutoCapture]="true"
     >
-      <h2 class="sr-only" [id]="titleId">{{ 'layout.command_palette.globalnyy_poisk' | t }}</h2>
+      <h2 class="sr-only" [id]="titleId">{{ 'layout.command_palette.global_search' | t }}</h2>
 
       <!-- Search Header Box -->
       <div class="palette-search-box">
         <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-        <label class="sr-only" [for]="inputId">{{
-          'layout.command_palette.poisk_zadach_proektov_i_polzovateley' | t
-        }}</label>
+        <label class="sr-only" [for]="inputId">{{ 'layout.command_palette.search_label' | t }}</label>
         <input
           #searchInput
           [id]="inputId"
@@ -32,7 +30,7 @@
           [attr.aria-expanded]="results().length > 0"
           [attr.aria-controls]="results().length > 0 ? listboxId : null"
           [attr.aria-activedescendant]="results().length > 0 ? optionId(selectedIndex()) : null"
-          [placeholder]="'layout.command_palette.poisk_zadach_proektov_polzovateley_esc_dlya_zakr' | t"
+          [placeholder]="'layout.command_palette.search_placeholder' | t"
           [value]="searchQuery()"
           (input)="onQueryInput($event)"
         />

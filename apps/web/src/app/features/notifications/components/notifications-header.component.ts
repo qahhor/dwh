@@ -9,17 +9,17 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   imports: [UiPageHeaderComponent, TranslatePipe, SMTButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <ui-page-header [title]="'notifications.centr_uvedomleniy' | t" [count]="totalCount()">
+    <ui-page-header [title]="'notifications.inbox.title' | t" [count]="totalCount()">
       <button
         smt-button
         type="button"
         smtVariant="secondary"
         smtIcon="refresh"
         [smtLoading]="isLoading()"
-        [attr.aria-label]="'notifications.obnovit' | t"
+        [attr.aria-label]="'notifications.inbox.refresh' | t"
         (click)="refresh.emit()"
       >
-        {{ 'notifications.obnovit' | t }}
+        {{ 'notifications.inbox.refresh' | t }}
       </button>
       <button
         smt-button
@@ -30,7 +30,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
         [smtLoading]="isMarkingAll()"
         (click)="markAllRead.emit()"
       >
-        {{ 'notifications.prochitat_vse' | t }}
+        {{ 'notifications.inbox.read_all' | t }}
       </button>
       <button
         smt-button

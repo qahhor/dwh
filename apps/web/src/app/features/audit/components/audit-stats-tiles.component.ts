@@ -14,37 +14,37 @@ import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
     @if (stats(); as s) {
       <div class="tiles">
         <ui-kpi-card
-          [label]="'audit.vsego_zapisey_audita' | t"
+          [label]="'audit.stats.total_audit_records' | t"
           [value]="s.totalAuditLogs"
           icon="history"
           tone="primary"
         >
-          {{ 'audit.neizmenyaemyy_zhurnal' | t }}
+          {{ 'audit.stats.immutable_log' | t }}
         </ui-kpi-card>
         <ui-kpi-card
-          [label]="'audit.sobytiy_bezopasnosti' | t"
+          [label]="'audit.stats.security_events' | t"
           [value]="s.totalSecurityEvents"
           icon="security"
           tone="info"
         >
-          {{ 'audit.vse_tipy_sobytiy' | t }}
+          {{ 'audit.stats.all_event_types' | t }}
         </ui-kpi-card>
         <ui-kpi-card
-          [label]="'audit.sobytiy_za_24_chasa' | t"
+          [label]="'audit.stats.events_last_24_hours' | t"
           [value]="s.securityEventsLast24h"
           icon="schedule"
           tone="warning"
         >
-          {{ 'audit.sutochnaya_aktivnost' | t }}
+          {{ 'audit.stats.daily_activity' | t }}
         </ui-kpi-card>
         <ui-kpi-card
-          [label]="'audit.neudachnyh_vhodov_blokirovok' | t"
+          [label]="'audit.stats.failed_logins_and_locks' | t"
           [value]="s.failedLoginsLast24h"
           [icon]="s.failedLoginsLast24h > 0 ? 'gpp_bad' : 'verified_user'"
           [tone]="s.failedLoginsLast24h > 0 ? 'danger' : 'success'"
           [alert]="s.failedLoginsLast24h > 0"
         >
-          {{ (s.failedLoginsLast24h > 0 ? 'audit.trebuet_vnimaniya' : 'audit.anomaliy_ne_obnaruzheno') | t }}
+          {{ (s.failedLoginsLast24h > 0 ? 'audit.stats.needs_attention' : 'audit.stats.no_anomalies_found') | t }}
         </ui-kpi-card>
       </div>
     }

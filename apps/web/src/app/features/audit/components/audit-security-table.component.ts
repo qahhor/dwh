@@ -101,7 +101,7 @@ export class AuditSecurityTableComponent {
     const base = registryTableConfig<SecurityEventRecord>(meta, {
       translate: (key) => this.i18n.translate(key),
       trackBy: (_index, item) => item.id,
-      ariaLabel: this.i18n.translate('audit.sobytiya_bezopasnosti'),
+      ariaLabel: this.i18n.translate('audit.security.title'),
       sort: this.views()?.sort() ?? null,
       cells: {
         id: cell(this.idCell),
@@ -121,7 +121,7 @@ export class AuditSecurityTableComponent {
         ...base.columns,
         details: {
           key: 'details',
-          header: header(this.i18n.translate('audit.detali')),
+          header: header(this.i18n.translate('audit.security.details')),
           content: cell(this.detailsCell),
           width: '100px',
           align: 'right',
@@ -138,12 +138,12 @@ export class AuditSecurityTableComponent {
 
   eventTypeOptions(): SMTSelectOption<string>[] {
     return this.eventTypeMemo([this.i18n.currentLang()], () => [
-      { id: 'LOGIN_SUCCESS', label: this.i18n.translate('audit.uspeshnyy_vhod_login_success') },
-      { id: 'LOGIN_FAILED', label: this.i18n.translate('audit.oshibka_vhoda_login_failed') },
-      { id: 'LOGIN_LOCKED', label: this.i18n.translate('audit.blokirovka_brute_force_login_locked') },
+      { id: 'LOGIN_SUCCESS', label: this.i18n.translate('audit.security.event_login_success') },
+      { id: 'LOGIN_FAILED', label: this.i18n.translate('audit.security.event_login_failed') },
+      { id: 'LOGIN_LOCKED', label: this.i18n.translate('audit.security.event_login_locked') },
       { id: 'IP_RATE_LIMITED', label: 'Rate Limit IP (IP_RATE_LIMITED)' },
-      { id: 'PASSWORD_CHANGED', label: this.i18n.translate('audit.smena_parolya_password_changed') },
-      { id: 'API_TOKEN_CREATED', label: this.i18n.translate('audit.vypusk_api_tokena') },
+      { id: 'PASSWORD_CHANGED', label: this.i18n.translate('audit.security.event_password_changed') },
+      { id: 'API_TOKEN_CREATED', label: this.i18n.translate('audit.security.event_api_token_issued') },
     ]);
   }
 

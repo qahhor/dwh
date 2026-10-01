@@ -115,6 +115,6 @@ describe('AppSidebarFlyoutComponent', () => {
     menuItems()[1].click();
     menuItems()[3].click();
     expect(events).toEqual(['page', 'logout']);
-    expect(menuItems()[3].textContent).toContain(PACKAGED_RUSSIAN['layout.app_shell.vyyti_iz_sistemy']);
+    expect(menuItems()[3].textContent).toContain(PACKAGED_RUSSIAN['layout.app_shell.sign_out']);
   });
 });

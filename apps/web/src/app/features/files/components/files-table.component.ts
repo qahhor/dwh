@@ -41,7 +41,7 @@ import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.type
     <div
       class="table-container"
       role="region"
-      [attr.aria-label]="'files.tablica_faylov' | t"
+      [attr.aria-label]="'files.list.file_table' | t"
       tabindex="0"
       [attr.aria-busy]="pager().loading()"
     >
@@ -73,7 +73,7 @@ import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.type
           class="file-name-cell"
           (click)="download.emit(file)"
           [attr.aria-label]="'files.download_named' | t: { name: file.originalName }"
-          [title]="'files.skachat_fayl' | t"
+          [title]="'files.list.download_file' | t"
         >
           <span class="primary-name">{{ file.originalName }}</span>
         </button>
@@ -116,7 +116,7 @@ import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.type
           class="action-btn download-btn"
           [attr.aria-label]="'files.download_named' | t: { name: file.originalName }"
           (click)="download.emit(file)"
-          [title]="'files.skachat' | t"
+          [title]="'files.list.download' | t"
         >
           <span class="material-symbols-outlined" aria-hidden="true">download</span>
         </button>
@@ -137,8 +137,8 @@ import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.type
     <ng-template #emptyState>
       <div class="empty-state-box">
         <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_open</span>
-        <h3>{{ 'files.fayly_ne_naydeny' | t }}</h3>
-        <p>{{ 'files.zagruzite_pervyy_fayl_s_pomoschyu_knopki_zagruzi' | t }}</p>
+        <h3>{{ 'files.list.empty' | t }}</h3>
+        <p>{{ 'files.list.empty_hint' | t }}</p>
       </div>
     </ng-template>
   `,
@@ -186,7 +186,7 @@ export class FilesTableComponent {
     const base = registryTableConfig<FileDetail>(meta, {
       translate: (key) => this.i18n.translate(key),
       trackBy: (_index, file) => file.id,
-      ariaLabel: this.i18n.translate('files.spisok_faylov'),
+      ariaLabel: this.i18n.translate('files.list.file_list'),
       sort: views?.sort() ?? null,
       cells: {
         originalName: cell(this.nameCell),

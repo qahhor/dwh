@@ -46,7 +46,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
     <div
       class="table-container"
       role="region"
-      [attr.aria-label]="'iam.tablica_polzovateley' | t"
+      [attr.aria-label]="'iam.users.table' | t"
       [attr.aria-busy]="pager().loading()"
     >
       @if (tableConfig(); as config) {
@@ -139,7 +139,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
           smtSize="sm"
           smtIcon="visibility"
           [attr.aria-label]="'iam.view_user_named' | t: { name: u.name }"
-          [title]="'iam.prosmotr' | t"
+          [title]="'iam.users.view' | t"
           (click)="viewUser.emit(u)"
         ></button>
         @if (canUpdateUser()) {
@@ -169,7 +169,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
     <ng-template #emptyStateTpl>
       <div class="empty-state">
         <span class="material-symbols-outlined empty-ico" aria-hidden="true">search_off</span>
-        <p class="empty-text">{{ 'iam.polzovateli_ne_naydeny' | t }}</p>
+        <p class="empty-text">{{ 'iam.users.empty' | t }}</p>
       </div>
     </ng-template>
   `,
@@ -229,7 +229,7 @@ export class UserTableViewComponent {
     const base = registryTableConfig<User>(meta, {
       translate: (key) => this.i18n.translate(key),
       trackBy: (_index, user) => user.id,
-      ariaLabel: this.i18n.translate('iam.spisok_polzovateley'),
+      ariaLabel: this.i18n.translate('iam.users.list'),
       sort: this.views()?.sort() ?? null,
       cells: {
         name: cell(this.identityCell),
@@ -251,13 +251,13 @@ export class UserTableViewComponent {
         ...base.columns,
         roles: {
           key: 'roles',
-          header: header(this.i18n.translate('iam.roli')),
+          header: header(this.i18n.translate('iam.users.roles')),
           content: cell(this.rolesCell),
           width: share,
         },
         manager: {
           key: 'manager',
-          header: header(this.i18n.translate('iam.rukovoditel')),
+          header: header(this.i18n.translate('iam.users.supervisor')),
           content: cell(this.managerCell),
           width: share,
         },

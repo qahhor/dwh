@@ -22,9 +22,9 @@ describe('ProfileTokensCardComponent', () => {
     createdAt: '2026-09-02T10:00:00Z',
   };
   const lifetimes: TokenExpirationOption[] = [
-    { value: '30', labelKey: 'iam.srok_30_dney' },
-    { value: '90', labelKey: 'iam.srok_90_dney' },
-    { value: 'never', labelKey: 'iam.bessrochno' },
+    { value: '30', labelKey: 'iam.profile.expiry_30_days' },
+    { value: '90', labelKey: 'iam.profile.expiry_90_days' },
+    { value: 'never', labelKey: 'iam.profile.no_expiry' },
   ];
 
   function setup(inputs: Record<string, unknown> = {}) {

@@ -12,19 +12,19 @@ import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
 import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
 
 const ENTITY_TYPES: readonly [string, string][] = [
-  ['USER', 'iam.polzovatel_user'],
-  ['PROJECT', 'iam.proekt_project'],
-  ['TASK', 'iam.zadacha_task'],
-  ['NOTE', 'iam.zametka_note'],
+  ['USER', 'iam.custom_fields.editor.entity_user'],
+  ['PROJECT', 'iam.custom_fields.editor.entity_project'],
+  ['TASK', 'iam.custom_fields.editor.entity_task'],
+  ['NOTE', 'iam.custom_fields.entity_note'],
 ];
 
 const FIELD_TYPES: readonly [string, string][] = [
-  ['string', 'iam.tekst_string'],
-  ['number', 'iam.chislo_number'],
-  ['boolean', 'iam.logicheskiy_pereklyuchatel_boolean'],
+  ['string', 'iam.custom_fields.editor.type_string'],
+  ['number', 'iam.custom_fields.editor.type_number'],
+  ['boolean', 'iam.custom_fields.editor.type_boolean'],
   ['date', 'iam.data_date'],
-  ['select', 'iam.vypadayuschiy_spisok_select'],
-  ['user_ref', 'iam.ssylka_na_polzovatelya_user_ref'],
+  ['select', 'iam.custom_fields.editor.type_select'],
+  ['user_ref', 'iam.custom_fields.editor.type_user_ref'],
 ];
 
 @Component({

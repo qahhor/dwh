@@ -88,7 +88,7 @@ try {
     foreach ($language in @('ru', 'en', 'uz')) {
         $catalogPath = Join-Path $work "apps/server/src/main/resources/i18n/$language.json"
         $catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        foreach ($key in @('error.probe.not_found', 'nav.probe', 'probe.col.name', 'probe.status_active')) {
+        foreach ($key in @('error.probe.not_found', 'nav.probe', 'probe.col.name', 'probe.status.active')) {
             Assert-That ($null -ne $catalog.$key) "$language.json has $key"
         }
     }

@@ -26,7 +26,7 @@ import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 const LIST_TITLES: Record<string, string> = {
   'upl.sources': 'nav.upl_sources',
   'upl.packages': 'nav.upl_packages',
-  'mf.files': 'layout.app_shell.fayly',
+  'mf.files': 'layout.app_shell.files',
 };
 const STATE_KEYS: Record<ExportItem['state'], string> = {
   queued: 'exports.state.queued',

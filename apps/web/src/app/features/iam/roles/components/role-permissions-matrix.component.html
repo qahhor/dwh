@@ -20,7 +20,7 @@
         <div
           class="meter-track"
           role="progressbar"
-          [attr.aria-label]="'iam.dolya_razreshennyh_deystviy' | t"
+          [attr.aria-label]="'iam.roles.matrix.allowed_share' | t"
           aria-valuemin="0"
           aria-valuemax="100"
           [attr.aria-valuenow]="permissionPercentage()"
@@ -42,7 +42,7 @@
         [disabled]="!canEditPermissions()"
         (click)="resetChanges.emit()"
       >
-        {{ 'iam.sbrosit_izmeneniya' | t }}
+        {{ 'iam.roles.matrix.reset_changes' | t }}
       </button>
     }
     @if (canGrant()) {
@@ -56,7 +56,7 @@
         [disabled]="!canEditPermissions()"
         (click)="savePermissions.emit()"
       >
-        {{ 'iam.sohranit_prava' | t }}
+        {{ 'iam.common.save_permissions' | t }}
         @if (isPermissionsDirty()) {
           <span> ({{ dirtyPermissionsCount() }})</span>
         }
@@ -81,7 +81,7 @@
 @if (role().pcode === 'admin') {
   <div class="admin-notice">
     <span class="material-symbols-outlined icon" aria-hidden="true">verified_user</span>
-    <span>{{ 'iam.rol_superadministratora_obladaet_absolyutnymi_pr' | t }}</span>
+    <span>{{ 'iam.roles.matrix.super_admin_note' | t }}</span>
   </div>
 }
 
@@ -89,7 +89,7 @@
 @if (role().pcode === 'auditor') {
   <div class="admin-notice auditor-notice">
     <span class="material-symbols-outlined icon" aria-hidden="true">visibility</span>
-    <span>{{ 'iam.rol_auditora_prednaznachena_dlya_proveryayuschih' | t }}</span>
+    <span>{{ 'iam.roles.matrix.auditor_note' | t }}</span>
   </div>
 }
 
@@ -97,7 +97,7 @@
 <div class="matrix-toolbar-box">
   <div class="search-and-expand-row">
     <div class="matrix-search-field">
-      <label class="sr-only" for="permission-search">{{ 'iam.poisk_po_matrice_prav' | t }}</label>
+      <label class="sr-only" for="permission-search">{{ 'iam.roles.matrix.search' | t }}</label>
       <smt-input
         smtFieldId="permission-search"
         name="permissionSearch"
@@ -106,37 +106,37 @@
         clearable
         smtSize="sm"
         class="matrix-search-input"
-        [placeholder]="'iam.poisk_po_nazvaniyu_formy_deystviyu_ili_kodu' | t"
+        [placeholder]="'iam.roles.matrix.search_placeholder' | t"
         [value]="matrixSearchQuery()"
         (valueChange)="matrixSearchQueryChange.emit($event === null ? '' : '' + $event)"
       />
       @if (matrixSearchQuery().trim()) {
         <span class="search-match-badge">
-          {{ 'iam.naydeno_form' | t: { count: matchingFormsCount() } }}
+          {{ 'iam.roles.matrix.found_forms' | t: { count: matchingFormsCount() } }}
         </span>
       }
     </div>
 
     <div class="expand-all-links">
       <button type="button" class="text-link" (click)="setAllModulesExpanded.emit(true)">
-        {{ 'iam.razvernut_vse' | t }}
+        {{ 'iam.roles.matrix.expand_all' | t }}
       </button>
       <span class="link-sep">•</span>
       <button type="button" class="text-link" (click)="setAllModulesExpanded.emit(false)">
-        {{ 'iam.svernut_vse' | t }}
+        {{ 'iam.roles.matrix.collapse_all' | t }}
       </button>
       @if (canEditPermissions()) {
         <span class="link-sep">•</span>
         <button type="button" class="text-link" (click)="toggleAllPermissions.emit(true)">
-          {{ 'iam.vybrat_vse_prava' | t }}
+          {{ 'iam.roles.matrix.grant_all' | t }}
         </button>
         <span class="link-sep">•</span>
         <button type="button" class="text-link" (click)="toggleReadOnlyAllPermissions.emit()">
-          {{ 'iam.tolko_chtenie_vse' | t }}
+          {{ 'iam.roles.matrix.read_only_all' | t }}
         </button>
         <span class="link-sep">•</span>
         <button type="button" class="text-link" (click)="toggleAllPermissions.emit(false)">
-          {{ 'iam.snyat_vse_prava' | t }}
+          {{ 'iam.roles.matrix.revoke_all' | t }}
         </button>
       }
     </div>
@@ -148,7 +148,7 @@
     class="module-filter"
     [options]="moduleOptions()"
     [value]="selectedModuleTab()"
-    [smtAriaLabel]="'iam.filtr_moduley_matricy_prav' | t"
+    [smtAriaLabel]="'iam.roles.matrix.module_filter' | t"
     (valueChange)="selectedModuleTabChange.emit($event ?? selectedModuleTab())"
   />
 </div>
@@ -183,7 +183,7 @@
             [disabled]="!canEditPermissions()"
             (click)="toggleReadOnlyModule.emit(mod)"
           >
-            {{ 'iam.tolko_chtenie' | t }}
+            {{ 'iam.roles.matrix.read_only' | t }}
           </button>
           <span class="batch-divider">|</span>
           <button
@@ -192,7 +192,7 @@
             [disabled]="!canEditPermissions()"
             (click)="toggleAllModule.emit({ mod: mod, select: true })"
           >
-            {{ 'iam.vybrat_vse' | t }}
+            {{ 'iam.common.select_all' | t }}
           </button>
           <span class="batch-divider">|</span>
           <button
@@ -201,7 +201,7 @@
             [disabled]="!canEditPermissions()"
             (click)="toggleAllModule.emit({ mod: mod, select: false })"
           >
-            {{ 'iam.snyat_vse' | t }}
+            {{ 'iam.common.clear_all' | t }}
           </button>
         </div>
       </div>
@@ -234,7 +234,7 @@
                             [disabled]="!canEditPermissions()"
                             (click)="toggleAllForm.emit({ form: f, select: true })"
                           >
-                            {{ 'iam.vse' | t }}
+                            {{ 'iam.roles.matrix.all' | t }}
                           </button>
                           <span class="dot">•</span>
                           <button
@@ -243,7 +243,7 @@
                             [disabled]="!canEditPermissions()"
                             (click)="toggleAllForm.emit({ form: f, select: false })"
                           >
-                            {{ 'iam.snyat' | t }}
+                            {{ 'iam.roles.matrix.clear' | t }}
                           </button>
                         </div>
                       }
@@ -268,7 +268,12 @@
                         >
                           <span class="chk-label">{{ act.actionName }}</span>
                           @if (isPermissionDirty()(f.formCode, act.action)) {
-                            <span class="dirty-indicator-dot" [title]="'iam.izmeneno' | t" aria-hidden="true">•</span>
+                            <span
+                              class="dirty-indicator-dot"
+                              [title]="'iam.roles.matrix.modified' | t"
+                              aria-hidden="true"
+                              >•</span
+                            >
                           }
                         </div>
                       }
