@@ -80,6 +80,11 @@ Current ADRs that are not superseded:
   — a module publishes read-only `<prefix>_pub_*` views of the columns other
   modules read; their repositories join the views, never the base tables, and
   change another module's data only through its service.
+- [ADR-0028 — permission codes by module](adr/ADR-0028-permission-codes.md)
+  — a form code is `<area>.<entity-or-screen>` and its area names the owning
+  module; a controller guards its endpoints with its own module's forms or
+  with forms the owner publishes to it; V147 moved the old `iam.*`, `rbac.*`
+  and `platform.*` grants.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

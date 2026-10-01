@@ -42,7 +42,11 @@ backend-инфраструктура — в `libs/platform-common`, а инте�
 провайдеров — в `libs/provider-spi`. Общая библиотека не зависит от сервера.
 
 Любой защищённый endpoint использует `@RequiresPermission`; UI-проверка лишь
-улучшает UX и не заменяет серверную авторизацию. Ошибки возвращаются в общем
+улучшает UX и не заменяет серверную авторизацию. Код формы —
+`<область модуля>.<сущность>` ([ADR-0028](../adr/ADR-0028-permission-codes.md)):
+область — код модуля или именованная область из `PermissionAreas`
+(`tasks` → `ms.task`); форма другого модуля — только опубликованная вашему
+модулю. Новая область или публикация — правка `PermissionAreas` и ADR-0028. Ошибки возвращаются в общем
 Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
 [как ведёт себя API](../api/README.md)).
 
@@ -104,8 +108,9 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
    кнопки — по `actions` из `form-meta`, а не по своим проверкам прав. Пункт
    меню появится сам (`GET /entities/menu`).
 8. **Проверки:** `EntityActionPermissionContractTest` сверяет действия
-   объявления с `@RequiresPermission`, `MdFormCatalogTest` — что у каждой пары
-   права есть название; объявление без того, что обещают его возможности, не
+   объявления с `@RequiresPermission` и владельца формы с `EntityRights`,
+   `PermissionCodesTest` — что код формы подчиняется правилу ADR-0028,
+   `MdFormCatalogTest` — что у каждой пары права есть название; объявление без того, что обещают его возможности, не
    даёт приложению стартовать. Тесты модуля — как у заметок
    (`MsNoteControllerTest`, `MsNoteIntegrationTest`). Новый модуль получает
    строку порога покрытия в `apps/server/coverage-floors.csv` (без неё

@@ -58,10 +58,14 @@ Flyway-миграции и Angular-код.
 ## Права
 
 Разрешение является парой `form` + `action` и проверяется серверной аннотацией
-`@RequiresPermission`. Код формы имеет вид `domain.resource` в lowercase,
-например `iam.users`, `tasks.items` или `platform.files`. Действие — короткий
+`@RequiresPermission`. Код формы — `<область>` или
+`<область>.<сущность-или-экран>` в lowercase, и область называет модуль-владельца
+([ADR-0028](../adr/ADR-0028-permission-codes.md)): `md.users`, `tasks.items`
+(область `tasks` — модуль `ms.task`), `mf.files`, `notes`. Действие — короткий
 lowercase `snake_case` глагол, например `view`, `create`, `update`, `delete` или
-`manage_tokens`.
+`manage_tokens`. Контроллер требует формы своего модуля; чужую — только
+опубликованную ему владельцем (`PermissionAreas.PUBLISHED`), это проверяет
+`PermissionCodesTest`.
 
 Константы форм размещаются в соответствующем `*Pref`, а каталог прав
 синхронизируется с аннотациями в коде. Скрытие элемента в Angular не заменяет
