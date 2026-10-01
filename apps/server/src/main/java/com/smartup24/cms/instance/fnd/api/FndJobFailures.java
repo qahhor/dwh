@@ -1,6 +1,5 @@
 package com.smartup24.cms.instance.fnd.api;
 
-import com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.sql.SQLRecoverableException;

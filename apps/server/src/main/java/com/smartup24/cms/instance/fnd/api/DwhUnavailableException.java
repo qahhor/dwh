@@ -1,7 +1,4 @@
-package com.smartup24.cms.instance.fnd.dwh;
-
-import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
+package com.smartup24.cms.instance.fnd.api;
 
 /**
  * The second database (pg-dwh) is unavailable. An empty list or {@code null} is never returned in place of data:

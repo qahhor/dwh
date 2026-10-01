@@ -34,7 +34,6 @@ apps/server/src/main/java/com/smartup24/cms/instance/config/web/TraceparentFilte
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/FndActors.java 14
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/FndSystemUserBootstrap.java 3
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/config/FndDwhMaintenance.java 6
-apps/server/src/main/java/com/smartup24/cms/instance/fnd/error/FndSqlErrors.java 9
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/jobs/FndLoadCleanupJob.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/migration/MigrationCatalog.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/migration/SchemaVersionMismatchException.java 4

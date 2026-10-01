@@ -2,11 +2,12 @@ package com.smartup24.cms.instance.fnd.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
-import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
+import com.smartup24.cms.instance.fnd.api.FndRawRow;
+import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.time.Duration;

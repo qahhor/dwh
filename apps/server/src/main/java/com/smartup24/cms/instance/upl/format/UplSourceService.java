@@ -5,12 +5,12 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
-import com.smartup24.cms.instance.fnd.FndActor;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
-import com.smartup24.cms.instance.fnd.versioning.FndVersion;
-import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
+import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndActorContext;
+import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
+import com.smartup24.cms.instance.fnd.api.FndVersion;
+import com.smartup24.cms.instance.fnd.api.FndVersions;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FileKind;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
@@ -44,11 +44,11 @@ public class UplSourceService {
 
     private final UplFormatRepository repo;
     private final UplFormatValidator validator;
-    private final FndVersioning versioning;
-    private final FndActors actors;
+    private final FndVersions versioning;
+    private final FndActorContext actors;
 
     public UplSourceService(
-            UplFormatRepository repo, UplFormatValidator validator, FndVersioning versioning, FndActors actors) {
+            UplFormatRepository repo, UplFormatValidator validator, FndVersions versioning, FndActorContext actors) {
         this.repo = repo;
         this.validator = validator;
         this.versioning = versioning;

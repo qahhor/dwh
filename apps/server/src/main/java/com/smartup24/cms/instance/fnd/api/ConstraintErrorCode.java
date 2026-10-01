@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.error;
+package com.smartup24.cms.instance.fnd.api;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import java.util.Arrays;

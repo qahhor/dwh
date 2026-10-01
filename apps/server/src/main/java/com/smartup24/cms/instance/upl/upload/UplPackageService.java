@@ -4,8 +4,8 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
-import com.smartup24.cms.instance.fnd.FndActor;
-import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndActorContext;
 import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageErrors;
 import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageItem;
 import com.smartup24.cms.instance.upl.parse.UplParseResult;
@@ -33,9 +33,9 @@ public class UplPackageService {
     private static final int MAX_LIMIT = 200;
 
     private final UplPackageRepository repo;
-    private final FndActors actors;
+    private final FndActorContext actors;
 
-    public UplPackageService(UplPackageRepository repo, FndActors actors) {
+    public UplPackageService(UplPackageRepository repo, FndActorContext actors) {
         this.repo = repo;
         this.actors = actors;
     }

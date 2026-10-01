@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.fnd;
 
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndActorContext;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
@@ -10,7 +12,7 @@ import org.springframework.stereotype.Component;
  * вызывает {@link #apply(FndActor)} внутри своей транзакции (AC-6, AC-32).
  */
 @Component
-public class FndActors {
+public class FndActors implements FndActorContext {
 
     private static final String SYSTEM_NAME = "System (DW jobs)";
     private static final String SYSTEM_EMAIL = "system@localhost";
@@ -27,6 +29,7 @@ public class FndActors {
      * при запуске ({@link FndSystemUserBootstrap}) или при первом обращении — миграции
      * пользователей не создают.
      */
+    @Override
     public FndActor system() {
         Long id = systemUserId;
         if (id == null) {
@@ -84,6 +87,7 @@ public class FndActors {
                 .optional();
     }
 
+    @Override
     public FndActor user(long userId) {
         return FndActor.user(userId);
     }
@@ -93,6 +97,7 @@ public class FndActors {
      * поэтому вызывать только внутри {@code @Transactional}: иначе настройка потеряется вместе
      * с соединением и триггер аудита откажет кодом {@code audit_actor_missing}.
      */
+    @Override
     public void apply(FndActor actor) {
         jdbc.sql("select set_config('app.user_id', :id, true)")
                 .param("id", String.valueOf(actor.userId()))

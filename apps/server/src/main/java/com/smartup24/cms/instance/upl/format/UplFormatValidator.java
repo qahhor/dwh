@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.upl.format;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.fnd.units.FndUnitService;
-import com.smartup24.cms.instance.fnd.units.FndUnitService.FndUnit;
+import com.smartup24.cms.instance.fnd.api.FndUnit;
+import com.smartup24.cms.instance.fnd.api.FndUnits;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.DataType;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FileKind;
@@ -48,9 +48,9 @@ public class UplFormatValidator {
     public static final String UPL_POSITION_REQUIRED = "UPL_POSITION_REQUIRED";
     public static final String UPL_POSITION_DUPLICATE = "UPL_POSITION_DUPLICATE";
 
-    private final FndUnitService units;
+    private final FndUnits units;
 
-    public UplFormatValidator(FndUnitService units) {
+    public UplFormatValidator(FndUnits units) {
         this.units = units;
     }
 

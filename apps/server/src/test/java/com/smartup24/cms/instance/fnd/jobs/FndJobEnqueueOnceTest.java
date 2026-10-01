@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.fnd.jobs;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.util.ArrayList;
 import java.util.List;

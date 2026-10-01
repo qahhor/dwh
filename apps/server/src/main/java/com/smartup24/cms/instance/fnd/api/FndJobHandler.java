@@ -1,13 +1,10 @@
-package com.smartup24.cms.instance.fnd.jobs;
+package com.smartup24.cms.instance.fnd.api;
 
-import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
-import com.smartup24.cms.instance.fnd.api.FndJobFailures;
-import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
 import java.util.Map;
 
 /**
  * A handler for a foundation job. The schedule and the queue live in the {@code fnd_job_*} tables; the foundation
- * has no Spring scheduler: jobs are taken by {@link FndJobRunner}, which a deployment step or an instance worker
+ * has no Spring scheduler: jobs are taken by the job runner, which a deployment step or an instance worker
  * calls.
  *
  * <p>The runner calls a handler with no transaction open (plan 10/10, item 3.8): a handler that needs atomicity opens

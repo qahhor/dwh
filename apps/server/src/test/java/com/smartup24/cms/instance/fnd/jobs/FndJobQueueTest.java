@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.fnd.jobs;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.sql.Connection;

@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd;
+package com.smartup24.cms.instance.fnd.api;
 
 /**
  * Who performs a foundation operation. {@code userId} is the {@code md_users} row that the framework audit sees
