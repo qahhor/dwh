@@ -152,6 +152,12 @@ the CMS one; `backup-bootstrap` grants the backup role read access to both. Do n
 one-shot backup succeeds or a documented risk owner explicitly stops the
 release.
 
+A database backup is restorable only together with its `SMC_SECRETS_KEY`: the
+webhook signing keys and SSO client secrets in it are encrypted with that key
+(ADR-0029). A server started on a restored database with another key refuses
+to start and names the column it cannot open; put the original key back
+instead of generating a new one.
+
 Backup recovery is not proven until [an isolated restore drill](maintenance-guide.md#restore-drill)
 passes. Database success does not prove recovery of uploaded objects.
 Use `backup-objects.ps1` and `restore-combined.ps1` for the release drill; the

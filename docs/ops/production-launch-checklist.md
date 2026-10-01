@@ -80,6 +80,10 @@ owner. A commercial SLA cannot override a failed safety gate.
       password reset and two-factor codes travel only through them, and the
       server refuses to start while two-factor users depend on a `console_*`
       stub (`SMC_DELIVERY_ENFORCE`).
+- [ ] `SMC_SECRETS_KEY` is a key of this installation (base64 of 32 bytes) and
+      a copy is stored outside the host with the backup age identity: stored
+      webhook and SSO secrets are encrypted with it (ADR-0029), and a restore
+      without it loses them.
 - [ ] `SMC_PUBLIC_URL` is the public HTTPS address of the web application:
       password reset links are built from it (never from the request's Host
       header), and with it empty no reset link is sent.

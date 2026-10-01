@@ -47,6 +47,15 @@ The first file must contain the same value as `DB_PASSWORD`. The second must be
 a distinct random password for the dedicated read-only backup role. Do not add a
 trailing explanatory line or commit the files.
 
+Set `SMC_SECRETS_KEY` to a key of this installation (`openssl rand -base64 32`;
+`init-production-env.*` generates one). The server encrypts the secrets it
+keeps in the database with it (webhook signing keys, SSO client secrets;
+ADR-0029) and refuses to start without it, with a malformed key or with the
+development key. Store a copy outside the host next to the backup age identity:
+a database restored without its key loses those secrets, and the server does
+not start until the original key is back. Do not change the key on an existing
+installation: the start is refused while the stored secrets do not open.
+
 For Smartup-managed installations, also copy the five full `SERVER_IMAGE`,
 `WEB_IMAGE`, `BACKUP_IMAGE`, `POSTGRES_IMAGE`, and `TYPESENSE_IMAGE` references
 from the signed release bundle. Each must end in `@sha256:<digest>`; the managed

@@ -80,6 +80,11 @@ Current ADRs that are not superseded:
   — a module publishes read-only `<prefix>_pub_*` views of the columns other
   modules read; their repositories join the views, never the base tables, and
   change another module's data only through its service.
+- [ADR-0029 — encryption of secrets in the database](adr/ADR-0029-stored-secrets-encryption.md)
+  — webhook signing keys and SSO client secrets are stored as AES-256-GCM
+  `v1:` values under the installation key `SMC_SECRETS_KEY`; the server
+  refuses to start without the key outside dev and encrypts legacy plain
+  values at start.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
