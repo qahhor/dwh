@@ -31,6 +31,9 @@ $tests = @(
     'MigrationLintTest',
     'MigrationFileRulesTest',
     'EntityActionPermissionContractTest',
+    # Plan 10/10, item 5.0: form and list fields agree, and the right names are translated keys.
+    'EntityFieldContractTest',
+    'MdPermissionEntityNamesTest',
     'MdFormCatalogTest',
     # Embedded PostgreSQL, no Docker: the migrations apply, the declared rights are in the catalog, the role
     # grants stay as the tests of the system and instance roles expect, and the application context starts.
@@ -88,7 +91,7 @@ try {
     foreach ($language in @('ru', 'en', 'uz')) {
         $catalogPath = Join-Path $work "apps/server/src/main/resources/i18n/$language.json"
         $catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        foreach ($key in @('error.probe.not_found', 'nav.probe', 'probe.col.name', 'probe.status.active')) {
+        foreach ($key in @('error.probe.not_found', 'nav.probe', 'probe.col.name', 'probe.status.active', 'probe.rights.view')) {
             Assert-That ($null -ne $catalog.$key) "$language.json has $key"
         }
     }
