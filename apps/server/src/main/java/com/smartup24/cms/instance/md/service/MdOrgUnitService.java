@@ -12,11 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Оргструктура экземпляра (ADR-0013). Дерево, на которое опирается скоуп данных.
+ * The org structure of the instance (ADR-0013): the tree the data scope rests on.
  *
- * Инварианты, которые держит приложение, а не база:
- * I-ORG-1 узел нельзя перенести под собственного потомка (цикл отрезал бы ветку от корня);
- * I-ORG-2 узел с детьми или с назначенными сотрудниками не удаляется молча.
+ * Invariants the application keeps, not the database:
+ * a unit cannot move under its own descendant (the cycle would cut the branch off the root);
+ * a unit with children or assigned users is never deleted silently.
  */
 @Service
 public class MdOrgUnitService {
@@ -58,8 +58,8 @@ public class MdOrgUnitService {
         if (parentId != null) {
             requireUnit(parentId);
         } else if (orgUnitRepository.hasRoot()) {
-            // Экземпляр принадлежит одному клиенту (ADR-0004), поэтому дерево одно.
-            // Без этой проверки ограничение БД срабатывало бы конфликтом без объяснения.
+            // An instance belongs to one client (ADR-0004), so there is one tree.
+            // Without this check the database constraint would fail as an unexplained conflict.
             throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_root_exists");
         }
         if (orgUnitRepository.existsByCode(code)) {
@@ -139,7 +139,7 @@ public class MdOrgUnitService {
             }
         }
 
-        // I-ORG-1: перенос под собственного потомка отрезал бы ветку от корня — молча.
+        // Moving a unit under its own descendant would cut the branch off the root, silently.
         if (finalParentId != null && orgUnitRepository.isDescendant(id, finalParentId)) {
             throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_move_under_descendant");
         }
@@ -183,8 +183,8 @@ public class MdOrgUnitService {
         scopeService.acquireMutationLock();
         var unit = requireUnit(id);
 
-        // I-ORG-2: у узла есть дети или сотрудники — удаление здесь означало бы
-        // либо каскад по дереву, либо потерю привязок. И то и другое молча.
+        // The unit has children or users: deleting it here would mean either a cascade down the tree or lost
+        // assignments, both silently.
         if (orgUnitRepository.hasChildren(id)) {
             throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_has_children");
         }

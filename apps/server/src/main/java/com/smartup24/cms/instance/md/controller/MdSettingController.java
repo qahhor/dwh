@@ -23,9 +23,8 @@ public class MdSettingController {
         this.settingService = settingService;
     }
 
-    // Свои настройки пользователя — это часть профиля, а не администрирования
-    // экземпляра: право берём от формы профиля, которая есть у всех системных
-    // ролей (ТЗ-01 разд. 4.4.1). Форма platform.settings остаётся за админом.
+    // A user's own settings are part of the profile, not of administering the instance: the right comes from the
+    // profile form, which every system role has. The platform.settings form stays with the administrator.
     @Operation(summary = "Get the effective settings", description = "The settings in force for the caller.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")

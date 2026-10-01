@@ -31,10 +31,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Оргструктура и скоуп данных (ADR-0013).
+ * Org structure and data scope (ADR-0013).
  *
- * Права на всю форму — только у администратора: смена правила видимости
- * меняет доступ к данным так же радикально, как выдача права.
+ * The whole form is for administrators only: changing a visibility rule changes access to data as much as
+ * granting a right does.
  */
 @RestController
 @RequestMapping("/api/v1/iam/org-units")
@@ -103,7 +103,7 @@ public class MdOrgUnitController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Явные назначения сотрудника и отдельная legacy-привязка. */
+    /** The explicit unit assignments of a user and the separate legacy binding. */
     @Operation(summary = "Get the units of a user", description = "The units a user is explicitly assigned to.")
     @GetMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
@@ -111,7 +111,7 @@ public class MdOrgUnitController {
         return ResponseEntity.ok(scopeService.getUserAssignments(userId));
     }
 
-    /** Явное правило роли; отсутствие строки у существующей роли означает ALL. */
+    /** The explicit rule of a role; no row for an existing role means ALL. */
     @Operation(
             summary = "Get the visibility rule of a role",
             description = "The data visibility rule of a role; a role without a rule sees all.")
@@ -159,7 +159,7 @@ public class MdOrgUnitController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
-    /** Скоуп сотрудника глазами администратора: какое правило и какие узлы видны. */
+    /** A user's scope as an administrator sees it: which rule applies and which units are visible. */
     @Operation(
             summary = "Get the data scope of a user",
             description = "The rule and the units that decide which records a user sees.")

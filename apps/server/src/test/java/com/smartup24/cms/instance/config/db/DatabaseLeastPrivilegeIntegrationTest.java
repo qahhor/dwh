@@ -168,8 +168,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
     class AppUserPrivileges {
 
         @Test
-        @DisplayName(
-                "Пользователь приложения не суперпользователь и не может создавать роли или базы")
+        @DisplayName("Пользователь приложения не суперпользователь и не может создавать роли или базы")
         void appUserIsNotSuperuser() {
             var roleInfo = appJdbc.sql("""
                     select rolsuper, rolcreatedb, rolcreaterole
@@ -186,8 +185,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName(
-                "Пользователь приложения не может создавать таблицы (DDL CREATE TABLE запрещен)")
+        @DisplayName("Пользователь приложения не может создавать таблицы (DDL CREATE TABLE запрещен)")
         void appUserCannotCreateTable() {
             assertThatThrownBy(() -> appJdbc.sql("create table probe_least_privilege(id int)")
                             .update())
@@ -197,8 +195,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName(
-                "Пользователь приложения не может удалять таблицы (DDL DROP TABLE запрещен)")
+        @DisplayName("Пользователь приложения не может удалять таблицы (DDL DROP TABLE запрещен)")
         void appUserCannotDropTable() {
             assertThatThrownBy(() -> appJdbc.sql("drop table md_users").update())
                     .isInstanceOf(DataAccessException.class)
@@ -207,8 +204,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName(
-                "Пользователь приложения не может менять структуру таблиц (DDL ALTER TABLE запрещен)")
+        @DisplayName("Пользователь приложения не может менять структуру таблиц (DDL ALTER TABLE запрещен)")
         void appUserCannotAlterTable() {
             assertThatThrownBy(() -> appJdbc.sql("alter table md_users add column attacker_probe text")
                             .update())
@@ -218,8 +214,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName(
-                "Пользователь приложения не может очищать таблицы через TRUNCATE")
+        @DisplayName("Пользователь приложения не может очищать таблицы через TRUNCATE")
         void appUserCannotTruncateTables() {
             assertThatThrownBy(() -> appJdbc.sql("truncate table md_users").update())
                     .isInstanceOf(DataAccessException.class)
@@ -233,8 +228,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName(
-                "Пользователь приложения не может отключить триггеры неизменяемости audit_log")
+        @DisplayName("Пользователь приложения не может отключить триггеры неизменяемости audit_log")
         void appUserCannotDisableTriggers() {
             assertThatThrownBy(() -> appJdbc.sql("alter table audit_log disable trigger all")
                             .update())
@@ -244,8 +238,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName(
-                "Пользователь приложения может выполнять обычный DML (SELECT, INSERT, UPDATE, DELETE)")
+        @DisplayName("Пользователь приложения может выполнять обычный DML (SELECT, INSERT, UPDATE, DELETE)")
         void appUserCanPerformStandardDml() {
             long userCount = appJdbc.sql("select count(*) from md_users")
                     .query(Long.class)
@@ -265,8 +258,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName(
-                "AuditPartitionRepository создает и отцепляет партиции без DDL-прав приложения")
+        @DisplayName("AuditPartitionRepository создает и отцепляет партиции без DDL-прав приложения")
         void auditPartitionWorkerCanManagePartitionsViaSecurityDefiner() {
             var repo = new AuditPartitionRepository(appJdbc);
 
@@ -323,8 +315,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName(
-                "SchemaVersionGate успешно проходит проверку схемы под пользователем приложения")
+        @DisplayName("SchemaVersionGate успешно проходит проверку схемы под пользователем приложения")
         void schemaVersionGatePassesForAppUser() {
             var gate = new SchemaVersionGate(appDataSource, true);
             gate.verifySchemaMatchesApplication();
@@ -346,8 +337,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName(
-                "Пользователь бэкапа не может выполнять операции записи")
+        @DisplayName("Пользователь бэкапа не может выполнять операции записи")
         void backupUserCannotWrite() {
             assertThatThrownBy(() -> backupJdbc.sql("""
                     insert into audit_log (table_name, row_pk, event, changed_at)

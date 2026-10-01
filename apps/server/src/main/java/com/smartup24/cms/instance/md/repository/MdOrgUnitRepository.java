@@ -8,8 +8,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /**
- * Оргструктура экземпляра — дерево произвольной глубины (ADR-0013).
- * Один корень на экземпляр: экземпляр принадлежит одному клиенту (ADR-0004).
+ * The org structure of the instance: a tree of any depth (ADR-0013).
+ * One root per instance, since an instance belongs to one client (ADR-0004).
  */
 @Repository
 public class MdOrgUnitRepository {
@@ -114,11 +114,10 @@ public class MdOrgUnitRepository {
     }
 
     /**
-     * Является ли {@code candidateParentId} потомком {@code nodeId}.
+     * Whether {@code candidateParentId} is a descendant of {@code nodeId}.
      *
-     * Декларативно цикл длиннее одного шага в PostgreSQL запретить нечем,
-     * поэтому проверка живёт здесь. Без неё перенос узла под собственного
-     * потомка отрезает всю ветку от корня — молча, без ошибки.
+     * PostgreSQL has no declarative way to forbid a cycle longer than one step, so the check lives here. Without
+     * it, moving a unit under its own descendant cuts the whole branch off the root, silently.
      */
     public boolean isDescendant(Long nodeId, Long candidateParentId) {
         if (nodeId == null || candidateParentId == null) {
