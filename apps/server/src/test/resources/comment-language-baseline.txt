@@ -7,7 +7,6 @@ apps/server/src/main/java/com/smartup24/cms/instance/fnd/config/FndDwhMaintenanc
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/jobs/FndLoadCleanupJob.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/migration/MigrationCatalog.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/migration/SchemaVersionMismatchException.java 4
-apps/server/src/main/java/com/smartup24/cms/instance/kwh/service/KwhWebhookService.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/md/controller/MdOrgUnitController.java 8
 apps/server/src/main/java/com/smartup24/cms/instance/md/controller/MdSettingController.java 3
 apps/server/src/main/java/com/smartup24/cms/instance/md/repository/MdOrgUnitRepository.java 6
