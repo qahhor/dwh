@@ -26,7 +26,6 @@ apps/server/src/main/java/com/smartup24/cms/instance/config/db/SchemaVersionGate
 apps/server/src/main/java/com/smartup24/cms/instance/config/error/GlobalExceptionHandler.java 12
 apps/server/src/main/java/com/smartup24/cms/instance/config/idempotency/IdempotencyCleanupWorker.java 2
 apps/server/src/main/java/com/smartup24/cms/instance/config/jobs/JobQueueWorker.java 4
-apps/server/src/main/java/com/smartup24/cms/instance/config/security/ProblemDetailAuthHandlers.java 2
 apps/server/src/main/java/com/smartup24/cms/instance/config/security/RateLimitFilter.java 8
 apps/server/src/main/java/com/smartup24/cms/instance/config/security/RateLimitProperties.java 2
 apps/server/src/main/java/com/smartup24/cms/instance/config/security/RateLimitService.java 10
@@ -62,7 +61,7 @@ apps/server/src/main/java/com/smartup24/cms/instance/md/repository/MdOrgUnitRepo
 apps/server/src/main/java/com/smartup24/cms/instance/md/repository/MdPermissionRepository.java 15
 apps/server/src/main/java/com/smartup24/cms/instance/md/repository/MdScopeRepository.java 23
 apps/server/src/main/java/com/smartup24/cms/instance/md/repository/MdUserRepository.java 1
-apps/server/src/main/java/com/smartup24/cms/instance/md/service/MdAssignmentService.java 15
+apps/server/src/main/java/com/smartup24/cms/instance/md/service/MdAssignmentService.java 13
 apps/server/src/main/java/com/smartup24/cms/instance/md/service/MdCustomFieldService.java 2
 apps/server/src/main/java/com/smartup24/cms/instance/md/service/MdFormCatalogSynchronizer.java 13
 apps/server/src/main/java/com/smartup24/cms/instance/md/service/MdListViewService.java 8
@@ -108,9 +107,9 @@ apps/server/src/main/java/com/smartup24/cms/instance/upl/format/UplFormatReposit
 apps/server/src/main/java/com/smartup24/cms/instance/upl/format/UplFormatValidator.java 2
 apps/server/src/main/java/com/smartup24/cms/instance/upl/format/UplSourceQuery.java 1
 apps/server/src/main/java/com/smartup24/cms/instance/upl/format/UplSourceService.java 3
-apps/server/src/main/java/com/smartup24/cms/instance/upl/parse/UplParseJob.java 7
+apps/server/src/main/java/com/smartup24/cms/instance/upl/parse/UplParseJob.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/upl/parse/UplParseResult.java 7
-apps/server/src/main/java/com/smartup24/cms/instance/upl/parse/UplXlsxParser.java 31
+apps/server/src/main/java/com/smartup24/cms/instance/upl/parse/UplXlsxParser.java 22
 apps/server/src/main/java/com/smartup24/cms/instance/upl/upload/UplApplyJob.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/upl/upload/UplApplyRecoveryJob.java 12
 apps/server/src/main/java/com/smartup24/cms/instance/upl/upload/UplApplyService.java 9

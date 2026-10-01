@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.AssignRolesDto;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.EffectivePermissionsResponse;
@@ -43,6 +44,7 @@ public class MdAssignmentController {
     }
 
     @PutMapping("/roles")
+    @AnswersRevision
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
     public ResponseEntity<PermissionsVersionResponse> assignRoles(
             @PathVariable("userId") Long userId,
@@ -60,6 +62,7 @@ public class MdAssignmentController {
     }
 
     @PutMapping("/permissions")
+    @AnswersRevision
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
     public ResponseEntity<PermissionsVersionResponse> replacePersonalPermissions(
             @PathVariable("userId") Long userId,

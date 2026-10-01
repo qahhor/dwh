@@ -4519,7 +4519,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "409" : {
             "content" : {
@@ -4676,7 +4684,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "409" : {
             "content" : {

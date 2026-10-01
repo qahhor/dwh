@@ -8181,6 +8181,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8301,6 +8303,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
