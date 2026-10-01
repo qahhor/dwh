@@ -44,6 +44,23 @@ class MigrateMainTest {
     }
 
     @Test
+    @DisplayName("пустой WAREHOUSE_URL считается незаданным")
+    void blankWarehouseUrlIsMissing() {
+        assertThatThrownBy(() -> MigrateMain.run(Map.of("SMC_MIGRATE_SCOPE", "warehouse", "WAREHOUSE_URL", "  ")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageEndingWith("WAREHOUSE_URL");
+    }
+
+    @Test
+    @DisplayName("заданный WAREHOUSE_URL проходит проверку и ведёт к подключению")
+    void givenWarehouseUrlIsUsed() {
+        // An unreachable address: the run gets past the missing-variable check and fails on the connection.
+        assertThatThrownBy(() -> MigrateMain.run(Map.of(
+                        "SMC_MIGRATE_SCOPE", "warehouse", "WAREHOUSE_URL", "jdbc:postgresql://127.0.0.1:1/none")))
+                .hasMessageNotContaining("Не задана переменная окружения");
+    }
+
+    @Test
     @DisplayName("по умолчанию миграция начинается с OLTP")
     void defaultScopeStartsWithOltp() {
         assertThatThrownBy(() -> MigrateMain.run(Map.of()))
