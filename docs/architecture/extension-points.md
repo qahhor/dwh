@@ -154,5 +154,6 @@ only through each other's service or api package» (`ModuleBoundariesTest`)
    и передачи сессии.
 5. **Маршрут экрана добавляется в `app.routes.ts` вручную** — динамической
    регистрации экранов нет.
-6. Таблица `md_custom_modules` (прежняя модель «Plugin SDK», V017) выключена
-   в V019 и кодом не используется; хранится ради истории.
+6. Прежняя модель «Plugin SDK» (таблица `md_custom_modules`, V017, выключена
+   в V019) удалена миграцией V152 (план 10/10, пункт 4.7); модули
+   регистрируются только в `md_installed_modules`.
