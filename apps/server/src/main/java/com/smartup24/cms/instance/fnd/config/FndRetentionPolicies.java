@@ -16,4 +16,10 @@ public class FndRetentionPolicies {
     RetentionPolicy jobRunsRetention() {
         return new RetentionPolicy("job-runs", "fnd_job_runs", "finished_at is not null and finished_at < :cutoff", 90);
     }
+
+    /** Queued jobs that used up their attempts; a job still waiting or running is never deleted. */
+    @Bean
+    RetentionPolicy failedJobsRetention() {
+        return new RetentionPolicy("failed-jobs", "fnd_job_queue", "failed_at is not null and failed_at < :cutoff", 90);
+    }
 }

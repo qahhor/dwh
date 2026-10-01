@@ -155,7 +155,8 @@ public class MsTaskStatusRepository {
         if (orderedIds == null || orderedIds.isEmpty()) return;
         for (int i = 0; i < orderedIds.size(); i++) {
             jdbcClient
-                    .sql("update ms_task_statuses set order_no = :orderNo where id = :id")
+                    .sql("update ms_task_statuses set order_no = :orderNo, revision = revision + 1"
+                            + " where id = :id and order_no <> :orderNo")
                     .param("orderNo", (i + 1) * 10)
                     .param("id", orderedIds.get(i))
                     .update();

@@ -246,7 +246,7 @@ public class SearchReconciliationService {
                         stream.close();
                     } catch (RuntimeException closeFailed) {
                         /* still release task-owned database resources */
-                        log.debug("search_reconcile_stream_close_failed error={}", closeFailed.toString());
+                        log.warn("search_reconcile_stream_close_failed error={}", closeFailed.toString());
                     }
                     stream = null;
                 }

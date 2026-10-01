@@ -164,9 +164,12 @@ public class KwhWebhookService {
     }
 
     private String redact(String url) {
+        if (url == null) {
+            return "invalid-webhook-target";
+        }
         try {
             return targetPolicy.redact(java.net.URI.create(url));
-        } catch (RuntimeException exception) {
+        } catch (IllegalArgumentException exception) {
             log.debug("webhook_target_unreadable error={}", exception.toString());
             return "invalid-webhook-target";
         }

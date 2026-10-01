@@ -22,7 +22,7 @@ export interface User {
 
 export interface LoginResponse {
   step: 'success' | 'otp';
-  otp_token?: string;
+  otpToken?: string;
   user?: User;
 }
 

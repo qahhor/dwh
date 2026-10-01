@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.kauth.controller;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.kauth.api.LoginResponse;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.service.KauthAuthService;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
@@ -12,7 +13,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Map;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -55,7 +55,7 @@ public class KauthAuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(
+    public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginDto body, HttpServletRequest request, HttpServletResponse response) {
 
         String ip = clientIpResolver.resolveClientIp(request);
@@ -64,16 +64,16 @@ public class KauthAuthController {
         var result = authService.login(body.login(), body.password(), ip, userAgent, body.deviceInfo());
 
         if (result.isOtpRequired()) {
-            return ResponseEntity.ok(Map.of("step", "otp", "otp_token", result.otpToken()));
+            return ResponseEntity.ok(LoginResponse.otp(result.otpToken()));
         }
 
         setSessionCookie(request, response, result.rawSessionCookie());
 
-        return ResponseEntity.ok(Map.of("step", "success", "user", MdUserView.from(result.user())));
+        return ResponseEntity.ok(LoginResponse.success(MdUserView.from(result.user())));
     }
 
     @PostMapping("/otp")
-    public ResponseEntity<?> verifyOtp(
+    public ResponseEntity<LoginResponse> verifyOtp(
             @Valid @RequestBody OtpVerifyDto body, HttpServletRequest request, HttpServletResponse response) {
 
         String ip = clientIpResolver.resolveClientIp(request);
@@ -82,7 +82,7 @@ public class KauthAuthController {
         var result = authService.verifyOtp(body.otpToken(), body.code(), ip, userAgent, body.deviceInfo());
         setSessionCookie(request, response, result.rawSessionCookie());
 
-        return ResponseEntity.ok(Map.of("step", "success", "user", MdUserView.from(result.user())));
+        return ResponseEntity.ok(LoginResponse.success(MdUserView.from(result.user())));
     }
 
     @PostMapping("/logout")
@@ -115,12 +115,12 @@ public class KauthAuthController {
             throw ApiException.unauthorized("error.auth.not_signed_in");
         }
 
-        var user = userService.getUserById(userId);
+        MdUserView user = userService.getSignedInUserView(userId);
         var principal = SecurityContext.getPrincipal();
         Set<String> permissions = principal != null ? principal.effectivePermissions() : Set.of();
         long version = principal != null ? principal.permissionVersion() : 1L;
 
-        return ResponseEntity.ok(new MeResponse(MdUserView.from(user), permissions, version));
+        return ResponseEntity.ok(new MeResponse(user, permissions, version));
     }
 
     private void setSessionCookie(HttpServletRequest request, HttpServletResponse response, String rawToken) {

@@ -55,7 +55,8 @@ class RbacSystemRolesIntegrationTest {
             "KauthPasswordController", // смена собственного пароля — контур аутентификации (Д-7)
             "KauthPasswordResetController", // сброс пароля по одноразовой ссылке, вход ещё не выполнен (план 0.1)
             "OpenApiController", // спецификация API, permitAll в SecurityConfig
-            "MdI18nController" // публичные UI-словари, без данных экземпляра/пользователей
+            "MdI18nController", // публичные UI-словари, без данных экземпляра/пользователей
+            "ProblemErrorController" // renders the container's own errors as problem+json; carries no data
             );
 
     @Test

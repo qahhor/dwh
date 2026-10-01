@@ -1,15 +1,12 @@
 package com.smartup24.cms.instance.audit.service;
 
-import com.smartup24.cms.core.error.ErrorCode;
-import com.smartup24.cms.core.pagination.CursorUtils;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.api.AuditStatsView;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
-import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import java.time.Instant;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,9 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuditLogService {
-
-    private static final int DEFAULT_PAGE_SIZE = 50;
-    private static final int MAX_PAGE_SIZE = 200;
 
     private final AuditLogRepository auditLogRepository;
     private final PlatformMetrics platformMetrics;
@@ -70,40 +64,25 @@ public class AuditLogService {
         auditLogRepository.logSecurityEvent(eventType, userId, ip, userAgent, auditDataRedactor.redact(details));
     }
 
+    /**
+     * A page of the audit rows of one record, newest first (plan 10/10, item 3.5). Nothing is counted: a record's
+     * history lives in every audit partition, so the page says only whether more rows follow.
+     */
     @Transactional(readOnly = true)
-    public KeysetPage<AuditLogRepository.AuditRecord> listAuditLogs(
-            String tableName,
-            String rowPk,
-            String event,
-            Long userId,
-            Instant from,
-            Instant to,
-            int limit,
-            String cursor) {
-        int pageSize = normalizePageSize(limit);
-        AuditCursor decodedCursor = decodeCursor(cursor);
+    public KeysetPage<AuditLogRepository.AuditRecord> recordHistory(String tableName, String rowPk, TimePage page) {
+        TimePage.Position after = page.after();
         List<AuditLogRepository.AuditRecord> rows = auditLogRepository.listAuditLogs(
                 tableName,
                 rowPk,
-                event,
-                userId,
-                from,
-                to,
-                decodedCursor != null ? decodedCursor.timestamp() : null,
-                decodedCursor != null ? decodedCursor.id() : null,
-                pageSize + 1);
-        boolean hasMore = rows.size() > pageSize;
-        List<AuditLogRepository.AuditRecord> pageRows = rows.subList(0, Math.min(rows.size(), pageSize));
-        long total = decodedCursor == null
-                ? auditLogRepository.countAuditLogs(tableName, rowPk, event, userId, from, to)
-                : decodedCursor.totalEstimated();
-        String nextCursor = hasMore && !pageRows.isEmpty()
-                ? encodeCursor(
-                        pageRows.getLast().changedAt(), pageRows.getLast().id(), total)
-                : null;
-        List<AuditLogRepository.AuditRecord> safeRows =
-                pageRows.stream().map(this::redacted).toList();
-        return KeysetPage.of(safeRows, nextCursor, hasMore, total);
+                null,
+                null,
+                null,
+                null,
+                after != null ? after.at() : null,
+                after != null ? after.id() : null,
+                page.limit() + 1);
+        return page.page(rows, row -> new TimePage.Position(row.changedAt(), row.id()))
+                .map(this::redacted);
     }
 
     private final AtomicReference<CachedStats> cachedStats = new AtomicReference<>();
@@ -159,35 +138,4 @@ public class AuditLogService {
                 record.userName(),
                 record.userLogin());
     }
-
-    private int normalizePageSize(int requested) {
-        return requested <= 0 ? DEFAULT_PAGE_SIZE : Math.min(requested, MAX_PAGE_SIZE);
-    }
-
-    private String encodeCursor(Instant timestamp, Long id, long totalEstimated) {
-        return timestamp == null || id == null ? null : CursorUtils.encode(timestamp + "|" + id + "|" + totalEstimated);
-    }
-
-    private AuditCursor decodeCursor(String cursor) {
-        if (cursor == null || cursor.isBlank()) return null;
-        String decoded = CursorUtils.decode(cursor);
-        if (decoded == null) throw invalidCursor();
-        String[] parts = decoded.split("\\|", -1);
-        if (parts.length != 3) throw invalidCursor();
-        try {
-            Instant timestamp = Instant.parse(parts[0]);
-            long id = Long.parseLong(parts[1]);
-            long totalEstimated = Long.parseLong(parts[2]);
-            if (id <= 0 || totalEstimated < 0) throw invalidCursor();
-            return new AuditCursor(timestamp, id, totalEstimated);
-        } catch (DateTimeParseException | NumberFormatException ignored) {
-            throw invalidCursor();
-        }
-    }
-
-    private ApiException invalidCursor() {
-        return ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.audit.cursor_invalid");
-    }
-
-    private record AuditCursor(Instant timestamp, Long id, long totalEstimated) {}
 }

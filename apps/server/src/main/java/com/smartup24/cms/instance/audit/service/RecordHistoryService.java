@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.history.RecordHistorySource;
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -36,6 +37,9 @@ public class RecordHistoryService {
     private static final Set<String> TECHNICAL_FIELDS =
             Set.of("id", "companyId", "lockVersion", "createdAt", "createdBy", "modifiedAt", "modifiedBy", "updatedAt");
 
+    static final int DEFAULT_LIMIT = 20;
+    static final int MAX_LIMIT = 200;
+
     private final AuditLogService auditLogService;
     private final Map<String, RecordHistorySource> sources;
 
@@ -47,8 +51,12 @@ public class RecordHistoryService {
                 .collect(Collectors.toUnmodifiableMap(RecordHistorySource::key, Function.identity()));
     }
 
+    /**
+     * A page of the history of one record: {@code limit} 1 to {@link #MAX_LIMIT} (else 422), {@code cursor} the
+     * {@code nextCursor} of the previous page (422 when it is not one); the rights are checked first.
+     */
     @Transactional(readOnly = true)
-    public KeysetPage<HistoryEntry> history(String key, String recordId, int limit, String cursor) {
+    public KeysetPage<HistoryEntry> history(String key, String recordId, Integer limit, String cursor) {
         RecordHistorySource source = sources.get(key);
         if (source == null) {
             throw ApiException.notFound(
@@ -59,11 +67,8 @@ public class RecordHistoryService {
         }
         source.requireVisible(recordId);
 
-        KeysetPage<AuditLogRepository.AuditRecord> page =
-                auditLogService.listAuditLogs(source.tableName(), recordId, null, null, null, null, limit, cursor);
-        List<HistoryEntry> entries =
-                page.items().stream().map(row -> toEntry(row, source)).toList();
-        return KeysetPage.of(entries, page.nextCursor(), page.hasMore(), page.totalEstimated());
+        TimePage page = TimePage.of(limit, cursor, DEFAULT_LIMIT, MAX_LIMIT);
+        return auditLogService.recordHistory(source.tableName(), recordId, page).map(row -> toEntry(row, source));
     }
 
     /** The kinds of records with a history the viewer may open, for the UI to know where to offer it. */

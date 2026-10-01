@@ -105,8 +105,11 @@ public class UplOverviewService {
             throw ApiException.validation(
                     "error.upl.overview_period_invalid",
                     Map.of("periods", periodList()),
-                    List.of(new FieldErrorItem(
-                            "days", OVERVIEW_PERIOD_INVALID, "days must be one of " + periodList())));
+                    List.of(FieldErrorItem.keyed(
+                            "days",
+                            OVERVIEW_PERIOD_INVALID,
+                            "error.upl.overview_period_invalid",
+                            Map.of("periods", periodList()))));
         }
         Instant now = clock.instant();
         Instant since = now.minus(Duration.ofDays(days));

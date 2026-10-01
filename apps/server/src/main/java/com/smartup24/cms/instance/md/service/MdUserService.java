@@ -190,6 +190,12 @@ public class MdUserService {
         return MdUserView.from(getUserById(userId), roleRepository.getUserRoleIds(userId));
     }
 
+    /** The signed-in user as {@code GET /api/v1/auth/me} answers it: without role ids, the rights come apart. */
+    @Transactional(readOnly = true)
+    public MdUserView getSignedInUserView(Long userId) {
+        return MdUserView.from(getUserById(userId));
+    }
+
     @Transactional(readOnly = true)
     public MdUserRepository.UserRecord getUserById(Long userId) {
         return userRepository.findById(userId).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));

@@ -23,14 +23,52 @@ function pattern(template) {
   return new RegExp(`^(?:${API_PREFIX.replace(/\//g, '\\/')})?${body}$`);
 }
 
-const deprecatedOperations = [];
-const currentOperations = [];
+/** How many segments of a template are literal: the more, the more specific its match. */
+function literalSegments(template) {
+  return template.split('/').filter((segment) => segment && !/^\{[^}]+\}$/.test(segment)).length;
+}
+
+function entry(method, template, deprecated, successor) {
+  return { method, template, deprecated, successor, regex: pattern(template), literals: literalSegments(template) };
+}
+
+/**
+ * The operation a call reaches: of those whose template matches the path for the method, the one with the most
+ * literal segments, as the server routes it (GET /tasks/items is the alias, not GET /tasks/{id}); a tie goes to the
+ * current one.
+ */
+function resolve(operations, method, requested) {
+  let best = null;
+  for (const candidate of operations) {
+    if (candidate.method !== method || !candidate.regex.test(requested)) continue;
+    const moreSpecific = best === null || candidate.literals > best.literals;
+    const currentOnTie =
+      best !== null && candidate.literals === best.literals && best.deprecated && !candidate.deprecated;
+    if (moreSpecific || currentOnTie) best = candidate;
+  }
+  return best;
+}
+
+// Self-check of the resolution on the case that once passed unnoticed: a literal alias beside a variable route.
+const sample = [
+  entry('get', '/api/v1/tasks/{id}', false),
+  entry('get', '/api/v1/tasks/items', true, 'GET /api/v1/tasks'),
+];
+if (
+  resolve(sample, 'get', '/tasks/items')?.deprecated !== true ||
+  resolve(sample, 'get', '/api/v1/tasks/{value}')?.deprecated !== false ||
+  resolve(sample, 'post', '/tasks/items') !== null
+) {
+  console.error('api-deprecation-audit: the self-check of the path resolution failed');
+  process.exit(1);
+}
+
+const operations = [];
 const deprecatedParameters = new Set();
 for (const [template, item] of Object.entries(spec.paths)) {
   for (const [method, operation] of Object.entries(item)) {
     if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue;
-    const entry = { method, template, regex: pattern(template), successor: operation['x-successor'] };
-    (operation.deprecated ? deprecatedOperations : currentOperations).push(entry);
+    operations.push(entry(method, template, operation.deprecated === true, operation['x-successor']));
     for (const parameter of operation.parameters ?? []) {
       if (parameter.in === 'query' && parameter.deprecated) deprecatedParameters.add(parameter.name);
     }
@@ -63,9 +101,8 @@ for (const file of await sources(appRoot)) {
     if (!requested.startsWith('/')) continue;
     callsApi = true;
     // A path that is current for this method is fine even if an alias of it is deprecated for another.
-    if (currentOperations.some((op) => op.method === method && op.regex.test(requested))) continue;
-    const deprecated = deprecatedOperations.find((op) => op.method === method && op.regex.test(requested));
-    if (deprecated) {
+    const deprecated = resolve(operations, method, requested);
+    if (deprecated?.deprecated) {
       const line = text.slice(0, match.index).split('\n').length;
       problems.push(
         `${relative}:${line} ${method.toUpperCase()} ${literal} is deprecated; use ${deprecated.successor ?? 'its successor'}`,
@@ -81,7 +118,8 @@ for (const file of await sources(appRoot)) {
   }
 }
 
-if (deprecatedOperations.length === 0) {
+const deprecatedCount = operations.filter((op) => op.deprecated).length;
+if (deprecatedCount === 0) {
   console.error('docs/api/openapi.json lists no deprecated operation: is it the generated description?');
   process.exit(1);
 }
@@ -90,6 +128,6 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  `API deprecation audit: no call of ${deprecatedOperations.length} deprecated operations and ` +
+  `API deprecation audit: no call of ${deprecatedCount} deprecated operations and ` +
     `${deprecatedParameters.size} deprecated parameters.`,
 );

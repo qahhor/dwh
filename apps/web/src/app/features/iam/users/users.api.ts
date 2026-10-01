@@ -6,7 +6,12 @@ import { FormTreeItem } from '@core/models/rbac.models';
 import { User } from '@core/models/auth.models';
 import { ApiService } from '@core/services/api.service';
 import { toQueryParams } from '@core/services/query-meta.service';
-import { EffectivePermissionsResponse, PersonalGrant, PersonalPermissionsResponse } from './users.models';
+import {
+  EffectivePermissionsResponse,
+  PersonalGrant,
+  PersonalPermissionsResponse,
+  PermissionsSaved,
+} from './users.models';
 
 /** User administration: the list, one user, blocking, deleting and the personal permissions. */
 @Injectable({ providedIn: 'root' })
@@ -51,8 +56,16 @@ export class UsersApi {
     return this.api.get<PersonalPermissionsResponse>(`/iam/users/${userId}/permissions`);
   }
 
-  savePersonalPermissions(userId: number, grants: PersonalGrant[]): Observable<void> {
-    return this.api.put<void>(`/iam/users/${userId}/permissions`, { grants });
+  /**
+   * The personal rights are part of the user: they are saved from the user's revision (plan item 3.6), and the answer
+   * names the new one. The panel shows a failure itself.
+   */
+  savePersonalPermissions(userId: number, grants: PersonalGrant[], revision: number | undefined) {
+    return this.api.put<PermissionsSaved>(
+      `/iam/users/${userId}/permissions`,
+      { grants },
+      { notifyError: false, ifMatch: revision },
+    );
   }
 
   /** The forms and actions a personal grant can name. */

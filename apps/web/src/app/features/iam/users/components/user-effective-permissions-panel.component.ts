@@ -1,10 +1,20 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed, input, linkedSignal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+  computed,
+  input,
+  linkedSignal,
+  output,
+} from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Observable, catchError, map, of } from 'rxjs';
 import { lastLoaded } from '@features/iam/last-loaded';
 
 import { UsersApi } from '../users.api';
 import { ToastService } from '@core/services/toast.service';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { FormTreeItem } from '@core/models/rbac.models';
@@ -46,11 +56,19 @@ export class UserEffectivePermissionsPanelComponent {
   private readonly usersApi = inject(UsersApi);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly userId = input.required<number>();
+  /** The user's revision the screen read: the personal rights are saved from it (plan item 3.6). */
+  readonly revision = input<number | undefined>(undefined);
 
   readonly canAssign = input<boolean>(false);
   readonly userRoleNames = input<string[]>([]);
+
+  /** The user's revision after a save of the personal rights, for the screen to keep its copy in step. */
+  readonly revisionChange = output<number>();
+  /** The user changed since the screen read it: the screen reads the user again. */
+  readonly staleUser = output<void>();
 
   readonly isSaving = signal<boolean>(false);
   /** Another user drops the draft of the previous one. */
@@ -241,16 +259,24 @@ export class UserEffectivePermissionsPanelComponent {
 
   savePersonalGrants(): void {
     this.isSaving.set(true);
-    this.usersApi.savePersonalPermissions(this.userId(), this.personalGrants()).subscribe({
-      next: () => {
+    this.usersApi.savePersonalPermissions(this.userId(), this.personalGrants(), this.revision()).subscribe({
+      next: (saved) => {
         this.isSaving.set(false);
         this.hasUnsavedChanges.set(false);
         this.toast.success(this.uiI18n.translate('iam.prava_uspeshno_sohraneny'));
+        if (typeof saved?.revision === 'number') this.revisionChange.emit(saved.revision);
         this.loadAll();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.isSaving.set(false);
-        this.toast.error(this.uiI18n.translate('iam.oshibka_sohraneniya_prav'));
+        this.saveErrors.show(err, {
+          fallbackKey: 'iam.oshibka_sohraneniya_prav',
+          reload: () => {
+            this.hasUnsavedChanges.set(false);
+            this.loadAll();
+            this.staleUser.emit();
+          },
+        });
       },
     });
   }

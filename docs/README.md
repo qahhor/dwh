@@ -46,16 +46,24 @@ Current ADRs that are not superseded:
   — vendors a subset of the shared component library instead of depending on
   it, and amends ADR-0012 for that subset only.
 - [ADR-0016 — field registry, query-meta and filter DSL](adr/ADR-0016-field-registry-query-dsl.md)
-- [ADR-0017 — record history tab](adr/ADR-0017-record-history.md)
-- [ADR-0018 — asynchronous list exports and their journal](adr/ADR-0018-async-exports.md)
   — lists declare their fields on the server; clients read them from
   `query-meta` and filter and sort through one checked JSON DSL.
-
+- [ADR-0017 — record history tab](adr/ADR-0017-record-history.md)
+- [ADR-0018 — asynchronous list exports and their journal](adr/ADR-0018-async-exports.md)
+  — a list exports to xlsx through a `QueryListExporter` bean over the same
+  pages, scope and field rights as the screen; a queued job writes the file,
+  and the export journal (`report_exports`, 7 days) serves it to its owner.
 - [ADR-0019 — low-code entity model](adr/ADR-0019-low-code-entity-model.md)
   — an entity is one server declaration from which lists, forms, cards,
   permissions and menus are built.
 - [ADR-0020 — database naming and types](adr/ADR-0020-database-naming.md)
+  — migrations from V128 use identity keys, `text` with checks, `timestamptz`,
+  `modified_at` and `<table>_<columns>_idx|_uq` names; `MigrationLintTest`
+  enforces them.
 - [ADR-0021 — one error model](adr/ADR-0021-error-model.md)
+  — every request error is an `ApiException` with an `ErrorCode`, a catalog key
+  and parameters, answered as `application/problem+json` in the request
+  language.
 - [ADR-0022 — the API description comes from the code](adr/ADR-0022-openapi-from-code.md)
   — `docs/api/openapi.json` is generated from the controllers; the web types
   and the breaking-change check read it.
@@ -87,6 +95,10 @@ Historical, fully superseded decisions are retained for traceability only:
 ## Authority tier 3 — engineering guidance
 
 - [Developer onboarding](onboarding.md)
+- [Code style](../CODE_STYLE.md) — formatting, comments, errors, API, paging,
+  locking and size limits, each rule with the check that enforces it.
+- [How the API behaves](api/README.md) — errors, paging, If-Match, idempotency,
+  deprecations and where `openapi.json` comes from.
 - [Extension points](architecture/extension-points.md)
 - [Biruni and Smartup architecture conventions](architecture/biruni-smartup-conventions.md)
 - [Monorepo structure](architecture/monorepo-structure.md)
@@ -102,7 +114,8 @@ For UI copy, add a stable domain key to
 `I18nService.translate`, run `npm run i18n:sync-ru`, then run
 `npm run i18n:audit`. Non-Russian catalogs may be incomplete; missing values
 must resolve per key through the effective Russian dictionary and are exposed
-as coverage in Settings.
+as coverage in Settings. Error keys (`error.<module>.<name>`) are the
+exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 
 ## Authority tier 4 — operations and security
 
@@ -129,6 +142,7 @@ legal and ownership decisions.
 - [Project overview and quick start](../README.md)
 - [AI project context](ai-context.md) — concise handoff for AI-assisted work;
   subordinate to this authority model and the canonical specification.
+- [План 10/10](plan-10-10.md) — фазы качества, критерии приёмки и статус; цель ссылок «plan 10/10, item N».
 - [Contribution guide](../CONTRIBUTING.md)
 
 Dated audit reports and agent plans were removed from the tree; git history

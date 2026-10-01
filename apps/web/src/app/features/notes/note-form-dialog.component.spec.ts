@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { ToastService } from '@core/services/toast.service';
@@ -24,8 +24,12 @@ describe('NoteFormDialogComponent', () => {
   };
 
   function setup(options: { meta?: FormMeta; note?: Note | null } = {}) {
-    const api = { get: vi.fn(() => of([])), post: vi.fn(() => of(note)), put: vi.fn(() => of(note)) };
-    const toast = { success: vi.fn(), error: vi.fn() };
+    const api = {
+      get: vi.fn((..._args: unknown[]): Observable<unknown> => of([])),
+      post: vi.fn(() => of(note)),
+      put: vi.fn(() => of(note)),
+    };
+    const toast = { success: vi.fn(), error: vi.fn(), show: vi.fn() };
     TestBed.configureTestingModule({
       imports: [NoteFormDialogComponent],
       providers: [
@@ -138,6 +142,38 @@ describe('NoteFormDialogComponent', () => {
     component.save();
 
     expect(toast.error).toHaveBeenCalledWith('Заметка изменена другим пользователем');
+  });
+
+  it('shows the conflict text once and offers to read the note again (plan item 3.6)', () => {
+    const { component, api, toast } = setup({ note: { ...note, revision: 1 } });
+    api.put.mockReturnValueOnce(
+      throwError(() => ({
+        status: 409,
+        code: 'revision_conflict',
+        messageKey: 'error.common.revision_conflict',
+        detail: 'Запись уже изменил другой пользователь',
+      })),
+    );
+
+    component.save();
+
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    const [type, message, , , action] = toast.show.mock.calls[0];
+    expect(type).toBe('error');
+    expect(message).toBe('Запись уже изменил другой пользователь');
+    expect(action?.label).toBeTruthy();
+
+    api.get.mockReturnValueOnce(of({ ...note, title: 'Сохранено другим', revision: 2 }));
+    action.run();
+
+    expect(api.get).toHaveBeenCalledWith('/notes/1', undefined, { notifyError: false });
+    expect(component.values()['title']).toBe('Сохранено другим');
+    component.save();
+    expect(api.put).toHaveBeenLastCalledWith('/notes/1', expect.objectContaining({ title: 'Сохранено другим' }), {
+      notifyError: false,
+      ifMatch: 2,
+    });
   });
 
   it('closes on request, but not while saving', () => {

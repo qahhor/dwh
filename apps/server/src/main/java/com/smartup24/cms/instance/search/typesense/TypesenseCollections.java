@@ -70,7 +70,7 @@ public class TypesenseCollections {
         } catch (HttpClientErrorException.NotFound missing) {
             return new CollectionMetadata(null, null, false, "COLLECTION_MISSING");
         } catch (RuntimeException unavailable) {
-            log.debug("typesense_collection_metadata_unavailable error={}", unavailable.toString());
+            log.warn("typesense_collection_metadata_unavailable error={}", unavailable.toString());
             return new CollectionMetadata(null, null, null, "COLLECTION_METADATA_UNAVAILABLE");
         }
     }

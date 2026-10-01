@@ -139,10 +139,13 @@
   [project]="members.selectedProjectForMembers()"
   [members]="members.projectMembers()"
   [isLoadingMembers]="members.isLoadingMembers()"
+  [hasMore]="members.hasMoreMembers()"
+  [isLoadingMore]="members.isLoadingMoreMembers()"
   [isAddingMember]="members.isAddingMember()"
   [removingUserId]="members.removingMemberId()"
   [canUpdateProject]="canUpdateProject()"
   (closeModal)="members.closeMembersModal()"
+  (loadMore)="members.loadMoreMembers()"
   (addMember)="members.onAddProjectMember($event)"
   (removeMember)="members.onRemoveProjectMember($event)"
 ></app-project-members-modal>

@@ -7,6 +7,7 @@ import { RolesApi } from '@core/services/roles.api';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import {
   GroupedForm,
   ModuleGroup,
@@ -39,6 +40,7 @@ export class RolePermissionsEditor {
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly selectedRole = signal<Role | null>(null);
   readonly isSaving = signal<boolean>(false);
@@ -115,6 +117,14 @@ export class RolePermissionsEditor {
     this.matrixOf.set({ roleId: role.id });
   }
 
+  /**
+   * Takes the selected role as the role list read it again (a new name or revision), keeping its matrix and draft:
+   * the next save names the revision the list has (plan item 3.6).
+   */
+  refreshSelected(role: Role): void {
+    if (this.selectedRole()?.id === role.id) this.selectedRole.set(role);
+  }
+
   /** Forgets the selection, and its matrix and draft, when that role is gone. */
   clearIfSelected(roleId: number): void {
     if (this.selectedRole()?.id !== roleId) return;
@@ -169,8 +179,11 @@ export class RolePermissionsEditor {
     this.rolePermissions.set(new Set(this.originalRolePermissions()));
   }
 
-  /** Saves the draft; `onSaved` runs after the success toast, a failure keeps the draft for a retry. */
-  savePermissions(onSaved?: () => void): void {
+  /**
+   * Saves the draft; `onSaved` gets the role with its new revision after the success toast, so the screen keeps its
+   * list in step. A failure keeps the draft for a retry; one over a newer revision offers `onConflict` (read again).
+   */
+  savePermissions(onSaved?: (role: Role) => void, onConflict?: () => void): void {
     const role = this.selectedRole();
     if (!role || !this.canEditPermissions()) return;
 
@@ -182,13 +195,15 @@ export class RolePermissionsEditor {
         next: () => {
           this.isSaving.set(false);
           // The save raised the role's revision by one: the next save of it names the new one (plan item 3.6).
-          if (role.revision !== undefined) this.selectedRole.set({ ...role, revision: role.revision + 1 });
+          const saved = role.revision !== undefined ? { ...role, revision: role.revision + 1 } : role;
+          this.selectedRole.set(saved);
           this.originalRolePermissions.set(new Set(this.rolePermissions()));
           this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));
-          onSaved?.();
+          onSaved?.(saved);
         },
-        error: () => {
+        error: (err: unknown) => {
           this.isSaving.set(false);
+          this.saveErrors.show(err, { fallbackKey: 'iam.oshibka_sohraneniya_prav', reload: onConflict });
         },
       });
   }

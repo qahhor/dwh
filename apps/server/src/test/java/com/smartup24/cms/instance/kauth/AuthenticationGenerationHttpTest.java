@@ -241,10 +241,11 @@ class AuthenticationGenerationHttpTest {
                 .getResponse();
         assertThat(csrfWrites(challenge)).isZero();
         assertThat(lastCookie(challenge, KauthPref.SESSION_COOKIE_NAME) == null).isTrue();
-        String otpToken = f.mapper
-                .readTree(challenge.getContentAsString())
-                .get("otp_token")
-                .asText();
+        var challengeBody = f.mapper.readTree(challenge.getContentAsString());
+        String otpToken = challengeBody.get("otpToken").asText();
+        // The snake_case name stays for one release next to the camelCase one (ADR-0023).
+        assertThat(challengeBody.get("otp_token").asText()).isEqualTo(otpToken);
+        assertThat(challengeBody.has("user")).isFalse();
         String code = f.deliveredCodes.get(id);
         String wrongCode = code.equals("000000") ? "000001" : "000000";
         var failed = mvc.perform(post("/api/v1/auth/otp")

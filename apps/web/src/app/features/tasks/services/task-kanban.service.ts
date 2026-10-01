@@ -5,6 +5,7 @@ import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
 import { Task, TaskStatus } from '@core/models/task.models';
 import { safeNumericRecordId } from '@core/services/search-target';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 
 @Injectable({
   providedIn: 'root',
@@ -13,6 +14,7 @@ export class TaskKanbanService {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   draggedTask: Task | null = null;
 
@@ -110,18 +112,29 @@ export class TaskKanbanService {
     }
   }
 
-  /** Each change names the revision it was made from (plan item 3.6); a stale one is refused with 409. */
-  updatePriority(taskId: number, newPriority: string, revision: number | undefined, onLocalUpdate: () => void): void {
+  /**
+   * Each change names the revision it was made from (plan item 3.6); a stale one is refused with 409, shown once with
+   * a button that reads the tasks again (`onReload`).
+   */
+  updatePriority(
+    taskId: number,
+    newPriority: string,
+    revision: number | undefined,
+    onLocalUpdate: () => void,
+    onReload: () => void,
+  ): void {
     if (!safeNumericRecordId(taskId) || !newPriority) return;
-    this.api.patch(`/tasks/${taskId}`, { priority: newPriority, expectedRevision: revision }).subscribe({
-      next: () => {
-        this.toast.success(this.uiI18n.translate('tasks.priority_updated'));
-        onLocalUpdate();
-      },
-      error: (err) => {
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_prioritet'));
-      },
-    });
+    this.api
+      .patch(`/tasks/${taskId}`, { priority: newPriority, expectedRevision: revision }, { notifyError: false })
+      .subscribe({
+        next: () => {
+          this.toast.success(this.uiI18n.translate('tasks.priority_updated'));
+          onLocalUpdate();
+        },
+        error: (err: unknown) => {
+          this.saveErrors.show(err, { fallbackKey: 'tasks.ne_udalos_izmenit_prioritet', reload: onReload });
+        },
+      });
   }
 
   updateStatus(
@@ -130,18 +143,21 @@ export class TaskKanbanService {
     revision: number | undefined,
     onApplyVisible: () => void,
     onUpdateSelected: () => void,
+    onReload: () => void,
   ): void {
     if (!safeNumericRecordId(taskId) || !safeNumericRecordId(newStatusId)) return;
-    this.api.post(`/tasks/${taskId}/status`, { statusId: newStatusId, expectedRevision: revision }).subscribe({
-      next: () => {
-        this.toast.success(this.uiI18n.translate('tasks.status_zadachi_obnovlen'));
-        onApplyVisible();
-        onUpdateSelected();
-      },
-      error: (err) => {
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_status'));
-      },
-    });
+    this.api
+      .post(`/tasks/${taskId}/status`, { statusId: newStatusId, expectedRevision: revision }, { notifyError: false })
+      .subscribe({
+        next: () => {
+          this.toast.success(this.uiI18n.translate('tasks.status_zadachi_obnovlen'));
+          onApplyVisible();
+          onUpdateSelected();
+        },
+        error: (err: unknown) => {
+          this.saveErrors.show(err, { fallbackKey: 'tasks.ne_udalos_izmenit_status', reload: onReload });
+        },
+      });
   }
 
   executeStatusChange(
@@ -157,13 +173,15 @@ export class TaskKanbanService {
     onApplyVisible();
     onUpdateSelected();
 
-    this.api.post(`/tasks/${task.id}/status`, { statusId: targetStatusId, expectedRevision: task.revision }).subscribe({
+    const body = { statusId: targetStatusId, expectedRevision: task.revision };
+    this.api.post(`/tasks/${task.id}/status`, body, { notifyError: false }).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.task_moved_to_status', { id: task.id, status: statusName }));
         onSaved();
       },
-      error: (err) => {
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_status_zadachi'));
+      error: (err: unknown) => {
+        // The card was moved before the answer: the tasks are read again at once, so no button is offered.
+        this.saveErrors.show(err, { fallbackKey: 'tasks.ne_udalos_izmenit_status_zadachi' });
         onErrorReload();
       },
     });

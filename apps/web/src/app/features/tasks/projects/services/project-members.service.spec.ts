@@ -17,6 +17,13 @@ const member = (userId: number, userName: string): ProjectMember => ({
   userEmail: `${userName}@example.com`,
   accessKind: 'MANAGER',
 });
+/** A page of members as the server answers it. */
+const page = (items: ProjectMember[], nextCursor: string | null = null) => ({
+  items,
+  nextCursor,
+  hasMore: nextCursor !== null,
+  totalEstimated: items.length,
+});
 
 describe('ProjectMembersService', () => {
   let memberReads: Observable<unknown>[];
@@ -29,13 +36,13 @@ describe('ProjectMembersService', () => {
     TestBed.tick();
     await TestBed.inject(ApplicationRef).whenStable();
   };
-  const reads = () => api.get.mock.calls.filter(([url]) => url === '/tasks/projects/42/members').length;
+  const reads = () => api.get.mock.calls.filter(([url]) => url === '/tasks/projects/42/members/page').length;
 
   beforeEach(() => {
     memberReads = [];
     confirmed = undefined;
     api = {
-      get: vi.fn(() => memberReads.shift() ?? of([member(10, 'Alice')])),
+      get: vi.fn((..._args: unknown[]) => memberReads.shift() ?? of(page([member(10, 'Alice')]))),
       post: vi.fn(() => of({})),
       delete: vi.fn(() => of({})),
     };
@@ -66,9 +73,13 @@ describe('ProjectMembersService', () => {
     members.openMembersModal(PROJECT);
     TestBed.tick();
     expect(members.selectedProjectForMembers()).toEqual(PROJECT);
-    expect(api.get).toHaveBeenCalledWith('/tasks/projects/42/members');
+    expect(api.get).toHaveBeenCalledWith(
+      '/tasks/projects/42/members/page',
+      { limit: 50, cursor: undefined },
+      { notifyError: false },
+    );
     expect(members.isLoadingMembers()).toBe(true);
-    pending.next([member(10, 'Alice')]);
+    pending.next(page([member(10, 'Alice')]));
     await settle();
     expect(members.projectMembers()).toEqual([member(10, 'Alice')]);
     expect(members.isLoadingMembers()).toBe(false);
@@ -82,7 +93,7 @@ describe('ProjectMembersService', () => {
   it('adds a member, then reads the members again; a refusal is shown with its reason', async () => {
     members.openMembersModal(PROJECT);
     await settle();
-    memberReads = [of([member(10, 'Alice'), member(20, 'Bob')])];
+    memberReads = [of(page([member(10, 'Alice'), member(20, 'Bob')]))];
 
     members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
     await settle();
@@ -99,6 +110,24 @@ describe('ProjectMembersService', () => {
     members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
     expect(toast.error).toHaveBeenCalledWith('Already a member');
     expect(members.isAddingMember()).toBe(false);
+  });
+
+  it('adds the next page below the members shown, and offers more only while the server has them', async () => {
+    memberReads = [of(page([member(10, 'Alice')], 'c1')), of(page([member(20, 'Bob')]))];
+    members.openMembersModal(PROJECT);
+    await settle();
+    expect(members.hasMoreMembers()).toBe(true);
+
+    members.loadMoreMembers();
+    await settle();
+
+    expect(api.get).toHaveBeenLastCalledWith(
+      '/tasks/projects/42/members/page',
+      { limit: 50, cursor: 'c1' },
+      { notifyError: false },
+    );
+    expect(members.projectMembers().map((m) => m.userId)).toEqual([10, 20]);
+    expect(members.hasMoreMembers()).toBe(false);
   });
 
   it('keeps the members on screen when reading them again fails', async () => {

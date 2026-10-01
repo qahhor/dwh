@@ -12,6 +12,7 @@
     "coverage:summary": "node scripts/coverage-summary.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.spec.json",
     "signals:audit": "node scripts/signal-order-audit.mjs",
+    "comments:audit": "node scripts/comment-language-audit.mjs",
     "i18n:audit": "node scripts/localization-audit.mjs",
     "contrast:audit": "node scripts/contrast-audit.mjs",
     "i18n:sync-ru": "node scripts/sync-packaged-russian.mjs",

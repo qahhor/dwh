@@ -1,9 +1,11 @@
 package com.smartup24.cms.instance.common.query;
 
 import com.smartup24.cms.core.pagination.CursorUtils;
+import java.time.DateTimeException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -17,7 +19,11 @@ public record QueryCursor(String fingerprint, Object sortValue, String lastId, l
 
     private static final Logger log = LoggerFactory.getLogger(QueryCursor.class);
 
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    /**
+     * A value type with no Spring context writes and reads its own small tree with default settings: the shared
+     * default mapper does that (plan 10/10, item 3.11).
+     */
+    private static final JsonMapper JSON = JsonMapper.shared();
 
     String encode(QueryField sort) {
         ObjectNode node = JSON.createObjectNode();
@@ -48,7 +54,7 @@ public record QueryCursor(String fingerprint, Object sortValue, String lastId, l
                     value,
                     node.path("id").asString(),
                     node.path("t").asLong());
-        } catch (RuntimeException e) {
+        } catch (JacksonException | IllegalArgumentException | DateTimeException e) {
             // A cursor the client altered or kept from another version: the caller answers INVALID_CURSOR.
             log.debug("query_cursor_unreadable error={}", e.toString());
             return null;

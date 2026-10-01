@@ -215,3 +215,9 @@
   color: var(--text-main);
   margin: 0;
 }
+
+.members-load-more {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}

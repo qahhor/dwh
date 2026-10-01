@@ -19,15 +19,18 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.firewall.RequestRejectedException;
+import org.springframework.security.web.firewall.RequestRejectedHandler;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 401/403 из security-цепочки в формате RFC 9457 (FR-API-2) —
- * тем же контрактом, что и GlobalExceptionHandler на уровне MVC.
+ * 400/401/403 of the security chain as RFC 9457 problem details (FR-API-2), the contract of GlobalExceptionHandler:
+ * a failed authentication, a refused access and a request the firewall rejects (ADR-0021).
  */
 @Component
-public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, AccessDeniedHandler {
+public class ProblemDetailAuthHandlers
+        implements AuthenticationEntryPoint, AccessDeniedHandler, RequestRejectedHandler {
 
     private static final String PROBLEM_JSON = "application/problem+json";
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProblemDetailAuthHandlers.class);
@@ -79,6 +82,18 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
                                 .toList()
                         : List.of());
         writeProblem(request, response, code, ApiException.defaultKey(code), Map.of());
+    }
+
+    /**
+     * A request the firewall refuses (a {@code ;} or an encoded slash in the path, a forbidden method or header):
+     * 400 problem details written here, before any other filter, instead of the container's error page.
+     */
+    @Override
+    public void handle(
+            HttpServletRequest request, HttpServletResponse response, RequestRejectedException requestRejectedException)
+            throws IOException {
+        log.warn("Request rejected by the firewall: {}", requestRejectedException.getMessage());
+        writeProblem(request, response, ErrorCode.BAD_REQUEST, "error.request_rejected", Map.of());
     }
 
     /** Writes the problem of {@code code} with the text of {@code key}, in the request's language. */

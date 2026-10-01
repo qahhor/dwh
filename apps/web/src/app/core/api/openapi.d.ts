@@ -2432,6 +2432,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getProjectStats"];
         put?: never;
         post?: never;
@@ -2464,9 +2465,26 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getMembers"];
         put?: never;
         post: operations["addMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/projects/{id}/members/page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pageMembers"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3457,6 +3475,10 @@ export interface components {
             code?: string;
             field?: string;
             message?: string;
+            messageKey?: string;
+            params?: {
+                [key: string]: Record<string, never>;
+            };
         };
         FieldMeta: {
             attribute?: string;
@@ -3746,6 +3768,14 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageProjectMemberView: {
+            hasMore?: boolean;
+            items?: components["schemas"]["ProjectMemberView"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageSecurityEventView: {
             hasMore?: boolean;
             items?: components["schemas"]["SecurityEventView"][];
@@ -3819,6 +3849,17 @@ export interface components {
             deviceInfo?: string;
             login: string;
             password: string;
+        };
+        LoginResponse: {
+            otpToken?: string;
+            /**
+             * @deprecated
+             * @description Deprecated name of otpToken; sent until the sunset of ADR-0023 forms
+             */
+            otp_token?: string;
+            /** @enum {string} */
+            step?: "otp" | "success";
+            user?: components["schemas"]["MdUserView"];
         };
         ManagedAnnouncementView: {
             /** Format: date-time */
@@ -4053,6 +4094,8 @@ export interface components {
         PermissionsVersionResponse: {
             /** Format: int64 */
             permissionsVersion?: number;
+            /** Format: int64 */
+            revision?: number;
         };
         PinRequest: {
             pinned?: boolean;
@@ -4744,6 +4787,18 @@ export interface components {
             pending?: number;
             schemaMatches?: boolean;
         };
+        VersionItem: {
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            status?: string;
+            /** Format: date */
+            validFrom?: string;
+            /** Format: date */
+            validTo?: string;
+            /** Format: int32 */
+            version?: number;
+        };
         ViewRequest: {
             isDefault?: boolean;
             /** Format: int32 */
@@ -4923,7 +4978,10 @@ export interface operations {
     create_3: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -4942,6 +5000,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ManagedAnnouncementView"];
+                };
+            };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -5021,7 +5088,10 @@ export interface operations {
     update_2: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -5042,6 +5112,15 @@ export interface operations {
                     "application/json": components["schemas"]["ManagedAnnouncementView"];
                 };
             };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
                 headers: {
@@ -5056,7 +5135,10 @@ export interface operations {
     archive: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -5075,6 +5157,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ManagedAnnouncementView"];
+                };
+            };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -5091,7 +5182,10 @@ export interface operations {
     publish_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -5112,6 +5206,15 @@ export interface operations {
                     "application/json": components["schemas"]["ManagedAnnouncementView"];
                 };
             };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
                 headers: {
@@ -5126,7 +5229,10 @@ export interface operations {
     markAsRead_2: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -5306,7 +5412,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["LoginResponse"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -5424,7 +5530,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["LoginResponse"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -5570,7 +5676,10 @@ export interface operations {
     createField: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -5583,6 +5692,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -5605,7 +5716,10 @@ export interface operations {
     deleteField: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -5636,6 +5750,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -5651,9 +5767,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -5698,7 +5834,10 @@ export interface operations {
     bulk_2: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 code: string;
             };
@@ -5791,7 +5930,10 @@ export interface operations {
     request: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -5989,7 +6131,10 @@ export interface operations {
     deleteFile: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: string;
             };
@@ -6144,7 +6289,10 @@ export interface operations {
     createLanguage: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6243,7 +6391,10 @@ export interface operations {
     updateTranslations: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 code: string;
             };
@@ -6262,6 +6413,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LanguageSummary"];
+                };
+            };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -6398,7 +6558,10 @@ export interface operations {
     create_2: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6411,6 +6574,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -6464,7 +6629,10 @@ export interface operations {
     setRoleRule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 roleId: number;
             };
@@ -6528,7 +6696,10 @@ export interface operations {
     assignUser: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -6603,6 +6774,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6623,7 +6796,10 @@ export interface operations {
     delete_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -6654,6 +6830,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -6669,9 +6847,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -6838,7 +7036,10 @@ export interface operations {
     closeOtherSessions_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -6896,7 +7097,10 @@ export interface operations {
     closeAllUserSessions_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -6925,7 +7129,10 @@ export interface operations {
     forcePasswordChange_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -6954,7 +7161,10 @@ export interface operations {
     reset2fa_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -7014,7 +7224,10 @@ export interface operations {
     closeUserSession_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
                 id: number;
@@ -7044,7 +7257,10 @@ export interface operations {
     closeSession_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7137,7 +7353,10 @@ export interface operations {
     revokeToken: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7195,7 +7414,10 @@ export interface operations {
     createRole: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -7208,6 +7430,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -7261,7 +7485,10 @@ export interface operations {
     deleteRole: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7292,6 +7519,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -7307,9 +7536,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -7358,6 +7607,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -7373,9 +7624,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -7420,7 +7691,10 @@ export interface operations {
     closeOtherSessions: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -7447,7 +7721,10 @@ export interface operations {
     closeSession: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7531,7 +7808,10 @@ export interface operations {
     createUser: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -7544,6 +7824,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -7566,7 +7848,10 @@ export interface operations {
     changeMyPassword_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -7608,6 +7893,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7628,7 +7915,10 @@ export interface operations {
     deleteUser: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7659,6 +7949,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -7674,9 +7966,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -7692,7 +8004,10 @@ export interface operations {
     blockUser: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7721,7 +8036,10 @@ export interface operations {
     unblockUser: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7781,7 +8099,10 @@ export interface operations {
     forcePasswordChange: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -7841,7 +8162,11 @@ export interface operations {
     replacePersonalPermissions: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -7856,10 +8181,30 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["PermissionsVersionResponse"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -7876,7 +8221,10 @@ export interface operations {
     reset2fa: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -7936,7 +8284,11 @@ export interface operations {
     assignRoles: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -7951,10 +8303,30 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["PermissionsVersionResponse"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -8033,7 +8405,10 @@ export interface operations {
     closeAllUserSessions: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -8062,7 +8437,10 @@ export interface operations {
     closeUserSession: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
                 id: number;
@@ -8123,7 +8501,10 @@ export interface operations {
     create_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 listCode: string;
             };
@@ -8146,6 +8527,15 @@ export interface operations {
                     "application/json": components["schemas"]["ViewResponse"];
                 };
             };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
                 headers: {
@@ -8160,7 +8550,10 @@ export interface operations {
     update_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 listCode: string;
                 id: number;
@@ -8182,6 +8575,15 @@ export interface operations {
                     "application/json": components["schemas"]["ViewResponse"];
                 };
             };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
                 headers: {
@@ -8196,7 +8598,10 @@ export interface operations {
     delete: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 listCode: string;
                 id: number;
@@ -8255,7 +8660,10 @@ export interface operations {
     registerModule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -8348,7 +8756,10 @@ export interface operations {
     putModule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 code: string;
             };
@@ -8383,7 +8794,10 @@ export interface operations {
     setEnabled: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 code: string;
             };
@@ -8420,7 +8834,10 @@ export interface operations {
             query?: {
                 active?: boolean;
             };
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 code: string;
             };
@@ -8484,7 +8901,10 @@ export interface operations {
     createItem: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -8497,6 +8917,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -8559,6 +8981,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8619,6 +9043,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8641,6 +9067,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -8656,10 +9084,30 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["NavigationItemView"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -8676,7 +9124,10 @@ export interface operations {
     deleteItem: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -8705,7 +9156,10 @@ export interface operations {
     setActive: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -8720,6 +9174,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8740,7 +9196,10 @@ export interface operations {
     toggleItem: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -8751,6 +9210,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8806,7 +9267,10 @@ export interface operations {
     createNote: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -8819,6 +9283,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -8852,6 +9318,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8874,6 +9342,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -8889,10 +9359,30 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["NoteView"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -8909,7 +9399,10 @@ export interface operations {
     deleteNote: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -8938,7 +9431,10 @@ export interface operations {
     setPin: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -8953,6 +9449,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8973,7 +9471,10 @@ export interface operations {
     togglePin: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -8984,6 +9485,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9036,7 +9539,10 @@ export interface operations {
     markAllAsRead: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9063,7 +9569,10 @@ export interface operations {
     markAsRead_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -9121,7 +9630,10 @@ export interface operations {
     updatePreferences: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9215,7 +9727,10 @@ export interface operations {
     markAllAsRead_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9242,7 +9757,10 @@ export interface operations {
     markAsRead: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -9300,7 +9818,10 @@ export interface operations {
     updatePreferences_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9451,7 +9972,10 @@ export interface operations {
     createRole_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9464,6 +9988,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -9517,7 +10043,10 @@ export interface operations {
     deleteRole_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -9548,6 +10077,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -9563,9 +10094,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -9614,6 +10165,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -9629,9 +10182,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -9741,7 +10314,10 @@ export interface operations {
     start: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9805,7 +10381,10 @@ export interface operations {
     cancel: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: string;
             };
@@ -9836,7 +10415,10 @@ export interface operations {
     retry: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: string;
             };
@@ -9871,7 +10453,10 @@ export interface operations {
     preview: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9933,7 +10518,10 @@ export interface operations {
     save: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10088,7 +10676,10 @@ export interface operations {
     updateSystemSettings: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10152,7 +10743,10 @@ export interface operations {
     updateUserSettings: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10288,7 +10882,10 @@ export interface operations {
     createTask: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10323,7 +10920,10 @@ export interface operations {
     bulk_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10430,7 +11030,10 @@ export interface operations {
     createTask_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10465,7 +11068,10 @@ export interface operations {
     bulk: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10556,7 +11162,10 @@ export interface operations {
     createStatus_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10569,6 +11178,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -10591,7 +11202,10 @@ export interface operations {
     reorderStatuses: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10622,7 +11236,10 @@ export interface operations {
     deleteStatus_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -10653,6 +11270,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -10668,9 +11287,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -10715,7 +11354,10 @@ export interface operations {
     createType: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10728,6 +11370,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -10750,7 +11394,10 @@ export interface operations {
     reorderTypes: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10781,7 +11428,10 @@ export interface operations {
     deleteType_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -10812,6 +11462,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -10827,9 +11479,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -10878,6 +11550,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -10896,6 +11570,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -10942,7 +11634,10 @@ export interface operations {
     attachFile: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -10975,7 +11670,10 @@ export interface operations {
     detachFile: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
                 fileId: string;
@@ -11007,6 +11705,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -11025,6 +11725,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -11071,7 +11789,10 @@ export interface operations {
     markViewed: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11134,7 +11855,10 @@ export interface operations {
     addComment: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 taskId: number;
             };
@@ -11202,7 +11926,10 @@ export interface operations {
     createProject: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -11215,6 +11942,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -11313,6 +12042,8 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11335,6 +12066,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -11350,9 +12083,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -11399,7 +12152,10 @@ export interface operations {
     addMember: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11429,10 +12185,47 @@ export interface operations {
             };
         };
     };
+    pageMembers: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageProjectMemberView"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
     removeMember: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
                 userId: number;
@@ -11491,7 +12284,10 @@ export interface operations {
     createStatus: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -11504,6 +12300,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -11526,7 +12324,10 @@ export interface operations {
     reorderStatuses_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -11557,7 +12358,10 @@ export interface operations {
     deleteStatus: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11588,6 +12392,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -11603,9 +12409,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -11650,7 +12476,10 @@ export interface operations {
     createType_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -11663,6 +12492,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
@@ -11685,7 +12516,10 @@ export interface operations {
     reorderTypes_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -11716,7 +12550,10 @@ export interface operations {
     deleteType: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11747,6 +12584,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -11762,9 +12601,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -11813,6 +12672,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -11831,6 +12692,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -11877,7 +12756,10 @@ export interface operations {
     attachFile_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11910,7 +12792,10 @@ export interface operations {
     detachFile_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
                 fileId: string;
@@ -11942,6 +12827,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -11960,6 +12847,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -12006,7 +12911,10 @@ export interface operations {
     markViewed_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -12069,7 +12977,10 @@ export interface operations {
     addComment_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 taskId: number;
             };
@@ -12243,7 +13154,10 @@ export interface operations {
     apply: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: string;
             };
@@ -12373,7 +13287,10 @@ export interface operations {
     create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -12392,6 +13309,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceResponse"];
+                };
+            };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -12439,7 +13365,10 @@ export interface operations {
     update: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -12458,6 +13387,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceResponse"];
+                };
+            };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -12490,7 +13428,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["VersionItem"][] | components["schemas"]["FormatVersionResponse"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -12507,7 +13445,10 @@ export interface operations {
     createDraft: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -12576,7 +13517,10 @@ export interface operations {
     replaceDraft: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
                 v: number;
@@ -12598,6 +13542,15 @@ export interface operations {
                     "application/json": components["schemas"]["FormatVersionResponse"];
                 };
             };
+            /** @description The record changed since the revision the body names */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
                 headers: {
@@ -12612,7 +13565,10 @@ export interface operations {
     publish: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
                 v: number;
@@ -12773,7 +13729,10 @@ export interface operations {
     deleteSubscription: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };
@@ -12804,6 +13763,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -12819,9 +13780,29 @@ export interface operations {
             /** @description No Content */
             204: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {

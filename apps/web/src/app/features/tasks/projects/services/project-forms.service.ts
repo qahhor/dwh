@@ -6,6 +6,7 @@ import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
 import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
 import { safeNumericRecordId } from '@core/services/search-target';
+import { SaveErrorNotifier, isRevisionConflict } from '@shared/ui/save-errors';
 import { Project } from '@core/models/task.models';
 import { ProjectCreateForm, ProjectEditForm } from '../projects.models';
 
@@ -15,6 +16,7 @@ export class ProjectFormsService {
   private readonly permService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly isSubmitting = signal<boolean>(false);
   readonly editLoading = signal<boolean>(false);
@@ -252,7 +254,10 @@ export class ProjectFormsService {
     this.editSaveError.set(null);
     this.isSubmitting.set(true);
     this.editSaveRequest = this.api
-      .patch<void>(`/tasks/projects/${editedProjectId}`, payload, { ifMatch: this.editingProject.revision })
+      .patch<void>(`/tasks/projects/${editedProjectId}`, payload, {
+        notifyError: false,
+        ifMatch: this.editingProject.revision,
+      })
       .subscribe({
         next: () => {
           if (
@@ -276,6 +281,17 @@ export class ProjectFormsService {
           )
             return;
           this.isSubmitting.set(false);
+          if (isRevisionConflict(err)) {
+            // Saved by someone else since it was opened: the dialog closes and the projects are read again.
+            this.saveErrors.show(err, {
+              fallbackKey: 'projects.edit_save_error',
+              reload: () => {
+                this.closeEditModal();
+                this.onProjectUpdated?.();
+              },
+            });
+            return;
+          }
           this.editSaveError.set(err?.detail || this.uiI18n.translate('projects.edit_save_error'));
         },
       });

@@ -119,6 +119,22 @@
           [emptyTemplate]="emptyMembers"
         />
       </div>
+      @if (hasMore()) {
+        <div class="members-load-more">
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            data-testid="project-members-load-more"
+            [smtLoading]="isLoadingMore()"
+            [disabled]="isLoadingMore()"
+            (click)="loadMore.emit()"
+          >
+            {{ 'common.load_more' | t }}
+          </button>
+        </div>
+      }
     </div>
 
     <div footer class="modal-footer-actions">

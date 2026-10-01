@@ -24,6 +24,34 @@ function Invoke-Docker([string[]]$Arguments) {
     return $LASTEXITCODE
 }
 
+# The run's output shown and kept: the verdict of openapi-diff is read from it.
+function Invoke-DockerCaptured([string[]]$Arguments) {
+    # Windows PowerShell turns a native command's stderr into an error record; the exit code is the answer here.
+    $ErrorActionPreference = 'Continue'
+    $lines = @(& docker @Arguments 2>&1 | ForEach-Object { "$_" })
+    $code = $LASTEXITCODE
+    $lines | Out-Host
+    return [pscustomobject]@{ ExitCode = $code; Output = ($lines -join "`n") }
+}
+
+# openapi-diff --fail-on-incompatible exits 1 and reports "API changes broke backward compatibility" for a break.
+# Any other failure - docker not running, the image not pulled, a spec the tool cannot read - is not a verdict on
+# the API and must not be allowed by the api-breaking label or trailer.
+function Get-DiffVerdict([int]$ExitCode, [string]$Output) {
+    if ($ExitCode -eq 0) { return 'compatible' }
+    if ($ExitCode -eq 1 -and $Output -match 'broke backward compatibility') { return 'breaking' }
+    return 'failed'
+}
+
+# Self-check of the verdict on the cases that matter.
+if ((Get-DiffVerdict 0 'API changes are backward compatible') -ne 'compatible' -or
+    (Get-DiffVerdict 1 'API changes broke backward compatibility') -ne 'breaking' -or
+    (Get-DiffVerdict 125 'Unable to find image; pull access denied') -ne 'failed' -or
+    (Get-DiffVerdict 1 'Exception in thread "main" java.lang.RuntimeException') -ne 'failed' -or
+    (Get-DiffVerdict 2 'Unexpected exception') -ne 'failed') {
+    throw 'test-api-contract.ps1: the self-check of the openapi-diff verdict failed.'
+}
+
 Write-Host "1/3 Spectral lint of $spec"
 if ((Invoke-Docker @('run', '--rm', '-v', "${repoRoot}:/work", '-w', '/work', 'stoplight/spectral:6',
             'lint', $spec, '--fail-severity=error', '--display-only-failures')) -ne 0) {
@@ -57,13 +85,17 @@ if (-not $baseFound) {
 }
 [System.IO.File]::WriteAllText($baseSpec, ($baseText -join "`n"), [System.Text.UTF8Encoding]::new($false))
 Copy-Item -LiteralPath (Join-Path $repoRoot $spec) -Destination (Join-Path $work 'openapi.json') -Force
-$diff = Invoke-Docker @('run', '--rm', '-v', "${work}:/specs", 'openapitools/openapi-diff:2.1.2',
+$run = Invoke-DockerCaptured @('run', '--rm', '-v', "${work}:/specs", 'openapitools/openapi-diff:2.1.2',
     '/specs/base-openapi.json', '/specs/openapi.json', '--fail-on-incompatible')
+$verdict = Get-DiffVerdict $run.ExitCode $run.Output
+if ($verdict -eq 'failed') {
+    throw "openapi-diff did not give a verdict (exit $($run.ExitCode)): a failure of docker, the image or the tool."
+}
 # A commit of the change may declare the break with a trailer "Api-Breaking: <what and why>": it stays in the history
 # (a push to main has no label to carry it), and CHANGELOG.md says the same to the clients.
 $trailers = @(& git -C $repoRoot log --format='%(trailers:key=Api-Breaking,valueonly)' "$BaseRef..HEAD" |
         Where-Object { $_.Trim() })
-if ($diff -ne 0) {
+if ($verdict -eq 'breaking') {
     if ($AllowBreaking) {
         Write-Warning 'The API breaks clients of the base branch; allowed by the api-breaking label.'
     } elseif ($trailers.Count -gt 0) {

@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.ms.task.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.ms.task.api.CreateStatusRequest;
@@ -54,6 +55,7 @@ public class MsTaskStatusController {
     @PatchMapping("/statuses/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> updateStatus(
             @PathVariable("id") Long id,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
@@ -96,6 +98,7 @@ public class MsTaskStatusController {
     @PatchMapping("/types/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> updateType(
             @PathVariable("id") Long id,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,

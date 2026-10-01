@@ -111,7 +111,8 @@ public class MdSettingService {
         if (userId != null && settings != null) {
             List<FieldErrorItem> foreign = settings.keySet().stream()
                     .filter(key -> !isPersonal(key))
-                    .map(key -> new FieldErrorItem(key, SETTING_NOT_PERSONAL, "not a personal setting: " + key))
+                    .map(key -> FieldErrorItem.keyed(
+                            key, SETTING_NOT_PERSONAL, "error.md.field_setting_not_personal", Map.of("key", key)))
                     .toList();
             if (!foreign.isEmpty()) {
                 throw ApiException.validation("error.md.setting_not_personal", foreign);
@@ -147,8 +148,11 @@ public class MdSettingService {
         if (strict) {
             throw ApiException.validation(
                     "error.md.setting_invalid",
-                    List.of(new FieldErrorItem(
-                            IDLE_LOCK_MINUTES, SETTING_INVALID, "minutes from 0 to " + MAX_IDLE_LOCK_MINUTES)));
+                    List.of(FieldErrorItem.keyed(
+                            IDLE_LOCK_MINUTES,
+                            SETTING_INVALID,
+                            "error.md.field_idle_lock_minutes",
+                            Map.of("max", MAX_IDLE_LOCK_MINUTES))));
         }
         return Integer.parseInt(DEFAULT_INSTANCE_SETTINGS.get(IDLE_LOCK_MINUTES));
     }

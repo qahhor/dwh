@@ -19,7 +19,13 @@ public final class MdAssignmentDtos {
 
     public record RoleIdsResponse(List<Long> roleIds) {}
 
-    public record PermissionsVersionResponse(long permissionsVersion) {}
+    /**
+     * The answer to a change of roles or personal rights.
+     *
+     * @param permissionsVersion the version of the user's effective rights after the change
+     * @param revision the user's revision after the change (plan 10/10, item 3.6), also sent as {@code ETag}
+     */
+    public record PermissionsVersionResponse(long permissionsVersion, long revision) {}
 
     public record GrantsResponse(List<GrantDto> grants) {}
 

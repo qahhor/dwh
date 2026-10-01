@@ -1,6 +1,8 @@
 package com.smartup24.cms.instance.md.controller;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService.InstalledModuleView;
@@ -49,7 +51,8 @@ public class ModuleRegistryController {
         return moduleService
                 .getModule(code)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() ->
+                        ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.module_not_found", Map.of("code", code)));
     }
 
     /** Switches the module on or off (plan item 3.4): the body states the result, so a repeat changes nothing. */

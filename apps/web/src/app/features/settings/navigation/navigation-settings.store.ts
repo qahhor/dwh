@@ -12,6 +12,7 @@ import { NavigationService } from '@core/services/navigation.service';
 import { ToastService } from '@core/services/toast.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 
 /**
  * The custom menu items of the navigation settings screen and the requests
@@ -23,6 +24,7 @@ export class NavigationSettingsStore {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   /** A failed reload keeps the list on screen. */
   readonly items = linkedSignal<CustomNavigationItem[] | undefined, CustomNavigationItem[]>({
@@ -65,14 +67,20 @@ export class NavigationSettingsStore {
     this.submit(this.navService.createItem(payload), onSaved);
   }
 
-  /** `onSaved` runs before the list reloads. */
+  /**
+   * `onSaved` runs before the list reloads. A save refused over a newer revision offers to read the list again; that
+   * closes the form as `onSaved` does, so the item is opened from what is saved now.
+   */
   updateItem(
     id: number,
     payload: UpdateNavigationItemPayload,
     revision: number | undefined,
     onSaved: () => void,
   ): void {
-    this.submit(this.navService.updateItem(id, payload, revision), onSaved);
+    this.submit(this.navService.updateItem(id, payload, revision), onSaved, () => {
+      onSaved();
+      this.loadItems();
+    });
   }
 
   toggleItem(item: CustomNavigationItem): void {
@@ -103,7 +111,7 @@ export class NavigationSettingsStore {
       .subscribe();
   }
 
-  private submit(request: Observable<unknown>, onSaved: () => void): void {
+  private submit(request: Observable<unknown>, onSaved: () => void, reload?: () => void): void {
     this.isSubmitting.set(true);
     request.subscribe({
       next: () => {
@@ -113,7 +121,7 @@ export class NavigationSettingsStore {
         this.loadItems();
       },
       error: (err: unknown) => {
-        this.showError(err);
+        this.saveErrors.show(err, { fallbackKey: 'common.error', reload });
         this.isSubmitting.set(false);
       },
     });

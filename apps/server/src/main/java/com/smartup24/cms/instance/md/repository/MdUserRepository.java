@@ -137,7 +137,8 @@ public class MdUserRepository {
                     attributes = '{}'::jsonb,
                     state = 'P',
                     modified_at = now(),
-                    modified_by = :modifiedBy
+                    modified_by = :modifiedBy,
+                    revision = revision + 1
                 where id = :userId
                 """)
                 .param("userId", userId)
@@ -151,7 +152,7 @@ public class MdUserRepository {
                         .sql("""
                 update md_users
                 set password_hash = :newPasswordHash, password_changed_at = now(),
-                    force_password_change = false, modified_at = now()
+                    force_password_change = false, modified_at = now(), revision = revision + 1
                 where id = :userId and state = 'A' and auth_version = :expectedAuthVersion
                   and password_hash is not distinct from :expectedPasswordHash
                 """)
@@ -166,7 +167,7 @@ public class MdUserRepository {
     /** The global access invalidator owns the sole increment; overflow must fail the transaction. */
     public void incrementAuthenticationVersion(Long userId) {
         int changed = jdbcClient
-                .sql("update md_users set auth_version = auth_version + 1 where id = :userId")
+                .sql("update md_users set auth_version = auth_version + 1, revision = revision + 1 where id = :userId")
                 .param("userId", userId)
                 .update();
         if (changed != 1) throw ApiException.invalidCredentials();
@@ -176,7 +177,7 @@ public class MdUserRepository {
         jdbcClient
                 .sql("""
                 update md_users
-                set state = :state, modified_at = now(), modified_by = :modifiedBy
+                set state = :state, modified_at = now(), modified_by = :modifiedBy, revision = revision + 1
                 where id = :userId
                 """)
                 .param("userId", userId)
@@ -202,7 +203,8 @@ public class MdUserRepository {
         jdbcClient
                 .sql("""
                 update md_users
-                set force_password_change = :force, modified_at = now(), modified_by = :modifiedBy
+                set force_password_change = :force, modified_at = now(), modified_by = :modifiedBy,
+                    revision = revision + 1
                 where id = :userId
                 """)
                 .param("userId", userId)
@@ -215,13 +217,32 @@ public class MdUserRepository {
         jdbcClient
                 .sql("""
                 update md_users
-                set is_2fa_enabled = :enabled, modified_at = now(), modified_by = :modifiedBy
+                set is_2fa_enabled = :enabled, modified_at = now(), modified_by = :modifiedBy,
+                    revision = revision + 1
                 where id = :userId
                 """)
                 .param("userId", userId)
                 .param("enabled", enabled)
                 .param("modifiedBy", modifiedBy)
                 .update();
+    }
+
+    /**
+     * Claims the next revision of a user for a change of what belongs to the user outside the profile row: its roles
+     * and personal rights (plan 10/10, item 3.6). A change made from an older revision is refused like a profile save.
+     */
+    public long nextRevision(Long userId, long expectedRevision) {
+        return jdbcClient
+                .sql("""
+                update md_users set modified_at = now(), revision = revision + 1
+                where id = :userId and revision = :expectedRevision
+                returning revision
+                """)
+                .param("userId", userId)
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
     }
 
     /** Saves the profile made from {@code expectedRevision} (plan item 3.6) and answers its new revision. */

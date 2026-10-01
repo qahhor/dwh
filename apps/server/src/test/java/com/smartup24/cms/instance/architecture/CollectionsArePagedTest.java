@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.architecture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.instance.common.web.ApiDeprecations;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -59,16 +60,23 @@ class CollectionsArePagedTest {
             Map.entry("OAuth2AuthController#getProviders", "the configured identity providers"),
             Map.entry("RecordHistoryController#kinds", "the declared record kinds"),
             Map.entry("ReportExportController#journal", "the viewer's last exports (JOURNAL_SIZE)"),
+            Map.entry("UplSourceController#versions", "the format versions of one source, published by hand"),
             Map.entry("UplUnitController#list", "the units of measure"));
 
     /**
      * Collections that grow with use and are still answered whole: debt of item 3.5, which only shrinks. Projects
      * feed the pickers of the task screens, which have to become server-searched lookups first.
      */
-    private static final Map<String, String> NOT_YET_PAGED = Map.ofEntries(
-            Map.entry("MsProjectController#listProjects", "task screen pickers load every project"),
-            Map.entry("MsProjectController#getMembers", "the members of a project"),
-            Map.entry("MsTaskController#getProjectStats", "a row per project"));
+    private static final Map<String, String> NOT_YET_PAGED =
+            Map.ofEntries(Map.entry("MsProjectController#listProjects", "task screen pickers load every project"));
+
+    /**
+     * Whole lists kept only until their sunset: each is deprecated in {@link ApiDeprecations} for a paged successor.
+     * The value is the request that answers the list whole.
+     */
+    private static final Map<String, String> DEPRECATED_WHOLE_LISTS = Map.ofEntries(
+            Map.entry("MsProjectController#getMembers", "/api/v1/tasks/projects/1/members"),
+            Map.entry("MsTaskController#getProjectStats", "/api/v1/tasks/projects/stats"));
 
     @Test
     @DisplayName("3.5: a GET answers a whole list only for a bounded reference list")
@@ -87,6 +95,10 @@ class CollectionsArePagedTest {
 
         TreeSet<String> allowed = new TreeSet<>(REFERENCE_LISTS.keySet());
         allowed.addAll(NOT_YET_PAGED.keySet());
+        allowed.addAll(DEPRECATED_WHOLE_LISTS.keySet());
+        DEPRECATED_WHOLE_LISTS.forEach((handler, request) -> assertThat(ApiDeprecations.successor("GET", request))
+                .as(handler + " is deprecated for a paged successor")
+                .isPresent());
         assertThat(whole)
                 .as("GET handlers answering a whole list that is not a bounded reference list: page them")
                 .isSubsetOf(allowed);

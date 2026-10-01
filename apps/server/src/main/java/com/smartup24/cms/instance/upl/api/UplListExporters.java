@@ -24,11 +24,7 @@ public class UplListExporters {
             public KeysetPage<?> page(
                     int limit, String cursor, String filter, String sort, String search, Map<String, String> options) {
                 var page = sources.listSources(limit, cursor, filter, sort, search);
-                return KeysetPage.of(
-                        page.items().stream().map(SourceItem::of).toList(),
-                        page.nextCursor(),
-                        page.hasMore(),
-                        page.totalEstimated());
+                return page.map(SourceItem::of);
             }
         };
     }
@@ -43,11 +39,7 @@ public class UplListExporters {
             public KeysetPage<?> page(
                     int limit, String cursor, String filter, String sort, String search, Map<String, String> options) {
                 var page = packages.list(limit, cursor, filter, sort, search);
-                return KeysetPage.of(
-                        page.items().stream().map(PackageItem::of).toList(),
-                        page.nextCursor(),
-                        page.hasMore(),
-                        page.totalEstimated());
+                return page.map(PackageItem::of);
             }
         };
     }

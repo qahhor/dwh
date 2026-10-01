@@ -51,6 +51,9 @@ export class ProjectMembersModalComponent {
   private readonly i18n = inject(I18nService);
 
   readonly isLoadingMembers = input(false);
+  /** More members follow those shown (plan item 3.5). */
+  readonly hasMore = input(false);
+  readonly isLoadingMore = input(false);
   readonly isAddingMember = input(false);
   /** The member whose removal is running, so only that row's button shows it. */
   readonly removingUserId = input<number | null>(null);
@@ -62,6 +65,8 @@ export class ProjectMembersModalComponent {
   readonly canUpdateProject = input<boolean>(false);
 
   readonly closeModal = output<void>();
+  /** Asks for the next page of members. */
+  readonly loadMore = output<void>();
   readonly addMember = output<{
     projectId: number;
     userId: number;
@@ -112,7 +117,7 @@ export class ProjectMembersModalComponent {
   });
   private readonly canUpdate = computed(() => this.canUpdateProject());
 
-  /** Every member of the project is loaded, so a header click sorts them all. */
+  /** A header click sorts the members shown; the server sends them by name, a page at a time. */
   readonly sortValues = {
     user: (m: ProjectMember) => m.userName,
     email: (m: ProjectMember) => m.userEmail,

@@ -1,8 +1,8 @@
 # Стратегия тестирования SmartupCMS
 
-**Версия:** 2.0
+**Версия:** 2.1
 
-**Обновлено:** 2026-09-05
+**Обновлено:** 2026-10-01
 
 **Основание:** текущий CI и критерии `AC-01..12` из
 [канонического ТЗ](../technical-specification.md).
@@ -72,6 +72,30 @@ digest; часть критериев закрывается только releas
 Пороги равны покрытию на момент введения (2026-09-27) и только поднимаются,
 к 80 % по каждому модулю. Когда покрытие выросло, порог поднимают в том же PR.
 
+## Правила сервера фазы 3 (план 10/10)
+
+Каждое правило из
+[руководства по модулям](module-development-guide.md#серверные-правила)
+проверяет тест в `mvn -B verify`; список исключений в тесте только сокращается.
+
+| Тест | Что не пропускает |
+|---|---|
+| `ErrorModelTest`, `ErrorTextsTest` | исключение запроса не от `ApiException`; текст вместо ключа; ключ, которого нет в ru, uz или en ([ADR-0021](../adr/ADR-0021-error-model.md)) |
+| `OpenApiContractTest` | обработчик без описания; `docs/api/openapi.json`, отставший от кода ([ADR-0022](../adr/ADR-0022-openapi-from-code.md)) |
+| `ResponseStatusDeclaredTest` | 201/202/204 без `@ResponseStatus` ([ADR-0023](../adr/ADR-0023-uniform-rest.md)) |
+| `ChangesNameTheirRevisionTest` | `PUT`/`PATCH` записи без `If-Match` или ревизии в теле ([ADR-0024](../adr/ADR-0024-optimistic-locking.md)) |
+| `CollectionsArePagedTest` | `GET` с целым растущим списком (план 10/10, пункт 3.5) |
+| `NoSwallowedErrorsTest` | `catch`, который не пробрасывает, не пишет в лог и не использует пойманное (пункт 3.11) |
+| `CommentLanguageTest` | новый Java-файл с комментарием по-русски (пункт 3.14) |
+| `ModuleBoundariesTest` | контроллер, видящий `repository`; обращение к соседнему модулю мимо `service`/`api` |
+| `MigrationLintTest`, `MigrationFileRulesTest`, `MigrationManifestTest` | нарушение [ADR-0020](../adr/ADR-0020-database-naming.md), DDL вместе с данными, изменённая выпущенная миграция |
+
+Рядом — пороги покрытия бизнес-модулей (`scripts/quality/test-coverage-floors.ps1`),
+job `api contract` (`scripts/api/test-api-contract.ps1`: Spectral, свежесть
+типов веба, openapi-diff) и в вебе `npm run api:audit`. Генератор модулей
+проверяет `scripts/dev/test-create-module.ps1`: результат генератора
+собирается, проходит эти тесты и стартует на встроенном PostgreSQL.
+
 ## Соответствие CI
 
 CI выполняет следующие независимые jobs:
@@ -81,8 +105,15 @@ CI выполняет следующие независимые jobs:
   покрытия JaCoCo, затем проверки «ни один тест не пропущен», пороги покрытия
   бизнес-модулей, покрытие изменённых строк PR (не ниже 80 %) и формирование
   CycloneDX SBOM;
-- **frontend:** `npm ci`, lint (ESLint с базовой линией подавлений, Stylelint,
-  Prettier), unit tests, typecheck и production build из `apps/web`;
+- **frontend:** `npm ci`, lint (ESLint — файл подавлений пуст, Stylelint,
+  Prettier), аудиты контраста, ARIA, i18n (включая синхронность
+  `packaged-russian.ts` с `ru.json`), устаревших вызовов API (`api:audit`),
+  порядка членов классов (`signals:audit`) и отсутствия сторонних ресурсов,
+  unit tests с покрытием, typecheck, production build и
+  проверка доступности `npm run test:a11y` из `e2e`;
+- **api contract:** `scripts/api/test-api-contract.ps1` — Spectral, типы веба
+  из текущего описания, openapi-diff против базовой ветки (метка
+  `api-breaking` или трейлер `Api-Breaking:` разрешает объявленный слом);
 - **release config:** unified architecture, public docs, repository hygiene,
   release supply-chain, production Compose, encrypted-backup и managed
   acceptance contracts, а также fail-closed deploy test;
@@ -109,8 +140,8 @@ severity или обновление snapshot требует review с явны�
 готовности релиза (`scripts/release/test-final-readiness.ps1`: поиск,
 конкурентный доступ к БД, ограничения нагрузки, контракты репозитория),
 обновление production Compose с резервной копией на V018, наблюдение
-no-default-egress, live API smoke на чистом стенде и Trivy по свежим
-advisory. `scripts/docs/test-repository-hygiene.ps1` падает, если какой-то
+no-default-egress, live API smoke на чистом стенде, проверка генератора модулей
+(`scripts/dev/test-create-module.ps1`) и Trivy по свежим advisory. `scripts/docs/test-repository-hygiene.ps1` падает, если какой-то
 `scripts/**/test-*` не запускает ни один workflow.
 
 `.github/workflows/ci.yml` и nightly не запускают изолированный restore drill

@@ -89,6 +89,23 @@ describe('UiToastContainerComponent', () => {
     expect(toasts.toasts()).toHaveLength(0);
   });
 
+  it('offers the action a toast carries as a button that runs it and closes the toast', () => {
+    const { fixture, toasts } = render();
+    const run = vi.fn();
+    toasts.show('error', 'Запись уже изменил другой пользователь', 'Данные устарели', 0, { label: 'Обновить', run });
+    fixture.detectChanges();
+
+    const action = fixture.nativeElement.querySelector('.toast-action') as HTMLButtonElement;
+    expect(action.type).toBe('button');
+    expect(action.textContent?.trim()).toBe('Обновить');
+    action.click();
+    fixture.detectChanges();
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(toasts.toasts()).toHaveLength(0);
+    expect(fixture.nativeElement.querySelector('.toast-action')).toBeNull();
+  });
+
   it(`keeps at most ${MAX_VISIBLE_TOASTS} toasts, dropping the oldest`, () => {
     const { toasts } = render();
 

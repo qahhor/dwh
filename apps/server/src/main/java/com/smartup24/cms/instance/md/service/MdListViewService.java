@@ -24,7 +24,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -49,26 +49,27 @@ public class MdListViewService {
     private static final Pattern WIDTH = Pattern.compile("^\\d{1,4}px$");
     private static final Set<String> STATE_KEYS = Set.of("columns", "sort", "filter");
     private static final Set<String> COLUMN_KEYS = Set.of("order", "hidden", "widths");
-    private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final String TABLE = "md_list_views";
     private static final List<String> AUDITED = List.of("list_code", "name", "state", "is_default");
 
     private final MdListViewRepository repo;
     private final QueryListRegistry registry;
     private final AuditLogService audit;
+    /** Builds and reads the view state trees (plan 10/10, item 3.11: the application's mapper). */
+    private final ObjectMapper json;
 
-    public MdListViewService(MdListViewRepository repo, QueryListRegistry registry, AuditLogService audit) {
+    public MdListViewService(
+            MdListViewRepository repo, QueryListRegistry registry, AuditLogService audit, ObjectMapper json) {
         this.repo = repo;
         this.registry = registry;
         this.audit = audit;
+        this.json = json;
     }
 
     @Transactional(readOnly = true)
     public List<ViewResponse> list(long userId, String listCode) {
         visibleList(listCode);
-        return repo.list(userId, listCode).stream()
-                .map(MdListViewService::response)
-                .toList();
+        return repo.list(userId, listCode).stream().map(this::response).toList();
     }
 
     @Transactional
@@ -81,8 +82,8 @@ public class MdListViewService {
             throw ApiException.validation(
                     "error.md.list_view_limit",
                     Map.of("max", MAX_VIEWS_PER_LIST),
-                    List.of(new FieldErrorItem(
-                            "name", LIST_VIEW_LIMIT, "at most " + MAX_VIEWS_PER_LIST + " views per list")));
+                    List.of(FieldErrorItem.keyed(
+                            "name", LIST_VIEW_LIMIT, "error.md.list_view_limit", Map.of("max", MAX_VIEWS_PER_LIST))));
         }
         if (isDefault) {
             repo.clearDefault(userId, listCode, null);
@@ -142,8 +143,11 @@ public class MdListViewService {
         if (name.isEmpty() || name.length() > MAX_NAME) {
             throw ApiException.validation(
                     "error.md.list_view_invalid",
-                    List.of(new FieldErrorItem(
-                            "name", LIST_VIEW_INVALID, "name must be 1 to " + MAX_NAME + " characters")));
+                    List.of(FieldErrorItem.keyed(
+                            "name",
+                            LIST_VIEW_INVALID,
+                            "error.md.field_list_view_name_length",
+                            Map.of("max", MAX_NAME))));
         }
         return name;
     }
@@ -153,19 +157,21 @@ public class MdListViewService {
      * сортировка и фильтр — то, что принял бы сам список ({@link QueryCompiler}). Ошибки адресованы
      * внутрь {@code state}: {@code state.columns.order[2]}, {@code state.filter[0].op}, {@code state.sort}.
      */
-    static String canonicalState(QueryList list, JsonNode state) {
+    String canonicalState(QueryList list, JsonNode state) {
         List<FieldErrorItem> errors = new ArrayList<>();
         if (state == null || !state.isObject()) {
-            throw invalid(List.of(new FieldErrorItem("state", LIST_VIEW_INVALID, "state must be an object")));
+            throw invalid(List.of(
+                    FieldErrorItem.keyed("state", LIST_VIEW_INVALID, "error.md.field_list_view_state_invalid")));
         }
         for (Map.Entry<String, JsonNode> entry : state.properties()) {
             if (!STATE_KEYS.contains(entry.getKey())) {
-                errors.add(new FieldErrorItem("state." + entry.getKey(), LIST_VIEW_INVALID, "unknown key"));
+                errors.add(
+                        FieldErrorItem.keyed("state." + entry.getKey(), LIST_VIEW_INVALID, "error.field.unknown_key"));
             }
         }
         Set<String> keys =
                 new HashSet<>(list.fields().stream().map(QueryField::key).toList());
-        ObjectNode canonical = JSON.createObjectNode();
+        ObjectNode canonical = json.createObjectNode();
         canonical.set("columns", columns(state.get("columns"), keys, errors));
 
         JsonNode sortNode = state.get("sort");
@@ -174,7 +180,8 @@ public class MdListViewService {
             if (sortNode.isString()) {
                 sort = sortNode.asString();
             } else {
-                errors.add(new FieldErrorItem("state.sort", LIST_VIEW_INVALID, "sort must be a string"));
+                errors.add(
+                        FieldErrorItem.keyed("state.sort", LIST_VIEW_INVALID, "error.md.field_list_view_sort_invalid"));
             }
         }
         JsonNode filterNode = state.get("filter");
@@ -183,7 +190,7 @@ public class MdListViewService {
             QueryCompiler.compile(list, filter, sort, null, null);
         } catch (ApiException e) {
             for (FieldErrorItem item : e.getFieldErrors()) {
-                errors.add(new FieldErrorItem("state." + item.field(), item.code(), item.message()));
+                errors.add(item.at("state." + item.field()));
             }
         }
         if (!errors.isEmpty()) {
@@ -194,12 +201,12 @@ public class MdListViewService {
         } else {
             canonical.put("sort", sort);
         }
-        canonical.set("filter", filterNode == null || filterNode.isNull() ? JSON.createArrayNode() : filterNode);
+        canonical.set("filter", filterNode == null || filterNode.isNull() ? json.createArrayNode() : filterNode);
         return canonical.toString();
     }
 
-    private static ObjectNode columns(JsonNode node, Set<String> keys, List<FieldErrorItem> errors) {
-        ObjectNode columns = JSON.createObjectNode();
+    private ObjectNode columns(JsonNode node, Set<String> keys, List<FieldErrorItem> errors) {
+        ObjectNode columns = json.createObjectNode();
         ArrayNode order = columns.putArray("order");
         ArrayNode hidden = columns.putArray("hidden");
         ObjectNode widths = columns.putObject("widths");
@@ -207,12 +214,14 @@ public class MdListViewService {
             return columns;
         }
         if (!node.isObject()) {
-            errors.add(new FieldErrorItem("state.columns", LIST_VIEW_INVALID, "columns must be an object"));
+            errors.add(FieldErrorItem.keyed(
+                    "state.columns", LIST_VIEW_INVALID, "error.md.field_list_view_columns_invalid"));
             return columns;
         }
         for (Map.Entry<String, JsonNode> entry : node.properties()) {
             if (!COLUMN_KEYS.contains(entry.getKey())) {
-                errors.add(new FieldErrorItem("state.columns." + entry.getKey(), LIST_VIEW_INVALID, "unknown key"));
+                errors.add(FieldErrorItem.keyed(
+                        "state.columns." + entry.getKey(), LIST_VIEW_INVALID, "error.field.unknown_key"));
             }
         }
         keyList(node.get("order"), "state.columns.order", keys, order, errors);
@@ -220,15 +229,18 @@ public class MdListViewService {
         JsonNode widthNode = node.get("widths");
         if (widthNode != null && !widthNode.isNull()) {
             if (!widthNode.isObject()) {
-                errors.add(new FieldErrorItem("state.columns.widths", LIST_VIEW_INVALID, "widths must be an object"));
+                errors.add(FieldErrorItem.keyed(
+                        "state.columns.widths", LIST_VIEW_INVALID, "error.md.field_list_view_widths_invalid"));
             } else {
                 for (Map.Entry<String, JsonNode> entry : widthNode.properties()) {
                     String at = "state.columns.widths." + entry.getKey();
                     if (!keys.contains(entry.getKey())) {
-                        errors.add(new FieldErrorItem(at, LIST_VIEW_INVALID, "unknown column"));
+                        errors.add(FieldErrorItem.keyed(
+                                at, LIST_VIEW_INVALID, "error.field.unknown_column", Map.of("name", entry.getKey())));
                     } else if (!entry.getValue().isString()
                             || !WIDTH.matcher(entry.getValue().asString()).matches()) {
-                        errors.add(new FieldErrorItem(at, LIST_VIEW_INVALID, "width must be like 180px"));
+                        errors.add(
+                                FieldErrorItem.keyed(at, LIST_VIEW_INVALID, "error.md.field_list_view_width_invalid"));
                     } else {
                         widths.put(entry.getKey(), entry.getValue().asString());
                     }
@@ -244,14 +256,15 @@ public class MdListViewService {
             return;
         }
         if (!node.isArray()) {
-            errors.add(new FieldErrorItem(at, LIST_VIEW_INVALID, "must be an array of column keys"));
+            errors.add(FieldErrorItem.keyed(at, LIST_VIEW_INVALID, "error.md.field_list_view_keys_invalid"));
             return;
         }
         Set<String> seen = new HashSet<>();
         for (int i = 0; i < node.size(); i++) {
             JsonNode item = node.get(i);
             if (!item.isString() || !keys.contains(item.asString()) || !seen.add(item.asString())) {
-                errors.add(new FieldErrorItem(at + "[" + i + "]", LIST_VIEW_INVALID, "unknown or repeated column"));
+                errors.add(FieldErrorItem.keyed(
+                        at + "[" + i + "]", LIST_VIEW_INVALID, "error.md.field_list_view_column_repeated"));
             } else {
                 into.add(item.asString());
             }
@@ -259,11 +272,11 @@ public class MdListViewService {
     }
 
     /** The state goes out as JSON, not as the stored text; the list code is in the URL already. */
-    private static ViewResponse response(ListView view) {
+    private ViewResponse response(ListView view) {
         return new ViewResponse(
                 view.id(),
                 view.name(),
-                JSON.readTree(view.stateJson()),
+                json.readTree(view.stateJson()),
                 view.isDefault(),
                 view.lockVersion(),
                 view.modifiedAt());
@@ -285,7 +298,7 @@ public class MdListViewService {
     private static ApiException nameTaken() {
         return ApiException.validation(
                 "error.md.list_view_name_taken",
-                List.of(new FieldErrorItem("name", LIST_VIEW_NAME_TAKEN, "a view with this name already exists")));
+                List.of(FieldErrorItem.keyed("name", LIST_VIEW_NAME_TAKEN, "error.md.list_view_name_taken")));
     }
 
     private static ApiException notFound() {

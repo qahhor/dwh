@@ -34,18 +34,23 @@ public class MdListExporters {
                 List<FieldErrorItem> errors = new ArrayList<>();
                 for (String key : List.of("roleId", "managerId")) {
                     if (!isNumber(options.get(key))) {
-                        errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "not a number: " + options.get(key)));
+                        errors.add(FieldErrorItem.keyed(
+                                key,
+                                "EXPORT_INVALID",
+                                "error.field.not_a_number",
+                                Map.of("value", String.valueOf(options.get(key)))));
                     }
                 }
                 String state = options.get("state");
                 if (state != null && !state.isBlank() && !List.of("A", "P").contains(state.strip())) {
-                    errors.add(new FieldErrorItem("state", "EXPORT_INVALID", "state is A or P"));
+                    errors.add(FieldErrorItem.keyed(
+                            "state", "EXPORT_INVALID", "error.field.one_of", Map.of("values", "A, P")));
                 }
                 String twoFactor = options.get("is2faEnabled");
                 if (twoFactor != null
                         && !twoFactor.isBlank()
                         && !List.of("true", "false").contains(twoFactor.strip())) {
-                    errors.add(new FieldErrorItem("is2faEnabled", "EXPORT_INVALID", "true or false"));
+                    errors.add(FieldErrorItem.keyed("is2faEnabled", "EXPORT_INVALID", "error.field.true_or_false"));
                 }
                 return errors;
             }

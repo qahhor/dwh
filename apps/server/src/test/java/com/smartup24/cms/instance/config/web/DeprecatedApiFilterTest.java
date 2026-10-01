@@ -150,6 +150,34 @@ class DeprecatedApiFilterTest {
         assertThat(response.getHeaderNames()).isEmpty();
     }
 
+    @Test
+    @DisplayName("3.4: a malformed escape in a query name is not a legacy name and does not fail the filter")
+    void malformedQueryNamePassesThrough() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/tasks");
+        request.setQueryString("%zz=1");
+        AtomicReference<HttpServletRequest> seen = new AtomicReference<>();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (req, res) -> seen.set((HttpServletRequest) req));
+
+        assertThat(seen.get()).isSameAs(request);
+        assertThat(response.getHeader(DeprecatedApiFilter.DEPRECATION)).isNull();
+        assertThat(DeprecatedApiFilter.decodedName("%zz")).isEqualTo("%zz");
+    }
+
+    @Test
+    @DisplayName("3.4: a legacy name after a malformed one is still renamed")
+    void legacyNameAfterMalformedOneIsRenamed() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/tasks");
+        request.setQueryString("%zz=1&project_id=3");
+        request.addParameter("project_id", "3");
+        AtomicReference<HttpServletRequest> seen = new AtomicReference<>();
+
+        filter.doFilter(request, new MockHttpServletResponse(), (req, res) -> seen.set((HttpServletRequest) req));
+
+        assertThat(seen.get().getParameter("projectId")).isEqualTo("3");
+    }
+
     private MockHttpServletResponse run(MockHttpServletRequest request) throws Exception {
         MockHttpServletResponse response = new MockHttpServletResponse();
         filter.doFilter(request, response, (req, res) -> {});

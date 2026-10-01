@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -26,8 +27,18 @@ public class AuditDataRedactor {
 
     private static final Set<String> SAFE_TOKEN_METADATA_KEYS = Set.of("tokenprefix");
 
-    /** Only turns unknown values into plain JSON trees to inspect them; the shared default mapper does that. */
-    private final ObjectMapper objectMapper = JsonMapper.shared();
+    /** Only turns unknown values into plain JSON trees to inspect them (plan 10/10, item 3.11: the application's). */
+    private final ObjectMapper objectMapper;
+
+    @Autowired
+    public AuditDataRedactor(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    /** A redactor built by hand, outside Spring (tests, tools): the shared default mapper. */
+    public AuditDataRedactor() {
+        this(JsonMapper.shared());
+    }
 
     public Map<String, Object> redact(Map<String, Object> source) {
         if (source == null || source.isEmpty()) {

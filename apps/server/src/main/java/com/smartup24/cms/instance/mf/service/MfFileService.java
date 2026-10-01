@@ -199,11 +199,7 @@ public class MfFileService {
             Long userId, boolean onlyMine, Integer limit, String cursor, String filter, String sort, String query) {
         var plan = QueryCompiler.compile(MfFileQuery.LIST, filter, sort, limit, cursor, query);
         var page = metadataService.pageFiles(plan, scopeService.filterForFiles(userId), onlyMine ? userId : null);
-        return KeysetPage.of(
-                page.items().stream().map(MfFileService::listItem).toList(),
-                page.nextCursor(),
-                page.hasMore(),
-                page.totalEstimated());
+        return page.map(MfFileService::listItem);
     }
 
     public void deleteFile(UUID id, Long currentUserId, boolean canDeleteAny) {

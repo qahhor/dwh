@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.kwh.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.kwh.pref.KwhPref;
@@ -47,6 +48,7 @@ public class KwhSubscriptionController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> updateSubscription(
             @PathVariable("id") Long id,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,

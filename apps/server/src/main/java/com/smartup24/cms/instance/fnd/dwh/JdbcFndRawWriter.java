@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.fnd.dwh;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.config.DwhDataSourceProperties;
 import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
@@ -15,7 +16,6 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import javax.sql.DataSource;
 import org.postgresql.PGConnection;
@@ -63,7 +63,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
     private final DataSource dwh;
     private final JdbcClient oltp;
     private final TransactionTemplate oltpTx;
-    private final ObjectMapper json;
+    private final JsonColumns rawColumns;
     private final String timeoutMs;
 
     @Autowired
@@ -91,7 +91,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
         this.dwh = dwh;
         this.oltp = oltp;
         this.oltpTx = new TransactionTemplate(oltpTransactions);
-        this.json = json;
+        this.rawColumns = new JsonColumns(json, "raw.rows");
         this.timeoutMs = String.valueOf(timeout.toMillis());
     }
 
@@ -138,7 +138,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
                                         ? NULL
                                         : row.sourceRowNo().toString());
                 line.append('\t');
-                appendText(line, json.writeValueAsString(row.fields() == null ? Map.of() : row.fields()));
+                appendText(line, rawColumns.object(row.fields()));
                 line.append('\n');
                 buffer.add(line);
             });
@@ -206,7 +206,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
                             rs.getLong("row_no"),
                             rs.getString("sheet"),
                             sourceRowNo == null ? null : ((Number) sourceRowNo).intValue(),
-                            json.readValue(rs.getString("fields"), Map.class)));
+                            rawColumns.readObject(rs.getString("fields"))));
                 }
             }
         } catch (SQLException failure) {

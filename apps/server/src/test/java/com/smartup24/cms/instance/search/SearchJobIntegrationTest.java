@@ -43,10 +43,15 @@ class SearchJobIntegrationTest extends SearchSettingsIntegrationTestSupport {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
         mvc.perform(auth(get("/api/v1/search/jobs/" + UUID.randomUUID()))).andExpect(status().isNotFound());
-        mvc.perform(auth(get("/api/v1/search/jobs")).param("limit", "0")).andExpect(status().isBadRequest());
-        mvc.perform(auth(get("/api/v1/search/jobs")).param("limit", "101")).andExpect(status().isBadRequest());
+        // Plan 10/10, item 3.5: a bad page request is 422 naming the field, as every paged list answers.
+        for (String limit : new String[] {"0", "101"}) {
+            mvc.perform(auth(get("/api/v1/search/jobs")).param("limit", limit))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.messageKey").value("error.common.query_limit_invalid"));
+        }
         mvc.perform(auth(get("/api/v1/search/jobs")).param("cursor", "not-a-valid-cursor"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.messageKey").value("error.common.query_cursor_invalid"));
     }
 
     @Test

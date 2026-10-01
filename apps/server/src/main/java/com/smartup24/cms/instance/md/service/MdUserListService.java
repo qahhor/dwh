@@ -84,13 +84,7 @@ public class MdUserListService {
         KeysetPage<UserRecord> page = page(viewerId, limit, cursor, filter, sort, search, legacy);
         var roles = roleRepository.getUsersRoleIds(
                 page.items().stream().map(UserRecord::id).toList());
-        return new KeysetPage<>(
-                page.items().stream()
-                        .map(u -> MdUserView.from(u, roles.getOrDefault(u.id(), List.of())))
-                        .toList(),
-                page.nextCursor(),
-                page.hasMore(),
-                page.totalEstimated());
+        return page.map(u -> MdUserView.from(u, roles.getOrDefault(u.id(), List.of())));
     }
 
     /**

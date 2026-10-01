@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
@@ -86,7 +87,7 @@ public class WebhookTargetPolicy {
     public String redact(URI uri) {
         try {
             return new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(), uri.getPath(), null, null).toString();
-        } catch (Exception exception) {
+        } catch (URISyntaxException exception) {
             log.debug("webhook_target_unredactable error={}", exception.toString());
             return "invalid-webhook-target";
         }

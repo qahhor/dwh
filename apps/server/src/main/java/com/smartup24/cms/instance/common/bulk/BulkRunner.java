@@ -78,7 +78,8 @@ public final class BulkRunner {
             throw ApiException.validation(
                     "error.common.bulk_ids_invalid",
                     Map.of("max", MAX_IDS),
-                    List.of(new FieldErrorItem("ids", BULK_INVALID, "from 1 to " + MAX_IDS + " positive ids")));
+                    List.of(FieldErrorItem.keyed(
+                            "ids", BULK_INVALID, "error.common.bulk_ids_invalid", Map.of("max", MAX_IDS))));
         }
         return List.copyOf(new LinkedHashSet<>(ids));
     }
@@ -88,14 +89,16 @@ public final class BulkRunner {
         return ApiException.validation(
                 "error.common.bulk_action_unknown",
                 Map.of("action", name),
-                List.of(new FieldErrorItem("action", BULK_ACTION_UNKNOWN, "unknown action: " + name)));
+                List.of(FieldErrorItem.keyed(
+                        "action", BULK_ACTION_UNKNOWN, "error.common.bulk_action_unknown", Map.of("action", name))));
     }
 
-    public static ApiException invalidParam(String name, String message) {
+    /** A parameter of the action is wrong; {@code messageKey} and {@code params} say why, for the field error. */
+    public static ApiException invalidParam(String name, String messageKey, Map<String, ?> params) {
         return ApiException.validation(
                 "error.common.bulk_param_invalid",
                 Map.of("name", name),
-                List.of(new FieldErrorItem("params." + name, BULK_INVALID, message)));
+                List.of(FieldErrorItem.keyed("params." + name, BULK_INVALID, messageKey, params)));
     }
 
     /** Выполняет операцию для каждой записи и собирает итог; ожидаемые отказы — с кодом одиночной операции. */
@@ -133,12 +136,15 @@ public final class BulkRunner {
 
     /**
      * A refusal of the single operation. Its key goes out for the response handler to render; until then the message
-     * is the key itself. An older caller's sentence (not a key) is the message as it is.
+     * is the key itself. A sentence instead of a key (a defect, ADR-0021) is logged and replaced by the code's text.
      */
     private static BulkItemResult failure(long id, ApiException e) {
         String code = e.getErrorCode().name().toLowerCase(Locale.ROOT);
-        return e.hasMessageKey()
-                ? new BulkItemResult(id, false, code, e.getMessageKey(), e.getMessageKey(), e.getParams())
-                : new BulkItemResult(id, false, code, e.getMessageKey(), null, null);
+        if (!e.hasMessageKey()) {
+            log.error("ApiException without a catalog key in bulk item {}: {}", id, e.getMessageKey());
+            String key = ApiException.defaultKey(e.getErrorCode());
+            return new BulkItemResult(id, false, code, key, key, null);
+        }
+        return new BulkItemResult(id, false, code, e.getMessageKey(), e.getMessageKey(), e.getParams());
     }
 }

@@ -5,6 +5,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { User } from '@core/models/auth.models';
 import { Role } from '@core/models/rbac.models';
 import { safeNumericRecordId } from '@core/services/search-target';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
 import {
   UserCreateForm,
@@ -27,6 +28,7 @@ export class UserFormsService {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly isEditModalOpen = signal<boolean>(false);
@@ -106,7 +108,10 @@ export class UserFormsService {
     const saveRequestId = ++this.editSaveRequestId;
     this.isSubmitting.set(true);
     this.api
-      .patch(`/iam/users/${this.editingUser.id}`, this.editForm, { ifMatch: this.editingUser.revision })
+      .patch(`/iam/users/${this.editingUser.id}`, this.editForm, {
+        notifyError: false,
+        ifMatch: this.editingUser.revision,
+      })
       .subscribe({
         next: () => {
           if (isDestroyed()) return;
@@ -117,10 +122,18 @@ export class UserFormsService {
           this.toast.success(this.uiI18n.translate('iam.dannye_sohraneny'));
           onSuccess();
         },
-        error: () => {
-          if (!isDestroyed() && saveRequestId === this.editSaveRequestId) {
-            this.isSubmitting.set(false);
-          }
+        error: (err: unknown) => {
+          if (isDestroyed() || saveRequestId !== this.editSaveRequestId) return;
+          this.isSubmitting.set(false);
+          // A newer revision (another save, a reset of 2FA, a change of roles): the dialog closes and the user is
+          // read again, so the next edit starts from what is saved now.
+          this.saveErrors.show(err, {
+            fallbackKey: 'common.operation_failed',
+            reload: () => {
+              onCloseModal(currentEditSessionId);
+              onSuccess();
+            },
+          });
         },
       });
   }

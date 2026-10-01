@@ -74,9 +74,7 @@ describe('Login form interactions', () => {
     submit();
     http
       .expectOne('/api/v1/auth/login')
-      .flush(
-        step === 'otp' ? { step: 'otp', otp_token: 'synthetic-challenge' } : { step: 'success', user: forcedUser },
-      );
+      .flush(step === 'otp' ? { step: 'otp', otpToken: 'synthetic-challenge' } : { step: 'success', user: forcedUser });
     fixture.detectChanges();
     await fixture.whenStable();
   }

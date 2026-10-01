@@ -21,7 +21,12 @@ const member = (userId: number, involveKind: string, userName = `User ${userId}`
 describe('TaskFormsService', () => {
   let responses: Record<string, Observable<unknown> | Observable<unknown>[]>;
   let api: { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn> };
-  let toast: { success: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn>; warning: ReturnType<typeof vi.fn> };
+  let toast: {
+    success: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+    warning: ReturnType<typeof vi.fn>;
+    show: ReturnType<typeof vi.fn>;
+  };
   let forms: TaskFormsService;
   let retainMember: Mock<(m: TaskMember) => void>;
   let retainParent: Mock<(id: number, title: string) => void>;
@@ -42,7 +47,7 @@ describe('TaskFormsService', () => {
       post: vi.fn((path: string) => answer(`POST ${path}`)),
       patch: vi.fn((path: string) => answer(`PATCH ${path}`)),
     };
-    toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn() };
+    toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), show: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         { provide: ApiService, useValue: api },
@@ -173,7 +178,7 @@ describe('TaskFormsService', () => {
 
   it('needs a title to save an edit, and keeps the form open when the PATCH fails', () => {
     responses['/tasks/12'] = of({ task: task(12), members: [] });
-    responses['PATCH /tasks/12'] = new Observable((subscriber) => subscriber.error({ error: { message: 'Busy' } }));
+    responses['PATCH /tasks/12'] = new Observable((subscriber) => subscriber.error({ status: 503, detail: 'Busy' }));
     openEdit(task(12));
 
     forms.editForm.title = '  ';
@@ -186,6 +191,25 @@ describe('TaskFormsService', () => {
     expect(toast.error).toHaveBeenCalledWith('Busy');
     expect(forms.isEditModalOpen()).toBe(true);
     expect(forms.isSubmitting()).toBe(false);
+  });
+
+  it('shows a save refused over a newer revision once and reads the task again from its button', () => {
+    responses['/tasks/14'] = [of({ task: task(14, 'Old'), members: [] }), of({ task: task(14, 'New'), members: [] })];
+    responses['PATCH /tasks/14'] = new Observable((subscriber) =>
+      subscriber.error({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' }),
+    );
+    openEdit(task(14));
+
+    forms.submitEditTask(vi.fn());
+
+    expect(api.patch.mock.calls[0][2]).toEqual(expect.objectContaining({ notifyError: false }));
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    expect(toast.show.mock.calls[0][1]).toBe('Запись уже изменил другой пользователь');
+    toast.show.mock.calls[0][4].run();
+    expect(api.get.mock.calls.filter(([path]) => path === '/tasks/14')).toHaveLength(2);
+    expect(forms.editForm.title).toBe('New');
+    expect(forms.isEditModalOpen()).toBe(true);
   });
 
   it('creates one task at a time with its co-executors and locks closing while it is sent', () => {

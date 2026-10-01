@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplLimits;
 import com.smartup24.cms.instance.upl.UplPref;
+import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageItem;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
@@ -55,6 +56,11 @@ public class UplUploadService {
     }
 
     /** Части запроса приёма как они пришли с формы; {@code content} — тело файла. */
+    /** Receives the file as {@link #receive} does and answers the package as the API shows it (plan 10/10, 3.2). */
+    public PackageItem receiveItem(Upload upload, long userId) {
+        return PackageItem.of(receive(upload, userId));
+    }
+
     public record Upload(
             String sourceId,
             String periodFrom,

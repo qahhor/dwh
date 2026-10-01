@@ -5,6 +5,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -30,6 +31,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Plan 10/10, item 1.3: module boundaries as the documents draw them, checked on every build.
@@ -102,6 +104,58 @@ class ModuleBoundariesTest {
                 .as("controllers see no repository package");
         rule.check(classes);
     }
+
+    @Test
+    @DisplayName("3.2: a REST controller, wherever it lives, sees no repository and no table row")
+    void restControllersSeeNoRepositoryOrTableRow() {
+        // Strict, not frozen: a handler answers the module's api DTOs, which services build from the rows.
+        ArchRule rule = classes()
+                .that()
+                .areAnnotatedWith(RestController.class)
+                .should(seeNoRepositoryOrTableRow())
+                .as("REST controllers see no repository, no type nested in one and no table row");
+        rule.check(classes);
+    }
+
+    /**
+     * The class's own dependencies, and the parameter and return types of the methods it calls: a row held in a local
+     * variable ({@code PackageRow row = service.get(id)}) is visible in bytecode only as the called method's type.
+     */
+    private static ArchCondition<JavaClass> seeNoRepositoryOrTableRow() {
+        return new ArchCondition<>("see no repository, no type nested in one and no table row") {
+            @Override
+            public void check(JavaClass controller, ConditionEvents events) {
+                controller.getDirectDependenciesFromSelf().stream()
+                        .filter(dependency -> REPOSITORY_OR_TABLE_ROW.test(dependency.getTargetClass()))
+                        .forEach(dependency ->
+                                events.add(SimpleConditionEvent.violated(dependency, dependency.getDescription())));
+                controller.getCodeUnitCallsFromSelf().forEach(call -> {
+                    var target = call.getTarget();
+                    Stream.concat(Stream.of(target.getRawReturnType()), target.getRawParameterTypes().stream())
+                            .filter(REPOSITORY_OR_TABLE_ROW)
+                            .forEach(type -> events.add(SimpleConditionEvent.violated(
+                                    call, call.getDescription() + " passes " + type.getName())));
+                });
+            }
+        };
+    }
+
+    /**
+     * A class of the application named {@code *Repository}, a type nested in one (its row records), or a table row
+     * ({@code *Row}, the records of a module's model that mirror its tables, like {@code UplPackageModel.PackageRow}).
+     */
+    static final DescribedPredicate<JavaClass> REPOSITORY_OR_TABLE_ROW =
+            DescribedPredicate.describe("a repository, a type nested in one, or a table row", javaClass -> {
+                if (!javaClass.getPackageName().startsWith(ROOT)) {
+                    return false;
+                }
+                JavaClass outermost = javaClass;
+                while (outermost.getEnclosingClass().isPresent()) {
+                    outermost = outermost.getEnclosingClass().get();
+                }
+                return outermost.getSimpleName().endsWith("Repository")
+                        || javaClass.getSimpleName().endsWith("Row");
+            });
 
     @Test
     @DisplayName("1.3: modules meet only through each other's service or api package")

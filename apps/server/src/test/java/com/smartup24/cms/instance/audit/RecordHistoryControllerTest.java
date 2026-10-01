@@ -135,6 +135,37 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
                 .containsExactly("iam.fio");
     }
 
+    @Test
+    @DisplayName("3.5: the history is paged by a cursor, counts nothing, and a bad limit or cursor is 422")
+    void historyIsPagedWithoutCounting() throws Exception {
+        Session admin = login(user("chief_admin"));
+        long task = createTask(admin, "TEST history paging");
+        var patched = send(
+                admin, patch("/api/v1/tasks/" + task), Map.of("title", "TEST history paged", "expectedRevision", 1));
+        assertThat(patched.getStatus()).as(patched.getContentAsString()).isLessThan(300);
+        String path = "/api/v1/history/tasks/" + task;
+
+        var first = send(admin, get(path).param("limit", "1"), null);
+        assertThat(first.getStatus()).as(first.getContentAsString()).isEqualTo(200);
+        assertThat((List<String>) read(first, "$.items[*].event")).containsExactly("U");
+        assertThat((Boolean) read(first, "$.hasMore")).isTrue();
+        assertThat((Boolean) read(first, "$.totalExact")).isFalse();
+
+        String cursor = read(first, "$.nextCursor");
+        var second = send(admin, get(path).param("limit", "1").param("cursor", cursor), null);
+        assertThat((List<String>) read(second, "$.items[*].event")).containsExactly("I");
+        assertThat((Boolean) read(second, "$.hasMore")).isFalse();
+
+        for (String limit : List.of("0", "201")) {
+            var bad = send(admin, get(path).param("limit", limit), null);
+            assertThat(bad.getStatus()).as(limit).isEqualTo(422);
+            assertThat((String) read(bad, "$.messageKey")).isEqualTo("error.common.query_limit_invalid");
+        }
+        var badCursor = send(admin, get(path).param("cursor", "not-a-cursor"), null);
+        assertThat(badCursor.getStatus()).isEqualTo(422);
+        assertThat((String) read(badCursor, "$.messageKey")).isEqualTo("error.common.query_cursor_invalid");
+    }
+
     private long createTask(Session s, String title) throws Exception {
         var created = send(s, post("/api/v1/tasks"), Map.of("title", title, "priority", "medium"));
         assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);

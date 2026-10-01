@@ -22,15 +22,23 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingPathVariableException;
+import org.springframework.web.bind.MissingRequestCookieException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
@@ -59,15 +67,32 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ProblemDetailRecord> handleApiException(ApiException ex, HttpServletRequest request) {
-        // Until item 3.1 is complete an older caller may still pass a sentence instead of a key: it goes out as is.
-        String key = ex.hasMessageKey() ? ex.getMessageKey() : null;
-        String detail = key != null ? messages.render(request, key, ex.getParams()) : ex.getMessageKey();
-        Map<String, Object> params = key != null ? ex.getParams() : null;
+        String key = ex.getMessageKey();
+        Map<String, Object> params = ex.getParams();
+        if (!ex.hasMessageKey()) {
+            // Every error names a catalog key (ADR-0021); a sentence is a defect of the caller and never reaches the
+            // client: the code's own text goes out instead.
+            log.error("ApiException without a catalog key at {}: {}", request.getRequestURI(), key);
+            key = ApiException.defaultKey(ex.getErrorCode());
+            params = Map.of();
+        }
+        String detail = messages.render(request, key, params);
 
         var problem = ex.getFieldErrors() != null && !ex.getFieldErrors().isEmpty()
-                ? ProblemDetailRecord.ofValidation(key, params, detail, request.getRequestURI(), ex.getFieldErrors())
+                ? ProblemDetailRecord.ofValidation(
+                        key, params, detail, request.getRequestURI(), rendered(request, ex.getFieldErrors()))
                 : ProblemDetailRecord.of(ex.getErrorCode(), key, params, detail, request.getRequestURI());
         return respond(HttpStatus.valueOf(ex.getErrorCode().getDefaultStatus()), problem);
+    }
+
+    /** The field errors with the text of each keyed one rendered in the request's language, as {@code detail} is. */
+    private List<FieldErrorItem> rendered(HttpServletRequest request, List<FieldErrorItem> errors) {
+        return errors.stream()
+                .map(error -> error.messageKey() == null
+                        ? error
+                        : error.withMessage(messages.render(
+                                request, error.messageKey(), error.params() == null ? Map.of() : error.params())))
+                .toList();
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -206,6 +231,84 @@ public class GlobalExceptionHandler {
                 "error.request_param_missing",
                 Map.of("name", ex.getParameterName()),
                 request);
+    }
+
+    /** A body in a type the route does not read: 415 with the types it does read in {@code Accept} (RFC 9110). */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ProblemDetailRecord> handleMediaTypeNotSupported(
+            HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
+        log.warn("Unsupported content type {} at {}", ex.getContentType(), request.getRequestURI());
+        String type = ex.getContentType() == null ? "" : ex.getContentType().toString();
+        var response = problem(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                ErrorCode.UNSUPPORTED_MEDIA_TYPE,
+                "error.request_media_type_unsupported",
+                Map.of("contentType", type),
+                request);
+        if (ex.getSupportedMediaTypes().isEmpty()) {
+            return response;
+        }
+        return ResponseEntity.status(response.getStatusCode())
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .header("Accept", MediaType.toString(ex.getSupportedMediaTypes()))
+                .body(response.getBody());
+    }
+
+    /** The route cannot answer in any type the caller accepts: 406, the problem itself still as problem+json. */
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ProblemDetailRecord> handleMediaTypeNotAcceptable(
+            HttpMediaTypeNotAcceptableException ex, HttpServletRequest request) {
+        log.warn("No acceptable representation at {}: {}", request.getRequestURI(), request.getHeader("Accept"));
+        return problem(HttpStatus.NOT_ACCEPTABLE, ErrorCode.NOT_ACCEPTABLE, "error.not_acceptable", Map.of(), request);
+    }
+
+    /** A multipart request without a required part (an upload without its file): the client's error. */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ProblemDetailRecord> handleMissingPart(
+            MissingServletRequestPartException ex, HttpServletRequest request) {
+        log.warn("Missing request part at {}: '{}'", request.getRequestURI(), ex.getRequestPartName());
+        return problem(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.BAD_REQUEST,
+                "error.request_part_missing",
+                Map.of("name", ex.getRequestPartName()),
+                request);
+    }
+
+    /** A request an upload route cannot read as multipart (not multipart at all, or broken): the client's error. */
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ProblemDetailRecord> handleMultipart(MultipartException ex, HttpServletRequest request) {
+        log.warn("Unreadable multipart request at {}: {}", request.getRequestURI(), ex.getMessage());
+        return problem(
+                HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "error.request_multipart_invalid", Map.of(), request);
+    }
+
+    /** A required header or cookie is missing; other binding failures of the request are the client's error too. */
+    @ExceptionHandler(ServletRequestBindingException.class)
+    public ResponseEntity<ProblemDetailRecord> handleBinding(
+            ServletRequestBindingException ex, HttpServletRequest request) {
+        if (ex instanceof MissingPathVariableException missing && !missing.isMissingAfterConversion()) {
+            // A route whose pattern lacks the variable its handler reads: a defect of the server, not of the call.
+            return handleGenericException(ex, request);
+        }
+        log.warn("Request binding failed at {}: {}", request.getRequestURI(), ex.getMessage());
+        if (ex instanceof MissingRequestHeaderException missing) {
+            return problem(
+                    HttpStatus.BAD_REQUEST,
+                    ErrorCode.BAD_REQUEST,
+                    "error.request_header_missing",
+                    Map.of("name", missing.getHeaderName()),
+                    request);
+        }
+        if (ex instanceof MissingRequestCookieException missing) {
+            return problem(
+                    HttpStatus.BAD_REQUEST,
+                    ErrorCode.BAD_REQUEST,
+                    "error.request_cookie_missing",
+                    Map.of("name", missing.getCookieName()),
+                    request);
+        }
+        return problem(HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "error.bad_request", Map.of(), request);
     }
 
     @ExceptionHandler(AsyncRequestNotUsableException.class)

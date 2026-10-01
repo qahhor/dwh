@@ -28,13 +28,11 @@ public class MsAnnouncementRepository {
             """;
 
     private final JdbcClient jdbcClient;
-    private final ObjectMapper objectMapper;
     private final JsonColumns jsonColumns;
     private final RowMapper<ManagedAnnouncementRecord> managedMapper = this::mapManaged;
 
     public MsAnnouncementRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
-        this.objectMapper = objectMapper;
         this.jsonColumns = new JsonColumns(objectMapper, "ms_announcements");
     }
 
@@ -172,8 +170,8 @@ public class MsAnnouncementRepository {
     private ManagedAnnouncementRecord mapManaged(ResultSet rs, int rowNumber) throws SQLException {
         return new ManagedAnnouncementRecord(
                 rs.getLong("id"),
-                parseLocalized(rs.getString("title_json_text")),
-                parseLocalized(rs.getString("body_json_text")),
+                localized(rs.getString("title_json_text")),
+                localized(rs.getString("body_json_text")),
                 rs.getString("banner_type"),
                 AnnouncementState.valueOf(rs.getString("state")),
                 nullableLong(rs, "created_by"),
@@ -184,16 +182,13 @@ public class MsAnnouncementRepository {
                 rs.getLong("lock_version"));
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, String> parseLocalized(String json) {
-        try {
-            Map<String, Object> source = objectMapper.readValue(json, Map.class);
-            Map<String, String> result = new LinkedHashMap<>();
-            source.forEach((key, value) -> result.put(key, value == null ? null : String.valueOf(value)));
-            return Collections.unmodifiableMap(result);
-        } catch (Exception error) {
-            throw new IllegalStateException("Stored announcement content is invalid", error);
-        }
+    /** A stored localized text (language to text), read through {@link JsonColumns} (plan 10/10, item 3.11). */
+    private Map<String, String> localized(String json) {
+        Map<String, String> result = new LinkedHashMap<>();
+        jsonColumns
+                .readObject(json)
+                .forEach((key, value) -> result.put(key, value == null ? null : String.valueOf(value)));
+        return Collections.unmodifiableMap(result);
     }
 
     private static Long nullableLong(ResultSet rs, String column) throws SQLException {

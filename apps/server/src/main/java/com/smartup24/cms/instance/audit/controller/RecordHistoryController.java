@@ -37,7 +37,7 @@ public class RecordHistoryController {
     public ResponseEntity<KeysetPage<RecordHistoryService.HistoryEntry>> history(
             @PathVariable("kind") String kind,
             @PathVariable("id") String id,
-            @RequestParam(name = "limit", defaultValue = "20") int limit,
+            @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "cursor", required = false) String cursor) {
         return ResponseEntity.ok(historyService.history(kind, id, limit, cursor));
     }

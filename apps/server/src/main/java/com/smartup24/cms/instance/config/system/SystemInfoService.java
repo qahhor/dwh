@@ -84,7 +84,7 @@ public class SystemInfoService {
             storageProvider = storage.getProviderCode();
             storageHealth = probe(() -> component(storage.checkHealth()), new SystemInfoResponse.Component("DEGRADED"));
         } catch (Exception storageUnavailable) {
-            log.debug("system_info_storage_unavailable error={}", storageUnavailable.toString());
+            log.warn("system_info_storage_unavailable error={}", storageUnavailable.toString());
             storageHealth = CompletableFuture.completedFuture(new SystemInfoResponse.Component("DOWN"));
         }
 
@@ -128,7 +128,7 @@ public class SystemInfoService {
             jdbc.sql("select 1").query().singleValue();
             return "UP";
         } catch (Exception unavailable) {
-            log.debug("system_info_database_down error={}", unavailable.toString());
+            log.warn("system_info_database_down error={}", unavailable.toString());
             return "DOWN";
         }
     }
@@ -147,7 +147,7 @@ public class SystemInfoService {
                     .filter(SystemInfoService::hasText)
                     .orElse(UNKNOWN);
         } catch (Exception unavailable) {
-            log.debug("system_info_schema_version_unavailable error={}", unavailable.toString());
+            log.warn("system_info_schema_version_unavailable error={}", unavailable.toString());
             return UNKNOWN;
         }
     }
@@ -165,7 +165,7 @@ public class SystemInfoService {
                     .optional()
                     .orElseGet(this::configuredOrganization);
         } catch (Exception unavailable) {
-            log.debug("system_info_organization_unavailable error={}", unavailable.toString());
+            log.warn("system_info_organization_unavailable error={}", unavailable.toString());
             return configuredOrganization();
         }
     }

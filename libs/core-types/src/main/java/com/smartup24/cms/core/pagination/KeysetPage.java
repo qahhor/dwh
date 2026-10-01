@@ -2,6 +2,7 @@ package com.smartup24.cms.core.pagination;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Immutable container for Keyset-paginated results.
@@ -26,6 +27,12 @@ public record KeysetPage<T>(
     /** A page whose total is an estimate, not a count. */
     public static <T> KeysetPage<T> estimated(List<T> items, String nextCursor, boolean hasMore, long total) {
         return new KeysetPage<>(items, nextCursor, hasMore, total, false);
+    }
+
+    /** The same page with each item turned into another: cursor, total and whether the total is a count are kept. */
+    public <R> KeysetPage<R> map(Function<? super T, ? extends R> mapper) {
+        List<R> mapped = items.stream().<R>map(mapper).toList();
+        return new KeysetPage<>(mapped, nextCursor, hasMore, totalEstimated, totalExact);
     }
 
     public static <T> KeysetPage<T> empty() {

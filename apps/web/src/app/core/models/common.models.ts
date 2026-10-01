@@ -28,5 +28,9 @@ export interface ProblemDetail {
 export interface FieldErrorItem {
   field: string;
   code: string;
+  /** The text in the request's language, rendered by the server from messageKey when the item has one. */
   message: string;
+  /** The catalog key of the text (plan 10/10, item 3.1); absent for bean validation's own messages. */
+  messageKey?: string;
+  params?: Record<string, unknown>;
 }

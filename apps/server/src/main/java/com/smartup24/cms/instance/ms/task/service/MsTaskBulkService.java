@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import java.util.List;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -55,7 +56,7 @@ public class MsTaskBulkService {
                         : body.params().path("statusId").asLong(0);
                 if (statusService.listStatuses().stream()
                         .noneMatch(status -> Long.valueOf(statusId).equals(status.id()))) {
-                    throw BulkRunner.invalidParam("statusId", "unknown status");
+                    throw BulkRunner.invalidParam("statusId", "error.task.field_status_unknown", Map.of());
                 }
                 yield BulkRunner.run(
                         action, ids, id -> workflowService.changeStatus(id, statusId, currentUserId), bulkItems);
@@ -65,7 +66,8 @@ public class MsTaskBulkService {
                         ? ""
                         : body.params().path("priority").asString("");
                 if (!PRIORITIES.contains(priority)) {
-                    throw BulkRunner.invalidParam("priority", "one of " + PRIORITIES);
+                    throw BulkRunner.invalidParam(
+                            "priority", "error.field.one_of", Map.of("values", String.join(", ", PRIORITIES)));
                 }
                 yield BulkRunner.run(
                         action, ids, id -> taskService.changePriority(id, priority, currentUserId), bulkItems);

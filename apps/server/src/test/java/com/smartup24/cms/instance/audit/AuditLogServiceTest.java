@@ -1,15 +1,13 @@
 package com.smartup24.cms.instance.audit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-import com.smartup24.cms.core.pagination.CursorUtils;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
+import com.smartup24.cms.instance.common.query.TimePage;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -110,10 +108,8 @@ class AuditLogServiceTest {
                 "admin");
         when(repository.listAuditLogs(any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                 .thenReturn(List.of(stored));
-        when(repository.countAuditLogs(any(), any(), any(), any(), any(), any()))
-                .thenReturn(1L);
 
-        var result = service.listAuditLogs(null, null, null, null, null, null, 20, null);
+        var result = service.recordHistory("md_users", "5", TimePage.of(20, null, 20, 200));
 
         assertThat(result.items()).hasSize(1);
         var record = result.items().getFirst();
@@ -229,36 +225,45 @@ class AuditLogServiceTest {
     }
 
     @Test
-    @DisplayName("Страница аудита должна иметь стабильный составной cursor и точное число отфильтрованных строк")
-    void shouldBuildStableAuditCursorPage() {
+    @DisplayName("3.5: a history page reads one row more to learn whether more follow and counts nothing")
+    void historyPageCountsNothing() {
         Instant timestamp = Instant.parse("2026-09-04T10:15:30Z");
         var newest = auditRecord(30L, timestamp);
         var second = auditRecord(20L, timestamp);
         var lookAhead = auditRecord(10L, timestamp.minusSeconds(1));
         when(repository.listAuditLogs(
-                        eq("md_users"), isNull(), eq("U"), isNull(), isNull(), isNull(), isNull(), isNull(), eq(3)))
+                        eq("md_users"), eq("5"), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(3)))
                 .thenReturn(List.of(newest, second, lookAhead));
-        when(repository.countAuditLogs(eq("md_users"), isNull(), eq("U"), isNull(), isNull(), isNull()))
-                .thenReturn(73L);
 
-        var result = service.listAuditLogs("md_users", null, "U", null, null, null, 2, null);
+        var result = service.recordHistory("md_users", "5", TimePage.of(2, null, 20, 200));
 
         assertThat(result.items())
                 .extracting(AuditLogRepository.AuditRecord::id)
                 .containsExactly(30L, 20L);
         assertThat(result.hasMore()).isTrue();
-        assertThat(result.totalEstimated()).isEqualTo(73L);
-        assertThat(CursorUtils.decode(result.nextCursor())).isEqualTo(timestamp + "|20|73");
+        assertThat(result.totalExact()).isFalse();
+        assertThat(TimePage.of(2, result.nextCursor(), 20, 200).after())
+                .isEqualTo(new TimePage.Position(timestamp, 20L));
+        verify(repository, never()).countAuditLogs(any(), any(), any(), any(), any(), any());
     }
 
     @Test
-    @DisplayName("Повреждённый cursor аудита должен отклоняться вместо возврата первой страницы")
-    void shouldRejectMalformedAuditCursor() {
-        assertThatThrownBy(() -> service.listAuditLogs(null, null, null, null, null, null, 20, "not-a-valid-cursor"))
-                .isInstanceOf(ApiException.class)
-                .satisfies(error -> assertThat(
-                                ((ApiException) error).getErrorCode().getCode())
-                        .isEqualTo("bad_request"));
+    @DisplayName("3.5: the next page starts after the last row of the previous one")
+    void historyNextPageStartsAfterTheCursor() {
+        Instant timestamp = Instant.parse("2026-09-04T10:15:30Z");
+        String cursor = TimePage.of(2, null, 20, 200)
+                .page(
+                        List.of(auditRecord(30L, timestamp), auditRecord(20L, timestamp), auditRecord(10L, timestamp)),
+                        r -> new TimePage.Position(r.changedAt(), r.id()))
+                .nextCursor();
+        when(repository.listAuditLogs(any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                .thenReturn(List.of());
+
+        service.recordHistory("md_users", "5", TimePage.of(2, cursor, 20, 200));
+
+        verify(repository)
+                .listAuditLogs(
+                        eq("md_users"), eq("5"), isNull(), isNull(), isNull(), isNull(), eq(timestamp), eq(20L), eq(3));
     }
 
     private AuditLogRepository.AuditRecord auditRecord(Long id, Instant changedAt) {

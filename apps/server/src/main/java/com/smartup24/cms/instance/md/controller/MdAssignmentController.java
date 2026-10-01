@@ -1,6 +1,8 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.web.AnswersRevision;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.AssignRolesDto;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.EffectivePermissionsResponse;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.GrantsResponse;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -41,11 +44,15 @@ public class MdAssignmentController {
     }
 
     @PutMapping("/roles")
+    @AnswersRevision
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
     public ResponseEntity<PermissionsVersionResponse> assignRoles(
-            @PathVariable("userId") Long userId, @Valid @RequestBody AssignRolesDto body) {
-        long version = assignmentService.assignRoles(userId, body.roleIds());
-        return ResponseEntity.ok(new PermissionsVersionResponse(version));
+            @PathVariable("userId") Long userId,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @Valid @RequestBody AssignRolesDto body) {
+        // The roles are part of the user: they are saved from the user's revision (plan 10/10, item 3.6).
+        var saved = assignmentService.assignRoles(userId, body.roleIds(), Revisions.required(ifMatch));
+        return ResponseEntity.ok().eTag(Revisions.etag(saved.revision())).body(saved);
     }
 
     @GetMapping("/permissions")
@@ -55,11 +62,15 @@ public class MdAssignmentController {
     }
 
     @PutMapping("/permissions")
+    @AnswersRevision
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
     public ResponseEntity<PermissionsVersionResponse> replacePersonalPermissions(
-            @PathVariable("userId") Long userId, @Valid @RequestBody ReplacePermissionsDto body) {
-        long version = assignmentService.replacePersonalPermissions(userId, body.grants());
-        return ResponseEntity.ok(new PermissionsVersionResponse(version));
+            @PathVariable("userId") Long userId,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @Valid @RequestBody ReplacePermissionsDto body) {
+        // The personal rights are part of the user, like its roles (plan 10/10, item 3.6).
+        var saved = assignmentService.replacePersonalPermissions(userId, body.grants(), Revisions.required(ifMatch));
+        return ResponseEntity.ok().eTag(Revisions.etag(saved.revision())).body(saved);
     }
 
     /** Экран «права глазами пользователя» (FR-PERM-10): что есть и откуда пришло. */

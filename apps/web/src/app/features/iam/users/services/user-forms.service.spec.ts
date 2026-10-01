@@ -1,8 +1,9 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Role } from '@core/models/rbac.models';
+import { User } from '@core/models/auth.models';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
@@ -17,16 +18,38 @@ describe('UserFormsService', () => {
   });
 
   function setup() {
-    const toast = { success: vi.fn(), warning: vi.fn(), error: vi.fn() };
+    const toast = { success: vi.fn(), warning: vi.fn(), error: vi.fn(), show: vi.fn() };
+    const api = { post: vi.fn(() => of({})), patch: vi.fn((..._args: unknown[]) => of({})) };
     TestBed.configureTestingModule({
       providers: [
-        { provide: ApiService, useValue: { post: vi.fn(() => of({})), patch: vi.fn(() => of({})) } },
+        { provide: ApiService, useValue: api },
         { provide: ToastService, useValue: toast },
         { provide: I18nService, useValue: { translate: translateTest, currentLang: signal('ru') } },
       ],
     });
-    return { forms: TestBed.inject(UserFormsService), toast };
+    return { forms: TestBed.inject(UserFormsService), toast, api };
   }
+
+  it('shows an edit refused over a newer revision once; its button closes the dialog and reads the user again', () => {
+    const { forms, toast, api } = setup();
+    api.patch.mockReturnValueOnce(
+      throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' })),
+    );
+    const user = { id: 4, name: 'Ирина', login: 'irina', email: 'i@test.local', revision: 6 } as User;
+    const reloadList = vi.fn();
+    const close = vi.fn();
+    forms.openEditModal(user);
+
+    forms.submitEditUser(() => false, reloadList, close);
+
+    expect(api.patch).toHaveBeenCalledWith('/iam/users/4', expect.any(Object), { notifyError: false, ifMatch: 6 });
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    expect(forms.isSubmitting()).toBe(false);
+    toast.show.mock.calls[0][4].run();
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(reloadList).toHaveBeenCalledTimes(1);
+  });
 
   it('opens the create form with the default user role chosen', () => {
     const { forms } = setup();

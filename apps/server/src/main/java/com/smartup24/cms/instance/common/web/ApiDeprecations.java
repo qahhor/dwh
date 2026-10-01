@@ -57,6 +57,10 @@ public final class ApiDeprecations {
             alias(ANY, "/api/v1/iam/profile/sessions/users/{userId}", ANY, "/api/v1/iam/users/{userId}/sessions"),
             alias("POST", "/api/v1/iam/users/me/password", "POST", "/api/v1/auth/password"),
             alias("GET", "/api/v1/announcements", "GET", "/api/v1/announcements/active"),
+            // Plan 10/10, item 3.5: a whole list of projects with their task counts; the paged project list carries
+            // the same counts per project.
+            alias("GET", "/api/v1/tasks/projects/stats", "GET", "/api/v1/tasks/projects"),
+            alias("GET", "/api/v1/tasks/projects/{id}/members", "GET", "/api/v1/tasks/projects/{id}/members/page"),
             alias("POST", "/api/v1/notes/{id}/pin", "PUT", "/api/v1/notes/{id}/pin"),
             alias("POST", "/api/v1/modules/{code}/toggle", "PUT", "/api/v1/modules/{code}/enabled"),
             alias("POST", "/api/v1/modules", "PUT", "/api/v1/modules/{code}"),

@@ -20,8 +20,9 @@ export class WebhooksApi {
     return this.api.post<CreatedWebhookSubscription>('/webhooks/subscriptions', body, { notifyError: false });
   }
 
+  /** The screen shows a failure itself (a refusal over a newer revision offers to read the list again). */
   setState(id: number, state: string, revision: number | undefined): Observable<void> {
-    return this.api.patch<void>(`/webhooks/subscriptions/${id}`, { state }, { ifMatch: revision });
+    return this.api.patch<void>(`/webhooks/subscriptions/${id}`, { state }, { notifyError: false, ifMatch: revision });
   }
 
   /** The confirmation shows the failure, so no general error toast. */

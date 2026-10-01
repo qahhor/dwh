@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { NavigationSettingsComponent } from './navigation-settings.component';
 import { NavigationService } from '@core/services/navigation.service';
@@ -61,6 +61,7 @@ describe('NavigationSettingsComponent', () => {
       success: vi.fn(),
       error: vi.fn(),
       info: vi.fn(),
+      show: vi.fn(),
     };
 
     const i18n = {
@@ -160,6 +161,26 @@ describe('NavigationSettingsComponent', () => {
       undefined,
     );
     expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('shows a save refused over a newer revision once and reads the menu again from its button', async () => {
+    const { fixture, navService, toast } = setup();
+    fixture.detectChanges();
+    navService.updateItem.mockReturnValueOnce(
+      throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' })),
+    );
+    fixture.componentInstance.openEditModal(sampleItems[0]);
+
+    fixture.componentInstance.saveItem();
+
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    const reads = navService.loadAllItems.mock.calls.length;
+    toast.show.mock.calls[0][4].run();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.isModalOpen()).toBe(false);
+    expect(navService.loadAllItems.mock.calls.length).toBe(reads + 1);
   });
 
   it('keeps the right and the parent of an edited item, so saving does not show it to everyone', () => {

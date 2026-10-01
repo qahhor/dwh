@@ -63,11 +63,12 @@ Data is retained only as long as operationally necessary or legally mandated. Au
 +------------------------------------+-----------------------+----------------------+
 | Active audit log partitions        | 12 months             | PostgreSQL table     |
 | Detached archived audit partitions | Per corporate policy  | Cold S3 / compressed |
-| Idempotency keys & cached payloads | 24 hours              | IdempotencyWorker    |
-| Inactive user sessions             | 7 days                | Auto-pruned on login |
-| Journals (security events, sign-in | 7 days - 12 months,   | RetentionJob nightly |
-|   attempts, codes, closed sessions,|   per table (4.2a)    |   (ADR-0025)         |
-|   webhook/notification queues)     |                       |                      |
+| Idempotency keys & cached payloads | 14 days               | IdempotencyCleanup-  |
+|                                    |                       |   Worker, daily      |
+| Idle user sessions                 | closed after 12 hours | KauthSessionCleanup- |
+|                                    |   without activity    |   Worker, hourly     |
+| Journals: 10 RetentionPolicy beans | 7 - 365 days,         | RetentionJob nightly |
+|   (table in 4.2a)                  |   per journal         |   (ADR-0025)         |
 | Rate-limit in-memory tracking      | 10 minutes sliding    | Caffeine cache TTL   |
 | Local database backup archives     | 7 days (14 snapshots) | backup-loop.sh       |
 | Remote object backups              | Defined by bucket S3  | S3 Lifecycle rules   |
@@ -83,16 +84,34 @@ Data is retained only as long as operationally necessary or legally mandated. Au
 
 ### 4.2. Idempotency records
 - Used to protect mutation endpoints (e.g. task creation).
-- Retained for a maximum TTL of 24 hours.
-- Automated `IdempotencyCleanupWorker` executes hourly to purge expired records.
+- Kept for 14 days (`DWH_IDEMPOTENCY_RETENTION_DAYS`).
+- `IdempotencyCleanupWorker` purges older records daily at 02:15 UTC (`DWH_IDEMPOTENCY_CLEANUP_CRON`).
 
-### 4.2a. Journal tables
-- Modules declare how long their journal tables live (`RetentionPolicy`, plan 10/10, item 3.13, ADR-0025);
-  the nightly `RetentionJob` deletes rows past it in short batches. Defaults: security events 365 days,
-  sign-in attempts 30, one-time and password reset codes 7 after expiry, closed sessions 90, webhook log 90,
-  delivered or dead-lettered webhook and notification queue items 30, inbox notifications 180, finished
-  job runs 90. Each is set by `SMC_RETENTION_<NAME>_DAYS`; 0 keeps the rows (docs/ops/operations-runbook.md,
-  "Retention of journal tables"). Rows still in flight are never deleted.
+### 4.2a. Sessions
+- `KauthSessionCleanupWorker` runs hourly and closes every session idle for more than 12 hours
+  (`last_seen_at` older than 12 hours).
+- A closed session row is deleted 90 days after `closed_at` by the `closed-sessions` journal policy below.
+
+### 4.2b. Journal tables
+Modules declare how long their journal tables live (`RetentionPolicy` beans, plan 10/10, item 3.13,
+[ADR-0025](../adr/ADR-0025-retention-and-cluster-cache.md)); the nightly `RetentionJob`
+(`SMC_RETENTION_CRON`, default 03:30) deletes rows past the cutoff in short batches. Rows still in flight
+(pending deliveries, running jobs, open sessions) are never selected. Each period is set by
+`SMC_RETENTION_<NAME>_DAYS` (`smc.retention.days.<name>`); 0 keeps the rows (docs/ops/operations-runbook.md,
+"Retention of journal tables").
+
+| Policy (`<name>`) | Table | Rows deleted | Default days | Declared in |
+|---|---|---|---|---|
+| `security-events` | `security_events` | `created_at` past the cutoff | 365 | `AuditRetentionPolicies` |
+| `login-attempts` | `kauth_login_attempts` | `attempt_at` past the cutoff | 30 | `KauthRetentionPolicies` |
+| `otp-codes` | `kauth_otp_codes` | `expires_at` past the cutoff | 7 | `KauthRetentionPolicies` |
+| `password-reset-codes` | `kauth_password_reset_codes` | `expires_at` past the cutoff | 7 | `KauthRetentionPolicies` |
+| `closed-sessions` | `kauth_sessions` | closed, `closed_at` past the cutoff | 90 | `KauthRetentionPolicies` |
+| `webhook-logs` | `kwh_logs` | `sent_at` past the cutoff | 90 | `KwhRetentionPolicies` |
+| `webhook-outbox` | `kwh_outbox` | `SENT` or `DEAD_LETTER`, `processed_at` past the cutoff | 30 | `KwhRetentionPolicies` |
+| `inbox` | `ms_notifications` | `created_at` past the cutoff | 180 | `MsNotifyRetentionPolicies` |
+| `notification-outbox` | `ms_notification_outbox` | `SENT` or `DEAD_LETTER`, `processed_at` past the cutoff | 30 | `MsNotifyRetentionPolicies` |
+| `job-runs` | `fnd_job_runs` | finished, `finished_at` past the cutoff | 90 | `FndRetentionPolicies` |
 
 ### 4.3. Backup retention
 - Local encrypted database dumps created by `backup-loop.sh` retain the most recent 14 snapshots (default 7 days of bi-daily backups).
@@ -118,7 +137,7 @@ In the event of a suspected security event, service degradation, or data breach,
    - Take read-only snapshot of `security_events` table for the affected period.
    - Do not delete containers, truncate tables, or wipe disk volumes before evidence collection.
 2. **Containment**:
-   - If a specific user account is compromised: revoke active sessions via `/api/v1/auth/sessions` and lock user account.
+   - If a specific user account is compromised: close all of the user's sessions with `DELETE /api/v1/iam/users/{userId}/sessions` (right `iam.users` / `block`; the list is `GET` on the same path, a user's own sessions are under `/api/v1/iam/profile/sessions`) and lock the user account.
    - If an IP is malicious: add host firewall rule (`iptables` / Cloudflare WAF block).
    - If an application vulnerability is suspected: halt external traffic at NGINX ingress (`503 Service Unavailable` maintenance page).
 3. **Remediation & Rollback**:
