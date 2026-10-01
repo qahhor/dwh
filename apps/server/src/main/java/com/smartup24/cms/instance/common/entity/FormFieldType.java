@@ -9,6 +9,10 @@ public enum FormFieldType {
     MARKDOWN,
     NUMBER,
     DATE,
+    /** A moment: an ISO date and time with its offset ({@code 2026-10-01T09:30:00Z}); its list field is an instant. */
+    DATETIME,
+    /** A time of day, {@code HH:mm} or {@code HH:mm:ss}. */
+    TIME,
     BOOLEAN,
     SELECT,
     REF;

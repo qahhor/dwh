@@ -3,8 +3,8 @@ package com.smartup24.cms.instance.report.export;
 import com.smartup24.cms.instance.common.query.QueryField;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -76,15 +76,8 @@ final class ExportWorkbookWriter implements AutoCloseable {
                     sheet.value(row, c, LocalDate.parse(String.valueOf(value)));
                     sheet.style(row, c).format(DATE_FORMAT).set();
                 }
-                case INSTANT -> {
-                    sheet.value(
-                            row,
-                            c,
-                            Instant.parse(String.valueOf(value))
-                                    .atZone(ZoneOffset.UTC)
-                                    .toLocalDateTime());
-                    sheet.style(row, c).format(MOMENT_FORMAT).set();
-                }
+                case INSTANT -> moment(c, String.valueOf(value));
+                case TIME -> sheet.value(row, c, String.valueOf(value));
                 case BOOLEAN ->
                     sheet.value(row, c, text.apply(Boolean.TRUE.equals(value) ? "common.yes" : "common.no"));
                 case ENUM -> sheet.value(row, c, enumWords(field, String.valueOf(value)));
@@ -120,8 +113,24 @@ final class ExportWorkbookWriter implements AutoCloseable {
                     sheet.value(row, c, raw);
                 }
             }
+            case INSTANT -> {
+                try {
+                    moment(c, raw);
+                } catch (DateTimeParseException e) {
+                    sheet.value(row, c, raw);
+                }
+            }
             default -> sheet.value(row, c, raw);
         }
+    }
+
+    /** A moment ({@code 2026-10-01T09:30:00Z} or with an offset) as a date and time of the sheet, in UTC. */
+    private void moment(int c, String text) {
+        sheet.value(
+                row,
+                c,
+                OffsetDateTime.parse(text).atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime());
+        sheet.style(row, c).format(MOMENT_FORMAT).set();
     }
 
     int rows() {
@@ -147,7 +156,7 @@ final class ExportWorkbookWriter implements AutoCloseable {
     private static double width(QueryField field) {
         return switch (field.type()) {
             case NUMBER, BOOLEAN -> 14;
-            case DATE -> 14;
+            case DATE, TIME -> 14;
             case INSTANT -> 18;
             default -> 28;
         };

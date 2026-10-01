@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CustomFieldView;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
@@ -49,7 +50,7 @@ public class MdCustomFieldService {
             "values");
 
     private static final Set<String> VALID_FIELD_TYPES =
-            Set.of("string", "number", "boolean", "date", "select", "user_ref");
+            Set.of("string", "number", "boolean", "date", "datetime", "time", "select", "user_ref");
 
     private final MdCustomFieldRepository customFieldRepository;
     private final AuditLogService auditLogService;
@@ -301,6 +302,14 @@ public class MdCustomFieldService {
                 MdCustomFieldValues.isDate(value)
                         ? null
                         : fieldError(field, "invalid_date", "error.md.field_custom_date", Map.of());
+            case "datetime" ->
+                EntityValidator.isMoment(value.toString().strip())
+                        ? null
+                        : fieldError(field, "invalid_datetime", "error.md.field_custom_datetime", Map.of());
+            case "time" ->
+                EntityValidator.isTime(value.toString().strip())
+                        ? null
+                        : fieldError(field, "invalid_time", "error.md.field_custom_time", Map.of());
             case "select" -> selectError(field, value.toString());
             case "user_ref" -> userRefError(field, value);
             default -> null;

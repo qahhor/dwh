@@ -171,6 +171,10 @@ class MdCustomFieldServiceTest {
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.custom_field_type_invalid")
                 .hasFieldOrPropertyWithValue(
                         "params",
-                        Map.of("type", "unknown_type", "allowed", "boolean, date, number, select, string, user_ref"));
+                        Map.of(
+                                "type",
+                                "unknown_type",
+                                "allowed",
+                                "boolean, date, datetime, number, select, string, time, user_ref"));
     }
 }

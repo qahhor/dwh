@@ -42,6 +42,36 @@ class ExportWorkbookWriterCustomFieldsTest {
                 .contains("[iam.users.col.name]", "Region", "Hired", "Tashkent", "[common.yes]", "soon", "maybe");
     }
 
+    /**
+     * Plan 10/10, item 5.0: a moment is a date and time of the sheet (in UTC), declared or custom; a time of day is
+     * written as it is; a custom value of the wrong shape stays text.
+     */
+    @Test
+    void writesMomentsAndTimesOfDay() throws Exception {
+        List<QueryField> fields = List.of(
+                QueryField.of("startsAt", "x.col.starts_at", QueryFieldType.INSTANT, "t.starts_at"),
+                QueryField.of("callTime", "x.col.call_time", QueryFieldType.TIME, "t.call_time"),
+                QueryField.custom("cfDueAt", "Due", QueryFieldType.INSTANT, "(a->>'due_at')", "due_at", List.of()),
+                QueryField.custom("cfSlot", "Slot", QueryFieldType.TIME, "(a->>'slot')", "slot", List.of()));
+        var out = new ByteArrayOutputStream();
+        try (var writer = new ExportWorkbookWriter(out, "Moments", fields, key -> "[" + key + "]", "test", "1.0")) {
+            writer.add(Map.of(
+                    "startsAt",
+                    "2026-10-01T09:30:00Z",
+                    "callTime",
+                    "14:45",
+                    "attributes",
+                    Map.of("due_at", "2026-10-02T10:00:00+05:00", "slot", "08:15")));
+            writer.add(Map.of("attributes", Map.of("due_at", "tomorrow")));
+            assertThat(writer.rows()).isEqualTo(2);
+        }
+
+        String xml = entry(out.toByteArray(), "xl/worksheets/sheet1.xml");
+        assertThat(xml).contains("14:45", "08:15", "tomorrow", "Due", "Slot");
+        // 2026-10-01 09:30 UTC and 2026-10-02 05:00 UTC as sheet serial numbers, formatted as date and time.
+        assertThat(xml).contains("46296.395833", "46297.208333", "dd.mm.yyyy hh:mm");
+    }
+
     /** Every XML part of the workbook as text (fastexcel may keep strings shared or inline). */
     private static String entry(byte[] xlsx, String ignored) throws Exception {
         var file = java.nio.file.Files.createTempFile("export", ".xlsx");

@@ -127,6 +127,41 @@ class EntityDefinitionTest {
                 .isEmpty();
     }
 
+    /** Plan 10/10, item 5.0: a moment carries its offset; a time of day is HH:mm or HH:mm:ss. */
+    @Test
+    void validatorChecksMomentsAndTimesOfDay() {
+        FormField at = FormField.of("startsAt", "s", FormFieldType.DATETIME);
+        FormField time = FormField.of("callTime", "t", FormFieldType.TIME);
+        EntityDefinition entity =
+                entity(List.of(at, time), List.of(new FormSection("main", "m", List.of("startsAt", "callTime"))));
+
+        for (String moment : List.of("2026-10-01T09:30:00Z", "2026-10-01T09:30+05:00", "2026-10-01T09:30:15.250Z")) {
+            assertThat(EntityValidator.problems(entity, Map.of("startsAt", moment), false))
+                    .as(moment)
+                    .isEmpty();
+        }
+        for (String moment : List.of("2026-10-01T09:30", "2026-10-01", "2026-13-01T09:30Z", "soon")) {
+            assertThat(EntityValidator.problems(entity, Map.of("startsAt", moment), false))
+                    .as(moment)
+                    .extracting(FieldErrorItem::code, FieldErrorItem::messageKey)
+                    .containsExactly(org.assertj.core.groups.Tuple.tuple(
+                            EntityValidator.INVALID, "error.field.datetime_required"));
+        }
+        for (String ok : List.of("09:30", "23:59:59", "00:00")) {
+            assertThat(EntityValidator.problems(entity, Map.of("callTime", ok), false))
+                    .as(ok)
+                    .isEmpty();
+        }
+        for (String bad : List.of("24:00", "9:30", "09:60", "09:30:00.5", "noon")) {
+            assertThat(EntityValidator.problems(entity, Map.of("callTime", bad), false))
+                    .as(bad)
+                    .extracting(FieldErrorItem::messageKey)
+                    .containsExactly("error.field.time_required");
+        }
+        assertThat(FormFieldType.DATETIME.wire()).isEqualTo("datetime");
+        assertThat(FormFieldType.TIME.wire()).isEqualTo("time");
+    }
+
     @Test
     void registryAddsCustomFieldsInTheirOwnSectionAndSkipsTakenKeys() {
         FormFieldExtender extender = entity -> List.of(

@@ -4,9 +4,11 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
@@ -39,6 +41,7 @@ final class QueryValues {
             case NUMBER -> new BigDecimal(text);
             case DATE -> parseDate(text);
             case INSTANT -> parseInstant(text);
+            case TIME -> parseTime(text);
             case BOOLEAN ->
                 switch (text) {
                     case "true" -> Boolean.TRUE;
@@ -69,6 +72,10 @@ final class QueryValues {
                 Timestamp timestamp = rs.getTimestamp(column);
                 yield timestamp == null ? null : timestamp.toInstant().atOffset(ZoneOffset.UTC);
             }
+            case TIME -> {
+                Time time = rs.getTime(column);
+                yield time == null ? null : time.toLocalTime();
+            }
             case BOOLEAN -> {
                 boolean flag = rs.getBoolean(column);
                 yield rs.wasNull() ? null : flag;
@@ -85,6 +92,14 @@ final class QueryValues {
             return LocalDate.parse(text);
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("not a date", e);
+        }
+    }
+
+    private static LocalTime parseTime(String text) {
+        try {
+            return LocalTime.parse(text);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("not a time", e);
         }
     }
 
