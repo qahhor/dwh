@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.support.TestSession;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,7 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
     private MfFileService files;
 
     private ScopeFixture fixture;
-    private ScopeSession viewer;
+    private TestSession viewer;
     private long outsideProject;
     private long insideProject;
     private long missingProject;
@@ -71,7 +72,7 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
     @BeforeAll
     void setUp() throws Exception {
         fixture = new ScopeFixture(jdbc, users, scopes, scopeRepository, roles, tasks, files);
-        viewer = ScopeSession.signIn(wac, fixture.viewerLogin);
+        viewer = TestSession.signIn(wac, fixture.viewerLogin);
         outsideProject = (Long) fixture.create(Kind.PROJECT, false);
         insideProject = (Long) fixture.create(Kind.PROJECT, true);
         // The hidden project has a task of its own whose people all stand outside the viewer's scope.
@@ -169,6 +170,6 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
     }
 
     private static JsonNode json(MockHttpServletResponse response) throws Exception {
-        return ScopeSession.JSON.readTree(response.getContentAsString());
+        return TestSession.JSON.readTree(response.getContentAsString());
     }
 }

@@ -6,10 +6,10 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
+import com.smartup24.cms.instance.support.TestUsers;
+import com.smartup24.cms.instance.support.TestUsers.TestUser;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
@@ -29,8 +29,6 @@ final class ScopeFixture {
         NOTE,
         FILE
     }
-
-    static final String PASSWORD = "StrongPassword2026!";
 
     final JdbcClient jdbc;
     final MsTaskService tasks;
@@ -56,45 +54,12 @@ final class ScopeFixture {
         this.jdbc = jdbc;
         this.tasks = tasks;
         this.files = files;
-        long root = root();
-        unitA = unit(root, "a");
-        unitB = unit(root, "b");
-
-        long role = roles.create("TEST scope matrix " + tag, null, "A", 900).id();
-        jdbc.sql("""
-                        insert into md_role_permissions (role_id, form_code, action)
-                        select :role, rp.form_code, rp.action
-                        from md_role_permissions rp
-                        join md_roles r on r.id = rp.role_id
-                        where r.pcode = 'chief_admin'
-                        """).param("role", role).update();
-        scopeRepository.setRoleRule(role, MdScopeService.RULE_UNITS);
-
-        viewerLogin = "scope-viewer-" + tag;
-        Long system = jdbc.sql("select id from md_users where login = 'system'")
-                .query(Long.class)
-                .single();
-        users.createUser(
-                "TEST " + viewerLogin,
-                viewerLogin,
-                viewerLogin + "@test.local",
-                null,
-                PASSWORD,
-                null,
-                "ru",
-                "UTC",
-                null,
-                Map.of(),
-                false,
-                false,
-                List.of(role),
-                system);
-        viewer = jdbc.sql("select id from md_users where login = :login")
-                .param("login", viewerLogin)
-                .query(Long.class)
-                .single();
-        scopeRepository.replaceUserOrgUnits(viewer, List.of(unitA));
-        scopes.recalculateFor(viewer);
+        TestUsers testUsers = new TestUsers(jdbc, users, scopes, scopeRepository, roles);
+        unitA = testUsers.unit("scope-a");
+        unitB = testUsers.unit("scope-b");
+        TestUser viewerUser = testUsers.withRightsOf("chief_admin", unitA);
+        viewer = viewerUser.id();
+        viewerLogin = viewerUser.login();
 
         insider = user(unitA);
         outsider = user(unitB);
@@ -191,28 +156,5 @@ final class ScopeFixture {
         byte[] content = ("scope " + UUID.randomUUID()).getBytes(StandardCharsets.UTF_8);
         return files.upload("scope.txt", "text/plain", new ByteArrayInputStream(content), content.length, owner)
                 .id();
-    }
-
-    private long root() {
-        jdbc.sql("""
-                        insert into md_org_units (parent_id, code, name, kind)
-                        values (null, 'scope-root', 'TEST root', 'company')
-                        on conflict do nothing
-                        """).update();
-        return jdbc.sql("select id from md_org_units where parent_id is null")
-                .query(Long.class)
-                .single();
-    }
-
-    private long unit(long parent, String name) {
-        return jdbc.sql("""
-                        insert into md_org_units (parent_id, code, name)
-                        values (:parent, :code, :name) returning id
-                        """)
-                .param("parent", parent)
-                .param("code", "scope-" + name + "-" + tag)
-                .param("name", "TEST unit " + name)
-                .query(Long.class)
-                .single();
     }
 }
