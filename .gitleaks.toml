@@ -34,6 +34,10 @@ description = "i18n translation catalogs contain UI labels referencing tokens, 2
 paths = ['''(?:^|/)apps/server/src/main/resources/i18n/.*\.json$''']
 
 [[allowlists]]
+description = "The map of renamed i18n keys (ADR-0031) pairs key names such as iam.profile.password.*, not secrets"
+paths = ['''(?:^|/)apps/web/scripts/i18n-key-renames\.json$''']
+
+[[allowlists]]
 description = "A labelKey names an i18n catalog entry (dotted lower-case key such as iam.srok_30_dney), not a secret"
 regexTarget = "match"
 regexes = ['''labelKey: '[a-z0-9_]+(?:\.[a-z0-9_]+)+'$''']
