@@ -13,9 +13,9 @@ row filtering is implemented. UI visibility is not an authorization boundary.
 
 | Operation | Required server authorization |
 |---|---|
-| Search, status, job history, and preview with the saved policy | `platform.search.view` plus the unrestricted-administrator check |
-| Read configuration or preview an unsaved policy | the preceding access plus `platform.settings.view` |
-| Save, rebuild, retry, cancel, or rollback | `platform.settings.update` plus the unrestricted-administrator check |
+| Search, status, job history, and preview with the saved policy | `search.view` plus the unrestricted-administrator check |
+| Read configuration or preview an unsaved policy | the preceding access plus `md.settings.view` |
+| Save, rebuild, retry, cancel, or rollback | `md.settings.update` plus the unrestricted-administrator check |
 
 This feature introduces no system role and does not delegate index access.
 Projects and users are indexed only while `state=A`; tasks retain the existing

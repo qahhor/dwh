@@ -31,7 +31,7 @@ public class RecordHistoryController {
             summary = "List record kinds with history",
             description = "The kinds of records whose change history can be read.")
     @GetMapping
-    @RequiresPermission(form = "iam.profile", action = "view")
+    @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<List<String>> kinds() {
         return ResponseEntity.ok(historyService.availableKinds());
     }
@@ -40,7 +40,7 @@ public class RecordHistoryController {
             summary = "Get the history of a record",
             description = "The recorded changes of one record, a keyset page at a time.")
     @GetMapping("/{kind}/{id}")
-    @RequiresPermission(form = "iam.profile", action = "view")
+    @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<KeysetPage<RecordHistoryService.HistoryEntry>> history(
             @PathVariable("kind") String kind,
             @PathVariable("id") String id,

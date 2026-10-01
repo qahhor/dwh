@@ -13,7 +13,8 @@ import java.util.Optional;
  * Only the names for the permission matrix screen live here.
  *
  * Forms of entities declared through {@code EntityDefinition} name themselves
- * ({@code EntityRights}) and are not repeated here.
+ * ({@code EntityRights}) and are not repeated here. The owning module of a form is not
+ * written here either: it follows from the code by the rule of ADR-0028 ({@link PermissionAreas}).
  *
  * A pair declared by an annotation but forgotten here gets its own code as its name
  * and does not break anything; the build is then failed by the
@@ -24,8 +25,8 @@ public final class MdFormCatalog {
 
     private MdFormCatalog() {}
 
-    /** A form: the owning module, its name and the names of its actions. */
-    public record FormMeta(String module, String name, Map<String, String> actionNames) {}
+    /** A form: its name and the names of its actions. */
+    public record FormMeta(String name, Map<String, String> actionNames) {}
 
     private static final Map<String, FormMeta> FORMS = buildForms();
 
@@ -33,14 +34,12 @@ public final class MdFormCatalog {
         return Optional.ofNullable(FORMS.get(formCode));
     }
 
-    /** The form's module; for an unknown form, the code prefix, so grouping in the UI does not fall apart. */
+    /**
+     * The form's owning module by the rule of ADR-0028; for a code outside the rule, its first segment, so grouping in
+     * the UI does not fall apart.
+     */
     public static String moduleOf(String formCode) {
-        var meta = FORMS.get(formCode);
-        if (meta != null) {
-            return meta.module();
-        }
-        int dot = formCode.indexOf('.');
-        return dot > 0 ? formCode.substring(0, dot) : formCode;
+        return PermissionAreas.ownerOf(formCode).orElseGet(() -> PermissionAreas.areaOf(formCode));
     }
 
     public static String formNameOf(String formCode) {
@@ -77,7 +76,6 @@ public final class MdFormCatalog {
         forms.put(
                 MdPref.FORM_PROFILE,
                 new FormMeta(
-                        "md",
                         "Мой профиль",
                         ordered(
                                 "view", "Просмотр профиля",
@@ -88,7 +86,6 @@ public final class MdFormCatalog {
         forms.put(
                 MdPref.FORM_USERS,
                 new FormMeta(
-                        "md",
                         "Пользователи",
                         ordered(
                                 "view", "Просмотр списка",
@@ -101,7 +98,6 @@ public final class MdFormCatalog {
         forms.put(
                 MdPref.FORM_ROLES,
                 new FormMeta(
-                        "md",
                         "Роли и права",
                         ordered(
                                 "view", "Просмотр ролей",
@@ -113,7 +109,6 @@ public final class MdFormCatalog {
         forms.put(
                 MdPref.FORM_ASSIGNMENTS,
                 new FormMeta(
-                        "md",
                         "Назначение прав",
                         ordered(
                                 "view", "Просмотр назначений",
@@ -124,7 +119,6 @@ public final class MdFormCatalog {
         forms.put(
                 MdPref.FORM_CUSTOM_FIELDS,
                 new FormMeta(
-                        "md",
                         "Динамические поля",
                         ordered(
                                 "view", "Просмотр полей",
@@ -135,7 +129,6 @@ public final class MdFormCatalog {
         forms.put(
                 MdPref.FORM_ORG_UNITS,
                 new FormMeta(
-                        "md",
                         "Оргструктура",
                         ordered(
                                 "view", "Просмотр оргструктуры",
@@ -147,20 +140,18 @@ public final class MdFormCatalog {
         forms.put(
                 MdPref.FORM_SETTINGS,
                 new FormMeta(
-                        "md",
                         "Настройки платформы",
                         ordered(
                                 "view", "Просмотр настроек",
                                 "update", "Изменение настроек")));
 
-        forms.put("audit.log", new FormMeta("audit", "Аудит и security-журнал", ordered("view", "Просмотр журналов")));
+        forms.put("audit.log", new FormMeta("Аудит и security-журнал", ordered("view", "Просмотр журналов")));
     }
 
     private static void putUploadAndTaskForms(Map<String, FormMeta> forms) {
         forms.put(
                 "upl.sources",
                 new FormMeta(
-                        "upl",
                         "Manbalar va formatlar",
                         ordered(
                                 "view", "Ko'rish",
@@ -171,7 +162,6 @@ public final class MdFormCatalog {
         forms.put(
                 "upl.packages",
                 new FormMeta(
-                        "upl",
                         "Загрузки файлов",
                         ordered(
                                 "view", "Просмотр",
@@ -181,7 +171,6 @@ public final class MdFormCatalog {
         forms.put(
                 "tasks.projects",
                 new FormMeta(
-                        "ms.task",
                         "Проекты",
                         ordered(
                                 "view", "Просмотр проектов",
@@ -191,7 +180,6 @@ public final class MdFormCatalog {
         forms.put(
                 "tasks.items",
                 new FormMeta(
-                        "ms.task",
                         "Задачи",
                         ordered(
                                 "view", "Просмотр задач",
@@ -201,7 +189,6 @@ public final class MdFormCatalog {
         forms.put(
                 "tasks.comments",
                 new FormMeta(
-                        "ms.task",
                         "Комментарии к задачам",
                         ordered(
                                 "view", "Просмотр комментариев",
@@ -210,13 +197,11 @@ public final class MdFormCatalog {
 
     /** Notifications, announcements, files and search. */
     private static void putCommunicationForms(Map<String, FormMeta> forms) {
-        forms.put(
-                "notify.inbox", new FormMeta("ms.notify", "Входящие оповещения", ordered("view", "Просмотр входящих")));
+        forms.put("notify.inbox", new FormMeta("Входящие оповещения", ordered("view", "Просмотр входящих")));
 
         forms.put(
-                "platform.announcements",
+                "notify.announcements",
                 new FormMeta(
-                        "ms.notify",
                         "Объявления",
                         ordered(
                                 "view", "Просмотр объявлений",
@@ -226,24 +211,22 @@ public final class MdFormCatalog {
                                 "archive", "Архивация объявления")));
 
         forms.put(
-                "platform.files",
+                "mf.files",
                 new FormMeta(
-                        "mf",
                         "Файлы",
                         ordered(
                                 "view", "Просмотр и скачивание",
                                 "upload", "Загрузка файлов",
                                 "delete", "Удаление файлов")));
 
-        forms.put("platform.search", new FormMeta("search", "Поиск", ordered("view", "Полнотекстовый поиск")));
+        forms.put("search", new FormMeta("Поиск", ordered("view", "Полнотекстовый поиск")));
     }
 
     /** Webhooks, analytics, modules and navigation. */
     private static void putPlatformForms(Map<String, FormMeta> forms) {
         forms.put(
-                "platform.webhooks",
+                "webhook.subscriptions",
                 new FormMeta(
-                        "kwh",
                         "Исходящие вебхуки",
                         ordered(
                                 "view", "Просмотр подписок",
@@ -252,16 +235,14 @@ public final class MdFormCatalog {
         forms.put(
                 "analytics.dashboard",
                 new FormMeta(
-                        "analytics",
                         "Аналитика и дашборды",
                         ordered(
                                 "view", "Просмотр аналитики",
                                 "manage", "Управление дашбордами")));
 
         forms.put(
-                "platform.modules",
+                MdPref.FORM_MODULES,
                 new FormMeta(
-                        "md",
                         "Модули системы",
                         ordered(
                                 "view", "Просмотр установленных модулей",
@@ -270,7 +251,6 @@ public final class MdFormCatalog {
         forms.put(
                 MdPref.FORM_NAVIGATION,
                 new FormMeta(
-                        "md",
                         "Навигация и меню",
                         ordered(
                                 "view", "Просмотр меню и отчетов",

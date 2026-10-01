@@ -204,7 +204,7 @@ async function createRole(page: Page): Promise<Role> {
     { formCode: 'tasks.items', action: 'view' },
     { formCode: 'tasks.projects', action: 'view' },
     { formCode: 'md.custom_fields', action: 'view' },
-    { formCode: 'iam.profile', action: 'view' },
+    { formCode: 'md.profile', action: 'view' },
   ], role.revision ?? 1);
   return role;
 }

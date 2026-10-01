@@ -32,10 +32,10 @@ describe('application route permissions', () => {
     permissions.setPermissions([]);
     expect(runOrgUnitsGuard()).toBe('settings-redirect');
 
-    permissions.setPermissions(['iam.org_units.assign']);
+    permissions.setPermissions(['md.org_units.assign']);
     expect(runOrgUnitsGuard()).toBe('settings-redirect');
 
-    permissions.setPermissions(['iam.org_units.view']);
+    permissions.setPermissions(['md.org_units.view']);
     expect(runOrgUnitsGuard()).toBe(true);
 
     const shell = routes.find((route) => route.path === '');

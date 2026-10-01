@@ -32,13 +32,13 @@ public class SearchAccessPolicy {
 
     public void requireSettingsRead() {
         requireSearchAccess();
-        if (!SecurityContext.hasPermission("platform.settings", "view"))
-            throw ApiException.permissionDenied("platform.settings", "view");
+        if (!SecurityContext.hasPermission("md.settings", "view"))
+            throw ApiException.permissionDenied("md.settings", "view");
     }
 
     public void requireSettingsUpdate() {
         requireSearchAccess();
-        if (!SecurityContext.hasPermission("platform.settings", "update"))
-            throw ApiException.permissionDenied("platform.settings", "update");
+        if (!SecurityContext.hasPermission("md.settings", "update"))
+            throw ApiException.permissionDenied("md.settings", "update");
     }
 }

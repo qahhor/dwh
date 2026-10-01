@@ -87,7 +87,7 @@ describe('UserOrgUnitsPanelComponent', () => {
     });
     const permissions = TestBed.inject(PermissionService);
     permissions.setPermissions(
-      options.writable === false ? ['iam.org_units.view'] : ['iam.org_units.view', 'iam.org_units.assign'],
+      options.writable === false ? ['md.org_units.view'] : ['md.org_units.view', 'md.org_units.assign'],
     );
     /** Renders the panel for `target` once the test has set its answers. */
     const render = () => {
@@ -325,7 +325,7 @@ describe('UserOrgUnitsPanelComponent', () => {
     (panel.canLeave() as Observable<boolean>).subscribe(decision);
     fixture.detectChanges();
     expect(panel.discard.open()).toBe(true);
-    permissions.setPermissions(['iam.org_units.assign']);
+    permissions.setPermissions(['md.org_units.assign']);
     panel.save();
     fixture.detectChanges();
     expect(api.saveAssignments).not.toHaveBeenCalled();
@@ -343,12 +343,12 @@ describe('UserOrgUnitsPanelComponent', () => {
     const write = new Subject<undefined>();
     api.saveAssignments.mockReturnValueOnce(write);
     panel.save();
-    permissions.setPermissions(['iam.org_units.assign']);
+    permissions.setPermissions(['md.org_units.assign']);
     fixture.detectChanges();
     expect(panel.pending()).toBe(true);
     expect(write.observed).toBe(true);
     expect(panel.canLeave()).toBe(false);
-    permissions.setPermissions(['iam.org_units.view', 'iam.org_units.assign']);
+    permissions.setPermissions(['md.org_units.view', 'md.org_units.assign']);
     fixture.detectChanges();
     write.next(undefined);
     fixture.detectChanges();

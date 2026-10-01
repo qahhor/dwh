@@ -145,7 +145,7 @@ describe('SettingsComponent UI contracts', () => {
     };
     const fixture = await createFixture(
       undefined,
-      (form, action) => form === 'platform.search' && action === 'view',
+      (form, action) => form === 'search' && action === 'view',
       searchManagement,
     );
 
@@ -210,7 +210,7 @@ describe('SettingsComponent UI contracts', () => {
 
   it('passes a view-only right down to the system panels', async () => {
     const hasPermission = (form: string, action: string) =>
-      (form === 'platform.settings' || form === 'settings') && action === 'view';
+      (form === 'md.settings' || form === 'settings') && action === 'view';
     const fixture = await createFixture(undefined, hasPermission);
 
     const companyInput = inScreen(fixture.nativeElement).querySelector('#settings-company-name') as HTMLInputElement;
@@ -252,8 +252,8 @@ describe('SettingsComponent UI contracts', () => {
     expect(modal.querySelector('.smt-dialog')).not.toBeNull();
   });
 
-  it('supports webhooks tab when user has platform.webhooks permission', async () => {
-    const fixture = await createFixture(undefined, (form) => form === 'platform.webhooks');
+  it('supports webhooks tab when user has webhook.subscriptions permission', async () => {
+    const fixture = await createFixture(undefined, (form) => form === 'webhook.subscriptions');
     expect(fixture.componentInstance.store.canViewWebhookSettings()).toBe(true);
     expect(fixture.componentInstance.isTabAvailable('webhooks')).toBe(true);
 

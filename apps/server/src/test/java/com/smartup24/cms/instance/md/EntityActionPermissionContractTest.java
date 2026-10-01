@@ -3,9 +3,11 @@ package com.smartup24.cms.instance.md;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.md.pref.PermissionAreas;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +39,21 @@ class EntityActionPermissionContractTest {
             }
         }
         assertThat(missing).isEmpty();
+    }
+
+    /** Plan 10/10, item 4.4 (ADR-0028): an entity's form follows the rule, and its area leads to the named module. */
+    @Test
+    void everyEntityFormIsOwnedByTheModuleItsRightsName() throws Exception {
+        List<String> wrong = new ArrayList<>();
+        for (EntityDefinition entity : declaredEntities()) {
+            Optional<String> owner = PermissionAreas.ownerOf(entity.form());
+            if (owner.isEmpty()
+                    || (entity.rights() != null
+                            && !owner.get().equals(entity.rights().module()))) {
+                wrong.add(entity.code() + " → " + entity.form() + " owned by " + owner);
+            }
+        }
+        assertThat(wrong).isEmpty();
     }
 
     /** The entities the application declares: the {@code @Bean EntityDefinition} methods of its configurations. */

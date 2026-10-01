@@ -38,7 +38,7 @@ public class ReportExportController {
 
     @Operation(summary = "Request an export", description = "Requests the export of a list to a file.")
     @PostMapping
-    @RequiresPermission(form = "iam.profile", action = "view")
+    @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<ExportItem> request(@RequestBody ExportRequest request) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(exports.request(request));
@@ -46,14 +46,14 @@ public class ReportExportController {
 
     @Operation(summary = "List my exports", description = "The caller's requested exports with their state.")
     @GetMapping
-    @RequiresPermission(form = "iam.profile", action = "view")
+    @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<List<ExportItem>> journal() {
         return ResponseEntity.ok(exports.journal());
     }
 
     @Operation(summary = "Download an export", description = "The file of a finished export.")
     @GetMapping("/{id}/file")
-    @RequiresPermission(form = "iam.profile", action = "view")
+    @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<InputStreamResource> file(@PathVariable String id) {
         ReportExportService.ExportFile file = exports.file(id);
         var response = ResponseEntity.ok()

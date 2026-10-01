@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Changing one's own password belongs to authentication, not to a business form.
  *
  * The endpoint used to live in {@code MdUserController} and required the
- * {@code iam.profile:update} permission. Because of that the {@code auditor} role, which the
+ * {@code md.profile:update} permission. Because of that the {@code auditor} role, which the
  * specification grants no mutating action at all, could not change its own
  * password. An auditor account with {@code force_password_change = true}
  * was locked forever: the system demanded a password change and forbade it at the same time.

@@ -62,7 +62,7 @@ public class UplPackageQuery {
                     // Who uploaded names a person: shown to those who may see the user directory (ADR-0016, 2.9).
                     QueryField.of("uploadedBy", "upl.pkg.col.uploaded_by", QueryFieldType.TEXT, "p.uploaded_by")
                             .asHidden()
-                            .requires("iam.users", "view")),
+                            .requires("md.users", "view")),
             "uploadedAt",
             true,
             QueryList.DEFAULT_LIMIT,

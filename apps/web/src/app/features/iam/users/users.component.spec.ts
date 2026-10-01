@@ -198,7 +198,7 @@ describe('UsersComponent', () => {
       panel.save();
       const readsBeforeRevocation = orgReads();
 
-      permissions.setPermissions(['iam.users.view', 'iam.users.update', 'iam.org_units.assign']);
+      permissions.setPermissions(['md.users.view', 'md.users.update', 'md.org_units.assign']);
       redraw(fixture);
 
       expect(panelOf(fixture)).toBe(panel);

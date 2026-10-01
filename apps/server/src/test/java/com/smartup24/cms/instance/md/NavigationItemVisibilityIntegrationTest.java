@@ -30,7 +30,7 @@ import tools.jackson.databind.ObjectMapper;
 /** The menu shows an item only to those who have its permission. */
 class NavigationItemVisibilityIntegrationTest {
 
-    private static final String GUARDED = "platform.navigation.manage";
+    private static final String GUARDED = "md.navigation.manage";
 
     static JdbcClient jdbc;
     static NavigationItemService service;
@@ -59,10 +59,10 @@ class NavigationItemVisibilityIntegrationTest {
         create("vis-open", null, null);
         create("vis-guarded", GUARDED, null);
 
-        signIn("iam.profile.view");
+        signIn("md.profile.view");
         assertThat(visibleCodes()).contains("vis-open").doesNotContain("vis-guarded");
 
-        signIn("iam.profile.view", GUARDED);
+        signIn("md.profile.view", GUARDED);
         assertThat(visibleCodes()).contains("vis-open", "vis-guarded");
 
         signIn("*.*");
@@ -77,7 +77,7 @@ class NavigationItemVisibilityIntegrationTest {
         NavigationItemView off = create("vis-off", null, null);
         service.toggleState(off.id(), null);
 
-        signIn("iam.profile.view");
+        signIn("md.profile.view");
         assertThat(visibleCodes()).doesNotContain("vis-parent", "vis-child", "vis-off");
 
         signIn(GUARDED);
@@ -89,7 +89,7 @@ class NavigationItemVisibilityIntegrationTest {
     void itemByCodeIsHiddenFromThoseWithoutItsPermission() {
         create("vis-report", GUARDED, null);
 
-        signIn("iam.profile.view");
+        signIn("md.profile.view");
         assertThat(service.getVisibleItemByCode("vis-report")).isEmpty();
         assertThat(service.getVisibleItemByCode("vis-missing")).isEmpty();
 
@@ -100,7 +100,7 @@ class NavigationItemVisibilityIntegrationTest {
     @Test
     @DisplayName("Право пункта — живая пара каталога, иначе 422 с адресом поля")
     void permissionMustBeALiveCatalogPair() {
-        assertThatThrownBy(() -> create("vis-bad", "platform.navigation.fly", null))
+        assertThatThrownBy(() -> create("vis-bad", "md.navigation.fly", null))
                 .isInstanceOfSatisfying(
                         ApiException.class,
                         error -> assertThat(error.getFieldErrors())
@@ -110,6 +110,9 @@ class NavigationItemVisibilityIntegrationTest {
 
         NavigationItemView item = create("vis-good", "  " + GUARDED + " ", null);
         assertThat(item.requiredPermission()).isEqualTo(GUARDED);
+        // ADR-0028: a code of the previous release is stored under its successor until the sunset.
+        assertThat(create("vis-legacy", "platform.navigation.manage", null).requiredPermission())
+                .isEqualTo(GUARDED);
 
         assertThatThrownBy(() -> service.updateItem(
                         item.id(),

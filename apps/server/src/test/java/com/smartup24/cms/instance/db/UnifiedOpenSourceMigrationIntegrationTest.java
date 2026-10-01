@@ -121,7 +121,7 @@ class UnifiedOpenSourceMigrationIntegrationTest {
 
         assertThat(jdbc.sql("""
                         select action from md_form_actions
-                        where form_code = 'platform.announcements'
+                        where form_code = 'notify.announcements'
                         order by action
                         """).query(String.class).list())
                 .containsExactly("archive", "create", "publish", "update", "view");
@@ -129,7 +129,7 @@ class UnifiedOpenSourceMigrationIntegrationTest {
                         select count(*)
                         from md_role_permissions rp
                         join md_roles r on r.id = rp.role_id
-                        where r.pcode = 'admin' and rp.form_code = 'platform.announcements'
+                        where r.pcode = 'admin' and rp.form_code = 'notify.announcements'
                         """).query(Long.class).single()).isEqualTo(5);
     }
 

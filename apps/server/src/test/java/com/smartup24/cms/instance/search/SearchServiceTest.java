@@ -282,7 +282,7 @@ class SearchServiceTest {
 
     @Test
     void delegatedSearchPermissionAloneDoesNotExpandLegacyScope() {
-        SecurityContext.setPrincipal(principalWithPermissions(Set.of("platform.search.view")));
+        SecurityContext.setPrincipal(principalWithPermissions(Set.of("search.view")));
         when(roleMembershipAuthorizer.hasActiveRole(42L, "admin")).thenReturn(false);
 
         assertThatThrownBy(() -> service.search("Kafka", "ALL", 10))
@@ -294,7 +294,7 @@ class SearchServiceTest {
 
     @Test
     void activeAdministratorWithSearchPermissionCanSearch() {
-        SecurityContext.setPrincipal(principalWithPermissions(Set.of("platform.search.view")));
+        SecurityContext.setPrincipal(principalWithPermissions(Set.of("search.view")));
         when(roleMembershipAuthorizer.hasActiveRole(42L, "admin")).thenReturn(true);
         when(typesenseClient.isEnabled()).thenReturn(true);
         when(typesenseClient.multiSearch(eq("Kafka"), eq("ALL"), eq(10), anyMap(), any()))

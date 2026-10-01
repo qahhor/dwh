@@ -181,18 +181,10 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   canCreateTask() {
-    return (
-      this.permService.canCreate('tasks.items') ||
-      this.permService.canCreate('tasks') ||
-      this.permService.canCreate('ms_tasks')
-    );
+    return this.permService.canCreate('tasks.items');
   }
   canUpdateTask() {
-    return (
-      this.permService.canUpdate('tasks.items') ||
-      this.permService.canUpdate('tasks') ||
-      this.permService.canUpdate('ms_tasks')
-    );
+    return this.permService.canUpdate('tasks.items');
   }
   canCommentTask() {
     return (

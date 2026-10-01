@@ -32,7 +32,7 @@ describe('Announcement banner API integration', () => {
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
-    TestBed.inject(PermissionService).setPermissions(['platform.announcements.view']);
+    TestBed.inject(PermissionService).setPermissions(['notify.announcements.view']);
     fixture = TestBed.createComponent(AppShellComponent);
   });
 

@@ -72,7 +72,7 @@ public class QueryMetaController {
             int maxInValues) {}
 
     /**
-     * Any signed-in user (every role has {@code iam.profile:view}); the permission for the list itself
+     * Any signed-in user (every role has {@code md.profile:view}); the permission for the list itself
      * is checked below against the registry. A string, not {@code MdPref}: {@code common} does not depend on modules.
      */
     @Operation(
@@ -80,7 +80,7 @@ public class QueryMetaController {
             description =
                     "The fields, filters, sorts and defaults of a registry list, including custom fields; the list's own right is checked.")
     @GetMapping("/{code}")
-    @RequiresPermission(form = "iam.profile", action = "view")
+    @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<ListMeta> get(@PathVariable String code) {
         QueryList list = registry.find(code)
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))

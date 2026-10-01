@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * The user's own contact channels (FR-AUTH-5): linking, proving ownership, unlinking.
  *
- * The {@code iam.profile:manage_channels} permission existed in the catalog, but no
+ * The {@code md.profile:manage_channels} permission existed in the catalog, but no
  * endpoint stood behind it, so syncing the catalog with the code marked it
  * obsolete. These endpoints bring it back to life.
  *

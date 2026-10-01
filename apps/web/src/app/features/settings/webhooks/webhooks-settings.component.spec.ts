@@ -67,7 +67,7 @@ describe('WebhooksSettingsComponent', () => {
 
     const permService = {
       hasPermission: vi.fn((form: string, action: string) => {
-        if (form === 'platform.webhooks' && action === 'manage') return canManage;
+        if (form === 'webhook.subscriptions' && action === 'manage') return canManage;
         return true;
       }),
     };

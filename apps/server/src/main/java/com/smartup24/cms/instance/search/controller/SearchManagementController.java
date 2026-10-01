@@ -33,7 +33,7 @@ public class SearchManagementController {
 
     @Operation(summary = "Get search settings", description = "The search settings in force, with their version.")
     @GetMapping("/settings")
-    @RequiresPermission(form = "platform.search", action = "view")
+    @RequiresPermission(form = "search", action = "view")
     public SettingsSnapshot settings() {
         return settings.current();
     }
@@ -42,7 +42,7 @@ public class SearchManagementController {
             summary = "Save search settings",
             description = "Replaces the search settings; names the version it was read at.")
     @PutMapping(value = "/settings", consumes = "application/json")
-    @RequiresPermission(form = "platform.settings", action = "update")
+    @RequiresPermission(form = "md.settings", action = "update")
     public SettingsSnapshot save(@RequestBody String json) {
         access.requireSettingsUpdate();
         return settings.save(SearchManagementDtos.decodeSave(json));
@@ -50,7 +50,7 @@ public class SearchManagementController {
 
     @Operation(summary = "Preview a search", description = "Runs a query with draft settings, without saving them.")
     @PostMapping(value = "/preview", consumes = "application/json")
-    @RequiresPermission(form = "platform.search", action = "view")
+    @RequiresPermission(form = "search", action = "view")
     public PreviewResult preview(@RequestBody String json) {
         access.requireSearchAccess();
         return search.preview(SearchManagementDtos.decodePreview(json));
@@ -58,7 +58,7 @@ public class SearchManagementController {
 
     @Operation(summary = "Get the search status", description = "The state of the search index and of its engine.")
     @GetMapping("/status")
-    @RequiresPermission(form = "platform.search", action = "view")
+    @RequiresPermission(form = "search", action = "view")
     public SearchStatusService.Status status() {
         return status.current();
     }
@@ -68,7 +68,7 @@ public class SearchManagementController {
             description = "Queues a check, a rebuild or a rollback of the search index.")
     @PostMapping(value = "/jobs", consumes = "application/json")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    @RequiresPermission(form = "platform.settings", action = "update")
+    @RequiresPermission(form = "md.settings", action = "update")
     public JobReceipt start(@RequestBody String json) {
         access.requireSettingsUpdate();
         return jobs.start(SearchManagementDtos.decodeStartJob(json));
@@ -76,7 +76,7 @@ public class SearchManagementController {
 
     @Operation(summary = "List search jobs", description = "The search index jobs, newest first, a page at a time.")
     @GetMapping("/jobs")
-    @RequiresPermission(form = "platform.search", action = "view")
+    @RequiresPermission(form = "search", action = "view")
     public JobPage history(
             @RequestParam(defaultValue = "20") int limit, @RequestParam(required = false) String cursor) {
         return jobs.history(limit, cursor);
@@ -84,7 +84,7 @@ public class SearchManagementController {
 
     @Operation(summary = "Get a search job", description = "The state and progress of one search index job.")
     @GetMapping("/jobs/{id}")
-    @RequiresPermission(form = "platform.search", action = "view")
+    @RequiresPermission(form = "search", action = "view")
     public JobStatus job(@PathVariable UUID id) {
         return jobs.current(id);
     }
@@ -92,7 +92,7 @@ public class SearchManagementController {
     @Operation(summary = "Cancel a search job", description = "Cancels a search index job that has not finished.")
     @PostMapping("/jobs/{id}/cancel")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    @RequiresPermission(form = "platform.settings", action = "update")
+    @RequiresPermission(form = "md.settings", action = "update")
     public JobReceipt cancel(@PathVariable UUID id) {
         return jobs.cancel(id);
     }
@@ -100,7 +100,7 @@ public class SearchManagementController {
     @Operation(summary = "Retry a search job", description = "Queues a failed or cancelled search index job again.")
     @PostMapping(value = "/jobs/{id}/retry", consumes = "application/json")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    @RequiresPermission(form = "platform.settings", action = "update")
+    @RequiresPermission(form = "md.settings", action = "update")
     public JobReceipt retry(@PathVariable UUID id, @RequestBody String json) {
         access.requireSettingsUpdate();
         return jobs.retry(id, SearchManagementDtos.decodeRetry(json));

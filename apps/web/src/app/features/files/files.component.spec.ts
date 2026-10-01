@@ -101,7 +101,7 @@ describe('FilesComponent request and deletion mechanics', () => {
 
   afterEach(() => http?.verify());
 
-  async function createFixture(permissions = ['platform.files.delete'], initialFiles?: FileDetail[]) {
+  async function createFixture(permissions = ['mf.files.delete'], initialFiles?: FileDetail[]) {
     await TestBed.configureTestingModule({
       imports: [FilesComponent],
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), ...REGISTRY_PROVIDERS],
@@ -315,10 +315,10 @@ describe('FilesComponent request and deletion mechanics', () => {
   });
 
   it.each([
-    { permissions: ['platform.files.manage_quotas'], visible: [] },
-    { permissions: ['platform.files.delete'], visible: ['Удалить файл report-1.pdf'] },
+    { permissions: ['mf.files.manage_quotas'], visible: [] },
+    { permissions: ['mf.files.delete'], visible: ['Удалить файл report-1.pdf'] },
     {
-      permissions: ['platform.files.delete', 'platform.files.manage_quotas'],
+      permissions: ['mf.files.delete', 'mf.files.manage_quotas'],
       visible: ['Удалить файл report-1.pdf', 'Удалить файл report-2.pdf', 'Удалить файл report-3.pdf'],
     },
   ])('matches server deletion rights for $permissions', async ({ permissions, visible }) => {

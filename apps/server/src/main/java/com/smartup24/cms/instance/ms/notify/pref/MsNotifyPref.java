@@ -25,5 +25,5 @@ public final class MsNotifyPref {
     public static final String FORM_INBOX = "notify.inbox";
     public static final String FORM_PREFERENCES = "notify.preferences";
     public static final String FORM_DEAD_LETTER = "notify.dead_letter";
-    public static final String FORM_ANNOUNCEMENTS = "platform.announcements";
+    public static final String FORM_ANNOUNCEMENTS = "notify.announcements";
 }

@@ -43,7 +43,7 @@ describe('RoleScopePanelComponent', () => {
       ],
     });
     TestBed.inject(PermissionService).setPermissions(
-      options.permissions ?? ['iam.org_units.view', 'iam.org_units.assign'],
+      options.permissions ?? ['md.org_units.view', 'md.org_units.assign'],
     );
     const fixture = TestBed.createComponent(RoleScopePanelComponent);
     fixture.componentRef.setInput('roleId', options.target ?? 5);
@@ -86,8 +86,8 @@ describe('RoleScopePanelComponent', () => {
     expect(api.saveRoleRule).not.toHaveBeenCalled();
   });
 
-  it('uses iam.org_units.assign independently from rbac.roles.grant', () => {
-    const grantOnly = setup({ permissions: ['iam.org_units.view', 'rbac.roles.grant'] });
+  it('uses md.org_units.assign independently from md.roles.grant', () => {
+    const grantOnly = setup({ permissions: ['md.org_units.view', 'md.roles.grant'] });
     grantOnly.panel.selectRule('SELF');
     grantOnly.panel.save();
     grantOnly.panel.confirmSave();
@@ -145,7 +145,7 @@ describe('RoleScopePanelComponent', () => {
   });
 
   it('shows all four typed rules and read-only explanations with view permission alone', () => {
-    const { fixture, panel, api } = setup({ permissions: ['iam.org_units.view'], rule: 'SELF' });
+    const { fixture, panel, api } = setup({ permissions: ['md.org_units.view'], rule: 'SELF' });
     const radios = Array.from(inScreen(fixture.nativeElement).querySelectorAll('[role="radio"]')) as HTMLElement[];
     expect(radios).toHaveLength(4);
     expect(radios[3].getAttribute('aria-checked')).toBe('true');
@@ -179,7 +179,7 @@ describe('RoleScopePanelComponent', () => {
         { provide: ToastService, useValue: { success: vi.fn() } },
       ],
     });
-    TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.assign']);
+    TestBed.inject(PermissionService).setPermissions(['md.org_units.view', 'md.org_units.assign']);
     const fixture = TestBed.createComponent(RoleScopePanelComponent);
     fixture.componentRef.setInput('roleId', 5);
     fixture.detectChanges();
@@ -241,7 +241,7 @@ describe('RoleScopePanelComponent', () => {
     panel.save();
     fixture.detectChanges();
     expect(panel.confirmationOpen()).toBe(true);
-    TestBed.inject(PermissionService).setPermissions(['iam.org_units.assign']);
+    TestBed.inject(PermissionService).setPermissions(['md.org_units.assign']);
     panel.confirmSave();
     fixture.detectChanges();
     expect(api.saveRoleRule).not.toHaveBeenCalled();
@@ -257,12 +257,12 @@ describe('RoleScopePanelComponent', () => {
     const write = new Subject<undefined>();
     api.saveRoleRule.mockReturnValueOnce(write);
     panel.confirmSave();
-    TestBed.inject(PermissionService).setPermissions(['iam.org_units.assign']);
+    TestBed.inject(PermissionService).setPermissions(['md.org_units.assign']);
     fixture.detectChanges();
     expect(panel.pending()).toBe(true);
     expect(write.observed).toBe(true);
     expect(panel.canLeave()).toBe(false);
-    TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.assign']);
+    TestBed.inject(PermissionService).setPermissions(['md.org_units.view', 'md.org_units.assign']);
     fixture.detectChanges();
     write.next(undefined);
     fixture.detectChanges();
@@ -338,7 +338,7 @@ describe('RoleScopePanelComponent', () => {
         { provide: ToastService, useValue: { success: vi.fn() } },
       ],
     });
-    TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.assign']);
+    TestBed.inject(PermissionService).setPermissions(['md.org_units.view', 'md.org_units.assign']);
     const fixture = TestBed.createComponent(RolePanelHost);
     fixture.detectChanges();
     const host = fixture.componentInstance;

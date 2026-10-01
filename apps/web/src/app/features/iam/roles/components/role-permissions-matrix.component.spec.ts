@@ -21,7 +21,7 @@ describe('RolePermissionsMatrixComponent', () => {
     forms: [
       {
         module: 'md',
-        formCode: 'iam.users',
+        formCode: 'md.users',
         formName: 'Пользователи',
         actions: [
           { action: 'view', actionName: 'Просмотр' },
@@ -48,8 +48,8 @@ describe('RolePermissionsMatrixComponent', () => {
     const fixture = TestBed.createComponent(RolePermissionsMatrixComponent);
     const set = (name: string, value: unknown) => fixture.componentRef.setInput(name, value);
     set('role', analyst);
-    set('hasPermission', (form: string, action: string) => form === 'iam.users' && action === 'view');
-    set('isPermissionDirty', (form: string, action: string) => form === 'iam.users' && action === 'create');
+    set('hasPermission', (form: string, action: string) => form === 'md.users' && action === 'view');
+    set('isPermissionDirty', (form: string, action: string) => form === 'md.users' && action === 'create');
     set('getModuleIcon', () => 'security');
     set('getModuleActionsCount', (mod: ModuleGroup) => mod.forms.reduce((sum, form) => sum + form.actions.length, 0));
     set('moduleGroups', [users, tasks]);
@@ -108,7 +108,7 @@ describe('RolePermissionsMatrixComponent', () => {
     expect(host.querySelectorAll('.dirty-indicator-dot')).toHaveLength(1);
     checkboxes()[1].click();
 
-    expect(asked.toggle).toHaveBeenCalledWith({ formCode: 'iam.users', action: 'create', checked: true });
+    expect(asked.toggle).toHaveBeenCalledWith({ formCode: 'md.users', action: 'create', checked: true });
   });
 
   it('leaves the matrix read-only for a viewer who may not edit it', () => {

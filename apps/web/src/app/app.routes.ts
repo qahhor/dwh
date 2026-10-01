@@ -49,7 +49,7 @@ export const routes: Routes = [
       },
       {
         path: 'iam/org-units',
-        canActivate: [permissionGuard('iam.org_units', 'view')],
+        canActivate: [permissionGuard('md.org_units', 'view')],
         canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/iam/org-units/org-units.component').then((m) => m.OrgUnitsComponent),
       },
@@ -90,12 +90,12 @@ export const routes: Routes = [
       },
       {
         path: 'system',
-        canActivate: [permissionGuard('platform.settings', 'view')],
+        canActivate: [permissionGuard('md.settings', 'view')],
         loadComponent: () => import('./features/system/system.component').then((m) => m.SystemComponent),
       },
       {
         path: 'announcements',
-        canActivate: [permissionGuard('platform.announcements', 'update')],
+        canActivate: [permissionGuard('notify.announcements', 'update')],
         loadComponent: () =>
           import('./features/announcements/announcements.component').then((m) => m.AnnouncementsComponent),
       },
@@ -138,12 +138,12 @@ export const routes: Routes = [
       },
       {
         path: 'settings/modules',
-        canActivate: [permissionGuard('platform.modules', 'view')],
+        canActivate: [permissionGuard('md.modules', 'view')],
         loadComponent: () => import('./features/settings/modules/modules.component').then((m) => m.ModulesComponent),
       },
       {
         path: 'settings/navigation',
-        canActivate: [permissionGuard('platform.navigation', 'view')],
+        canActivate: [permissionGuard('md.navigation', 'view')],
         loadComponent: () =>
           import('./features/settings/navigation/navigation-settings.component').then(
             (m) => m.NavigationSettingsComponent,

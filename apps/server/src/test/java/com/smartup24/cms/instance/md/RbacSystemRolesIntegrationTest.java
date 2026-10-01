@@ -160,15 +160,15 @@ class RbacSystemRolesIntegrationTest {
                 .contains(
                         "tasks.items:view",
                         "tasks.items:create",
-                        "iam.profile:view",
-                        "platform.search:view",
+                        "md.profile:view",
+                        "search:view",
                         "notify.inbox:view");
         assertThat(perms)
-                .noneMatch(p -> p.startsWith("iam.users:")
+                .noneMatch(p -> p.startsWith("md.users:")
                         || p.startsWith("rbac.")
                         || p.startsWith("audit.")
-                        || p.startsWith("platform.settings")
-                        || p.startsWith("platform.webhooks"));
+                        || p.startsWith("md.settings")
+                        || p.startsWith("webhook.subscriptions"));
     }
 
     // ------------------------------------------------------------------

@@ -55,7 +55,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
       ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
-    TestBed.inject(PermissionService).setPermissions(['rbac.roles.view', 'rbac.roles.grant']);
+    TestBed.inject(PermissionService).setPermissions(['md.roles.view', 'md.roles.grant']);
     fixture = TestBed.createComponent(RolesComponent);
     host = fixture.nativeElement;
     await settle();
@@ -227,7 +227,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
 
   it('requires grant permission rather than role update permission to edit a matrix', async () => {
     await loadRoleA();
-    TestBed.inject(PermissionService).setPermissions(['rbac.roles.view', 'rbac.roles.update']);
+    TestBed.inject(PermissionService).setPermissions(['md.roles.view', 'md.roles.update']);
     await settle();
 
     expect.soft(saveButton()).toBeNull();

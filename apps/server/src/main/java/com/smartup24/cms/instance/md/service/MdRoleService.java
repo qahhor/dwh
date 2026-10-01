@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.RolePermission;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.RoleView;
+import com.smartup24.cms.instance.md.pref.PermissionAreas;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import java.util.List;
@@ -153,7 +154,8 @@ public class MdRoleService {
         List<MdRoleRepository.PermissionPair> permissions = requested == null
                 ? null
                 : requested.stream()
-                        .map(p -> new MdRoleRepository.PermissionPair(p.formCode(), p.action()))
+                        .map(p -> new MdRoleRepository.PermissionPair(
+                                PermissionAreas.currentForm(p.formCode()), p.action()))
                         .toList();
 
         // The role matrix used not to be checked at all: any pair could be written to
