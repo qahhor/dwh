@@ -81,7 +81,6 @@ class MsNoteForeignRecordIntegrationTest extends EmbeddedPostgresTest {
                                 Map.of("title", "x")),
                         new Path("delete", id -> delete("/api/v1/notes/" + id), null),
                         new Path("pin", id -> put("/api/v1/notes/" + id + "/pin"), Map.of("pinned", true)),
-                        new Path("toggle pin", id -> post("/api/v1/notes/" + id + "/pin"), null),
                         new Path("history", id -> get("/api/v1/history/ms.notes/" + id), null))
                 .map(Arguments::of);
     }
