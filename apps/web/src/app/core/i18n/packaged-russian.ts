@@ -1931,6 +1931,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "error.search.request_history_unavailable": "История запроса с этим requestId недоступна",
   "error.search.retry_request_invalid": "Некорректный запрос повтора задания",
   "error.search.schema_profile_invalid": "Некорректный профиль схемы поиска: допустимы MIXED и RU",
+  "error.search.scope_restricted": "Глобальный поиск доступен только администратору с неограниченной областью данных (правило ALL)",
   "error.search.settings_changed": "Настройки поиска уже изменены. Обновите данные и повторите",
   "error.search.settings_request_invalid": "Некорректный запрос настроек поиска",
   "error.search.storage_insufficient": "Недостаточно места в хранилище поиска для перестройки индекса",

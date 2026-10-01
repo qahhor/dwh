@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * The checks every task service starts with: the task is visible in the actor's data scope (ADR-0013), a referenced
- * project exists, a participant is someone the actor may see. One place, so the task services cannot drift apart.
+ * project is visible to the actor, a participant is someone the actor may see. One place, so the task services cannot drift apart.
  * Callers hold the transaction; this bean has none of its own.
  */
 @Component
@@ -40,11 +40,17 @@ public class MsTaskAccess {
                 .orElseThrow(() -> new ApiException(ErrorCode.TASK_NOT_FOUND));
     }
 
-    /** A project the task refers to must exist; {@code null} means no project. */
-    public void requireProject(Long projectId) {
+    /**
+     * A project the task refers to must be visible to the actor; {@code null} means no project. A project outside the
+     * actor's data scope answers exactly like a missing one (404, {@code PROJECT_NOT_FOUND}): its id reveals nothing,
+     * and a task cannot attach to it and so make it visible by participation (ADR-0013). {@code actorId} null is a
+     * system call.
+     */
+    public void requireProject(Long projectId, Long actorId) {
         if (projectId != null) {
             ApiException.requirePresent(
-                    projectRepository.findById(projectId), () -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
+                    projectRepository.findById(projectId, scopeService.filterForProjects(actorId)),
+                    () -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
         }
     }
 

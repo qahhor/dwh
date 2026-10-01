@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.*;
 import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
+import com.smartup24.cms.instance.common.security.DataScopeRules;
 import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
@@ -288,7 +289,13 @@ abstract class SearchSettingsIntegrationTestSupport {
                             type = FilterType.REGEX,
                             pattern =
                                     ".*(SearchGenerationService|SearchGenerationRepository|SearchJobAudit|SearchStoragePreflight|SearchProjectionReader|SearchJobService|SearchJobRepository|SearchController|SearchManagementController|SearchSettingsService|SearchStatusService|SearchExecutionSnapshotReader|SearchSettingsRepository|SearchPolicyProvider|SearchService|SearchAccessPolicy|SearchResultBudget|SearchIndexStateRepository|SearchFallbackRepository|TypesenseClient|TypesenseCollections|TypesenseHealth|TypesenseSearch)$"))
-    @Import({AuditLogService.class, AuditLogRepository.class, AuditDataRedactor.class, LegacyController.class})
+    @Import({
+        AuditLogService.class,
+        AuditLogRepository.class,
+        AuditDataRedactor.class,
+        DataScopeRules.class,
+        LegacyController.class
+    })
     static class Fixture {
         @Bean
         DataSource dataSource() {

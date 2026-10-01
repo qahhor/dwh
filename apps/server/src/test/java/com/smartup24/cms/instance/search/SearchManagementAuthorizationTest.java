@@ -62,6 +62,52 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
     }
 
     @Test
+    void administratorWithRestrictedDataScopeReadsNoResultsButStillManagesTheIndex() throws Exception {
+        // ADR-0013, 2.5: the results need an administrator whose rule is ALL; status and jobs carry no rows.
+        authenticate(Set.of("search.view"), true);
+        jdbc.sql("insert into md_user_scope (user_id, rule) values (:user, 'UNITS')"
+                        + " on conflict (user_id) do update set rule = excluded.rule")
+                .param("user", actorId)
+                .update();
+        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.messageKey").value("error.search.scope_restricted"));
+        mvc.perform(auth(get("/api/v1/search")).param("q", "#1"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.messageKey").value("error.search.scope_restricted"));
+        mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"delivery\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.messageKey").value("error.search.scope_restricted"));
+        assertThat(requests).isEmpty();
+        mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk());
+        mvc.perform(auth(get("/api/v1/search/jobs"))).andExpect(status().isOk());
+    }
+
+    @Test
+    void unrestrictedDataScopeAloneDoesNotOpenGlobalSearch() throws Exception {
+        // A non-administrator with the rule ALL is refused: the index does not check per-entity view permissions.
+        authenticate(Set.of("search.view"), false);
+        jdbc.sql("insert into md_user_scope (user_id, rule) values (:user, 'ALL')"
+                        + " on conflict (user_id) do update set rule = excluded.rule")
+                .param("user", actorId)
+                .update();
+        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.messageKey").value("error.search.admin_only"));
+        assertThat(requests).isEmpty();
+    }
+
+    @Test
+    void unrestrictedAdministratorSearches() throws Exception {
+        authenticate(Set.of("search.view"), true);
+        jdbc.sql("insert into md_user_scope (user_id, rule) values (:user, 'ALL')"
+                        + " on conflict (user_id) do update set rule = excluded.rule")
+                .param("user", actorId)
+                .update();
+        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery")).andExpect(status().isOk());
+    }
+
+    @Test
     void explicitEmptyLimitCannotMoveValidationAheadOfTheServiceAdminCheck() throws Exception {
         authenticate(Set.of("search.view"), false);
         mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("limit", ""))

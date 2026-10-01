@@ -1,9 +1,7 @@
 package com.smartup24.cms.instance.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
-import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrap;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
@@ -13,7 +11,6 @@ import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
-import com.smartup24.cms.instance.search.service.SearchAccessPolicy;
 import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
 import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
 import com.smartup24.cms.instance.search.service.SearchJobWorker;
@@ -116,7 +113,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
             var service = new SearchService(
                     client.search(),
                     new SearchFallbackRepository(jdbc),
-                    new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),
+                    SearchAccessFixtures.policy(),
                     new SearchResultBudget(),
                     new SearchPolicyProvider(
                             new SearchOwnerRateLimits() {
