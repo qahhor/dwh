@@ -26,7 +26,6 @@ apps/server/src/main/java/com/smartup24/cms/instance/ms/task/service/MsProjectSe
 apps/server/src/main/java/com/smartup24/cms/instance/ms/task/service/MsTaskCommentService.java 3
 apps/server/src/main/java/com/smartup24/cms/instance/ms/task/service/MsTaskMemberService.java 2
 apps/server/src/main/java/com/smartup24/cms/instance/ms/task/service/MsTaskStatusService.java 1
-apps/server/src/main/java/com/smartup24/cms/instance/search/service/QueryLanguageConverter.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/upl/UplLimits.java 7
 apps/server/src/main/java/com/smartup24/cms/instance/upl/UplPref.java 3
 apps/server/src/main/java/com/smartup24/cms/instance/upl/api/UplPackageController.java 7
