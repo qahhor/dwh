@@ -51,8 +51,13 @@ publish local audit drafts as requirements or evidence.
 - A breaking API change carries the commit trailer
   `Api-Breaking: <what>` in the **last paragraph** of a commit message (git
   parses trailers only there) or the PR label `api-breaking`, plus an entry
-  under `### Changed` in `CHANGELOG.md`. Keep old forms for one release
-  through `common.web.ApiDeprecations` (ADR-0023).
+  under `### Changed` in `CHANGELOG.md`.
+- **No client installations exist before the final release** (product owner,
+  2026-10-01): do not add legacy aliases, transition periods, deprecated API
+  forms kept for a release, or migrations that preserve or convert existing
+  client data. Record a breaking change in `CHANGELOG.md`; no compatibility
+  path is needed. Compatibility layers already in the code stay until the user
+  asks to remove them.
 - Released Flyway migrations never change (`migration-manifest.sha256`,
   checked by `MigrationManifestTest`). A new migration takes the next free
   `V` number and is appended to the manifest
