@@ -116,8 +116,11 @@ JSON, сроки хранения) и `config` (безопасность, фил
 - API: `scripts/api/test-api-contract.ps1` (Spectral, свежесть типов веба,
   openapi-diff против базовой ветки).
 - E2E (`e2e`): `npm run typecheck`; доступность — `npm run test:a11y`; полный
-  прогон на стенде Compose — `scripts/dev/test-e2e.ps1` (в CI два шарда,
-  `-Shard N/2`).
+  прогон на стенде Compose с почтовой заглушкой
+  (`docker compose -f docker-compose.yml -f scripts/dev/e2e-mail.compose.yml up -d --wait`)
+  — `scripts/dev/test-e2e.ps1` (в CI два шарда, `-Shard N/2`; `-CheckReadiness`
+  в конце останавливает postgres и проверяет readiness,
+  `scripts/dev/test-readiness-dependency.ps1`).
 - Документация и репозиторий: `scripts/docs/test-public-docs.ps1` (каждый ADR
   в индексе, ссылки), `scripts/docs/test-repository-hygiene.ps1`,
   `scripts/architecture/test-unified-boundaries.ps1`.
