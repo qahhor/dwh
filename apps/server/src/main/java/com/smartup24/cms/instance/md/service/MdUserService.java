@@ -86,7 +86,7 @@ public class MdUserService {
         }
 
         // Validate custom dynamic fields
-        customFieldService.validateAttributes("USER", attributes);
+        Map<String, Object> storedAttributes = customFieldService.checkedAttributes("USER", attributes);
 
         String passwordHash =
                 rawPassword != null && !rawPassword.isBlank() ? passwordHasher.hashPassword(rawPassword) : null;
@@ -103,7 +103,7 @@ public class MdUserService {
                         language,
                         timezone,
                         avatarFileId,
-                        attributes,
+                        storedAttributes,
                         is2faEnabled,
                         forcePasswordChange),
                 createdBy);
@@ -238,14 +238,20 @@ public class MdUserService {
             }
         }
 
-        if (attributes != null) {
-            customFieldService.validateAttributes("USER", attributes);
-        }
+        Map<String, Object> storedAttributes =
+                attributes != null ? customFieldService.checkedAttributes("USER", attributes) : null;
 
         long revision = userRepository.update(
                 userId,
                 new MdUserRepository.UserUpdateData(
-                        name, normalizedPhone, managerId, language, timezone, avatarFileId, attributes, is2faEnabled),
+                        name,
+                        normalizedPhone,
+                        managerId,
+                        language,
+                        timezone,
+                        avatarFileId,
+                        storedAttributes,
+                        is2faEnabled),
                 modifiedBy,
                 expectedRevision);
 
