@@ -5,6 +5,17 @@ extends:
   - spectral:oas
 
 rules:
+  # Every operation says what it does: a one-line summary and a description, written on its handler (@Operation).
+  operation-description: error
+
+  smc-operation-summary:
+    description: An operation has a short summary (@Operation(summary = ...) on its handler).
+    severity: error
+    given: $.paths[*][get,put,post,delete,patch]
+    then:
+      field: summary
+      function: truthy
+
   smc-path-kebab-case:
     description: A path segment is lower-case kebab-case; a variable is camelCase.
     severity: error
