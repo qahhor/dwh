@@ -11,9 +11,9 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Keyset-курсор списка: значение сортировки и ключ последней строки, итог первой страницы и отпечаток
- * запроса. Курсор от другого фильтра или сортировки отвергается: иначе страница продолжилась бы не тем запросом.
- * Ключ строки хранится текстом: числовой id и UUID ({@code f.id::text}) одинаково годятся.
+ * A list keyset cursor: the sort value and key of the last row, the first page's total and the query
+ * fingerprint. A cursor from another filter or sort is rejected; otherwise the page would continue a different
+ * query. The row key is stored as text, so a numeric id and a UUID ({@code f.id::text}) both work.
  */
 public record QueryCursor(String fingerprint, Object sortValue, String lastId, long total) {
 
@@ -34,7 +34,7 @@ public record QueryCursor(String fingerprint, Object sortValue, String lastId, l
         return CursorUtils.encode(node.toString());
     }
 
-    /** Разбирает курсор; {@code null} — курсор битый или от другого запроса. */
+    /** Parses a cursor; {@code null} means the cursor is broken or belongs to another query. */
     static @Nullable QueryCursor decode(String cursor, String fingerprint, QueryField sort) {
         String raw = CursorUtils.decode(cursor);
         if (raw == null) {

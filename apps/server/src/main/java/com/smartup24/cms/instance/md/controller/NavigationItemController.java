@@ -37,7 +37,7 @@ public class NavigationItemController {
         return ResponseEntity.ok(NavigationItemService.visibleToViewer(navigationService.getActiveItems()));
     }
 
-    /** Пары каталога, которыми можно ограничить пункт меню. */
+    /** Catalog pairs that can restrict a menu item. */
     @Operation(
             summary = "List menu permission choices",
             description = "The catalog pairs a menu item may be restricted by.")

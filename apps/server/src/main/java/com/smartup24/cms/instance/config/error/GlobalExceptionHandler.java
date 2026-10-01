@@ -98,17 +98,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ProblemDetailRecord> handleUnreadableBody(
             HttpMessageNotReadableException ex, HttpServletRequest request) {
-        // Некорректный JSON — вина клиента, а не сервера: 400, не 500.
-        // Текст исключения наружу не отдаём (может содержать фрагменты тела).
+        // Malformed JSON is the client's fault, not the server's: 400, not 500.
+        // The exception text is not exposed (it may contain fragments of the body).
         log.warn("Некорректное тело запроса {}: {}", request.getRequestURI(), ex.getMessage());
         return problem(HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "error.request_body_invalid", Map.of(), request);
     }
 
     /**
-     * Д-9 (AUDIT-05): метод не поддержан маршрутом — это ошибка клиента, а не сбой сервера.
-     * Раньше исключение проваливалось в общий обработчик: клиент получал 500, а в журнал
-     * шло «Unhandled exception», маскируя настоящие сбои.
-     * RFC 9110 требует на 405 заголовок Allow — отдаём его, чтобы клиент знал разрешённые методы.
+     * The route does not support the method: a client error, not a server failure.
+     * The exception used to fall through to the generic handler: the client got 500 and the log
+     * got "Unhandled exception", masking real failures.
+     * RFC 9110 requires an Allow header on 405, so it is sent to tell the client the allowed methods.
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ProblemDetailRecord> handleMethodNotSupported(
@@ -133,12 +133,12 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Нарушение ограничения БД (unique, not null, внешний ключ) — следствие
-     * данных запроса, а не сбоя сервера. Раньше уходило в общий обработчик:
-     * клиент получал 500, а в журнал шло «Unhandled exception».
+     * A database constraint violation (unique, not null, foreign key) results from
+     * the request data, not from a server failure. It used to go to the generic handler:
+     * the client got 500 and the log got "Unhandled exception".
      *
-     * Наружу идёт только код и общий текст: имя ограничения и фрагмент SQL —
-     * внутренняя деталь схемы, по которой не должен строиться клиент.
+     * Only the code and a generic text are exposed: the constraint name and SQL fragment
+     * are internal schema details the client must not be built on.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ProblemDetailRecord> handleDataIntegrityViolation(
@@ -313,7 +313,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AsyncRequestNotUsableException.class)
     public void handleAsyncRequestNotUsable(AsyncRequestNotUsableException ex) {
-        // Браузер закрыл SSE/HTTP-соединение: ответ уже недоступен, формировать 500 поздно и неверно.
+        // The browser closed the SSE/HTTP connection: the response is gone, so building a 500 is too late and wrong.
         log.debug("Клиент закрыл соединение до завершения ответа: {}", ex.getMessage());
     }
 

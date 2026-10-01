@@ -8,18 +8,18 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Описание списка для реестра: откуда читать, какие поля есть и кто их видит.
- * Модуль объявляет его бином; {@link QueryListRegistry} собирает все такие бины.
+ * A list description for the registry: where to read from, which fields exist and who sees them.
+ * A module declares it as a bean; {@link QueryListRegistry} collects all such beans.
  *
- * @param code         код списка в {@code /api/v1/query-meta/{code}} ({@code upl.sources})
- * @param form         форма права на просмотр; по ней же отдаются метаданные
- * @param action       действие права на просмотр
- * @param select       список выборки без {@code select}
- * @param from         источник без {@code from}: таблица с алиасом и соединения
- * @param idSql        уникальный ключ строки; добивает сортировку, чтобы курсор был однозначным
- * @param defaultSort  ключ поля сортировки по умолчанию
- * @param customEntity сущность дополнительных полей ({@code TASK}); null — у списка их нет (ADR-0019, 2.3)
- * @param attributesSql выражение колонки {@code attributes} строки ({@code t.attributes})
+ * @param code         list code in {@code /api/v1/query-meta/{code}} ({@code upl.sources})
+ * @param form         form of the view permission; metadata is served under it too
+ * @param action       action of the view permission
+ * @param select       select list without {@code select}
+ * @param from         source without {@code from}: the aliased table and joins
+ * @param idSql        unique row key; completes the sort so the cursor is unambiguous
+ * @param defaultSort  key of the default sort field
+ * @param customEntity custom field entity ({@code TASK}); null means the list has none (ADR-0019)
+ * @param attributesSql expression for the row's {@code attributes} column ({@code t.attributes})
  * @param estimatedTotal the first page reports the planner's estimate of the rows instead of counting them: for a
  *                       table that grows without bound, such as the audit log (plan 10/10, item 3.5)
  */
@@ -168,12 +168,12 @@ public record QueryList(
         return fields.stream().filter(field -> field.key().equals(key)).findFirst();
     }
 
-    /** Поля, которые видит тот, кто сейчас спрашивает (права на поля, ADR-0016, 2.9). */
+    /** Fields the current requester can see (field permissions, ADR-0016). */
     public List<QueryField> viewerFields() {
         return fields.stream().filter(QueryField::visibleToViewer).toList();
     }
 
-    /** Поле по ключу, если смотрящий его видит; чужое поле неотличимо от несуществующего. */
+    /** The field by key if the viewer can see it; a hidden field is indistinguishable from a missing one. */
     public Optional<QueryField> viewerField(String key) {
         return field(key).filter(QueryField::visibleToViewer);
     }

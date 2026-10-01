@@ -8,8 +8,8 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Проверенный запрос к списку: условия с типизированными значениями, сортировка, размер страницы и курсор.
- * Строится только {@link QueryCompiler}; SQL собирается из выражений реестра, значения идут параметрами.
+ * A validated list query: conditions with typed values, sort, page size and cursor.
+ * Built only by {@link QueryCompiler}; SQL is assembled from registry expressions, values go as parameters.
  */
 public record QueryPlan(
         QueryList list,
@@ -23,8 +23,8 @@ public record QueryPlan(
         Set<String> hiddenFields) {
 
     /**
-     * Условие фильтра; {@code values} уже приведены к типу поля. {@code group} — номер группы «или»
-     * ({@code {"any": [...]}}), {@code -1} — условие соединяется с остальными через «и».
+     * A filter condition; {@code values} are already converted to the field type. {@code group} is the number of
+     * an "or" group ({@code {"any": [...]}}); {@code -1} means the condition is joined to the others with "and".
      */
     public record Condition(QueryField field, QueryOp op, List<Object> values, int group) {
 
@@ -37,7 +37,7 @@ public record QueryPlan(
         }
     }
 
-    /** Кусок SQL с его параметрами. Параметры реестра начинаются с {@code q_}, чтобы не спорить с параметрами модуля. */
+    /** A SQL fragment with its parameters. Registry parameters start with {@code q_} so module ones never clash. */
     public record SqlFragment(String sql, Map<String, Object> params) {}
 
     public QueryPlan {
@@ -46,14 +46,14 @@ public record QueryPlan(
     }
 
     /**
-     * Отдаёт ли список значение поля этому смотрящему. Модуль, собирая строку ответа, оставляет поле
-     * пустым, если нет (права на поля, ADR-0016, 2.9); пустое поле в JSON не пишется.
+     * Whether the list returns the field's value to this viewer. If not, the module leaves the field empty when
+     * building the response row (field permissions, ADR-0016); an empty field is not written to JSON.
      */
     public boolean shows(String key) {
         return !hiddenFields.contains(key);
     }
 
-    /** Условия фильтра: пусто или {@code " and ..."}; условия одной группы «или» — в скобках через {@code or}. */
+    /** Filter conditions: empty or {@code " and ..."}; one "or" group's conditions are bracketed with {@code or}. */
     public SqlFragment where() {
         StringBuilder sql = new StringBuilder();
         Map<String, Object> params = new LinkedHashMap<>();
@@ -158,7 +158,7 @@ public record QueryPlan(
         }
     }
 
-    /** Продолжение после курсора: пусто или {@code " and (...)"} по паре «значение сортировки, ключ строки». */
+    /** Continuation after the cursor: empty or {@code " and (...)"} over the pair (sort value, row key). */
     public SqlFragment keyset() {
         if (cursor == null) {
             return new SqlFragment("", Map.of());

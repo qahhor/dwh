@@ -113,7 +113,7 @@ public class KauthApiTokenRepository {
                 """).param("tokenId", tokenId).param("userId", userId).update();
     }
 
-    /** Массовый отзыв всех активных токенов пользователя (инвариант I-U1). */
+    /** Revokes all active tokens of the user at once (user-blocking invariant, FR-USR-4). */
     public void revokeAllUserTokens(Long userId) {
         jdbcClient
                 .sql("update kauth_api_tokens set revoked_at = now() where user_id = :userId and revoked_at is null")

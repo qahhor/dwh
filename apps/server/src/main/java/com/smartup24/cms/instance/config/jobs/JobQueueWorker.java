@@ -8,10 +8,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Запускатель общей очереди заданий: раз в несколько секунд ставит в очередь задания расписания, чей срок подошёл,
- * и выполняет очередь — задания всех модулей (разбор загрузок, экспорт, очистка). Живёт в обвязке приложения:
- * ядро {@code fnd} не планирует само (AC-7). В тестах выключен
- * ({@code dwh.fnd.jobs.ticker-enabled=false}) — тесты вызывают {@code runQueued()} сами.
+ * Driver of the shared job queue: every few seconds it enqueues scheduled jobs that are due and runs the queue,
+ * the jobs of all modules (upload parsing, export, cleanup). It lives in the application wiring because the
+ * {@code fnd} core does not schedule anything itself. Disabled in tests
+ * ({@code dwh.fnd.jobs.ticker-enabled=false}): tests call {@code runQueued()} themselves.
  */
 @Component
 @ConditionalOnProperty(name = "dwh.fnd.jobs.ticker-enabled", matchIfMissing = true)

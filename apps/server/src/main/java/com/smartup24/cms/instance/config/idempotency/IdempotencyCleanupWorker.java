@@ -8,8 +8,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Фоновый воркер очистки устаревших записей идемпотентности (I-04).
- * Записи старше retention-days (по умолчанию 14 дней) удаляются по расписанию.
+ * Background worker that cleans up expired idempotency records.
+ * Records older than retention-days (14 days by default) are deleted on a schedule.
  */
 @Component
 @Profile("!migrate")

@@ -3,27 +3,27 @@ package com.smartup24.cms.instance.common.security;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Ограничение выборки строк по скоупу данных (ADR-0013).
+ * Restricts selected rows by data scope (ADR-0013).
  *
- * Возвращается как готовый фрагмент SQL, а не как список идентификаторов:
- * фильтрация после выборки ломает пагинацию (страница в 50 строк после
- * фильтра станет короче) и счётчики, а на витринах Этапа 2 — ещё и скорость.
+ * Returned as a ready SQL fragment, not as a list of ids: filtering after
+ * the query breaks pagination (a 50-row page gets shorter after filtering)
+ * and counters, and on large data marts it also hurts performance.
  *
- * Фрагмент дописывается к запросу вида {@code ... where 1=1}, поэтому всегда
- * начинается с {@code and}. Пустой фрагмент означает «ограничений нет»
- * (правило ALL) — это самый частый случай, и он не стоит ничего.
+ * The fragment is appended to a query of the form {@code ... where 1=1}, so it
+ * always starts with {@code and}. An empty fragment means "no restriction"
+ * (rule ALL); that is the most frequent case and it costs nothing.
  */
 public record ScopeFilter(
         String sql, boolean bindsUserId, @Nullable Long userId) {
 
     private static final ScopeFilter UNRESTRICTED = new ScopeFilter("", false, null);
 
-    /** Правило ALL: запрос не меняется. */
+    /** Rule ALL: the query is unchanged. */
     public static ScopeFilter unrestricted() {
         return UNRESTRICTED;
     }
 
-    /** Правила SUBTREE и UNITS: строка видна, если её узел материализован в скоупе. */
+    /** Rules SUBTREE and UNITS: a row is visible if its unit is materialized in the scope. */
     public static ScopeFilter byOrgUnit(String orgUnitColumn, Long userId) {
         return new ScopeFilter(
                 " and " + orgUnitColumn + " in ("
@@ -32,7 +32,7 @@ public record ScopeFilter(
                 userId);
     }
 
-    /** Правило SELF: видны только собственные строки. */
+    /** Rule SELF: only the user's own rows are visible. */
     public static ScopeFilter byOwner(String ownerColumn, Long userId) {
         return new ScopeFilter(" and " + ownerColumn + " = :scopeUserId", true, userId);
     }

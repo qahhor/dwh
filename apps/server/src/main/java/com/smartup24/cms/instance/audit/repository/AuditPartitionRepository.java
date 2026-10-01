@@ -12,21 +12,22 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /**
- * Обслуживание партиций {@code audit_log} (FR-AUD-2): месячных — прошлых и текущей, дневных — с V127.
+ * Maintenance of {@code audit_log} partitions (FR-AUD-2): monthly ones for past and current months, daily ones
+ * since V127.
  *
- * Это регламентное обслуживание, а не эволюция схемы: версия Flyway не
- * меняется, структура таблиц не трогается, schema-gate (FR-INST-2) ничего не
- * замечает. Запрет NFR-10 «приложение не мигрирует схему» сюда не относится —
- * иначе партиции пришлось бы досоздавать миграцией вручную.
+ * This is routine maintenance, not schema evolution: the Flyway version does not
+ * change, table structure is untouched, and the schema gate (FR-INST-2) notices
+ * nothing. The NFR-10 rule "the application does not migrate the schema" does not
+ * apply here; otherwise partitions would have to be added by hand with migrations.
  *
- * DDL выполняют SECURITY DEFINER функции (I-02): у приложения нет прав DDL и владения audit_log.
+ * DDL runs in SECURITY DEFINER functions: the application has no DDL rights and does not own audit_log.
  */
 @Repository
 public class AuditPartitionRepository {
 
     private static final DateTimeFormatter SUFFIX = DateTimeFormatter.ofPattern("yyyy_MM");
     private static final DateTimeFormatter DAY_SUFFIX = DateTimeFormatter.ofPattern("yyyy_MM_dd");
-    /** Имя партиции журнала: месячной или дневной, прикреплённой или отцеплённой сроком хранения. */
+    /** A log partition name: monthly or daily, attached or detached by retention. */
     private static final Pattern NAME = Pattern.compile("^audit_log_(archived_)?(\\d{4})_(\\d{2})(?:_(\\d{2}))?$");
 
     private final JdbcClient jdbc;
@@ -36,9 +37,9 @@ public class AuditPartitionRepository {
     }
 
     /**
-     * Партиция журнала за период {@code [from, to)}.
+     * A log partition covering the period {@code [from, to)}.
      *
-     * @param attached прикреплена к {@code audit_log}; отцеплённая сроком хранения называется
+     * @param attached attached to {@code audit_log}; a partition detached by retention is named
      *                 {@code audit_log_archived_*}
      */
     public record AuditPartition(String name, LocalDate from, LocalDate to, boolean attached) {
@@ -47,13 +48,13 @@ public class AuditPartitionRepository {
             return to.equals(from.plusDays(1));
         }
 
-        /** Закрыта: в неё больше не попадёт ни одна строка, её можно выгружать. */
+        /** Closed: no row will ever land in it again, so it can be archived. */
         public boolean closedBy(LocalDate today) {
             return !to.isAfter(today);
         }
     }
 
-    /** Разбирает имя партиции; имена, выведенные не из даты, сюда не попадают. */
+    /** Parses a partition name; names not derived from a date never reach this method. */
     public static Optional<AuditPartition> parse(String name, boolean attached) {
         Matcher m = NAME.matcher(name);
         if (!m.matches()) {
@@ -69,7 +70,7 @@ public class AuditPartitionRepository {
         return Optional.of(new AuditPartition(name, day, day.plusDays(1), attached));
     }
 
-    /** Имя партиции за месяц. Выведено из даты, пользовательский ввод сюда не попадает. */
+    /** The partition name for a month. Derived from a date; user input never reaches it. */
     public static String partitionName(YearMonth month) {
         return "audit_log_" + month.format(SUFFIX);
     }
@@ -82,7 +83,7 @@ public class AuditPartitionRepository {
         return tableExists(partitionName(month));
     }
 
-    /** День уже покрыт партицией: месячной, если месяц ещё месячный, или дневной. */
+    /** The day is already covered by a partition: a monthly one if the month is still monthly, else a daily one. */
     public boolean covers(LocalDate day) {
         return tableExists(partitionName(YearMonth.from(day))) || tableExists(dayPartitionName(day));
     }
@@ -95,7 +96,7 @@ public class AuditPartitionRepository {
                 .single());
     }
 
-    /** Месячная партиция (V033): для месяцев, которые ещё месячные, и для тестов обслуживания. */
+    /** A monthly partition (V033): for months that are still monthly, and for maintenance tests. */
     public void create(YearMonth month) {
         jdbc.sql("select audit_log_create_partition(:year, :month)")
                 .param("year", month.getYear())
@@ -105,9 +106,10 @@ public class AuditPartitionRepository {
     }
 
     /**
-     * Дневная партиция (V127). Если месяц ещё месячный, функция ничего не создаёт и возвращает имя месячной.
+     * A daily partition (V127). If the month is still monthly, the function creates nothing and returns the
+     * monthly partition's name.
      *
-     * @return имя партиции, которая покрывает день
+     * @return the name of the partition that covers the day
      */
     public String createDay(LocalDate day) {
         return jdbc.sql("select audit_log_create_day_partition(:day)")
@@ -117,8 +119,8 @@ public class AuditPartitionRepository {
     }
 
     /**
-     * Все партиции журнала: прикреплённые (кроме аварийного приёмника {@code audit_log_default}, у него нет
-     * границ) и отцеплённые сроком хранения, по возрастанию начала периода.
+     * All log partitions: attached ones (except the fallback {@code audit_log_default}, which has no bounds) and
+     * those detached by retention, ordered by period start.
      */
     public List<AuditPartition> partitions() {
         List<AuditPartition> result = new ArrayList<>();
@@ -141,7 +143,7 @@ public class AuditPartitionRepository {
     }
 
     /**
-     * Месячные партиции, прикреплённые к {@code audit_log} и относящиеся к месяцам строго раньше {@code before}.
+     * Monthly partitions attached to {@code audit_log} for months strictly before {@code before}.
      */
     public List<YearMonth> attachedPartitionsBefore(YearMonth before) {
         List<YearMonth> result = new ArrayList<>();
@@ -156,10 +158,10 @@ public class AuditPartitionRepository {
     }
 
     /**
-     * Отцепляет месячную партицию и переименовывает её в {@code audit_log_archived_YYYY_MM} (V033, V125).
+     * Detaches a monthly partition and renames it to {@code audit_log_archived_YYYY_MM} (V033, V125).
      *
-     * Данные НЕ удаляются: срок хранения кончился для оперативного журнала, а не для самих записей.
-     * Удаляет данные только выгрузка в архив ({@link #dropArchived}), и только когда это включено.
+     * Data is NOT deleted: retention ended for the operational log, not for the records themselves.
+     * Only the archive export deletes data ({@link #dropArchived}), and only when that is enabled.
      */
     public String detachAndArchive(YearMonth month) {
         return jdbc.sql("select audit_log_detach_partition(:year, :month)")
@@ -169,7 +171,7 @@ public class AuditPartitionRepository {
                 .single();
     }
 
-    /** Срок хранения для дневной партиции (V127): отцепить и переименовать в {@code audit_log_archived_*}. */
+    /** Retention for a daily partition (V127): detach it and rename it to {@code audit_log_archived_*}. */
     public String detachDay(LocalDate day) {
         return jdbc.sql("select audit_log_detach_day_partition(:day)")
                 .param("day", day)
@@ -177,7 +179,7 @@ public class AuditPartitionRepository {
                 .single();
     }
 
-    /** Место, которое партиция занимает на диске, с индексами. */
+    /** The disk space the partition takes, including indexes. */
     public long sizeBytes(AuditPartition partition) {
         Long size = jdbc.sql("select pg_total_relation_size(cast(:name as regclass))")
                 .param("name", partition.name())
@@ -187,8 +189,8 @@ public class AuditPartitionRepository {
     }
 
     /**
-     * Удаляет закрытую партицию, которую держит проверенный архив (V127). Функция сама проверяет, что архив
-     * есть и сверен, и отмечает партицию удалённой.
+     * Drops a closed partition held by a verified archive (V127). The function itself checks that the archive
+     * exists and is reconciled, and marks the partition as dropped.
      */
     public void dropArchived(AuditPartition partition) {
         jdbc.sql("select audit_log_drop_archived_partition(:name)")
@@ -197,7 +199,7 @@ public class AuditPartitionRepository {
                 .singleValue();
     }
 
-    /** Строки в аварийном приёмнике: их наличие блокирует создание партиции за тот же период. */
+    /** Rows in the fallback partition: while they exist, a partition for the same period cannot be created. */
     public long countDefaultRows() {
         Long count = jdbc.sql("select count(*) from audit_log_default")
                 .query(Long.class)

@@ -11,14 +11,14 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 
-/** Значения полей реестра: разбор из текста DSL и курсора, запись в курсор, чтение из строки выборки. */
+/** Registry field values: parsing from DSL and cursor text, writing to the cursor, reading from a result row. */
 final class QueryValues {
 
     static final int MAX_TEXT = 500;
 
     private QueryValues() {}
 
-    /** Значение для параметра запроса; {@link IllegalArgumentException} — значение не подходит полю. */
+    /** The value for a query parameter; {@link IllegalArgumentException} if the value does not fit the field. */
     static Object parse(QueryField field, String text) {
         if (text == null) {
             throw new IllegalArgumentException("null");
@@ -56,7 +56,7 @@ final class QueryValues {
         };
     }
 
-    /** Значение сортировки из строки выборки, в том же виде, в каком {@link #parse} отдаёт его параметру. */
+    /** The sort value from a result row, in the same form {@link #parse} gives it to a parameter. */
     static Object read(ResultSet rs, String column, QueryFieldType type) throws SQLException {
         Object value = switch (type) {
             case TEXT, ENUM -> rs.getString(column);

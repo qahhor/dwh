@@ -23,10 +23,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Назначение ролей и персональных прав (ТЗ-04 разд. 4.4, форма rbac.assignments).
- * Разделено с MdRoleController сознательно: там управление самими ролями
- * (rbac.roles), здесь — кому что выдано (rbac.assignments), и права на эти
- * операции разные по матрице ролей (разд. 4.4.1 ТЗ-01).
+ * Assignment of roles and personal permissions (form rbac.assignments).
+ * Deliberately separate from MdRoleController: that one manages the roles themselves
+ * (rbac.roles), this one manages who is granted what (rbac.assignments), and the role
+ * matrix grants different permissions for these operations.
  */
 @RestController
 @RequestMapping("/api/v1/iam/users/{userId}")
@@ -84,7 +84,7 @@ public class MdAssignmentController {
         return ResponseEntity.ok().eTag(Revisions.etag(saved.revision())).body(saved);
     }
 
-    /** Экран «права глазами пользователя» (FR-PERM-10): что есть и откуда пришло. */
+    /** The "permissions as the user sees them" screen (FR-PERM-10): what the user has and where it came from. */
     @Operation(
             summary = "Get the effective permissions of a user",
             description =

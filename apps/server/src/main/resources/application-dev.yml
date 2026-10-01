@@ -1,5 +1,5 @@
-# ТОЛЬКО локальная разработка (--spring.profiles.active=dev).
-# В прод-развёртывании эти значения приходят из конфигурации job'а (фаза P: Vault).
+# Local development ONLY (--spring.profiles.active=dev).
+# In a production deployment these values come from the job configuration (later from Vault).
 smc:
   public-url: http://localhost:4200
   delivery:
@@ -17,4 +17,4 @@ dwh:
     resource-profile: S
     admin-login: admin
     admin-email: admin@dev.local
-    admin-password: DevOnly-ChangeMe-1  # force_password_change=true при первом входе
+    admin-password: DevOnly-ChangeMe-1  # force_password_change=true on first sign-in

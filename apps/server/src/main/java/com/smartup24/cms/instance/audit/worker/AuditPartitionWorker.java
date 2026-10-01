@@ -17,15 +17,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Досоздание партиций {@code audit_log} вперёд и срок хранения оперативного журнала (FR-AUD-2).
+ * Creates {@code audit_log} partitions ahead of time and applies retention to the operational log (FR-AUD-2).
  *
- * С V127 партиции дневные: журнал выгружается в архив раз в неделю или при 100 МБ, и единица выгрузки —
- * закрытая партиция. Месяцы, которые уже месячные (текущий и прошлые), такими и остаются.
+ * Since V127 partitions are daily: the log is exported to the archive weekly or at 100 MB, and the unit of export
+ * is a closed partition. Months that are already monthly (the current and past ones) stay monthly.
  *
- * Партиция, не созданная вовремя, — тупик: аудит уходит в default, retention
- * его не отцепит, а создать нужную партицию задним числом PostgreSQL уже не
- * даст, пока подходящие строки лежат в default. Поэтому запас держим заранее:
- * при старте и затем каждую ночь.
+ * A partition not created in time is a dead end: audit rows go to default, retention
+ * cannot detach it, and PostgreSQL refuses to create the right partition after the fact
+ * while matching rows sit in default. So the margin is kept in advance:
+ * at startup and then every night.
  */
 @Component
 @Profile("!migrate")
@@ -46,7 +46,7 @@ public class AuditPartitionWorker {
         this.retentionMonths = retentionMonths;
     }
 
-    /** Экземпляр мог простоять выключенным дольше запаса — проверяем сразу на старте. */
+    /** The instance may have been off for longer than the margin, so the check also runs at startup. */
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {
         ensureRunway();
@@ -60,12 +60,12 @@ public class AuditPartitionWorker {
     }
 
     /**
-     * Срок хранения оперативного журнала (FR-AUD-2): партиции старше окна
-     * отцепляются от {@code audit_log} и переименовываются в архивные.
+     * Retention of the operational log (FR-AUD-2): partitions older than the window
+     * are detached from {@code audit_log} and renamed as archived.
      *
-     * Данные здесь не удаляются. Удалить их может только выгрузка в архив, и только
-     * когда эксплуатация это включила ({@code smc.audit.archive.delete-after-archive}).
-     * Ноль и отрицательные значения выключают отцепление — «хранить всё».
+     * No data is deleted here. Only the archive export can delete it, and only
+     * when operations enabled that ({@code smc.audit.archive.delete-after-archive}).
+     * Zero and negative values turn detaching off ("keep everything").
      */
     public void applyRetentionFrom(LocalDate today) {
         if (retentionMonths <= 0) {
@@ -97,7 +97,7 @@ public class AuditPartitionWorker {
         }
     }
 
-    /** Отдельный метод с явной датой: так поведение проверяется тестом без ожидания календаря. */
+    /** A separate method with an explicit date, so a test can check the behavior without waiting for the calendar. */
     public void ensureRunwayFrom(LocalDate today) {
         List<String> created = new ArrayList<>();
 
@@ -105,13 +105,13 @@ public class AuditPartitionWorker {
             LocalDate day = today.plusDays(i);
             try {
                 if (!partitionRepository.covers(day)) {
-                    // Каждая партиция — отдельный оператор: отказ на одном дне
-                    // не должен мешать создать остальные
+                    // Each partition is a separate statement: a failure on one day
+                    // must not prevent creating the others
                     created.add(partitionRepository.createDay(day));
                 }
             } catch (Exception e) {
-                // Ожидаемая причина одна: строки за этот день уже лежат в default,
-                // PostgreSQL сканирует его при создании партиции и отказывает
+                // The one expected cause: rows for this day already sit in default;
+                // PostgreSQL scans it when creating the partition and refuses
                 log.error(
                         "Не удалось создать партицию аудита за {}: {}. Перенесите строки "
                                 + "за этот день из audit_log_default и повторите",

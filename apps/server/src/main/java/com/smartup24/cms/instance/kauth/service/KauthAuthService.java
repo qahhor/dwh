@@ -110,9 +110,9 @@ public class KauthAuthService {
                 userAgent,
                 Map.of("login", login, "deviceInfo", deviceInfo != null ? deviceInfo : "web"));
 
-        // FR-AUTH-5: второй фактор. Канал выбирает не код, а пользователь —
-        // берём подтверждённый по порядку предпочтения. Нет канала — отказ со
-        // внятной причиной, а не токен, которым нельзя воспользоваться.
+        // FR-AUTH-5: second factor. The channel is chosen by the user, not by the code:
+        // take a confirmed one in order of preference. No channel means a refusal with
+        // a clear reason, not a token that cannot be used.
         if (user.is2faEnabled()) {
             var channel = channelService.resolveOtpChannel(user.id());
 
@@ -128,8 +128,8 @@ public class KauthAuthService {
                     "login",
                     Instant.now().plusSeconds(300));
 
-            // Отправка синхронная: код живёт пять минут, очередь с повторами
-            // здесь работает против пользователя. Провал — отказ входа.
+            // Sending is synchronous: the code lives five minutes, and a retry queue
+            // works against the user here. A failure means the sign-in is refused.
             otpSender.sendLoginCode(channel, otpCode);
 
             auditLogService.logSecurityEvent(
@@ -158,9 +158,9 @@ public class KauthAuthService {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.otp_token_invalid");
         }
 
-        // Код ищется по хешу выданного токена и только по нему. До V015 здесь
-        // стоял extractUserIdFromOtpToken(), возвращавший захардкоженную 1L:
-        // любой непустой токен приводил к коду администратора.
+        // The code is looked up by the hash of the issued token and by nothing else. Before V015
+        // this was extractUserIdFromOtpToken(), which returned a hard-coded 1L:
+        // any non-empty token led to the administrator's code.
         var otp = otpCodeRepository
                 .findActiveByTokenHash(KauthPasswordHasher.sha256(otpToken), "login")
                 .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.otp_token_invalid"));

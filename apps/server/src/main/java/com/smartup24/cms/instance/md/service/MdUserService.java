@@ -270,7 +270,7 @@ public class MdUserService {
                 expectedRevision);
 
         if (roleIds != null) {
-            // I-IAM-1: Нельзя снять роль администратора с системного администратора admin
+            // The administrator role cannot be removed from the system administrator admin
             if (existingUser.login().equalsIgnoreCase("admin")) {
                 roleRepository.findByPcode(MdPref.ROLE_ADMIN).ifPresent(adminRole -> {
                     if (!roleIds.contains(adminRole.id())) {

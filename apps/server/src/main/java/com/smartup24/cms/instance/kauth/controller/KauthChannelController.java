@@ -23,14 +23,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Свои каналы связи (FR-AUTH-5): привязка, подтверждение владения, отвязка.
+ * The user's own contact channels (FR-AUTH-5): linking, proving ownership, unlinking.
  *
- * Право {@code iam.profile:manage_channels} существовало в каталоге, но за ним
- * не стояло ни одного эндпоинта — синхронизация каталога с кодом пометила его
- * устаревшим. Эти эндпоинты возвращают его к жизни.
+ * The {@code iam.profile:manage_channels} permission existed in the catalog, but no
+ * endpoint stood behind it, so syncing the catalog with the code marked it
+ * obsolete. These endpoints bring it back to life.
  *
- * Пользователь управляет только своими каналами: идентификатор берётся из
- * контекста аутентификации, а не из запроса.
+ * A user manages only their own channels: the id comes from the
+ * authentication context, not from the request.
  */
 @RestController
 @RequestMapping("/api/v1/iam/profile/channels")

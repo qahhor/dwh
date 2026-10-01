@@ -5,8 +5,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Intelligent query transformation providing:
- * 1. Bidirectional keyboard layout auto-conversion (QWERTY <-> ЙЦУКЕН)
- * 2. Latin <-> Cyrillic transliteration and phonetic variants ("tast" <-> "тест")
+ * 1. Bidirectional keyboard layout auto-conversion (QWERTY <-> Russian JCUKEN)
+ * 2. Latin <-> Cyrillic transliteration and phonetic variants ("tast" <-> Cyrillic "test")
  * 3. Phonetic Soundex encoding for Russian & Latin words
  */
 @Component
@@ -59,7 +59,7 @@ public class QueryLanguageConverter {
             variants.add(transliterated);
         }
 
-        // Check common phonetic / keyboard typo substitutions like "tast" -> "тест"
+        // Check common phonetic / keyboard typo substitutions like "tast" -> Cyrillic "test"
         List<String> phonetics = getPhoneticSubstitutions(query);
         variants.addAll(phonetics);
 
@@ -77,7 +77,7 @@ public class QueryLanguageConverter {
     }
 
     /**
-     * Bidirectionally converts keyboard layout between QWERTY and ЙЦУКЕН
+     * Bidirectionally converts keyboard layout between QWERTY and Russian JCUKEN
      */
     public String convertLayout(String text) {
         if (text == null || text.isBlank()) return text;

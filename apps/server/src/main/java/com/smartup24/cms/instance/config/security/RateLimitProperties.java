@@ -5,8 +5,8 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Лимиты частоты запросов (FR-SEC-2, ADR-0008 разд. 2.2). Значения — в минуту.
- * Все значения настраиваются конфигурацией экземпляра.
+ * Request rate limits (FR-SEC-2, ADR-0008). Values are per minute.
+ * All values are set by the instance configuration.
  */
 @ConfigurationProperties(prefix = "dwh.rate-limit")
 public record RateLimitProperties(

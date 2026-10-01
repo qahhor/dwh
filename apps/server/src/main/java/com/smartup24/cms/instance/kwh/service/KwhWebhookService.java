@@ -61,10 +61,10 @@ public class KwhWebhookService {
 
         var subscription = subscriptionRepository.create(name, targetUrl, secretToken, subscribedEvents, createdBy);
 
-        // Подписка — канал утечки данных наружу, поэтому её появление, смена
-        // адреса и удаление обязаны быть в журнале (FR-AUD-1).
-        // Секретный токен в журнал НЕ попадает: аудит читают больше людей,
-        // чем должны знать ключ подписи.
+        // A subscription is a channel for data to leak outside, so its creation, address
+        // change and deletion must be in the audit log (FR-AUD-1).
+        // The secret token does NOT go to the log: more people read the audit
+        // than should know the signing key.
         auditLogService.logChange(
                 "kwh_subscriptions",
                 String.valueOf(subscription.id()),

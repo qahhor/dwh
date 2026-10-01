@@ -4,13 +4,13 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Конфигурация доверенных прокси-серверов и сетей (H05, FR-SEC-2).
+ * Configuration of trusted proxy servers and networks (FR-SEC-2).
  * <p>
- * По умолчанию включает:
+ * Includes by default:
  * <ul>
  *   <li>127.0.0.1/32, ::1/128 (loopback)</li>
- *   <li>10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 (частные сети IPv4, включая Docker Bridge/Compose)</li>
- *   <li>fc00::/7, fe80::/10 (локальные и link-local сети IPv6)</li>
+ *   <li>10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 (private IPv4 networks, including Docker Bridge/Compose)</li>
+ *   <li>fc00::/7, fe80::/10 (unique local and link-local IPv6 networks)</li>
  * </ul>
  */
 @ConfigurationProperties(prefix = "dwh.security")

@@ -11,9 +11,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * Профиль migrate: Flyway уже применил миграции при старте контекста
- * (в этом профиле spring.flyway.enabled=true) — раннер печатает итог
- * и завершает процесс. Приложение в этом режиме НЕ обслуживает запросы.
+ * The migrate profile: Flyway has already applied migrations at context startup
+ * (spring.flyway.enabled=true in this profile); the runner prints the result
+ * and exits the process. In this mode the application does NOT serve requests.
  */
 @Component
 @Profile("migrate")

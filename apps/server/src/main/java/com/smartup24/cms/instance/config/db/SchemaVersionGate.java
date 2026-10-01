@@ -7,8 +7,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * Schema-gate (FR-INST-2, ADR-0007 разд. 2.3): приложение ОТКАЗЫВАЕТСЯ стартовать,
- * если схема БД не совпадает с миграциями на classpath.
+ * Schema gate (FR-INST-2, ADR-0007): the application REFUSES to start
+ * if the database schema does not match the migrations on the classpath.
  */
 @Component
 @Profile("!migrate")

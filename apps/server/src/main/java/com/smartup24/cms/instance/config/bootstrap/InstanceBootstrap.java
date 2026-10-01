@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Инициализация экземпляра при первом старте (FR-INST-1):
- * instance_info и первый администратор создаются из конфигурации развёртывания,
- * а не миграциями (AUDIT-03 C-1/C-2: никаких DEMO-данных и известных паролей).
- * Идемпотентен: на инициализированном экземпляре — no-op.
+ * Initializes the instance on first start (FR-INST-1):
+ * instance_info and the first administrator are created from the deployment configuration,
+ * not by migrations (no demo data and no well-known passwords).
+ * Idempotent: a no-op on an already initialized instance.
  */
 @Component
 @Profile("!migrate")
@@ -111,8 +111,8 @@ public class InstanceBootstrap implements ApplicationRunner {
                         """).param("userId", userId).update();
 
         permissionService.recalculateEffectivePermissions(userId);
-        // Пароль в лог не пишется никогда (FR-OBS-4); force_password_change=true —
-        // первый вход потребует смену.
+        // The password is never written to the log (FR-OBS-4); force_password_change=true
+        // makes the first sign-in require a change.
         log.info("Первый администратор создан: login={}, смена пароля при входе обязательна", props.adminLogin());
     }
 
