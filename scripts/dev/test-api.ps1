@@ -329,13 +329,16 @@ foreach ($se in $secEvents) {
 # 17. Settings & Localization (M9 SET & I18N)
 Write-Host "`n17. System Settings & I18n Dictionaries (GET & PATCH /api/v1/settings/..., GET /api/v1/i18n/...)..." -ForegroundColor Yellow
 $sysSettings = Invoke-RestMethod -Uri "$BaseUrl/api/v1/settings/system" -Method Get -WebSession $session
-Write-Host "   Current System Settings: Company='$($sysSettings.'system.company_name')', Timezone='$($sysSettings.'system.default_timezone')', MinPassLen=$($sysSettings.'security.min_password_length')" -ForegroundColor Green
+Write-Host "   Current System Settings: Company='$($sysSettings.values.'system.company_name')', Timezone='$($sysSettings.values.'system.default_timezone')', Revision=$($sysSettings.revision)" -ForegroundColor Green
 
 $updateSettingsBody = @{
     "system.company_name" = "Smartup Enterprise DWH"
     "system.default_timezone" = "Asia/Tashkent"
 } | ConvertTo-Json
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/settings/system" -Method Patch -Body $updateSettingsBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+# The settings set is saved from its revision (ADR-0024): If-Match names the one just read.
+$settingsHeaders = Get-CsrfHeaders
+$settingsHeaders["If-Match"] = "`"$($sysSettings.revision)`""
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/settings/system" -Method Patch -Body $updateSettingsBody -ContentType "application/json" -WebSession $session -Headers $settingsHeaders
 Write-Host "   System Settings updated successfully" -ForegroundColor Green
 
 $effectiveSettings = Invoke-RestMethod -Uri "$BaseUrl/api/v1/settings" -Method Get -WebSession $session

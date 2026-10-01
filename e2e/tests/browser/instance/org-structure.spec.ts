@@ -27,7 +27,7 @@ type Role = { id: number; name: string; revision?: number };
 type User = { id: number; name: string; login: string };
 type TaskRecord = { id: number; title: string };
 type TaskPage = { items: TaskRecord[] };
-type UserAssignments = { userId: number; orgUnitIds: number[]; legacyOrgUnitId: number | null };
+type UserAssignments = { userId: number; orgUnitIds: number[]; legacyOrgUnitId: number | null; revision: number };
 type Fixture = {
   root: OrgUnit;
   primary: OrgUnit;
@@ -169,6 +169,13 @@ async function api<T>(
   } finally {
     await response.dispose();
   }
+}
+
+/** Replaces the units of a user from the user's revision, as the user panel does (plan item 3.6). */
+async function assignUnits(page: Page, userId: number, orgUnitIds: number[]): Promise<void> {
+  const path = `/iam/org-units/users/${userId}`;
+  const current = await api<UserAssignments>(page.context(), 'GET', path, 200);
+  await api<void>(page.context(), 'PUT', path, 204, { orgUnitIds }, current.revision);
 }
 
 async function createOrgUnit(
@@ -483,9 +490,9 @@ test.describe.serial('organization structure vertical acceptance', () => {
     const peerFixture = await createUser(page, role.id, 'peer');
     const childFixture = await createUser(page, role.id, 'child');
     const otherFixture = await createUser(page, role.id, 'other');
-    await api<void>(page.context(), 'PUT', `/iam/org-units/users/${peerFixture.user.id}`, 204, { orgUnitIds: [primary.id] });
-    await api<void>(page.context(), 'PUT', `/iam/org-units/users/${childFixture.user.id}`, 204, { orgUnitIds: [child.id] });
-    await api<void>(page.context(), 'PUT', `/iam/org-units/users/${otherFixture.user.id}`, 204, { orgUnitIds: [other.id] });
+    await assignUnits(page, peerFixture.user.id, [primary.id]);
+    await assignUnits(page, childFixture.user.id, [child.id]);
+    await assignUnits(page, otherFixture.user.id, [other.id]);
 
     const actorPanel = await openActorPanel(page, actorFixture.user.id);
     const assignmentsCard = actorPanel.getByRole('region', { name: 'Назначенные подразделения', exact: true });
