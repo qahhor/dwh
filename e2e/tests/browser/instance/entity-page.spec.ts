@@ -78,8 +78,8 @@ test('a record is created, changed, archived and deleted on the general entity s
   await expect(page.getByTestId('entity-archived')).toHaveCount(0);
 
   // Delete after confirming: back to the list, where the note is gone.
-  await page.getByRole('button', { name: 'Удалить' }).click();
-  const deleteDialog = page.getByRole('dialog');
+  await page.getByRole('button', { name: 'Удалить', exact: true }).click();
+  const deleteDialog = page.getByRole('alertdialog');
   const deleted = page.waitForResponse(response =>
     response.request().method() === 'DELETE' && /\/api\/v1\/entities\/ms\.notes\/\d+$/u.test(response.url())
   );
