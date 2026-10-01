@@ -1,13 +1,16 @@
 package com.smartup24.cms.instance.mf;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.when;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdStorageQuotaService;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileMetadataService;
@@ -17,6 +20,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+import org.springframework.dao.DataIntegrityViolationException;
 
 class MfFileMetadataServiceTest {
 
@@ -87,6 +91,27 @@ class MfFileMetadataServiceTest {
                         created.storageBucket(),
                         created.storageKey(),
                         7L);
+    }
+
+    /** Plan 10/10, item 5.2 (ADR-0032, 4.7): a file of a record's file field is not deleted — 409, not a 500. */
+    @Test
+    void aFileAttachedToARecordIsNotDeleted() {
+        MfFileRepository repository = Mockito.mock(MfFileRepository.class);
+        AuditLogService auditLog = Mockito.mock(AuditLogService.class);
+        MfFileMetadataService service =
+                new MfFileMetadataService(repository, auditLog, Mockito.mock(MdStorageQuotaService.class));
+        MfFileRepository.FileRecord file = record();
+        when(repository.findById(any(UUID.class), any())).thenReturn(Optional.of(file));
+        Mockito.doThrow(new DataIntegrityViolationException("mf_record_files_fk_file"))
+                .when(repository)
+                .delete(file.id());
+
+        assertThatThrownBy(() -> service.delete(file.id(), 7L, false)).isInstanceOfSatisfying(ApiException.class, e -> {
+            assertThat(e.getErrorCode()).isEqualTo(ErrorCode.CONFLICT);
+            assertThat(e.getMessageKey()).isEqualTo("error.file.attached_to_record");
+            assertThat(e.getCause()).isInstanceOf(DataIntegrityViolationException.class);
+        });
+        Mockito.verifyNoInteractions(auditLog);
     }
 
     private static MfFileRepository.FileRecord record() {

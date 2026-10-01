@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -124,7 +125,14 @@ public class MfFileMetadataService {
             throw ApiException.forbidden("error.file.delete_forbidden");
         }
 
-        fileRepository.delete(id);
+        try {
+            fileRepository.delete(id);
+        } catch (DataIntegrityViolationException attached) {
+            // A file of an entity's file or image field (mf_record_files, on delete restrict; ADR-0032, 4.7).
+            ApiException refused = ApiException.conflict(ErrorCode.CONFLICT, "error.file.attached_to_record");
+            refused.initCause(attached);
+            throw refused;
+        }
         auditLogService.logChange(
                 "mf_files",
                 id.toString(),

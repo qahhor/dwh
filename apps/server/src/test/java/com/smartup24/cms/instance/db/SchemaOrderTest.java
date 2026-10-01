@@ -41,6 +41,7 @@ class SchemaOrderTest {
                     "search_generations.discovery_after_id",
                     "a keyset cursor over task, project or user ids (polymorphic)"),
             Map.entry("search_projection_versions.entity_id", "polymorphic: entity_type + entity_id over three tables"),
+            Map.entry("mf_record_files.record_id", "polymorphic: entity + record_id over the tables of every entity"),
             Map.entry("upl_sources.created_by", "the actor name of the foundation as text (user id or system)"),
             Map.entry("upl_sources.modified_by", "the actor name of the foundation as text (user id or system)"));
 
