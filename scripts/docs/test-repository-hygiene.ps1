@@ -109,8 +109,11 @@ foreach ($relativePath in $frozenBriefReferences) {
 # occurrence on the line is one of the allowed tokens below. Both lists are closed: each entry says why it stays.
 $oldName = [regex]::new('dwh|DWH|Dwh')
 $oldNameFiles = @(
-    # fnd keeps its warehouse identifiers (FndDwhConfig, fnd.dwh, DwhSchemaVersionGate...) until item 4.2 renames it.
-    [pscustomobject]@{ Path = '^apps/server/src/(main|test)/java/com/smartup24/cms/instance/fnd/'; Reason = 'fnd package until item 4.2 renames it' },
+    # The warehouse module (item 4.2, ADR-0030): "dwh" is the name of its database (pg-dwh), its qualifier, pool and
+    # health component. fnd keeps only the old migrate entry point, an alias until 2026-12-31.
+    [pscustomobject]@{ Path = '^apps/server/src/(main|test)/java/com/smartup24/cms/instance/warehouse/'; Reason = 'the warehouse module' },
+    [pscustomobject]@{ Path = '^apps/server/src/(main|test)/java/com/smartup24/cms/instance/fnd/'; Reason = 'old migrate entry point, an alias until 2026-12-31' },
+    [pscustomobject]@{ Path = '^docs/adr/ADR-0030-fnd-split\.md$'; Reason = 'names the warehouse identifiers kept by the split' },
     [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/support/TestDatabases\.java$'; Reason = 'test databases of OLTP and the warehouse, shared with the fnd tests until item 4.2' },
     [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/support/fixtures/DwhQualifierViolator\.java$'; Reason = 'fixture of the fnd architecture test: the warehouse qualifier outside fnd' },
     # Warehouse migrations and the scripts of the warehouse database and its archive.

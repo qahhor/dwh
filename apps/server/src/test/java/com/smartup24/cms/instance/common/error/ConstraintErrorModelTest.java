@@ -136,8 +136,8 @@ class ConstraintErrorModelTest {
 
     @Test
     @DisplayName("3.1: pg-dwh недоступна — 503 service_unavailable, а не 500")
-    void dwhUnavailableIs503() throws Exception {
-        mvc.perform(get("/fnd/dwh"))
+    void warehouseUnavailableIs503() throws Exception {
+        mvc.perform(get("/fnd/warehouse"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("service_unavailable"))
                 .andExpect(jsonPath("$.messageKey").value("error.fnd.dwh_unavailable"));
@@ -184,8 +184,8 @@ class ConstraintErrorModelTest {
                     WarehouseError.FND_LOADS_CK_PERIOD, new SQLException("SQL: check constraint violated"));
         }
 
-        @GetMapping("/fnd/dwh")
-        String dwh() {
+        @GetMapping("/fnd/warehouse")
+        String warehouse() {
             throw new WarehouseUnavailableException(new SQLException("Connection refused"));
         }
 
