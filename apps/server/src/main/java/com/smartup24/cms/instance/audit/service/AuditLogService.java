@@ -64,7 +64,7 @@ public class AuditLogService {
      */
     @Transactional
     public void logEntry(AuditEntry entry) {
-        auditLogRepository.logEntry(entry, auditDataRedactor.redact(entry.newRow()));
+        auditLogRepository.logEntry(null, entry, auditDataRedactor.redact(entry.newRow()));
         countMutation();
     }
 

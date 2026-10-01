@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -57,16 +58,12 @@ public class AuditLogRepository {
                 .update();
     }
 
-    /**
-     * Writes an entry with an explicit actor on the given connection (ADR-0026): the entry commits or rolls back with
-     * the change it describes, also when the caller holds its own connection outside the managed transactions.
-     */
-    public void logEntry(JdbcClient connection, AuditEntry entry, Map<String, Object> newRow) {
-        connection
+    /** An entry with an explicit actor (ADR-0026) on the caller's connection, or in the managed transaction (null). */
+    public void logEntry(@Nullable JdbcClient connection, AuditEntry entry, Map<String, Object> newRow) {
+        (connection != null ? connection : jdbcClient)
                 .sql("""
                 insert into audit_log (table_name, row_pk, event, changed_by, is_api, changed_at, changed_columns, new_row)
-                values (:tableName, :rowPk, :event, :changedBy, false, clock_timestamp(), :changedColumns,
-                        cast(:newRow as jsonb))
+                values (:tableName, :rowPk, :event, :changedBy, false, clock_timestamp(), :changedColumns, cast(:newRow as jsonb))
                 """)
                 .param("tableName", entry.tableName())
                 .param("rowPk", entry.rowPk())
@@ -75,11 +72,6 @@ public class AuditLogRepository {
                 .param("changedColumns", entry.changedColumns().toArray(new String[0]))
                 .param("newRow", jsonColumns.object(newRow))
                 .update();
-    }
-
-    /** {@link #logEntry(JdbcClient, AuditEntry, Map)} in the current managed transaction. */
-    public void logEntry(AuditEntry entry, Map<String, Object> newRow) {
-        logEntry(jdbcClient, entry, newRow);
     }
 
     public void logSecurityEvent(
