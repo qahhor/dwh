@@ -147,6 +147,11 @@ smc:
     # Refuse to start while users with two-factor sign-in depend on a stub channel (console_*): their login codes
     # would go nowhere. Off in development, where the log is the intended channel.
     enforce: ${SMC_DELIVERY_ENFORCE:true}
+  secrets:
+    # ADR-0029: the key that encrypts the secrets kept in the database (webhook signing keys, SSO client secrets),
+    # base64 of 32 bytes (`openssl rand -base64 32`). Outside the dev profile the server refuses to start without it or
+    # with the development key. Keep it with the backups: a database restored without its key loses those secrets.
+    key: ${SMC_SECRETS_KEY:}
   audit:
     # How many days of daily audit_log partitions to keep ahead (FR-AUD-2, V127). A partition not
     # created in time is a dead end: audit rows go to default, where retention and the archive

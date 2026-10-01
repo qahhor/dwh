@@ -216,11 +216,22 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
 
         tx.executeWithoutResult(status -> {
             actors.apply(actors.system());
+            // upl_packages.load_id references the registry of loads (plan 10/10, item 4.6): the load exists.
+            long loadId = jdbc.sql("""
+                            insert into fnd_loads (source_code, package_ref, period_from, period_to, format_version)
+                            values ('upl.test', :ref, :from, :to, '1')
+                            returning id
+                            """)
+                    .param("ref", first.publicId())
+                    .param("from", PERIOD_FROM)
+                    .param("to", PERIOD_TO)
+                    .query(Long.class)
+                    .single();
 
-            assertThat(repo.setLoadId(first.id(), 42)).isEqualTo(1);
-            assertThat(repo.setLoadId(first.id(), 42)).isZero();
+            assertThat(repo.setLoadId(first.id(), loadId)).isEqualTo(1);
+            assertThat(repo.setLoadId(first.id(), loadId)).isZero();
             assertThat(repo.lockByPublicId(first.publicId()))
-                    .hasValueSatisfying(locked -> assertThat(locked.loadId()).isEqualTo(42L));
+                    .hasValueSatisfying(locked -> assertThat(locked.loadId()).isEqualTo(loadId));
 
             assertThat(repo.markApplied(first.id(), 5)).isEqualTo(1);
             PackageRow applied = repo.findById(first.id()).orElseThrow();

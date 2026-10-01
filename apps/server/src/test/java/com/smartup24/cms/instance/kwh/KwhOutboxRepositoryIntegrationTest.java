@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
+import com.smartup24.cms.instance.support.TestStoredSecrets;
 import java.util.Map;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
@@ -50,8 +51,9 @@ class KwhOutboxRepositoryIntegrationTest {
                              'test-secret', array['release.ready'], 'A')
                         returning id
                         """).query(Long.class).single();
-        firstWorkerRepository = new KwhOutboxRepository(jdbc, new ObjectMapper());
-        secondWorkerRepository = new KwhOutboxRepository(JdbcClient.create(dataSource), new ObjectMapper());
+        firstWorkerRepository = new KwhOutboxRepository(jdbc, new ObjectMapper(), TestStoredSecrets.secrets());
+        secondWorkerRepository =
+                new KwhOutboxRepository(JdbcClient.create(dataSource), new ObjectMapper(), TestStoredSecrets.secrets());
     }
 
     @BeforeEach
