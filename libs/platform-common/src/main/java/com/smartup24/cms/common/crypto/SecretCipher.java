@@ -103,21 +103,21 @@ public final class SecretCipher {
     /**
      * Decrypts a value written by {@link #encrypt} for the same context.
      *
-     * @throws UnreadableSecretException when the value is not in the encrypted form, was changed, was written for
+     * @throws IllegalStateException when the value is not in the encrypted form, was changed, was written for
      *     another context or with another key
      */
     public String decrypt(String stored, String context) {
         if (!isEncrypted(stored)) {
-            throw new UnreadableSecretException("the value is not encrypted", null);
+            throw new IllegalStateException("the value is not encrypted");
         }
         byte[] raw;
         try {
             raw = Base64.getDecoder().decode(stored.substring(PREFIX.length()));
         } catch (IllegalArgumentException e) {
-            throw new UnreadableSecretException("the encrypted value is not base64", e);
+            throw new IllegalStateException("the encrypted value is not base64", e);
         }
         if (raw.length < NONCE_BYTES + TAG_BITS / 8) {
-            throw new UnreadableSecretException("the encrypted value is too short", null);
+            throw new IllegalStateException("the encrypted value is too short");
         }
         try {
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
@@ -126,18 +126,8 @@ public final class SecretCipher {
             byte[] plain = cipher.doFinal(raw, NONCE_BYTES, raw.length - NONCE_BYTES);
             return new String(plain, StandardCharsets.UTF_8);
         } catch (GeneralSecurityException e) {
-            throw new UnreadableSecretException(
+            throw new IllegalStateException(
                     "the encrypted value does not open: another key, another column or a changed value", e);
-        }
-    }
-
-    /** A stored secret that cannot be decrypted with the current key and context. */
-    public static final class UnreadableSecretException extends RuntimeException {
-
-        private static final long serialVersionUID = 1L;
-
-        public UnreadableSecretException(String message, Throwable cause) {
-            super(message, cause);
         }
     }
 }

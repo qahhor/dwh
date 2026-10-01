@@ -45,8 +45,7 @@ class SecretCipherTest {
         raw[raw.length - 1] ^= 0x01;
         String tampered = SecretCipher.PREFIX + Base64.getEncoder().encodeToString(raw);
 
-        assertThatThrownBy(() -> cipher.decrypt(tampered, CONTEXT))
-                .isInstanceOf(SecretCipher.UnreadableSecretException.class);
+        assertThatThrownBy(() -> cipher.decrypt(tampered, CONTEXT)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -55,7 +54,7 @@ class SecretCipherTest {
         String stored = cipher.encrypt("signing-key", CONTEXT);
 
         assertThatThrownBy(() -> new SecretCipher(randomKey()).decrypt(stored, CONTEXT))
-                .isInstanceOf(SecretCipher.UnreadableSecretException.class);
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -64,7 +63,7 @@ class SecretCipherTest {
         String stored = cipher.encrypt("signing-key", CONTEXT);
 
         assertThatThrownBy(() -> cipher.decrypt(stored, "md_sso_providers.client_secret"))
-                .isInstanceOf(SecretCipher.UnreadableSecretException.class);
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -72,12 +71,9 @@ class SecretCipherTest {
     void plainAndBrokenValues() {
         assertThat(SecretCipher.isEncrypted("plain")).isFalse();
         assertThat(SecretCipher.isEncrypted(null)).isFalse();
-        assertThatThrownBy(() -> cipher.decrypt("plain", CONTEXT))
-                .isInstanceOf(SecretCipher.UnreadableSecretException.class);
-        assertThatThrownBy(() -> cipher.decrypt("v1:%%%", CONTEXT))
-                .isInstanceOf(SecretCipher.UnreadableSecretException.class);
-        assertThatThrownBy(() -> cipher.decrypt("v1:AAAA", CONTEXT))
-                .isInstanceOf(SecretCipher.UnreadableSecretException.class);
+        assertThatThrownBy(() -> cipher.decrypt("plain", CONTEXT)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> cipher.decrypt("v1:%%%", CONTEXT)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> cipher.decrypt("v1:AAAA", CONTEXT)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

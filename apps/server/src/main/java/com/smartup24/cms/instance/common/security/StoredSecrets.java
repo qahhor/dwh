@@ -91,7 +91,7 @@ public final class StoredSecrets {
     /**
      * The plain value of a stored secret; {@code null} stays {@code null}, a legacy plain value is returned as it is.
      *
-     * @throws SecretCipher.UnreadableSecretException when the value was encrypted with another key or changed
+     * @throws IllegalStateException when the value was encrypted with another key or changed
      */
     public @Nullable String open(@Nullable String stored, String context) {
         if (stored == null || !isSealed(stored)) {

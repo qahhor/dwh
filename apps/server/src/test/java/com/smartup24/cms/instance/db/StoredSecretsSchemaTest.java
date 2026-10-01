@@ -93,9 +93,9 @@ class StoredSecretsSchemaTest {
                 "fresh", "https://hooks.example.test/fresh", "fresh-plain-key", List.of("task.created"), null);
 
         for (String column : ENCRYPTED) {
-            String[] parts = column.split("\\.");
-            List<String> stored = jdbc.sql(
-                            "select " + parts[1] + " from " + parts[0] + " where " + parts[1] + " is not null")
+            String table = column.substring(0, column.indexOf('.'));
+            String field = column.substring(column.indexOf('.') + 1);
+            List<String> stored = jdbc.sql("select " + field + " from " + table + " where " + field + " is not null")
                     .query(String.class)
                     .list();
             assertThat(stored)

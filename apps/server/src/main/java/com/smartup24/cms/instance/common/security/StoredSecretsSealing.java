@@ -1,6 +1,5 @@
 package com.smartup24.cms.instance.common.security;
 
-import com.smartup24.cms.common.crypto.SecretCipher;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +58,7 @@ public class StoredSecretsSealing implements ApplicationRunner {
     private void requireOpens(String column, String sample) {
         try {
             secrets.open(sample, column);
-        } catch (SecretCipher.UnreadableSecretException e) {
+        } catch (IllegalStateException e) {
             throw new IllegalStateException(
                     StoredSecrets.KEY_VARIABLE + " does not open the secrets stored in " + column
                             + ": the key of this installation has changed. Restore the previous key.",

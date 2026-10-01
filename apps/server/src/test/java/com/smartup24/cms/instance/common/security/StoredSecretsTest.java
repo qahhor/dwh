@@ -79,7 +79,7 @@ class StoredSecretsTest {
 
         assertThatThrownBy(() -> StoredSecrets.fromConfiguration(randomKey(), false, false)
                         .open(sealed, COLUMN))
-                .isInstanceOf(SecretCipher.UnreadableSecretException.class);
+                .isInstanceOf(IllegalStateException.class);
     }
 
     /** The development key is SHA-256 of its seed; recomputed here so the test does not repeat a literal key. */
