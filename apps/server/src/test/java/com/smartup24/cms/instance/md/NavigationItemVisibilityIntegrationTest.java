@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
-/** FR-MOD-02: меню показывает пункт только тому, у кого есть его право. */
+/** The menu shows an item only to those who have its permission. */
 class NavigationItemVisibilityIntegrationTest {
 
     private static final String GUARDED = "platform.navigation.manage";

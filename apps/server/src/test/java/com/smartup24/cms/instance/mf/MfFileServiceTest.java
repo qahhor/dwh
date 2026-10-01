@@ -185,7 +185,7 @@ class MfFileServiceTest {
         assertThat(result.id()).isNotEqualTo(foreign.id());
         assertThat(result.createdBy()).isEqualTo(2L);
         assertThat(result.originalName()).isEqualTo("my_copy.pdf");
-        // Содержимое уже на диске — повторно не заливаем
+        // The content is already on disk: no second upload
         Mockito.verify(storageProvider, Mockito.never())
                 .upload(eq("instance-files"), eq("e3/" + SHA), any(), anyLong(), anyString());
     }
@@ -250,12 +250,12 @@ class MfFileServiceTest {
     void shouldResolveConcurrentDuplicateUpload() {
         var winner = record("report.pdf", 3L);
         givenRoomInQuotas(3L);
-        // Первый запрос успел вставить строку между нашей проверкой и вставкой
+        // The first request inserted the row between our check and our insert
         when(fileRepository.findBySha256AndOwner(SHA, 3L))
                 .thenReturn(Optional.empty())
                 .thenReturn(Optional.of(winner));
         when(fileRepository.findBySha256(SHA)).thenReturn(Optional.empty());
-        // Объект уже на диске — заливать нечего, интересна только вставка строки
+        // The object is already on disk: nothing to upload, only the row insert matters
         when(storageProvider.exists(anyString(), anyString())).thenReturn(true);
         when(fileRepository.create(anyString(), anyString(), anyLong(), anyString(), anyString(), anyString(), any()))
                 .thenThrow(new DuplicateKeyException("mf_files_owner_sha256_uidx"));

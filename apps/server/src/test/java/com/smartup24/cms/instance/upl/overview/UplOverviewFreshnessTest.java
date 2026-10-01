@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Свежесть источника по периодичности и сроку сдачи (роадмап п. 25). */
+/** The freshness of a source by its periodicity and its due date. */
 class UplOverviewFreshnessTest {
 
     private static SourceFreshnessRow source(String periodicity, int slaDays, LocalDate last) {

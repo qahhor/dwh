@@ -12,9 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * R6: инвариант I-U1 (FR-USR-4) — блокировка пользователя закрывает все его
- * сессии и отзывает все API-токены. Реализация: MdUserSecurityService.setUserState →
- * порт UserSessionInvalidator → KauthUserSessionInvalidator (та же транзакция).
+ * FR-USR-4: blocking a user closes all of their sessions and revokes all of their API tokens.
+ * Implementation: MdUserSecurityService.setUserState, then the UserSessionInvalidator port, then
+ * KauthUserSessionInvalidator (in the same transaction).
  */
 class UserBlockingInvariantTest {
 

@@ -36,12 +36,12 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Скоуп данных (ADR-0013): правило видимости у роли, позиция у пользователя,
- * материализованный эффективный скоуп и предикат в SQL.
+ * The data scope (ADR-0013): a visibility rule on the role, a position on the user,
+ * the materialized effective scope and the predicate in SQL.
  *
- * Ревизия 30.08: в модели доступа не было измерения данных — любой с правом
- * «просмотр пользователей» видел всех. Дашборды Этапа 3 на такой модели
- * показывать нельзя: первая же выгрузка покажет одному клиенту цифры другого.
+ * A review on 30.08: the access model had no data dimension, so anyone with the "view users"
+ * permission saw everyone. Dashboards cannot be shown on such a model: the very first export
+ * would show one client the figures of another.
  */
 class MdScopeServiceIntegrationTest {
 
@@ -93,7 +93,7 @@ class MdScopeServiceIntegrationTest {
                 .id();
     }
 
-    // ------------------------------------------------------------ правила
+    // ------------------------------------------------------------ rules
 
     @Test
     @DisplayName("SUBTREE разворачивает узел вместе с потомками и не задевает соседнюю ветку")
@@ -169,7 +169,7 @@ class MdScopeServiceIntegrationTest {
                 .isEmpty();
     }
 
-    // ----------------------------------------------------- инварианты дерева
+    // ----------------------------------------------------- tree invariants
 
     @Test
     @DisplayName("I-ORG-1: узел нельзя перенести под собственного потомка")
@@ -201,7 +201,7 @@ class MdScopeServiceIntegrationTest {
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.org_unit_has_users");
     }
 
-    // -------------------------------------------------- применение предиката
+    // -------------------------------------------------- applying the predicate
 
     @Test
     @DisplayName("Предикат действительно режет выборку: видны только пользователи своей ветки")
@@ -385,7 +385,7 @@ class MdScopeServiceIntegrationTest {
                         "params", Map.of("rule", "EVERYTHING", "allowed", "ALL, SELF, SUBTREE, UNITS"));
     }
 
-    // ------------------------------------------------------------- вспомогательное
+    // ------------------------------------------------------------- helpers
 
     private static Long createUser(String login, Long orgUnitId) {
         Long id = jdbc.sql("""

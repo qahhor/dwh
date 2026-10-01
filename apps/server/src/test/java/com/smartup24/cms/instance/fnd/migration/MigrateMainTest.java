@@ -6,7 +6,7 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Область миграции {@code DWH_MIGRATE_SCOPE}: проверки без Spring и без базы. */
+/** The migration scope {@code DWH_MIGRATE_SCOPE}: checks without Spring and without a database. */
 class MigrateMainTest {
 
     @Test

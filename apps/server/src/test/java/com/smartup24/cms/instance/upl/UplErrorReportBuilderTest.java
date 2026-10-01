@@ -18,7 +18,7 @@ import org.dhatim.fastexcel.reader.Row;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Файл ошибок загрузки (роадмап п. 21): сводка, затем каждая ошибка с адресом и словами вместо кода. */
+/** The load error file: a summary, then every error with its address and words instead of a code. */
 class UplErrorReportBuilderTest {
 
     /** Dictionary stand-in: known error codes get words with their parameters, other keys come back as keys. */

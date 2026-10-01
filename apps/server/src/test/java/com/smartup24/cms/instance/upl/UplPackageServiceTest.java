@@ -36,7 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Пакет загрузки в базе: запись принятого файла, итог разбора, ошибки и список (контракт И5). */
+/** A load package in the database: recording an accepted file, the parse outcome, the errors and the list. */
 class UplPackageServiceTest extends EmbeddedPostgresTest {
 
     private static final LocalDate PERIOD_FROM = LocalDate.of(2026, 3, 1);
@@ -239,7 +239,7 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
         });
     }
 
-    // ---------- помощники ----------
+    // ---------- helpers ----------
 
     private PackageRow register() {
         byte[] content = UplPackageTestData.workbook(2, 0);

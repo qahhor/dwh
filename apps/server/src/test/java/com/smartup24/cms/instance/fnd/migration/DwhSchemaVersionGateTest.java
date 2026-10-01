@@ -15,13 +15,13 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
- * AC-4 (ревизия 09.09.2026): gate второй базы {@code pg-dwh}. Схему OLTP проверяет gate каркаса
- * ({@code config.db.SchemaVersionGate}), здесь она не дублируется.
+ * The gate of the second database {@code pg-dwh}. The framework gate ({@code config.db.SchemaVersionGate}) checks
+ * the OLTP schema, so it is not duplicated here.
  *
- * <p>[допущение архитектора] Проверка идёт прямым вызовом {@code afterPropertiesSet()}, а не подъёмом
- * контекста: у каркаса нет ни одного {@code @SpringBootTest} — полный контекст тянет внешние сервисы
- * (поиск, почта, хранилище). Что gate попадает в контекст, обеспечивает аннотация {@link Component},
- * она проверяется отдельным утверждением.</p>
+ * <p>An architect's assumption: the check calls {@code afterPropertiesSet()} directly instead of starting a
+ * context, because the framework has no {@code @SpringBootTest} at all: a full context pulls in external services
+ * (search, mail, storage). The {@link Component} annotation puts the gate into the context, and a separate
+ * assertion checks it.</p>
  */
 @ExtendWith(OutputCaptureExtension.class)
 class DwhSchemaVersionGateTest {
@@ -32,9 +32,9 @@ class DwhSchemaVersionGateTest {
     @BeforeAll
     static void prepareDatabases() {
         TestDatabases.migrateOnce();
-        // pg-dwh без миграций вовсе
+        // pg-dwh with no migrations at all
         TestDatabases.createDatabase(DWH_EMPTY);
-        // pg-dwh, где последняя миграция помечена неуспешной
+        // pg-dwh whose last migration is marked as failed
         TestDatabases.createDatabase(DWH_FAILED);
         FndMigrator.migrateDwh(TestDatabases.database(DWH_FAILED));
         JdbcClient.create(TestDatabases.database(DWH_FAILED))
