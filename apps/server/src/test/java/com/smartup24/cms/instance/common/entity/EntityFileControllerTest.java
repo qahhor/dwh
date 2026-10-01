@@ -110,7 +110,15 @@ class EntityFileControllerTest {
 
     private static void signIn(String permission) {
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
-                1L, "ann", "ann@test.local", 1L, false, new HashSet<>(List.of(permission, "md.profile.view")), 1L, false, 1L,
+                1L,
+                "ann",
+                "ann@test.local",
+                1L,
+                false,
+                new HashSet<>(List.of(permission, "md.profile.view")),
+                1L,
+                false,
+                1L,
                 null));
     }
 }

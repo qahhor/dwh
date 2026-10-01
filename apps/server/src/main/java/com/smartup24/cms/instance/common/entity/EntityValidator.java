@@ -67,30 +67,10 @@ public final class EntityValidator {
         String key = field.key();
         switch (field.type()) {
             case TEXT, TEXTAREA, MARKDOWN -> {
-                String text = String.valueOf(value);
-                int length = text.strip().length();
-                if (field.minLength() != null && length < field.minLength()) {
-                    return error(key, TOO_SHORT, "error.field.too_short", Map.of("min", field.minLength()));
-                }
-                if (field.maxLength() != null && text.length() > field.maxLength()) {
-                    return error(key, TOO_LONG, "error.field.too_long", Map.of("max", field.maxLength()));
-                }
-                if (field.pattern() != null && !Pattern.matches(field.pattern(), text)) {
-                    return error(key, INVALID, "error.field.pattern_mismatch", Map.of());
-                }
+                return textProblem(field, String.valueOf(value));
             }
             case NUMBER -> {
-                BigDecimal number;
-                try {
-                    number = new BigDecimal(String.valueOf(value).strip());
-                } catch (NumberFormatException e) {
-                    return error(key, INVALID, "error.field.number_required", Map.of());
-                }
-                if ((field.min() != null && number.compareTo(field.min()) < 0)
-                        || (field.max() != null && number.compareTo(field.max()) > 0)) {
-                    return error(key, OUT_OF_RANGE, "error.field.number_out_of_range", Map.of());
-                }
-                return FieldValueRules.scale(key, number, field.params().scale());
+                return numberProblem(field, String.valueOf(value));
             }
             case DATE -> {
                 try {
@@ -131,6 +111,35 @@ public final class EntityValidator {
             }
         }
         return Optional.empty();
+    }
+
+    private static Optional<FieldErrorItem> textProblem(FormField field, String text) {
+        String key = field.key();
+        if (field.minLength() != null && text.strip().length() < field.minLength()) {
+            return error(key, TOO_SHORT, "error.field.too_short", Map.of("min", field.minLength()));
+        }
+        if (field.maxLength() != null && text.length() > field.maxLength()) {
+            return error(key, TOO_LONG, "error.field.too_long", Map.of("max", field.maxLength()));
+        }
+        if (field.pattern() != null && !Pattern.matches(field.pattern(), text)) {
+            return error(key, INVALID, "error.field.pattern_mismatch", Map.of());
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<FieldErrorItem> numberProblem(FormField field, String text) {
+        String key = field.key();
+        BigDecimal number;
+        try {
+            number = new BigDecimal(text.strip());
+        } catch (NumberFormatException e) {
+            return error(key, INVALID, "error.field.number_required", Map.of());
+        }
+        if ((field.min() != null && number.compareTo(field.min()) < 0)
+                || (field.max() != null && number.compareTo(field.max()) > 0)) {
+            return error(key, OUT_OF_RANGE, "error.field.number_out_of_range", Map.of());
+        }
+        return FieldValueRules.scale(key, number, field.params().scale());
     }
 
     /** Whether the form shows the field over these values: always, or while its condition holds (ADR-0032, 4.4). */

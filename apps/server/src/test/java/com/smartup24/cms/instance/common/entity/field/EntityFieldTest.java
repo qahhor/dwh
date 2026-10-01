@@ -2,9 +2,9 @@ package com.smartup24.cms.instance.common.entity.field;
 
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.bool;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.date;
+import static com.smartup24.cms.instance.common.entity.field.EntityFields.enumeration;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.hidden;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.enumeration;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.listed;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.markdown;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.number;
