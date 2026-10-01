@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.search.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.search.pref.SearchPref;
 import com.smartup24.cms.instance.search.service.SearchService;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +20,7 @@ public class SearchController {
         this.searchService = searchService;
     }
 
+    @Operation(summary = "Search", description = "Full-text search over the records the caller may see.")
     @GetMapping
     @RequiresPermission(form = SearchPref.FORM_SEARCH, action = "view")
     public ResponseEntity<SearchService.SearchResult> search(
