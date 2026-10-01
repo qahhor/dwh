@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.kauth.service.KauthAuthService;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.MdUserView;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -54,6 +55,10 @@ public class KauthAuthController {
         this(authService, sessionService, userService, csrfTokenRepository, null);
     }
 
+    @Operation(
+            summary = "Sign in",
+            description =
+                    "Signs in with a login and password; when a second factor is on, the sign-in completes with a one-time code.")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginDto body, HttpServletRequest request, HttpServletResponse response) {
@@ -72,6 +77,9 @@ public class KauthAuthController {
         return ResponseEntity.ok(LoginResponse.success(MdUserView.from(result.user())));
     }
 
+    @Operation(
+            summary = "Confirm sign-in with a one-time code",
+            description = "Completes a sign-in that asked for a one-time code and opens the session.")
     @PostMapping("/otp")
     public ResponseEntity<LoginResponse> verifyOtp(
             @Valid @RequestBody OtpVerifyDto body, HttpServletRequest request, HttpServletResponse response) {
@@ -85,6 +93,7 @@ public class KauthAuthController {
         return ResponseEntity.ok(LoginResponse.success(MdUserView.from(result.user())));
     }
 
+    @Operation(summary = "Sign out", description = "Closes the current session.")
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
@@ -108,6 +117,7 @@ public class KauthAuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Get the current user", description = "The signed-in user with their permissions.")
     @GetMapping("/me")
     public ResponseEntity<MeResponse> me() {
         Long userId = SecurityContext.getCurrentUserId();

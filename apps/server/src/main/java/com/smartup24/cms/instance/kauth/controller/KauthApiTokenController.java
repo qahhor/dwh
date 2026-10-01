@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.kauth.api.CreateTokenRequest;
 import com.smartup24.cms.instance.kauth.api.CreatedApiToken;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
 import com.smartup24.cms.instance.md.pref.MdPref;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,9 @@ public class KauthApiTokenController {
         this.apiTokenService = apiTokenService;
     }
 
+    @Operation(
+            summary = "List my API tokens",
+            description = "The personal API tokens of the caller, without their secrets.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_tokens")
     public ResponseEntity<List<ApiTokenView>> listTokens() {
@@ -37,6 +41,9 @@ public class KauthApiTokenController {
         return ResponseEntity.ok(apiTokenService.getUserTokens(userId));
     }
 
+    @Operation(
+            summary = "Create an API token",
+            description = "Issues a personal API token; its secret is returned once and never stored for replay.")
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_tokens")
     @ReturnsSecret
@@ -51,6 +58,7 @@ public class KauthApiTokenController {
         return Created.at("/api/v1/iam/profile/tokens/{id}", result.record().id(), result);
     }
 
+    @Operation(summary = "Revoke an API token", description = "Revokes one personal API token of the caller.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_tokens")
     @ResponseStatus(HttpStatus.NO_CONTENT)

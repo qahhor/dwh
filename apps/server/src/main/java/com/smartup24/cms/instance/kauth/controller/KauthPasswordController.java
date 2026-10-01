@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -46,6 +47,9 @@ public class KauthPasswordController {
         this.userSecurityService = userSecurityService;
     }
 
+    @Operation(
+            summary = "Change my password",
+            description = "Changes the caller's password after checking the current one.")
     @PostMapping("/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody ChangePasswordDto body) {

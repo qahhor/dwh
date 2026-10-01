@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.kauth.controller;
 
 import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordResetService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -30,6 +31,9 @@ public class KauthPasswordResetController {
         this.clientIpResolver = clientIpResolver;
     }
 
+    @Operation(
+            summary = "Request a password reset",
+            description = "Asks for a password reset link to be sent to the user.")
     @PostMapping("/request")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> request(@Valid @RequestBody RequestDto body, HttpServletRequest request) {
@@ -37,6 +41,7 @@ public class KauthPasswordResetController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Reset a password", description = "Sets a new password with the token of a reset link.")
     @PostMapping("/confirm")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> confirm(@Valid @RequestBody ConfirmDto body, HttpServletRequest request) {
