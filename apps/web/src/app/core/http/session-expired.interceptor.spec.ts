@@ -136,11 +136,9 @@ describe('sessionExpiredInterceptor', () => {
 
   it('keeps the session and shows the error when a wrong current password answers 401', () => {
     const failed = vi.fn();
-    api
-      .post('/iam/users/me/password', { oldPassword: 'typo', newPassword: 'Next-Pass-26!' })
-      .subscribe({ error: failed });
+    api.post('/auth/password', { oldPassword: 'typo', newPassword: 'Next-Pass-26!' }).subscribe({ error: failed });
     http
-      .expectOne('/api/v1/iam/users/me/password')
+      .expectOne('/api/v1/auth/password')
       .flush(
         { code: 'invalid_credentials', detail: 'Неверный текущий пароль' },
         { status: 401, statusText: 'Unauthorized' },

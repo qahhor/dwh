@@ -51,24 +51,6 @@ public class MsProjectRepository {
                 """).param("id", id).query(this::mapRecord).optional();
     }
 
-    public List<ProjectRecord> listProjects(String state) {
-        StringBuilder sql = new StringBuilder("""
-                select id, name, description, state, attributes::text as attributes_str, created_at, created_by, revision
-                from ms_task_projects
-                where 1=1
-                """);
-        if (state != null && !state.isBlank()) {
-            sql.append(" and state = :state");
-        }
-        sql.append(" order by name asc");
-
-        var query = jdbcClient.sql(sql.toString());
-        if (state != null && !state.isBlank()) {
-            query.param("state", state);
-        }
-        return query.query(this::mapRecord).list();
-    }
-
     /** Saves the project made from {@code expectedRevision} (plan item 3.6) and answers its new revision. */
     public long update(
             Long id,
@@ -120,10 +102,6 @@ public class MsProjectRepository {
                 .param("projectId", projectId)
                 .param("userId", userId)
                 .update();
-    }
-
-    public List<ProjectMemberRecord> getMembers(Long projectId) {
-        return getMembers(projectId, null, Integer.MAX_VALUE);
     }
 
     /**

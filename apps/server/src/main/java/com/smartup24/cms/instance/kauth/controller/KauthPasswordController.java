@@ -33,12 +33,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Authentication is required: the path is not in {@code PUBLIC_PATHS}, so the
  * general {@code anyRequest().authenticated()} rule covers it, and the old
  * password is checked separately in {@link MdUserSecurityService#changePassword}.
- *
- * The old path is kept as an alias: removing an endpoint is a breaking change
- * and requires {@code /api/v2}.
  */
 @RestController
-@RequestMapping({"/api/v1/auth", "/api/v1/iam/users/me"})
+@RequestMapping("/api/v1/auth")
 public class KauthPasswordController {
 
     private final MdUserSecurityService userSecurityService;

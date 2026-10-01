@@ -9,19 +9,19 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Plan 10/10, item 3.2: the sign-in answer is a typed record; its old snake_case key stays for one release. */
+/** Plan 10/10, item 3.2: the sign-in answer is a typed record with camelCase keys only (ADR-0023). */
 class LoginResponseTest {
 
     private final JsonMapper json = JsonMapper.builder().build();
 
     @Test
-    @DisplayName("3.2: the OTP step names otpToken, and otp_token for one release, without a user")
+    @DisplayName("3.2: the OTP step names otpToken only, without a user")
     void otpStep() {
         JsonNode body = json.valueToTree(LoginResponse.otp("challenge"));
 
         assertThat(body.path("step").asString()).isEqualTo("otp");
         assertThat(body.path("otpToken").asString()).isEqualTo("challenge");
-        assertThat(body.path("otp_token").asString()).isEqualTo("challenge");
+        assertThat(body.has("otp_token")).isFalse();
         assertThat(body.has("user")).isFalse();
     }
 

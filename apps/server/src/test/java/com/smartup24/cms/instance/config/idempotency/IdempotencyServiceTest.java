@@ -24,13 +24,13 @@ class IdempotencyServiceTest {
     void shouldComputeDeterministicRequestHash() {
         byte[] body = "{\"title\":\"Sample task\"}".getBytes(StandardCharsets.UTF_8);
 
-        String hash1 = service.computeRequestHash("POST", "/api/v1/tasks/items", null, body);
-        String hash2 = service.computeRequestHash("POST", "/api/v1/tasks/items", null, body);
+        String hash1 = service.computeRequestHash("POST", "/api/v1/tasks", null, body);
+        String hash2 = service.computeRequestHash("POST", "/api/v1/tasks", null, body);
 
         assertThat(hash1).isNotNull().isEqualTo(hash2);
 
         byte[] differentBody = "{\"title\":\"Different task\"}".getBytes(StandardCharsets.UTF_8);
-        String hash3 = service.computeRequestHash("POST", "/api/v1/tasks/items", null, differentBody);
+        String hash3 = service.computeRequestHash("POST", "/api/v1/tasks", null, differentBody);
 
         assertThat(hash1).isNotEqualTo(hash3);
     }

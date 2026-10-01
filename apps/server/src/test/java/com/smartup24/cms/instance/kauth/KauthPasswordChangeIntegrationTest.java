@@ -141,7 +141,7 @@ class KauthPasswordChangeIntegrationTest {
     }
 
     static Stream<Arguments> passwordPaths() {
-        return Stream.of("/api/v1/auth/password", "/api/v1/iam/users/me/password")
+        return Stream.of("/api/v1/auth/password")
                 .flatMap(path -> Stream.of(Arguments.of(path, false), Arguments.of(path, true)));
     }
 

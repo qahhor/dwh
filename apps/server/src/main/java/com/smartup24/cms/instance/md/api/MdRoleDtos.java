@@ -4,7 +4,7 @@ import com.smartup24.cms.instance.common.web.Revisioned;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 
-/** Wire format of {@code /api/v1/rbac} and {@code /api/v1/iam} roles and the form catalog. */
+/** Wire format of {@code /api/v1/iam} roles and the form catalog. */
 public final class MdRoleDtos {
 
     private MdRoleDtos() {}

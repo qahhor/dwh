@@ -23,7 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping({"/api/v1/rbac", "/api/v1/iam"})
+@RequestMapping("/api/v1/iam")
 public class MdRoleController {
 
     private final MdRoleService roleService;

@@ -135,29 +135,6 @@ public class ModuleRegistryService {
         return InstalledModuleView.from(updated);
     }
 
-    @Transactional
-    @Caching(
-            evict = {
-                @CacheEvict(value = "activeModules", allEntries = true),
-                @CacheEvict(value = "allModules", allEntries = true),
-                @CacheEvict(value = "moduleActive", allEntries = true)
-            })
-    public InstalledModuleView registerModule(
-            String code,
-            String name,
-            String description,
-            String version,
-            String icon,
-            String route,
-            boolean isSystem,
-            int sortOrder,
-            Map<String, Object> attributes) {
-        var record = registration(code, name, description, version, icon, route, isSystem, sortOrder, attributes);
-        moduleRepository.upsertModule(record);
-        auditRegistration(record);
-        return find(record.code());
-    }
-
     /**
      * Registers a new module, or replaces the registration of an existing one made from {@code expectedRevision}
      * (plan 10/10, item 3.6, ADR-0024): a replace that names no revision is 428, one from an older revision 409, so of
@@ -180,7 +157,7 @@ public class ModuleRegistryService {
             int sortOrder,
             Map<String, Object> attributes,
             @Nullable Long expectedRevision) {
-        var record = registration(code, name, description, version, icon, route, false, sortOrder, attributes);
+        var record = registration(code, name, description, version, icon, route, sortOrder, attributes);
         if (expectedRevision == null) {
             if (moduleRepository.insertModule(record).isEmpty()) {
                 throw Revisions.missing();
@@ -209,9 +186,9 @@ public class ModuleRegistryService {
             String version,
             String icon,
             String route,
-            boolean isSystem,
             int sortOrder,
             Map<String, Object> attributes) {
+        // A module registered through the API is never a system one.
         return new ModuleRegistryRepository.InstalledModuleRecord(
                 code.toLowerCase().trim(),
                 name,
@@ -219,7 +196,7 @@ public class ModuleRegistryService {
                 version != null ? version : "1.0.0",
                 icon != null ? icon : "box",
                 route,
-                isSystem,
+                false,
                 "ACTIVE",
                 sortOrder,
                 attributes != null ? attributes : Map.of(),

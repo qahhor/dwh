@@ -110,18 +110,6 @@ public class NavigationItemController {
         return ResponseEntity.ok(navigationService.setActive(id, userId, body.active()));
     }
 
-    /** Flips the state: deprecated for PUT /{id}/active, answers until its sunset (ADR-0023). */
-    @Operation(
-            summary = "Toggle a menu item (deprecated)",
-            description =
-                    "Flips whether a menu item is shown. Deprecated for PUT /api/v1/navigation/items/{id}/active; answers until its sunset.")
-    @PostMapping("/{id}/toggle")
-    @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
-    public ResponseEntity<NavigationItemView> toggleItem(@PathVariable Long id) {
-        Long userId = SecurityContext.getCurrentUserId();
-        return ResponseEntity.ok(navigationService.toggleState(id, userId));
-    }
-
     @Operation(summary = "Delete a menu item", description = "Removes a menu item.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")

@@ -109,24 +109,6 @@ public class ModuleRegistryRepository {
                 """).params(params).query(Long.class).optional();
     }
 
-    /** Registers the module or replaces its registration whatever its revision: the deprecated form (ADR-0023). */
-    public void upsertModule(InstalledModuleRecord module) {
-        jdbcClient.sql("""
-                insert into md_installed_modules(code, name, description, version, icon, route, is_system, status, sort_order, attributes, created_at, modified_at)
-                values(:code, :name, :description, :version, :icon, :route, :isSystem, :status, :sortOrder, cast(:attributes as jsonb), clock_timestamp(), clock_timestamp())
-                on conflict (code) do update
-                set name = excluded.name,
-                    description = excluded.description,
-                    version = excluded.version,
-                    icon = excluded.icon,
-                    route = excluded.route,
-                    sort_order = excluded.sort_order,
-                    attributes = excluded.attributes,
-                    modified_at = clock_timestamp(),
-                    revision = md_installed_modules.revision + 1
-                """).params(params(module)).update();
-    }
-
     private Map<String, Object> params(InstalledModuleRecord module) {
         Map<String, Object> params = new HashMap<>();
         params.put("code", module.code());

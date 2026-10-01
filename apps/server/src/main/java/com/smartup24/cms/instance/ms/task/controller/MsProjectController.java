@@ -16,7 +16,6 @@ import com.smartup24.cms.instance.ms.task.service.MsProjectListService;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,17 +30,6 @@ public class MsProjectController {
     public MsProjectController(MsProjectService projectService, MsProjectListService projectListService) {
         this.projectService = projectService;
         this.projectListService = projectListService;
-    }
-
-    /** Deprecated for {@code GET /page} (ApiDeprecations); answers every project until its sunset. */
-    @Operation(
-            summary = "List projects",
-            description = "Every project the caller may see. Deprecated: use GET /tasks/projects/page.")
-    @GetMapping
-    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
-    public ResponseEntity<List<ProjectView>> listProjects(
-            @RequestParam(name = "state", required = false) String state) {
-        return ResponseEntity.ok(projectService.listProjects(state));
     }
 
     /**
@@ -116,17 +104,6 @@ public class MsProjectController {
     public ResponseEntity<Void> removeMember(@PathVariable("id") Long id, @PathVariable("userId") Long userId) {
         projectService.removeProjectMember(id, userId);
         return ResponseEntity.noContent().build();
-    }
-
-    /** Deprecated for {@code GET /{id}/members/page} (ApiDeprecations); answers the whole list until its sunset. */
-    @Operation(
-            summary = "List project members (deprecated)",
-            description =
-                    "Every member of a project at once. Deprecated for GET /api/v1/tasks/projects/{id}/members/page; answers until its sunset.")
-    @GetMapping("/{id}/members")
-    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
-    public ResponseEntity<List<ProjectMemberView>> getMembers(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(projectService.getProjectMembers(id));
     }
 
     /** The members of a project a page at a time, by name (plan 10/10, item 3.5). */

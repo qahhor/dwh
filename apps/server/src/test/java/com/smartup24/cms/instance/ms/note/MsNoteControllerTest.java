@@ -40,7 +40,6 @@ class MsNoteControllerTest {
                 () -> controller.getNote(1L),
                 () -> controller.createNote(create),
                 () -> controller.updateNote(1L, "\"1\"", update),
-                () -> controller.togglePin(1L),
                 () -> controller.setPin(1L, new MsNoteController.PinRequest(true)),
                 () -> controller.deleteNote(1L));
 
@@ -69,7 +68,6 @@ class MsNoteControllerTest {
         assertThat(created.getHeaders().getLocation()).hasToString("/api/v1/notes/11");
         controller.updateNote(3L, "\"1\"", update);
         controller.setPin(3L, new MsNoteController.PinRequest(false));
-        controller.togglePin(3L);
         assertThat(controller.deleteNote(3L).getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
         verify(service).getNotes(7L, 20, "c", "[]", "-title", "q");
@@ -77,7 +75,6 @@ class MsNoteControllerTest {
         verify(service).createNote("Title", "Body", "blue", true, Map.of("x", 1), 7L);
         verify(service).updateNote(3L, "New", "Text", "red", false, Map.of(), 7L, 1L);
         verify(service).setPinned(3L, 7L, false);
-        verify(service).togglePinned(3L, 7L);
         verify(service).deleteNote(3L, 7L);
     }
 }

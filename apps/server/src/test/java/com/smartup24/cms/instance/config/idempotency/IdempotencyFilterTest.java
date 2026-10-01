@@ -43,7 +43,7 @@ class IdempotencyFilterTest {
     @Test
     @DisplayName("Запрос без заголовка Idempotency-Key выполняется через стандартный FilterChain")
     void shouldBypassWhenNoHeader() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks/items");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks");
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = Mockito.mock(FilterChain.class);
 
@@ -56,7 +56,7 @@ class IdempotencyFilterTest {
     @Test
     @DisplayName("GET запрос с Idempotency-Key игнорируется и выполняется через стандартный FilterChain")
     void shouldBypassForNonMutatingMethod() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/tasks/items");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/tasks");
         request.addHeader(
                 IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -71,7 +71,7 @@ class IdempotencyFilterTest {
     @Test
     @DisplayName("Запрос с некорректным UUID в заголовке возвращает 400 IDEMPOTENCY_KEY_INVALID")
     void shouldRejectInvalidUuidHeader() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks/items");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks");
         request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, "not-a-valid-uuid");
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = Mockito.mock(FilterChain.class);
@@ -167,7 +167,7 @@ class IdempotencyFilterTest {
     @Test
     @DisplayName("Запрос с телом больше 64 КБ отклоняется (413 PAYLOAD_TOO_LARGE)")
     void shouldRejectOversizedRequestBody() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks/items");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks");
         request.addHeader(
                 IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, UUID.randomUUID().toString());
         request.setContentType("application/json");
@@ -190,7 +190,7 @@ class IdempotencyFilterTest {
     void shouldAcquireAndCompleteReservation() throws Exception {
         UUID key = UUID.randomUUID();
         UUID token = UUID.randomUUID();
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks/items");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks");
         request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, key.toString());
         request.setContentType("application/json");
         request.setContent("{\"title\":\"Task 1\"}".getBytes(StandardCharsets.UTF_8));
@@ -223,7 +223,7 @@ class IdempotencyFilterTest {
     @DisplayName("Повторный запрос возвращает закэшированный ответ с заголовком Idempotent-Replay: true")
     void shouldReplayCompletedResponse() throws Exception {
         UUID key = UUID.randomUUID();
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks/items");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks");
         request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, key.toString());
         request.setContentType("application/json");
         request.setContent("{\"title\":\"Task 1\"}".getBytes(StandardCharsets.UTF_8));
@@ -263,7 +263,7 @@ class IdempotencyFilterTest {
     void shouldReleaseReservationWhenResponseOversized() throws Exception {
         UUID key = UUID.randomUUID();
         UUID token = UUID.randomUUID();
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks/items");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks");
         request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, key.toString());
         request.setContentType("application/json");
         request.setContent("{\"title\":\"Task 1\"}".getBytes(StandardCharsets.UTF_8));

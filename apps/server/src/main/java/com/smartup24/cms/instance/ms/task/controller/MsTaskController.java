@@ -9,7 +9,6 @@ import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.ms.task.api.ChangeStatusRequest;
 import com.smartup24.cms.instance.ms.task.api.CreateTaskRequest;
-import com.smartup24.cms.instance.ms.task.api.ProjectTaskStatsView;
 import com.smartup24.cms.instance.ms.task.api.TaskDetail;
 import com.smartup24.cms.instance.ms.task.api.TaskListFilters;
 import com.smartup24.cms.instance.ms.task.api.TaskView;
@@ -39,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Tasks: the list, the card and the commands on a task. Statuses and files have their own controllers. */
 @RestController
-@RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
+@RequestMapping("/api/v1/tasks")
 public class MsTaskController {
 
     private final MsTaskService taskService;
@@ -93,13 +92,6 @@ public class MsTaskController {
                 query != null && !query.isBlank() ? query : search,
                 new TaskListFilters(
                         projectId, statusId, priority, hideTerminal, assignedUserId, memberRole, reporterId, overdue)));
-    }
-
-    @Operation(summary = "Get task counts per project", description = "Task counts per project.")
-    @GetMapping("/projects/stats")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<List<ProjectTaskStatsView>> getProjectStats() {
-        return ResponseEntity.ok(readService.getProjectTaskStats(SecurityContext.getCurrentUserId()));
     }
 
     /** The card; reading it changes nothing (the client reports the view with {@code POST /{id}/view}). */

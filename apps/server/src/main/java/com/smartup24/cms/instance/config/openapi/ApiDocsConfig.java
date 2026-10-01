@@ -111,24 +111,29 @@ public class ApiDocsConfig {
     }
 
     /**
-     * The forms of {@link ApiDeprecations} are marked deprecated with the day they stop answering and their successor
-     * (plan item 3.4, ADR-0023); each snake_case parameter is listed, deprecated, next to its camelCase name; and a
-     * {@code 201} names the created resource in {@code Location}.
+     * The forms of {@link ApiDeprecations#CURRENT} are marked deprecated with the day they stop answering and their
+     * successor (plan item 3.4, ADR-0023); each snake_case parameter is listed, deprecated, next to its camelCase name;
+     * and a {@code 201} names the created resource in {@code Location}.
      */
     @Bean
     OpenApiCustomizer deprecatedFormsAndLocations() {
+        return deprecatedFormsAndLocations(ApiDeprecations.CURRENT);
+    }
+
+    /** The same over another table of deprecated forms: the tests use a fixture while {@code CURRENT} is empty. */
+    static OpenApiCustomizer deprecatedFormsAndLocations(ApiDeprecations deprecations) {
         return openApi -> {
             if (openApi.getPaths() == null) {
                 return;
             }
             openApi.getPaths()
                     .forEach((path, item) -> item.readOperationsMap().forEach((method, operation) -> {
-                        ApiDeprecations.successor(method.name(), path).ifPresent(successor -> {
+                        deprecations.successor(method.name(), path).ifPresent(successor -> {
                             operation.setDeprecated(true);
                             operation.addExtension("x-sunset", ApiDeprecations.SUNSET.toString());
                             operation.addExtension("x-successor", successor.method() + " " + successor.path());
                         });
-                        addLegacyParameters(operation);
+                        addLegacyParameters(operation, deprecations.queryParameters());
                         ApiResponse created = operation.getResponses() == null
                                 ? null
                                 : operation.getResponses().get("201");
@@ -143,12 +148,12 @@ public class ApiDocsConfig {
         };
     }
 
-    private static void addLegacyParameters(Operation operation) {
-        if (operation.getParameters() == null) {
+    private static void addLegacyParameters(Operation operation, Map<String, String> legacyNames) {
+        if (operation.getParameters() == null || legacyNames.isEmpty()) {
             return;
         }
         Map<String, String> legacyByCurrent = new TreeMap<>();
-        ApiDeprecations.QUERY_PARAMETERS.forEach((legacy, current) -> legacyByCurrent.put(current, legacy));
+        legacyNames.forEach((legacy, current) -> legacyByCurrent.put(current, legacy));
         List<Parameter> legacy = new ArrayList<>();
         for (Parameter parameter : operation.getParameters()) {
             String name = legacyByCurrent.get(parameter.getName());

@@ -550,24 +550,6 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("Старый путь смены пароля продолжает работать: удаление эндпоинта — ломающее изменение")
-    void legacyPasswordPathStillWorks() throws Exception {
-        when(sessionService.getActiveSession("raw-session"))
-                .thenReturn(Optional.of(new KauthSessionRepository.SessionRecord(
-                        11L, 7L, "hash", "127.0.0.1", "ua", null, Instant.now(), Instant.now(), null, 0)));
-        when(userService.getUserIdentity(7L)).thenReturn(activeUser());
-        when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of());
-        when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
-
-        mvc.perform(post("/api/v1/iam/users/me/password")
-                        .cookie(new Cookie(SESSION_COOKIE, "raw-session"), new Cookie("XSRF-TOKEN", "test-csrf-token"))
-                        .header("X-XSRF-TOKEN", "test-csrf-token")
-                        .contentType("application/json")
-                        .content("{\"oldPassword\":\"OldPass-2026\",\"newPassword\":\"NewPass-2026!\"}"))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
     @DisplayName("Без аутентификации смена пароля отклоняется: путь не публичный")
     void ownPasswordChangeRejectedWithoutSession() throws Exception {
         mvc.perform(post("/api/v1/auth/password")

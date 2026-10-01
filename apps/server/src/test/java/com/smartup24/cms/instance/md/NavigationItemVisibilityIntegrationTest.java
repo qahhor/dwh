@@ -75,7 +75,7 @@ class NavigationItemVisibilityIntegrationTest {
         NavigationItemView parent = create("vis-parent", GUARDED, null);
         create("vis-child", null, parent.id());
         NavigationItemView off = create("vis-off", null, null);
-        service.toggleState(off.id(), null);
+        service.setActive(off.id(), null, false);
 
         signIn("md.profile.view");
         assertThat(visibleCodes()).doesNotContain("vis-parent", "vis-child", "vis-off");

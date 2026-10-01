@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping({"/api/v1/tasks/items/{taskId}/comments", "/api/v1/tasks/{taskId}/comments"})
+@RequestMapping("/api/v1/tasks/{taskId}/comments")
 public class MsTaskCommentController {
 
     static final int COMMENTS_PAGE = 50;
