@@ -41,7 +41,8 @@ public class MsTaskRepository {
                 returning id, project_id, parent_task_id, title, description_markdown, status_id,
                           priority, reporter_id, attributes::text as attributes_str, begin_time,
                           end_time, resolved_time, created_at, modified_at, created_by, modified_by,
-                          revision
+                          revision,
+                          (select p.name from ms_task_projects p where p.id = ms_tasks.project_id) as project_name
                 """)
                 .param("projectId", data.projectId())
                 .param("parentTaskId", data.parentTaskId())
@@ -73,12 +74,15 @@ public class MsTaskRepository {
         return query.query(rows::map).optional();
     }
 
-    /** Columns of a task row as {@link #mapRecord} reads them; the registry list {@code ms.tasks} selects them. */
+    /**
+     * Columns of a task row as {@link #mapRecord} reads them; the registry list {@code ms.tasks} selects them. The
+     * project's name comes with the row, so a screen names it without the whole project list (plan 10/10, item 3.5).
+     */
     public static final String LIST_COLUMNS = """
             t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
             t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
             t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by,
-            t.revision""";
+            t.revision, (select p.name from ms_task_projects p where p.id = t.project_id) as project_name""";
 
     public void update(Long id, TaskUpdateData data, Long modifiedBy) {
         String attrsJson = data.attributes() != null ? rows.attributesJson(data.attributes()) : null;
@@ -218,7 +222,8 @@ public class MsTaskRepository {
             Instant modifiedAt,
             Long createdBy,
             Long modifiedBy,
-            Long revision) {
+            Long revision,
+            String projectName) {
         public TaskRecord(
                 Long id,
                 Long projectId,
@@ -253,7 +258,8 @@ public class MsTaskRepository {
                     modifiedAt,
                     createdBy,
                     modifiedBy,
-                    1L);
+                    1L,
+                    null);
         }
     }
 

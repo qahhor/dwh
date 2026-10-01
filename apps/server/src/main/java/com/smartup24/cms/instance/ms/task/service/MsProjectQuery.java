@@ -14,8 +14,8 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * The project list in the field registry (roadmap item 51): {@code GET /api/v1/tasks/projects/page} and
- * {@code /api/v1/query-meta/ms.projects}. By name by default, as the whole list was. The whole list
- * ({@code GET /tasks/projects}) stays for the pickers.
+ * {@code /api/v1/query-meta/ms.projects}. By name by default, as the whole list was; the project pickers search
+ * it too, and the whole list ({@code GET /tasks/projects}) is deprecated (plan 10/10, item 3.5).
  *
  * <p>Task counts and progress are counted over the tasks the viewer may see (ADR-0013), so they are built for
  * each request by {@link #progressFields} and exist only for someone who may view tasks (ADR-0016, 2.9).

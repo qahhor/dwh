@@ -32,6 +32,7 @@ public class MsProjectController {
         this.projectListService = projectListService;
     }
 
+    /** Deprecated for {@code GET /page} (ApiDeprecations); answers every project until its sunset. */
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<List<ProjectView>> listProjects(
@@ -41,7 +42,7 @@ public class MsProjectController {
 
     /**
      * The project list a page at a time on the registry (ms.projects, roadmap item 51): filter, sort, search and
-     * the viewer's task counts. The whole list above stays for the pickers.
+     * the viewer's task counts. The project pickers search it a page at a time (plan 10/10, item 3.5).
      */
     @GetMapping("/page")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")

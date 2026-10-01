@@ -9671,6 +9671,7 @@
     },
     "/api/v1/tasks/projects" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "listProjects",
         "parameters" : [ {
           "in" : "query",
@@ -9705,7 +9706,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-project-controller" ]
+        "tags" : [ "ms-project-controller" ],
+        "x-successor" : "GET /api/v1/tasks/projects/page",
+        "x-sunset" : "2026-12-31"
       },
       "post" : {
         "operationId" : "createProject",
@@ -9870,7 +9873,7 @@
           }
         },
         "tags" : [ "ms-task-controller" ],
-        "x-successor" : "GET /api/v1/tasks/projects",
+        "x-successor" : "GET /api/v1/tasks/projects/page",
         "x-sunset" : "2026-12-31"
       }
     },
@@ -15569,6 +15572,9 @@
           },
           "path" : {
             "type" : "string"
+          },
+          "readPath" : {
+            "type" : "string"
           }
         }
       },
@@ -16530,6 +16536,9 @@
           "projectId" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "projectName" : {
+            "type" : "string"
           },
           "reporterId" : {
             "type" : "integer",

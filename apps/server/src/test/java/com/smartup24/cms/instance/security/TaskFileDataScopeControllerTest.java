@@ -177,6 +177,7 @@ class TaskFileDataScopeControllerTest {
                 id,
                 null,
                 null,
+                null,
                 "Scoped task",
                 "",
                 1L,
