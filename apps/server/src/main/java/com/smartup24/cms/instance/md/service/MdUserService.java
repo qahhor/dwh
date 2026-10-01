@@ -4,10 +4,11 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.api.MdUserDtos.CreateUserDto;
+import com.smartup24.cms.instance.md.api.MdUserIdentity;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -199,6 +200,19 @@ public class MdUserService {
     @Transactional(readOnly = true)
     public MdUserRepository.UserRecord getUserById(Long userId) {
         return userRepository.findById(userId).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    /** The user as other modules see it when they act on the user's behalf (plan 10/10, item 1.3). */
+    @Transactional(readOnly = true)
+    public MdUserIdentity getUserIdentity(Long userId) {
+        var user = getUserById(userId);
+        return new MdUserIdentity(
+                user.id(),
+                user.login(),
+                user.email(),
+                user.state(),
+                user.forcePasswordChange(),
+                user.authenticationVersion());
     }
 
     @Transactional(readOnly = true)

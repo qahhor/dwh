@@ -28,7 +28,7 @@ import com.smartup24.cms.instance.ms.task.controller.MsProjectController;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;

@@ -110,7 +110,7 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
     private void authenticateUser(
             Long userId, long authenticationVersion, Runnable touch, Long sessionId, boolean api, Long apiTokenId) {
         try {
-            var user = userService.getUserById(userId);
+            var user = userService.getUserIdentity(userId);
             if (MdPref.STATE_ACTIVE.equals(user.state()) && user.authenticationVersion() == authenticationVersion) {
                 touch.run();
                 Set<String> permissions = permissionService.getEffectivePermissions(user.id());

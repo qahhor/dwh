@@ -39,7 +39,7 @@ import com.smartup24.cms.instance.md.service.MdSettingService;
 import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.mail.MailMessage;

@@ -27,11 +27,11 @@ import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import com.smartup24.cms.instance.kauth.service.OAuth2AuthService;
+import com.smartup24.cms.instance.md.api.MdUserIdentity;
 import com.smartup24.cms.instance.md.controller.MdI18nAdminController;
 import com.smartup24.cms.instance.md.controller.MdI18nController;
 import com.smartup24.cms.instance.md.i18n.I18nModels;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserSecurityService;
@@ -159,7 +159,7 @@ class SecurityConfigTest {
         when(sessionService.getActiveSession("raw-session"))
                 .thenReturn(Optional.of(new KauthSessionRepository.SessionRecord(
                         11L, 7L, "hash", "127.0.0.1", "ua", null, Instant.now(), Instant.now(), null, 0)));
-        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(userService.getUserIdentity(7L)).thenReturn(activeUser());
         when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of("*.*"));
         when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
 
@@ -242,7 +242,7 @@ class SecurityConfigTest {
         when(apiTokenService.validateToken("valid-api-token"))
                 .thenReturn(Optional.of(new KauthApiTokenRepository.ApiTokenRecord(
                         19L, 7L, "test", "prefix", "hash", null, Instant.now(), null, null, 0)));
-        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(userService.getUserIdentity(7L)).thenReturn(activeUser());
         when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of());
         when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
 
@@ -304,29 +304,14 @@ class SecurityConfigTest {
         when(apiTokenService.validateToken("rejected-api-token"))
                 .thenReturn(Optional.of(new KauthApiTokenRepository.ApiTokenRecord(
                         19L, 8L, "test", "prefix", "hash", null, Instant.now(), null, null, 0)));
-        when(userService.getUserById(8L))
-                .thenReturn(new MdUserRepository.UserRecord(
+        when(userService.getUserIdentity(8L))
+                .thenReturn(new MdUserIdentity(
                         8L,
-                        "API User",
                         "api-user",
                         "api@example.test",
-                        null,
-                        "hash",
                         rejection.equals("inactive") ? MdPref.STATE_PASSIVE : MdPref.STATE_ACTIVE,
-                        null,
-                        "ru",
-                        "UTC",
-                        null,
-                        Map.of(),
                         false,
-                        false,
-                        null,
-                        Instant.now(),
-                        Instant.now(),
-                        null,
-                        null,
-                        rejection.equals("stale-version") ? 1 : 0,
-                        1L));
+                        rejection.equals("stale-version") ? 1 : 0));
         var request = passwordMutation()
                 .header("Authorization", "Bearer rejected-api-token")
                 .cookie(new Cookie(SESSION_COOKIE, "raw-session"), new Cookie("XSRF-TOKEN", "existing-csrf"));
@@ -378,7 +363,7 @@ class SecurityConfigTest {
         when(sessionService.getActiveSession("raw-session"))
                 .thenReturn(Optional.of(new KauthSessionRepository.SessionRecord(
                         11L, 7L, "hash", "127.0.0.1", "ua", null, Instant.now(), Instant.now(), null, 0)));
-        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(userService.getUserIdentity(7L)).thenReturn(activeUser());
         when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of("*.*"));
         when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
 
@@ -484,34 +469,13 @@ class SecurityConfigTest {
         when(sessionService.getActiveSession("raw-session"))
                 .thenReturn(Optional.of(new KauthSessionRepository.SessionRecord(
                         11L, 7L, "hash", "127.0.0.1", "ua", null, Instant.now(), Instant.now(), null, 0)));
-        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(userService.getUserIdentity(7L)).thenReturn(activeUser());
         when(permissionService.getEffectivePermissions(7L)).thenReturn(permissions);
         when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
     }
 
-    private static MdUserRepository.UserRecord activeUser() {
-        return new MdUserRepository.UserRecord(
-                7L,
-                "Test User",
-                "test",
-                "test@example.com",
-                null,
-                "hash",
-                MdPref.STATE_ACTIVE,
-                null,
-                "ru",
-                "UTC",
-                null,
-                Map.of(),
-                false,
-                false,
-                null,
-                Instant.now(),
-                Instant.now(),
-                null,
-                null,
-                0,
-                1L);
+    private static MdUserIdentity activeUser() {
+        return new MdUserIdentity(7L, "test", "test@example.com", MdPref.STATE_ACTIVE, false, 0);
     }
 
     // ------------------------------------------------------------------
@@ -524,7 +488,7 @@ class SecurityConfigTest {
         when(sessionService.getActiveSession("raw-session"))
                 .thenReturn(Optional.of(new KauthSessionRepository.SessionRecord(
                         11L, 7L, "hash", "127.0.0.1", "ua", null, Instant.now(), Instant.now(), null, 0)));
-        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(userService.getUserIdentity(7L)).thenReturn(activeUser());
         // Пусто — ни одного права: ровно положение роли auditor (ТЗ-01 разд. 4.4.1)
         when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of());
         when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
@@ -543,7 +507,7 @@ class SecurityConfigTest {
         when(sessionService.getActiveSession("raw-session"))
                 .thenReturn(Optional.of(new KauthSessionRepository.SessionRecord(
                         11L, 7L, "hash", "127.0.0.1", "ua", null, Instant.now(), Instant.now(), null, 0)));
-        when(userService.getUserById(7L)).thenReturn(activeUser());
+        when(userService.getUserIdentity(7L)).thenReturn(activeUser());
         when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of());
         when(permissionService.getPermissionVersion(7L)).thenReturn(1L);
 

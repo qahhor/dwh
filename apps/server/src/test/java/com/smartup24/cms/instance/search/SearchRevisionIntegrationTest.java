@@ -15,6 +15,7 @@ import com.smartup24.cms.instance.ms.task.repository.*;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import com.smartup24.cms.instance.search.typesense.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
