@@ -21,12 +21,14 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.controller.MsProjectController;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
@@ -100,8 +102,8 @@ class MsProjectWriteIntegrationTest {
 
         auditLogService =
                 new AuditLogService(new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
-        var serviceTarget =
-                new MsProjectService(projects, acceptingCustomFields(), searchChangePublisher, auditLogService);
+        var serviceTarget = new MsProjectService(
+                projects, acceptingCustomFields(), searchChangePublisher, auditLogService, unrestrictedScopes());
         transactions = new DataSourceTransactionManager(dataSource);
         projectService = transactional(serviceTarget, transactions, MsProjectService.class);
         transactionTemplate = new TransactionTemplate(transactions);
@@ -315,8 +317,8 @@ class MsProjectWriteIntegrationTest {
         var continueUpdate = new CountDownLatch(1);
         var pausingProjects = new PausingProjectRepository(jdbc, objectMapper, readComplete, continueUpdate);
         var localIndexer = mock(SearchChangePublisher.class);
-        var serviceTarget =
-                new MsProjectService(pausingProjects, acceptingCustomFields(), localIndexer, auditLogService);
+        var serviceTarget = new MsProjectService(
+                pausingProjects, acceptingCustomFields(), localIndexer, auditLogService, unrestrictedScopes());
         var overlappingService = transactional(serviceTarget, transactions, MsProjectService.class);
         ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -546,6 +548,13 @@ class MsProjectWriteIntegrationTest {
     }
 
     /** Custom fields that accept any attributes and store them as given. */
+    /** Data scope is not what these tests check: every viewer sees every project. */
+    private static MdScopeService unrestrictedScopes() {
+        MdScopeService scopes = mock(MdScopeService.class);
+        when(scopes.filterForProjects(any())).thenReturn(ScopeFilter.unrestricted());
+        return scopes;
+    }
+
     private static MdCustomFieldService acceptingCustomFields() {
         MdCustomFieldService fields = mock(MdCustomFieldService.class);
         when(fields.checkedAttributes(anyString(), any())).thenAnswer(call -> call.getArgument(1));

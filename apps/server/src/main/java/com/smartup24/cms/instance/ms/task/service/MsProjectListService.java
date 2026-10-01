@@ -63,10 +63,14 @@ public class MsProjectListService {
         QueryPlan plan = QueryCompiler.compile(
                 registry.resolve(MsProjectQuery.LIST), filter, sort, limit, cursor, search, narrowing);
         var scope = scopes.filterForTasks(viewerId);
-        StringBuilder sql = new StringBuilder();
+        var visible = scopes.filterForProjects(viewerId);
+        // Only the projects the viewer may open (ADR-0013): the same predicate as the card, so the list never
+        // offers a project whose card answers 404.
+        StringBuilder sql = new StringBuilder(visible.sql());
         Map<String, Object> params = new LinkedHashMap<>();
         // The progress fields' subqueries use the viewer's task scope (MsProjectQuery.progressFields).
         if (scope.bindsUserId()) params.put("scopeUserId", scope.userId());
+        if (visible.bindsUserId()) params.put("scopeUserId", visible.userId());
         if (narrowing != null) {
             sql.append(" and p.state = :state");
             params.put("state", state.strip());

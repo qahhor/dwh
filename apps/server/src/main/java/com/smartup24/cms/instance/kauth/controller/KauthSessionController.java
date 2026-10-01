@@ -82,6 +82,7 @@ public class KauthSessionController {
     @GetMapping("/users/{userId}/sessions")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<List<SessionView>> listUserSessions(@PathVariable("userId") Long userId) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         return ResponseEntity.ok(sessionService.listUserActiveSessions(userId));
     }
 
@@ -90,6 +91,7 @@ public class KauthSessionController {
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeAllUserSessions(@PathVariable("userId") Long userId) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         sessionService.closeAllUserSessions(userId);
         return ResponseEntity.noContent().build();
     }
@@ -99,6 +101,7 @@ public class KauthSessionController {
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeUserSession(@PathVariable("userId") Long userId, @PathVariable("id") Long id) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         sessionService.closeUserSession(userId, id);
         return ResponseEntity.noContent().build();
     }
@@ -109,6 +112,7 @@ public class KauthSessionController {
     @GetMapping("/users/{userId}/security")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<UserSecuritySummary> getUserSecuritySummary(@PathVariable("userId") Long userId) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         var user = userService.findAuthUserById(userId).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(sessionService.getUserSecuritySummary(userId, user));
     }
@@ -121,6 +125,7 @@ public class KauthSessionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> forcePasswordChange(@PathVariable("userId") Long userId) {
         Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.requireVisible(currentUserId, userId);
         userSecurityService.setForcePasswordChange(userId, true, currentUserId);
         return ResponseEntity.noContent().build();
     }
@@ -131,6 +136,7 @@ public class KauthSessionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> reset2fa(@PathVariable("userId") Long userId) {
         Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.requireVisible(currentUserId, userId);
         userSecurityService.reset2fa(userId, currentUserId);
         return ResponseEntity.noContent().build();
     }

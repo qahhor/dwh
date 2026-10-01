@@ -173,7 +173,8 @@ class MdIamWireFormatTest {
         when(users.nextRevision(42L, 1L)).thenReturn(2L);
         when(users.nextRevision(42L, 2L)).thenReturn(3L);
         MockMvc mvc = mvc(new MdAssignmentController(
-                new MdAssignmentService(users, roles, permissions, permissionService, scope, audit)));
+                new MdAssignmentService(users, roles, permissions, permissionService, scope, audit),
+                mock(MdUserService.class)));
         String base = "/api/v1/iam/users/42";
 
         JsonNode roleIds = json(mvc, get(base + "/roles"), 200);

@@ -191,6 +191,15 @@ public class MdUserService {
         return MdUserView.from(getUserById(userId), roleRepository.getUserRoleIds(userId));
     }
 
+    /**
+     * Every call that names a user by id checks this first: a user outside the viewer's data scope answers 404
+     * like a missing one (ADR-0013); {@code viewerId} null is a system call.
+     */
+    @Transactional(readOnly = true)
+    public void requireVisible(Long viewerId, Long userId) {
+        scopeService.requireUserVisible(viewerId, userId);
+    }
+
     /** The signed-in user as {@code GET /api/v1/auth/me} answers it: without role ids, the rights come apart. */
     @Transactional(readOnly = true)
     public MdUserView getSignedInUserView(Long userId) {

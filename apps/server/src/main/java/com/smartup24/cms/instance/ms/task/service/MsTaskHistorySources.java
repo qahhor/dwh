@@ -68,8 +68,10 @@ public class MsTaskHistorySources {
                 return "view";
             }
 
+            /** The same data scope as opening the project (ADR-0013). */
             public void requireVisible(String recordId) {
-                projectService.getProjectById(numericId(recordId, ErrorCode.PROJECT_NOT_FOUND));
+                projectService.requireVisible(
+                        numericId(recordId, ErrorCode.PROJECT_NOT_FOUND), SecurityContext.getCurrentUserId());
             }
 
             public Map<String, String> fieldLabels() {

@@ -102,7 +102,7 @@ public class MdUserListService {
             LegacyUserFilters legacy) {
         var list = registry == null ? MdUserQuery.LIST : registry.resolve(MdUserQuery.LIST);
         var plan = QueryCompiler.compile(list, filter, sort, limit, cursor, search, legacy.canonical());
-        var scope = scopeService.filterFor(viewerId, "md_users.org_unit_id", "md_users.id");
+        var scope = scopeService.filterForUsers(viewerId, "md_users.id");
         return lists.page(plan, userRepository::mapUser, MdUserListSql.listPredicate(scope, legacy));
     }
 }
