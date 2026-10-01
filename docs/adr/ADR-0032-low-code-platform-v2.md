@@ -930,6 +930,53 @@ ADR-0026, ограничения): правило «SQL только в репо
 `test-create-module.ps1` подтвердит или опровергнет это первой (подтвердилось
 и исправлено в шаге 1, §3.6, О12). Кроссплатформенный CLI — пункт 6.1.
 
+### 6.16. Шаги 3 и 5 выполнены: как реализовано и отступления (2026-10-02)
+
+Шаги 3 и 5 (пункт 5.4) выполнены вместе в ветке `claude/p5-runtime`: общий
+runtime `/api/v1/entities/{code}` обслуживает каждую сущность с таблицей в
+порядке §6.3, заметки переведены на него, их контроллер, сервис, репозиторий
+и `MsNoteRecords` удалены. Критерии плана: «заметки — ≤ 2 серверных файла» —
+`EntityFileBudgetTest` (в `ms/note` один файл `MsNoteEntity` и `package-info`;
+хуки заметкам не нужны); «вебхук `notes.updated` без кода модуля» — группа
+«события» кита (`MsNoteContractTest`: строка `kwh_outbox` с `notes.updated` на
+изменение, без неё — при отказе) и `EntityRuntimeIntegrationTest`; «все
+эндпоинты сущностей в OpenAPI» — `OpenApiContractTest` (конкретные пути и
+схемы каждой сущности, шаблон `{code}` скрыт); «тест-кит зелёный для каждой
+сущности» — `EntityContractCoverageTest` и `MsNoteContractTest` на транспорте
+runtime (45 случаев), самопроверка кита — на runtime.
+
+Отступления от §6 и §15 (решение не меняется, уточняется исполнение):
+
+| № | В дизайне | Сделано | Почему |
+|---|---|---|---|
+| Р1 | флаг `smc.entities.runtime.enabled`: выключен в шаге 3, включён и удалён в шаге 5 | флага нет | шаги 3 и 5 в одной ветке, контроллер заметок удалён в ней же: флаг без запасного пути выключал бы заметки целиком; конечное состояние шага 5 («флаг удалён») достигнуто сразу. Откат — `git revert` слияния (§14.3) |
+| Р2 | `common.entity.runtime`: `EntityController`, `EntityRuntime`, `EntityRequestReader`, `EntityWriteCheck`, `EntityResponses`, `EntityOperation`; `store`: `EntityStoreRepository`, `EntitySql` | `runtime`: `EntityController`, `EntityRuntime` (транзакции, шаги 1–3), `EntityGate` (шаги 1–2), `EntityReads`, `EntityWrites` (шаги 4–13), `EntitySaveChecks` (ссылки, единица, правила, доп. поля), `EntityChanges` (хуки, связи, прикрепления, аудит), `EntityEvents`, `EntityRequestReader`, `EntityRecordView`; `store`: `EntityStoreRepository`, `EntityWrite`; `EntityOperation` — в `hook` | классы ≤ 400 строк; `EntitySave` хука ссылается на операцию, а `hook` не должен зависеть от `runtime` |
+| Р3 | `common.entity` не зависит от `hook` | правила объявляются на модели (`EntityModel.rules`, `Entity.rule(...)`), поэтому `common.entity` знает тип `EntityRule` | §3.2 кладёт правила в модель; цикл внутри `common` правила срезов (`ModularArchitectureTest`, срезы верхнего уровня) не нарушает |
+| Р4 | runtime пишет `AuditLogService.logChange`, проверяет доп. поля, читает выключатель модуля | интерфейсы в `common`: `EntityAuditLog` (реализует `audit.service.AuditEntityLog`), `EntityAttributes` (`md.service.MdCustomFieldAttributes`), `common.module.InstalledModules` (`md.service.MdInstalledModules` поверх кэшируемого `ModuleRegistryService`) | `common` не зависит от модулей (`ModuleBoundariesTest`) — как `DataScopes` и `EntityFiles` |
+| Р5 | шаг 15 — перечитать запись после коммита | запись перечитывается тем же SQL списка в конце транзакции, до коммита | ответ отражает изменение; с ключом идемпотентности коммит всё равно делает фильтр после ответа |
+| Р6 | все ошибки шага 8 вместе | ошибки тела, правил полей, `EntityRule` и доп. полей — один 422; проверки по БД (элемент `ENUM`, файл, ссылки, единица скоупа) — только когда правила полей ошибок не нашли | так уже работал `EntityFieldValues` (шаг 6): запрос к БД по заведомо неверному значению не нужен; `prepareAll` возвращает ошибки без исключения |
+| Р7 | `EntityValues` — `text`, `decimal`, `money`, `date`, `ref`, `refs`, `bool`, `json`, `collection` | без `collection` (коллекции — шаг 9); `money` — карта `{amount, currency}`; `set` проверяет значение валидатором поля и принимает только записываемое поле формы | типа `Money` в коде нет; хук не может положить значение, которое объявление отвергнет |
+| Р8 | порядок §6.3 одинаков для архива | архив проходит шаги 1–5, запись, аудит (поле `archived`), событие `archived`/`restored` и `afterCommit`; `beforeSave`/`afterSave` не вызываются | значения записи архив не меняет; `EntityOperation` архива не знает |
+| Р9 | `EntityAction(code, permission, kind, confirmKey, params)` | `EntityAction(code, permission)`; тело действия — свободный JSON-объект, обработчик получает его как `EntityActionCall.params()`; действие всегда повышает ревизию, аудит `U` с `_action` | виды действий и объявленные параметры придут с процессом (шаг 9); проверка параметров пока на обработчике |
+| Р10 | `labels` ссылок в ответе (§4.6) | не отдаются; `.target(код, поле подписи)` даёт выбор из `/entities/<код>` | подписи нужны общему экрану (шаг 7) и требуют скоупа цели на каждой странице |
+| Р11 | вебхук: `data` в проекции без полей с правом, каталог событий `GET /api/v1/webhooks/events`, 422 на подписку без события, подпись метки времени (В9) | `EntityWebhookListener` → `WebhookService.publishEvent(тип, Supplier)` (тело строится, только если есть подписчики); `data` — запись без скоупа зрителя (`EntityReads.unscoped`) минус поля с `requires`; у удалённой записи `data` нет; каталог событий, 422 и подпись метки — не сделаны; `EntityChanged` получил компонент `form` (имя события) и `changedFields` — список в порядке полей | каталог и подпись меняют модуль `webhook` и формат доставки — отдельный шаг; без формы событие нельзя назвать без реестра |
+| Р12 | поиск слушает `EntityChanged` | слушателя нет | возможности `SEARCH` ещё нет (шаг 10); поиск заметок по-прежнему идёт по PostgreSQL через `ms_note_pub_notes` (только владелец) |
+| Р13 | тело ≤ 512 КБ для `/api/v1/entities/**`, лимит фильтра идемпотентности — тот же | фильтр `EntityBodyLimitFilter` (413 `payload_too_large` до разбора, с длиной и без неё); фильтр идемпотентности для этих путей — 512 КБ на запрос и на сохранённый ответ, ключ `error.idempotency.entity_body_too_large` | ответ с длинным текстом заметки больше 64 КБ иначе не сохранялся бы для повтора |
+| Р14 | дробное — строкой в JSON | ответ отдаёт число как прочитано (`BigDecimal`); дробное, присланное числом JSON, общий `ObjectMapper` читает как `double` | точные знаки — строкой (описано в `docs/api/README.md`) |
+| Р15 | `EntityOpenApiCustomizer` | в `config.openapi` с `@Order(HIGHEST_PRECEDENCE)`: после него `ApiHeadersDocs` добавляет 409/428 и `Idempotency-Key`, `ApiDocsConfig` — `Location` и `default`; схемы `EntityMoney`, `EntityFile`, `EntityArchivedRequest`; тег — код сущности | общие правила заголовков не дублируются |
+| Р16 | заметки — объявление и хуки | действие `pin` удалено (`PATCH {isPinned}`); цвет обязателен со значением по умолчанию `default`; `V167` снимает `not null` с `content_md` (`null` очищает текст); выключенный модуль — 404 `error.common.entity_not_found` вместо 400 `error.note.module_disabled`; чужая и несуществующая заметка — 404 `error.common.record_not_found` (закрывает О19); ключи `error.note.*` удалены | снимок `form-meta` заметок меняется намеренно (`EntityMetaSnapshotTest`) |
+| Р17 | `EntityRecords` для сущностей на runtime не нужен | реестр отказывает бину `EntityRecords` сущности с таблицей; её история, выгрузка, массовые действия и файлы — из `EntityRecordStore` (реализует `EntityRuntime`), который реестр берёт лениво | runtime создаётся после реестра: прямая зависимость давала бы цикл бинов |
+| Р18 | §6.10: каталог прав из объявлений | `MdFormCatalogSynchronizer` добавляет пары объявлений (`view`, право каждого действия, формы `FieldAccess`) — закрывает О22; `EntityActionPermissionContractTest` проверяет названия пар и их попадание в каталог | после удаления контроллера заметок аннотаций с формой `notes` нет |
+| Р19 | кит §11 | К1, К2, К3 закрыты: транспорт по умолчанию — runtime, без `view` — 404, строгое тело (свойства записи, неверный тип JSON); К5 частично: группа «события» есть (строка outbox, `data` без полей с правом, отказ — ни строки), `actions` записи сверяются с правами; ссылка на невидимую и архивную цель — в `EntityRuntimeIntegrationTest`, а не в ките (кит не знает фикстуры цели); обязательное поле со значением по умолчанию кит не проверяет на `required` | — |
+| Р20 | §12: `EntitySqlSafetyTest`, `EntitySqlBoundariesTest` | не добавлены; угрозы проверяют кит (IDOR, «404, а не 403», права на поля в чтении, списке, выгрузке и вебхуке), `EntityRequestReaderTest` (массовое присваивание), `EntityRuntimeIntegrationTest` (обход скоупа фильтром и поиском, порядок, хуки, откат) и `ScopeByIdMatrixIntegrationTest` (обработчики runtime по id на заметках) | SQL runtime строится только из идентификаторов, проверенных шаблоном при объявлении; ключи клиента ищутся в карте полей; значения — параметры |
+
+API-ломающие изменения шага: пути заметок `/api/v1/notes…` удалены, заметки —
+`/api/v1/entities/ms.notes…` (`PUT` изменения → `PATCH`, `PUT …/pin` →
+`PATCH {isPinned}` с `If-Match`), ответ записи — формат §6.2 (`actions`,
+`archived`; пустой текст не отдаётся), действие `pin` убрано из `form-meta`,
+цвет заметки обязателен; описание API — схемы `MsNotes*` вместо
+`NoteView`/`CreateNoteRequest`/`UpdateNoteRequest`/`PinRequest`.
+
 ## 7. Общий экран `/e/:code` (5.5)
 
 ### 7.1. Маршруты и состав
@@ -1417,9 +1464,9 @@ create index ex_orders_org_unit_id_idx on ex_orders (org_unit_id);
 | 0 | 5.0 | гигиена модели (параллельный исполнитель) | — | контракт «поле формы ↔ поле списка», история всех полей, 404 чужой записи, доп. поле без перезагрузки |
 | 1 | 5.1 | **выполнен** (§3.6): `EntityField`, `Entity`, вывод `FormField`/`QueryList`, `QueryListSource`; заметки — одно объявление; схемы `FormFieldMeta` в OpenAPI | 0 | «0 параллельных объявлений» — `EntityFieldsSingleSourceTest`; «снимок `query-meta` заметок не изменился» — `EntityMetaSnapshotTest` |
 | 2 | 5.3 | **выполнен** (§5.5): `EntityScope` (обязателен), `DataScopes`, `FieldAccess`, обязательная ревизия, `ARCHIVE` | 1 | «скоуп у 100% сущностей» — построитель + `EntityScopeDeclaredTest`; «права на поля: form-meta, чтение, запись, выгрузка» — тест прав на поля; «устаревшая версия → 409» — `RecordRevisionIntegrationTest` + кит |
-| 3 | 5.4 (а) | `EntityController`, `EntityRuntime`, `EntityStoreRepository`, порядок §6.3, `EntityHooks`, `EntityRule`, аудит, `EntityChanged` → Spring; флаг выключен вне тестов | 2 | — (промежуточный) |
+| 3 | 5.4 (а) | **выполнен** (§6.16, вместе с шагом 5): `EntityController`, `EntityRuntime`, `EntityStoreRepository`, порядок §6.3, `EntityHooks`, `EntityRule`, `EntityActionHandler`, аудит, `EntityChanged` → вебхуки и Spring; флага нет (Р1) | 2 | — (промежуточный) |
 | 4 | 6.2 (ядро) | **выполнен** (§11.6, до шага 3): кит с подключаемым транспортом, `TestSession`/`TestUsers`, контракт заметок, `EntityContractCoverageTest`, самопроверка кита; генератор пишет наследника | 3 | «модуль проходит кит одним наследованием» — `MsNoteContractTest` |
-| 5 | 5.4 (б) | флаг включён по умолчанию и удалён; заметки на runtime: контроллер, сервис, репозиторий и `MsNoteRecords` удалены; веб заметок на `EntityApi`; вебхуки и поиск слушают `EntityChanged`; `EntityOpenApiCustomizer`; правки Spectral | 4 | «заметки — ≤ 2 серверных файла» — подсчёт файлов `ms/note` без `package-info.java` в `EntityFileBudgetTest` (действие `pin` заменяется `PATCH {isPinned}` с тем же правом `update`, поэтому заметкам хватает объявления); «вебхук `notes.updated` без кода модуля» — интеграционный тест outbox; «все эндпоинты сущностей в OpenAPI» — `OpenApiContractTest`; «тест-кит зелёный для каждой сущности» — `EntityContractCoverageTest` |
+| 5 | 5.4 (б) | **выполнен** (§6.16): флага нет; заметки на runtime: контроллер, сервис, репозиторий и `MsNoteRecords` удалены; веб заметок на `EntityApi`; вебхуки и поиск слушают `EntityChanged`; `EntityOpenApiCustomizer`; правки Spectral | 4 | «заметки — ≤ 2 серверных файла» — подсчёт файлов `ms/note` без `package-info.java` в `EntityFileBudgetTest` (действие `pin` заменяется `PATCH {isPinned}` с тем же правом `update`, поэтому заметкам хватает объявления); «вебхук `notes.updated` без кода модуля» — интеграционный тест outbox; «все эндпоинты сущностей в OpenAPI» — `OpenApiContractTest`; «тест-кит зелёный для каждой сущности» — `EntityContractCoverageTest` |
 | 6 | 5.2 | **выполнен** (§4.9): типы полей (каждый — сервер, контрол, колонка и фильтр, выгрузка, тест); контролы кита | 1 (типы ссылок — 2) | `FieldTypeMatrixTest`, `field-type-matrix.spec.ts` |
 | 7 | 5.5 | маршрут `/e/:code`, страницы, `entityGuard`, `provideEntityOverrides`; заметки — на общей странице | 5 | «новая сущность в UI без веб-кода», «e2e на общей странице» — `entity-page.spec.ts` |
 | 8 | 5.6 | типы задач → статусы → проекты → задачи → пользователи (§8), удаление legacy-фильтров | 5, 6, 7 | «≥ 5 сущностей», «`Legacy*Filters` = 0» — `NoLegacyFiltersTest`; «снимки совпадают или изменение в CHANGELOG» — `EntityApiSnapshotTest` + CHANGELOG |
