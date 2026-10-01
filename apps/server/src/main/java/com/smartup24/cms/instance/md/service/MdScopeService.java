@@ -62,13 +62,19 @@ public class MdScopeService {
         scopeRepository.lockScopeMutation();
     }
 
+    /**
+     * Sets the scope rule of a role, made from the role's revision {@code expectedRevision}, and answers the role's new
+     * revision: the rule is part of the role, so the change raises it and a stale screen cannot undo it (plan 10/10,
+     * item 3.6).
+     */
     @Transactional
-    public void setRoleRule(Long roleId, String rule) {
+    public long setRoleRule(Long roleId, String rule, long expectedRevision) {
         acquireMutationLock();
         requireRole(roleId);
         String normalized = normalize(rule);
         String before = scopeRepository.getRoleRule(roleId);
 
+        long revision = scopeRepository.nextRoleRevision(roleId, expectedRevision);
         scopeRepository.setRoleRule(roleId, normalized);
         recalculateForRole(roleId);
 
@@ -81,6 +87,7 @@ public class MdScopeService {
                 List.of("rule"),
                 Map.of("rule", before),
                 Map.of("rule", normalized));
+        return revision;
     }
 
     @Transactional(readOnly = true)
@@ -91,13 +98,18 @@ public class MdScopeService {
     @Transactional(readOnly = true)
     public RoleRule getRoleScopeRule(Long roleId) {
         requireRole(roleId);
-        return new RoleRule(roleId, scopeRepository.getRoleRule(roleId));
+        long revision = scopeRepository.roleRevision(roleId);
+        return new RoleRule(roleId, scopeRepository.getRoleRule(roleId), revision);
     }
 
     // -------------------------------------------------- позиция пользователя
 
+    /**
+     * Replaces the org units of a user, made from the user's revision {@code expectedRevision}, and answers the user's
+     * new revision: the units are part of the user, so the change raises it (plan 10/10, item 3.6).
+     */
     @Transactional
-    public void assignUserOrgUnits(Long userId, List<Long> orgUnitIds) {
+    public long assignUserOrgUnits(Long userId, List<Long> orgUnitIds, long expectedRevision) {
         acquireMutationLock();
         requireUser(userId);
         if (orgUnitIds == null) {
@@ -112,6 +124,7 @@ public class MdScopeService {
         }
 
         Set<Long> before = scopeRepository.getUserOrgUnitIds(userId);
+        long revision = scopeRepository.nextUserRevision(userId, expectedRevision);
         scopeRepository.replaceUserOrgUnits(userId, requested);
         recalculateFor(userId);
 
@@ -122,6 +135,7 @@ public class MdScopeService {
                 List.of("org_units"),
                 Map.of("org_units", List.copyOf(before)),
                 Map.of("org_units", List.copyOf(scopeRepository.getUserOrgUnitIds(userId))));
+        return revision;
     }
 
     /**
@@ -169,10 +183,12 @@ public class MdScopeService {
     @Transactional(readOnly = true)
     public UserAssignments getUserAssignments(Long userId) {
         requireUser(userId);
+        long revision = scopeRepository.userRevision(userId);
         return new UserAssignments(
                 userId,
                 scopeRepository.getUserOrgUnitIds(userId).stream().sorted().toList(),
-                scopeRepository.findUserOrgUnit(userId).orElse(null));
+                scopeRepository.findUserOrgUnit(userId).orElse(null),
+                revision);
     }
 
     // ------------------------------------------------------- применение в SQL

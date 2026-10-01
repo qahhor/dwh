@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.repository;
 
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -54,6 +55,33 @@ public class MdScopeRepository {
                 .orElse("ALL");
     }
 
+    /** The revision of the role, which a change of its scope rule names (plan 10/10, item 3.6). */
+    public long roleRevision(Long roleId) {
+        return jdbcClient
+                .sql("select revision from md_roles where id = :roleId")
+                .param("roleId", roleId)
+                .query(Long.class)
+                .single();
+    }
+
+    /**
+     * Claims the next revision of a role for a change of its scope rule: the rule is part of the role, like its
+     * rights, so a change made from an older revision is refused (plan 10/10, item 3.6).
+     */
+    public long nextRoleRevision(Long roleId, long expectedRevision) {
+        return jdbcClient
+                .sql("""
+                update md_roles set modified_at = now(), revision = revision + 1
+                where id = :roleId and revision = :expectedRevision
+                returning revision
+                """)
+                .param("roleId", roleId)
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
+    }
+
     public boolean roleExists(Long roleId) {
         return jdbcClient
                 .sql("select exists (select 1 from md_roles where id = :roleId)")
@@ -63,6 +91,33 @@ public class MdScopeRepository {
     }
 
     // ----------------------------------------------------------- пользователь
+
+    /** The revision of the user, which a change of the user's org units names (plan 10/10, item 3.6). */
+    public long userRevision(Long userId) {
+        return jdbcClient
+                .sql("select revision from md_users where id = :userId")
+                .param("userId", userId)
+                .query(Long.class)
+                .single();
+    }
+
+    /**
+     * Claims the next revision of a user for a change of the user's org units: they are part of the user, like the
+     * roles, so a change made from an older revision is refused (plan 10/10, item 3.6).
+     */
+    public long nextUserRevision(Long userId, long expectedRevision) {
+        return jdbcClient
+                .sql("""
+                update md_users set modified_at = now(), revision = revision + 1
+                where id = :userId and revision = :expectedRevision
+                returning revision
+                """)
+                .param("userId", userId)
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
+    }
 
     public Set<Long> getUserOrgUnitIds(Long userId) {
         return Set.copyOf(jdbcClient

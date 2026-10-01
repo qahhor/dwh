@@ -18,7 +18,8 @@ import org.junit.jupiter.api.Test;
  * Plan 10/10, item 3.6 (ADR-0024): the revision of a record names its state, so every write of a revisioned row raises
  * it — not only the save of the form. A write that leaves the revision as it was (a reset of 2FA, a reorder, a change
  * of roles) is silently undone by the next save of a form opened before it, because that save still matches the old
- * revision. The tables are those V135 gave a {@code revision} column.
+ * revision. The tables are those V135 gave a {@code revision} column, the module registry (V142) and the row that holds
+ * the revision of the system settings (V142).
  */
 class RevisionedUpdatesRaiseRevisionTest {
 
@@ -34,7 +35,9 @@ class RevisionedUpdatesRaiseRevisionTest {
             "md_navigation_items",
             "ms_task_statuses",
             "ms_task_types",
-            "kwh_subscriptions");
+            "kwh_subscriptions",
+            "md_installed_modules",
+            "md_settings_revision");
 
     private static final Pattern UPDATE =
             Pattern.compile("\\bupdate\\s+(" + String.join("|", REVISIONED_TABLES) + ")\\b", Pattern.CASE_INSENSITIVE);
