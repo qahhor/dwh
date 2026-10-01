@@ -93,9 +93,9 @@ public class SearchProjectionReader {
 
     public static String sourceTable(String type) {
         return switch (type) {
-            case "TASK" -> "ms_tasks";
-            case "PROJECT" -> "ms_task_projects";
-            case "USER" -> "md_users";
+            case "TASK" -> "ms_task_pub_tasks";
+            case "PROJECT" -> "ms_task_pub_projects";
+            case "USER" -> "md_pub_users";
             default -> throw new IllegalArgumentException("Unknown projection type");
         };
     }
@@ -108,20 +108,20 @@ public class SearchProjectionReader {
                         'description_markdown',coalesce(t.description_markdown,''),
                         'status_name',coalesce(s.name,''),'priority',coalesce(t.priority,'medium'),
                         'project_id',t.project_id,'project_name',coalesce(p.name,''))) as document
-                    from ms_tasks t
-                    left join ms_task_statuses s on s.id=t.status_id
-                    left join ms_task_projects p on p.id=t.project_id
+                    from ms_task_pub_tasks t
+                    left join ms_task_pub_statuses s on s.id=t.status_id
+                    left join ms_task_pub_projects p on p.id=t.project_id
                     where t.id=v.entity_id
                     """;
             case "PROJECT" -> """
                     select jsonb_build_object('id',p.id::text,'project_id',p.id,'name',p.name,
                         'description',coalesce(p.description,''),'state',p.state) as document
-                    from ms_task_projects p where p.id=v.entity_id and p.state='A'
+                    from ms_task_pub_projects p where p.id=v.entity_id and p.state='A'
                     """;
             case "USER" -> """
                     select jsonb_build_object('id',u.id::text,'user_id',u.id,'name',u.name,
                         'login',u.login,'email',u.email,'phone',coalesce(u.phone,''),'state',u.state) as document
-                    from md_users u where u.id=v.entity_id and u.state='A'
+                    from md_pub_users u where u.id=v.entity_id and u.state='A'
                     """;
             default -> throw new IllegalArgumentException("Unknown projection type");
         };

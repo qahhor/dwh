@@ -28,14 +28,14 @@ public class AnalyticsRepository {
                         count(*) filter (where coalesce(s.is_terminal, false) = false and t.end_time is not null and t.end_time < now()) as overdue_tasks,
                         count(*) filter (where t.created_at >= now() - interval '7 days') as created_7d,
                         count(*) filter (where t.resolved_time >= now() - interval '7 days' or (s.is_terminal = true and t.modified_at >= now() - interval '7 days')) as completed_7d
-                    from ms_tasks t
-                    left join ms_task_statuses s on s.id = t.status_id
+                    from ms_task_pub_tasks t
+                    left join ms_task_pub_statuses s on s.id = t.status_id
                 ),
                 project_metrics as (
-                    select count(*) as active_projects from ms_task_projects where state = 'A'
+                    select count(*) as active_projects from ms_task_pub_projects where state = 'A'
                 ),
                 user_metrics as (
-                    select count(*) as active_users from md_users where state = 'A'
+                    select count(*) as active_users from md_pub_users where state = 'A'
                 )
                 select
                     tm.total_tasks,
@@ -81,14 +81,14 @@ public class AnalyticsRepository {
                 ),
                 created as (
                     select date_trunc('day', created_at)::date as day, count(*) as count
-                    from ms_tasks
+                    from ms_task_pub_tasks
                     where created_at >= date_trunc('day', now()) - (:days - 1) * interval '1 day'
                     group by 1
                 ),
                 completed as (
                     select date_trunc('day', coalesce(resolved_time, modified_at))::date as day, count(*) as count
-                    from ms_tasks t
-                    join ms_task_statuses s on s.id = t.status_id and s.is_terminal = true
+                    from ms_task_pub_tasks t
+                    join ms_task_pub_statuses s on s.id = t.status_id and s.is_terminal = true
                     where coalesce(resolved_time, modified_at) >= date_trunc('day', now()) - (:days - 1) * interval '1 day'
                     group by 1
                 )
@@ -120,9 +120,9 @@ public class AnalyticsRepository {
                         when count(t.id) > 0 then round((count(t.id) filter (where coalesce(s.is_terminal, false) = true)::numeric / count(t.id)::numeric) * 100, 1)
                         else 0.0
                     end as progress_percent
-                from ms_task_projects p
-                left join ms_tasks t on t.project_id = p.id
-                left join ms_task_statuses s on s.id = t.status_id
+                from ms_task_pub_projects p
+                left join ms_task_pub_tasks t on t.project_id = p.id
+                left join ms_task_pub_statuses s on s.id = t.status_id
                 where p.state = 'A'
                 group by p.id, p.name
                 order by total_tasks desc, p.name asc
@@ -147,10 +147,10 @@ public class AnalyticsRepository {
                     u.login as user_login,
                     count(distinct t.id) as assigned_tasks,
                     count(distinct t.id) filter (where coalesce(s.is_terminal, false) = true) as completed_tasks
-                from md_users u
-                left join ms_task_members tm on tm.user_id = u.id
-                left join ms_tasks t on t.id = tm.task_id
-                left join ms_task_statuses s on s.id = t.status_id
+                from md_pub_users u
+                left join ms_task_pub_members tm on tm.user_id = u.id
+                left join ms_task_pub_tasks t on t.id = tm.task_id
+                left join ms_task_pub_statuses s on s.id = t.status_id
                 where u.state = 'A'
                 group by u.id, u.name, u.login
                 order by assigned_tasks desc, u.name asc

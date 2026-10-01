@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.md.service.MdStorageQuotaService;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.FileContentInspector;
 import com.smartup24.cms.instance.mf.service.MfFileMetadataService;
@@ -34,7 +35,9 @@ class MfFileServiceTest {
     private final MfFileRepository fileRepository = Mockito.mock(MfFileRepository.class);
     private final StorageProvider storageProvider = Mockito.mock(StorageProvider.class);
     private final AuditLogService auditLogService = Mockito.mock(AuditLogService.class);
-    private final MfFileMetadataService metadataService = new MfFileMetadataService(fileRepository, auditLogService);
+    private final MdStorageQuotaService quotas = Mockito.mock(MdStorageQuotaService.class);
+    private final MfFileMetadataService metadataService =
+            new MfFileMetadataService(fileRepository, auditLogService, quotas);
     private final MdScopeService scopeService = Mockito.mock(MdScopeService.class);
     private final MfFileService service = new MfFileService(
             metadataService,
@@ -129,9 +132,9 @@ class MfFileServiceTest {
     private static final String SHA = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
     private void givenRoomInQuotas(Long userId) {
-        when(fileRepository.getCompanyQuotaBytes()).thenReturn(50L * 1024 * 1024 * 1024);
+        when(quotas.instanceQuotaBytes()).thenReturn(50L * 1024 * 1024 * 1024);
         when(fileRepository.getTotalCompanyUsedBytes()).thenReturn(0L);
-        when(fileRepository.getUserEffectiveQuotaBytes(userId)).thenReturn(1024L * 1024 * 1024);
+        when(quotas.userQuotaBytes(userId)).thenReturn(1024L * 1024 * 1024);
         when(fileRepository.getUserUsedBytes(userId)).thenReturn(0L);
         when(storageProvider.upload(anyString(), anyString(), any(), anyLong(), anyString()))
                 .thenReturn(new StoredFileMetadata(
@@ -215,7 +218,7 @@ class MfFileServiceTest {
     @Test
     @DisplayName("Превышение дисковой квоты компании должно блокировать загрузку (STORAGE_QUOTA_EXCEEDED)")
     void shouldRejectWhenCompanyQuotaExceeded() {
-        when(fileRepository.getCompanyQuotaBytes()).thenReturn(1000L);
+        when(quotas.instanceQuotaBytes()).thenReturn(1000L);
         when(fileRepository.getTotalCompanyUsedBytes()).thenReturn(950L);
 
         byte[] content = new byte[100]; // 950 + 100 = 1050 > 1000
@@ -229,9 +232,9 @@ class MfFileServiceTest {
     @Test
     @DisplayName("Превышение персональной квоты пользователя должно блокировать загрузку (USER_STORAGE_QUOTA_EXCEEDED)")
     void shouldRejectWhenUserQuotaExceeded() {
-        when(fileRepository.getCompanyQuotaBytes()).thenReturn(10_000_000L);
+        when(quotas.instanceQuotaBytes()).thenReturn(10_000_000L);
         when(fileRepository.getTotalCompanyUsedBytes()).thenReturn(0L);
-        when(fileRepository.getUserEffectiveQuotaBytes(2L)).thenReturn(500L);
+        when(quotas.userQuotaBytes(2L)).thenReturn(500L);
         when(fileRepository.getUserUsedBytes(2L)).thenReturn(450L);
 
         byte[] content = pdfBytes(100); // 450 + 100 = 550 > 500
@@ -267,9 +270,9 @@ class MfFileServiceTest {
     @DisplayName("Квота повторно проверяется атомарно после scan/storage и отклонённый объект очищается")
     void shouldRecheckQuotaAtPublicationAndCleanUnpublishedObject() {
         byte[] content = pdfBytes(1024);
-        when(fileRepository.getCompanyQuotaBytes()).thenReturn(2_000L);
+        when(quotas.instanceQuotaBytes()).thenReturn(2_000L);
         when(fileRepository.getTotalCompanyUsedBytes()).thenReturn(0L, 1_500L);
-        when(fileRepository.getUserEffectiveQuotaBytes(9L)).thenReturn(10_000L);
+        when(quotas.userQuotaBytes(9L)).thenReturn(10_000L);
         when(fileRepository.getUserUsedBytes(9L)).thenReturn(0L);
         when(fileRepository.findBySha256AndOwner(SHA, 9L)).thenReturn(Optional.empty());
         when(fileRepository.findBySha256(SHA)).thenReturn(Optional.empty());

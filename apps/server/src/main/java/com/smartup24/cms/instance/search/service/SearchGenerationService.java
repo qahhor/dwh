@@ -14,14 +14,17 @@ import org.springframework.stereotype.Service;
 public class SearchGenerationService {
     private final SearchGenerationRepository generations;
     private final SearchSettingsRepository settings;
+    private final SearchJobAudit audit;
     private final int maximum;
 
     public SearchGenerationService(
             SearchGenerationRepository generations,
             SearchSettingsRepository settings,
+            SearchJobAudit audit,
             @Value("${dwh.search.maximum-generations:4}") int maximum) {
         this.generations = generations;
         this.settings = settings;
+        this.audit = audit;
         this.maximum = Math.max(4, maximum);
     }
     /** Caller owns the singleton FOR UPDATE allocation transaction. Reads an internal typed snapshot without request impersonation. */
@@ -79,13 +82,15 @@ public class SearchGenerationService {
             }
             if (!proof.summary().successful() || !generations.readyToActivate(connection, generation.id()))
                 return false;
-            return generations.activate(
+            boolean activated = generations.activate(
                     connection,
                     generation.id(),
                     job.id(),
                     owner,
                     expectedVersion,
                     barrier.get().activeGeneration());
+            if (activated) audit.recordSwitch(connection, job.id());
+            return activated;
         });
     }
 }

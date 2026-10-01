@@ -60,7 +60,7 @@ public class MsTaskMemberRepository {
                 select tm.task_id, tm.user_id, u.name as user_name, u.login as user_login,
                        u.email as user_email, tm.involve_kind, tm.is_viewed
                 from ms_task_members tm
-                join md_users u on u.id = tm.user_id
+                join md_pub_users u on u.id = tm.user_id
                 where tm.task_id = :taskId
                 order by tm.involve_kind asc, u.name asc
                 """)

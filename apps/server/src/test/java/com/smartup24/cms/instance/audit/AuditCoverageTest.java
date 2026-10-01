@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskAuditTrail;
 import com.smartup24.cms.instance.ms.task.service.MsTaskStatusService;
-import com.smartup24.cms.instance.search.repository.SearchJobRepository;
+import com.smartup24.cms.instance.search.service.SearchJobAudit;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -37,13 +37,14 @@ import org.springframework.transaction.annotation.Transactional;
 class AuditCoverageTest {
 
     /**
-     * Search jobs write fixed-field, explicit-actor audit rows through this exact repository.
-     * The worker also uses it on the activation connection, preserving pointer/job/audit atomicity.
-     * This is audited delegation, not an exemption; behavioral coverage lives in the job tests.
+     * Search jobs write fixed-field, explicit-actor audit rows through {@link SearchJobAudit}, which hands them to
+     * {@link AuditLogService} (ADR-0026). The worker also uses it on the activation connection, preserving
+     * pointer/job/audit atomicity. This is audited delegation, not an exemption; behavioral coverage lives in the job
+     * tests.
      */
     private static final Map<String, Class<?>> AUDIT_DELEGATES = Map.of(
             "SearchJobService",
-            SearchJobRepository.class,
+            SearchJobAudit.class,
             // Plan 10/10, item 3.10: the task services write ms_tasks entries through one trail; the status view
             // service adapts the status service, which audits the dictionaries itself.
             "MsTaskService",

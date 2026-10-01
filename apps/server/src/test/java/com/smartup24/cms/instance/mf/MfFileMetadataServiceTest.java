@@ -8,6 +8,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.md.service.MdStorageQuotaService;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileMetadataService;
 import java.time.Instant;
@@ -22,7 +23,8 @@ class MfFileMetadataServiceTest {
     @Test
     void returnsConcurrentOwnerWinnerBeforeChargingQuotaAgain() {
         MfFileRepository repository = Mockito.mock(MfFileRepository.class);
-        MfFileMetadataService service = new MfFileMetadataService(repository, Mockito.mock(AuditLogService.class));
+        MfFileMetadataService service = new MfFileMetadataService(
+                repository, Mockito.mock(AuditLogService.class), Mockito.mock(MdStorageQuotaService.class));
         MfFileRepository.FileRecord winner = record();
 
         when(repository.findBySha256AndOwner(winner.sha256(), 7L)).thenReturn(Optional.empty(), Optional.of(winner));
@@ -38,7 +40,7 @@ class MfFileMetadataServiceTest {
 
         assertThat(result).isEqualTo(winner);
         Mockito.verify(repository).lockQuotaBudget();
-        Mockito.verify(repository, Mockito.never()).getCompanyQuotaBytes();
+        Mockito.verify(repository, Mockito.never()).getTotalCompanyUsedBytes();
         Mockito.verify(repository, Mockito.never())
                 .create(anyString(), anyString(), anyLong(), anyString(), anyString(), anyString(), any());
     }
@@ -47,13 +49,14 @@ class MfFileMetadataServiceTest {
     void locksQuotaBudgetBeforeFinalUsageCheckAndInsert() {
         MfFileRepository repository = Mockito.mock(MfFileRepository.class);
         AuditLogService auditLog = Mockito.mock(AuditLogService.class);
-        MfFileMetadataService service = new MfFileMetadataService(repository, auditLog);
+        MdStorageQuotaService quotas = Mockito.mock(MdStorageQuotaService.class);
+        MfFileMetadataService service = new MfFileMetadataService(repository, auditLog, quotas);
         MfFileRepository.FileRecord created = record();
 
         when(repository.findBySha256AndOwner(created.sha256(), 7L)).thenReturn(Optional.empty());
-        when(repository.getCompanyQuotaBytes()).thenReturn(10_000L);
+        when(quotas.instanceQuotaBytes()).thenReturn(10_000L);
         when(repository.getTotalCompanyUsedBytes()).thenReturn(1_000L);
-        when(repository.getUserEffectiveQuotaBytes(7L)).thenReturn(5_000L);
+        when(quotas.userQuotaBytes(7L)).thenReturn(5_000L);
         when(repository.getUserUsedBytes(7L)).thenReturn(500L);
         when(repository.findBySha256(created.sha256())).thenReturn(Optional.empty());
         when(repository.create(anyString(), anyString(), anyLong(), anyString(), anyString(), anyString(), any()))
@@ -69,11 +72,11 @@ class MfFileMetadataServiceTest {
                 7L);
 
         assertThat(result).isEqualTo(created);
-        InOrder order = inOrder(repository);
+        InOrder order = inOrder(repository, quotas);
         order.verify(repository).lockQuotaBudget();
-        order.verify(repository).getCompanyQuotaBytes();
+        order.verify(quotas).instanceQuotaBytes();
         order.verify(repository).getTotalCompanyUsedBytes();
-        order.verify(repository).getUserEffectiveQuotaBytes(7L);
+        order.verify(quotas).userQuotaBytes(7L);
         order.verify(repository).getUserUsedBytes(7L);
         order.verify(repository)
                 .create(

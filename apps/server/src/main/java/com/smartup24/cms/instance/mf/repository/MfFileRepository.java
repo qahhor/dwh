@@ -23,7 +23,7 @@ public class MfFileRepository {
                    f.storage_bucket, f.storage_key, f.created_at, f.created_by,
                    u.name as creator_name, u.login as creator_login""";
 
-    static final String DETAIL_FROM = "mf_files f left join md_users u on u.id = f.created_by";
+    static final String DETAIL_FROM = "mf_files f left join md_pub_users u on u.id = f.created_by";
 
     public static String detailColumns() {
         return DETAIL_COLUMNS;
@@ -161,37 +161,6 @@ public class MfFileRepository {
                 .query(Long.class)
                 .single();
         return sum != null ? sum : 0L;
-    }
-
-    public long getCompanyQuotaBytes() {
-        Long quota = jdbcClient
-                .sql("select coalesce(storage_quota_bytes, 53687091200) from md_instance_info limit 1")
-                .query(Long.class)
-                .optional()
-                .orElse(53687091200L);
-        return quota != null ? quota : 53687091200L;
-    }
-
-    public long getUserEffectiveQuotaBytes(Long userId) {
-        if (userId == null) return 1073741824L; // 1 GB
-        Long quota = jdbcClient
-                .sql("""
-                select coalesce(
-                    u.storage_quota_bytes,
-                    max(r.storage_quota_bytes),
-                    1073741824
-                ) as effective_quota
-                from md_users u
-                left join md_user_roles ur on ur.user_id = u.id
-                left join md_roles r on r.id = ur.role_id
-                where u.id = :userId
-                group by u.id, u.storage_quota_bytes
-                """)
-                .param("userId", userId)
-                .query(Long.class)
-                .optional()
-                .orElse(1073741824L);
-        return quota != null ? quota : 1073741824L;
     }
 
     public int countTotalFiles() {

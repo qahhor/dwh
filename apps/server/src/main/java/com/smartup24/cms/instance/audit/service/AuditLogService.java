@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.audit.service;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.audit.api.AuditEntry;
 import com.smartup24.cms.instance.audit.api.AuditStatsView;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
@@ -10,6 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +55,29 @@ public class AuditLogService {
                 changedColumns,
                 oldRow == null ? null : auditDataRedactor.redact(oldRow),
                 newRow == null ? null : auditDataRedactor.redact(newRow));
+        countMutation();
+    }
+
+    /**
+     * Records a change with an explicit actor (ADR-0026) in the current transaction: a system operation names who
+     * asked for it instead of the request principal.
+     */
+    @Transactional
+    public void logEntry(AuditEntry entry) {
+        auditLogRepository.logEntry(entry, auditDataRedactor.redact(entry.newRow()));
+        countMutation();
+    }
+
+    /**
+     * Records a change with an explicit actor on a connection the caller holds outside the managed transactions, so
+     * the entry commits or rolls back with that connection's change.
+     */
+    public void logEntry(JdbcClient connection, AuditEntry entry) {
+        auditLogRepository.logEntry(connection, entry, auditDataRedactor.redact(entry.newRow()));
+        countMutation();
+    }
+
+    private void countMutation() {
         if (platformMetrics != null) {
             platformMetrics.incrementAuditMutation();
         }

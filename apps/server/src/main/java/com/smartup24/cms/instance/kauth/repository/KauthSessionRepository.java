@@ -26,7 +26,7 @@ public class KauthSessionRepository {
 
     private static final String SELECT = """
             select c.auth_version, c.id, c.user_id, c.token_hash, host(c.ip) as ip_str, c.user_agent, c.device_info, c.created_at, c.last_seen_at, c.closed_at
-            from kauth_sessions c join md_users u on u.id = c.user_id
+            from kauth_sessions c join md_pub_users u on u.id = c.user_id
             """;
     private static final String ACTIVE = """
             c.closed_at is null
@@ -45,7 +45,7 @@ public class KauthSessionRepository {
                 .sql("""
                 insert into kauth_sessions (user_id, auth_version, token_hash, ip, user_agent, device_info, created_at, last_seen_at)
                 select u.id, :authenticationVersion, :tokenHash, cast(:ip as inet), :userAgent, :deviceInfo, now(), now()
-                from md_users u
+                from md_pub_users u
                 where u.id = :userId and u.state = 'A' and u.auth_version = :authenticationVersion
                 returning auth_version, id, user_id, token_hash, host(ip) as ip_str, user_agent, device_info, created_at, last_seen_at, closed_at
                 """)

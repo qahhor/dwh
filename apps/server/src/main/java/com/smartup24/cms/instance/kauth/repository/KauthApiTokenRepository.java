@@ -33,7 +33,7 @@ public class KauthApiTokenRepository {
 
     private static final String SELECT = """
             select c.auth_version, c.id, c.user_id, c.name, c.token_prefix, c.token_hash, c.expires_at, c.created_at, c.last_used_at, c.revoked_at
-            from kauth_api_tokens c join md_users u on u.id = c.user_id
+            from kauth_api_tokens c join md_pub_users u on u.id = c.user_id
             """;
     private static final String ACTIVE = """
             c.revoked_at is null and (c.expires_at is null or c.expires_at > now())
@@ -57,7 +57,7 @@ public class KauthApiTokenRepository {
                 .sql("""
                 insert into kauth_api_tokens (user_id, auth_version, name, token_prefix, token_hash, expires_at, created_at)
                 select u.id, :authenticationVersion, :name, :tokenPrefix, :tokenHash, :expiresAt, now()
-                from md_users u
+                from md_pub_users u
                 where u.id = :userId and u.state = 'A' and u.auth_version = :authenticationVersion
                 returning auth_version, id, user_id, name, token_prefix, token_hash, expires_at, created_at, last_used_at, revoked_at
                 """)

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.audit.repository;
 
+import com.smartup24.cms.instance.audit.api.AuditEntry;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import java.time.Instant;
@@ -56,6 +57,31 @@ public class AuditLogRepository {
                 .update();
     }
 
+    /**
+     * Writes an entry with an explicit actor on the given connection (ADR-0026): the entry commits or rolls back with
+     * the change it describes, also when the caller holds its own connection outside the managed transactions.
+     */
+    public void logEntry(JdbcClient connection, AuditEntry entry, Map<String, Object> newRow) {
+        connection
+                .sql("""
+                insert into audit_log (table_name, row_pk, event, changed_by, is_api, changed_at, changed_columns, new_row)
+                values (:tableName, :rowPk, :event, :changedBy, false, clock_timestamp(), :changedColumns,
+                        cast(:newRow as jsonb))
+                """)
+                .param("tableName", entry.tableName())
+                .param("rowPk", entry.rowPk())
+                .param("event", entry.event())
+                .param("changedBy", entry.actor())
+                .param("changedColumns", entry.changedColumns().toArray(new String[0]))
+                .param("newRow", jsonColumns.object(newRow))
+                .update();
+    }
+
+    /** {@link #logEntry(JdbcClient, AuditEntry, Map)} in the current managed transaction. */
+    public void logEntry(AuditEntry entry, Map<String, Object> newRow) {
+        logEntry(jdbcClient, entry, newRow);
+    }
+
     public void logSecurityEvent(
             String eventType, Long userId, String ip, String userAgent, Map<String, Object> details) {
         String detailsJson = jsonColumns.object(details);
@@ -88,7 +114,7 @@ public class AuditLogRepository {
                        a.changed_at, a.changed_columns, a.old_row::text as old_str, a.new_row::text as new_str,
                        u.name as changed_by_name, u.login as changed_by_login
                 from audit_log a
-                left join md_users u on u.id = a.changed_by
+                left join md_pub_users u on u.id = a.changed_by
                 where 1=1
                 """);
 
@@ -141,7 +167,7 @@ public class AuditLogRepository {
     /** Below this many rows (by the statistics) a total is counted; above, it is the estimate. */
     static final long COUNT_BELOW = 100_000;
 
-    public static final String LOG_FROM = "audit_log a left join md_users u on u.id = a.changed_by";
+    public static final String LOG_FROM = "audit_log a left join md_pub_users u on u.id = a.changed_by";
 
     /** Columns of a security event as {@link #mapSecurityEvent} reads them ({@code audit.security_events}). */
     public static final String SECURITY_COLUMNS = """
@@ -149,7 +175,7 @@ public class AuditLogRepository {
             s.details::text as details_str, s.created_at,
             u.name as user_name, u.login as user_login""";
 
-    public static final String SECURITY_FROM = "security_events s left join md_users u on u.id = s.user_id";
+    public static final String SECURITY_FROM = "security_events s left join md_pub_users u on u.id = s.user_id";
 
     /** The flat filters the audit log took before the registry, kept for existing callers. */
     public record AuditLogFilters(String tableName, String rowPk, String event, Long userId, Instant from, Instant to) {

@@ -66,9 +66,9 @@ public class SearchFallbackRepository {
         return jdbcClient
                 .sql("""
                 select t.id, t.title, t.priority, s.name as status_name, p.name as project_name
-                from ms_tasks t
-                left join ms_task_statuses s on s.id = t.status_id
-                left join ms_task_projects p on p.id = t.project_id
+                from ms_task_pub_tasks t
+                left join ms_task_pub_statuses s on s.id = t.status_id
+                left join ms_task_pub_projects p on p.id = t.project_id
                 where t.title ilike any(:patterns)
                    or t.description_markdown ilike any(:patterns)
                    or s.name ilike any(:patterns)
@@ -92,7 +92,7 @@ public class SearchFallbackRepository {
         return jdbcClient
                 .sql("""
                 select id, name, description
-                from ms_task_projects
+                from ms_task_pub_projects
                 where state = 'A'
                   and (name ilike any(:patterns) or description ilike any(:patterns))
                 order by (name ilike :primary) desc, id
@@ -114,7 +114,7 @@ public class SearchFallbackRepository {
         return jdbcClient
                 .sql("""
                 select id, name, login, email
-                from md_users
+                from md_pub_users
                 where state = 'A'
                   and (name ilike any(:patterns)
                     or login ilike any(:patterns)
@@ -135,7 +135,7 @@ public class SearchFallbackRepository {
         return jdbcClient
                 .sql("""
                 select id, title, content_md
-                from ms_notes
+                from ms_note_pub_notes
                 where title ilike any(:patterns)
                    or content_md ilike any(:patterns)
                 order by (title ilike :primary) desc, is_pinned desc, id desc
@@ -157,9 +157,9 @@ public class SearchFallbackRepository {
         return jdbcClient
                 .sql("""
                 select t.id, t.title, t.priority, s.name as status_name, p.name as project_name
-                from ms_tasks t
-                left join ms_task_statuses s on s.id = t.status_id
-                left join ms_task_projects p on p.id = t.project_id
+                from ms_task_pub_tasks t
+                left join ms_task_pub_statuses s on s.id = t.status_id
+                left join ms_task_pub_projects p on p.id = t.project_id
                 where t.id = :id
                 order by t.id
                 """)
@@ -176,7 +176,7 @@ public class SearchFallbackRepository {
     private List<FallbackHit> exactProject(long id) {
         return jdbcClient
                 .sql("""
-                select id, name, description from ms_task_projects
+                select id, name, description from ms_task_pub_projects
                 where id = :id and state = 'A' order by id
                 """)
                 .param("id", id)
@@ -192,7 +192,7 @@ public class SearchFallbackRepository {
     private List<FallbackHit> exactUser(long id) {
         return jdbcClient
                 .sql("""
-                select id, name, login, email from md_users
+                select id, name, login, email from md_pub_users
                 where id = :id and state = 'A' order by id
                 """)
                 .param("id", id)
@@ -204,7 +204,7 @@ public class SearchFallbackRepository {
     private List<FallbackHit> exactNote(long id) {
         return jdbcClient
                 .sql("""
-                select id, title, content_md from ms_notes
+                select id, title, content_md from ms_note_pub_notes
                 where id = :id order by id
                 """)
                 .param("id", id)
