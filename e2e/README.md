@@ -5,13 +5,24 @@ complements Angular unit tests and the API live suites in `scripts/dev/`.
 
 ## Local run
 
-Start the stack from the repository root and migrate the database:
+Start the stack from the repository root with the mail stub and migrate the
+database (on Linux and macOS separate the files with `:` instead of `;`):
 
 ```powershell
+$env:COMPOSE_FILE = 'docker-compose.yml;scripts/dev/e2e-mail.compose.yml'
 docker compose run --rm migrate
-docker compose up -d --remove-orphans
+docker compose up -d --remove-orphans --wait
 .\scripts\dev\test-e2e.ps1
 ```
+
+`scripts/dev/e2e-mail.compose.yml` adds Mailpit and points the server's SMTP
+settings at it, with delivery enforced as in production. `mail-delivery.spec.ts`
+reads the mailed channel code, login code and reset link through Mailpit's HTTP
+API (`MAILPIT_URL`, default `http://localhost:8025`; host port
+`MAILPIT_HTTP_PORT`). The second web origin's host port is `E2E_WEB_PORT`
+(default 4201). `-CheckReadiness` ends the run with
+`scripts/dev/test-readiness-dependency.ps1`: it stops postgres, expects the
+readiness probe to answer 503 within 30 s and 200 after postgres starts again.
 
 For repeated runs after dependencies are already installed:
 
@@ -46,6 +57,8 @@ serves the production build from `apps/web/dist/web/browser` (run
   the local administration screens;
 - Central translation editing, immediate repaint, Russian per-key fallback and
   persistence in a second authenticated browser session;
+- Email channel confirmed by a mailed code, two-factor sign-in with a mailed
+  one-time code and password reset by a mailed link, through the SMTP stub;
 - browser console and uncaught page-error checks after authentication.
 
 Tests use accessible roles and labels. Trace, video and HTML reports are disabled so

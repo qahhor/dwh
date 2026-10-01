@@ -7,6 +7,7 @@ export interface E2eCredentials {
 export interface E2eEnvironment {
   instance: E2eCredentials;
   controlPlane: E2eCredentials;
+  mailpit: { baseURL: string };
 }
 
 export function loadE2eEnv(options?: {

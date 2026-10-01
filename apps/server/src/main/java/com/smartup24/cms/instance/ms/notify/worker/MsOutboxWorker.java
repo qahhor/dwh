@@ -1,12 +1,10 @@
 package com.smartup24.cms.instance.ms.notify.worker;
 
+import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.ms.notify.repository.MsOutboxRepository;
 import com.smartup24.cms.spi.mail.MailMessage;
-import com.smartup24.cms.spi.mail.MailProvider;
 import com.smartup24.cms.spi.messenger.MessengerMessage;
-import com.smartup24.cms.spi.messenger.MessengerProvider;
 import com.smartup24.cms.spi.sms.SmsMessage;
-import com.smartup24.cms.spi.sms.SmsProvider;
 import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
@@ -14,25 +12,24 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/**
+ * Delivers the notification outbox through the active provider of each channel (ADR-0011).
+ *
+ * <p>The providers come from {@link ProviderRegistry}, not by type: with SMTP or a Telegram bot configured the
+ * context holds the real provider next to the console stub, and a by-type injection stopped the start (plan 10/10,
+ * item 0.8).
+ */
 @Component
 public class MsOutboxWorker {
 
     private static final Logger log = LoggerFactory.getLogger(MsOutboxWorker.class);
 
     private final MsOutboxRepository outboxRepository;
-    private final MailProvider mailProvider;
-    private final SmsProvider smsProvider;
-    private final MessengerProvider messengerProvider;
+    private final ProviderRegistry providers;
 
-    public MsOutboxWorker(
-            MsOutboxRepository outboxRepository,
-            MailProvider mailProvider,
-            SmsProvider smsProvider,
-            MessengerProvider messengerProvider) {
+    public MsOutboxWorker(MsOutboxRepository outboxRepository, ProviderRegistry providers) {
         this.outboxRepository = outboxRepository;
-        this.mailProvider = mailProvider;
-        this.smsProvider = smsProvider;
-        this.messengerProvider = messengerProvider;
+        this.providers = providers;
     }
 
     @Scheduled(fixedDelay = 2000)
@@ -76,17 +73,21 @@ public class MsOutboxWorker {
 
         switch (item.channel().toLowerCase()) {
             case "email" -> {
-                var res = mailProvider.send(
-                        new MailMessage(item.recipient(), subject, body, null, List.of(), idempotencyKey));
+                var res = providers
+                        .getActiveMailProvider()
+                        .send(new MailMessage(item.recipient(), subject, body, null, List.of(), idempotencyKey));
                 if (!res.isSuccess()) throw new RuntimeException("Email failed: " + res.errorMessage());
             }
             case "sms" -> {
-                var res = smsProvider.send(new SmsMessage(item.recipient(), body, "DWH", idempotencyKey));
+                var res = providers
+                        .getActiveSmsProvider()
+                        .send(new SmsMessage(item.recipient(), body, "DWH", idempotencyKey));
                 if (!res.isSuccess()) throw new RuntimeException("SMS failed: " + res.errorMessage());
             }
             case "telegram" -> {
-                var res = messengerProvider.send(
-                        new MessengerMessage(item.recipient(), body, null, null, idempotencyKey));
+                var res = providers
+                        .getActiveMessengerProvider()
+                        .send(new MessengerMessage(item.recipient(), body, null, null, idempotencyKey));
                 if (!res.isSuccess()) throw new RuntimeException("Telegram failed: " + res.errorMessage());
             }
             default -> throw new IllegalArgumentException("Unsupported notification channel: " + item.channel());
