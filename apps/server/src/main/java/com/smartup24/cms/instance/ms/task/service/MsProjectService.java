@@ -130,8 +130,8 @@ public class MsProjectService {
         findProject(projectId);
         projectRepository.addMember(projectId, userId, accessKind);
 
-        // Состав участников проекта — это доступ к его задачам, а значит
-        // изменение доступа: журналируется наравне с выдачей прав.
+        // Project membership is access to its tasks, so changing it is an access change:
+        // it is audited on a par with granting permissions.
         auditLogService.logChange(
                 "ms_task_project_members",
                 projectId + ":" + userId,
