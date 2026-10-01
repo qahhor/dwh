@@ -22,14 +22,14 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Лимиты частоты запросов (FR-SEC-2): по IP для неаутентифицированных,
- * по пользователю для cookie-сессий, по владельцу токена для Bearer;
- * отдельный (более строгий) лимит на дорогие пути. Превышение — 429 с
- * Retry-After (RFC 9457 body) и событием rate_limit_exceeded в
- * security-журнале (с анти-флудом: не чаще раза в минуту на ключ).
+ * Request rate limits (FR-SEC-2): per IP for unauthenticated requests,
+ * per user for cookie sessions, per token owner for Bearer;
+ * a separate (stricter) limit for expensive paths. Exceeding it gives 429 with
+ * Retry-After (RFC 9457 body) and a rate_limit_exceeded event in the
+ * security log (flood-protected: at most once a minute per key).
  *
- * Стоит в цепочке ПОСЛЕ KauthAuthenticationFilter (нужна личность) и
- * ДО AuthorizationFilter — превышение отвечает 429, а не 401/403.
+ * Sits in the chain AFTER KauthAuthenticationFilter (it needs the identity) and
+ * BEFORE AuthorizationFilter, so exceeding the limit answers 429, not 401/403.
  */
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -143,7 +143,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return new Quota("ip:" + clientIp(request), props.ipPerMinute());
         }
         if (principal.isApi()) {
-            // Лимит на владельца токена: сервисная учётка = одна интеграция (разд. 4.4.1 ТЗ-01)
+            // Limit per token owner: one service account equals one integration
             return new Quota("api:" + principal.userId(), props.tokenPerMinute());
         }
         return new Quota("user:" + principal.userId(), props.userPerMinute());

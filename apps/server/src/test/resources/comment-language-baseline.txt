@@ -1,18 +1,6 @@
 # Files that still have comments in Russian, with the number of their comment lines that have
 # Cyrillic letters (plan 10/10, item 3.14, checked by CommentLanguageTest). The numbers only go down:
 # translate comments and lower the number (-Dcomment.baseline.update=true); a new file never goes here.
-apps/server/src/main/java/com/smartup24/cms/instance/config/bootstrap/InstanceBootstrap.java 6
-apps/server/src/main/java/com/smartup24/cms/instance/config/bootstrap/InstanceBootstrapProperties.java 2
-apps/server/src/main/java/com/smartup24/cms/instance/config/db/MigrateModeRunner.java 3
-apps/server/src/main/java/com/smartup24/cms/instance/config/db/SchemaVersionGate.java 2
-apps/server/src/main/java/com/smartup24/cms/instance/config/error/GlobalExceptionHandler.java 12
-apps/server/src/main/java/com/smartup24/cms/instance/config/idempotency/IdempotencyCleanupWorker.java 2
-apps/server/src/main/java/com/smartup24/cms/instance/config/jobs/JobQueueWorker.java 4
-apps/server/src/main/java/com/smartup24/cms/instance/config/security/RateLimitFilter.java 8
-apps/server/src/main/java/com/smartup24/cms/instance/config/security/RateLimitProperties.java 2
-apps/server/src/main/java/com/smartup24/cms/instance/config/security/RateLimitService.java 10
-apps/server/src/main/java/com/smartup24/cms/instance/config/security/SecurityConfig.java 4
-apps/server/src/main/java/com/smartup24/cms/instance/config/web/TraceparentFilter.java 1
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/FndActors.java 14
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/FndSystemUserBootstrap.java 3
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/config/FndDwhMaintenance.java 6
@@ -99,9 +87,6 @@ apps/server/src/main/java/com/smartup24/cms/instance/upl/upload/UplPackageReposi
 apps/server/src/main/java/com/smartup24/cms/instance/upl/upload/UplPackageService.java 10
 apps/server/src/main/java/com/smartup24/cms/instance/upl/upload/UplUploadService.java 8
 apps/server/src/main/java/com/smartup24/cms/instance/upl/upload/UplUploadValidator.java 10
-apps/server/src/main/resources/application-dev.yml 3
-apps/server/src/main/resources/application-migrate.yml 3
-apps/server/src/main/resources/application.yml 35
 apps/server/src/main/resources/db/dwh/V001__dwh_schemas.sql 5
 apps/server/src/main/resources/db/dwh/V002__raw_source_file_uuid.sql 6
 apps/server/src/main/resources/db/dwh/V003__raw_rows_source_file_idx.sql 3

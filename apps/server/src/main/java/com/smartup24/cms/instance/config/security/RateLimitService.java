@@ -15,11 +15,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
- * In-memory bucket'ы Bucket4j по ключу (ip:/user:/api:). Достаточно для одного
- * инстанса приложения на экземпляр (ТЗ-01: несколько нод — отдельное решение).
- * Ограничение роста карты (H05, FR-SEC-2): хранилище ограничено Caffeine Cache
- * с жестким лимитом емкости (максимум maxEntries, по умолчанию 10_000) и
- * автоматическим вытеснением W-TinyLFU / expireAfterAccess(10 минут).
+ * In-memory Bucket4j buckets per key (ip:/user:/api:). Enough for one
+ * application process per instance (several nodes would need a separate design).
+ * Map growth is bounded (FR-SEC-2): storage is a Caffeine cache
+ * with a hard capacity limit (at most maxEntries, 10_000 by default) and
+ * automatic W-TinyLFU eviction / expireAfterAccess(10 minutes).
  */
 @Service
 public class RateLimitService {
@@ -52,7 +52,7 @@ public class RateLimitService {
                 .build();
     }
 
-    /** Пытается списать 1 токен; возвращает probe с остатком и временем до пополнения. */
+    /** Tries to consume 1 token; returns a probe with the remainder and the time until refill. */
     public ConsumptionProbe tryConsume(String key, int limitPerMinute) {
         return tryConsume(key, limitPerMinute, limitPerMinute);
     }
@@ -71,8 +71,8 @@ public class RateLimitService {
     }
 
     /**
-     * Анти-флуд для security-журнала: true не чаще раза в минуту на ключ —
-     * иначе атака превращала бы журнал во вторую жертву.
+     * Flood protection for the security log: true at most once a minute per key;
+     * otherwise an attack would make the log its second victim.
      */
     public boolean shouldLogRejection(String key) {
         Entry entry = buckets.getIfPresent(key);
@@ -84,12 +84,12 @@ public class RateLimitService {
         return prev != nowMin && entry.lastLoggedMinute.compareAndSet(prev, nowMin);
     }
 
-    /** Текущее расчетное число бакетов в памяти. */
+    /** The current estimated number of buckets in memory. */
     public long estimatedSize() {
         return buckets.estimatedSize();
     }
 
-    /** Синхронная очистка для тестов. */
+    /** Synchronous cleanup for tests. */
     public void cleanUp() {
         buckets.cleanUp();
     }
