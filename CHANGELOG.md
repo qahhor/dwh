@@ -9,6 +9,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.4 — the general entity runtime (ADR-0032 steps 3 and 5):
+  `/api/v1/entities/{code}` lists, reads, creates, PATCHes (If-Match),
+  deletes, archives and runs actions for every entity with a table, in a fixed
+  order (rights and revision before the transaction, the record read in scope
+  `for update`, every validation error in one 422, hooks, platform audit,
+  `EntityChanged` in the same transaction, after-commit hooks). `EntityHooks`,
+  `EntityRule` and action handlers; references name a target entity (an
+  invisible or archived target is refused with 422); the webhook
+  `notes.updated` arrives without notes code; OpenAPI has concrete paths and
+  schemas per entity; entity bodies up to 512 KB. Notes are one declaration.
+
 - Plan 10/10, item 6.2 — the entity contract test kit (ADR-0032 step 4):
   one subclass of `EntityContractTestKit` checks CRUD, rights, scope ("404,
   not 403"), field rights, validation per type, revision, archive, audit and
@@ -842,6 +853,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Apache-2.0 community, governance, security, and contribution policies.
 
 ### Changed
+
+- **API-breaking (item 5.4):** notes moved to the runtime —
+  `/api/v1/notes…` is removed, use `/api/v1/entities/ms.notes…`; an update is
+  PATCH with If-Match, pinning is PATCH `{isPinned}`; the record answer
+  follows ADR-0032 §6.2 (`actions`, `archived`); a switched-off notes module
+  answers 404 `entity_not_found`; the note colour is required (default
+  `default`); OpenAPI schemas `MsNotes*` replace `NoteView`,
+  `CreateNoteRequest`, `UpdateNoteRequest`, `PinRequest`. V167 lets a note's
+  text be cleared.
 
 - **API-breaking (item 5.1):** the OpenAPI schemas of form-meta are
   `FormFieldMeta` / `FormSectionMeta` (they reused the list's `FieldMeta`, so
