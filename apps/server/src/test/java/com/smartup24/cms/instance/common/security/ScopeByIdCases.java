@@ -108,7 +108,6 @@ final class ScopeByIdCases {
                     (f, id) -> Map.of("userId", f.insider),
                     NO_BODY,
                     NO_CONTENT),
-            read("MsProjectController#getMembers", Kind.PROJECT),
             read("MsProjectController#pageMembers", Kind.PROJECT),
             history("projects", Kind.PROJECT),
             // tasks (ms.task): the card, its subresources and history
@@ -141,7 +140,6 @@ final class ScopeByIdCases {
                     (f, id) -> Map.of("title", "TEST changed", "contentMd", "body", "color", "default"),
                     OK),
             write("MsNoteController#setPin", Kind.NOTE, (f, id) -> Map.of("pinned", true), OK),
-            write("MsNoteController#togglePin", Kind.NOTE, OK),
             write("MsNoteController#deleteNote", Kind.NOTE, NO_CONTENT),
             history(MsNoteEntity.DEFINITION.code(), Kind.NOTE),
             // files (mf)

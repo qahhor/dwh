@@ -132,8 +132,10 @@ class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
         return ScopeByIdCases.CASES.stream()
                 .map(c -> DynamicTest.dynamicTest(c.name(), () -> {
                     RequestMappingInfo info = handlers.get(c.handler());
-                    // A handler removed elsewhere leaves a stale case; it is skipped, not failed.
-                    org.junit.jupiter.api.Assumptions.assumeTrue(info != null, "no handler " + c.handler());
+                    // A case whose handler is gone is stale: remove it from ScopeByIdCases (no skipped tests).
+                    assertThat(info)
+                            .as("handler %s of a matrix case", c.handler())
+                            .isNotNull();
                     Object outside = fixture.create(c.kind(), false);
                     MockHttpServletResponse denied = send(c, info, outside);
                     assertThat(denied.getStatus())
