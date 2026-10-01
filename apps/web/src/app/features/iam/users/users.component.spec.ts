@@ -74,7 +74,7 @@ describe('UsersComponent', () => {
   const reads = (path: string) => api().get.mock.calls.filter(([called]) => called === path).length;
   const orgReads = () => api().get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units')).length;
 
-  /** The page with Анна (7) open, from the list or from a deep link, and her organization panel. */
+  /** The page with Anna (id 7) open, from the list or from a deep link, and her organization panel. */
   async function withRecord(open: 'list' | 'link' = 'list') {
     const fixture = await createFixture();
     const first = user(7, 'Анна');

@@ -32,7 +32,7 @@ import {
 } from './packages-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
-/** Ключи текстов ошибок модуля UPL начинаются так. */
+/** Text keys of the UPL module errors start like this. */
 const UPL_ERROR_PREFIX = 'error.upl.';
 
 /** The stored errors of an upload or the refusal to give them, so a failure never throws out of the resource. */
@@ -295,7 +295,7 @@ export class PackageCardComponent implements OnInit {
     );
   }
 
-  /** Строка шапки: источник · период · версия анкеты · кто загрузил · когда. */
+  /** The header line: source · period · file format version · who uploaded · when. */
   metaText(): string {
     const item = this.item();
     return [
@@ -310,13 +310,13 @@ export class PackageCardComponent implements OnInit {
       .join(' · ');
   }
 
-  /** Причина отклонения словами; кода отклонения нет — оставляем пусто. */
+  /** The rejection reason in words; with no rejection code it stays empty. */
   rejectText(): string {
     const item = this.item();
     return item.rejectCode ? uplPackageCodeText(item.rejectCode, item.rejectParams, this.translate) : '';
   }
 
-  /** Строка сверки: только у применённой загрузки и только когда сервер отдал оба числа — экран чисел не выдумывает. */
+  /** The reconciliation line: only for an applied load and only when the server returned both numbers. */
   ngOnInit(): void {
     if (this.item().status === 'applying') {
       this.waitForResult(this.item().id);
@@ -350,12 +350,12 @@ export class PackageCardComponent implements OnInit {
     return uplPackageCodeText(row.code, row.params, this.translate);
   }
 
-  /** Расхождения с анкетой: записи без номера строки (сервер пустые поля не передаёт вовсе). */
+  /** Differences from the file format: records without a row number (the server omits empty fields entirely). */
   structRows(): UplPackageErrorItem[] {
     return (this.errors()?.items ?? []).filter((row) => (row.rowNo ?? null) === null);
   }
 
-  /** Ошибки ячеек: записи с адресом строки — они и идут в таблицу. */
+  /** Cell errors: records with a row address, they go to the table. */
   cellRows(): UplPackageErrorItem[] {
     return (this.errors()?.items ?? []).filter((row) => (row.rowNo ?? null) !== null);
   }
@@ -400,14 +400,14 @@ export class PackageCardComponent implements OnInit {
       });
   }
 
-  /** Отказ сервера: ошибка загрузки — текстом её ключа, прочее (нет права, сбой сети) — общим текстом. */
+  /** A server refusal: a load error shows its key's text, anything else (no permission, network) a general text. */
   private applyErrorText(problem: ProblemDetail | null | undefined): string {
     return problem?.messageKey?.startsWith(UPL_ERROR_PREFIX)
       ? uplProblemText(problem, this.translate)
       : this.i18n.translate('upl.pkg.card.apply_failed');
   }
 
-  /** «Загрузка не найдена» — текстом ошибки, прочие сбои — общим текстом. */
+  /** "Load not found" shows the error text, other failures a general text. */
   private loadErrorText(problem: ProblemDetail | null | undefined): string {
     return problem?.messageKey === UPL_ERROR.packageNotFound
       ? uplProblemText(problem, this.translate)

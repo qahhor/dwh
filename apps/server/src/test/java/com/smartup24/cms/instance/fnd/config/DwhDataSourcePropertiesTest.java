@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 /**
- * AC-36 / M-11: таймаут соединения с pg-dwh обязателен — без {@code app.dwh.connect-timeout} старт красный.
- * Контекст поднимается только с {@link FndDwhConfig}; пул Hikari соединение при старте не открывает
- * ({@code initializationFailTimeout = -1}), поэтому база не нужна.
+ * A connection timeout to pg-dwh is required: without {@code app.dwh.connect-timeout} the start fails.
+ * The context starts with {@link FndDwhConfig} only; the Hikari pool opens no connection at start
+ * ({@code initializationFailTimeout = -1}), so no database is needed.
  */
 class DwhDataSourcePropertiesTest {
 

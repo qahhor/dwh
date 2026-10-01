@@ -16,9 +16,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * P0 DWH: пул pg-dwh не бывает «без таймаута». Сервер обрывает долгий запрос и брошенную транзакцию
- * по {@code app.dwh.statement-timeout}; задания обслуживания получают свой предел только внутри
- * транзакции и возвращают соединение в пул с обычным.
+ * The pg-dwh pool never runs "without a timeout". The server cuts off a long query and an abandoned transaction
+ * by {@code app.dwh.statement-timeout}; maintenance jobs get their own limit only inside the transaction and
+ * return the connection to the pool with the usual one.
  */
 class FndDwhTimeoutsTest {
 
@@ -35,7 +35,7 @@ class FndDwhTimeoutsTest {
                 Duration.ofSeconds(5),
                 Duration.ofSeconds(5));
         dwh = (HikariDataSource) new FndDwhConfig().dwhDataSource(props);
-        // Одно соединение: задание обслуживания и следующий запрос получают одно и то же
+        // One connection: the maintenance job and the next query get the same one
         dwh.setMaximumPoolSize(1);
     }
 

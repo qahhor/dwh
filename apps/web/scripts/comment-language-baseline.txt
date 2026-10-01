@@ -1,31 +1,3 @@
 # TypeScript files that still have comments in Russian, with the number of their comment lines that have
 # Cyrillic letters (plan 10/10, item 3.14, checked by scripts/comment-language-audit.mjs). The numbers only
 # go down: translate comments and lower the number (npm run comments:audit -- --write-baseline).
-src/app/core/services/notification.service.ts 5
-src/app/features/iam/profile/profile.component.spec.ts 1
-src/app/features/iam/users/users.component.spec.ts 1
-src/app/features/upl/formats/format-editor.component.ts 3
-src/app/features/upl/formats/format-file-step.component.ts 1
-src/app/features/upl/formats/format-publish-step.component.ts 3
-src/app/features/upl/formats/format-sheets-step.component.spec.ts 1
-src/app/features/upl/formats/format-sheets-step.component.ts 7
-src/app/features/upl/formats/upl-format-errors.ts 8
-src/app/features/upl/formats/upl-format-model.ts 5
-src/app/features/upl/packages/package-card.component.spec.ts 1
-src/app/features/upl/packages/package-card.component.ts 8
-src/app/features/upl/packages/packages-api.ts 8
-src/app/features/upl/packages/packages-errors.spec.ts 2
-src/app/features/upl/packages/packages-errors.ts 8
-src/app/features/upl/packages/packages-labels.ts 5
-src/app/features/upl/packages/packages.component.ts 5
-src/app/features/upl/sources/source-card.store.ts 1
-src/app/features/upl/sources/sources-list.component.ts 2
-src/app/features/upl/upl-i18n-keys.spec.ts 4
-src/app/features/upl/upl-labels.ts 7
-src/app/features/upl/upl-routes.ts 2
-src/app/shared/ui-kit/components/file-preview/file-kind.ts 1
-src/app/shared/ui-kit/components/forms/date-picker/calendar.component.ts 1
-src/app/shared/ui-kit/components/forms/date-picker/date-format.ts 1
-src/app/shared/ui-kit/components/forms/input/types/types.ts 1
-src/app/shared/ui-kit/directives/skeleton/skeleton.directive.ts 8
-src/testing/upl-packages.ts 2

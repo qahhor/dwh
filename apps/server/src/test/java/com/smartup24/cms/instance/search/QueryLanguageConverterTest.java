@@ -35,7 +35,7 @@ class QueryLanguageConverterTest {
         var expansion = converter.expand("tast");
         assertThat(expansion.variants()).contains("тест");
 
-        // Soundex matching for tast and тест
+        // Soundex matching for "tast" and the Cyrillic word for "test"
         String soundexTast = converter.soundex("tast");
         String soundexTest = converter.soundex("тест");
         assertThat(soundexTast).isEqualTo("T230");

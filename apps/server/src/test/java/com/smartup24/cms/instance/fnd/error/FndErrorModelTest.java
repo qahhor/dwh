@@ -36,8 +36,9 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * План 10/10, п. 3.1: исключения основы — часть единой модели ошибок. Каждый {@link ConstraintErrorCode} несёт код
- * ответа и ключ {@code error.fnd.<код>}, текст которого есть в ru, en и uz; обработчик отвечает problem+json, а не 500.
+ * Plan 10/10, item 3.1: the foundation exceptions are part of the single error model. Every
+ * {@link ConstraintErrorCode} carries a response code and the key {@code error.fnd.<code>} whose text exists in
+ * ru, en and uz; the handler answers with problem+json, not 500.
  */
 class FndErrorModelTest {
 

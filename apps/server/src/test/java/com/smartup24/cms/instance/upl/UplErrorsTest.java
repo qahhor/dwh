@@ -12,7 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
-/** М-10: перевод ошибок основы и БД в ответ API — каждая ветка {@link UplErrors#toApi}. */
+/** Turning foundation and database errors into an API answer: every branch of {@link UplErrors#toApi}. */
 class UplErrorsTest {
 
     @Test

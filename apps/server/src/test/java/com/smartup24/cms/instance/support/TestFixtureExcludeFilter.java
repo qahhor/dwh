@@ -6,14 +6,14 @@ import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 
 /**
- * Убирает из компонент-скана {@code @SpringBootTest} тестовые конфигурации каркаса.
+ * Removes the framework's test configurations from the component scan of {@code @SpringBootTest}.
  *
- * <p>Тесты каркаса — слайсы ({@code @WebMvcTest}) с фикстурами вида
- * {@code SearchSettingsIntegrationTestSupport.Fixture}: это {@code @Configuration} в тестовых
- * исходниках, поднимающие Testcontainers и подменяющие {@code dataSource}/{@code jdbcClient}.
- * Штатный {@code TestTypeExcludeFilter} их не отсекает — методов {@code @Test} в них нет,
- * — и полный контекст падает без Docker. Исключаем всё, что лежит в {@code target/test-classes};
- * явный {@code @Import} в тестах этим фильтром не затрагивается.
+ * <p>The framework tests are slices ({@code @WebMvcTest}) with fixtures such as
+ * {@code SearchSettingsIntegrationTestSupport.Fixture}: {@code @Configuration} classes in the test
+ * sources that start Testcontainers and replace {@code dataSource}/{@code jdbcClient}.
+ * The standard {@code TestTypeExcludeFilter} does not exclude them (they have no {@code @Test} methods),
+ * and the full context fails without Docker. Everything in {@code target/test-classes} is excluded;
+ * an explicit {@code @Import} in a test is not affected by this filter.
  */
 public class TestFixtureExcludeFilter extends TypeExcludeFilter {
 

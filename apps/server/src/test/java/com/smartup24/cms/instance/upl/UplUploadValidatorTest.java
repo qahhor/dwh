@@ -8,7 +8,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Проверка полей запроса приёма файла: ошибки собираются все сразу (контракт И5, раздел 8.1). */
+/** Checking the fields of a file upload request: all errors are collected at once. */
 class UplUploadValidatorTest {
 
     private static final String FROM = "2026-03-01";

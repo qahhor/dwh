@@ -28,13 +28,12 @@ import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 
 /**
- * Каналы доставки (FR-NOTIF-3/4/5).
+ * Delivery channels (FR-NOTIF-3, FR-NOTIF-4, FR-NOTIF-5).
  *
- * Ревизия AUDIT-05 показала: все три канала были заглушками, при этом заглушка
- * рапортовала об успешной отправке и о собственном здоровье. Восстановление
- * пароля и OTP не доходили ни до кого, а система выглядела исправной.
- * Эти тесты закрепляют оба свойства: заглушка честно говорит, что она заглушка,
- * а настоящий SMTP-провайдер не бросает исключение наружу.
+ * An audit showed that all three channels were stubs, and each stub reported a successful send
+ * and its own health. Password recovery and OTP codes reached nobody, while the system looked
+ * healthy. These tests pin both properties: a stub honestly says it is a stub,
+ * and the real SMTP provider never throws an exception outward.
  */
 class NotificationChannelTest {
 
@@ -113,7 +112,7 @@ class NotificationChannelTest {
                 "console_messenger");
     }
 
-    /** Провайдер с «настоящим» кодом: проверяем, что признак заглушки — код, а не класс. */
+    /** A provider with a "real" code: the test checks that the stub flag is the code, not the class. */
     private static class StubRealMailProvider implements MailProvider {
         @Override
         public String getProviderCode() {

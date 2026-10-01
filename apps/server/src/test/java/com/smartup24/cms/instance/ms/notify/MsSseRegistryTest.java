@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * F1 (FR-NOTIF-2): реестр SSE-соединений — доставка, изоляция пользователей,
- * лимит вкладок, вычистка мёртвых соединений.
+ * FR-NOTIF-2: the registry of SSE connections: delivery, user isolation,
+ * the tab limit, and cleanup of dead connections.
  */
 class MsSseRegistryTest {
 
@@ -28,8 +28,8 @@ class MsSseRegistryTest {
         assertThat(registry.openConnectionCount()).isEqualTo(1);
         assertThat(emitter).isNotNull();
 
-        // Событие connected уже отправлено при подписке — поток не «молчит»
-        // до первого уведомления, что важно для прокси и для клиента.
+        // The connected event is already sent on subscription, so the stream is not "silent"
+        // until the first notification, which matters for proxies and for the client.
         registry.send(1L, "notification", Map.of("id", 42));
         received.add("ok");
         assertThat(received).hasSize(1);
@@ -42,8 +42,8 @@ class MsSseRegistryTest {
         registry.subscribe(2L);
         assertThat(registry.openConnectionCount()).isEqualTo(2);
 
-        // Доставка несуществующему пользователю не должна падать:
-        // пользователь просто офлайн, уведомление он увидит при входе.
+        // Delivery to a user who does not exist must not fail:
+        // the user is simply offline and will see the notification on sign-in.
         registry.send(999L, "notification", Map.of("id", 1));
         assertThat(registry.openConnectionCount()).isEqualTo(2);
     }
@@ -65,9 +65,9 @@ class MsSseRegistryTest {
         SseEmitter emitter = registry.subscribe(5L);
         assertThat(registry.openConnectionCount()).isEqualTo(1);
 
-        // Клиент ушёл. В реальном запросе контейнер вызовет onCompletion/onError
-        // (в юнит-тесте async-контекста нет), поэтому проверяем ВТОРОЙ рубеж
-        // защиты: отправка в завершённый emitter падает и он исключается.
+        // The client left. In a real request the container calls onCompletion/onError
+        // (a unit test has no async context), so this checks the SECOND line
+        // of defense: sending to a completed emitter fails and the emitter is removed.
         emitter.complete();
         registry.send(5L, "notification", Map.of("id", 1));
 

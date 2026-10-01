@@ -28,7 +28,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-/** HTTP-проверка вкладки «История» карточки записи {@code GET /api/v1/history/{kind}/{id}} (ADR-0017, роадмап п. 18). */
+/** HTTP check of the "History" tab of a record card, {@code GET /api/v1/history/{kind}/{id}} (ADR-0017). */
 class RecordHistoryControllerTest extends EmbeddedPostgresTest {
 
     private static final String PASSWORD = "StrongPassword2026!";

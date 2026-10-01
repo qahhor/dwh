@@ -37,7 +37,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-/** HTTP-проверка API загрузок файлов {@code /api/v1/upl/packages} (контракт И5, разделы 3 и 8). */
+/** HTTP check of the file load API {@code /api/v1/upl/packages}. */
 class UplPackageControllerTest extends EmbeddedPostgresTest {
 
     private static final String BASE = "/api/v1/upl/packages";
@@ -501,7 +501,7 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         sendGet(login(strangerLogin), "/api/v1/upl/overview", 403);
     }
 
-    // ---------- помощники ----------
+    // ---------- helpers ----------
 
     private MockHttpServletResponse upload(Session session, String source, String from, String to, byte[] content)
             throws Exception {
@@ -578,7 +578,7 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
                 systemUserId);
     }
 
-    /** Роль с единственной парой «загрузки — просмотр»: такой роли в миграциях нет, граница прав проверяется на ней. */
+    /** A role with the single pair "loads: view": no migration has such a role, the permission boundary uses it. */
     private Long viewOnlyRoleId() {
         String suffix = rnd();
         return tx.execute(status -> {

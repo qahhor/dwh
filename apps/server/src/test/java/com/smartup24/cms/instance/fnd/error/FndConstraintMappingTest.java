@@ -31,9 +31,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Блок B основы: AC-9а — enum {@link ConstraintErrorCode} и ограничения {@code pg_constraint} таблиц {@code fnd_*}
- * совпадают в обе стороны, имена — по регламенту; AC-9б — фасады переводят нарушение каждого класса
- * (uk/fk/ck/ex) в {@link ConstraintViolationException} с кодом, транзакция откатана.
+ * The {@link ConstraintErrorCode} enum and the {@code pg_constraint} constraints of the {@code fnd_*} tables match
+ * both ways, with names by the naming rule; the facades turn a violation of every class (uk/fk/ck/ex) into a
+ * {@link ConstraintViolationException} with its code, and the transaction is rolled back.
  */
 class FndConstraintMappingTest extends EmbeddedPostgresTest {
 
@@ -79,7 +79,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("AC-9а: каждое ограничение u/f/c/x таблиц fnd_* есть в enum, каждый элемент enum с именем — в базе")
     void enumAndConstraintsMatchBothWays() {
-        // Таблицы fnd_test_* заводят тесты стандарта версий (FndVersioningTest) — это фикстуры, не схема ядра
+        // The fnd_test_* tables come from the version standard tests (FndVersioningTest): fixtures, not the core schema
         Set<String> database = Set.copyOf(jdbc.sql("""
                         select con.conname from pg_constraint con
                           join pg_class rel on rel.oid = con.conrelid
@@ -128,7 +128,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
         units.registerUnit(base, Map.of("uz", "Bazaviy birlik TEST"), base, actor);
         units.registerUnit("u_map_a", Map.of("uz", "Birlik A TEST"), base, actor);
 
-        // uk — дубль кода единицы
+        // uk: a duplicate unit code
         ConstraintViolationException uk =
                 violation(() -> units.registerUnit("u_map_a", Map.of("uz", "Dubl TEST"), base, actor));
         assertThat(uk.code()).isEqualTo(ConstraintErrorCode.FND_UNITS_UK_CODE);
@@ -138,13 +138,13 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
                 .as("SQL-текст остаётся причиной, код — контракт")
                 .isNotNull();
 
-        // fk — несуществующая базовая единица
+        // fk: a base unit that does not exist
         ConstraintViolationException fk =
                 violation(() -> units.registerUnit("u_map_b", Map.of("uz", "Birlik B TEST"), "u_map_missing", actor));
         assertThat(fk.code()).isEqualTo(ConstraintErrorCode.FND_UNITS_FK_BASE_UNIT);
         assertThat(units.findUnit("u_map_b")).as("транзакция откатана").isEmpty();
 
-        // ck — счётчики строк не сходятся
+        // ck: the row counters do not add up
         long loadId = loads.begin(
                 "src_map_test",
                 UUID.randomUUID(),
@@ -158,7 +158,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
                 .as("транзакция откатана")
                 .isEqualTo("pending");
 
-        // ex — пересечение интервалов опубликованных версий одного коэффициента
+        // ex: overlapping intervals of published versions of one coefficient
         FndCoefficientRef first =
                 units.publishCoefficient("u_map_a", base, BigDecimal.TEN, LocalDate.parse("2026-01-01"), actor);
         versioning.supersede(FndUnitService.COEFFICIENT_VERSIONS, first.coefficientId(), first.version(), actor);

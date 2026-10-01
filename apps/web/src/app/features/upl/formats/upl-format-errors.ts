@@ -2,7 +2,10 @@ import { FieldErrorItem, ProblemDetail } from '@core/models/common.models';
 import { UplFormatDraftRequest } from '../upl-api';
 import { uplErrorKey } from '../upl-labels';
 
-/** Ошибка сервера с адресом: sheet/column — индексы с нуля из `sheets[i].columns[j].<поле>`; null — уровень выше. */
+/**
+ * A server error with an address: sheet/column are zero-based indexes from `sheets[i].columns[j].<field>`;
+ * null means a level up.
+ */
 export interface UplFieldError {
   sheet: number | null;
   column: number | null;
@@ -48,7 +51,7 @@ function dedupeKey(error: UplFieldError): string {
   return `${error.sheet}|${error.column}|${error.field}|${error.code}`;
 }
 
-/** Ошибки поля из `errors[]` problem+json в адресном виде. */
+/** The field errors from `errors[]` of problem+json, in address form. */
 export function parseUplFieldErrors(errors: FieldErrorItem[] | null | undefined): UplFieldError[] {
   if (!Array.isArray(errors)) {
     return [];
@@ -56,7 +59,7 @@ export function parseUplFieldErrors(errors: FieldErrorItem[] | null | undefined)
   return errors.map((item) => toFieldError(item.field ?? '', item.code ?? '', item.message ?? ''));
 }
 
-/** Все адресные ошибки ответа: `errors[]` плюс `invalid_params`, без дубликатов «адрес + код». */
+/** All address errors of a response: `errors[]` plus `invalid_params`, without "address + code" duplicates. */
 export function parseUplProblem(problem: ProblemDetail): UplFieldError[] {
   const fromErrors = parseUplFieldErrors(problem?.errors);
   const fromParams = Array.isArray(problem?.invalid_params)
@@ -77,8 +80,8 @@ export function parseUplProblem(problem: ProblemDetail): UplFieldError[] {
 }
 
 /**
- * Текст ошибки поля: ключ словаря, а если его нет — сообщение сервера и код в скобках
- * (сырой ключ в UI не попадает); без сообщения сервера — только код.
+ * The text of a field error: the dictionary key, and if there is none, the server message and the code in brackets
+ * (a raw key never reaches the UI); without a server message, only the code.
  */
 export function uplFieldErrorText(error: UplFieldError, translate: (key: string) => string): string {
   const translated = translate(error.key);
@@ -88,7 +91,7 @@ export function uplFieldErrorText(error: UplFieldError, translate: (key: string)
   return error.message ? `${error.message} (${error.code})` : error.code;
 }
 
-/** Ошибка конкретной ячейки колонки. */
+/** The error of one column cell. */
 export function uplCellError(
   list: UplFieldError[],
   sheet: number,
@@ -98,12 +101,12 @@ export function uplCellError(
   return list.find((error) => error.sheet === sheet && error.column === column && error.field === field) ?? null;
 }
 
-/** Ошибка поля самого листа (не колонки). */
+/** An error of a field of the sheet itself (not of a column). */
 export function uplSheetError(list: UplFieldError[], sheet: number, field: string): UplFieldError | null {
   return list.find((error) => error.sheet === sheet && error.column === null && error.field === field) ?? null;
 }
 
-/** Есть ли у листа хоть одна ошибка — своя или в колонке. */
+/** Whether the sheet has at least one error, its own or in a column. */
 export function uplSheetHasErrors(list: UplFieldError[], sheet: number): boolean {
   return list.some((error) => error.sheet === sheet);
 }

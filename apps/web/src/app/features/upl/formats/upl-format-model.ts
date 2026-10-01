@@ -1,13 +1,13 @@
 import { UplColumn, UplFileKind, UplFormatDraftRequest, UplSheet } from '../upl-api';
 import { UplFieldError } from './upl-format-errors';
 
-/** Шаги анкеты формата. */
+/** The steps of the file format. */
 export type UplFormatStep = 'file' | 'sheets' | 'publish';
 
-/** Поля верхнего уровня, которые правятся на шаге «Файл». */
+/** Top-level fields edited on the "File" step. */
 const FILE_STEP_FIELDS = new Set(['fileKind', 'encoding', 'delimiter', 'matchColumnsBy']);
 
-/** Пустая строка в необязательном поле означает «не заполнено», а не пустое значение. */
+/** An empty string in an optional field means "not filled in", not an empty value. */
 export function trimToNull(value: string | null | undefined): string | null {
   const trimmed = (value ?? '').trim();
   return trimmed.length === 0 ? null : trimmed;
@@ -48,7 +48,7 @@ export function isNumericColumn(column: UplColumn): boolean {
   return column.dataType === 'integer' || column.dataType === 'number';
 }
 
-/** Очищает поля, которых у текущего типа колонки нет; true — если что-то было заполнено. */
+/** Clears the fields the current column type does not have; true if something was filled in. */
 export function clearFieldsForType(column: UplColumn): boolean {
   let cleared = false;
   if (!isNumericColumn(column) && (isFilled(column.sourceUnit) || isFilled(column.baseUnit))) {
@@ -72,7 +72,7 @@ export function clearFieldsForType(column: UplColumn): boolean {
   return cleared;
 }
 
-/** На каком шаге правится поле с ошибкой: адрес листа — «Листы и колонки», поля файла — «Файл». */
+/** The step that edits a field with an error: a sheet address goes to "Sheets and columns", file fields to "File". */
 export function uplErrorStep(error: UplFieldError): UplFormatStep {
   return error.sheet === null && FILE_STEP_FIELDS.has(error.field) ? 'file' : 'sheets';
 }

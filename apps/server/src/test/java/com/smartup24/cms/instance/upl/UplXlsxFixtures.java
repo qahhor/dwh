@@ -9,21 +9,21 @@ import org.dhatim.fastexcel.Workbook;
 import org.dhatim.fastexcel.Worksheet;
 
 /**
- * Сборка синтетических xlsx прямо в памяти: двоичных файлов в репозитории нет.
- * Значения ячеек — только слова {@code TEST} и числа.
+ * Builds synthetic xlsx files right in memory: the repository has no binary files.
+ * Cell values are only the word {@code TEST} and numbers.
  */
 public final class UplXlsxFixtures {
 
     private UplXlsxFixtures() {}
 
     /**
-     * Лист файла: имя, номер строки шапки (как в Excel, с 1), тексты шапки и строки данных
-     * сразу под шапкой. В строке данных {@code String} — текст, {@code Number} — число,
-     * {@code null} — ячейки нет.
+     * A file sheet: its name, the header row number (as in Excel, from 1), the header texts and the data rows
+     * right under the header. In a data row a {@code String} is text, a {@code Number} is a number,
+     * and {@code null} is no cell.
      */
     public record SheetSpec(String name, int headerRow, List<String> header, List<List<Object>> rows) {}
 
-    /** Собирает книгу из листов и отдаёт её байтами. */
+    /** Builds a workbook from the sheets and returns it as bytes. */
     public static byte[] workbook(SheetSpec... sheets) {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (Workbook book = new Workbook(bytes, "TEST", "1.0")) {
@@ -42,7 +42,7 @@ public final class UplXlsxFixtures {
         return bytes.toByteArray();
     }
 
-    /** Файл, который не является книгой Excel. */
+    /** A file that is not an Excel workbook. */
     public static byte[] notExcel() {
         return "TEST not excel".getBytes(StandardCharsets.UTF_8);
     }

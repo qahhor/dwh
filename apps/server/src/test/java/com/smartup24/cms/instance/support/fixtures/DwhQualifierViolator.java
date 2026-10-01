@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.support.fixtures;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-/** Фикстура-нарушитель AC-5: квалификатор {@code "dwh"} вне пакета fnd. Не бин (нет @Component). */
+/** A violator fixture: the {@code "dwh"} qualifier outside the fnd package. Not a bean (no @Component). */
 @SuppressWarnings("unused")
 public class DwhQualifierViolator {
 

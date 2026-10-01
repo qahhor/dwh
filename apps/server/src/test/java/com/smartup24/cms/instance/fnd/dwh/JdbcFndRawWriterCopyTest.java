@@ -219,7 +219,7 @@ class JdbcFndRawWriterCopyTest extends EmbeddedPostgresTest {
                 .isLessThan(48);
     }
 
-    // ---------- вспомогательное ----------
+    // ---------- helpers ----------
 
     private static long liveHeap(MemoryMXBean memory) {
         memory.gc();

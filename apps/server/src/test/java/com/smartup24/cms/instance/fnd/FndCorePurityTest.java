@@ -19,10 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * AC-24 и AC-40: в ядре нет ни имён единиц покупателя, ни множителей «в коде», ни имён самих покупателей.
- * Проверяются наши пакеты {@code ..instance.{fnd,upl,ref,reg,vit}} и наши миграции ({@code V1xx}, {@code db/dwh});
- * код каркаса (upstream) не проверяется. Список терминов — тест-ресурс {@code forbidden-terms.txt},
- * в {@code src/main} его нет. Фикстуры конфигураций А/Б (AC-41) — тоже только тест-ресурсы.
+ * The core names neither the customer's units, nor multipliers "in code", nor the customers themselves. Our
+ * packages {@code ..instance.{fnd,upl,ref,reg,vit}} and our migrations ({@code V1xx}, {@code db/dwh}) are checked;
+ * the framework (upstream) code is not. The term list is the test resource {@code forbidden-terms.txt}, it is not
+ * in {@code src/main}. The fixtures of the configurations A and B are test resources only too.
  */
 class FndCorePurityTest {
 
@@ -32,7 +32,7 @@ class FndCorePurityTest {
     private static final Path DWH_MIGRATIONS = Path.of("src/main/resources/db/dwh");
     private static final Path TERMS = Path.of("src/test/resources/forbidden-terms.txt");
     private static final Path ALLOWED_NUMBERS = Path.of("src/test/resources/allowed-numbers.txt");
-    /** Дробь или число от 4 цифр как отдельный токен: 127.0.0.1, V100, id_2026 не считаются. */
+    /** A fraction or a number of 4+ digits as a separate token: 127.0.0.1, V100, id_2026 do not count. */
     private static final Pattern NUMBER =
             Pattern.compile("(?<![\\p{L}\\p{N}_.])(\\d+\\.\\d+|\\d{4,})(?![\\p{L}\\p{N}_.])");
 
@@ -126,7 +126,7 @@ class FndCorePurityTest {
         assertThat(scanNumbers(List.of(violator), Set.of(key + ":1000"))).hasSize(1);
     }
 
-    // ---------- механика ----------
+    // ---------- mechanics ----------
 
     static List<String> scan(List<Path> files, List<String> terms) throws IOException {
         List<String> hits = new ArrayList<>();
@@ -144,7 +144,10 @@ class FndCorePurityTest {
         return hits;
     }
 
-    /** AC-24/M-9: числовые токены вне allowlist; ключ — {@code путь:число}, путь с прямыми слэшами от apps/server. */
+    /**
+     * Numeric tokens outside the allowlist; the key is {@code path:number}, the path from apps/server with forward
+     * slashes.
+     */
     static List<String> scanNumbers(List<Path> files, Set<String> allowed) throws IOException {
         List<String> hits = new ArrayList<>();
         for (Path file : files) {
@@ -153,7 +156,7 @@ class FndCorePurityTest {
             for (int number = 1; number <= lines.size(); number++) {
                 String line = lines.get(number - 1).trim();
                 if (line.startsWith("*") || line.startsWith("/*")) {
-                    continue; // javadoc и блочные комментарии
+                    continue; // javadoc and block comments
                 }
                 Matcher matcher = NUMBER.matcher(LINE_COMMENT.matcher(line).replaceAll(""));
                 while (matcher.find()) {
@@ -166,7 +169,7 @@ class FndCorePurityTest {
         return hits;
     }
 
-    /** Строки {@code путь:число # причина}; пустые и {@code #} пропускаются. */
+    /** Lines {@code path:number # reason}; blank lines and {@code #} lines are skipped. */
     private static Set<String> allowedNumbers() throws IOException {
         try (Stream<String> lines = Files.lines(ALLOWED_NUMBERS, StandardCharsets.UTF_8)) {
             return lines.map(line -> line.contains("#") ? line.substring(0, line.indexOf('#')) : line)
@@ -176,7 +179,7 @@ class FndCorePurityTest {
         }
     }
 
-    /** Термин как отдельное слово, без учёта регистра; {@code sum(} — SQL-агрегат, а не единица. */
+    /** A term as a separate word, case-insensitive; {@code sum(} is an SQL aggregate, not a unit. */
     private static boolean mentions(String line, String term) {
         Matcher matcher = Pattern.compile(
                         "(?<![\\p{L}\\p{N}_])" + Pattern.quote(term) + "(?![\\p{L}\\p{N}_])",
@@ -207,11 +210,11 @@ class FndCorePurityTest {
         List<Path> files = new ArrayList<>();
         for (Path root : roots) {
             if (!Files.exists(root)) {
-                continue; // модули upl/ref/reg/vit появятся в A3–A7
+                continue; // the upl/ref/reg/vit modules appear in later stages
             }
             try (Stream<Path> tree = Files.walk(root)) {
                 tree.filter(Files::isRegularFile)
-                        // В общем каталоге миграций лежат и файлы каркаса: наши — от V100
+                        // The shared migration folder also holds framework files: ours start at V100
                         .filter(path -> !root.equals(OLTP_MIGRATIONS)
                                 || path.getFileName().toString().matches("^V[1-9]\\d{2,}__.+\\.sql$"))
                         .forEach(files::add);

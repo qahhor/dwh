@@ -34,7 +34,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-/** HTTP-проверка асинхронной выгрузки списков в xlsx и журнала выгрузок (ADR-0018, роадмап п. 22). */
+/** HTTP check of the asynchronous export of lists to xlsx and of the export log (ADR-0018). */
 class ReportExportControllerTest extends EmbeddedPostgresTest {
 
     private static final String BASE = "/api/v1/exports";

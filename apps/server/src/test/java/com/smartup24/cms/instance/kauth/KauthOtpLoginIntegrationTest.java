@@ -60,19 +60,19 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * FR-AUTH-5: вход по второму фактору.
+ * FR-AUTH-5: sign-in with a second factor.
  *
- * Пересмотр M3 30.08 нашёл здесь два дефекта, каждый из которых делал 2FA
- * неработоспособной, а вместе — ещё и опасной:
+ * A review on 30.08 found two defects here, each of which made 2FA useless, and both together made it
+ * dangerous too:
  *
- * 1. Код создавался в базе и никуда не отправлялся: вызова провайдера не было.
- * 2. Проверка кода искала его так:
+ * 1. The code was created in the database and sent nowhere: the provider was never called.
+ * 2. The code check looked it up like this:
  *    {@code Long userId = extractUserIdFromOtpToken(otpToken); // return 1L;}
- *    — токен не был связан ни с чем, и любой непустой токен приводил к коду
- *    администратора.
+ *    so the token was bound to nothing, and any non-empty token led to the administrator's
+ *    code.
  *
- * Эти тесты закрепляют оба свойства: код действительно уходит в канал, а найти
- * его можно только по своему токену.
+ * These tests pin both properties: the code really goes to the channel, and it can be found only with one's own
+ * token.
  */
 class KauthOtpLoginIntegrationTest {
 
@@ -202,7 +202,7 @@ class KauthOtpLoginIntegrationTest {
         var login = authService.login("otp_victim", PASSWORD, "10.0.0.5", "ua", "dev");
         String code = extractCode(messenger.sent.getFirst().textMarkdown());
 
-        // До V015 любой непустой токен приводил к коду пользователя с id = 1
+        // Before V015 any non-empty token led to the code of the user with id = 1
         assertThatThrownBy(() -> authService.verifyOtp("forged-token", code, "10.0.0.6", "ua", "dev"))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.auth.otp_token_invalid");
@@ -213,7 +213,7 @@ class KauthOtpLoginIntegrationTest {
     void loginWithoutVerifiedChannelIsRejected() {
         Long userId = createUser("otp_no_channel");
         enable2fa(userId);
-        // канал привязан, но не подтверждён — отправлять код туда нельзя
+        // the channel is bound but not confirmed: no code may be sent there
         channelRepository.bindOrUpdate(userId, "telegram", "chat-unverified", false);
         long before = countOtpCodes(userId);
 
@@ -274,7 +274,7 @@ class KauthOtpLoginIntegrationTest {
                 userId, "test", "test", session.id(), false, Set.of(), 1, false, 0, null);
     }
 
-    // ------------------------------------------------------------- вспомогательное
+    // ------------------------------------------------------------- helpers
 
     private static String extractCode(String text) {
         Matcher m = CODE.matcher(text);
@@ -317,7 +317,7 @@ class KauthOtpLoginIntegrationTest {
                 .single();
     }
 
-    /** Провайдер, который запоминает отправленное: только так видно, что код вообще уходит. */
+    /** A provider that remembers what was sent: the only way to see that a code goes out at all. */
     static class CapturingMessenger implements MessengerProvider {
         final List<MessengerMessage> sent = new ArrayList<>();
 

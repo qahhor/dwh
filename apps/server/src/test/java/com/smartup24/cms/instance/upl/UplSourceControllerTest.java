@@ -32,7 +32,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-/** HTTP-проверка API анкеты файла {@code /api/v1/upl/sources} (контракт И3, AC-1…AC-16). */
+/** HTTP check of the file format API {@code /api/v1/upl/sources}. */
 class UplSourceControllerTest extends EmbeddedPostgresTest {
 
     private static final String BASE = "/api/v1/upl/sources";

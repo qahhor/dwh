@@ -15,14 +15,14 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Общие данные тестов пакета загрузки: источник с опубликованной анкетой и синтетические xlsx
- * под ту же анкету, что в {@link UplXlsxParserTest}. Значения — только слова {@code TEST} и числа.
+ * Data shared by the load package tests: a source with a published file format and synthetic xlsx files
+ * for the same format as in {@link UplXlsxParserTest}. Values are only the word {@code TEST} and numbers.
  */
 public final class UplPackageTestData {
 
-    /** Имя листа анкеты и файла. */
+    /** The sheet name of the format and of the file. */
     public static final String SHEET = "TEST лист";
-    /** Тип содержимого xlsx, который принимает хранилище каркаса. */
+    /** The xlsx content type that the framework storage accepts. */
     public static final String XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     private static final String KEY_MASK = "^[0-9]{9}$";
@@ -32,7 +32,7 @@ public final class UplPackageTestData {
 
     private UplPackageTestData() {}
 
-    /** Черновик анкеты: один лист, шапка во второй строке, пять колонок. */
+    /** A draft file format: one sheet, the header in the second row, five columns. */
     public static DraftData draft() {
         List<Column> columns = List.of(
                 column(1, "№", "row_no", DataType.INTEGER, true),
@@ -43,7 +43,7 @@ public final class UplPackageTestData {
         return new DraftData(null, null, null, null, List.of(new Sheet(null, 0, SHEET, 2, "Итого", columns)));
     }
 
-    /** Заводит источник, наполняет черновик и публикует его с указанной даты; возвращает id источника. */
+    /** Creates a source, fills the draft and publishes it from the given date; returns the source id. */
     public static long publishedSource(UplSourceService service, long userId, LocalDate validFrom) {
         SourceData data = new SourceData(
                 "test.pkg." + UUID.randomUUID().toString().substring(0, 8),
@@ -62,7 +62,7 @@ public final class UplPackageTestData {
         return sourceId;
     }
 
-    /** Файл по анкете: сначала строки с верным ключом, затем строки с ключом не по маске. */
+    /** A file by the format: rows with a valid key first, then rows whose key does not match the mask. */
     public static byte[] workbook(int goodRows, int badKeyRows) {
         List<List<Object>> rows = new ArrayList<>();
         for (int number = 1; number <= goodRows; number++) {
@@ -74,7 +74,7 @@ public final class UplPackageTestData {
         return UplXlsxFixtures.workbook(new SheetSpec(SHEET, 2, HEADER, rows));
     }
 
-    /** Файл с расхождениями анкеты: нет колонки «Сумма», зато есть лишняя. */
+    /** A file that differs from the format: the amount column is missing and an extra column is present. */
     public static byte[] brokenStructure() {
         List<List<Object>> rows = List.of(row(1, "900000001", 1), row(2, "900000002", 2));
         return UplXlsxFixtures.workbook(new SheetSpec(SHEET, 2, HEADER_BROKEN, rows));

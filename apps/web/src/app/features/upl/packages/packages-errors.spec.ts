@@ -11,14 +11,14 @@ import {
   uplPackageCodeText,
 } from './packages-errors';
 
-/** Русский каталог сервера: тексты ключей ошибок (`error.upl.*`), которых в упакованном словаре может ещё не быть. */
+/** The server's Russian catalog: texts of error keys (`error.upl.*`) the packaged dictionary may not have yet. */
 const SERVER_RUSSIAN = JSON.parse(readFileSync('../server/src/main/resources/i18n/ru.json', 'utf8')) as Record<
   string,
   string
 >;
 const DICTIONARY: Record<string, string> = { ...PACKAGED_RUSSIAN, ...SERVER_RUSSIAN };
 
-/** Настоящий словарь плюс подстановка параметров — как в `I18nService.translate`. */
+/** The real dictionary plus parameter substitution, as in `I18nService.translate`. */
 const translate: UplTranslate = (key: string, params?: UplPackageParams) => {
   const template = DICTIONARY[key];
   if (template === undefined) return key;

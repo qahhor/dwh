@@ -28,10 +28,11 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Блок B основы, AC-8: файл загрузки хранит модуль {@code mf} каркаса ({@code mf_files}, SPI {@code StorageProvider},
- * на стенде — {@code LocalStorageProvider}). Основа своего хранилища не имеет (ArchUnit — {@code FndArchitectureTest})
- * и ссылается на файл по {@code sha256} в {@code fnd_load_log.file_sha} (у {@code mf_files.sha256} — unique).
- * Файл 50 МБ — {@code @Tag("perf")}, perf-план.
+ * The framework's {@code mf} module stores the load file ({@code mf_files}, the {@code StorageProvider} SPI,
+ * {@code LocalStorageProvider} on a test stand). The foundation has no storage of its own (ArchUnit:
+ * {@code FndArchitectureTest}) and refers to the file by {@code sha256} in {@code fnd_load_log.file_sha}
+ * ({@code mf_files.sha256} is unique).
+ * The 50 MB file is {@code @Tag("perf")}, part of the performance plan.
  */
 class FndFileStorageTest extends EmbeddedPostgresTest {
 
@@ -94,7 +95,8 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
         MfFileRepository.FileRecord other =
                 files.uploadFile("uchinchi.xlsx", MIME, new ByteArrayInputStream(content), content.length, ownerB);
 
-        // Свой повтор каркас отдаёт той же записью, чужой — новой записью владения на тот же объект
+        // The framework returns the same record for one's own repeat and a new ownership record on the same object for
+        // someone else's
         assertThat(again.id()).isEqualTo(first.id());
         assertThat(other.id()).isNotEqualTo(first.id());
         assertThat(other.sha256()).isEqualTo(first.sha256());
@@ -122,7 +124,7 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
                 .isZero();
     }
 
-    // ---------- вспомогательное ----------
+    // ---------- helpers ----------
 
     private Path storedFile(String sha256) throws IOException {
         List<Path> found = storedFiles(sha256);

@@ -19,10 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** Анкета фикстуры как источник загрузки: общие данные тестов конфигурации экземпляра. */
+/** The file format of a fixture as a load source: data shared by the instance configuration tests. */
 public final class UplFixtureSources {
 
-    /** Номер первой версии анкеты. */
+    /** The number of the first file format version. */
     public static final int FIRST_VERSION = 1;
 
     private static final String SUFFIX_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -30,7 +30,7 @@ public final class UplFixtureSources {
 
     private UplFixtureSources() {}
 
-    /** Источник с опубликованной первой версией анкеты фикстуры; возвращает id источника. */
+    /** A source with the first version of the fixture's file format published; returns the source id. */
     public static long publish(UplSourceService service, Format format, long userId) {
         long id = service.createSource(sourceData(format), userId).source().id();
         service.createDraft(id, null, userId);
@@ -40,7 +40,7 @@ public final class UplFixtureSources {
         return id;
     }
 
-    /** Единицы измерения фикстуры в базе экземпляра: сначала базовые, затем производные от них. */
+    /** The fixture's units of measure in the instance database: base units first, then the units derived from them. */
     public static void registerUnits(FndUnitService units, FndActors actors, DepartmentFixture dept) {
         dept.units().stream().filter(u -> u.code().equals(u.base())).forEach(u -> ensureUnit(units, actors, u));
         dept.units().stream().filter(u -> !u.code().equals(u.base())).forEach(u -> ensureUnit(units, actors, u));

@@ -31,7 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Репозиторий анкеты файла (И3 шаг 3.4): запись и чтение источника, версии, листов и колонок. */
+/** The file format repository: writing and reading a source, its versions, sheets and columns. */
 class UplFormatRepositoryTest extends EmbeddedPostgresTest {
 
     private static final String PREFIX = "test.repo.";
@@ -353,7 +353,7 @@ class UplFormatRepositoryTest extends EmbeddedPostgresTest {
         });
     }
 
-    /** Источник с опубликованной версией 1 и черновиком 2; у каждой — один лист с одной колонкой. */
+    /** A source with a published version 1 and a draft 2; each has one sheet with one column. */
     private long publishedWithDraft(String code) {
         long id = repo.insertSource(data(code, "TEST guard"), actors.system().name());
         List<Sheet> sheets = List.of(new Sheet(

@@ -20,8 +20,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * I-02 / Finding S-02 / CWE-250 / ADR-0008:
- * РџСЂРѕРІРµСЂРєР° РЅР°РёРјРµРЅСЊС€РёС… РїСЂРёРІРёР»РµРіРёР№ Р±Р°Р·С‹ РґР°РЅРЅС‹С… (Database Least Privilege).
+ * ADR-0008: the database roles have the least privileges they need (Database Least Privilege, CWE-250).
  */
 @Testcontainers
 class DatabaseLeastPrivilegeIntegrationTest {
@@ -55,21 +54,21 @@ class DatabaseLeastPrivilegeIntegrationTest {
                 new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         adminJdbc = JdbcClient.create(adminDataSource);
 
-        // 1. РЎРѕР·РґР°РЅРёРµ СЂРѕР»РµР№ Рё СЂР°СЃС€РёСЂРµРЅРёР№ РѕС‚ РёРјРµРЅРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°
+        // 1. The administrator creates the roles and the extensions
         // (postgres_admin)
         bootstrapRoles(adminJdbc);
 
         migratorDataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), MIGRATOR_USER, MIGRATOR_PASS);
         migratorJdbc = JdbcClient.create(migratorDataSource);
 
-        // 2. РџСЂРёРјРµРЅРµРЅРёРµ РјРёРіСЂР°С†РёР№ РѕС‚ РёРјРµРЅРё smartupcms_migrator (schema owner)
+        // 2. smartupcms_migrator (the schema owner) applies the migrations
         FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(migratorDataSource)
                 .locations("classpath:db/migration")
                 .load()
                 .migrate();
 
-        // 3. РќР°СЃС‚СЂРѕР№РєР° РіСЂР°РЅСѓР»СЏСЂРЅС‹С… РїСЂР°РІ РїРѕСЃР»Рµ СЃРѕР·РґР°РЅРёСЏ С‚Р°Р±Р»РёС†
+        // 3. Fine-grained permissions are set up after the tables exist
         grantPrivileges(adminJdbc);
 
         appDataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), APP_USER, APP_PASS);
@@ -80,12 +79,12 @@ class DatabaseLeastPrivilegeIntegrationTest {
     }
 
     private static void bootstrapRoles(JdbcClient admin) {
-        // Р Р°СЃС€РёСЂРµРЅРёСЏ СЃРѕР·РґР°СЋС‚СЃСЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј
+        // The administrator creates the extensions
         admin.sql("CREATE EXTENSION IF NOT EXISTS \"pgcrypto\"").update();
         admin.sql("CREATE EXTENSION IF NOT EXISTS \"pg_trgm\"").update();
         admin.sql("CREATE EXTENSION IF NOT EXISTS \"fuzzystrmatch\"").update();
 
-        // Р РѕР»СЊ РјРёРіСЂР°С‚РѕСЂР°
+        // The migrator role
         admin.sql("""
             DO $$
             BEGIN
@@ -96,7 +95,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
             END $$;
             """).update();
 
-        // Р РѕР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ
+        // The application role
         admin.sql("""
             DO $$
             BEGIN
@@ -107,7 +106,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
             END $$;
             """).update();
 
-        // Р РѕР»СЊ СЂРµР·РµСЂРІРЅРѕРіРѕ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
+        // The backup role
         admin.sql("""
             DO $$
             BEGIN
@@ -118,14 +117,14 @@ class DatabaseLeastPrivilegeIntegrationTest {
             END $$;
             """).update();
 
-        // РџСЂР°РІР° РЅР° Р‘Р” Рё РІР»Р°РґРµРЅРёРµ СЃС…РµРјРѕР№ public РїРµСЂРµРґР°С‘С‚СЃСЏ РјРёРіСЂР°С‚РѕСЂСѓ
+        // The database permissions and the ownership of the public schema go to the migrator
         admin.sql("GRANT CONNECT, CREATE ON DATABASE smartupcms TO smartupcms_migrator")
                 .update();
         admin.sql("ALTER SCHEMA public OWNER TO smartupcms_migrator").update();
         admin.sql("GRANT ALL ON SCHEMA public TO smartupcms_migrator").update();
 
-        // Р”РµС„РѕР»С‚РЅС‹Рµ РїСЂР°РІР° РґР»СЏ РѕР±СЉРµРєС‚РѕРІ, РєРѕС‚РѕСЂС‹Рµ Р±СѓРґРµС‚ СЃРѕР·РґР°РІР°С‚СЊ
-        // РјРёРіСЂР°С‚РѕСЂ
+        // Default permissions for the objects the migrator
+        // will create
         admin.sql("""
             ALTER DEFAULT PRIVILEGES FOR ROLE smartupcms_migrator IN SCHEMA public
                 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO smartupcms;
@@ -253,7 +252,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
                     .single();
             assertThat(userCount).isGreaterThanOrEqualTo(0);
 
-            // INSERT РІ audit_log СЂР°Р·СЂРµС€РµРЅ
+            // INSERT into audit_log is allowed
             appJdbc.sql("""
                     insert into audit_log (table_name, row_pk, event, changed_at)
                     values ('least_privilege_test', '1', 'I', now())
@@ -271,23 +270,23 @@ class DatabaseLeastPrivilegeIntegrationTest {
         void auditPartitionWorkerCanManagePartitionsViaSecurityDefiner() {
             var repo = new AuditPartitionRepository(appJdbc);
 
-            // РЎРѕР·РґР°РЅРёРµ РїР°СЂС‚РёС†РёРё Р·Р° Р±СѓРґСѓС‰РёР№ РјРµСЃСЏС†
+            // Create a partition for a future month
             YearMonth targetMonth = YearMonth.of(2021, 5);
             assertThat(repo.exists(targetMonth)).isFalse();
             repo.create(targetMonth);
             assertThat(repo.exists(targetMonth)).isTrue();
 
-            // Р—Р°РїРёСЃСЊ РІ СЃРѕР·РґР°РЅРЅСѓСЋ РїР°СЂС‚РёС†РёСЋ
+            // Write into the created partition
             appJdbc.sql("""
                     insert into audit_log (table_name, row_pk, event, changed_at)
                     values ('future_partition_test', '100', 'I', timestamptz '2021-05-10 10:00:00+00')
                     """).update();
 
-            // РћС‚С†РµРїР»РµРЅРёРµ РїР°СЂС‚РёС†РёРё
+            // Detach the partition
             String archived = repo.detachAndArchive(targetMonth);
             assertThat(archived).isEqualTo("audit_log_archived_2021_05");
 
-            // Р—Р°РїРёСЃСЊ СЃРѕС…СЂР°РЅРµРЅР° РІ Р°СЂС…РёРІРЅРѕР№ С‚Р°Р±Р»РёС†Рµ
+            // The record is kept in the archive table
             long archivedCount = appJdbc.sql(
                             "select count(*) from audit_log_archived_2021_05 where table_name = 'future_partition_test'")
                     .query(Long.class)

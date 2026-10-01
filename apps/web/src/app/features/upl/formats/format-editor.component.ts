@@ -56,7 +56,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
       .subscribe((params) => this.store.open(params.get('id') ?? '', params.get('v') ?? ''));
   }
 
-  /** Шаги анкеты со статусом: «есть ошибки» — по адресам ошибок, «готово» — по заполненности. */
+  /** The file format steps with a status: "has errors" by the error addresses, "done" by what is filled in. */
   steps(): SMTProgressStep[] {
     const errors = this.store.errors();
     const fileErrors = errors.filter((item) => uplErrorStep(item) === 'file').length;
@@ -103,12 +103,12 @@ export class FormatEditorComponent implements RecordNavigationPage {
     return this.i18n.translate(key, params);
   }
 
-  /** Адрес ошибки в сводке: с именем поля, если оно известно по заголовку таблицы (М-21). */
+  /** The error address in the summary: with the field name if the table header gives it. */
   errorAddress(problem: UplFieldError): string {
     return uplErrorAddress(problem, (key, params) => this.text(key, params));
   }
 
-  /** Неизвестный код не прячем: показываем сообщение сервера и сам код. */
+  /** An unknown code is not hidden: the server message and the code itself are shown. */
   errorText(problem: UplFieldError): string {
     return uplFieldErrorText(problem, (key) => this.i18n.translate(key));
   }

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
-/** Запускатель очереди: порядок вызовов и живучесть при сбое задания. */
+/** The queue runner: the order of calls and survival when a job fails. */
 class JobQueueWorkerTest {
 
     @Test

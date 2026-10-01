@@ -5,8 +5,8 @@ import { UplFormatDraftRequest, UplFormatVersion } from '../upl-api';
 import { UPL_FILE_KIND_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
 
 /**
- * Шаг «Публикация» анкеты: сводка того, что будет опубликовано, и готовность.
- * Кнопка и диалог публикации — у редактора, шаг только объясняет, что произойдёт.
+ * The "Publish" step of the file format: a summary of what will be published, and readiness.
+ * The publish button and dialog belong to the editor; the step only explains what will happen.
  */
 @Component({
   selector: 'app-upl-format-publish-step',
@@ -126,7 +126,7 @@ export class FormatPublishStepComponent {
     return this.model().sheets.reduce((total, sheet) => total + sheet.columns.length, 0);
   }
 
-  /** Каждый лист с хотя бы одной колонкой — иначе публиковать нечего. */
+  /** Every sheet has at least one column, otherwise there is nothing to publish. */
   hasColumns(): boolean {
     const sheets = this.model().sheets;
     return sheets.length > 0 && sheets.every((sheet) => sheet.columns.length > 0);
