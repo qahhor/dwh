@@ -7,6 +7,8 @@ import { ApiService } from '@core/services/api.service';
 export interface HistoryChange {
   field: string;
   labelKey?: string | null;
+  /** A custom field's own name, when it has no dictionary key (plan 10/10, item 5.0). */
+  label?: string | null;
   oldValue?: unknown;
   newValue?: unknown;
 }

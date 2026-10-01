@@ -69,3 +69,30 @@ describe('registryTableConfig with custom fields', () => {
     );
   });
 });
+
+// Plan 10/10, item 5.0: a reference column shows the name of its row, from its own target.
+describe('registryTableConfig with references and times of day', () => {
+  const ref = { path: '/tasks/projects/page', labelField: 'name', keyField: 'id', paged: true };
+  const meta = {
+    ...META,
+    fields: [
+      metaField('cfProject', '', 'number', { nullable: true, label: 'Проект', attribute: 'project', ref }),
+      metaField('cfSlot', '', 'time', { nullable: true, label: 'Слот', attribute: 'slot' }),
+    ],
+  } as QueryListMeta;
+  const names: Record<string, string> = { '7': 'Проект А' };
+  const config = registryTableConfig<Row>(meta, {
+    translate,
+    trackBy: (_i, row) => row.id,
+    ariaLabel: 'Users',
+    sort: null,
+    refName: (target, key) => (target === ref ? (names[String(key)] ?? null) : null),
+  });
+
+  it('names a referenced row once its name has come, and shows the key until then', () => {
+    expect(cell(config, 'cfProject', { id: 1, name: 'x', attributes: { project: 7 } })).toBe('Проект А');
+    expect(cell(config, 'cfProject', { id: 2, name: 'y', attributes: { project: 8 } })).toBe('8');
+    expect(cell(config, 'cfProject', { id: 3, name: 'z', attributes: {} })).toBe('—');
+    expect(cell(config, 'cfSlot', { id: 1, name: 'x', attributes: { slot: '14:45' } })).toBe('14:45');
+  });
+});

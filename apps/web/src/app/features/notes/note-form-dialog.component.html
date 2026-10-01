@@ -9,7 +9,7 @@
     <form ngNoForm class="modal-form" novalidate id="noteForm" (submit)="$event.preventDefault(); save()">
       <smt-entity-form [meta]="meta()" [(value)]="values" [problems]="problems()" [disabled]="saving()" />
       @if (showHistory() && note(); as current) {
-        <ui-record-history [kind]="meta().code" [recordId]="current.id" />
+        <ui-record-history [kind]="meta().code" [recordId]="current.id" [meta]="meta()" />
       }
     </form>
 

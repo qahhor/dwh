@@ -269,6 +269,10 @@ export class CustomFieldsTableComponent {
         return this.uiI18n.translate('iam.custom_fields.type_yes_no');
       case 'date':
         return this.uiI18n.translate('iam.data');
+      case 'datetime':
+        return this.uiI18n.translate('iam.custom_fields.editor.type_datetime');
+      case 'time':
+        return this.uiI18n.translate('iam.custom_fields.editor.type_time');
       case 'select':
         return this.uiI18n.translate('projects.common.list');
       case 'user_ref':
@@ -288,6 +292,10 @@ export class CustomFieldsTableComponent {
         return 'toggle_on';
       case 'date':
         return 'calendar_today';
+      case 'datetime':
+        return 'event';
+      case 'time':
+        return 'schedule';
       case 'select':
         return 'list';
       case 'user_ref':

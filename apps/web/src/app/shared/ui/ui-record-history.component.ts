@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   effect,
   inject,
@@ -16,6 +17,9 @@ import { HistoryChange, HistoryEntry, RecordHistoryApi } from './record-history.
 
 export type { HistoryChange, HistoryEntry };
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import type { FormMeta } from '@core/models/form-meta.models';
+import { RefLookups } from '../lookups/ref-lookup';
+import { fieldText } from '../entity/entity-values';
 
 const PAGE_SIZE = 20;
 const EVENT_KEYS: Record<HistoryEntry['event'], string> = {
@@ -73,12 +77,12 @@ let nextHistoryId = 0;
                         <dt>{{ fieldLabel(change) }}</dt>
                         <dd>
                           @if (entry.event === 'U') {
-                            <span class="record-history__old">{{ show(change.oldValue) }}</span>
+                            <span class="record-history__old">{{ show(change.oldValue, change) }}</span>
                             <span aria-hidden="true"> → </span>
                             <span class="sr-only">{{ 'ui.history.became' | t }}</span>
-                            <span>{{ show(change.newValue) }}</span>
+                            <span>{{ show(change.newValue, change) }}</span>
                           } @else {
-                            {{ show(entry.event === 'D' ? change.oldValue : change.newValue) }}
+                            {{ show(entry.event === 'D' ? change.oldValue : change.newValue, change) }}
                           }
                         </dd>
                       </div>
@@ -113,10 +117,14 @@ export class UiRecordHistoryComponent {
   private readonly history = inject(RecordHistoryApi);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly refLookups = inject(RefLookups);
 
   /** The kind of record, as the server names it: `tasks`, `projects`, `users`. */
   readonly kind = input.required<string>();
   readonly recordId = input.required<number | string>();
+
+  /** The entity's form, when the record has one: its values are then shown in words, as on its card. */
+  readonly meta = input<FormMeta | null>(null);
 
   readonly open = signal(false);
   readonly entries = signal<HistoryEntry[]>([]);
@@ -124,6 +132,10 @@ export class UiRecordHistoryComponent {
   readonly failed = signal(false);
   readonly loaded = signal(false);
   readonly nextCursor = signal<string | null>(null);
+
+  private readonly fields = computed(
+    () => new Map((this.meta()?.fields ?? []).map((field) => [field.key, field] as const)),
+  );
 
   readonly headingId = `record-history-heading-${nextHistoryId}`;
   readonly panelId = `record-history-panel-${nextHistoryId++}`;
@@ -183,13 +195,21 @@ export class UiRecordHistoryComponent {
     return entry.changedByLogin ? `${entry.changedByName} (@${entry.changedByLogin})` : entry.changedByName;
   }
 
+  /** A field by its label: the dictionary's, else a custom field's own name (plan 10/10, item 5.0), else its key. */
   fieldLabel(change: HistoryChange): string {
-    return change.labelKey ? this.i18n.translate(change.labelKey) : change.field;
+    if (change.labelKey) return this.i18n.translate(change.labelKey);
+    return change.label || change.field;
   }
 
-  /** A value as a person reads it: empty as a dash, yes/no for flags, structures as compact JSON. */
-  show(value: unknown): string {
+  /**
+   * A value as a person reads it: empty as a dash, yes/no for flags, structures as compact JSON. With the entity's
+   * form, as the card shows it: an option by its label, a reference by the name of its row, a moment in local time.
+   */
+  show(value: unknown, change?: HistoryChange): string {
     if (value === null || value === undefined || value === '') return '—';
+    this.i18n.currentLang();
+    const field = change ? this.fields().get(change.field) : undefined;
+    if (field) return fieldText(field, value, (key) => this.i18n.translate(key), this.refLookups);
     if (typeof value === 'boolean') return this.i18n.translate(value ? 'common.yes' : 'common.no');
     if (typeof value === 'object') return JSON.stringify(value);
     return String(value);

@@ -4468,6 +4468,7 @@ export interface components {
         };
         FieldChange: {
             field?: string;
+            label?: string;
             labelKey?: string;
             newValue?: unknown;
             oldValue?: unknown;
@@ -4533,8 +4534,10 @@ export interface components {
         FormCatalogItem: {
             action?: string;
             actionName?: string;
+            actionNameKey?: string;
             formCode?: string;
             formName?: string;
+            formNameKey?: string;
             isDeprecated?: boolean;
             module?: string;
         };

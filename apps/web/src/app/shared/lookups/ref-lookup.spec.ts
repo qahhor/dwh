@@ -1,0 +1,67 @@
+import { TestBed } from '@angular/core/testing';
+import { firstValueFrom, of } from 'rxjs';
+import { describe, expect, it, vi } from 'vitest';
+import type { QueryRefMeta } from '@core/models/query-meta.models';
+import { ApiService } from '@core/services/api.service';
+import { LookupSources } from './lookup-sources';
+import { RefLookups } from './ref-lookup';
+
+const USERS: QueryRefMeta = { path: '/iam/users', labelField: 'name', keyField: 'id', paged: true };
+const PROJECTS: QueryRefMeta = {
+  path: '/tasks/projects/page',
+  labelField: 'name',
+  keyField: 'id',
+  paged: true,
+  readPath: '/tasks/projects',
+};
+const UNITS: QueryRefMeta = { path: '/org/units', labelField: 'title', keyField: 'code', paged: false };
+
+/** Plan 10/10, item 5.0: a reference is looked up and named by its own target, not as a person. */
+describe('RefLookups', () => {
+  function setup(get: ReturnType<typeof vi.fn>) {
+    TestBed.configureTestingModule({ providers: [{ provide: ApiService, useValue: { get } }] });
+    return { refs: TestBed.inject(RefLookups), lookups: TestBed.inject(LookupSources) };
+  }
+
+  it('gives a known target its own lookup and any other list one read as the server names it', () => {
+    const { refs, lookups } = setup(vi.fn(() => of([])));
+
+    expect(refs.source(USERS)).toBe(lookups.activeUsers);
+    expect(refs.source(PROJECTS)).toBe(lookups.projects);
+    expect(refs.source({ ...USERS, keyField: 'login' })).not.toBe(lookups.activeUsers);
+    const units = refs.source(UNITS);
+    expect(refs.source(UNITS)).toBe(units);
+    expect(units.option({ code: 'hq', title: 'Головной офис' }).label).toBe('Головной офис');
+  });
+
+  it('names a referenced row once, by its target, and keeps the name', async () => {
+    const get = vi.fn((path: string) =>
+      path === '/org/units' ? of([{ code: 'hq', title: 'Головной офис' }]) : of({ id: 7, name: 'Проект А' }),
+    );
+    const { refs } = setup(get);
+
+    expect(refs.name(UNITS, 'hq')).toBeNull();
+    expect(refs.name(PROJECTS, 7)).toBeNull();
+    await Promise.resolve();
+
+    expect(refs.name(UNITS, 'hq')).toBe('Головной офис');
+    expect(refs.name(PROJECTS, 7)).toBe('Проект А');
+    expect(get).toHaveBeenCalledWith('/tasks/projects/7', undefined, { notifyError: false });
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(refs.name(UNITS, null)).toBeNull();
+  });
+
+  it('a whole list is searched on the screen', async () => {
+    const { refs } = setup(
+      vi.fn(() =>
+        of([
+          { code: 'hq', title: 'Головной офис' },
+          { code: 'br', title: 'Филиал' },
+        ]),
+      ),
+    );
+
+    const page = await firstValueFrom(refs.source(UNITS).page('фил', null, 20));
+    expect(page?.items?.map((row) => row['code'])).toEqual(['br']);
+  });
+});

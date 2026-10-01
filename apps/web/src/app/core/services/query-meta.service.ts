@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, shareReplay } from 'rxjs';
+import { Observable } from 'rxjs';
 import { ListQuery, QueryCondition, QueryListMeta, QueryMatch, QuerySort } from '../models/query-meta.models';
 import { ApiService } from './api.service';
+import { MetaCache, MetaCacheState } from './meta-cache';
 
 /** Query parameters for a registry list: `filter` (JSON DSL) and `sort` (`-key` for descending). */
 export function toQueryParams(query: ListQuery | null | undefined): { filter?: string; sort?: string; q?: string } {
@@ -60,23 +61,18 @@ function normalizeCondition(condition: QueryCondition): QueryCondition {
 }
 
 /**
- * Field metadata of server lists. A list's metadata does not change while the app runs,
- * so each list is fetched once; a failed request is not cached and is retried on the next call.
+ * Field metadata of server lists, cached like the entity forms (plan 10/10, item 5.0): read again when custom
+ * fields change, when the viewer's rights change and after `META_TTL_MS`, so a new custom field becomes a column
+ * without a reload. A failed request is not cached and is retried on the next call.
  */
 @Injectable({ providedIn: 'root' })
 export class QueryMetaService {
   private readonly api = inject(ApiService);
-  private readonly cache = new Map<string, Observable<QueryListMeta>>();
+  private readonly cache = new MetaCache<QueryListMeta>(inject(MetaCacheState));
 
   get(list: string): Observable<QueryListMeta> {
-    let meta = this.cache.get(list);
-    if (!meta) {
-      meta = this.api
-        .get<QueryListMeta>(`/query-meta/${encodeURIComponent(list)}`, undefined, { notifyError: false })
-        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
-      this.cache.set(list, meta);
-      meta.subscribe({ error: () => this.cache.delete(list) });
-    }
-    return meta;
+    return this.cache.get(list, () =>
+      this.api.get<QueryListMeta>(`/query-meta/${encodeURIComponent(list)}`, undefined, { notifyError: false }),
+    );
   }
 }

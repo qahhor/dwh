@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { NOTES_FORM_META, formField, withCustomField } from '@testing/form-meta';
 import { translateTest } from '@testing/i18n-test.stub';
-import { canDo, formProblems, optionLabel, recordPayload, recordValues, serverProblems } from './form-meta.service';
+import type { FormMeta } from '../models/form-meta.models';
+import {
+  canDo,
+  formProblems,
+  localMoment,
+  optionLabel,
+  recordPayload,
+  recordValues,
+  serverProblems,
+  utcMoment,
+} from './form-meta.service';
 
 const BUDGET = formField('cfBudget', 'number', { labelKey: '', label: 'Бюджет', attribute: 'budget', required: true });
 const META = withCustomField(NOTES_FORM_META, BUDGET);
@@ -74,5 +84,47 @@ describe('form-meta helpers', () => {
   it('names an option by the field prefix, or by itself', () => {
     expect(optionLabel(NOTES_FORM_META.fields[2], 'blue', translateTest)).toBe(translateTest('notes.color_blue'));
     expect(optionLabel(formField('stage', 'select', { options: ['a'] }), 'a', translateTest)).toBe('a');
+  });
+
+  // Plan 10/10, item 5.0: a moment and a time of day, checked by the server's rules.
+  describe('moments and times of day', () => {
+    const MOMENTS: FormMeta = {
+      ...NOTES_FORM_META,
+      fields: [
+        formField('startsAt', 'datetime'),
+        formField('callTime', 'time'),
+        formField('due', 'date'),
+        formField('cfDueAt', 'datetime', { labelKey: '', label: 'Due', attribute: 'due_at' }),
+      ],
+    };
+
+    it('shows a moment in local time and saves it in UTC, a custom one too', () => {
+      const moment = new Date(2026, 9, 1, 9, 30);
+      const values = recordValues(MOMENTS, {
+        startsAt: moment.toISOString(),
+        callTime: '14:45',
+        attributes: { due_at: moment.toISOString() },
+      });
+      expect(values['startsAt']).toBe('2026-10-01T09:30');
+      expect(values['cfDueAt']).toBe('2026-10-01T09:30');
+      expect(values['callTime']).toBe('14:45');
+
+      const payload = recordPayload(MOMENTS, { ...values, startsAt: '2026-10-02T08:00' });
+      expect(payload['startsAt']).toBe(new Date(2026, 9, 2, 8, 0).toISOString());
+      expect((payload['attributes'] as Record<string, unknown>)['due_at']).toBe(moment.toISOString());
+      expect(localMoment('soon')).toBeNull();
+      expect(utcMoment('')).toBeNull();
+    });
+
+    it('finds a bad date, moment or time before the request', () => {
+      expect(formProblems(MOMENTS, { startsAt: 'soon', callTime: '24:00', due: '2026-13-01' }, translateTest)).toEqual({
+        startsAt: translateTest('ui.entity_form.invalid'),
+        callTime: translateTest('ui.entity_form.invalid'),
+        due: translateTest('ui.entity_form.invalid'),
+      });
+      expect(
+        formProblems(MOMENTS, { startsAt: '2026-10-01T09:30', callTime: '09:30:15', due: '2026-10-01' }, translateTest),
+      ).toEqual({});
+    });
   });
 });
