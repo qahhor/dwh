@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.md.i18n.I18nModels.TranslationEditor;
 import com.smartup24.cms.instance.md.i18n.I18nModels.UpdateTranslationsRequest;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdI18nService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -36,12 +37,16 @@ public class MdI18nAdminController {
         this.i18nService = i18nService;
     }
 
+    @Operation(
+            summary = "Get the translation editor",
+            description = "The keys and texts of an interface language, for the translation editor.")
     @GetMapping("/{code}/translations")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
     public ResponseEntity<TranslationEditor> getEditor(@PathVariable String code) {
         return ResponseEntity.ok(i18nService.editor(code));
     }
 
+    @Operation(summary = "Add an interface language", description = "Adds a language to the interface.")
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "update")
     @ResponseStatus(HttpStatus.CREATED)
@@ -50,6 +55,7 @@ public class MdI18nAdminController {
         return Created.at("/api/v1/i18n/admin/languages/{code}/translations", created.code(), created);
     }
 
+    @Operation(summary = "Update translations", description = "Saves the edited texts of an interface language.")
     @PutMapping("/{code}/translations")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "update")
     public ResponseEntity<LanguageSummary> updateTranslations(
@@ -57,6 +63,9 @@ public class MdI18nAdminController {
         return ResponseEntity.ok(i18nService.updateTranslations(code, request, SecurityContext.getCurrentUserId()));
     }
 
+    @Operation(
+            summary = "Export a language",
+            description = "The texts of an interface language as one key-to-text map.")
     @GetMapping("/{code}/export")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
     public ResponseEntity<Map<String, String>> export(@PathVariable String code) {

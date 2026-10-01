@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.UpdateOrgUnitDto;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -47,18 +48,21 @@ public class MdOrgUnitController {
         this.scopeService = scopeService;
     }
 
+    @Operation(summary = "List org units", description = "The organisation structure as a flat list of units.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<List<OrgUnitView>> list() {
         return ResponseEntity.ok(orgUnitService.listAll());
     }
 
+    @Operation(summary = "Get an org unit", description = "One unit of the organisation structure.")
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<OrgUnitView> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(orgUnitService.getById(id));
     }
 
+    @Operation(summary = "Create an org unit", description = "Adds a unit to the organisation structure.")
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -67,6 +71,9 @@ public class MdOrgUnitController {
         return Created.at("/api/v1/iam/org-units/{id}", unit.id(), unit);
     }
 
+    @Operation(
+            summary = "Update an org unit",
+            description = "Changes the name, parent or state of a unit; names the revision it was read at.")
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -87,6 +94,7 @@ public class MdOrgUnitController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(summary = "Delete an org unit", description = "Removes a unit of the organisation structure.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -96,6 +104,7 @@ public class MdOrgUnitController {
     }
 
     /** Явные назначения сотрудника и отдельная legacy-привязка. */
+    @Operation(summary = "Get the units of a user", description = "The units a user is explicitly assigned to.")
     @GetMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<MdOrgUnitDtos.UserAssignments> getUserAssignments(@PathVariable("userId") Long userId) {
@@ -103,6 +112,9 @@ public class MdOrgUnitController {
     }
 
     /** Явное правило роли; отсутствие строки у существующей роли означает ALL. */
+    @Operation(
+            summary = "Get the visibility rule of a role",
+            description = "The data visibility rule of a role; a role without a rule sees all.")
     @GetMapping("/roles/{roleId}/rule")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<MdOrgUnitDtos.RoleRule> getRoleRule(@PathVariable("roleId") Long roleId) {
@@ -110,6 +122,9 @@ public class MdOrgUnitController {
     }
 
     /** Позиция сотрудника в дереве — полная замена набора узлов. */
+    @Operation(
+            summary = "Replace the units of a user",
+            description = "Replaces the whole set of units a user is assigned to.")
     @PutMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -120,6 +135,9 @@ public class MdOrgUnitController {
     }
 
     /** Правило видимости у роли: ALL, SUBTREE, UNITS или SELF. */
+    @Operation(
+            summary = "Set the visibility rule of a role",
+            description = "Sets what a role sees: all, a subtree, chosen units or own records only.")
     @PutMapping("/roles/{roleId}/rule")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -130,6 +148,9 @@ public class MdOrgUnitController {
     }
 
     /** Скоуп сотрудника глазами администратора: какое правило и какие узлы видны. */
+    @Operation(
+            summary = "Get the data scope of a user",
+            description = "The rule and the units that decide which records a user sees.")
     @GetMapping("/users/{userId}/scope")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<MdScopeService.UserScope> getUserScope(@PathVariable("userId") Long userId) {

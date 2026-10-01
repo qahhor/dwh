@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdSettingService;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ public class MdSettingController {
     // Свои настройки пользователя — это часть профиля, а не администрирования
     // экземпляра: право берём от формы профиля, которая есть у всех системных
     // ролей (ТЗ-01 разд. 4.4.1). Форма platform.settings остаётся за админом.
+    @Operation(summary = "Get the effective settings", description = "The settings in force for the caller.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<Map<String, String>> getEffectiveSettings() {
@@ -30,18 +32,23 @@ public class MdSettingController {
     }
 
     /** What a signed-in session needs to know about itself: when inactivity closes it (roadmap item 28). */
+    @Operation(
+            summary = "Get the session settings",
+            description = "What a signed-in session needs to know about itself, such as when inactivity closes it.")
     @GetMapping("/session")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<Map<String, Integer>> getSessionSettings() {
         return ResponseEntity.ok(Map.of("idleLockMinutes", settingService.idleLockMinutes()));
     }
 
+    @Operation(summary = "Get the system settings", description = "The installation-wide settings.")
     @GetMapping("/system")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
     public ResponseEntity<Map<String, String>> getSystemSettings() {
         return ResponseEntity.ok(settingService.getInstanceSettings());
     }
 
+    @Operation(summary = "Update the system settings", description = "Changes installation-wide settings.")
     @PatchMapping("/system")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -50,6 +57,7 @@ public class MdSettingController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Get my settings", description = "The caller's own settings.")
     @GetMapping("/user")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<Map<String, String>> getUserSettings() {
@@ -57,6 +65,7 @@ public class MdSettingController {
         return ResponseEntity.ok(settingService.getUserSettings(userId));
     }
 
+    @Operation(summary = "Update my settings", description = "Changes the caller's own settings.")
     @PatchMapping("/user")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
