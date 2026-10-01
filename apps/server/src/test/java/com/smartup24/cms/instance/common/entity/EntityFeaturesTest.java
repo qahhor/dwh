@@ -314,6 +314,17 @@ class EntityFeaturesTest {
     }
 
     @Test
+    void aMenuItemWithoutItsOwnRouteLeadsToTheGeneralScreen() {
+        // ADR-0032, 7.1: a new entity appears in the UI with no screen code; only a board or a wizard names a route.
+        var general = new EntityDefinition.EntityMenu("nav.orders", "receipt", "workspace", 40, null);
+        assertThat(general.route()).isNull();
+        assertThat(general.routeFor("ex.orders")).isEqualTo("/e/ex.orders");
+
+        var own = new EntityDefinition.EntityMenu("/notes", "nav.notes", "description", "workspace", 30, "notes");
+        assertThat(own.routeFor("ms.notes")).isEqualTo("/notes");
+    }
+
+    @Test
     void rightsNameViewAndEveryDeclaredActionsRight() {
         FormField title = FormField.of("title", "t", FieldType.TEXT);
         List<FormSection> layout = List.of(new FormSection("main", "m", List.of("title")));

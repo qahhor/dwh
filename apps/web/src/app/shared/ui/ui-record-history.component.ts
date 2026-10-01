@@ -7,6 +7,7 @@ import {
   effect,
   inject,
   input,
+  linkedSignal,
   signal,
   untracked,
 } from '@angular/core';
@@ -126,7 +127,10 @@ export class UiRecordHistoryComponent {
   /** The entity's form, when the record has one: its values are then shown in words, as on its card. */
   readonly meta = input<FormMeta | null>(null);
 
-  readonly open = signal(false);
+  /** Opened from the start, as on a history tab of its own (ADR-0032 7.1); otherwise behind its toggle. */
+  readonly expanded = input(false);
+
+  readonly open = linkedSignal(() => this.expanded());
   readonly entries = signal<HistoryEntry[]>([]);
   readonly loading = signal(false);
   readonly failed = signal(false);

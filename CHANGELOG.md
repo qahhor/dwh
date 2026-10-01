@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.5 — the generic entity screen (ADR-0032 step 7):
+  `/e/:code` (list, `/new`, `/:id`, `/:id/edit`) builds the list, toolbar,
+  form and record card from query-meta, form-meta and the record's actions,
+  with If-Match saves, field errors, conflict reloads, archive, history and
+  files; the entity menu sends entities without a screen of their own to
+  `/e/<code>`; `provideEntityOverrides` adjusts cells, fields, sections and
+  tabs; a new entity gets a working screen with no web code. Notes keep
+  their card board and also open on `/e/ms.notes`.
+
 - Plan 10/10, item 5.4 — the general entity runtime (ADR-0032 steps 3 and 5):
   `/api/v1/entities/{code}` lists, reads, creates, PATCHes (If-Match),
   deletes, archives and runs actions for every entity with a table, in a fixed

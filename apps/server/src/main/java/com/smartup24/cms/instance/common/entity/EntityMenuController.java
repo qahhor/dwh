@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * {@code GET /api/v1/entities/menu} (roadmap item 57): the side-menu items the declared entities bring, only those
  * the viewer may open. The screen adds them to their sections, so a new entity needs no menu code of its own; an
- * entity's installed module, when it has one, still switches its item off on the screen.
+ * item without a route of its own leads to the entity's general screen {@code /e/<code>} (ADR-0032, 7.1), so a new
+ * entity needs no screen code either. An entity's installed module, when it has one, still switches its item off on
+ * the screen.
  */
 @RestController
 @RequestMapping("/api/v1/entities")
@@ -50,7 +52,7 @@ public class EntityMenuController {
                         .map(menu -> new MenuItem(
                                 entity.code(),
                                 entity.form(),
-                                menu.route(),
+                                menu.routeFor(entity.code()),
                                 menu.labelKey(),
                                 menu.icon(),
                                 menu.section(),

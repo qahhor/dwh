@@ -71,22 +71,36 @@ public record EntityDefinition(
     /**
      * The entity's item in the side menu (roadmap item 57): where it leads, its label and icon, the menu section
      * ({@code workspace}, {@code iam}, {@code administration}) and its place there, and the installed module
-     * whose switch hides it, or null when it is always on.
+     * whose switch hides it, or null when it is always on. Without a route of its own the item leads to the general
+     * screen of the entity, {@code /e/<code>} (ADR-0032, 7.1): only a screen with another way of working (a board, a
+     * calendar, a wizard; ADR-0032, 7.2) names its route.
      */
     public record EntityMenu(
-            String route,
+            @Nullable String route,
             String labelKey,
             String icon,
             String section,
             int order,
             @Nullable String module) {
         public EntityMenu {
-            Objects.requireNonNull(route, "route");
             Objects.requireNonNull(labelKey, "labelKey");
             Objects.requireNonNull(icon, "icon");
             Objects.requireNonNull(section, "section");
         }
+
+        /** An item that leads to the entity's general screen. */
+        public EntityMenu(String labelKey, String icon, String section, int order, @Nullable String module) {
+            this(null, labelKey, icon, section, order, module);
+        }
+
+        /** Where the item of entity {@code code} leads: its own route, or the general screen {@code /e/<code>}. */
+        public String routeFor(String code) {
+            return route != null ? route : GENERAL_SCREEN + code;
+        }
     }
+
+    /** The route prefix of the general entity screen in the web application (ADR-0032, 7.1). */
+    public static final String GENERAL_SCREEN = "/e/";
 
     /** An action on the entity and the action of the entity's right it needs ({@code create} → {@code notes.create}). */
     public record EntityAction(String code, String permission) {

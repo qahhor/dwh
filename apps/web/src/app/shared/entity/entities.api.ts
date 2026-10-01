@@ -3,12 +3,89 @@ import { Observable, map } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
 import type { FileValue } from '@core/services/field-values';
 import type { ApiSchema } from '@core/api/api-schema';
+import type { KeysetPage } from '@core/models/common.models';
+import type { ListQuery } from '@core/models/query-meta.models';
+import { toQueryParams } from '@core/services/query-meta.service';
 import { BulkResult } from '../bulk/bulk';
 
-/** Actions every entity declared on the server offers (ADR-0019). */
+/**
+ * A record of any entity on the general runtime (ADR-0032 6.2): the system properties, the viewer's fields by key,
+ * custom fields in `attributes`, and the actions the viewer may take on this record now.
+ */
+export interface EntityRecord {
+  id: number;
+  /** What a change of the record names in If-Match (ADR-0024). */
+  revision?: number;
+  /** In the archive (ADR-0032 5.4): out of the list until the archive is shown, still read by id. */
+  archived?: boolean;
+  attributes?: Record<string, unknown>;
+  /** What this viewer may do with this record: `update`, `archive`, `delete`, an action's code. */
+  actions?: string[];
+  [key: string]: unknown;
+}
+
+/**
+ * What every entity declared on the server offers (ADR-0019, ADR-0032 6.1): its records through the general runtime
+ * `/api/v1/entities/{code}`, bulk actions, and the files of its file fields. A screen shows its own message for each
+ * failure, so none of these raises the general error toast.
+ */
 @Injectable({ providedIn: 'root' })
 export class EntitiesApi {
   private readonly api = inject(ApiService);
+
+  /** A page of the entity's list: its search, filter and sort (ADR-0016), from `cursor`. */
+  page(code: string, query: ListQuery, cursor: string | null, limit: number): Observable<KeysetPage<EntityRecord>> {
+    const params = { limit, ...(cursor ? { cursor } : {}), ...toQueryParams(query) };
+    return this.api.get<KeysetPage<EntityRecord>>(path(code), params, { notifyError: false });
+  }
+
+  /** One record as it is now; a record out of the viewer's scope is a 404, like one that does not exist. */
+  get(code: string, id: number): Observable<EntityRecord> {
+    return this.api.get<EntityRecord>(path(code, id), undefined, { notifyError: false });
+  }
+
+  /** Creates a record; a 422 names the fields it rejects. */
+  create(code: string, body: Record<string, unknown>): Observable<EntityRecord> {
+    return this.api.post<EntityRecord>(path(code), body, { notifyError: false });
+  }
+
+  /** Changes the record from `revision`: a stale one is refused with 409, none with 428 (ADR-0024). */
+  patch(
+    code: string,
+    id: number,
+    body: Record<string, unknown>,
+    revision: number | undefined,
+  ): Observable<EntityRecord> {
+    return this.api.patch<EntityRecord>(path(code, id), body, { notifyError: false, ifMatch: revision });
+  }
+
+  /** Deletes the record, when the entity declares deleting. */
+  remove(code: string, id: number): Observable<void> {
+    return this.api.delete<void>(path(code, id), { notifyError: false });
+  }
+
+  /** Moves the record to the archive or back, from `revision` (ADR-0032 5.4). */
+  setArchived(code: string, id: number, archived: boolean, revision: number | undefined): Observable<EntityRecord> {
+    return this.api.put<EntityRecord>(
+      `${path(code, id)}/archived`,
+      { archived },
+      { notifyError: false, ifMatch: revision },
+    );
+  }
+
+  /** Runs a record's action from `revision` (ADR-0032 6.7); `params` is the action's body. */
+  action(
+    code: string,
+    id: number,
+    action: string,
+    revision: number | undefined,
+    params: Record<string, unknown> = {},
+  ): Observable<EntityRecord> {
+    return this.api.post<EntityRecord>(`${path(code, id)}/actions/${encodeURIComponent(action)}`, params, {
+      notifyError: false,
+      ifMatch: revision,
+    });
+  }
 
   /** Deletes the chosen records of an entity; the result names the ones that failed and why. */
   bulkDelete(code: string, ids: number[]): Observable<BulkResult> {
@@ -43,10 +120,11 @@ export class EntitiesApi {
   }
 
   private bulk(code: string, action: string, ids: number[]): Observable<BulkResult> {
-    return this.api.post<BulkResult>(
-      `/entities/${encodeURIComponent(code)}/bulk`,
-      { action, ids },
-      { notifyError: false },
-    );
+    return this.api.post<BulkResult>(`${path(code)}/bulk`, { action, ids }, { notifyError: false });
   }
+}
+
+function path(code: string, id?: number): string {
+  const base = `/entities/${encodeURIComponent(code)}`;
+  return id === undefined ? base : `${base}/${id}`;
 }

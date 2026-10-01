@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, model, output, signal } from '@angular/core';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  model,
+  output,
+  signal,
+} from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import type { FormMeta } from '@core/models/form-meta.models';
 import type { QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
@@ -27,10 +37,10 @@ import { SMTModalService } from '../ui-kit/components/modal';
   host: { class: 'smt-entity-toolbar' },
   template: `
     @if (views(); as state) {
-      @if (showViews()) {
+      @if (listTools() && showViews()) {
         <ui-list-views [state]="state" />
       }
-      @if (showExport()) {
+      @if (listTools() && showExport()) {
         <ui-export-button [views]="state" [meta]="listMeta()" [search]="search()" />
       }
       @if (showArchive()) {
@@ -75,9 +85,11 @@ import { SMTModalService } from '../ui-kit/components/modal';
       >
         {{ 'ui.entity_toolbar.delete_selected' | t: { n: selected().length } }}
       </button>
-      <button smt-button type="button" smtVariant="ghost" smtSize="sm" [disabled]="busy()" (click)="selected.set([])">
-        {{ 'ui.entity_toolbar.clear_selection' | t }}
-      </button>
+      @if (clearable()) {
+        <button smt-button type="button" smtVariant="ghost" smtSize="sm" [disabled]="busy()" (click)="selected.set([])">
+          {{ 'ui.entity_toolbar.clear_selection' | t }}
+        </button>
+      }
     }
     <ui-bulk-result [result]="result()" (closed)="result.set(null)" />
   `,
@@ -100,6 +112,15 @@ export class SMTEntityToolbarComponent {
 
   /** The screen's search text, kept by the export. */
   readonly search = input<string | null>(null);
+
+  /**
+   * Whether the toolbar offers the saved views and the export itself; false when the screen's `ui-server-table`
+   * shows them next to its filter (the general entity list, ADR-0032 7.1).
+   */
+  readonly listTools = input(true, { transform: booleanAttribute });
+
+  /** Whether the toolbar offers clearing the choice; false when the table's bulk bar does. */
+  readonly clearable = input(true, { transform: booleanAttribute });
 
   /** Emitted after a bulk action ran, so the screen reloads its list. */
   readonly bulkDone = output<BulkResult>();

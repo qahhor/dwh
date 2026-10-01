@@ -174,7 +174,7 @@ where r.pcode in ('user', 'auditor') and fa.form_code = '$cleanCode' and fa.acti
 on conflict do nothing;
 
 insert into md_installed_modules (code, name, description, version, icon, route, is_system, status, sort_order) values
-('$cleanCode', '$titleSql', '$descriptionSql', '1.0.0', '$Icon', '/$cleanCode', false, 'ACTIVE', 100)
+('$cleanCode', '$titleSql', '$descriptionSql', '1.0.0', '$Icon', '/e/${prefixLower}.$cleanCode', false, 'ACTIVE', 100)
 on conflict (code) do nothing;
 "@
 
@@ -247,7 +247,8 @@ public class ${entityClass} {
                             "create", "${cleanCode}.rights.create",
                             "update", "${cleanCode}.rights.update",
                             "delete", "${cleanCode}.rights.delete"))
-            .menu(new EntityMenu("/$cleanCode", "nav.$cleanCode", "$Icon", "workspace", 100, "$cleanCode"))
+            // No route of its own: the item leads to the general screen /e/$listCode (ADR-0032, 7.1).
+            .menu(new EntityMenu("nav.$cleanCode", "$Icon", "workspace", 100, "$cleanCode"))
             .field(text("name", "${cleanCode}.col.name")
                     .column("name")
                     .required()
@@ -392,8 +393,8 @@ Write-Host "  1. Pin the migrations: mvn -B -pl apps/server test -Dtest=Migratio
 Write-Host "     ($tableVersion and $seedVersion are the next free numbers now: renumber if another branch takes them)"
 Write-Host "  2. Check the uz/en texts of the added keys; then in apps/web: npm run i18n:sync-ru"
 Write-Host "  3. API description: mvn -B -pl apps/server test -Dtest=OpenApiContractTest -Dopenapi.update=true; in apps/web: npm run api:types"
-Write-Host "  4. Screen: a route to /$cleanCode with smt-entity-form, smt-entity-card and smt-entity-toolbar over"
-Write-Host "     /api/v1/entities/$listCode; PATCH sends ifMatch: revision"
+Write-Host "  4. Screen: none to write - the menu item opens the general screen /e/$listCode (list, form, card);"
+Write-Host "     a small tweak is provideEntityOverrides('$listCode', ...) in apps/web/src/app/app.config.ts"
 Write-Host "  5. The contract test ${contractClass} runs the entity kit on the runtime; test the hooks; a line for"
 Write-Host "     $prefixLower.$cleanCode in apps/server/coverage-floors.csv;"
 Write-Host "     $prefixLower.$cleanCode in ModuleBoundariesTest.MODULES and its table prefix; a growing table: LARGE_TABLES, a RetentionPolicy"
