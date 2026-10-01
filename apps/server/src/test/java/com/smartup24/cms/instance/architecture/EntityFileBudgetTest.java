@@ -30,7 +30,8 @@ class EntityFileBudgetTest {
                     .toList();
         }
         assertThat(files).as("the server files of ms.note").isNotEmpty().hasSizeLessThanOrEqualTo(2);
-        assertThat(files).as("no controller, service or repository").noneMatch(name -> name.matches(
-                ".*(Controller|Service|Repository|Records)\\.java"));
+        assertThat(files)
+                .as("no controller, service or repository")
+                .noneMatch(name -> name.matches(".*(Controller|Service|Repository|Records)\\.java"));
     }
 }
