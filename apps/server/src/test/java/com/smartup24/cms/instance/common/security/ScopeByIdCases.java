@@ -160,6 +160,8 @@ final class ScopeByIdCases {
      */
     static final Map<String, String> ALLOWLIST = Map.ofEntries(
             Map.entry("EntityBulkController#bulk", "an entity code; every record passes the entity's own by-id path"),
+            Map.entry("EntityController#list", "an entity code: its list holds only the viewer's scope (the kit)"),
+            Map.entry("EntityController#create", "an entity code: a new record, in the creator's scope"),
             Map.entry(
                     "EntityController#action",
                     "a declared record action: no entity of the application declares one; the record is read in its"

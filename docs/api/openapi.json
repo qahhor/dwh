@@ -65,8 +65,6 @@
   }, {
     "name" : "ms-announcement-controller"
   }, {
-    "name" : "ms-note-controller"
-  }, {
     "name" : "ms-notification-controller"
   }, {
     "name" : "ms-project-controller"
@@ -80,6 +78,8 @@
     "name" : "ms-task-file-controller"
   }, {
     "name" : "ms-task-status-controller"
+  }, {
+    "name" : "ms.notes"
   }, {
     "name" : "navigation-item-controller"
   }, {
@@ -1420,6 +1420,435 @@
         },
         "summary" : "Get the entity menu",
         "tags" : [ "entity-menu-controller" ]
+      }
+    },
+    "/api/v1/entities/ms.notes" : {
+      "get" : {
+        "description" : "List records of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "listMsNotes",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "filter",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsNotesPage"
+                }
+              }
+            },
+            "description" : "A page of the list (ADR-0016)"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List records of ms.notes",
+        "tags" : [ "ms.notes" ]
+      },
+      "post" : {
+        "description" : "Create a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "createMsNotes",
+        "parameters" : [ {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MsNotesCreate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsNotesRecord"
+                }
+              }
+            },
+            "description" : "The created record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a record of ms.notes",
+        "tags" : [ "ms.notes" ]
+      }
+    },
+    "/api/v1/entities/ms.notes/{id}" : {
+      "delete" : {
+        "description" : "Delete a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "deleteMsNotes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Deleted"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Delete a record of ms.notes",
+        "tags" : [ "ms.notes" ]
+      },
+      "get" : {
+        "description" : "Get a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "getMsNotes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsNotesRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Get a record of ms.notes",
+        "tags" : [ "ms.notes" ]
+      },
+      "patch" : {
+        "description" : "Change a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "patchMsNotes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MsNotesPatch"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsNotesRecord"
+                }
+              }
+            },
+            "description" : "The changed record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Change a record of ms.notes",
+        "tags" : [ "ms.notes" ]
+      }
+    },
+    "/api/v1/entities/ms.notes/{id}/archived" : {
+      "put" : {
+        "description" : "Archive or restore a record of ms.notes through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "archiveMsNotes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EntityArchivedRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsNotesRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Archive or restore a record of ms.notes",
+        "tags" : [ "ms.notes" ]
       }
     },
     "/api/v1/entities/{code}/bulk" : {
@@ -5633,498 +6062,6 @@
         "tags" : [ "navigation-item-controller" ]
       }
     },
-    "/api/v1/notes" : {
-      "get" : {
-        "description" : "The caller's notes.",
-        "operationId" : "getNotes",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "q",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "limit",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }, {
-          "in" : "query",
-          "name" : "cursor",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "filter",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
-          "name" : "sort",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/KeysetPageNoteView"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "List my notes",
-        "tags" : [ "ms-note-controller" ]
-      },
-      "post" : {
-        "description" : "Adds a note with its title, Markdown text, colour and custom field values.",
-        "operationId" : "createNote",
-        "parameters" : [ {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateNoteRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/NoteView"
-                }
-              }
-            },
-            "description" : "Created",
-            "headers" : {
-              "ETag" : {
-                "description" : "The revision of the record, the value a following change sends in If-Match",
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Location" : {
-                "description" : "Path of the created resource, when it has one",
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Create a note",
-        "tags" : [ "ms-note-controller" ]
-      }
-    },
-    "/api/v1/notes/{id}" : {
-      "delete" : {
-        "description" : "Removes a note of the caller; with If-Match, only from the revision it names.",
-        "operationId" : "deleteNote",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }, {
-          "in" : "header",
-          "name" : "If-Match",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The record changed since the revision named in If-Match"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The change names no revision: send If-Match"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Delete a note",
-        "tags" : [ "ms-note-controller" ]
-      },
-      "get" : {
-        "description" : "One note of the caller.",
-        "operationId" : "getNote",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/NoteView"
-                }
-              }
-            },
-            "description" : "OK",
-            "headers" : {
-              "ETag" : {
-                "description" : "The revision of the record, the value a following change sends in If-Match",
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Get a note",
-        "tags" : [ "ms-note-controller" ]
-      },
-      "put" : {
-        "description" : "Replaces a note of the caller; names the revision it was read at.",
-        "operationId" : "updateNote",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }, {
-          "in" : "header",
-          "name" : "If-Match",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UpdateNoteRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/NoteView"
-                }
-              }
-            },
-            "description" : "OK",
-            "headers" : {
-              "ETag" : {
-                "description" : "The revision of the record, the value a following change sends in If-Match",
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The record changed since the revision named in If-Match"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The change names no revision: send If-Match"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Update a note",
-        "tags" : [ "ms-note-controller" ]
-      }
-    },
-    "/api/v1/notes/{id}/archived" : {
-      "put" : {
-        "description" : "Moves a note of the caller to the archive or back; names the revision it was read at.",
-        "operationId" : "setArchived",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }, {
-          "in" : "header",
-          "name" : "If-Match",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ArchivedRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/NoteView"
-                }
-              }
-            },
-            "description" : "OK",
-            "headers" : {
-              "ETag" : {
-                "description" : "The revision of the record, the value a following change sends in If-Match",
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The record changed since the revision named in If-Match"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The change names no revision: send If-Match"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Archive or restore a note",
-        "tags" : [ "ms-note-controller" ]
-      }
-    },
-    "/api/v1/notes/{id}/pin" : {
-      "put" : {
-        "description" : "Sets whether a note is pinned; the same call twice leaves the same note.",
-        "operationId" : "setPin",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/PinRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/NoteView"
-                }
-              }
-            },
-            "description" : "OK",
-            "headers" : {
-              "ETag" : {
-                "description" : "The revision of the record, the value a following change sends in If-Match",
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Pin or unpin a note",
-        "tags" : [ "ms-note-controller" ]
-      }
-    },
     "/api/v1/notifications/inbox" : {
       "get" : {
         "description" : "The caller's notification inbox.",
@@ -10281,14 +10218,6 @@
           }
         }
       },
-      "ArchivedRequest" : {
-        "type" : "object",
-        "properties" : {
-          "archived" : {
-            "type" : "boolean"
-          }
-        }
-      },
       "AssignRolesDto" : {
         "type" : "object",
         "properties" : {
@@ -10884,27 +10813,6 @@
           }
         }
       },
-      "CreateNoteRequest" : {
-        "type" : "object",
-        "properties" : {
-          "attributes" : {
-            "type" : "object",
-            "additionalProperties" : { }
-          },
-          "color" : {
-            "type" : "string"
-          },
-          "contentMd" : {
-            "type" : "string"
-          },
-          "isPinned" : {
-            "type" : "boolean"
-          },
-          "title" : {
-            "type" : "string"
-          }
-        }
-      },
       "CreateOrgUnitDto" : {
         "type" : "object",
         "properties" : {
@@ -11340,6 +11248,16 @@
           }
         }
       },
+      "EntityArchivedRequest" : {
+        "type" : "object",
+        "description" : "The state the archive switch sets",
+        "properties" : {
+          "archived" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "archived" ]
+      },
       "EntityDocumentCounts" : {
         "type" : "object",
         "properties" : {
@@ -11356,6 +11274,41 @@
             "format" : "int64"
           }
         }
+      },
+      "EntityFile" : {
+        "type" : "object",
+        "description" : "A stored file of a file or image field; a save sends its id",
+        "properties" : {
+          "contentType" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "EntityMoney" : {
+        "type" : "object",
+        "description" : "An amount, as text so no digit is lost, and its ISO 4217 currency",
+        "properties" : {
+          "amount" : {
+            "type" : "string",
+            "example" : "1250.00"
+          },
+          "currency" : {
+            "type" : "string",
+            "pattern" : "^[A-Z]{3}$"
+          }
+        },
+        "required" : [ "amount", "currency" ]
       },
       "ErrorItem" : {
         "type" : "object",
@@ -12348,30 +12301,6 @@
           }
         }
       },
-      "KeysetPageNoteView" : {
-        "type" : "object",
-        "properties" : {
-          "hasMore" : {
-            "type" : "boolean"
-          },
-          "items" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/NoteView"
-            }
-          },
-          "nextCursor" : {
-            "type" : "string"
-          },
-          "totalEstimated" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "totalExact" : {
-            "type" : "boolean"
-          }
-        }
-      },
       "KeysetPageNotificationView" : {
         "type" : "object",
         "properties" : {
@@ -12855,6 +12784,157 @@
           }
         }
       },
+      "MsNotesCreate" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "A new record of ms.notes; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "color" : {
+            "type" : "string",
+            "enum" : [ "default", "blue", "green", "yellow", "purple", "red" ]
+          },
+          "contentMd" : {
+            "type" : "string",
+            "maxLength" : 100000
+          },
+          "isPinned" : {
+            "type" : "boolean"
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          }
+        },
+        "required" : [ "title" ]
+      },
+      "MsNotesPage" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MsNotesRecord"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "MsNotesPatch" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "The fields to change of a record of ms.notes; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "color" : {
+            "type" : "string",
+            "enum" : [ "default", "blue", "green", "yellow", "purple", "red" ]
+          },
+          "contentMd" : {
+            "type" : "string",
+            "maxLength" : 100000
+          },
+          "isPinned" : {
+            "type" : "boolean"
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          }
+        }
+      },
+      "MsNotesRecord" : {
+        "type" : "object",
+        "description" : "A record of ms.notes as the viewer may read it",
+        "properties" : {
+          "actions" : {
+            "type" : "array",
+            "description" : "What the viewer may do with this record",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "archived" : {
+            "type" : "boolean"
+          },
+          "archivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "color" : {
+            "type" : "string",
+            "enum" : [ "default", "blue", "green", "yellow", "purple", "red" ]
+          },
+          "contentMd" : {
+            "type" : "string",
+            "maxLength" : 100000
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "isPinned" : {
+            "type" : "boolean"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "modifiedBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "rank" : {
+            "type" : "string",
+            "readOnly" : true
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          }
+        },
+        "required" : [ "id", "revision" ]
+      },
       "NavigationItemView" : {
         "type" : "object",
         "properties" : {
@@ -12918,54 +12998,6 @@
             "type" : "string"
           },
           "url" : {
-            "type" : "string"
-          }
-        }
-      },
-      "NoteView" : {
-        "type" : "object",
-        "properties" : {
-          "archived" : {
-            "type" : "boolean"
-          },
-          "archivedAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "attributes" : {
-            "type" : "object",
-            "additionalProperties" : { }
-          },
-          "color" : {
-            "type" : "string"
-          },
-          "contentMd" : {
-            "type" : "string"
-          },
-          "createdAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "createdBy" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "id" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "isPinned" : {
-            "type" : "boolean"
-          },
-          "modifiedAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "revision" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "title" : {
             "type" : "string"
           }
         }
@@ -13268,14 +13300,6 @@
           "revision" : {
             "type" : "integer",
             "format" : "int64"
-          }
-        }
-      },
-      "PinRequest" : {
-        "type" : "object",
-        "properties" : {
-          "pinned" : {
-            "type" : "boolean"
           }
         }
       },
@@ -14632,27 +14656,6 @@
             "type" : "string"
           },
           "url" : {
-            "type" : "string"
-          }
-        }
-      },
-      "UpdateNoteRequest" : {
-        "type" : "object",
-        "properties" : {
-          "attributes" : {
-            "type" : "object",
-            "additionalProperties" : { }
-          },
-          "color" : {
-            "type" : "string"
-          },
-          "contentMd" : {
-            "type" : "string"
-          },
-          "isPinned" : {
-            "type" : "boolean"
-          },
-          "title" : {
             "type" : "string"
           }
         }
