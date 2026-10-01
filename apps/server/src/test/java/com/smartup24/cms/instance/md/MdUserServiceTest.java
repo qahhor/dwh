@@ -15,7 +15,7 @@ import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordHasher;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import com.smartup24.cms.instance.md.service.UserSessionInvalidator;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;

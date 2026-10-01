@@ -17,6 +17,7 @@ import com.smartup24.cms.instance.config.security.*;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
 import com.smartup24.cms.instance.kauth.service.*;
+import com.smartup24.cms.instance.md.api.MdUserIdentity;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.*;
 import com.smartup24.cms.instance.search.controller.SearchController;
@@ -240,7 +241,8 @@ abstract class SearchSettingsIntegrationTestSupport {
                 null,
                 0,
                 1L);
-        when(users.getUserById(actorId)).thenReturn(fixtureUser);
+        when(users.getUserIdentity(actorId))
+                .thenReturn(new MdUserIdentity(actorId, "fixture", "fixture@example.invalid", "A", false, 0));
         when(users.findAuthUserById(actorId)).thenReturn(Optional.of(MdUserService.AuthUser.from(fixtureUser)));
         when(permissions.getEffectivePermissions(actorId)).thenReturn(allowed);
         when(permissions.getPermissionVersion(actorId)).thenReturn(1L);

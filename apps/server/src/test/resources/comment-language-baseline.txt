@@ -88,7 +88,6 @@ apps/server/src/main/java/com/smartup24/cms/instance/ms/notify/sse/MsNotificatio
 apps/server/src/main/java/com/smartup24/cms/instance/ms/notify/sse/MsSseController.java 3
 apps/server/src/main/java/com/smartup24/cms/instance/ms/notify/sse/MsSsePublisher.java 5
 apps/server/src/main/java/com/smartup24/cms/instance/ms/notify/sse/MsSseRegistry.java 15
-apps/server/src/main/java/com/smartup24/cms/instance/ms/task/event/MsTaskEvents.java 10
 apps/server/src/main/java/com/smartup24/cms/instance/ms/task/service/MsProjectService.java 2
 apps/server/src/main/java/com/smartup24/cms/instance/ms/task/service/MsTaskCommentService.java 3
 apps/server/src/main/java/com/smartup24/cms/instance/ms/task/service/MsTaskMemberService.java 2

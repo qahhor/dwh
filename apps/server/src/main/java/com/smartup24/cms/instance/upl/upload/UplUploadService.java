@@ -5,7 +5,7 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
-import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
+import com.smartup24.cms.instance.mf.api.StoredFile;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplLimits;
 import com.smartup24.cms.instance.upl.UplPref;
@@ -101,15 +101,15 @@ public class UplUploadService {
                     Map.of("megabytes", UplLimits.MAX_FILE_MEGABYTES));
         }
 
-        FileRecord file = store(upload, userId);
+        StoredFile file = store(upload, userId);
         return tx.execute(status -> registerWithParseJob(sourceId, formatVersion, periodFrom, periodTo, file, userId));
     }
 
     /** Кладёт файл в хранилище каркаса; отказы хранилища уходят наверх как есть. */
-    private FileRecord store(Upload upload, long userId) {
+    private StoredFile store(Upload upload, long userId) {
         String mimeType = upload.mimeType() == null || upload.mimeType().isBlank() ? XLSX_MIME : upload.mimeType();
         try (InputStream content = upload.content().getInputStream()) {
-            return files.uploadFile(upload.fileName(), mimeType, content, upload.sizeBytes(), userId);
+            return files.store(upload.fileName(), mimeType, content, upload.sizeBytes(), userId);
         } catch (IOException failure) {
             throw new UncheckedIOException("Тело загружаемого файла не читается", failure);
         }
@@ -117,7 +117,7 @@ public class UplUploadService {
 
     /** Пакет и задание на его разбор появляются вместе или не появляются вовсе. */
     private PackageRow registerWithParseJob(
-            long sourceId, int formatVersion, LocalDate periodFrom, LocalDate periodTo, FileRecord file, long userId) {
+            long sourceId, int formatVersion, LocalDate periodFrom, LocalDate periodTo, StoredFile file, long userId) {
         PackageRow row = packages.register(new NewPackage(
                 sourceId,
                 formatVersion,

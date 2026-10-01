@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.ms.notify.listener;
 
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
-import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
+import com.smartup24.cms.instance.ms.task.api.MsTaskEvents;
 import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;

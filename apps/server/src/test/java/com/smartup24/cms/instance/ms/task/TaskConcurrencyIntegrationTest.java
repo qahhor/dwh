@@ -29,7 +29,7 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;

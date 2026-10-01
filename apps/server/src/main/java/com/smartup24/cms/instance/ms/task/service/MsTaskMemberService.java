@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.instance.ms.task.MsTaskPatch;
+import com.smartup24.cms.instance.ms.task.api.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.api.TaskMemberView;
-import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository.TaskMemberRecord;

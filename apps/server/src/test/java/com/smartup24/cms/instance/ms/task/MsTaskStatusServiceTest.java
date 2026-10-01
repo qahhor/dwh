@@ -14,7 +14,7 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository.StatusRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskStatusService;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.util.Optional;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Test;

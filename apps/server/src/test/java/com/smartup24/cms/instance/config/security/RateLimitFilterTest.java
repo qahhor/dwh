@@ -23,8 +23,8 @@ import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
+import com.smartup24.cms.instance.md.api.MdUserIdentity;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
@@ -407,29 +407,9 @@ class RateLimitFilterTest {
         when(sessionService.getActiveSession(rawSession))
                 .thenReturn(Optional.of(new KauthSessionRepository.SessionRecord(
                         userId, userId, "hash", "127.0.0.1", "ua", null, Instant.now(), Instant.now(), null, 0)));
-        when(userService.getUserById(userId))
-                .thenReturn(new MdUserRepository.UserRecord(
-                        userId,
-                        "U" + userId,
-                        "u" + userId,
-                        "u" + userId + "@x",
-                        null,
-                        "hash",
-                        MdPref.STATE_ACTIVE,
-                        null,
-                        "ru",
-                        "UTC",
-                        null,
-                        Map.of(),
-                        false,
-                        false,
-                        null,
-                        Instant.now(),
-                        Instant.now(),
-                        null,
-                        null,
-                        0,
-                        1L));
+        when(userService.getUserIdentity(userId))
+                .thenReturn(
+                        new MdUserIdentity(userId, "u" + userId, "u" + userId + "@x", MdPref.STATE_ACTIVE, false, 0));
         when(permissionService.getEffectivePermissions(userId)).thenReturn(Set.of("*.*"));
         when(permissionService.getPermissionVersion(userId)).thenReturn(1L);
     }
@@ -438,29 +418,9 @@ class RateLimitFilterTest {
         when(apiTokenService.validateToken(rawToken))
                 .thenReturn(Optional.of(new KauthApiTokenRepository.ApiTokenRecord(
                         tokenId, userId, "test", "dwh_test", "hash", null, Instant.now(), null, null, 0)));
-        when(userService.getUserById(userId))
-                .thenReturn(new MdUserRepository.UserRecord(
-                        userId,
-                        "U" + userId,
-                        "u" + userId,
-                        "u" + userId + "@x",
-                        null,
-                        "hash",
-                        MdPref.STATE_ACTIVE,
-                        null,
-                        "ru",
-                        "UTC",
-                        null,
-                        Map.of(),
-                        false,
-                        false,
-                        null,
-                        Instant.now(),
-                        Instant.now(),
-                        null,
-                        null,
-                        0,
-                        1L));
+        when(userService.getUserIdentity(userId))
+                .thenReturn(
+                        new MdUserIdentity(userId, "u" + userId, "u" + userId + "@x", MdPref.STATE_ACTIVE, false, 0));
         when(permissionService.getEffectivePermissions(userId)).thenReturn(Set.of("*.*"));
         when(permissionService.getPermissionVersion(userId)).thenReturn(1L);
     }

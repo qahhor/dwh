@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.mf.api.FileListItem;
 import com.smartup24.cms.instance.mf.api.FileView;
 import com.smartup24.cms.instance.mf.api.StorageStats;
+import com.smartup24.cms.instance.mf.api.StoredFile;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import com.smartup24.cms.spi.storage.FileScanner;
@@ -84,7 +85,14 @@ public class MfFileService {
         return view(uploadFile(originalName, mimeType, contentStream, sizeBytes, createdBy));
     }
 
-    /** The full ownership record, for modules that keep a reference to the stored content (e.g. its hash). */
+    /** An upload from another module that keeps a reference to the stored content, its hash included. */
+    public StoredFile store(
+            String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
+        var file = uploadFile(originalName, mimeType, contentStream, sizeBytes, createdBy);
+        return new StoredFile(file.id(), file.originalName(), file.sha256(), file.sizeBytes());
+    }
+
+    /** The full ownership record, for this module and its tests. */
     public MfFileRepository.FileRecord uploadFile(
             String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
         if (!uploadLimiter.tryAcquire()) {
