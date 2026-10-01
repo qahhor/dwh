@@ -107,7 +107,7 @@ CI выполняет следующие независимые jobs:
   CycloneDX SBOM;
 - **frontend:** `npm ci`, lint (ESLint — файл подавлений пуст, Stylelint,
   Prettier), аудиты контраста, ARIA, i18n (включая синхронность
-  `packaged-russian.ts` с `ru.json`), устаревших вызовов API (`api:audit`),
+  `packaged-russian.ts` с `ru.json`), устаревших и несуществующих вызовов API (`api:audit`),
   порядка членов классов (`signals:audit`) и отсутствия сторонних ресурсов,
   unit tests с покрытием, typecheck, production build и
   проверка доступности `npm run test:a11y` из `e2e`;
