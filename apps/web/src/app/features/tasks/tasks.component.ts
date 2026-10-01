@@ -94,6 +94,13 @@ export class TasksComponent implements OnInit, OnDestroy {
     untracked(() => this.lookupsService.resolveUserNames(ids));
   });
 
+  /** The rows and the open card name their projects, so a project picker shows a chosen one without a request. */
+  private readonly projectNames = effect(() => {
+    const selected = this.detailsService.selectedTask();
+    const rows = selected ? [...this.list.tasks(), selected] : this.list.tasks();
+    untracked(() => this.lookupsService.retainTaskProjects(rows));
+  });
+
   private recordRouteSubscription?: Subscription;
   private routeSubscription?: Subscription;
 

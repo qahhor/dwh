@@ -106,6 +106,15 @@ const screens: Screen[] = [
     },
   },
   {
+    // Plan 10/10, item 3.5: the project filter searches the paged project list on the server.
+    name: 'task list with the project filter open',
+    path: '/tasks',
+    open: async page => {
+      await page.getByRole('combobox', { name: 'Фильтр по проекту' }).click();
+      await expect(page.getByRole('option', { name: 'Выкладка в сети 1', exact: true })).toBeVisible();
+    },
+  },
+  {
     name: 'notes board',
     path: '/notes',
     open: async page => {

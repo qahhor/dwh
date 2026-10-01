@@ -152,10 +152,6 @@ export const fixtures = {
   '/list-views/ms.tasks': [],
   '/tasks': page(range(100, 51).map(task), 't2', 60),
   '/tasks#t2': page(range(50, 41).map(task), null, 60),
-  '/tasks/projects': range(1, 14).map(id => ({
-    id, name: `Выкладка в сети ${id}`, description: id % 2 ? `Регион ${id}: контроль полки и POSM` : undefined,
-    state: id % 5 ? 'A' : 'P', attributes: {}, createdAt: at(id), createdBy: 1,
-  })),
   '/tasks/projects/stats': range(1, 12).map(id => ({ projectId: id, totalTasks: id + 2, activeTasks: 2, doneTasks: id })),
   // The project screen pages the registry list ms.projects (roadmap item 51); counts come with each row.
   '/query-meta/ms.projects': {

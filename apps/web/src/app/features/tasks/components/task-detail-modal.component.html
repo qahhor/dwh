@@ -294,7 +294,7 @@
 
               <div class="side-prop-row">
                 <span class="prop-k">{{ 'projects.proekt' | t }}</span>
-                <div class="prop-v">{{ getProjectName()(t.projectId) || ('tasks.without_project' | t) }}</div>
+                <div class="prop-v">{{ getProjectName()(t) || ('tasks.without_project' | t) }}</div>
               </div>
 
               @if (t.parentTaskId) {

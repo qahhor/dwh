@@ -27,9 +27,7 @@ describe('TaskListStore', () => {
 
   function setup(meta: Observable<unknown> = of(TASKS_META)) {
     api = {
-      get: vi.fn((path: string, params: Params) =>
-        path === '/tasks' ? listReads(params) : of(path === '/tasks/projects' ? [{ id: 5, name: 'Warehouse' }] : []),
-      ),
+      get: vi.fn((path: string, params: Params) => (path === '/tasks' ? listReads(params) : of([]))),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -48,15 +46,15 @@ describe('TaskListStore', () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it('reads the list metadata first, then the first page, and names the projects once', () => {
+  it('reads the list metadata first, then the first page, and never the whole project list', () => {
     setup();
     store.loadTasks(true);
 
     expect(store.meta()?.code).toBe('ms.tasks');
     expect(store.tasks().map((t) => t.id)).toEqual([1]);
     expect(listCalls()[0]).toEqual(expect.objectContaining({ limit: 50, hideTerminal: true }));
-    expect(store.projects()).toEqual([{ id: 5, name: 'Warehouse' }]);
-    expect(api.get.mock.calls.filter(([path]) => path === '/tasks/projects')).toHaveLength(1);
+    // Plan 10/10, item 3.5: each row names its project; pickers search the paged list.
+    expect(api.get.mock.calls.filter(([path]) => String(path).startsWith('/tasks/projects'))).toHaveLength(0);
   });
 
   it('asks for the metadata again after it failed', () => {

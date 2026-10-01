@@ -75,16 +75,16 @@
         <div class="form-grid-2">
           <!-- Project Selector -->
           <smt-control class="form-group" [smtLabel]="'projects.proekt' | t">
-            <smt-select
+            <smt-data-select
               smtTriggerId="task-edit-project"
-              name="taskEditProject"
+              [source]="lookups.projects"
+              [knownRows]="knownProjectRows()"
               [value]="editForm().projectId"
               (valueChange)="editForm().projectId = $event"
-              [options]="projects() | projectOptions"
               [placeholder]="'tasks.bez_proekta' | t"
               [searchPlaceholder]="'tasks.search_project' | t"
               [emptyLabel]="'tasks.bez_proekta' | t"
-            ></smt-select>
+            />
           </smt-control>
 
           <!-- Parent Task (Searchable Select) -->

@@ -66,16 +66,16 @@
       <div class="form-grid-2">
         <!-- Project Selector -->
         <smt-control class="form-group" [smtLabel]="'projects.proekt' | t">
-          <smt-select
+          <smt-data-select
             smtTriggerId="task-create-project"
-            name="taskCreateProject"
+            [source]="lookups.projects"
+            [knownRows]="lookups.knownProjectRows()"
             [value]="createForm().projectId"
             (valueChange)="createForm().projectId = $event"
-            [options]="projects() | projectOptions"
             [placeholder]="'tasks.bez_proekta' | t"
             [searchPlaceholder]="'tasks.search_project' | t"
             [emptyLabel]="'tasks.bez_proekta' | t"
-          ></smt-select>
+          />
         </smt-control>
 
         <!-- Parent Task (Searchable Select) -->

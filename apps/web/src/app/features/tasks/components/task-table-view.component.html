@@ -118,7 +118,7 @@
   </div>
 </ng-template>
 <ng-template #projectCell let-t>
-  @let projectName = getProjectName()(t.projectId);
+  @let projectName = getProjectName()(t);
   @if (projectName) {
     <span class="project-tag">
       <span class="material-symbols-outlined folder-ico" aria-hidden="true">folder</span>

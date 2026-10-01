@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { TranslatePipe } from '@core/services/i18n.service';
-import { Project, TaskStatus } from '@core/models/task.models';
+import { TaskStatus } from '@core/models/task.models';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
-import { ProjectOptionsPipe } from './project-options.pipe';
+import { SMTDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
+import { TaskLookupsService } from '../services/task-lookups.service';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '@core/services/i18n.service';
 import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
@@ -13,7 +14,7 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
 @Component({
   selector: 'app-task-filter-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe, SMTSelectComponent, ProjectOptionsPipe],
+  imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe, SMTSelectComponent, SMTDataSelectComponent],
   template: `
     <div class="toolbar">
       <div class="toolbar-left-row">
@@ -54,18 +55,19 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           (valueChange)="statusFilterModeChange.emit($event ?? statusFilterMode())"
         />
 
-        <!-- Project Filter -->
+        <!-- Project Filter: searched on the server, 20 projects a page (plan 10/10, item 3.5). -->
         <label class="sr-only" for="task-project-filter">{{ 'tasks.filtr_po_proektu' | t }}</label>
-        <smt-select
+        <smt-data-select
           class="project-filter"
           smtTriggerId="task-project-filter"
+          [source]="lookups.projects"
+          [knownRows]="lookups.knownProjectRows()"
           [value]="selectedProjectId()"
           (valueChange)="selectedProjectIdChange.emit($event)"
-          [options]="projects() | projectOptions"
           [placeholder]="'tasks.vse_proekty' | t"
           [searchPlaceholder]="'tasks.search_project' | t"
           [emptyLabel]="'tasks.vse_proekty' | t"
-        ></smt-select>
+        />
 
         <!-- Priority Filter -->
         <label class="sr-only" for="task-priority-filter">{{ 'tasks.filtr_po_prioritetu' | t }}</label>
@@ -96,6 +98,8 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
   styleUrl: './task-filter-bar.component.css',
 })
 export class TaskFilterBarComponent {
+  /** The project picker's source and the projects the rows already named. */
+  readonly lookups = inject(TaskLookupsService);
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
@@ -104,7 +108,6 @@ export class TaskFilterBarComponent {
   readonly statusFilterMode = input<'active' | 'all' | number>('active');
   readonly statuses = input<TaskStatus[]>([]);
   readonly selectedProjectId = input<number | null>(null);
-  readonly projects = input<Project[]>([]);
   readonly selectedPriority = input('');
   readonly hasActiveFilters = input(false);
 

@@ -2400,6 +2400,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["listProjects"];
         put?: never;
         post: operations["createProject"];
@@ -4197,6 +4198,7 @@ export interface components {
             labelField?: string;
             paged?: boolean;
             path?: string;
+            readPath?: string;
         };
         RegisterModuleRequest: {
             attributes?: {
@@ -4567,6 +4569,7 @@ export interface components {
             priority?: string;
             /** Format: int64 */
             projectId?: number;
+            projectName?: string;
             /** Format: int64 */
             reporterId?: number;
             /** Format: date-time */

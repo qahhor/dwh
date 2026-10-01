@@ -1,4 +1,4 @@
-import { Task, Project, TaskStatus, TaskType, TaskMember } from '@core/models/task.models';
+import { Task, TaskStatus, TaskType, TaskMember } from '@core/models/task.models';
 import { CustomField } from '@core/models/custom-field.models';
 import { I18nService } from '@core/services/i18n.service';
 
@@ -119,10 +119,12 @@ export function getTypeBg(task: Task, taskTypes: TaskType[]): string {
   return `${obj.color}18`;
 }
 
-export function getProjectName(projectId: number | null | undefined, projects: Project[]): string | null {
-  if (!projectId) return null;
-  const p = projects.find((x) => x.id === projectId);
-  return p ? p.name : `#${projectId}`;
+/** A task names its project itself (`projectName`, plan 10/10, item 3.5); by number when the name is missing. */
+export type TaskProjectRef = Pick<Task, 'projectId' | 'projectName'>;
+
+export function getProjectName(task: TaskProjectRef | null | undefined): string | null {
+  if (!task?.projectId) return null;
+  return task.projectName || `#${task.projectId}`;
 }
 
 export function getStatusName(

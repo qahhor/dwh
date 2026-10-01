@@ -1,21 +1,19 @@
-import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 
 import { SMTDataSelectComponent, SMTMultiDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
 import { TaskLookupsService } from '../services/task-lookups.service';
 import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
-import { TaskRef } from '@shared/lookups/lookup-sources';
-import { ProjectOptionsPipe } from './project-options.pipe';
+import { ProjectRef, TaskRef } from '@shared/lookups/lookup-sources';
 import { SMTDatePickerComponent } from '@shared/ui-kit/components/forms/date-picker';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
 import { UiMarkdownEditorComponent } from '@shared/ui/ui-markdown-editor.component';
 import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
 import { CustomField } from '@core/models/custom-field.models';
-import { Project, Task, TaskType } from '@core/models/task.models';
+import { Task, TaskType } from '@core/models/task.models';
 import { TaskEditFormValue } from '../tasks.models';
 
 @Component({
@@ -28,11 +26,9 @@ import { TaskEditFormValue } from '../tasks.models';
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTButtonComponent,
-    SMTSelectComponent,
     SMTDataSelectComponent,
     SMTRadioGroupComponent,
     SMTMultiDataSelectComponent,
-    ProjectOptionsPipe,
     SMTInputComponent,
     UiMarkdownEditorComponent,
     UiCustomFieldsComponent,
@@ -55,7 +51,6 @@ export class TaskEditModalComponent {
   readonly isEditSubmitted = input(false);
   readonly isEditDiscardConfirmationOpen = input(false);
   readonly taskTypes = input<TaskType[]>([]);
-  readonly projects = input<Project[]>([]);
   readonly taskCustomFields = input<CustomField[]>([]);
 
   readonly closeModal = output<void>();
@@ -69,6 +64,13 @@ export class TaskEditModalComponent {
    * validator used to make smt-control say "required" for an empty visited field; the template now does.
    */
   readonly titleTouched = linkedSignal({ source: this.editForm, computation: () => false });
+
+  /** Projects already named: the rows' ones and the edited task's own, so its project shows without a request. */
+  readonly knownProjectRows = computed<readonly ProjectRef[]>(() => {
+    const task = this.editingTask();
+    const known = this.lookups.knownProjectRows();
+    return task?.projectId && task.projectName ? [...known, { id: task.projectId, name: task.projectName }] : known;
+  });
 
   private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
   private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;

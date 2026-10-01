@@ -134,8 +134,8 @@ JSON, сроки хранения) и `config` (безопасность, фил
 в [`AGENTS.md`](../AGENTS.md).
 
 Оставшийся долг виден в тестах и только сокращается: `NOT_YET_LOCKED` в
-`ChangesNameTheirRevisionTest`, `NOT_YET_PAGED` в `CollectionsArePagedTest`,
-замороженные нарушения границ (`src/test/resources/archunit_store`),
+`ChangesNameTheirRevisionTest` (`NOT_YET_PAGED` в `CollectionsArePagedTest` пуст и
+удалён 2026-10-01), замороженные нарушения границ (`src/test/resources/archunit_store`),
 `comment-language-baseline.txt` для `CommentLanguageTest`.
 
 Известные пробелы платформы перечислены в

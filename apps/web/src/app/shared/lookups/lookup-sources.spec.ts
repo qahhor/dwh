@@ -43,6 +43,22 @@ describe('LookupSources', () => {
     request.flush({ items: [], nextCursor: null, hasMore: false, totalReturned: 0 });
   });
 
+  it('searches projects on the paged list with q, 20 at a time, and names a chosen one from its card', () => {
+    let items: readonly unknown[] = [];
+    sources.projects.page('ware', null, 50).subscribe((page) => (items = page?.items ?? []));
+    const request = http.expectOne((req) => req.url === '/api/v1/tasks/projects/page');
+    expect(request.request.params.get('q')).toBe('ware');
+    expect(request.request.params.has('search')).toBe(false);
+    expect(request.request.params.get('limit')).toBe('20');
+    request.flush({ items: [{ id: 5, name: 'Warehouse' }], nextCursor: null, hasMore: false });
+    expect(sources.projects.option(items[0] as never)).toEqual({ label: 'Warehouse' });
+
+    let found: readonly unknown[] = [];
+    sources.projects.resolve!([5]).subscribe((rows) => (found = rows));
+    http.expectOne('/api/v1/tasks/projects/5').flush({ id: 5, name: 'Warehouse', state: 'A' });
+    expect(found).toEqual([{ id: 5, name: 'Warehouse', state: 'A' }]);
+  });
+
   it('names chosen users by id, drops the ones it cannot read and raises no toast for them', () => {
     let found: readonly unknown[] = [];
     sources.activeUsers.resolve!([4, 9]).subscribe((rows) => (found = rows));

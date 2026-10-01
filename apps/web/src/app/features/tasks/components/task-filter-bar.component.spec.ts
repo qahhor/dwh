@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { describe, expect, it, vi } from 'vitest';
-import { Project, TaskStatus } from '@core/models/task.models';
+import { of } from 'rxjs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { TaskStatus } from '@core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { TaskLookupsService } from '../services/task-lookups.service';
 import { TaskFilterBarComponent } from './task-filter-bar.component';
 
 const STATUSES = [
@@ -9,15 +12,30 @@ const STATUSES = [
 ] as TaskStatus[];
 
 const PROJECTS = [
-  { id: 5, name: 'Склад', state: 'A', createdAt: '2026-09-01T00:00:00Z' },
-  { id: 6, name: 'Логистика', state: 'A', createdAt: '2026-09-01T00:00:00Z' },
-] as Project[];
+  { id: 5, name: 'Склад' },
+  { id: 6, name: 'Логистика' },
+];
 
-function render(inputs: Record<string, unknown> = {}) {
-  TestBed.configureTestingModule({ imports: [TaskFilterBarComponent] });
+/** The paged project list (plan 10/10, item 3.5): searched with q, one project read by id. */
+const api = {
+  get: vi.fn((path: string, params?: Record<string, unknown>) => {
+    if (path === '/tasks/projects/page') {
+      const text = String(params?.['q'] ?? '').toLowerCase();
+      const items = PROJECTS.filter((project) => project.name.toLowerCase().includes(text));
+      return of({ items, nextCursor: null, hasMore: false });
+    }
+    return of(PROJECTS.find((project) => path === `/tasks/projects/${project.id}`) ?? null);
+  }),
+};
+
+function render(inputs: Record<string, unknown> = {}, before: () => void = () => undefined) {
+  TestBed.configureTestingModule({
+    imports: [TaskFilterBarComponent],
+    providers: [{ provide: ApiService, useValue: api }],
+  });
+  before();
   const fixture = TestBed.createComponent(TaskFilterBarComponent);
   fixture.componentRef.setInput('statuses', STATUSES);
-  fixture.componentRef.setInput('projects', PROJECTS);
   for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
   fixture.detectChanges();
   return fixture;
@@ -45,6 +63,8 @@ function choose(fixture: ComponentFixture<TaskFilterBarComponent>, triggerId: st
 }
 
 describe('TaskFilterBarComponent', () => {
+  afterEach(() => api.get.mockClear());
+
   it('shows the quick presets with the active one checked and reports the preset a person picks', () => {
     const fixture = render({ activePreset: 'my' });
     const presets = radios(fixture, 'Быстрые фильтры');
@@ -114,6 +134,29 @@ describe('TaskFilterBarComponent', () => {
 
     choose(fixture, 'task-priority-filter', 'Высокий');
     expect(priority).toHaveBeenCalledWith('high');
+  });
+
+  it('searches projects on the server 20 at a time, labelled for screen readers, never the whole list', () => {
+    const fixture = render();
+    const trigger = el(fixture).querySelector('#task-project-filter') as HTMLElement;
+    expect(el(fixture).querySelector('label[for="task-project-filter"]')?.textContent?.trim()).toBe(
+      'Фильтр по проекту',
+    );
+    expect(trigger.getAttribute('role')).toBe('combobox');
+
+    trigger.click();
+    fixture.detectChanges();
+    const read = api.get.mock.calls.find(([path]) => path === '/tasks/projects/page');
+    expect(read?.[1]).toEqual(expect.objectContaining({ limit: 20 }));
+    expect(api.get.mock.calls.some(([path]) => path === '/tasks/projects')).toBe(false);
+  });
+
+  it('shows a chosen project by the name its tasks carry, without asking the server', () => {
+    const fixture = render({ selectedProjectId: 9 }, () =>
+      TestBed.inject(TaskLookupsService).retainTaskProjects([{ projectId: 9, projectName: 'Архив 2025' }]),
+    );
+    expect(el(fixture).querySelector('#task-project-filter')?.textContent).toContain('Архив 2025');
+    expect(api.get).not.toHaveBeenCalled();
   });
 
   it('offers the named reset button only while a filter is on', () => {

@@ -57,6 +57,8 @@ export interface TaskType {
 export interface Task {
   id: number;
   projectId?: number | null;
+  /** The project's name, answered with the task, so the screen needs no list of projects (plan 10/10, item 3.5). */
+  projectName?: string | null;
   parentTaskId?: number | null;
   title: string;
   descriptionMarkdown?: string;

@@ -98,7 +98,7 @@
             <!-- Card Meta -->
             @if (task.projectId || task.parentTaskId) {
               <div class="card-meta">
-                @if (getProjectName()(task.projectId); as pName) {
+                @if (getProjectName()(task); as pName) {
                   <span class="project-tag-mini">
                     <span class="material-symbols-outlined folder-ico" aria-hidden="true">folder</span>
                     {{ pName }}
