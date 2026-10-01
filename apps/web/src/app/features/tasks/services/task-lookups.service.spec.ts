@@ -35,6 +35,30 @@ describe('TaskLookupsService', () => {
     expect(lookups.tasks.option({ id: 12, title: 'Report' })).toEqual({ label: '#12 Report', icon: 'task_alt' });
   });
 
+  it('searches projects on the paged list and remembers the projects the rows name', () => {
+    api.get.mockReturnValue(of({ items: [], nextCursor: null, hasMore: false }));
+    lookups.projects.page('skl', null, 50).subscribe();
+    expect(api.get).toHaveBeenCalledWith(
+      '/tasks/projects/page',
+      { limit: 20, cursor: undefined, q: 'skl' },
+      { notifyError: false },
+    );
+
+    lookups.retainTaskProjects([
+      { projectId: 5, projectName: 'Склад' },
+      { projectId: null, projectName: null },
+      { projectId: 6, projectName: 'Логистика' },
+    ]);
+    const before = lookups.knownProjectRows();
+    lookups.retainTaskProjects([{ projectId: 5, projectName: 'Склад' }]);
+    expect(lookups.knownProjectRows()).toBe(before);
+    lookups.retainTaskProjects([{ projectId: 5, projectName: 'Склад-2' }]);
+    expect(lookups.knownProjectRows()).toEqual([
+      { id: 5, name: 'Склад-2' },
+      { id: 6, name: 'Логистика' },
+    ]);
+  });
+
   it("remembers a card's members and parent, a fresher card replacing an older name", () => {
     lookups.retainTaskMember(member(501, 'Old Name'));
     lookups.retainTaskMember(member(501, 'Fresh Name'));

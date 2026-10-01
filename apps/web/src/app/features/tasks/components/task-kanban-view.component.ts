@@ -3,7 +3,8 @@ import { DatePipe } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { Task, Project, TaskStatus, TaskType } from '@core/models/task.models';
+import { Task, TaskStatus, TaskType } from '@core/models/task.models';
+import { TaskProjectRef } from '../tasks.models';
 
 @Component({
   selector: 'app-task-kanban-view',
@@ -26,12 +27,12 @@ export class TaskKanbanViewComponent {
   readonly getTypeColor = input.required<(task: Task) => string>();
   readonly getTypeIcon = input.required<(task: Task) => string>();
   readonly getTypeLabel = input.required<(task: Task) => string>();
-  readonly getProjectName = input.required<(projectId: number | null | undefined) => string | null>();
+  /** The task's project as the row names it (`projectName`). */
+  readonly getProjectName = input.required<(task: TaskProjectRef) => string | null>();
   readonly isOverdue = input.required<(endTime: string | null | undefined, statusId: number) => boolean>();
 
   readonly tasks = input<Task[]>([]);
   readonly statuses = input<TaskStatus[]>([]);
-  readonly projects = input<Project[]>([]);
   readonly taskTypes = input<TaskType[]>([]);
   readonly canCreateTask = input(false);
   readonly canUpdateTask = input(false);

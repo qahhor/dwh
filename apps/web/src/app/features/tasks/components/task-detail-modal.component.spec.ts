@@ -61,7 +61,7 @@ function render(inputs: Record<string, unknown> = {}) {
   set('getStatusName', (id: number | null | undefined) => STATUSES.find((status) => status.id === id)?.name ?? '');
   set('getStatusColor', () => '#0284c7');
   set('getPriorityLabel', (priority: string) => `приоритет ${priority}`);
-  set('getProjectName', (id: number | null | undefined) => (id === 5 ? 'Склад' : null));
+  set('getProjectName', (row: Task) => (row.projectId === 5 ? 'Склад' : null));
   set('isOpen', true);
   set('detailRecordId', '7');
   set('selectedTask', TASK);

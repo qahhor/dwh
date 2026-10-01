@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
  * The task list in the field registry (ADR-0016, roadmap item 49): {@code GET /api/v1/tasks} and
  * {@code /api/v1/query-meta/ms.tasks}. Ordered by number by default, 50 rows a page, as before, so the table
  * and the kanban keep their order. Status, project and reporter are ids until lists can refer to each other
- * (roadmap item 53); the screen draws them by name.
+ * (roadmap item 53); the screen draws them by name, the project by the {@code projectName} each row carries.
  */
 @Configuration
 public class MsTaskQuery {
@@ -41,7 +41,8 @@ public class MsTaskQuery {
                                     .asHidden(),
                             QueryField.of("projectId", "tasks.col.project", QueryFieldType.NUMBER, "t.project_id")
                                     .asNullable()
-                                    .refersTo(QueryRef.whole("/tasks/projects", "name")),
+                                    .refersTo(QueryRef.paged("/tasks/projects/page", "name")
+                                            .readBy("/tasks/projects")),
                             QueryField.enumeration(
                                     "priority",
                                     "tasks.col.priority",

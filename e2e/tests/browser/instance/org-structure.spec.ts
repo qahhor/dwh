@@ -336,7 +336,8 @@ async function taskScopeSnapshot(
     const assertHealthy = browserHealth(page, [
       /^error: Failed to load resource: the server responded with a status of 401/u,
     ]);
-    const dependencyPaths = ['/api/v1/custom-fields', '/api/v1/tasks/projects'] as const;
+    // The task screen no longer reads every project (plan 10/10, item 3.5): its rows name their projects.
+    const dependencyPaths = ['/api/v1/custom-fields', '/api/v1/tasks'] as const;
     const dependencies = Promise.all(dependencyPaths.map(path => page.waitForResponse(value => (
       value.request().method() === 'GET' && new URL(value.url()).pathname === path
     ))));

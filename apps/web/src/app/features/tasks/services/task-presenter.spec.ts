@@ -53,4 +53,12 @@ describe('TaskPresenter', () => {
     expect(presenter.isOverdue(daysFromNow(-2), 2)).toBe(false);
     expect(presenter.getStatusName(2)).toBe('Готово');
   });
+
+  it('names a project by the name the task carries, by number without it, and nothing without a project', () => {
+    const presenter = setup();
+
+    expect(presenter.getProjectName({ projectId: 5, projectName: 'Склад' })).toBe('Склад');
+    expect(presenter.getProjectName({ projectId: 5, projectName: null })).toBe('#5');
+    expect(presenter.getProjectName({ projectId: null })).toBeNull();
+  });
 });

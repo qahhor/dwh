@@ -13,19 +13,17 @@ import {
   getTypeIcon,
   getTypeLabel,
   isOverdue,
+  TaskProjectRef,
 } from '../tasks.models';
 import { TaskDictionariesService } from './task-dictionaries.service';
-import { TaskListStore } from './task-list.store';
 
 /**
  * How the task screen names and colours a row: its type, status, project,
- * priority and deadline. Provided by the screen, next to the list whose
- * projects it reads.
+ * priority and deadline. Provided by the screen; a row names its own project.
  */
 @Injectable()
 export class TaskPresenter {
   private readonly dictionaries = inject(TaskDictionariesService);
-  private readonly list = inject(TaskListStore);
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly i18n = inject(I18nService);
 
@@ -34,7 +32,7 @@ export class TaskPresenter {
   readonly getPriorityLabelFn = (p: string) => this.getPriorityLabel(p);
   readonly getTypeColorFn = (t: Task) => this.getTypeColor(t);
   readonly getTypeIconFn = (t: Task) => this.getTypeIcon(t);
-  readonly getProjectNameFn = (id: number | null | undefined) => this.getProjectName(id);
+  readonly getProjectNameFn = (task: TaskProjectRef | null | undefined) => this.getProjectName(task);
   readonly isOverdueFn = (e: string | null | undefined, id: number) => this.isOverdue(e, id);
   readonly getTypeLabelFn = (t: Task) => this.getTypeLabel(t);
   readonly getTypeBgFn = (t: Task) => this.getTypeBg(t);
@@ -55,8 +53,9 @@ export class TaskPresenter {
   getTypeBg(task: Task) {
     return getTypeBg(task, this.dictionaries.taskTypes());
   }
-  getProjectName(projectId: number | null | undefined) {
-    return getProjectName(projectId, this.list.projects());
+  /** The task's own project name (plan 10/10, item 3.5): no list of projects is read for it. */
+  getProjectName(task: TaskProjectRef | null | undefined) {
+    return getProjectName(task);
   }
   getStatusName(statusId: number | null | undefined) {
     return getStatusName(statusId, this.dictionaries.statuses(), this.i18n);

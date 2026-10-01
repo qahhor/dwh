@@ -24,11 +24,8 @@ public class MsTaskTreeRepository {
     }
 
     public List<TaskRecord> findSubtasks(Long parentTaskId, ScopeFilter scope) {
-        String sql = """
-                select t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
-                       t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
-                       t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by,
-                       t.revision
+        String sql = "select " + MsTaskRepository.LIST_COLUMNS + """
+
                 from ms_tasks t
                 where t.parent_task_id = :parentTaskId
                 """ + scope.sql() + " order by t.id asc";
@@ -53,10 +50,8 @@ public class MsTaskTreeRepository {
                     join ancestors a on a.id = parent.id
                     where parent.parent_task_id is not null
                 )
-                select t.id, t.project_id, t.parent_task_id, t.title, t.description_markdown, t.status_id,
-                       t.priority, t.reporter_id, t.attributes::text as attributes_str, t.begin_time,
-                       t.end_time, t.resolved_time, t.created_at, t.modified_at, t.created_by, t.modified_by,
-                       t.revision
+                """ + "select " + MsTaskRepository.LIST_COLUMNS + """
+
                 from ancestors a
                 join ms_tasks t on t.id = a.id
                 where 1=1

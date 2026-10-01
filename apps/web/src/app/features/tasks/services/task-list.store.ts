@@ -3,7 +3,7 @@ import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, map, of } from 'rxjs';
 import { CustomField } from '@core/models/custom-field.models';
 import { QueryListMeta } from '@core/models/query-meta.models';
-import { Project, Task } from '@core/models/task.models';
+import { Task } from '@core/models/task.models';
 import { CustomFieldsApi } from '@core/services/custom-fields.api';
 import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
 import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
@@ -16,8 +16,8 @@ import { TaskFilterService } from './task-filter.service';
 
 /**
  * The task list of one screen: its metadata, saved views, pages, quick filters
- * and the projects and custom fields its rows are named by. Provided by the
- * screen, so the pager and its requests end with it.
+ * and the custom fields of its rows; each row names its own project. Provided
+ * by the screen, so the pager and its requests end with it.
  */
 @Injectable()
 export class TaskListStore {
@@ -31,17 +31,7 @@ export class TaskListStore {
   readonly meta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
 
-  readonly projects = computed(() => this.projectsResource.value() ?? []);
   readonly customFields = computed(() => this.customFieldsResource.value() ?? []);
-
-  /** Names the rows' projects; a failed read leaves them unnamed, as before the answer. */
-  private readonly projectsResource = rxResource({
-    stream: () =>
-      this.tasksApi.projects().pipe(
-        map((res) => res || []),
-        catchError(() => of<Project[]>([])),
-      ),
-  });
 
   private readonly customFieldsResource = rxResource({
     stream: () =>

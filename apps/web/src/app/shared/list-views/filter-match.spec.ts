@@ -114,6 +114,19 @@ describe('reference fields', () => {
     expect(get).toHaveBeenCalledWith('/iam/users', { limit: 20, cursor: undefined, q: 'an' }, { notifyError: false });
     expect(source.option({ id: 7, name: 'Anna' }).label).toBe('Anna');
   });
+
+  it('names a chosen row of a list paged under /page from the read the reference names', async () => {
+    const get = vi.fn(() => of({ id: 5, name: 'Warehouse' }));
+    const source = refLookup({ get } as unknown as ApiService, {
+      path: '/tasks/projects/page',
+      labelField: 'name',
+      keyField: 'id',
+      paged: true,
+      readPath: '/tasks/projects',
+    });
+    expect(await firstValueFrom(source.resolve!([5]))).toEqual([{ id: 5, name: 'Warehouse' }]);
+    expect(get).toHaveBeenCalledWith('/tasks/projects/5', undefined, { notifyError: false });
+  });
 });
 
 describe('ui-filter-panel with two rows', () => {

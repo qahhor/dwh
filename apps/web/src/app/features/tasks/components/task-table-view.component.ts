@@ -23,7 +23,8 @@ import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.type
 import { QueryListMeta } from '@core/models/query-meta.models';
 import { ListViewState } from '@shared/list-views/list-views';
 import { registryTableConfig } from '@shared/ui/registry-table-config';
-import { Task, Project, TaskStatus, TaskType } from '@core/models/task.models';
+import { Task, TaskStatus, TaskType } from '@core/models/task.models';
+import { TaskProjectRef } from '../tasks.models';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
@@ -66,7 +67,8 @@ export class TaskTableViewComponent {
   readonly getTypeBg = input.required<(task: Task) => string>();
   readonly getTypeIcon = input.required<(task: Task) => string>();
   readonly getTypeLabel = input.required<(task: Task) => string>();
-  readonly getProjectName = input.required<(projectId: number | null | undefined) => string | null>();
+  /** The task's project as the row names it (`projectName`). */
+  readonly getProjectName = input.required<(task: TaskProjectRef) => string | null>();
   readonly getStatusColor = input.required<(statusId: number | null | undefined) => string>();
   readonly getDeadlineInfo = input.required<
     (
@@ -83,7 +85,6 @@ export class TaskTableViewComponent {
   /** The search text and quick filters on screen, so an export matches the list shown. */
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
-  readonly projects = input<Project[]>([]);
   readonly taskTypes = input<TaskType[]>([]);
   readonly canCreateTask = input(false);
   readonly hasActiveFilters = input(false);

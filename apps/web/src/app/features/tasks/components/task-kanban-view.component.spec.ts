@@ -38,9 +38,7 @@ function render(inputs: Record<string, unknown> = {}) {
   fixture.componentRef.setInput('getTypeColor', () => '#2563eb');
   fixture.componentRef.setInput('getTypeIcon', () => 'task_alt');
   fixture.componentRef.setInput('getTypeLabel', () => 'Задача');
-  fixture.componentRef.setInput('getProjectName', (projectId: number | null | undefined) =>
-    projectId === 5 ? 'Склад' : null,
-  );
+  fixture.componentRef.setInput('getProjectName', (row: Task) => (row.projectId === 5 ? 'Склад' : null));
   fixture.componentRef.setInput('isOverdue', () => false);
   for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
   fixture.detectChanges();

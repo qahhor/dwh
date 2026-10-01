@@ -32,6 +32,7 @@ final class MsTaskViews {
         return new TaskView(
                 task.id(),
                 task.projectId(),
+                task.projectName(),
                 task.parentTaskId(),
                 task.title(),
                 task.descriptionMarkdown(),
