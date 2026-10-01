@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.report.api.ExportItem;
 import com.smartup24.cms.instance.report.api.ExportRequest;
 import com.smartup24.cms.instance.report.export.ReportExportService;
+import io.swagger.v3.oas.annotations.Operation;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.springframework.core.io.InputStreamResource;
@@ -35,6 +36,7 @@ public class ReportExportController {
         this.exports = exports;
     }
 
+    @Operation(summary = "Request an export", description = "Requests the export of a list to a file.")
     @PostMapping
     @RequiresPermission(form = "iam.profile", action = "view")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -42,12 +44,14 @@ public class ReportExportController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(exports.request(request));
     }
 
+    @Operation(summary = "List my exports", description = "The caller's requested exports with their state.")
     @GetMapping
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<List<ExportItem>> journal() {
         return ResponseEntity.ok(exports.journal());
     }
 
+    @Operation(summary = "Download an export", description = "The file of a finished export.")
     @GetMapping("/{id}/file")
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<InputStreamResource> file(@PathVariable String id) {
