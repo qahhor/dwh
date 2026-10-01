@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.api;
+package com.smartup24.cms.instance.units.api;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -11,13 +11,13 @@ import java.util.Map;
  * coefficients is never derived instead. The API answers with a conflict against the unit reference data, with the
  * text {@code error.fnd.coefficient_missing}.
  */
-public class FndCoefficientMissingException extends ApiException {
+public class CoefficientMissingException extends ApiException {
 
     private final String fromUnit;
     private final String toUnit;
     private final LocalDate date;
 
-    public FndCoefficientMissingException(String fromUnit, String toUnit, LocalDate date) {
+    public CoefficientMissingException(String fromUnit, String toUnit, LocalDate date) {
         super(
                 ErrorCode.CONFLICT,
                 "error.fnd.coefficient_missing",

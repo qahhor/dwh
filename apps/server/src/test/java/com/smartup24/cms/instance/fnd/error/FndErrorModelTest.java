@@ -15,8 +15,8 @@ import com.smartup24.cms.instance.common.versioning.VersionError;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
-import com.smartup24.cms.instance.fnd.api.FndCoefficientMissingException;
 import com.smartup24.cms.instance.support.ConstraintCodeCatalog;
+import com.smartup24.cms.instance.units.api.CoefficientMissingException;
 import com.smartup24.cms.instance.units.api.UnitError;
 import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import java.nio.file.Path;
@@ -194,7 +194,7 @@ class FndErrorModelTest {
 
         @GetMapping("/fnd/coefficient")
         String coefficient() {
-            throw new FndCoefficientMissingException("kg", "t", LocalDate.of(2026, 1, 1));
+            throw new CoefficientMissingException("kg", "t", LocalDate.of(2026, 1, 1));
         }
     }
 }

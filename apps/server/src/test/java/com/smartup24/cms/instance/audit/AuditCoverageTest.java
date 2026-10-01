@@ -72,7 +72,7 @@ class AuditCoverageTest {
             // audited by the foundation triggers (fnd_audit_enable, V100): the actor comes from app.user_id, one
             // audit_log row per insert, update or delete
             "FndLoadService",
-            "FndUnitService",
+            "UnitService",
             "VersioningService",
             "UplSourceService",
             "UplPackageService");

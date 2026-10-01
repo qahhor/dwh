@@ -2,13 +2,13 @@ package com.smartup24.cms.instance.upl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture.Format;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture.FormatColumn;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture.FormatSheet;
+import com.smartup24.cms.instance.units.service.UnitService;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Sheet;
@@ -34,7 +34,7 @@ class UplFixturesTest extends EmbeddedPostgresTest {
     private UplSourceService service;
 
     @Autowired
-    private FndUnitService units;
+    private UnitService units;
 
     @Autowired
     private MdAuditActors actors;

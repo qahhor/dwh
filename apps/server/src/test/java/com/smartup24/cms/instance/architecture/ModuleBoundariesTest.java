@@ -59,6 +59,7 @@ class ModuleBoundariesTest {
             "ms.task",
             "report",
             "search",
+            "units",
             "upl");
 
     private static JavaClasses classes;
@@ -274,6 +275,7 @@ class ModuleBoundariesTest {
         if (table.startsWith("ms_note")) return Optional.of("ms.note");
         if (table.equals("idempotency_keys")) return Optional.of("config");
         if (table.startsWith("fnd_job_")) return Optional.of("jobs");
+        if (table.startsWith("fnd_unit")) return Optional.of("units");
         for (String module : List.of("fnd", "kauth", "kwh", "md", "mf", "report", "search", "upl")) {
             if (table.startsWith(module + "_")) return Optional.of(module);
         }

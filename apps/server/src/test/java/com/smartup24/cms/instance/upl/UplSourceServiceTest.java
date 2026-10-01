@@ -7,9 +7,9 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.units.service.UnitService;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.DataType;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FileKind;
@@ -56,7 +56,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
     private UplSourceService service;
 
     @Autowired
-    private FndUnitService units;
+    private UnitService units;
 
     @Autowired
     private MdAuditActors actors;

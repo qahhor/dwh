@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.units;
+package com.smartup24.cms.instance.units;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -9,13 +9,14 @@ import com.smartup24.cms.instance.common.error.ConstraintCode;
 import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.common.versioning.Version;
 import com.smartup24.cms.instance.common.versioning.VersioningService;
-import com.smartup24.cms.instance.fnd.api.FndCoefficientMissingException;
-import com.smartup24.cms.instance.fnd.api.FndConversion;
-import com.smartup24.cms.instance.fnd.api.FndConversion.FndCoefficientRef;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
+import com.smartup24.cms.instance.units.api.CoefficientMissingException;
+import com.smartup24.cms.instance.units.api.UnitConversion;
+import com.smartup24.cms.instance.units.api.UnitConversion.CoefficientRef;
 import com.smartup24.cms.instance.units.api.UnitError;
+import com.smartup24.cms.instance.units.service.UnitService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -36,10 +37,10 @@ import org.springframework.transaction.support.TransactionTemplate;
  * multipliers and dates are a parameter, not knowledge of the core. No real industry units exist in the core or
  * in the tests.
  */
-class FndUnitServiceTest extends EmbeddedPostgresTest {
+class UnitServiceTest extends EmbeddedPostgresTest {
 
     @Autowired
-    private FndUnitService units;
+    private UnitService units;
 
     @Autowired
     private VersioningService versioning;
@@ -124,11 +125,11 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
     void coefficientIsVersioned(DepartmentFixture dept) {
         registerUnits(dept.units());
         DepartmentFixture.Coefficient first = dept.firstCoefficient();
-        FndCoefficientRef ref =
+        CoefficientRef ref =
                 units.publishCoefficient(first.from(), first.to(), first.factor(), first.validFrom(), actor);
 
         Version version = versioning
-                .find(FndUnitService.COEFFICIENT_VERSIONS, ref.coefficientId(), ref.version())
+                .find(UnitService.COEFFICIENT_VERSIONS, ref.coefficientId(), ref.version())
                 .orElseThrow();
         assertThat(ref.version()).isEqualTo(1);
         assertThat(version.status()).isEqualTo(Version.PUBLISHED);
@@ -158,14 +159,14 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
         registerUnits(dept.units());
         DepartmentFixture.Coefficient early = dept.firstCoefficient();
         DepartmentFixture.Coefficient late = dept.secondCoefficient();
-        FndCoefficientRef first = publish(early);
-        FndCoefficientRef second = publish(late);
+        CoefficientRef first = publish(early);
+        CoefficientRef second = publish(late);
         BigDecimal value = new BigDecimal("2.5");
         LocalDate earlyDate = early.validFrom().plusDays(10);
         LocalDate lateDate = late.validFrom().plusDays(10);
 
-        FndConversion earlyResult = units.convert(value, early.from(), early.to(), earlyDate);
-        FndConversion lateResult = units.convert(value, late.from(), late.to(), lateDate);
+        UnitConversion earlyResult = units.convert(value, early.from(), early.to(), earlyDate);
+        UnitConversion lateResult = units.convert(value, late.from(), late.to(), lateDate);
 
         assertThat(earlyResult.value()).isEqualByComparingTo(value.multiply(early.factor()));
         assertThat(lateResult.value()).isEqualByComparingTo(value.multiply(late.factor()));
@@ -195,20 +196,20 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
                     .query(Long.class)
                     .single();
         });
-        versioning.createDraft(FndUnitService.COEFFICIENT_VERSIONS, draftPair, actor);
+        versioning.createDraft(UnitService.COEFFICIENT_VERSIONS, draftPair, actor);
 
         assertThatThrownBy(() -> units.convert(
                         BigDecimal.ONE, derived, base, first.validFrom().minusDays(1)))
-                .isInstanceOf(FndCoefficientMissingException.class);
+                .isInstanceOf(CoefficientMissingException.class);
         assertThatThrownBy(() -> units.convert(BigDecimal.ONE, base, derived, inForce))
-                .isInstanceOf(FndCoefficientMissingException.class);
-        FndCoefficientMissingException chain = (FndCoefficientMissingException)
+                .isInstanceOf(CoefficientMissingException.class);
+        CoefficientMissingException chain = (CoefficientMissingException)
                 catchThrowable(() -> units.convert(BigDecimal.ONE, derived, other, inForce));
         assertThat(chain.fromUnit()).isEqualTo(derived);
         assertThat(chain.toUnit()).isEqualTo(other);
         assertThat(chain.date()).isEqualTo(inForce);
 
-        FndConversion identity = units.convert(new BigDecimal("7.5"), derived, derived, inForce);
+        UnitConversion identity = units.convert(new BigDecimal("7.5"), derived, derived, inForce);
         assertThat(identity.value()).isEqualByComparingTo("7.5");
         assertThat(identity.coefficient()).isNull();
     }
@@ -219,16 +220,16 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
     void toBase(DepartmentFixture dept) {
         registerUnits(dept.units());
         DepartmentFixture.Coefficient first = dept.firstCoefficient();
-        FndCoefficientRef ref = publish(first);
+        CoefficientRef ref = publish(first);
         LocalDate inForce = first.validFrom().plusDays(10);
         BigDecimal value = new BigDecimal("2.5");
 
-        FndConversion converted = units.toBase(value, dept.derivedUnit().code(), inForce);
+        UnitConversion converted = units.toBase(value, dept.derivedUnit().code(), inForce);
         assertThat(converted.value()).isEqualByComparingTo(value.multiply(first.factor()));
         assertThat(converted.unit()).isEqualTo(dept.baseUnit().code());
         assertThat(converted.coefficient()).isEqualTo(ref);
 
-        FndConversion identity =
+        UnitConversion identity =
                 units.toBase(new BigDecimal("3"), dept.baseUnit().code(), inForce);
         assertThat(identity.value()).isEqualByComparingTo("3");
         assertThat(identity.coefficient()).isNull();
@@ -247,7 +248,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
         LocalDate from = dept.firstCoefficient().validFrom();
         units.publishCoefficient(derived, base, new BigDecimal("0.000001"), from, actor);
 
-        FndConversion converted = units.convert(new BigDecimal("1000000000000000"), derived, base, from.plusDays(10));
+        UnitConversion converted = units.convert(new BigDecimal("1000000000000000"), derived, base, from.plusDays(10));
         assertThat(converted.value()).isEqualByComparingTo("1000000000");
 
         assertThatThrownBy(() -> units.convert(null, derived, base, from)).isInstanceOf(IllegalArgumentException.class);
@@ -273,12 +274,12 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
         }
     }
 
-    private FndCoefficientRef publish(DepartmentFixture.Coefficient coefficient) {
+    private CoefficientRef publish(DepartmentFixture.Coefficient coefficient) {
         return units.publishCoefficient(
                 coefficient.from(), coefficient.to(), coefficient.factor(), coefficient.validFrom(), actor);
     }
 
-    private BigDecimal factorOf(FndCoefficientRef ref) {
+    private BigDecimal factorOf(CoefficientRef ref) {
         return jdbc.sql("select factor from fnd_unit_coefficient_versions"
                         + " where coefficient_id = :id and version = :v")
                 .param("id", ref.coefficientId())

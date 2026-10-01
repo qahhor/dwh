@@ -11,7 +11,6 @@ import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
-import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
@@ -21,6 +20,7 @@ import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture.Format;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture.FormatColumn;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture.FormatSheet;
+import com.smartup24.cms.instance.units.service.UnitService;
 import com.smartup24.cms.instance.upl.UplXlsxFixtures.SheetSpec;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
@@ -89,7 +89,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
     private MdAuditActors actors;
 
     @Autowired
-    private FndUnitService units;
+    private UnitService units;
 
     @Autowired
     private TransactionTemplate tx;

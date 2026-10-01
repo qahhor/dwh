@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.audit;
+package com.smartup24.cms.instance.units;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,7 +27,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * is checked on {@code fnd_units}: one trigger serves every table of the {@code fnd_audit_tables} registry, so the
  * other tables behave the same.
  */
-class FndAuditTest extends EmbeddedPostgresTest {
+class UnitAuditTest extends EmbeddedPostgresTest {
 
     private static final String UNIT = "u_audit_test";
 

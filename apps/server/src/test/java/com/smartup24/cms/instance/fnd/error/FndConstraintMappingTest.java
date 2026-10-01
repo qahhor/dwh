@@ -8,13 +8,13 @@ import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.error.ConstraintCode;
 import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.common.versioning.VersioningService;
-import com.smartup24.cms.instance.fnd.api.FndConversion.FndCoefficientRef;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
-import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.ConstraintCodeCatalog;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.units.api.UnitConversion.CoefficientRef;
 import com.smartup24.cms.instance.units.api.UnitError;
+import com.smartup24.cms.instance.units.service.UnitService;
 import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -42,7 +42,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
     private static final Pattern NAME = Pattern.compile("^fnd_[a-z0-9_]+_(uk|fk|ck|ex)_[a-z0-9_]+$");
 
     @Autowired
-    private FndUnitService units;
+    private UnitService units;
 
     @Autowired
     private VersioningService versioning;
@@ -161,34 +161,34 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
                 .isEqualTo("pending");
 
         // ex: overlapping intervals of published versions of one coefficient
-        FndCoefficientRef first =
+        CoefficientRef first =
                 units.publishCoefficient("u_map_a", base, BigDecimal.TEN, LocalDate.parse("2026-01-01"), actor);
-        versioning.supersede(FndUnitService.COEFFICIENT_VERSIONS, first.coefficientId(), first.version(), actor);
-        int closed = versioning.createDraft(FndUnitService.COEFFICIENT_VERSIONS, first.coefficientId(), actor);
+        versioning.supersede(UnitService.COEFFICIENT_VERSIONS, first.coefficientId(), first.version(), actor);
+        int closed = versioning.createDraft(UnitService.COEFFICIENT_VERSIONS, first.coefficientId(), actor);
         versioning.updateDraft(
-                FndUnitService.COEFFICIENT_VERSIONS,
+                UnitService.COEFFICIENT_VERSIONS,
                 first.coefficientId(),
                 closed,
                 0,
                 Map.of("factor", BigDecimal.TEN),
                 actor);
         versioning.publish(
-                FndUnitService.COEFFICIENT_VERSIONS,
+                UnitService.COEFFICIENT_VERSIONS,
                 first.coefficientId(),
                 closed,
                 LocalDate.parse("2026-01-01"),
                 LocalDate.parse("2026-12-31"),
                 actor);
-        int overlapping = versioning.createDraft(FndUnitService.COEFFICIENT_VERSIONS, first.coefficientId(), actor);
+        int overlapping = versioning.createDraft(UnitService.COEFFICIENT_VERSIONS, first.coefficientId(), actor);
         versioning.updateDraft(
-                FndUnitService.COEFFICIENT_VERSIONS,
+                UnitService.COEFFICIENT_VERSIONS,
                 first.coefficientId(),
                 overlapping,
                 0,
                 Map.of("factor", BigDecimal.ONE),
                 actor);
         ConstraintViolationException ex = violation(() -> versioning.publish(
-                FndUnitService.COEFFICIENT_VERSIONS,
+                UnitService.COEFFICIENT_VERSIONS,
                 first.coefficientId(),
                 overlapping,
                 LocalDate.parse("2026-06-01"),
