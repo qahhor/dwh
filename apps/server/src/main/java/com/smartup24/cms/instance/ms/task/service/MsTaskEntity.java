@@ -22,6 +22,7 @@ import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.entity.hook.Rules;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import java.util.List;
 import java.util.Map;
@@ -62,8 +63,12 @@ public class MsTaskEntity {
     /** The longest text of a task, generous but bounded. */
     public static final int MAX_DESCRIPTION = 100_000;
 
-    /** The users a participant is picked from, until the users are an entity of their own (ADR-0032, 8, step 5). */
-    private static final QueryRef USERS = QueryRef.paged("/iam/users", "name");
+    /**
+     * The users a participant is picked from and named by: the runtime list of the user entity (ADR-0032, 8, step 5).
+     * A source, not a target: a target would ask the saver for the users' view right (ADR-0032, 4.6), which a task's
+     * author need not have — {@link MsTaskHooks} checks that the author sees each new participant.
+     */
+    private static final QueryRef USERS = QueryRef.paged(QueryRef.entityPath(MdUserEntity.CODE), "name");
 
     /** Whether the task's status closes it. */
     private static final String TERMINAL =
