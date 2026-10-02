@@ -6,6 +6,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityLists;
+import com.smartup24.cms.instance.common.entity.EntityRowMapper;
+import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
@@ -13,12 +17,11 @@ import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
-import com.smartup24.cms.instance.md.repository.MdUserListSql;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.md.service.MdUserListService;
+import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileQuery;
 import com.smartup24.cms.instance.ms.task.repository.LegacyTaskFilters;
@@ -55,7 +58,7 @@ class MdScopeServiceIntegrationTest {
     static MdPermissionService permissionService;
     static MsTaskRepository taskRepository;
     static MfFileRepository fileRepository;
-    static MdUserListService userList;
+    static EntityDefinition users;
 
     static Long company;
     static Long regionTashkent;
@@ -79,7 +82,7 @@ class MdScopeServiceIntegrationTest {
 
         scopeService = new MdScopeService(scopeRepository, orgUnitRepository, permissionService, auditLogService);
         orgUnitService = new MdOrgUnitService(orgUnitRepository, scopeService, auditLogService);
-        userList = new MdUserListService(new QueryListRepository(jdbc), userRepository, scopeService, roleRepository);
+        users = MdUserEntity.definition((userId, alias) -> scopeService.filterForUsers(userId, alias + ".id"));
 
         company = orgUnitService.create(null, "HQ", "Компания", "company", 10).id();
         regionTashkent = orgUnitService
@@ -230,13 +233,7 @@ class MdScopeServiceIntegrationTest {
         Long inBranch = createUser("scope_in_branch", branchYunusabad);
         Long inOtherRegion = createUser("scope_in_samarkand", regionSamarkand);
 
-        var visible =
-                userList
-                        .page(viewer, 100, null, null, null, null, MdUserListSql.LegacyUserFilters.none())
-                        .items()
-                        .stream()
-                        .map(MdUserRepository.UserRecord::id)
-                        .toList();
+        var visible = visibleUsers(viewer);
 
         assertThat(visible).contains(viewer, inBranch);
         assertThat(visible).as("соседний регион виден быть не должен").doesNotContain(inOtherRegion);
@@ -254,14 +251,18 @@ class MdScopeServiceIntegrationTest {
         var filter = scopeService.filterFor(admin, "md_users.org_unit_id", "md_users.id");
         assertThat(filter.isUnrestricted()).isTrue();
 
-        var visible =
-                userList
-                        .page(admin, 200, null, null, null, null, MdUserListSql.LegacyUserFilters.none())
-                        .items()
-                        .stream()
-                        .map(MdUserRepository.UserRecord::id)
-                        .toList();
+        var visible = visibleUsers(admin);
         assertThat(visible).contains(admin, other);
+    }
+
+    /** The ids of the user entity's list as the viewer reads it, the users' data scope in the same SQL. */
+    private static List<Long> visibleUsers(Long viewer) {
+        var plan = QueryCompiler.compile(EntityLists.queryList(users), null, null, 200, null);
+        var scope = EntityScopes.fragment(scopeService.filterForUsers(viewer, "u.id"));
+        return new QueryListRepository(jdbc)
+                .page(plan, EntityRowMapper.of(users, new ObjectMapper()), scope).items().stream()
+                        .map(record -> ((Number) record.get("id")).longValue())
+                        .toList();
     }
 
     @Test

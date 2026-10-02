@@ -58,4 +58,25 @@ public class KauthPasswordResetLinkSender {
             log.warn("password_reset_link_not_sent channel={}", event.channel().channel(), e);
         }
     }
+
+    /** Delivers the invitation of a new user to the e-mail the administrator gave (ADR-0032, 8). */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onInvitationIssued(KauthInvitationIssued event) {
+        if (publicUrl.isEmpty()) {
+            log.error(
+                    "invitation_not_sent reason=smc.public-url_not_set channel={}",
+                    event.channel().channel());
+            return;
+        }
+        long seconds = Duration.between(Instant.now(), event.expiresAt()).toSeconds();
+        long hours = Math.max(1, (seconds + 3599) / 3600);
+        String link = publicUrl + PATH + event.token();
+        try {
+            sender.sendInvitation(event.channel(), event.login(), link, hours, event.token());
+        } catch (RuntimeException e) {
+            // The address is personal data: the log gets the channel only.
+            log.warn("invitation_not_sent channel={}", event.channel().channel(), e);
+        }
+    }
 }

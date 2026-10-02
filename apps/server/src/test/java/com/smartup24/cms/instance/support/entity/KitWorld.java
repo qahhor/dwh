@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.common.entity.EntityScope;
 import com.smartup24.cms.instance.common.entity.FormField;
 import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.entity.field.FieldAccess;
+import com.smartup24.cms.instance.common.entity.field.FieldDefault;
 import com.smartup24.cms.instance.common.entity.field.FieldSource;
 import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.support.TestSession;
@@ -172,14 +173,12 @@ final class KitWorld {
                 // A field the creator may not see or write is left to its holders.
                 continue;
             }
-            Optional<Object> value = fixture.validValues().containsKey(field.key())
-                    ? Optional.ofNullable(fixture.validValues().get(field.key()))
-                    : EntitySamples.valid(form(field), token);
-            if (model.scope() instanceof EntityScope.OrgUnit unit
-                    && field.source() instanceof FieldSource.Column column
-                    && column.name().equals(unit.orgUnitColumn())) {
-                value = Optional.of(creator.unit());
-            }
+            Optional<Object> unit = unitOf(field, creator);
+            Optional<Object> value = unit.isPresent()
+                    ? unit
+                    : fixture.validValues().containsKey(field.key())
+                            ? Optional.ofNullable(fixture.validValues().get(field.key()))
+                            : EntitySamples.valid(form(field), token);
             if (value.isPresent()) {
                 values.put(field.key(), value.get());
             } else if (form(field).required()) {
@@ -193,6 +192,20 @@ final class KitWorld {
             if (!declared.contains(key)) values.putIfAbsent(key, value);
         });
         return values;
+    }
+
+    /**
+     * The org unit a field of {@code creator}'s record holds, when the field holds one: the unit column of an org-unit
+     * scope, or a field that takes the creator's home unit by default ({@code FieldDefault.currentOrgUnit()}, the home
+     * unit of a user). The kit's users each have their own unit, so a record stays in its creator's scope.
+     */
+    Optional<Object> unitOf(EntityField field, TestUser creator) {
+        boolean scopeColumn = model.scope() instanceof EntityScope.OrgUnit unit
+                && field.source() instanceof FieldSource.Column column
+                && column.name().equals(unit.orgUnitColumn());
+        boolean homeUnit =
+                field.formField() != null && form(field).flags().defaultValue() instanceof FieldDefault.CurrentOrgUnit;
+        return scopeColumn || homeUnit ? Optional.of(creator.unit()) : Optional.empty();
     }
 
     /** The change of the update: the fixture's, or a new value of the first field an update may change. */

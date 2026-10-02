@@ -57,7 +57,9 @@ public class MdCustomFieldFormFields implements FormFieldExtender {
                         ? FormField.of(key, "", FieldType.TEXT).length(null, MAX_TEXT)
                         : FormField.select(key, "", options, null);
             }
-            case "user_ref" -> FormField.of(key, "", FieldType.NUMBER).refersTo(QueryRef.paged("/iam/users", "name"));
+            case "user_ref" ->
+                FormField.of(key, "", FieldType.NUMBER)
+                        .refersTo(QueryRef.paged(QueryRef.entityPath("md.users"), "name"));
             default -> null;
         };
         if (field == null) return null;

@@ -170,7 +170,6 @@ abstract class SearchDeliveryTestSupport {
                         mock(PasswordValidator.class),
                         new KauthUserSessionInvalidator(
                                 new KauthSessionRepository(jdbc), new KauthApiTokenRepository(jdbc)),
-                        publisher,
                         audit),
                 manager);
         http = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
@@ -191,6 +190,37 @@ abstract class SearchDeliveryTestSupport {
         http.stop(0);
         httpThreads.shutdownNow();
         metricRegistry.close();
+    }
+
+    /**
+     * A rename of a user as the user entity saves it (ADR-0032, 8): the row with its revision, then the search change
+     * {@code MdUserHooks.afterSave} publishes, in one transaction — the caller's when there is one.
+     */
+    void renameUser(long id, String name) {
+        tx.executeWithoutResult(status -> {
+            jdbc.sql("update md_users set name = :name, revision = revision + 1 where id = :id")
+                    .param("name", name)
+                    .param("id", id)
+                    .update();
+            publisher.changed("USER", id);
+        });
+    }
+
+    /** The record action {@code block} or {@code anonymize} of the user entity as the runtime and its hooks run it. */
+    void blockUser(long id, boolean anonymize) {
+        tx.executeWithoutResult(status -> {
+            jdbc.sql(
+                            anonymize
+                                    ? "update md_users set name = 'Deleted User ' || :id, login = 'deleted_' || :id,"
+                                            + " email = 'deleted_' || :id || '@anonymized.local', phone = null,"
+                                            + " state = 'P', revision = revision + 1 where id = :id"
+                                    : "update md_users set state = 'P', revision = revision + 1 where id = :id")
+                    .param("id", id)
+                    .update();
+            if (anonymize) userSecurity.anonymizeCredentials(id);
+            else userSecurity.revokeAccess(id);
+            publisher.changed("USER", id);
+        });
     }
 
     void recreateWorker() {

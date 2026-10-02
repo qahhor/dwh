@@ -149,6 +149,16 @@ public class KauthOtpSender {
                 "reset-" + KauthPasswordHasher.sha256(token));
     }
 
+    /** The invitation of a new user: the login and the link that sets the first password (ADR-0032, 8). */
+    public void sendInvitation(
+            KauthChannelRepository.ChannelRecord channel, String login, String link, long hours, String token) {
+        sendText(
+                channel,
+                "invitation",
+                Map.of("login", login, "link", link, "hours", Long.toString(hours)),
+                "invite-" + KauthPasswordHasher.sha256(token));
+    }
+
     /** A catalog text in the recipient's language ({@link KauthChannelTexts}). */
     private void sendText(
             KauthChannelRepository.ChannelRecord channel,

@@ -5,16 +5,15 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-import com.smartup24.cms.instance.search.service.SearchChangePublisher;
-import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The security actions on a user account: password, state, forced password change, 2FA reset and anonymisation.
- * Every action that takes access away also starts a new authentication generation and closes the sessions and
- * API tokens in the same transaction.
+ * The security of a user account: the password and the access that a change takes away. Every change that takes
+ * access away starts a new authentication generation and closes the sessions and API tokens in the same transaction
+ * (FR-USR-4); the record actions of the user entity (block, reset of the second factor, forced password change,
+ * anonymisation; {@link MdUserActions}) reach it through {@link MdUserHooks}.
  */
 @Service
 public class MdUserSecurityService {
@@ -23,7 +22,6 @@ public class MdUserSecurityService {
     private final PasswordHasher passwordHasher;
     private final PasswordValidator passwordValidator;
     private final UserSessionInvalidator sessionInvalidator;
-    private final SearchChangePublisher searchChangePublisher;
     private final AuditLogService auditLogService;
 
     public MdUserSecurityService(
@@ -31,13 +29,11 @@ public class MdUserSecurityService {
             PasswordHasher passwordHasher,
             PasswordValidator passwordValidator,
             UserSessionInvalidator sessionInvalidator,
-            SearchChangePublisher searchChangePublisher,
             AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.passwordValidator = passwordValidator;
         this.sessionInvalidator = sessionInvalidator;
-        this.searchChangePublisher = searchChangePublisher;
         this.auditLogService = auditLogService;
     }
 
@@ -59,105 +55,35 @@ public class MdUserSecurityService {
         if (!userRepository.compareAndSetPassword(userId, authenticatedVersion, user.passwordHash(), newHash)) {
             throw ApiException.invalidCredentials();
         }
-        userRepository.incrementAuthenticationVersion(userId);
-        sessionInvalidator.invalidateAllAccess(userId);
+        revokeAccess(userId);
 
         auditLogService.logSecurityEvent("PASSWORD_CHANGED", userId, null, null, Map.of("login", user.login()));
     }
 
+    /**
+     * Takes every access of the user away: a new authentication generation, every session and API token closed, in
+     * the caller's transaction (FR-USR-4). Blocking, a reset second factor and a forced password change start here,
+     * so no session made before outlives the change.
+     */
     @Transactional
-    public void setUserState(Long targetUserId, String newState, Long currentUserId) {
-        var targetUser = getUserById(targetUserId);
-
-        // Immutable Superadmin Protection: Admin user cannot be blocked (TRD-01 / I-IAM-1)
-        if (targetUser.login().equalsIgnoreCase("admin") && MdPref.STATE_PASSIVE.equals(newState)) {
-            throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_block_forbidden");
-        }
-
-        userRepository.setState(targetUserId, newState, currentUserId);
-
-        // FR-USR-4: blocking atomically closes sessions and revokes tokens
-        // in the SAME transaction, with no window where state=P while a session is alive.
-        if (MdPref.STATE_PASSIVE.equals(newState)) {
-            userRepository.incrementAuthenticationVersion(targetUserId);
-            sessionInvalidator.invalidateAllAccess(targetUserId);
-        }
-
-        searchChangePublisher.changed("USER", targetUserId);
-
-        auditLogService.logChange(
-                "md_users",
-                String.valueOf(targetUserId),
-                "U",
-                List.of("state"),
-                Map.of("state", targetUser.state()),
-                Map.of("state", newState));
-    }
-
-    @Transactional
-    public void setForcePasswordChange(Long targetUserId, boolean force, Long currentUserId) {
-        var targetUser = getUserById(targetUserId);
-        userRepository.setForcePasswordChange(targetUserId, force, currentUserId);
-        if (force) {
-            userRepository.incrementAuthenticationVersion(targetUserId);
-            sessionInvalidator.invalidateAllAccess(targetUserId);
-        }
-        searchChangePublisher.changed("USER", targetUserId);
-        auditLogService.logChange(
-                "md_users",
-                String.valueOf(targetUserId),
-                "U",
-                List.of("force_password_change"),
-                Map.of("force_password_change", targetUser.forcePasswordChange()),
-                Map.of("force_password_change", force));
-    }
-
-    @Transactional
-    public void reset2fa(Long targetUserId, Long currentUserId) {
-        var targetUser = getUserById(targetUserId);
-        userRepository.set2faEnabled(targetUserId, false, currentUserId);
-        userRepository.incrementAuthenticationVersion(targetUserId);
-        sessionInvalidator.invalidateAllAccess(targetUserId);
-        searchChangePublisher.changed("USER", targetUserId);
-        auditLogService.logChange(
-                "md_users",
-                String.valueOf(targetUserId),
-                "U",
-                List.of("is_2fa_enabled"),
-                Map.of("is_2fa_enabled", targetUser.is2faEnabled()),
-                Map.of("is_2fa_enabled", false));
-    }
-
-    @Transactional
-    public void anonymizeUser(Long targetUserId, Long currentUserId) {
-        var targetUser = getUserById(targetUserId);
-
-        // The system administrator cannot be deleted or anonymized
-        if (targetUser.login().equalsIgnoreCase("admin")) {
-            throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_delete_forbidden");
-        }
-
-        // FR-USR-8: anonymize personal data while keeping relational integrity for the audit
-        userRepository.anonymizeUser(targetUserId, currentUserId);
-
-        // Close all sessions and revoke tokens
-        userRepository.incrementAuthenticationVersion(targetUserId);
-        sessionInvalidator.invalidateAllAccess(targetUserId);
-
-        searchChangePublisher.changed("USER", targetUserId);
-
-        auditLogService.logChange(
-                "md_users",
-                String.valueOf(targetUserId),
-                "D",
-                List.of("state", "name", "email", "phone"),
-                Map.of("name", targetUser.name(), "login", targetUser.login()),
-                Map.of("name", "Deleted User " + targetUserId, "state", "P"));
+    public void revokeAccess(long userId) {
+        userRepository.incrementAuthenticationVersion(userId);
+        sessionInvalidator.invalidateAllAccess(userId);
     }
 
     /**
-     * Sets a password by a reset link: the effects of a change (a new authentication generation, every session and
-     * API token closed) without the old password.
+     * The anonymisation of an account beyond its fields (FR-USR-8): the password hash, the avatar and the custom
+     * values are wiped, then every access is taken away. The fields themselves are replaced by the action.
+     */
+    @Transactional
+    public void anonymizeCredentials(long userId) {
+        userRepository.wipeCredentials(userId);
+        revokeAccess(userId);
+    }
+
+    /**
+     * Sets a password by a reset link or an invitation: the effects of a change (a new authentication generation,
+     * every session and API token closed) without the old password.
      *
      * @return {@code false} when the user changed in the meantime: password, generation or state
      */
@@ -167,8 +93,7 @@ public class MdUserSecurityService {
         if (!userRepository.compareAndSetPassword(userId, expectedAuthVersion, expectedPasswordHash, newPasswordHash)) {
             return false;
         }
-        userRepository.incrementAuthenticationVersion(userId);
-        sessionInvalidator.invalidateAllAccess(userId);
+        revokeAccess(userId);
         return true;
     }
 

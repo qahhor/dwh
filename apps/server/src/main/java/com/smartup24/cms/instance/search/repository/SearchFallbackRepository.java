@@ -238,7 +238,7 @@ public class SearchFallbackRepository {
 
     private static FallbackHit userHit(long id, String name, String login, String email) {
         return new FallbackHit(
-                "USER", Long.toString(id), name, bounded(email + " (@" + login + ")"), "/iam/users/" + id);
+                "USER", Long.toString(id), name, bounded(email + " (@" + login + ")"), "/e/md.users/" + id);
     }
 
     private static List<String> requestedTypes(String entityType) {

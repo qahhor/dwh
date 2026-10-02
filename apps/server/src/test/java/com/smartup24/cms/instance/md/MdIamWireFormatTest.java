@@ -4,10 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,15 +14,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos;
-import com.smartup24.cms.instance.md.api.MdUserDtos.UserListFilters;
 import com.smartup24.cms.instance.md.controller.MdAssignmentController;
 import com.smartup24.cms.instance.md.controller.MdCustomFieldController;
 import com.smartup24.cms.instance.md.controller.MdOrgUnitController;
 import com.smartup24.cms.instance.md.controller.MdRoleController;
-import com.smartup24.cms.instance.md.controller.MdUserController;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
@@ -37,13 +32,7 @@ import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.md.service.MdUserListService;
-import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
-import com.smartup24.cms.instance.md.service.MdUserView;
-import com.smartup24.cms.instance.md.service.PasswordHasher;
-import com.smartup24.cms.instance.md.service.PasswordValidator;
-import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -92,25 +81,6 @@ class MdIamWireFormatTest {
             "orderNo",
             "createdAt",
             "revision");
-    private static final Set<String> USER = Set.of(
-            "id",
-            "name",
-            "login",
-            "email",
-            "phone",
-            "state",
-            "managerId",
-            "language",
-            "timezone",
-            "avatarFileId",
-            "attributes",
-            "is2faEnabled",
-            "forcePasswordChange",
-            "roleIds",
-            "createdAt",
-            "modifiedAt",
-            "revision");
-
     private final MdRoleRepository roles = mock(MdRoleRepository.class);
     private final MdPermissionRepository permissions = mock(MdPermissionRepository.class);
     private final MdUserRepository users = mock(MdUserRepository.class);
@@ -273,56 +243,6 @@ class MdIamWireFormatTest {
                                         + "\"options\":[\"day\",\"night\"],\"orderNo\":1}"),
                         201)))
                 .isEqualTo(CUSTOM_FIELD);
-    }
-
-    @Test
-    @DisplayName("users: one, create and the page answer with the safe view; the flat list filters reach the service")
-    void users() throws Exception {
-        when(users.findById(42L)).thenReturn(Optional.of(user(42L)));
-        when(users.create(any(), isNull())).thenReturn(user(43L));
-        when(roles.getUserRoleIds(anyLong())).thenReturn(List.of(3L));
-        var userService = new MdUserService(
-                users,
-                roles,
-                mock(MdCustomFieldService.class),
-                mock(PasswordHasher.class),
-                mock(PasswordValidator.class),
-                mock(SearchChangePublisher.class),
-                audit,
-                scope);
-        var listService = mock(MdUserListService.class);
-        var view = MdUserView.from(user(42L), List.of(3L));
-        when(listService.pageViews(
-                        isNull(),
-                        eq(20),
-                        isNull(),
-                        isNull(),
-                        isNull(),
-                        eq("ann"),
-                        eq(new UserListFilters("A", 3L, 9L, true))))
-                .thenReturn(new KeysetPage<>(List.of(view), "next", true, 1));
-        MockMvc mvc = mvc(new MdUserController(userService, mock(MdUserSecurityService.class), listService));
-
-        assertThat(keys(json(mvc, get("/api/v1/iam/users/42"), 200))).isEqualTo(USER);
-        assertThat(keys(json(
-                        mvc,
-                        post("/api/v1/iam/users")
-                                .content("{\"name\":\"Ann\",\"login\":\"ann\",\"email\":\"ann@example.invalid\","
-                                        + "\"password\":\"Str0ng!Pass\",\"roleIds\":[3]}"),
-                        201)))
-                .isEqualTo(USER);
-        JsonNode page = json(
-                mvc,
-                get("/api/v1/iam/users")
-                        .param("limit", "20")
-                        .param("search", "ann")
-                        .param("state", "A")
-                        .param("roleId", "3")
-                        .param("managerId", "9")
-                        .param("is2faEnabled", "true"),
-                200);
-        assertThat(keys(page)).isEqualTo(Set.of("items", "nextCursor", "hasMore", "totalEstimated", "totalExact"));
-        assertThat(keys(page.get("items").get(0))).isEqualTo(USER);
     }
 
     private static MdUserRepository.UserRecord user(Long id) {

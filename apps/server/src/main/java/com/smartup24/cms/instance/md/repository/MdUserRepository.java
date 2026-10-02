@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -124,26 +125,35 @@ public class MdUserRepository {
                 > 0;
     }
 
-    public void anonymizeUser(Long userId, Long modifiedBy) {
-        jdbcClient
-                .sql("""
+    /** Whether an active user other than {@code except} (null: any) has the phone. */
+    public boolean phoneTaken(String phone, @Nullable Long except) {
+        if (phone.isBlank()) return false;
+        return jdbcClient
+                        .sql("""
+                        select count(*) from md_users
+                        where phone = :phone and state = 'A' and id is distinct from :except
+                        """)
+                        .param("phone", phone.strip())
+                        .param("except", except)
+                        .query(Integer.class)
+                        .single()
+                > 0;
+    }
+
+    /**
+     * The part of an anonymisation outside the user's fields (FR-USR-8): the password hash, the avatar and the custom
+     * values; the fields are replaced by the entity's action.
+     */
+    public void wipeCredentials(long userId) {
+        jdbcClient.sql("""
                 update md_users
-                set name = 'Deleted User ' || :userId,
-                    login = 'deleted_' || :userId,
-                    email = 'deleted_' || :userId || '@anonymized.local',
-                    phone = null,
-                    password_hash = 'ANONYMIZED',
+                set password_hash = 'ANONYMIZED',
                     avatar_file_id = null,
                     attributes = '{}'::jsonb,
-                    state = 'P',
                     modified_at = now(),
-                    modified_by = :modifiedBy,
                     revision = revision + 1
                 where id = :userId
-                """)
-                .param("userId", userId)
-                .param("modifiedBy", modifiedBy)
-                .update();
+                """).param("userId", userId).update();
     }
 
     public boolean compareAndSetPassword(
@@ -173,19 +183,6 @@ public class MdUserRepository {
         if (changed != 1) throw ApiException.invalidCredentials();
     }
 
-    public void setState(Long userId, String state, Long modifiedBy) {
-        jdbcClient
-                .sql("""
-                update md_users
-                set state = :state, modified_at = now(), modified_by = :modifiedBy, revision = revision + 1
-                where id = :userId
-                """)
-                .param("userId", userId)
-                .param("state", state)
-                .param("modifiedBy", modifiedBy)
-                .update();
-    }
-
     public void updateLanguage(Long userId, String language, Long modifiedBy) {
         jdbcClient
                 .sql("""
@@ -195,34 +192,6 @@ public class MdUserRepository {
                 """)
                 .param("userId", userId)
                 .param("language", language)
-                .param("modifiedBy", modifiedBy)
-                .update();
-    }
-
-    public void setForcePasswordChange(Long userId, boolean force, Long modifiedBy) {
-        jdbcClient
-                .sql("""
-                update md_users
-                set force_password_change = :force, modified_at = now(), modified_by = :modifiedBy,
-                    revision = revision + 1
-                where id = :userId
-                """)
-                .param("userId", userId)
-                .param("force", force)
-                .param("modifiedBy", modifiedBy)
-                .update();
-    }
-
-    public void set2faEnabled(Long userId, boolean enabled, Long modifiedBy) {
-        jdbcClient
-                .sql("""
-                update md_users
-                set is_2fa_enabled = :enabled, modified_at = now(), modified_by = :modifiedBy,
-                    revision = revision + 1
-                where id = :userId
-                """)
-                .param("userId", userId)
-                .param("enabled", enabled)
                 .param("modifiedBy", modifiedBy)
                 .update();
     }
@@ -245,44 +214,7 @@ public class MdUserRepository {
                 .orElseThrow(Revisions::conflict);
     }
 
-    /** Saves the profile made from {@code expectedRevision} (plan item 3.6) and answers its new revision. */
-    public long update(Long userId, UserUpdateData data, Long modifiedBy, long expectedRevision) {
-        String attributesJson = data.attributes() != null ? jsonColumns.object(data.attributes()) : null;
-
-        return jdbcClient
-                .sql("""
-                update md_users
-                set name = coalesce(:name, name),
-                    phone = coalesce(:phone, phone),
-                    manager_id = coalesce(cast(:managerId as bigint), manager_id),
-                    language = coalesce(:language, language),
-                    timezone = coalesce(:timezone, timezone),
-                    avatar_file_id = coalesce(cast(:avatarFileId as uuid), avatar_file_id),
-                    attributes = coalesce(cast(:attributes as jsonb), attributes),
-                    is_2fa_enabled = coalesce(cast(:is2faEnabled as boolean), is_2fa_enabled),
-                    modified_at = now(),
-                    modified_by = :modifiedBy,
-                    revision = revision + 1
-                where id = :userId and revision = :expectedRevision
-                returning revision
-                """)
-                .param("userId", userId)
-                .param("name", data.name())
-                .param("phone", data.phone())
-                .param("managerId", data.managerId())
-                .param("language", data.language())
-                .param("timezone", data.timezone())
-                .param("avatarFileId", data.avatarFileId())
-                .param("attributes", attributesJson)
-                .param("is2faEnabled", data.is2faEnabled())
-                .param("modifiedBy", modifiedBy)
-                .param("expectedRevision", expectedRevision)
-                .query(Long.class)
-                .optional()
-                .orElseThrow(Revisions::conflict);
-    }
-
-    /** Reads a row of {@link MdUserListSql#LIST_COLUMNS}; the user list (registry {@code iam.users}) maps its pages with it. */
+    /** Reads a user row with every column the repository selects. */
     public UserRecord mapUser(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         Map<String, Object> attrs = jsonColumns.readObject(rs.getString("attributes_str"));
         return new UserRecord(
@@ -357,14 +289,4 @@ public class MdUserRepository {
             Map<String, Object> attributes,
             boolean is2faEnabled,
             boolean forcePasswordChange) {}
-
-    public record UserUpdateData(
-            String name,
-            String phone,
-            Long managerId,
-            String language,
-            String timezone,
-            UUID avatarFileId,
-            Map<String, Object> attributes,
-            Boolean is2faEnabled) {}
 }

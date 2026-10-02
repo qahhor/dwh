@@ -117,7 +117,7 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(delivered("USER", id)).isZero();
         assertThat(documents).isEmpty();
         delivery.release(current);
-        users.updateUser(id, "Next revision", null, null, null, null, null, null, null, null, id, 1L);
+        renameUser(id, "Next revision");
         var next = delivery.claim(generation, owner, clock.instant(), 100).getFirst();
         assertThat(delivery.acknowledge(current, "old-attempt")).isFalse();
         assertThat(delivered("USER", id)).isZero();
@@ -218,7 +218,7 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
             var future = executor.submit(worker::runOnce);
             try {
                 assertThat(entered.await(10, TimeUnit.SECONDS)).isTrue();
-                users.updateUser(id, "Revision two", null, null, null, null, null, null, null, null, id, 1L);
+                renameUser(id, "Revision two");
             } finally {
                 respond.countDown();
             }
@@ -240,8 +240,7 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         failures.set(1);
         worker.runOnce();
         assertThat(delivered("USER", id)).isZero();
-        if (anonymize) userSecurity.anonymizeUser(id, id);
-        else userSecurity.setUserState(id, "P", id);
+        blockUser(id, anonymize);
         recreateWorker();
         worker.runOnce();
         assertThat(delivered("USER", id)).isEqualTo(2);
@@ -274,7 +273,7 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         worker.runOnce();
         assertThat(requests.get()).isEqualTo(exhausted);
         failures.set(0);
-        users.updateUser(id, "Recovered", null, null, null, null, null, null, null, null, id, 1L);
+        renameUser(id, "Recovered");
         worker.runOnce();
         assertThat(delivered("USER", id)).isEqualTo(2);
         assertThat(documents.get("users/" + id)).containsEntry("name", "Recovered");

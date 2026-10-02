@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
+import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryOp;
 import com.smartup24.cms.instance.common.query.QueryPlan;
-import com.smartup24.cms.instance.md.service.MdUserQuery;
 import com.smartup24.cms.instance.support.TestDatabases;
 import java.sql.Connection;
 import java.util.List;
@@ -23,6 +23,22 @@ import org.springframework.jdbc.datasource.SingleConnectionDataSource;
  * not use any index. With sequential scans switched off the plan shows whether the predicate is indexable at all.
  */
 class CustomFieldFilterIndexTest {
+
+    /** A list over the user table with its custom fields, as an entity's list reads them. */
+    private static final QueryList USERS = new QueryList(
+                    "test.users",
+                    "md.users",
+                    "view",
+                    "md_users.id",
+                    "md_users",
+                    "md_users.id",
+                    List.of(QueryField.of("name", "iam.users.col.name", QueryFieldType.TEXT, "md_users.name")
+                            .asSortable()),
+                    "name",
+                    false,
+                    20,
+                    QueryList.MAX_LIMIT)
+            .withCustomFields("USER", "md_users.attributes");
 
     private static final QueryField REGION = QueryField.custom(
             "cfRegion", "Region", QueryFieldType.TEXT, "(md_users.attributes->>'region')", "region", List.of());
@@ -62,9 +78,9 @@ class CustomFieldFilterIndexTest {
     }
 
     private static QueryPlan.SqlFragment where(QueryOp op, List<Object> values) {
-        QueryField sort = MdUserQuery.LIST.fields().getFirst();
+        QueryField sort = USERS.fields().getFirst();
         var plan = new QueryPlan(
-                MdUserQuery.LIST,
+                USERS,
                 List.of(new QueryPlan.Condition(REGION, op, values)),
                 sort,
                 false,
