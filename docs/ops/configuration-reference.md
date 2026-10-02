@@ -91,7 +91,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_PROVIDER_STORAGE` | `smc.providers.storage` | `local_disk` |
 | `SMC_PUBLIC_URL` | `smc.public-url` | пусто |
 | `SMC_RATE_LIMIT_ENABLED` | `smc.rate-limit.enabled` | `true` |
-| `SMC_RATE_LIMIT_EXPENSIVE_PATHS` | `smc.rate-limit.expensive-paths` | `/api/v1/audit/stats,/api/v1/audit/logs,/api/v1/audit/security-events,/api/v1/search/**` |
+| `SMC_RATE_LIMIT_EXPENSIVE_PATHS` | `smc.rate-limit.expensive-paths` | `/api/v1/audit/stats,/api/v1/audit/logs,/api/v1/audit/security-events,/api/v1/search/**,/api/v1/entities/*/imports,/api/v1/entities/*/import-template` |
 | `SMC_RATE_LIMIT_EXPENSIVE_PER_MINUTE` | `smc.rate-limit.expensive-per-minute` | `10` |
 | `SMC_RATE_LIMIT_IP_PER_MINUTE` | `smc.rate-limit.ip-per-minute` | `60` |
 | `SMC_RATE_LIMIT_MAX_ENTRIES` | `smc.rate-limit.max-entries` | `10000` |
