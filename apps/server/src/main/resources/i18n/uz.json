@@ -1682,7 +1682,6 @@
   "error.field.required": "Maydon to'ldirilishi shart",
   "error.field.too_long": "Ko'pi bilan {max} ta belgi",
   "error.field.too_short": "Kamida {min} ta belgi",
-  "error.field.true_or_false": "Ruxsat etilgan qiymatlar: true yoki false",
   "error.field.unknown_column": "Noma'lum ustun: {name}",
   "error.field.unknown": "Noma'lum maydon",
   "error.field.value_type": "Qiymat turi noto'g'ri",

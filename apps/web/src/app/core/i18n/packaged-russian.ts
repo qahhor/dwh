@@ -1684,7 +1684,6 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "error.field.required": "Поле обязательно",
   "error.field.too_long": "Не длиннее {max} символов",
   "error.field.too_short": "Не короче {min} символов",
-  "error.field.true_or_false": "Допустимые значения: true или false",
   "error.field.unknown_column": "Неизвестная колонка: {name}",
   "error.field.unknown": "Неизвестное поле",
   "error.field.value_type": "Значение неверного типа",

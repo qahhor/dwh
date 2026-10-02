@@ -1682,7 +1682,6 @@
   "error.field.required": "This field is required",
   "error.field.too_long": "At most {max} characters",
   "error.field.too_short": "At least {min} characters",
-  "error.field.true_or_false": "Allowed values: true or false",
   "error.field.unknown_column": "Unknown column: {name}",
   "error.field.unknown": "Unknown field",
   "error.field.value_type": "The value has the wrong type",
