@@ -65,34 +65,6 @@ public class MsTaskListExporters {
         };
     }
 
-    /** The project list as an export: the viewer's task counts and the old state filter, as on the screen. */
-    @Bean
-    public QueryListExporter msProjectsExporter(MsProjectListService projects) {
-        return new QueryListExporter() {
-            public String code() {
-                return MsProjectQuery.LIST.code();
-            }
-
-            public Set<String> options() {
-                return Set.of("state");
-            }
-
-            public List<FieldErrorItem> checkOptions(Map<String, String> options) {
-                String state = options.get("state");
-                return state == null || state.isBlank() || List.of("A", "P").contains(state.strip())
-                        ? List.of()
-                        : List.of(FieldErrorItem.keyed(
-                                "state", "EXPORT_INVALID", "error.field.one_of", Map.of("values", "A, P")));
-            }
-
-            public KeysetPage<?> page(
-                    int limit, String cursor, String filter, String sort, String search, Map<String, String> options) {
-                return projects.page(
-                        SecurityContext.getCurrentUserId(), limit, cursor, filter, sort, search, options.get("state"));
-            }
-        };
-    }
-
     /** The screen's flat filters, each checked before the export job starts. */
     static List<FieldErrorItem> checkTaskOptions(Map<String, String> options) {
         List<FieldErrorItem> errors = new ArrayList<>();

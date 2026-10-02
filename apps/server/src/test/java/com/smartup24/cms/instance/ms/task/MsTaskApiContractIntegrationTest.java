@@ -93,8 +93,7 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         long userId = userId(login);
         Session s = login(login);
 
-        long projectId =
-                id(created(send(s, post("/api/v1/tasks/projects"), Map.of("name", "TEST contract " + suffix()))));
+        long projectId = project(s, "TEST contract " + suffix());
         Map<String, Object> parent = created(send(
                 s,
                 post("/api/v1/tasks"),
@@ -153,22 +152,8 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         String login = user();
         long userId = userId(login);
         Session s = login(login);
-        Set<String> project =
-                Set.of("id", "name", "description", "state", "attributes", "createdAt", "createdBy", "revision");
-
-        Map<String, Object> created = created(send(
-                s,
-                post("/api/v1/tasks/projects"),
-                Map.of("name", "TEST contract project " + suffix(), "description", "about", "state", "A")));
-        assertKeys(created, project);
-        long projectId = id(created);
-        assertKeys(object(ok(send(s, get("/api/v1/tasks/projects/" + projectId), null))), project);
-        assertThat(send(
-                                s,
-                                post("/api/v1/tasks/projects/" + projectId + "/members"),
-                                Map.of("userId", userId, "accessKind", "W"))
-                        .getStatus())
-                .isEqualTo(204);
+        long projectId = project(s, "TEST contract project " + suffix());
+        addMember(s, projectId, userId, "W");
         assertKeys(
                 first(items(ok(send(s, get("/api/v1/tasks/projects/" + projectId + "/members/page"), null)))),
                 Set.of("projectId", "userId", "userName", "userEmail", "accessKind"));
@@ -190,18 +175,12 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     @DisplayName("3.5: the members of a project come a page at a time by name; a bad limit or cursor is 422")
     void projectMembersArePaged() throws Exception {
         Session s = login(user());
-        long projectId = id(created(send(
-                s, post("/api/v1/tasks/projects"), Map.of("name", "TEST members page " + suffix(), "state", "A"))));
+        long projectId = project(s, "TEST members page " + suffix());
         List<Long> members = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             long member = userId(user());
             members.add(member);
-            assertThat(send(
-                                    s,
-                                    post("/api/v1/tasks/projects/" + projectId + "/members"),
-                                    Map.of("userId", member, "accessKind", "R"))
-                            .getStatus())
-                    .isEqualTo(204);
+            addMember(s, projectId, member, "R");
         }
         String path = "/api/v1/tasks/projects/" + projectId + "/members/page";
 
@@ -229,7 +208,7 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     void taskRowsNameTheirProjectAndPickersSearchProjects() throws Exception {
         Session s = login(user());
         String name = "TEST picker " + suffix();
-        long projectId = id(created(send(s, post("/api/v1/tasks/projects"), Map.of("name", name, "state", "A"))));
+        long projectId = project(s, name);
         Map<String, Object> task =
                 created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST named", "projectId", projectId)));
         assertThat(task.get("projectName")).isEqualTo(name);
@@ -243,11 +222,30 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         assertThat(loose).doesNotContainKey("projectName");
 
         Map<String, Object> found = object(
-                ok(send(s, get("/api/v1/tasks/projects/page").param("q", name).param("limit", "20"), null)));
+                ok(send(s, get("/api/v1/entities/ms.projects").param("q", name).param("limit", "20"), null)));
         assertThat(items(found)).extracting(row -> row.get("name")).containsExactly(name);
-        assertThat(send(s, get("/api/v1/tasks/projects/page").param("limit", "201"), null)
+        assertThat(send(s, get("/api/v1/entities/ms.projects").param("limit", "201"), null)
                         .getStatus())
                 .isEqualTo(422);
+    }
+
+    /** A project created on the general runtime (ADR-0032, 8). */
+    private long project(Session s, String name) throws Exception {
+        return id(created(send(s, post("/api/v1/entities/ms.projects"), Map.of("name", name))));
+    }
+
+    /** A member added by the project's record action, from its current revision. */
+    private void addMember(Session s, long projectId, long userId, String accessKind) throws Exception {
+        long revision = ((Number) object(ok(send(s, get("/api/v1/entities/ms.projects/" + projectId), null)))
+                        .get("revision"))
+                .longValue();
+        assertThat(send(
+                                s,
+                                post("/api/v1/entities/ms.projects/" + projectId + "/actions/add_member")
+                                        .header("If-Match", "\"" + revision + "\""),
+                                Map.of("userId", userId, "accessKind", accessKind))
+                        .getStatus())
+                .isEqualTo(200);
     }
 
     @SuppressWarnings("unchecked")

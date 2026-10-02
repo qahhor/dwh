@@ -195,7 +195,11 @@ public class SearchIndexStateRepository {
             case "PROJECT" -> "USER";
             default -> "DONE";
         };
-        String active = generation.discoveryEntity().equals("TASK") ? "" : " and state='A'";
+        String active = switch (generation.discoveryEntity()) {
+            case "TASK" -> "";
+            case "PROJECT" -> " and not archived";
+            default -> " and state='A'";
+        };
         jdbc.sql("""
                 with page as materialized (
                     select id from %s where id>:after %s order by id limit :limit

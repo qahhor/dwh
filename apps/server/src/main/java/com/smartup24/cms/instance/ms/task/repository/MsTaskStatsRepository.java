@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.ms.task.repository;
 
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -16,11 +17,12 @@ public class MsTaskStatsRepository {
         this.jdbcClient = jdbcClient;
     }
 
-    public List<ProjectTaskStats> getProjectTaskStats() {
-        return getProjectTaskStats(ScopeFilter.unrestricted());
-    }
-
-    public List<ProjectTaskStats> getProjectTaskStats(ScopeFilter scope) {
+    /**
+     * The task counts of each of {@code projectIds} over the tasks {@code scope} lets the viewer see (its alias is
+     * {@code t}, ADR-0013): every task, the open ones and the closed ones (in a terminal status).
+     */
+    public List<ProjectTaskStats> getProjectTaskStats(Collection<Long> projectIds, ScopeFilter scope) {
+        if (projectIds.isEmpty()) return List.of();
         String sql = """
                 select p.id as project_id,
                        count(t.id) as total_tasks,
@@ -30,9 +32,11 @@ public class MsTaskStatsRepository {
                 left join ms_tasks t on t.project_id = p.id
                 """ + scope.sql() + """
                 left join ms_task_statuses s on s.id = t.status_id
+                where p.id in (:ids)
                 group by p.id
+                order by p.id
                 """;
-        var query = jdbcClient.sql(sql);
+        var query = jdbcClient.sql(sql).param("ids", List.copyOf(projectIds));
         if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
         return query.query((rs, rowNum) -> new ProjectTaskStats(
                         rs.getLong("project_id"),

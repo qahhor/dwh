@@ -150,7 +150,7 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
                         .query(Long.class)
                         .single())
                 .isEqualTo(1L);
-        assertThat(viewer.send(get("/api/v1/tasks/projects/{id}", outsideProject))
+        assertThat(viewer.send(get("/api/v1/entities/ms.projects/{id}", outsideProject))
                         .getStatus())
                 .isEqualTo(404);
     }

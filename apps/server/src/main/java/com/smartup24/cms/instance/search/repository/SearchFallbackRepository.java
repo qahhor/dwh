@@ -94,7 +94,7 @@ public class SearchFallbackRepository {
                 .sql("""
                 select id, name, description
                 from ms_task_pub_projects
-                where state = 'A'
+                where not archived
                   and (name ilike any(:patterns) or description ilike any(:patterns))
                 order by (name ilike :primary) desc, id
                 limit :limit
@@ -183,7 +183,7 @@ public class SearchFallbackRepository {
         return jdbcClient
                 .sql("""
                 select id, name, description from ms_task_pub_projects
-                where id = :id and state = 'A' order by id
+                where id = :id and not archived order by id
                 """)
                 .param("id", id)
                 .query((rs, rowNum) -> new FallbackHit(

@@ -9,7 +9,7 @@ import java.util.Map;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** The task module's records with a history tab (ADR-0017): tasks and projects. */
+/** The task module's records with a history tab of its own (ADR-0017): tasks; projects have the runtime's. */
 @Configuration
 public class MsTaskHistorySources {
 
@@ -45,40 +45,6 @@ public class MsTaskHistorySources {
                         "projectId", "projects.common.project",
                         "statusId", "common.status",
                         "descriptionMarkdown", "task.description");
-            }
-        };
-    }
-
-    @Bean
-    RecordHistorySource projectHistorySource(MsProjectService projectService) {
-        return new RecordHistorySource() {
-            public String key() {
-                return "projects";
-            }
-
-            public String tableName() {
-                return "ms_task_projects";
-            }
-
-            public String form() {
-                return MsTaskPref.FORM_PROJECTS;
-            }
-
-            public String action() {
-                return "view";
-            }
-
-            /** The same data scope as opening the project (ADR-0013). */
-            public void requireVisible(String recordId) {
-                projectService.requireVisible(
-                        numericId(recordId, ErrorCode.PROJECT_NOT_FOUND), SecurityContext.getCurrentUserId());
-            }
-
-            public Map<String, String> fieldLabels() {
-                return Map.of(
-                        "name", "projects.common.project_name",
-                        "description", "projects.common.description",
-                        "state", "common.status");
             }
         };
     }

@@ -41,8 +41,7 @@ public class MsTaskQuery {
                                     .asHidden(),
                             QueryField.of("projectId", "tasks.col.project", QueryFieldType.NUMBER, "t.project_id")
                                     .asNullable()
-                                    .refersTo(QueryRef.paged("/tasks/projects/page", "name")
-                                            .readBy("/tasks/projects")),
+                                    .refersTo(QueryRef.paged(QueryRef.entityPath(MsProjectEntity.CODE), "name")),
                             QueryField.enumeration(
                                     "priority",
                                     "tasks.col.priority",

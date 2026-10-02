@@ -32,7 +32,7 @@ public class AnalyticsRepository {
                     left join ms_task_pub_statuses s on s.id = t.status_id
                 ),
                 project_metrics as (
-                    select count(*) as active_projects from ms_task_pub_projects where state = 'A'
+                    select count(*) as active_projects from ms_task_pub_projects where not archived
                 ),
                 user_metrics as (
                     select count(*) as active_users from md_pub_users where state = 'A'
@@ -123,7 +123,7 @@ public class AnalyticsRepository {
                 from ms_task_pub_projects p
                 left join ms_task_pub_tasks t on t.project_id = p.id
                 left join ms_task_pub_statuses s on s.id = t.status_id
-                where p.state = 'A'
+                where not p.archived
                 group by p.id, p.name
                 order by total_tasks desc, p.name asc
                 limit 15

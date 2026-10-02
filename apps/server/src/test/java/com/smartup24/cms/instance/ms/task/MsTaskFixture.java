@@ -79,7 +79,7 @@ public record MsTaskFixture(
                     new MsTaskStatsRepository(jdbc),
                     statuses,
                     new MsTaskMemberRepository(jdbc),
-                    new MsProjectRepository(jdbc, mapper));
+                    new MsProjectRepository(jdbc));
         }
 
         public static Repositories mocks() {

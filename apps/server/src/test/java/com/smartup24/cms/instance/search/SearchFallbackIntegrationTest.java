@@ -307,8 +307,10 @@ class SearchFallbackIntegrationTest {
                 .single();
     }
 
+    /** A project in use ({@code A}) or in the archive ({@code P}, the paused state of before ADR-0032, 5.4). */
     private static long project(String name, String state) {
-        return jdbc.sql("insert into ms_task_projects (name, state) values (:name, :state) returning id")
+        return jdbc.sql("insert into ms_task_projects (name, archived_at) values (:name,"
+                        + " case when :state = 'P' then clock_timestamp() end) returning id")
                 .param("name", name + "-" + sequence.incrementAndGet())
                 .param("state", state)
                 .query(Long.class)

@@ -39,7 +39,7 @@ describe('TaskLookupsService', () => {
     api.get.mockReturnValue(of({ items: [], nextCursor: null, hasMore: false }));
     lookups.projects.page('skl', null, 50).subscribe();
     expect(api.get).toHaveBeenCalledWith(
-      '/tasks/projects/page',
+      '/entities/ms.projects',
       { limit: 20, cursor: undefined, q: 'skl' },
       { notifyError: false },
     );

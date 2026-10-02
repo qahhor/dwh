@@ -163,7 +163,7 @@ class ReportExportIntegrationTest {
         Long first = task("Первая", outsider, outsider);
         Long second = task("Завершённая", outsider, outsider);
         jdbc.sql(
-                        "update ms_tasks set status_id = (select id from ms_task_statuses where pcode = 'done'), resolved_time = now() where id = :id")
+                        "update ms_tasks set status_id = (select id from ms_task_statuses where code = 'done'), resolved_time = now() where id = :id")
                 .param("id", second)
                 .update();
         signIn(viewer, Set.of("*.*"), false);

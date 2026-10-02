@@ -584,6 +584,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entities/ms.projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List records of ms.projects
+         * @description List records of ms.projects through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["listMsProjects"];
+        put?: never;
+        /**
+         * Create a record of ms.projects
+         * @description Create a record of ms.projects through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["createMsProjects"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a record of ms.projects
+         * @description Get a record of ms.projects through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["getMsProjects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a record of ms.projects
+         * @description Change a record of ms.projects through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        patch: operations["patchMsProjects"];
+        trace?: never;
+    };
+    "/api/v1/entities/ms.projects/{id}/actions/add_member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run add_member on a record
+         * @description Run add_member on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["add_memberMsProjects"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.projects/{id}/actions/remove_member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run remove_member on a record
+         * @description Run remove_member on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["remove_memberMsProjects"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.projects/{id}/archived": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Archive or restore a record of ms.projects
+         * @description Archive or restore a record of ms.projects through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        put: operations["archiveMsProjects"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/entities/ms.task_statuses": {
         parameters: {
             query?: never;
@@ -2532,27 +2640,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/tasks/projects": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create a project
-         * @description Adds a project with its name, description, state and custom field values.
-         */
-        post: operations["createProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/projects/page": {
+    "/api/v1/tasks/projects/progress": {
         parameters: {
             query?: never;
             header?: never;
@@ -2560,56 +2648,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Page through projects
-         * @description The projects a keyset page at a time on the registry: filter, sort, search and the caller's task counts.
+         * Read the progress of projects
+         * @description Total and closed tasks of each named project over the tasks the caller may see, at most 200 projects.
          */
-        get: operations["pageProjects"];
+        get: operations["progress"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/projects/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a project
-         * @description One project with its custom field values.
-         */
-        get: operations["getProject"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Update a project
-         * @description Changes a project; names the revision it was read at.
-         */
-        patch: operations["updateProject"];
-        trace?: never;
-    };
-    "/api/v1/tasks/projects/{id}/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Add a project member
-         * @description Adds a user to a project.
-         */
-        post: operations["addMember"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2631,26 +2675,6 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/projects/{id}/members/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Remove a project member
-         * @description Removes a user from a project.
-         */
-        delete: operations["removeMember"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3164,11 +3188,6 @@ export interface components {
             fileIds?: string[];
             textMarkdown?: string;
         };
-        AddProjectMemberRequest: {
-            accessKind?: string;
-            /** Format: int64 */
-            userId?: number;
-        };
         AnalyticsSummaryDto: {
             /** Format: int64 */
             activeProjectsCount?: number;
@@ -3453,14 +3472,6 @@ export interface components {
             orderNo?: number;
             /** Format: int64 */
             parentId?: number;
-        };
-        CreateProjectRequest: {
-            attributes?: {
-                [key: string]: unknown;
-            };
-            description?: string;
-            name: string;
-            state?: string;
         };
         CreateRoleDto: {
             name: string;
@@ -3992,14 +4003,6 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
-        KeysetPageProjectListItem: {
-            hasMore?: boolean;
-            items?: components["schemas"]["ProjectListItem"][];
-            nextCursor?: string;
-            /** Format: int64 */
-            totalEstimated?: number;
-            totalExact?: boolean;
-        };
         KeysetPageProjectMemberView: {
             hasMore?: boolean;
             items?: components["schemas"]["ProjectMemberView"][];
@@ -4218,6 +4221,58 @@ export interface components {
             /** Format: int64 */
             revision: number;
             title?: string;
+        };
+        /** @description A new record of ms.projects; any other property is refused (unknown_field) */
+        MsProjectsCreate: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            description?: string;
+            name: string;
+        };
+        MsProjectsPage: {
+            hasMore?: boolean;
+            items?: components["schemas"]["MsProjectsRecord"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        /** @description The fields to change of a record of ms.projects; any other property is refused (unknown_field) */
+        MsProjectsPatch: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            description?: string;
+            name?: string;
+        };
+        /** @description A record of ms.projects as the viewer may read it */
+        MsProjectsRecord: {
+            /** @description What the viewer may do with this record */
+            actions?: string[];
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            description?: string;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            modifiedAt?: string;
+            /** Format: int64 */
+            modifiedBy?: number;
+            name?: string;
+            /** Format: int64 */
+            revision: number;
         };
         /** @description A new record of ms.task_statuses; any other property is refused (unknown_field) */
         MsTaskStatusesCreate: {
@@ -4528,26 +4583,6 @@ export interface components {
             /** Format: int64 */
             totalTasks?: number;
         };
-        ProjectListItem: {
-            attributes?: {
-                [key: string]: unknown;
-            };
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: int64 */
-            createdBy?: number;
-            description?: string;
-            /** Format: int32 */
-            doneTasks?: number;
-            /** Format: int64 */
-            id?: number;
-            name?: string;
-            /** Format: int32 */
-            progress?: number;
-            state?: string;
-            /** Format: int32 */
-            totalTasks?: number;
-        };
         ProjectMemberView: {
             accessKind?: string;
             /** Format: int64 */
@@ -4557,21 +4592,15 @@ export interface components {
             userId?: number;
             userName?: string;
         };
-        ProjectView: {
-            attributes?: {
-                [key: string]: unknown;
-            };
-            /** Format: date-time */
-            createdAt?: string;
+        ProjectProgressView: {
+            /** Format: int32 */
+            doneTasks?: number;
+            /** Format: int32 */
+            progress?: number;
             /** Format: int64 */
-            createdBy?: number;
-            description?: string;
-            /** Format: int64 */
-            id?: number;
-            name?: string;
-            /** Format: int64 */
-            revision?: number;
-            state?: string;
+            projectId?: number;
+            /** Format: int32 */
+            totalTasks?: number;
         };
         PublishRequest: {
             /** Format: date */
@@ -5012,14 +5041,6 @@ export interface components {
             orderNo?: number;
             /** Format: int64 */
             parentId?: number;
-            state?: string;
-        };
-        UpdateProjectRequest: {
-            attributes?: {
-                [key: string]: unknown;
-            };
-            description?: string;
-            name?: string;
             state?: string;
         };
         UpdateRoleDto: {
@@ -6361,6 +6382,346 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MsNotesRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    listMsProjects: {
+        parameters: {
+            query?: {
+                q?: string;
+                filter?: string;
+                sort?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the list (ADR-0016) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsProjectsPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createMsProjects: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsProjectsCreate"];
+            };
+        };
+        responses: {
+            /** @description The created record */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsProjectsRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    getMsProjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsProjectsRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    patchMsProjects: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsProjectsPatch"];
+            };
+        };
+        responses: {
+            /** @description The changed record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsProjectsRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    add_memberMsProjects: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsProjectsRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    remove_memberMsProjects: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsProjectsRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    archiveMsProjects: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityArchivedRequest"];
+            };
+        };
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsProjectsRecord"];
                 };
             };
             /** @description The record changed since the revision named in If-Match */
@@ -11069,55 +11430,10 @@ export interface operations {
             };
         };
     };
-    createProject: {
+    progress: {
         parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateProjectRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    pageProjects: {
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-                filter?: string;
-                sort?: string;
-                q?: string;
-                state?: string;
+            query: {
+                ids: number[];
             };
             header?: never;
             path?: never;
@@ -11131,134 +11447,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["KeysetPageProjectListItem"];
+                    "application/json": components["schemas"]["ProjectProgressView"][];
                 };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateProject: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateProjectRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    addMember: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddProjectMemberRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -11293,39 +11483,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["KeysetPageProjectMemberView"];
                 };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    removeMember: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {

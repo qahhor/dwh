@@ -17,8 +17,23 @@ import { ProjectListItem } from './projects.models';
 
 type Params = Record<string, unknown>;
 
-/** A page of the project list as the server answers it. */
-const page = (items: ProjectListItem[]) => ({ items, nextCursor: null, hasMore: false, totalEstimated: items.length });
+/** A page of the project list as the runtime answers it (ADR-0032 6.2): a paused project is an archived record. */
+const page = (items: ProjectListItem[]) => ({
+  items: items.map((item) => ({ ...item, archived: item.state === 'P' })),
+  nextCursor: null,
+  hasMore: false,
+  totalEstimated: items.length,
+});
+/** The progress the module answers for the listed projects that carry counts. */
+const progressOf = (items: ProjectListItem[]) =>
+  items
+    .filter((item) => item.totalTasks != null)
+    .map((item) => ({
+      projectId: item.id,
+      totalTasks: item.totalTasks,
+      doneTasks: item.doneTasks,
+      progress: item.progress ?? 0,
+    }));
 const project = (id: number, state: 'A' | 'P' = 'A', extra: Partial<Project> = {}): Project => ({
   id,
   name: `Project ${id}`,
@@ -40,7 +55,14 @@ async function setup(
   const api = {
     get: vi.fn(
       (url: string, _params?: unknown, _options?: unknown) =>
-        options.read?.(url) ?? of(url === '/tasks/projects/page' && options.items ? page(options.items) : []),
+        options.read?.(url) ??
+        of(
+          url === '/entities/ms.projects' && options.items
+            ? page(options.items)
+            : url === '/tasks/projects/progress' && options.items
+              ? progressOf(options.items)
+              : [],
+        ),
     ),
     post: vi.fn((): Observable<unknown> => of({})),
     patch: vi.fn((): Observable<unknown> => of({})),
@@ -126,10 +148,11 @@ describe('ProjectsComponent', () => {
     redraw(fixture);
 
     expect(api.post).toHaveBeenCalledTimes(1);
-    expect(api.post).toHaveBeenCalledWith('/tasks/projects', {
-      name: 'Native create',
-      description: 'Submitted from the form',
-    });
+    expect(api.post).toHaveBeenCalledWith(
+      '/entities/ms.projects',
+      { name: 'Native create', description: 'Submitted from the form' },
+      { notifyError: false },
+    );
     expect((screen.querySelector('fieldset.project-create-form') as HTMLFieldSetElement).disabled).toBe(true);
     expect(footerButtons(screen).every((button) => button.disabled)).toBe(true);
     expect(screen.querySelector('[role="dialog"] .smt-modal__close')).toBeNull();
@@ -175,7 +198,7 @@ describe('ProjectsComponent', () => {
     const reads = [failed, fresh];
     const { fixture, api, screen } = await setup({
       items: [summary],
-      read: (url) => (url === '/tasks/projects/5' ? reads.shift() : undefined),
+      read: (url) => (url === '/entities/ms.projects/5' ? reads.shift() : undefined),
     });
     const pendingPatch = new Subject<void>();
     api.patch.mockReturnValue(pendingPatch);
@@ -207,7 +230,7 @@ describe('ProjectsComponent', () => {
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     redraw(fixture);
     expect(api.patch).toHaveBeenCalledTimes(1);
-    expect(api.patch).toHaveBeenCalledWith('/tasks/projects/5', { name: 'Native rename' }, expect.any(Object));
+    expect(api.patch).toHaveBeenCalledWith('/entities/ms.projects/5', { name: 'Native rename' }, expect.any(Object));
     expect(screen.querySelector('.project-edit-form')?.disabled).toBe(true);
     pendingPatch.error({ status: 409, detail: 'Normalized edit detail' });
     redraw(fixture);
@@ -217,11 +240,11 @@ describe('ProjectsComponent', () => {
   it('asks the server for one page with the search, the state and the sort; a header sorts the whole list', async () => {
     vi.useFakeTimers();
     const { fixture, component, api, screen } = await setup({ items: [project(1), project(2)] });
-    const lastQuery = () => api.get.mock.calls.filter(([url]) => url === '/tasks/projects/page').at(-1);
+    const lastQuery = () => api.get.mock.calls.filter(([url]) => url === '/entities/ms.projects').at(-1);
     await vi.advanceTimersByTimeAsync(0);
     redraw(fixture);
     expect(api.get).toHaveBeenCalledWith(
-      '/tasks/projects/page',
+      '/entities/ms.projects',
       expect.objectContaining({ limit: 10, cursor: undefined }),
       { notifyError: false },
     );
@@ -231,17 +254,19 @@ describe('ProjectsComponent', () => {
     await vi.advanceTimersByTimeAsync(300);
     expect(lastQuery()?.[1]).toEqual(expect.objectContaining({ q: 'Proj' }));
     component.setSelectedState('P');
-    expect(lastQuery()?.[1]).toEqual(expect.objectContaining({ state: 'P', q: 'Proj' }));
+    expect(lastQuery()?.[1]).toEqual(
+      expect.objectContaining({ filter: '[{"field":"archived","op":"eq","value":true}]', q: 'Proj' }),
+    );
     component.onSort({ column: 'progress', sortBy: 'DESC' as never });
     expect(lastQuery()?.[1]).toEqual(expect.objectContaining({ sort: '-progress' }));
-    expect(component.exportOptions()).toEqual({ state: 'P' });
+    expect(component.exportFilter()).toEqual([{ field: 'archived', op: 'eq', value: true }]);
   });
 
   it('shows recoverable list loading and error states without empty results in list and cards', async () => {
     const [first, retry] = [new Subject<unknown>(), new Subject<unknown>()];
     const reads = [first, retry];
     const { fixture, component, screen } = await setup({
-      read: (url) => (url === '/tasks/projects/page' ? (reads.shift() ?? of(page([]))) : undefined),
+      read: (url) => (url === '/entities/ms.projects' ? (reads.shift() ?? of(page([]))) : undefined),
     });
 
     expect(screen.querySelector('[data-testid="projects-list-loading"][role="status"]')).not.toBeNull();
@@ -318,8 +343,13 @@ describe('ProjectsComponent', () => {
 
     expect(component.searchQuery).toBe('');
     expect(component.selectedState).toBe('all');
-    const request = api.get.mock.calls.filter(([url]) => url === '/tasks/projects/page').at(-1)?.[1] as Params;
-    expect([request['state'], request['q'], request['cursor']]).toEqual([undefined, undefined, undefined]);
+    const request = api.get.mock.calls.filter(([url]) => url === '/entities/ms.projects').at(-1)?.[1] as Params;
+    // Every project again: an "any" group over the archive (ADR-0032 5.4), no search, the first page.
+    expect([request['filter'], request['q'], request['cursor']]).toEqual([
+      '[{"any":[{"field":"archived","op":"eq","value":true},{"field":"archived","op":"eq","value":false}]}]',
+      undefined,
+      undefined,
+    ]);
   });
 
   it('opens the members of a project from its row', async () => {
@@ -343,12 +373,12 @@ describe('ProjectsComponent record in the address', () => {
     const paramMap = new BehaviorSubject(convertToParamMap({ id: '41' }));
     const { component, api, router, settle, screen } = await setup({
       paramMap,
-      read: (url) => (/\/tasks\/projects\/4[12]$/.test(url) ? of(project(Number(url.slice(-2)))) : undefined),
+      read: (url) => (/\/entities\/ms\.projects\/4[12]$/.test(url) ? of(project(Number(url.slice(-2)))) : undefined),
     });
     await settle();
 
     expect(component.routeRecordId()).toBe('41');
-    expect(api.get).toHaveBeenCalledWith('/tasks/projects/41', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/entities/ms.projects/41', undefined, { notifyError: false });
     expect(component.viewingProject()?.id).toBe(41);
     expect(screen.querySelector('[data-record-id="41"]')?.textContent).toContain('Project 41');
 
@@ -370,9 +400,9 @@ describe('ProjectsComponent record in the address', () => {
     const retry = new Subject<Project>();
     const sevens: Observable<unknown>[] = [throwError(() => ({ status: 503 })), retry];
     const reads: Record<string, () => Observable<unknown> | undefined> = {
-      '/tasks/projects/7': () => sevens.shift(),
-      '/tasks/projects/8': () => of(project(9)),
-      '/tasks/projects/404': () => throwError(() => ({ status: 404 })),
+      '/entities/ms.projects/7': () => sevens.shift(),
+      '/entities/ms.projects/8': () => of(project(9)),
+      '/entities/ms.projects/404': () => throwError(() => ({ status: 404 })),
     };
     const { component, settle, screen } = await setup({ paramMap, read: (url) => reads[url]?.() });
     await settle();

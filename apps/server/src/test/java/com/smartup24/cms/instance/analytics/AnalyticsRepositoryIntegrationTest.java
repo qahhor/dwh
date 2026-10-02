@@ -24,9 +24,11 @@ class AnalyticsRepositoryIntegrationTest {
         user = id(
                 "insert into md_users (name, login, email) values ('Analyst', 'analyst', 'a@example.test') returning id");
         project = id("insert into ms_task_projects (name) values ('Dashboard') returning id");
-        long open = id("insert into ms_task_statuses (name, color) values ('Open', '#000') returning id");
+        long open =
+                id("insert into ms_task_statuses (code, name, color) values ('open', 'Open', '#000000') returning id");
         long done = id(
-                "insert into ms_task_statuses (name, color, is_terminal) values ('Closed', '#fff', true) returning id");
+                "insert into ms_task_statuses (code, name, color, is_terminal) values ('closed', 'Closed', '#ffffff', true)"
+                        + " returning id");
         long first = task("First", open);
         task("Second", done);
         jdbc.sql("insert into ms_task_members (task_id, user_id, involve_kind) values (:task, :user, 'R')")

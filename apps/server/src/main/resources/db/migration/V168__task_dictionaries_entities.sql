@@ -21,7 +21,6 @@ alter table ms_task_types
 alter table ms_task_types
     add constraint ms_task_types_ck_attributes check (jsonb_typeof(attributes) = 'object'),
     add constraint ms_task_types_ck_code check (code ~ '^[a-z][a-z0-9_]{0,63}$') not valid,
-    add constraint ms_task_types_ck_name check (char_length(name) between 1 and 255) not valid,
     add constraint ms_task_types_ck_color check (color ~ '^#[0-9a-fA-F]{6}$') not valid;
 create unique index ms_task_types_code_uq on ms_task_types (code) where archived_at is null;
 create index ms_task_types_created_by_idx on ms_task_types (created_by);
@@ -47,7 +46,6 @@ alter table ms_task_statuses alter column code set not null;
 alter table ms_task_statuses
     add constraint ms_task_statuses_ck_attributes check (jsonb_typeof(attributes) = 'object'),
     add constraint ms_task_statuses_ck_code check (code ~ '^[a-z][a-z0-9_]{0,63}$') not valid,
-    add constraint ms_task_statuses_ck_name check (char_length(name) between 1 and 255) not valid,
     add constraint ms_task_statuses_ck_color check (color ~ '^#[0-9a-fA-F]{6}$') not valid;
 create unique index ms_task_statuses_code_uq on ms_task_statuses (code) where archived_at is null;
 create index ms_task_statuses_created_by_idx on ms_task_statuses (created_by);

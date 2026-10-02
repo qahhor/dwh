@@ -88,7 +88,13 @@ import { UiPaginationComponent } from './ui-pagination.component';
             <ui-list-views [state]="views" />
           }
           @if (exportable() && filterMeta(); as meta) {
-            <ui-export-button [meta]="meta" [views]="views" [search]="exportSearch()" [options]="exportOptions()" />
+            <ui-export-button
+              [meta]="meta"
+              [views]="views"
+              [search]="exportSearch()"
+              [options]="exportOptions()"
+              [extraFilter]="exportFilter()"
+            />
           }
         }
         <smt-column-settings
@@ -241,6 +247,8 @@ export class UiServerTableComponent<T> {
   /** The screen's search text and list options, so the export matches what is shown. */
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
+  /** The screen's own conditions the export keeps, outside the saved view (a preset, the archive switch). */
+  readonly exportFilter = input<readonly unknown[]>([]);
   /** Columns that cannot be hidden, such as the one that names the row. */
   readonly lockedColumns = input<readonly string[]>([]);
 

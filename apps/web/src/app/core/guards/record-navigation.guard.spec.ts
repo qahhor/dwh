@@ -20,7 +20,7 @@ describe('Record routes with the actual router and actual templates', () => {
         if (/^\/iam\/org-units\/users\/\d+\/scope$/.test(path)) {
           return of({ rule: 'ALL', visibleOrgUnitIds: [] });
         }
-        if (/\/(?:tasks|projects|users)\/\d+(?:\/comments)?$/.test(path)) {
+        if (/\/(?:tasks|ms\.projects|users)\/\d+(?:\/comments)?$/.test(path)) {
           const response = new Subject<any>();
           requests.set(path, response);
           return response.asObservable();
@@ -52,7 +52,7 @@ describe('Record routes with the actual router and actual templates', () => {
           });
         }
         return of(
-          path === '/tasks' || path === '/iam/users' || path === '/tasks/projects/page'
+          path === '/tasks' || path === '/iam/users' || path.startsWith('/entities/')
             ? { items: [], hasMore: false, nextCursor: null, totalReturned: 0 }
             : [],
         );
@@ -116,7 +116,7 @@ describe('Record routes with the actual router and actual templates', () => {
       '/tasks/projects',
       '/tasks/projects/42',
       ProjectsComponent,
-      '/tasks/projects/42',
+      '/entities/ms.projects/42',
       { id: 42, name: 'Fresh project', description: 'Detail', state: 'A' },
       'Fresh project',
     ],
@@ -350,9 +350,9 @@ describe('Record routes with the actual router and actual templates', () => {
     const { harness, router, requests } = await setup();
     const page = await harness.navigateByUrl('/tasks/projects/41', ProjectsComponent);
     const record = { id: 41, name: 'Project', description: '', state: 'A' as const, createdAt: '2026-01-01' };
-    requests.get('/tasks/projects/41')!.next(record);
+    requests.get('/entities/ms.projects/41')!.next(record);
     page.openEditModal(record);
-    requests.get('/tasks/projects/41')!.next(record);
+    requests.get('/entities/ms.projects/41')!.next(record);
     page.editForm.name = 'Unsaved project';
     const cancelled = router.navigateByUrl('/tasks/projects/42');
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -366,7 +366,7 @@ describe('Record routes with the actual router and actual templates', () => {
     expect(await confirmed).toBe(true);
     expect(router.url).toBe('/tasks/projects/42');
     expect(page.isEditModalOpen()).toBe(false);
-    expect(requests.has('/tasks/projects/42')).toBe(true);
+    expect(requests.has('/entities/ms.projects/42')).toBe(true);
   });
 
   it('keeps a bigint route key exact despite rounded JSON and exposes no unsafe task action', async () => {
@@ -408,7 +408,7 @@ describe('Record routes with the actual router and actual templates', () => {
   });
 
   it.each([
-    ['/tasks/projects/9223372036854775807', ProjectsComponent, '/tasks/projects/9223372036854775807'],
+    ['/tasks/projects/9223372036854775807', ProjectsComponent, '/entities/ms.projects/9223372036854775807'],
     ['/iam/users/9223372036854775807', UsersComponent, '/iam/users/9223372036854775807'],
   ] as const)(
     'uses the exact bigint identity and prevents numeric editor handoff for %s',
@@ -501,7 +501,7 @@ describe('Record routes with the actual router and actual templates', () => {
 
   it.each([
     ['/tasks/items', '/tasks', TasksComponent],
-    ['/tasks/projects', '/tasks/projects', ProjectsComponent],
+    ['/tasks/projects', '/entities/ms.projects', ProjectsComponent],
     ['/iam/users', '/iam/users', UsersComponent],
   ] as const)(
     'cancels old detail requests and shows a localized 404 with a working list action for %s',

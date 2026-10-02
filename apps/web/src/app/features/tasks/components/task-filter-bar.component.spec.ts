@@ -19,12 +19,12 @@ const PROJECTS = [
 /** The paged project list (plan 10/10, item 3.5): searched with q, one project read by id. */
 const api = {
   get: vi.fn((path: string, params?: Record<string, unknown>) => {
-    if (path === '/tasks/projects/page') {
+    if (path === '/entities/ms.projects') {
       const text = String(params?.['q'] ?? '').toLowerCase();
       const items = PROJECTS.filter((project) => project.name.toLowerCase().includes(text));
       return of({ items, nextCursor: null, hasMore: false });
     }
-    return of(PROJECTS.find((project) => path === `/tasks/projects/${project.id}`) ?? null);
+    return of(PROJECTS.find((project) => path === `/entities/ms.projects/${project.id}`) ?? null);
   }),
 };
 
@@ -146,7 +146,7 @@ describe('TaskFilterBarComponent', () => {
 
     trigger.click();
     fixture.detectChanges();
-    const read = api.get.mock.calls.find(([path]) => path === '/tasks/projects/page');
+    const read = api.get.mock.calls.find(([path]) => path === '/entities/ms.projects');
     expect(read?.[1]).toEqual(expect.objectContaining({ limit: 20 }));
     expect(api.get.mock.calls.some(([path]) => path === '/tasks/projects')).toBe(false);
   });

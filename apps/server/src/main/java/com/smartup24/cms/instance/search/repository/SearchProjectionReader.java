@@ -35,7 +35,7 @@ public class SearchProjectionReader {
     public List<Long> reconciliationIds(String type, long after, int limit) {
         return jdbc.sql("select entity_id from search_projection_versions where entity_type=:type and entity_id>:after "
                         + "union select id from " + sourceTable(type) + " where id>:after"
-                        + (type.equals("TASK") ? "" : " and state='A'")
+                        + (type.equals("TASK") ? "" : " and " + active(type))
                         + " order by 1 limit :limit")
                 .param("type", type)
                 .param("after", after)
@@ -79,7 +79,7 @@ public class SearchProjectionReader {
         long total = 0;
         for (String type : List.of("TASK", "PROJECT", "USER")) {
             String table = sourceTable(type);
-            String filter = type.equals("TASK") ? "" : " where state='A'";
+            String filter = type.equals("TASK") ? "" : " where " + active(type);
             long estimate = jdbc.sql("select (select count(*) from " + table + filter + ") * "
                             + "coalesce(max(least(octet_length(source.document::text),1048576))+256,256) "
                             + "from (select id as entity_id from " + table + filter + " order by id limit 100) v "
@@ -89,6 +89,14 @@ public class SearchProjectionReader {
             total = Math.addExact(total, estimate);
         }
         return total;
+    }
+
+    /**
+     * The rows of a projection type the index holds: an active user, a project not in the archive (ADR-0032, 5.4; its
+     * document keeps the state {@code A} of the index schema).
+     */
+    private static String active(String type) {
+        return type.equals("PROJECT") ? "not archived" : "state='A'";
     }
 
     public static String sourceTable(String type) {
@@ -115,8 +123,8 @@ public class SearchProjectionReader {
                     """;
             case "PROJECT" -> """
                     select jsonb_build_object('id',p.id::text,'project_id',p.id,'name',p.name,
-                        'description',coalesce(p.description,''),'state',p.state) as document
-                    from ms_task_pub_projects p where p.id=v.entity_id and p.state='A'
+                        'description',coalesce(p.description,''),'state','A') as document
+                    from ms_task_pub_projects p where p.id=v.entity_id and not p.archived
                     """;
             case "USER" -> """
                     select jsonb_build_object('id',u.id::text,'user_id',u.id,'name',u.name,

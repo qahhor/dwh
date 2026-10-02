@@ -40,7 +40,7 @@ import { ProjectListItem } from '../projects.models';
           [filterMeta]="meta()"
           [exportable]="true"
           [exportSearch]="exportSearch()"
-          [exportOptions]="exportOptions()"
+          [exportFilter]="exportFilter()"
           [lockedColumns]="['name', 'actions']"
           [loadingLabel]="'projects.loading_projects' | t"
           [errorLabel]="'projects.load_projects_error' | t"
@@ -161,7 +161,8 @@ export class ProjectTableViewComponent {
   readonly views = input<ListViewState | null>(null);
   /** The search text and state filter on screen, so an export matches the list shown. */
   readonly exportSearch = input<string | null>(null);
-  readonly exportOptions = input<Record<string, string> | null>(null);
+  /** The archive switch of the list as the export's own filter (ADR-0032 5.4). */
+  readonly exportFilter = input<readonly unknown[]>([]);
 
   readonly canUpdateProject = input(false);
   readonly projectStats = input<Record<number, ProjectTaskStats>>({});
@@ -204,14 +205,15 @@ export class ProjectTableViewComponent {
       cells: {
         id: cell(this.idCell),
         name: cell(this.nameCell),
-        state: cell(this.stateCell),
+        // The archive of the runtime (ADR-0032 5.4): a paused project is an archived one.
+        archived: cell(this.stateCell),
         progress: cell(this.progressCell),
         createdAt: cell(this.createdCell),
       },
       widths: {
         id: '70px',
         name: `max(220px, calc(100% - ${fixed}px))`,
-        state: '120px',
+        archived: '120px',
         progress: '220px',
         createdAt: '120px',
       },

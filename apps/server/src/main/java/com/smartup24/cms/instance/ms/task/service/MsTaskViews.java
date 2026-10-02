@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
-import com.smartup24.cms.instance.ms.task.api.ProjectView;
 import com.smartup24.cms.instance.ms.task.api.TaskCommentView;
 import com.smartup24.cms.instance.ms.task.api.TaskFileView;
 import com.smartup24.cms.instance.ms.task.api.TaskListFilters;
@@ -9,7 +8,6 @@ import com.smartup24.cms.instance.ms.task.api.TaskMemberView;
 import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.repository.LegacyTaskFilters;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository.ProjectMemberRecord;
-import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository.ProjectRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository.CommentRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskFileRepository.TaskFileRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository.TaskMemberRecord;
@@ -57,18 +55,6 @@ final class MsTaskViews {
 
     static TaskFileView file(TaskFileRecord file) {
         return new TaskFileView(file.fileId(), file.fileName(), file.sizeBytes(), file.mimeType(), file.createdAt());
-    }
-
-    static ProjectView project(ProjectRecord project) {
-        return new ProjectView(
-                project.id(),
-                project.name(),
-                project.description(),
-                project.state(),
-                project.attributes(),
-                project.createdAt(),
-                project.createdBy(),
-                project.revision());
     }
 
     static ProjectMemberView projectMember(ProjectMemberRecord member) {

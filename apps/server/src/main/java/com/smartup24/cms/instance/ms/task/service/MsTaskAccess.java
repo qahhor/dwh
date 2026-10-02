@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
@@ -47,10 +48,11 @@ public class MsTaskAccess {
      * system call.
      */
     public void requireProject(Long projectId, Long actorId) {
-        if (projectId != null) {
-            ApiException.requirePresent(
-                    projectRepository.findById(projectId, scopeService.filterForProjects(actorId)),
-                    () -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
+        if (projectId != null
+                && projectRepository
+                        .visible(Set.of(projectId), scopeService.filterForProjects(actorId))
+                        .isEmpty()) {
+            throw new ApiException(ErrorCode.PROJECT_NOT_FOUND);
         }
     }
 

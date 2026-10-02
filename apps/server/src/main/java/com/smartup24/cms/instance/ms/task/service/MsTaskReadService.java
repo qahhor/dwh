@@ -5,7 +5,6 @@ import com.smartup24.cms.instance.ms.task.api.TaskDetail;
 import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository.ProjectTaskStats;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTreeRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -75,10 +74,5 @@ public class MsTaskReadService {
         return MsTaskViews.all(
                 treeRepository.findAncestorChain(taskId, scopeService.filterForTasks(currentUserId)),
                 MsTaskViews::task);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ProjectTaskStats> getProjectTaskStats() {
-        return statsRepository.getProjectTaskStats();
     }
 }

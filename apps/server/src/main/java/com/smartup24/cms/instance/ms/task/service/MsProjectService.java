@@ -1,185 +1,81 @@
 package com.smartup24.cms.instance.ms.task.service;
 
-import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.CursorUtils;
 import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.TimePage;
-import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
-import com.smartup24.cms.instance.ms.task.api.ProjectView;
+import com.smartup24.cms.instance.ms.task.api.ProjectProgressView;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
-import com.smartup24.cms.instance.search.service.SearchChangePublisher;
+import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * What the module reads of a project besides its record, which the general runtime keeps ({@link MsProjectEntity}):
+ * its members a page at a time, and its progress over the tasks the viewer may see (ADR-0013). A project is opened here
+ * only as the runtime opens it: outside the viewer's scope it answers 404, like a missing one.
+ */
 @Service
 public class MsProjectService {
 
     static final int DEFAULT_MEMBERS = 50;
     static final int MAX_MEMBERS = 200;
 
+    /** The most projects one progress read names: a page of the project list. */
+    public static final int MAX_PROGRESS = 200;
+
     private final MsProjectRepository projectRepository;
-    private final MdCustomFieldService customFieldService;
-    private final SearchChangePublisher searchChangePublisher;
-    private final AuditLogService auditLogService;
+    private final MsTaskStatsRepository statsRepository;
+    private final EntityRegistry entities;
     private final MdScopeService scopeService;
 
     public MsProjectService(
             MsProjectRepository projectRepository,
-            MdCustomFieldService customFieldService,
-            SearchChangePublisher searchChangePublisher,
-            AuditLogService auditLogService,
+            MsTaskStatsRepository statsRepository,
+            EntityRegistry entities,
             MdScopeService scopeService) {
         this.projectRepository = projectRepository;
-        this.customFieldService = customFieldService;
-        this.searchChangePublisher = searchChangePublisher;
-        this.auditLogService = auditLogService;
+        this.statsRepository = statsRepository;
+        this.entities = entities;
         this.scopeService = scopeService;
     }
 
-    @Transactional
-    public ProjectView createProject(
-            String name, String description, String state, Map<String, Object> attributes, Long createdBy) {
-
-        String normalizedName = validateAndNormalizeName(name, true);
-        validateState(state);
-        Map<String, Object> storedAttributes =
-                attributes != null ? customFieldService.checkedAttributes("PROJECT", attributes) : null;
-
-        var project = projectRepository.create(normalizedName, description, state, storedAttributes, createdBy);
-        searchChangePublisher.projectChanged(project.id());
-
-        auditLogService.logChange(
-                "ms_task_projects",
-                String.valueOf(project.id()),
-                "I",
-                List.of("name", "state"),
-                null,
-                Map.of("name", normalizedName, "state", project.state()));
-
-        return MsTaskViews.project(project);
-    }
-
+    /** Throws the runtime's 404 when the project is missing or outside the viewer's scope (ADR-0013). */
     @Transactional(readOnly = true)
-    public ProjectView getProjectById(Long id) {
-        return MsTaskViews.project(findProject(id));
-    }
-
-    /** The card as the viewer may open it: a project outside the viewer's data scope is missing (ADR-0013). */
-    @Transactional(readOnly = true)
-    public ProjectView getProjectById(Long id, Long viewerId) {
-        return MsTaskViews.project(findVisible(id, viewerId));
+    public void requireVisible(long projectId) {
+        entities.records(MsProjectEntity.CODE).orElseThrow().requireVisible(projectId);
     }
 
     /**
-     * Every call that names a project by id checks this first: outside the viewer's scope the project answers 404
-     * like a missing one, so its id reveals nothing (ADR-0013); {@code viewerId} null is a system call.
+     * The progress of the projects the viewer may see among {@code projectIds}, each over the tasks the viewer may see;
+     * a project the viewer may not see is left out, as a missing one is.
      */
     @Transactional(readOnly = true)
-    public void requireVisible(Long id, Long viewerId) {
-        findVisible(id, viewerId);
-    }
-
-    private MsProjectRepository.ProjectRecord findVisible(Long id, Long viewerId) {
-        return projectRepository
-                .findById(id, scopeService.filterForProjects(viewerId))
-                .orElseThrow(() -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
-    }
-
-    private MsProjectRepository.ProjectRecord findProject(Long id) {
-        return projectRepository.findById(id).orElseThrow(() -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
-    }
-
-    @Transactional
-    public long updateProject(
-            Long id,
-            String name,
-            String description,
-            String state,
-            Map<String, Object> attributes,
-            long expectedRevision) {
-        var before = findProject(id);
-        String normalizedName = validateAndNormalizeName(name, false);
-        validateState(state);
-        Map<String, Object> storedAttributes =
-                attributes != null ? customFieldService.checkedAttributes("PROJECT", attributes) : null;
-        long revision =
-                projectRepository.update(id, normalizedName, description, state, storedAttributes, expectedRevision);
-        searchChangePublisher.projectChanged(id);
-
-        auditLogService.logChange(
-                "ms_task_projects",
-                String.valueOf(id),
-                "U",
-                List.of("name", "description", "state"),
-                Map.of("name", before.name(), "state", before.state()),
-                Map.of(
-                        "name",
-                        normalizedName != null ? normalizedName : before.name(),
-                        "state",
-                        state != null ? state : before.state()));
-        return revision;
-    }
-
-    private String validateAndNormalizeName(String name, boolean required) {
-        String normalizedName = name != null ? name.trim() : null;
-        if ((required && normalizedName == null) || (normalizedName != null && normalizedName.isBlank())) {
+    public List<ProjectProgressView> progress(List<Long> projectIds, long viewerId) {
+        if (projectIds.size() > MAX_PROGRESS) {
             throw ApiException.validation(
-                    "error.project.name_required",
-                    List.of(FieldErrorItem.keyed("name", "required", "error.project.name_required")));
+                    "error.common.record_fields_invalid",
+                    List.of(FieldErrorItem.keyed(
+                            "ids", "too_many", "error.field.too_many", Map.of("max", MAX_PROGRESS))));
         }
-        return normalizedName;
-    }
-
-    private void validateState(String state) {
-        if (state != null && !state.equals("A") && !state.equals("P")) {
-            throw ApiException.validation(
-                    "error.project.state_invalid",
-                    List.of(FieldErrorItem.keyed("state", "invalid", "error.field.one_of", Map.of("values", "A, P"))));
-        }
-    }
-
-    /** With an actor: the project and the new member are both checked in the actor's scope (ADR-0013). */
-    @Transactional
-    public void addProjectMember(Long projectId, Long userId, String accessKind, Long actorId) {
-        findVisible(projectId, actorId);
-        scopeService.requireUserVisible(actorId, userId);
-        addProjectMember(projectId, userId, accessKind);
-    }
-
-    @Transactional
-    public void addProjectMember(Long projectId, Long userId, String accessKind) {
-        findProject(projectId);
-        projectRepository.addMember(projectId, userId, accessKind);
-
-        // Project membership is access to its tasks, so changing it is an access change:
-        // it is audited on a par with granting permissions.
-        auditLogService.logChange(
-                "ms_task_project_members",
-                projectId + ":" + userId,
-                "I",
-                List.of("user_id", "access_kind"),
-                null,
-                Map.of("project_id", projectId, "user_id", userId, "access_kind", accessKind));
-    }
-
-    @Transactional
-    public void removeProjectMember(Long projectId, Long userId) {
-        projectRepository.removeMember(projectId, userId);
-
-        auditLogService.logChange(
-                "ms_task_project_members",
-                projectId + ":" + userId,
-                "D",
-                List.of("user_id"),
-                Map.of("project_id", projectId, "user_id", userId),
-                null);
+        Set<Long> ids = new LinkedHashSet<>(projectIds);
+        if (ids.isEmpty()) return List.of();
+        List<Long> visible = projectRepository.visible(ids, scopeService.filterForProjects(viewerId));
+        return statsRepository.getProjectTaskStats(visible, scopeService.filterForTasks(viewerId)).stream()
+                .map(stats -> new ProjectProgressView(
+                        stats.projectId(),
+                        stats.totalTasks(),
+                        stats.doneTasks(),
+                        stats.totalTasks() == 0 ? 0 : (int) Math.round(stats.doneTasks() * 100.0 / stats.totalTasks())))
+                .toList();
     }
 
     /**
@@ -187,7 +83,8 @@ public class MsProjectService {
      * (else 422), {@code cursor} the {@code nextCursor} of the previous page (422 when it is not one).
      */
     @Transactional(readOnly = true)
-    public KeysetPage<ProjectMemberView> pageProjectMembers(Long projectId, Integer limit, String cursor) {
+    public KeysetPage<ProjectMemberView> pageProjectMembers(long projectId, Integer limit, String cursor) {
+        requireVisible(projectId);
         int size = TimePage.limit(limit, DEFAULT_MEMBERS, MAX_MEMBERS);
         var after = cursor == null || cursor.isBlank() ? null : decodeMember(projectId, cursor);
         var rows = projectRepository.getMembers(projectId, after, size + 1);
@@ -207,7 +104,7 @@ public class MsProjectService {
     }
 
     /** The user id goes first: a name may hold the separator. */
-    private static MsProjectRepository.ProjectMemberRecord decodeMember(Long projectId, String cursor) {
+    private static MsProjectRepository.ProjectMemberRecord decodeMember(long projectId, String cursor) {
         String raw = CursorUtils.decode(cursor);
         int bar = raw == null ? -1 : raw.indexOf('|');
         if (bar <= 0) {

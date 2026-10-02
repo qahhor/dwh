@@ -405,8 +405,8 @@ class MsTaskPatchIntegrationTest {
 
     private static Long project(Long actor) {
         return jdbc.sql("""
-                insert into ms_task_projects (name, description, state, attributes, created_by)
-                values (:name, '', 'A', '{}', :actor) returning id
+                insert into ms_task_projects (name, description, attributes, created_by)
+                values (:name, '', '{}', :actor) returning id
                 """)
                 .param("name", "Project " + SEQUENCE.incrementAndGet())
                 .param("actor", actor)

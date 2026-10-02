@@ -14,7 +14,7 @@ import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '@core/services/search-target';
 import { Subscription, Observable, catchError, map, of } from 'rxjs';
 import { CustomFieldsApi } from '@core/services/custom-fields.api';
-import { ProjectsApi } from './projects.api';
+import { ProjectsApi, archiveFilter } from './projects.api';
 import { PermissionService } from '@core/services/permission.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { Project, ProjectTaskStats } from '@core/models/task.models';
@@ -128,7 +128,8 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       ),
   });
 
-  private exportFilters: Record<string, string> = {};
+  private exportConditions: unknown[] = [];
+  private exportState: ProjectStateFilter | null = null;
 
   /** Sort, filter and columns of the list; saved views keep them under a name. */
   readonly views = new ListViewState('ms.projects', inject(ListViewsApi), {
@@ -320,11 +321,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     return this.listLoaded() && !this.isLoading() && !this.listLoadError();
   }
 
-  /** The state quick filter as an export option; the same object while it stays. */
-  exportOptions(): Record<string, string> {
-    const state = this.selectedState === 'all' ? undefined : this.selectedState;
-    if ((this.exportFilters['state'] ?? undefined) !== state) this.exportFilters = state ? { state } : {};
-    return this.exportFilters;
+  /** The archive switch as the export's own filter (ADR-0032 5.4); the same array while it stays. */
+  exportFilter(): unknown[] {
+    if (this.exportState !== this.selectedState) {
+      this.exportState = this.selectedState;
+      this.exportConditions = archiveFilter(this.selectedState);
+    }
+    return this.exportConditions;
   }
 
   viewProjectTasks(project: Project) {
@@ -380,6 +383,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   }
 
   private flatFilters() {
-    return { state: this.selectedState === 'all' ? undefined : this.selectedState };
+    return { state: this.selectedState };
   }
 }

@@ -132,7 +132,11 @@ abstract class SearchDeliveryTestSupport {
                 "truncate ms_tasks,ms_task_projects,md_users cascade",
                 // The cascade follows search_settings.updated_by to md_users (plan 10/10, item 4.6) and takes the
                 // singleton settings row along; it comes back as the migration seeds it.
-                "insert into search_settings(id) values(1) on conflict (id) do nothing"))
+                "insert into search_settings(id) values(1) on conflict (id) do nothing",
+                // It also follows the author of the task statuses (ADR-0032, 14.1): the status a new task starts in
+                // comes back as the product ships it.
+                "insert into ms_task_statuses (code, name, color, sort_order, is_system) select 'new', 'Новая',"
+                        + " '#3b82f6', 10, true where not exists (select 1 from ms_task_statuses where code = 'new')"))
             jdbc.sql(sql).update();
         publisher = SearchRevisionIntegrationTest.proxied(new SearchChangePublisher(jdbc), manager);
         reader = new SearchProjectionReader(jdbc, mapper);

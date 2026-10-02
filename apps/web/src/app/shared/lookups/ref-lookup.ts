@@ -133,7 +133,7 @@ export class RefLookups {
     const sources: Record<string, unknown> = {
       '/iam/users': this.lookups.activeUsers,
       '/tasks': this.lookups.tasks,
-      '/tasks/projects/page': this.lookups.projects,
+      '/entities/ms.projects': this.lookups.projects,
     };
     const source = ref.keyField === 'id' ? sources[ref.path] : undefined;
     return (source as SMTLookupSource<Row, SMTLookupKey> | undefined) ?? null;

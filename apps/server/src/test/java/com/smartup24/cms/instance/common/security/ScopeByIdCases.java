@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.security;
 
 import com.smartup24.cms.instance.common.security.ScopeFixture.Kind;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
+import com.smartup24.cms.instance.ms.task.service.MsProjectEntity;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +56,21 @@ final class ScopeByIdCases {
                 handler, MsNoteEntity.CODE, Kind.NOTE, (f, id) -> Map.of("code", MsNoteEntity.CODE), body, inScope);
     }
 
+    /** A by-id handler of the entity runtime on a project; an action names its code as the path variable. */
+    private static Case project(
+            String handler, String action, BiFunction<ScopeFixture, Object, Object> body, Set<Integer> inScope) {
+        String label = action.isEmpty() ? MsProjectEntity.CODE : MsProjectEntity.CODE + " " + action;
+        return new Case(
+                handler,
+                label,
+                Kind.PROJECT,
+                (f, id) -> action.isEmpty()
+                        ? Map.of("code", MsProjectEntity.CODE)
+                        : Map.of("code", MsProjectEntity.CODE, "action", action),
+                body,
+                inScope);
+    }
+
     private static Case history(String key, Kind kind) {
         return new Case("RecordHistoryController#history", key, kind, (f, id) -> Map.of("kind", key), NO_BODY, OK);
     }
@@ -95,27 +111,23 @@ final class ScopeByIdCases {
             write("KauthSessionController#forcePasswordChange", Kind.USER, NO_CONTENT),
             write("KauthSessionController#reset2fa", Kind.USER, NO_CONTENT),
             history("users", Kind.USER),
-            // projects (ms.task)
-            read("MsProjectController#getProject", Kind.PROJECT),
-            write(
-                    "MsProjectController#updateProject",
-                    Kind.PROJECT,
-                    (f, id) -> Map.of("description", "TEST changed"),
-                    NO_CONTENT),
-            write(
-                    "MsProjectController#addMember",
-                    Kind.PROJECT,
+            // projects (ms.task) on the general entity runtime (ADR-0032, 8): seen by their author, members and the
+            // participants of their tasks
+            project("EntityController#get", "", NO_BODY, OK),
+            project("EntityController#update", "", (f, id) -> Map.of("description", "TEST changed"), OK),
+            project("EntityController#archive", "", (f, id) -> Map.of("archived", true), OK),
+            project(
+                    "EntityController#action",
+                    MsProjectEntity.ADD_MEMBER,
                     (f, id) -> Map.of("userId", f.insider, "accessKind", "R"),
-                    NO_CONTENT),
-            new Case(
-                    "MsProjectController#removeMember",
-                    "",
-                    Kind.PROJECT,
+                    OK),
+            project(
+                    "EntityController#action",
+                    MsProjectEntity.REMOVE_MEMBER,
                     (f, id) -> Map.of("userId", f.insider),
-                    NO_BODY,
-                    NO_CONTENT),
+                    OK),
             read("MsProjectController#pageMembers", Kind.PROJECT),
-            history("projects", Kind.PROJECT),
+            history(MsProjectEntity.CODE, Kind.PROJECT),
             // tasks (ms.task): the card, its subresources and history
             read("MsTaskController#getTask", Kind.TASK),
             write("MsTaskController#markViewed", Kind.TASK, NO_CONTENT),
@@ -163,11 +175,6 @@ final class ScopeByIdCases {
             Map.entry("EntityController#list", "an entity code: its list holds only the viewer's scope (the kit)"),
             Map.entry("EntityController#create", "an entity code: a new record, in the creator's scope"),
             Map.entry(
-                    "EntityController#action",
-                    "a declared record action: no entity of the application declares one; the record is read in its"
-                            + " scope for update as for every change (EntityRuntimeIntegrationTest, the kit's scope"
-                            + " group of an entity with an action)"),
-            Map.entry(
                     "EntityFileController#download",
                     "a record's file: the runtime's read in the entity's scope decides (EntityFileControllerTest);"
                             + " no entity of the application has a file field yet"),
@@ -212,10 +219,6 @@ final class ScopeByIdCases {
             Map.entry("MsAnnouncementController#markAsRead", "an announcement, instance-wide; the caller's mark"),
             Map.entry(
                     "MsNotificationController#markAsRead", "the caller's own notification; another id changes nothing"),
-            Map.entry("MsTaskStatusController#updateStatus", "a task status, a directory (ADR-0032: all())"),
-            Map.entry("MsTaskStatusController#deleteStatus", "a task status, a directory (ADR-0032: all())"),
-            Map.entry("MsTaskStatusController#updateType", "a task type, a directory (ADR-0032: all())"),
-            Map.entry("MsTaskStatusController#deleteType", "a task type, a directory (ADR-0032: all())"),
             Map.entry("ReportExportController#file", "the caller's own export; another id answers 404"),
             Map.entry("SearchManagementController#job", "a search index job, administrator only, instance-wide"),
             Map.entry("SearchManagementController#cancel", "a search index job, administrator only, instance-wide"),
