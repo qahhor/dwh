@@ -93,7 +93,7 @@ jobs:
 
       - name: Build, migrate and start the stack
         env:
-          COMPOSE_FILE: docker-compose.yml:scripts/dev/api-smoke.compose.yml
+          COMPOSE_FILE: docker-compose.yml:scripts/dev/api-smoke.compose.yml:scripts/dev/e2e-mail.compose.yml
           SMC_RATE_LIMIT_USER_PER_MINUTE: '6000'
         run: |
           docker compose build --pull
@@ -111,7 +111,7 @@ jobs:
       - name: Clean the stack
         if: always()
         env:
-          COMPOSE_FILE: docker-compose.yml:scripts/dev/api-smoke.compose.yml
+          COMPOSE_FILE: docker-compose.yml:scripts/dev/api-smoke.compose.yml:scripts/dev/e2e-mail.compose.yml
         run: docker compose down --volumes --remove-orphans
 
   advisories:
