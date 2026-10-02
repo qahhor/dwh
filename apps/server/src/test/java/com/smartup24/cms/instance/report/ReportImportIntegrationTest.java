@@ -216,6 +216,26 @@ class ReportImportIntegrationTest extends EmbeddedPostgresTest {
     }
 
     @Test
+    @DisplayName("10.1: a person blocked before the job runs: the import fails as forbidden and writes nothing")
+    void blockedOwnerFailsTheImport() throws Exception {
+        byte[] file = ImportFiles.workbook(List.of("code"), List.of(Map.of("code", "w_" + tag)));
+        MockHttpServletResponse started = ImportFiles.start(session, TYPES, files.upload(importer.id(), file), "apply");
+        assertThat(started.getStatus()).isEqualTo(202);
+        String id = String.valueOf(TestSession.object(started).get("id"));
+        jdbc.sql("update md_users set state = 'P' where id = :id")
+                .param("id", importer.id())
+                .update();
+        wac.getBean(com.smartup24.cms.instance.jobs.runner.JobRunner.class).runQueued();
+        assertThat(jdbc.sql("select state || ':' || error_code from report_imports where public_id = :id")
+                        .param("id", UUID.fromString(id))
+                        .query(String.class)
+                        .single())
+                .isEqualTo("failed:IMPORT_FORBIDDEN");
+        assertThat(count("select count(*) from ms_task_types where code = 'w_" + tag + "'"))
+                .isZero();
+    }
+
+    @Test
     @DisplayName("10.1: an import whose week is over goes with its report and its problems")
     void cleanupRemovesExpiredImports() throws Exception {
         Map<String, Object> journal = files.run(
