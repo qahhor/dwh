@@ -693,16 +693,15 @@ test.describe.serial('organization structure vertical acceptance', () => {
 
       const panel = await openActorPanel(page, seeded.actor.id);
       await expect(panel.getByRole('heading', { name: 'Историческая привязка', exact: true })).toBeVisible();
-      const modal = page.getByRole('dialog', { name: 'Профиль пользователя', exact: true });
-      expect(await modal.evaluate(element => {
-        // smt-dialog: the scrolling body is .smt-dialog__body.
-        const body = element.querySelector<HTMLElement>('.smt-dialog__body');
+      // The user's record is the general entity screen (ADR-0032 8), not a dialog: its units panel stays within the
+      // viewport and the page does not scroll sideways.
+      expect(await panel.evaluate(element => {
         const rect = element.getBoundingClientRect();
         return {
           withinViewport: rect.left >= 0 && rect.right <= window.innerWidth,
-          bodyContained: !!body && body.scrollWidth <= body.clientWidth,
+          pageContained: document.documentElement.scrollWidth <= window.innerWidth,
         };
-      })).toEqual({ withinViewport: true, bodyContained: true });
+      })).toEqual({ withinViewport: true, pageContained: true });
       await page.screenshot({
         path: testInfo.outputPath(`user-scope-${current.theme}-${current.width}x${current.height}.png`),
         fullPage: false,

@@ -27,6 +27,7 @@ class RevisionedUpdatesRaiseRevisionTest {
 
     static final List<String> REVISIONED_TABLES = List.of(
             "ms_notes",
+            "ms_tasks",
             "ms_task_projects",
             "md_users",
             "md_roles",
@@ -67,7 +68,9 @@ class RevisionedUpdatesRaiseRevisionTest {
                 }
             }
         }
-        assertThat(found).as("the scan finds the updates of revisioned tables").hasSizeGreaterThan(20);
+        // Most writes of revisioned rows are the entity runtime's generated SQL now (ADR-0032, 6.3), which raises the
+        // revision itself; the floor only proves the scan still finds the hand-written ones.
+        assertThat(found).as("the scan finds the updates of revisioned tables").hasSizeGreaterThan(10);
         assertThat(missing)
                 .as("UPDATEs of a revisioned table that do not set revision = revision + 1")
                 .isEmpty();
