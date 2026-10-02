@@ -118,24 +118,4 @@ describe('UserSecurityService', () => {
     expect(summaryReads(api, 42)).toBe(1);
     expect(security.isSecurityActionPending()).toBe(false);
   });
-
-  it.each([
-    ['forcePasswordChange', '/iam/users/42/force-password-change', false],
-    ['resetUser2fa', '/iam/users/42/reset-2fa', true],
-  ] as const)('%s posts once after the confirmation and tells the screen', async (action, path, destructive) => {
-    const { security, api, asked, confirm } = setup();
-    const done = vi.fn();
-
-    security[action](42, done);
-    expect(asked[0].destructive).toBe(destructive);
-    expect(api.post).not.toHaveBeenCalled();
-    confirm();
-    await settle();
-    security.loadUserSecurity(42);
-    await settle();
-
-    expect(api.post).toHaveBeenCalledTimes(1);
-    expect(api.post).toHaveBeenCalledWith(path, undefined, { notifyError: false });
-    expect(done).toHaveBeenCalledTimes(1);
-  });
 });

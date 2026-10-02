@@ -6,6 +6,7 @@ import { loginToInstance } from '../../../support/auth.js';
 import { loadE2eEnv } from '../../../support/env.mjs';
 import { Mailbox, oneTimeCode, resetToken } from '../../../support/mailpit.js';
 import { clearSecret, fillSecret } from '../../../support/secret.js';
+import { runUserAction } from '../../../support/users.js';
 
 // Plan 10/10, item 0.8: delivery by real SMTP. The stack sends to Mailpit (scripts/dev/e2e-mail.compose.yml); every
 // code and link below is read from a mailed message and typed into the UI the way a person would, never printed.
@@ -113,23 +114,44 @@ test.describe.serial('mail delivery through the SMTP stub', () => {
       const manager = roles.find(role => role.pcode === 'manager');
       if (!manager) throw new Error('Built-in non-admin manager role is unavailable');
 
-      const created = await readJson<{ id?: unknown }>(await admin.request.post('/api/v1/iam/users', {
-        headers: await csrfHeaders(admin),
-        data: {
-          name: subject.name,
-          login: subject.login,
-          email: subject.email,
-          password: subject.password,
-          language: 'ru',
-          timezone: 'Asia/Tashkent',
-          is2faEnabled: false,
-          forcePasswordChange: false,
-          roleIds: [manager.id],
-          attributes: {},
-        },
-      }), 201, 'Synthetic user setup');
+      // 0. The administrator creates the account without a password (ADR-0032 8); the invitation arrives by mail
+      //    and its link sets the first password on the reset page, as a person accepting it would.
+      const created = await readJson<{ id?: unknown; revision?: unknown }>(
+        await admin.request.post('/api/v1/entities/md.users', {
+          headers: await csrfHeaders(admin),
+          data: {
+            name: subject.name,
+            login: subject.login,
+            email: subject.email,
+            language: 'ru',
+            timezone: 'Asia/Tashkent',
+          },
+        }),
+        201,
+        'Synthetic user setup',
+      );
       if (!Number.isInteger(created.id)) throw new Error('Synthetic user setup returned no numeric id');
       userId = Number(created.id);
+      await readJson<unknown>(await admin.request.put(`/api/v1/iam/users/${userId}/roles`, {
+        headers: { ...await csrfHeaders(admin), 'If-Match': `"${String(created.revision)}"` },
+        data: { roleIds: [manager.id] },
+      }), 200, 'Synthetic user roles');
+
+      const invitation = await subjectPage();
+      await invitation.goto('/login');
+      const invitationToken = resetToken(await mailbox.nextMessage());
+      await invitation.evaluate(value => window.location.assign(`/reset-password#token=${value}`), invitationToken);
+      const firstPassword = invitation.locator('#reset-new-password');
+      const firstConfirmation = invitation.locator('#reset-confirm-password');
+      try {
+        await expect(firstPassword).toBeVisible({ timeout: 15_000 });
+        await fillSecret(firstPassword, subject.password);
+        await fillSecret(firstConfirmation, subject.password);
+        await invitation.getByRole('button', { name: 'Сохранить пароль', exact: true }).click();
+        await expect(invitation.getByText('Пароль изменён. Войдите с новым паролем.', { exact: true })).toBeVisible();
+      } finally {
+        await Promise.all([clearSecret(firstPassword), clearSecret(firstConfirmation)]);
+      }
 
       // 1. The person binds the email channel in the profile and confirms it with the mailed code.
       const profile = await subjectPage();
@@ -156,13 +178,9 @@ test.describe.serial('mail delivery through the SMTP stub', () => {
       await expect(profile.getByTestId('profile-channels-table').getByText('Подтверждён', { exact: true }))
         .toBeVisible();
 
-      // 2. The administrator turns on two-factor sign-in; the code now arrives by mail.
-      const current = await readJson<{ revision?: unknown }>(
-        await admin.request.get(`/api/v1/iam/users/${userId}`), 200, 'Synthetic user read');
-      await readJson<void>(await admin.request.patch(`/api/v1/iam/users/${userId}`, {
-        headers: { ...await csrfHeaders(admin), 'If-Match': `"${String(current.revision)}"` },
-        data: { is2faEnabled: true },
-      }), 204, 'Two-factor switch');
+      // 2. The administrator turns on two-factor sign-in, an action of the user (ADR-0032 8); the code now arrives
+      //    by mail.
+      await runUserAction(admin, userId, 'enable_2fa');
 
       const otpSignIn = await subjectPage();
       expect(await submitPassword(otpSignIn, subject.login, subject.password)).toBe('otp');
@@ -201,11 +219,8 @@ test.describe.serial('mail delivery through the SMTP stub', () => {
     } finally {
       for (const context of contexts) await context.close();
       await mailbox.close();
-      if (userId !== undefined) {
-        await readJson<void>(await admin.request.delete(`/api/v1/iam/users/${userId}`, {
-          headers: await csrfHeaders(admin),
-        }), 204, 'Synthetic user cleanup');
-      }
+      // Anonymisation takes the place of a delete (ADR-0032 8).
+      if (userId !== undefined) await runUserAction(admin, userId, 'anonymize');
     }
   });
 });

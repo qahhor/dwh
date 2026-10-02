@@ -17,7 +17,7 @@ describe('UiCustomFieldsComponent', () => {
     const api = {
       get: vi.fn((path: string) =>
         of(
-          path === '/iam/users'
+          path === '/entities/md.users'
             ? { items: [{ id: 42, name: 'Анна Смирнова', login: 'asmirnova' }], nextCursor: null, hasMore: false }
             : { id: 42, name: 'Анна Смирнова', login: 'asmirnova' },
         ),
@@ -84,7 +84,7 @@ describe('UiCustomFieldsComponent', () => {
       { curator_id: 42 },
     );
     const trigger = fixture.nativeElement.querySelector('[role="combobox"]') as HTMLElement;
-    expect(api.get).toHaveBeenCalledWith('/iam/users/42', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/entities/md.users/42', undefined, { notifyError: false });
     expect(trigger.textContent).toContain('Анна Смирнова');
   });
 });

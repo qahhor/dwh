@@ -3,7 +3,6 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.md.api.MdUserDtos.CreateUserDto;
 import com.smartup24.cms.instance.md.api.MdUserIdentity;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
@@ -18,8 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * User accounts: creation, profile and role changes, and the reads that authentication and the API use. The
- * security actions on an account (password, state, 2FA, anonymisation) live in {@link MdUserSecurityService}.
+ * The reads of user accounts that authentication and the other modules use, and the creation of an account by the
+ * system itself (seeds, provisioning, tests) with an initial password. The API serves the accounts through the user
+ * entity ({@link MdUserEntity}): a user created there gets an invitation instead of a password; the password and the
+ * access a change takes away live in {@link MdUserSecurityService}.
  */
 @Service
 public class MdUserService {
@@ -165,32 +166,6 @@ public class MdUserService {
                 createdBy);
     }
 
-    /** The create request as the API sends it; the answer is the safe view with the roles the user got. */
-    @Transactional
-    public MdUserView createUser(CreateUserDto body, Long createdBy) {
-        var user = createUser(
-                body.name(),
-                body.login(),
-                body.email(),
-                body.phone(),
-                body.password(),
-                body.managerId(),
-                body.language(),
-                body.timezone(),
-                body.avatarFileId(),
-                body.attributes(),
-                body.is2faEnabled(),
-                Boolean.TRUE.equals(body.forcePasswordChange()),
-                body.roleIds(),
-                createdBy);
-        return MdUserView.from(user, roleRepository.getUserRoleIds(user.id()));
-    }
-
-    @Transactional(readOnly = true)
-    public MdUserView getUserView(Long userId) {
-        return MdUserView.from(getUserById(userId), roleRepository.getUserRoleIds(userId));
-    }
-
     /**
      * Every call that names a user by id checks this first: a user outside the viewer's data scope answers 404
      * like a missing one (ADR-0013); {@code viewerId} null is a system call.
@@ -232,76 +207,6 @@ public class MdUserService {
     @Transactional(readOnly = true)
     public Map<Long, List<Long>> getUsersRoleIds(List<Long> userIds) {
         return roleRepository.getUsersRoleIds(userIds);
-    }
-
-    @Transactional
-    public long updateUser(
-            Long userId,
-            String name,
-            String phone,
-            Long managerId,
-            String language,
-            String timezone,
-            UUID avatarFileId,
-            Map<String, Object> attributes,
-            Boolean is2faEnabled,
-            List<Long> roleIds,
-            Long modifiedBy,
-            long expectedRevision) {
-
-        if (roleIds != null) {
-            scopeService.acquireMutationLock();
-        }
-        var existingUser = getUserById(userId);
-
-        String normalizedPhone = (phone != null && !phone.isBlank()) ? phone.trim() : null;
-        if (normalizedPhone != null && !normalizedPhone.equals(existingUser.phone())) {
-            if (userRepository.existsByPhone(normalizedPhone)) {
-                throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "error.md.user_phone_exists");
-            }
-        }
-
-        Map<String, Object> storedAttributes =
-                attributes != null ? customFieldService.checkedAttributes("USER", attributes) : null;
-
-        long revision = userRepository.update(
-                userId,
-                new MdUserRepository.UserUpdateData(
-                        name,
-                        normalizedPhone,
-                        managerId,
-                        language,
-                        timezone,
-                        avatarFileId,
-                        storedAttributes,
-                        is2faEnabled),
-                modifiedBy,
-                expectedRevision);
-
-        if (roleIds != null) {
-            // The administrator role cannot be removed from the system administrator admin
-            if (existingUser.login().equalsIgnoreCase("admin")) {
-                roleRepository.findByPcode(MdPref.ROLE_ADMIN).ifPresent(adminRole -> {
-                    if (!roleIds.contains(adminRole.id())) {
-                        throw ApiException.conflict(
-                                ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_role_remove_forbidden");
-                    }
-                });
-            }
-            roleRepository.assignRolesToUser(userId, roleIds);
-            scopeService.recalculateFor(userId);
-        }
-
-        searchChangePublisher.changed("USER", userId);
-
-        auditLogService.logChange(
-                "md_users",
-                String.valueOf(userId),
-                "U",
-                List.of("name", "phone", "language", "timezone"),
-                Map.of("name", existingUser.name(), "phone", existingUser.phone() != null ? existingUser.phone() : ""),
-                Map.of("name", name != null ? name : existingUser.name(), "phone", phone != null ? phone : ""));
-        return revision;
     }
 
     public record AuthUser(

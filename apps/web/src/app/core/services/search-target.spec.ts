@@ -6,7 +6,7 @@ describe('Typed search targets', () => {
   it.each([
     ['TASK', '123', ['/tasks/items', '123']],
     ['PROJECT', '9223372036854775807', ['/tasks/projects', '9223372036854775807']],
-    ['USER', '42', ['/iam/users', '42']],
+    ['USER', '42', ['/e/md.users', '42']],
   ] as const)('ignores dependency URLs for %s', (entityType, id, target) => {
     expect(searchTarget({ entityType, id, title: 'x', description: '', targetUrl: 'https://invalid.test' })).toEqual(
       target,

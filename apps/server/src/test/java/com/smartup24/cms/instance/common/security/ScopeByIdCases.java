@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.security;
 
 import com.smartup24.cms.instance.common.security.ScopeFixture.Kind;
+import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
 import java.util.List;
 import java.util.Map;
@@ -55,17 +56,38 @@ final class ScopeByIdCases {
                 handler, MsNoteEntity.CODE, Kind.NOTE, (f, id) -> Map.of("code", MsNoteEntity.CODE), body, inScope);
     }
 
+    /** A by-id handler of the entity runtime, on a user (ADR-0032, 8). */
+    private static Case user(String handler, BiFunction<ScopeFixture, Object, Object> body, Set<Integer> inScope) {
+        return new Case(
+                handler, MdUserEntity.CODE, Kind.USER, (f, id) -> Map.of("code", MdUserEntity.CODE), body, inScope);
+    }
+
+    /** A record action of a user through the runtime: the action is the path variable {@code action}. */
+    private static Case userAction(String action) {
+        return new Case(
+                "EntityController#action",
+                MdUserEntity.CODE + " " + action,
+                Kind.USER,
+                (f, id) -> Map.of("code", MdUserEntity.CODE, "action", action),
+                NO_BODY,
+                OK);
+    }
+
     private static Case history(String key, Kind kind) {
         return new Case("RecordHistoryController#history", key, kind, (f, id) -> Map.of("kind", key), NO_BODY, OK);
     }
 
     static final List<Case> CASES = List.of(
-            // users (md): the card, its changes, roles, units, sessions and history
-            read("MdUserController#getUser", Kind.USER),
-            write("MdUserController#updateUser", Kind.USER, (f, id) -> Map.of("name", "TEST renamed"), NO_CONTENT),
-            write("MdUserController#blockUser", Kind.USER, NO_CONTENT),
-            write("MdUserController#unblockUser", Kind.USER, NO_CONTENT),
-            write("MdUserController#deleteUser", Kind.USER, NO_CONTENT),
+            // users (md) on the general entity runtime (ADR-0032, 8): the record, its change and actions, then the
+            // roles, units, sessions and history of the user
+            user("EntityController#get", NO_BODY, OK),
+            user("EntityController#update", (f, id) -> Map.of("name", "TEST renamed"), OK),
+            userAction(MdUserEntity.BLOCK),
+            userAction(MdUserEntity.UNBLOCK),
+            userAction(MdUserEntity.RESET_2FA),
+            userAction(MdUserEntity.ENABLE_2FA),
+            userAction(MdUserEntity.FORCE_PASSWORD_CHANGE),
+            userAction(MdUserEntity.ANONYMIZE),
             read("MdAssignmentController#getUserRoles", Kind.USER),
             write("MdAssignmentController#assignRoles", Kind.USER, (f, id) -> Map.of("roleIds", List.of()), OK),
             read("MdAssignmentController#getPersonalPermissions", Kind.USER),
@@ -92,9 +114,7 @@ final class ScopeByIdCases {
                     NO_BODY,
                     NO_CONTENT),
             read("KauthSessionController#getUserSecuritySummary", Kind.USER),
-            write("KauthSessionController#forcePasswordChange", Kind.USER, NO_CONTENT),
-            write("KauthSessionController#reset2fa", Kind.USER, NO_CONTENT),
-            history("users", Kind.USER),
+            history(MdUserEntity.CODE, Kind.USER),
             // projects (ms.task)
             read("MsProjectController#getProject", Kind.PROJECT),
             write(
@@ -162,11 +182,6 @@ final class ScopeByIdCases {
             Map.entry("EntityBulkController#bulk", "an entity code; every record passes the entity's own by-id path"),
             Map.entry("EntityController#list", "an entity code: its list holds only the viewer's scope (the kit)"),
             Map.entry("EntityController#create", "an entity code: a new record, in the creator's scope"),
-            Map.entry(
-                    "EntityController#action",
-                    "a declared record action: no entity of the application declares one; the record is read in its"
-                            + " scope for update as for every change (EntityRuntimeIntegrationTest, the kit's scope"
-                            + " group of an entity with an action)"),
             Map.entry(
                     "EntityFileController#download",
                     "a record's file: the runtime's read in the entity's scope decides (EntityFileControllerTest);"

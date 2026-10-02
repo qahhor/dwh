@@ -338,7 +338,9 @@ describe('RolesComponent', () => {
 
     fixture.componentInstance.navigateToUsersWithRole(role(5, 'Инженер'), fakeEvent);
     expect(fakeEvent.stopPropagation).toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith(['/iam/users'], { queryParams: { roleId: 5 } });
+    expect(router.navigate).toHaveBeenCalledWith(['/e/md.users'], {
+      queryParams: { filter: JSON.stringify([{ field: 'roleIds', op: 'in', value: [5] }]) },
+    });
   });
 
   function role(id: number, name: string): Role {

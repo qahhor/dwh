@@ -100,7 +100,7 @@ public final class TypesenseSearchMapper {
         String email = requiredText(document, "email");
         String fallback = email + " (@" + login + ")";
         return new SearchHit(
-                "USER", Long.toString(id), requiredText(document, "name"), snippet(hit, fallback), "/iam/users/" + id);
+                "USER", Long.toString(id), requiredText(document, "name"), snippet(hit, fallback), "/e/md.users/" + id);
     }
 
     private static long requiredDocumentId(JsonNode document, String typedIdField) {

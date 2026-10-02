@@ -60,30 +60,6 @@ export class UserSecurityService {
     });
   }
 
-  forcePasswordChange(userId: number, onComplete?: () => void): void {
-    this.askThenRun({
-      title: 'iam.common.force_password_change',
-      message: 'iam.users.security.force_password_change_confirm',
-      destructive: false,
-      request: () => this.api.post(`/iam/users/${userId}/force-password-change`, undefined, { notifyError: false }),
-      success: 'iam.users.security.password_change_forced',
-      userId,
-      onComplete,
-    });
-  }
-
-  resetUser2fa(userId: number, onComplete?: () => void): void {
-    this.askThenRun({
-      title: 'iam.users.reset_two_factor',
-      message: 'iam.users.security.reset_two_factor_confirm',
-      destructive: true,
-      request: () => this.api.post(`/iam/users/${userId}/reset-2fa`, undefined, { notifyError: false }),
-      success: 'iam.users.security.two_factor_reset',
-      userId,
-      onComplete,
-    });
-  }
-
   /**
    * Asks before a security action and runs it from the dialog: it stays open
    * while the request runs and shows the server's reason if it fails.
@@ -95,7 +71,6 @@ export class UserSecurityService {
     request: () => Observable<unknown>;
     success: string;
     userId: number;
-    onComplete?: () => void;
   }): void {
     this.modal
       .confirm({
@@ -110,7 +85,6 @@ export class UserSecurityService {
             tap(() => {
               this.toast.success(this.uiI18n.translate(ask.success));
               this.loadUserSecurity(ask.userId);
-              ask.onComplete?.();
             }),
             finalize(() => this.isSecurityActionPending.set(false)),
           );

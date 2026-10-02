@@ -1,13 +1,22 @@
 import { EnvironmentProviders, InjectionToken, Type, inject, makeEnvironmentProviders } from '@angular/core';
 
+/** A right of the permission matrix (ADR-0028): a form and one of its actions. */
+export interface EntityRight {
+  form: string;
+  action: string;
+}
+
 /**
  * A tab of the record page an entity adds (ADR-0032 7.2): its key, the catalog key of its label and the component
- * drawn in it, which gets the inputs `meta` (the entity's `form-meta`) and `record` (the record as read).
+ * drawn in it, which gets the inputs `meta` (the entity's `form-meta`) and `record` (the record as read). With
+ * `requires` the tab is offered only to a viewer who holds one of these rights; the server still decides what it
+ * answers — the tab only does not offer what would be refused.
  */
 export interface EntityTabOverride {
   key: string;
   labelKey: string;
   component: Type<unknown>;
+  requires?: readonly EntityRight[];
 }
 
 /**

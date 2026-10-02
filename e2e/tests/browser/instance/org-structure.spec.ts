@@ -12,6 +12,7 @@ import {
 
 import { loginToInstance } from '../../../support/auth.js';
 import { clearSecret, fillSecret } from '../../../support/secret.js';
+import { inviteUser } from '../../../support/users.js';
 
 type ScopeRule = 'UNITS' | 'SUBTREE' | 'SELF';
 type OrgUnit = {
@@ -213,18 +214,13 @@ async function createUser(page: Page, roleId: number, suffix: string): Promise<{
   const token = randomBytes(4).toString('hex');
   const login = `oe2e-${Date.now().toString(36)}-${suffix}-${token}`.toLowerCase();
   const password = `Qa!7${randomBytes(8).toString('hex')}`; // 20 characters, the policy maximum
-  const user = await api<User>(page.context(), 'POST', '/iam/users', 201, {
-    name: `${runPrefix} ${suffix}`,
-    login,
-    email: `${login}@example.invalid`,
+  // The user is invited (ADR-0032 8): the mailed link sets the password, as a person accepting it would.
+  const user = await inviteUser(
+    page.context(),
+    { name: `${runPrefix} ${suffix}`, login, email: `${login}@example.invalid` },
     password,
-    language: 'ru',
-    timezone: 'Asia/Tashkent',
-    is2faEnabled: false,
-    forcePasswordChange: false,
-    roleIds: [roleId],
-    attributes: {},
-  });
+    [roleId],
+  );
   return { user, password };
 }
 
@@ -265,16 +261,14 @@ async function selectOrgUnit(page: Page, name: string): Promise<void> {
 }
 
 async function openActorPanel(page: Page, actorId: number) {
-  await page.goto(`/iam/users/${actorId}`);
-  const profile = page.getByRole('dialog', { name: 'Профиль пользователя', exact: true });
-  await expect(profile).toBeVisible();
-  const orgTab = profile.getByRole('tab', { name: 'Оргструктура' });
-  const panel = profile.getByRole('region', { name: 'Подразделения и область данных', exact: true });
-  // The tabs render once the user record has loaded: wait for the tab (or a
-  // panel already open) instead of sampling visibility before they exist.
-  await expect(orgTab.or(panel).first()).toBeVisible();
-  if (await orgTab.isVisible() && await orgTab.getAttribute('aria-selected') !== 'true') {
-    await orgTab.click();
+  // The user's record on the general entity screen (ADR-0032 8): the units are on its tab "Roles and rights".
+  await page.goto(`/e/md.users/${actorId}`);
+  const accessTab = page.getByRole('tab', { name: 'Роли и права', exact: true });
+  const panel = page.getByRole('region', { name: 'Подразделения и область данных', exact: true });
+  // The tabs render once the record has loaded: wait for the tab instead of sampling before it exists.
+  await expect(accessTab).toBeVisible();
+  if (await accessTab.getAttribute('aria-selected') !== 'true') {
+    await accessTab.click();
   }
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'Фактическая область данных', exact: true })).toBeVisible();

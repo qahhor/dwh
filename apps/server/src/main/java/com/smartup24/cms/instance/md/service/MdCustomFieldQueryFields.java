@@ -92,7 +92,9 @@ public class MdCustomFieldQueryFields implements QueryListExtender {
         }
         return shape(type, raw).map(shape -> {
             QueryField field = QueryField.custom(key, record.name(), shape.type(), shape.sql(), code, List.of());
-            return "user_ref".equals(type) ? field.refersTo(QueryRef.paged("/iam/users", "name")) : field;
+            return "user_ref".equals(type)
+                    ? field.refersTo(QueryRef.paged(QueryRef.entityPath("md.users"), "name"))
+                    : field;
         });
     }
 

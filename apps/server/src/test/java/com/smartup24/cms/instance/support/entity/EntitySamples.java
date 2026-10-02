@@ -75,7 +75,7 @@ public final class EntitySamples {
             case BOOLEAN -> Optional.of(true);
             case SELECT -> Optional.of(field.options().getLast());
             case EMAIL -> Optional.of(token + "@example.com");
-            case PHONE -> Optional.of("+998901234567");
+            case PHONE -> Optional.of(phone(token));
             case URL -> Optional.of("https://example.com/" + token);
             case MONEY ->
                 Optional.of(Map.of(
@@ -98,7 +98,7 @@ public final class EntitySamples {
             case DATE -> Optional.of("2026-10-02");
             case DATETIME -> Optional.of("2026-10-02T10:45:00Z");
             case TIME -> Optional.of("10:45");
-            case PHONE -> Optional.of("+998901234568");
+            case PHONE -> Optional.of(phone(token + "-changed"));
             case NUMBER -> otherNumber(field).map(Object.class::cast);
             case MONEY ->
                 otherNumber(field).map(amount -> (Object) Map.of(
@@ -177,6 +177,15 @@ public final class EntitySamples {
             return Optional.empty();
         }
         return Optional.of(text);
+    }
+
+    /**
+     * A phone number in E.164 made from the token, so two records of one run hold different numbers: an entity may
+     * keep a phone unique (one active user per phone).
+     */
+    private static String phone(String token) {
+        long digits = Math.floorMod(token.hashCode(), 10_000_000L);
+        return "+99890" + String.format(java.util.Locale.ROOT, "%07d", digits);
     }
 
     private static String number(FormField field) {

@@ -27,7 +27,7 @@ Flyway-миграции и Angular-код.
 контракта:
 
 - классы HTTP-слоя оканчиваются на `Controller`, например
-  `MdUserController` и `MsTaskController`;
+  `MdRoleController` и `MsTaskController`;
 - прикладные операции оканчиваются на `Service`, например `MdUserService`;
 - доступ к данным оканчивается на `Repository`, например `MfFileRepository`;
 - стабильные коды модуля размещаются в классе `*Pref`, например `MfPref`;

@@ -23,8 +23,8 @@ describe('TaskLookupsService', () => {
     lookups.users.page('ann', null, 50).subscribe();
     lookups.tasks.page('Outside', 'c1', 50).subscribe();
     expect(api.get).toHaveBeenCalledWith(
-      '/iam/users',
-      { state: 'A', limit: 50, cursor: undefined, search: 'ann' },
+      '/entities/md.users',
+      { filter: JSON.stringify([{ field: 'state', op: 'eq', value: 'A' }]), limit: 50, cursor: undefined, q: 'ann' },
       { notifyError: false },
     );
     expect(api.get).toHaveBeenCalledWith(
@@ -76,7 +76,7 @@ describe('TaskLookupsService', () => {
     lookups.resolveUserNames([501, 502, 502, 0, -3]);
     lookups.resolveUserNames([502]);
     expect(api.get).toHaveBeenCalledTimes(1);
-    expect(api.get).toHaveBeenCalledWith('/iam/users/502', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/entities/md.users/502', undefined, { notifyError: false });
     answer.next({ id: 502, name: 'Resolved', login: 'u502' });
     answer.complete();
     expect(lookups.nameOf(502)).toBe('Resolved');

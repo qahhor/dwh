@@ -44,7 +44,6 @@ export class AppShellNavService {
       canViewFiles: () => this.canViewFiles(),
       canViewAnalytics: () => this.canViewAnalytics(),
       canViewNotifications: () => this.canViewNotifications(),
-      canViewUsers: () => this.canViewUsers(),
       canViewRoles: () => this.canViewRoles(),
       canViewOrgUnits: () => this.canViewOrgUnits(),
       canViewCustomFields: () => this.canViewCustomFields(),
@@ -62,7 +61,6 @@ export class AppShellNavService {
   canViewTasks = () => this.permService.canView('tasks.items');
   canViewProjects = () => this.permService.canView('tasks.projects');
   canViewAnalytics = () => this.permService.canView('analytics.dashboard');
-  canViewUsers = () => this.permService.canView('md.users');
   canViewRoles = () => this.permService.canView('md.roles');
   canViewOrgUnits = () => this.permService.canView('md.org_units');
   canViewCustomFields = () => this.permService.canView('md.custom_fields');

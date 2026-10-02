@@ -108,7 +108,7 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
         Session analyst = login(user("analyst"));
 
         assertThat((List<String>) read(send(admin, get("/api/v1/history"), null), "$"))
-                .contains("tasks", "projects", "users");
+                .contains("tasks", "projects", "md.users");
         assertThat((List<String>) read(send(analyst, get("/api/v1/history"), null), "$"))
                 .isEmpty();
     }
@@ -123,7 +123,7 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
                 .query(Long.class)
                 .single();
 
-        var response = send(admin, get("/api/v1/history/users/" + id), null);
+        var response = send(admin, get("/api/v1/history/md.users/" + id), null);
 
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         assertThat((List<String>) read(response, "$.items[-1:].event")).containsExactly("I");
@@ -132,7 +132,7 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
                 .contains("name", "login")
                 .noneMatch(field -> field.toLowerCase().contains("password"));
         assertThat((List<String>) read(response, "$.items[-1:].changes[?(@.field == 'name')].labelKey"))
-                .containsExactly("iam.common.full_name");
+                .containsExactly("iam.users.col.name");
     }
 
     @Test

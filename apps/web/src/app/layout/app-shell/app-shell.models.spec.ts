@@ -32,7 +32,6 @@ function options(held: string[], entityItems: EntityMenuItem[] = [], active: str
     canViewFiles: no,
     canViewAnalytics: no,
     canViewNotifications: no,
-    canViewUsers: no,
     canViewRoles: no,
     canViewOrgUnits: no,
     canViewCustomFields: no,

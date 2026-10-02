@@ -7,30 +7,26 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityLists;
+import com.smartup24.cms.instance.common.entity.EntityRowMapper;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
+import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
+import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
-import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
-import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
-import com.smartup24.cms.instance.md.repository.MdRoleRepository;
-import com.smartup24.cms.instance.md.repository.MdScopeRepository;
-import com.smartup24.cms.instance.md.repository.MdUserListSql.LegacyUserFilters;
-import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldQueryFields;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
-import com.smartup24.cms.instance.md.service.MdPermissionService;
-import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.md.service.MdUserListService;
-import com.smartup24.cms.instance.md.service.MdUserQuery;
-import com.smartup24.cms.instance.md.service.MdUserView;
+import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.support.TestDatabases;
 import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,16 +35,19 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import tools.jackson.databind.ObjectMapper;
 
-/** Custom fields as registry fields (ADR-0019 2.3, roadmap item 52), on the user list. */
+/** Custom fields as registry fields (ADR-0019 2.3, roadmap item 52), on the list of the user entity (ADR-0032, 8). */
 class MdCustomFieldQueryFieldsIntegrationTest {
+
+    /** The user entity, every row visible: the data scope is not what this test is about. */
+    static final EntityDefinition USERS = MdUserEntity.definition((userId, alias) -> ScopeFilter.unrestricted());
+
+    static final QueryList LIST = EntityLists.queryList(USERS);
 
     static DataSource ds;
     static JdbcClient jdbc;
     static ObjectMapper mapper;
     static MdCustomFieldService fields;
     static QueryListRegistry registry;
-    static MdUserListService users;
-    static Long viewer;
 
     @BeforeAll
     static void setup() {
@@ -58,16 +57,7 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         var audit = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());
         var repository = new MdCustomFieldRepository(jdbc, mapper);
         fields = new MdCustomFieldService(repository, audit);
-        registry = new QueryListRegistry(
-                List.of(MdUserQuery.LIST), List.of(), List.of(new MdCustomFieldQueryFields(fields)));
-        var roles = new MdRoleRepository(jdbc);
-        var scope = new MdScopeService(
-                new MdScopeRepository(jdbc),
-                new MdOrgUnitRepository(jdbc),
-                new MdPermissionService(new MdPermissionRepository(jdbc)),
-                audit);
-        users = new MdUserListService(
-                new QueryListRepository(jdbc), new MdUserRepository(jdbc, mapper), scope, roles, registry);
+        registry = new QueryListRegistry(List.of(LIST), List.of(), List.of(new MdCustomFieldQueryFields(fields)));
 
         fields.createField("USER", "cfr_region", "Регион", "string", false, null, null, 1);
         fields.createField("USER", "cfr_grade", "Грейд", "number", false, null, null, 2);
@@ -75,10 +65,7 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         fields.createField("USER", "cfr_remote", "Удалённо", "boolean", false, null, null, 4);
         fields.createField("USER", "cfr_hired", "Принят", "date", false, null, null, 5);
 
-        viewer = user("cfr_viewer", "{}");
-        roles.assignRolesToUser(
-                viewer, List.of(roles.findByPcode("admin").orElseThrow().id()));
-        scope.recalculateFor(viewer);
+        user("cfr_viewer", "{}");
         user(
                 "cfr_anna",
                 "{\"cfr_region\":\"Tashkent\",\"cfr_grade\":5,\"cfr_shift\":\"day\",\"cfr_remote\":true,\"cfr_hired\":\"2024-03-01\"}");
@@ -92,7 +79,7 @@ class MdCustomFieldQueryFieldsIntegrationTest {
     @Test
     @DisplayName("Each custom field is a registry field: its own label, its attribute, a filter, never a sort")
     void customFieldsAreRegistryFields() {
-        var list = registry.resolve(MdUserQuery.LIST);
+        var list = registry.resolve(LIST);
         QueryField region = list.field("cfCfrRegion").orElseThrow();
         assertThat(region.label()).isEqualTo("Регион");
         assertThat(region.attribute()).isEqualTo("cfr_region");
@@ -101,7 +88,7 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         assertThat(list.field("cfCfrGrade").orElseThrow().type()).isEqualTo(QueryFieldType.NUMBER);
         assertThat(list.field("cfCfrShift").orElseThrow().enumValues()).containsExactly("day", "night");
         assertThat(list.fields()).filteredOn(field -> field.attribute() != null).noneMatch(QueryField::sortable);
-        assertThat(MdUserQuery.LIST.field("cfCfrRegion"))
+        assertThat(LIST.field("cfCfrRegion"))
                 .as("the declared list stays as the code wrote it")
                 .isEmpty();
     }
@@ -127,11 +114,8 @@ class MdCustomFieldQueryFieldsIntegrationTest {
     @Test
     @DisplayName("Free search looks in text custom fields; sorting by a custom field is refused")
     void searchAndSort() {
-        assertThat(users.pageViews(viewer, null, null, null, null, "samark", LegacyUserFilters.none())
-                        .items())
-                .extracting(MdUserView::login)
-                .containsExactly("cfr_bek");
-        assertThatThrownBy(() -> users.page(viewer, null, null, null, "cfCfrGrade", null, LegacyUserFilters.none()))
+        assertThat(logins(null, null, "samark")).containsExactly("cfr_bek");
+        assertThatThrownBy(() -> logins(null, "cfCfrGrade", null))
                 .isInstanceOfSatisfying(
                         ApiException.class,
                         error -> assertThat(error.getFieldErrors())
@@ -142,9 +126,9 @@ class MdCustomFieldQueryFieldsIntegrationTest {
     @Test
     @DisplayName("A field added by an administrator appears in the list at once, without a release")
     void newFieldAppearsAtOnce() {
-        assertThat(registry.resolve(MdUserQuery.LIST).field("cfCfrDesk")).isEmpty();
+        assertThat(registry.resolve(LIST).field("cfCfrDesk")).isEmpty();
         fields.createField("USER", "cfr_desk", "Стол", "string", false, null, null, 9);
-        assertThat(registry.resolve(MdUserQuery.LIST).field("cfCfrDesk")).isPresent();
+        assertThat(registry.resolve(LIST).field("cfCfrDesk")).isPresent();
     }
 
     @Test
@@ -152,7 +136,7 @@ class MdCustomFieldQueryFieldsIntegrationTest {
     void momentsAndTimesOfDay() {
         fields.createField("USER", "cfr_due", "Срок", "datetime", false, null, null, 11);
         fields.createField("USER", "cfr_slot", "Слот", "time", false, null, null, 12);
-        var list = registry.resolve(MdUserQuery.LIST);
+        var list = registry.resolve(LIST);
         assertThat(list.field("cfCfrDue").orElseThrow().type()).isEqualTo(QueryFieldType.INSTANT);
         assertThat(list.field("cfCfrSlot").orElseThrow().type()).isEqualTo(QueryFieldType.TIME);
 
@@ -233,9 +217,16 @@ class MdCustomFieldQueryFieldsIntegrationTest {
     }
 
     private static List<String> logins(String filter) {
-        return users.pageViews(viewer, null, null, filter, "login", "cfr_", LegacyUserFilters.none()).items().stream()
-                .map(MdUserView::login)
-                .toList();
+        return logins(filter, "login", "cfr_");
+    }
+
+    /** The logins of a page of the user entity's list with its custom fields. */
+    private static List<String> logins(@Nullable String filter, @Nullable String sort, @Nullable String search) {
+        var plan = QueryCompiler.compile(registry.resolve(LIST), filter, sort, null, null, search);
+        return new QueryListRepository(jdbc)
+                .page(plan, EntityRowMapper.of(USERS, mapper)).items().stream()
+                        .map(record -> String.valueOf(record.get("login")))
+                        .toList();
     }
 
     private static Long user(String login, String attributes) {

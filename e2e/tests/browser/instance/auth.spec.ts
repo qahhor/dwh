@@ -6,10 +6,9 @@ import { join } from 'node:path';
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors } from '../../../support/diagnostics.js';
 import { expectNoSeriousAccessibilityViolations } from '../../../support/accessibility.js';
-import { clearSecret, fillSecret } from '../../../support/secret.js';
 
 test('protected route redirects to the accessible login form', async ({ page }) => {
-  await page.goto('/iam/users');
+  await page.goto('/e/md.users');
 
   await expect(page).toHaveURL(/\/login$/u);
   await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
@@ -63,7 +62,7 @@ test('admin can navigate principal areas without browser errors and can log out'
   const routes = [
     ['/tasks', 'Задачи'],
     ['/tasks/projects', 'Проекты'],
-    ['/iam/users', 'Пользователи'],
+    ['/e/md.users', 'Пользователи'],
     ['/iam/roles', 'Роли и матрица прав'],
     ['/iam/custom-fields', 'Динамические атрибуты'],
     ['/notifications', 'Центр уведомлений'],
@@ -115,57 +114,51 @@ test('administrator can create and remove a custom role', async ({ page }) => {
   assertNoPageErrors();
 });
 
-test('administrator can create and remove a user and upload and delete a file', async ({ page }) => {
+test('administrator can create and anonymise a user and upload and delete a file', async ({ page }) => {
   const suffix = `${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
   const userName = `E2E User ${suffix}`;
   const login = `e2e${suffix}`.toLowerCase();
   const email = `${login}@example.test`;
-  // 8..20 characters (the password policy): 4 + 10 + 2.
-  const temporaryPassword = `E2e!${suffix.slice(-10)}Sf`;
   const fileName = `smartupcms-${suffix}.txt`;
 
   await loginToInstance(page);
   const origin = new URL(page.url()).origin;
   const assertNoPageErrors = collectPageErrors(page);
-  await page.goto('/iam/users');
-  await page.getByRole('button', { name: 'Новый пользователь' }).click();
-
-  const createDialog = page.getByRole('dialog', { name: 'Создать пользователя' });
-  await createDialog.getByLabel('ФИО').fill(userName);
-  await createDialog.getByLabel('Логин').fill(login);
-  await createDialog.getByLabel('Email').fill(email);
-  const password = createDialog.getByLabel('Временный пароль');
-  await fillSecret(password, temporaryPassword);
+  // The users are the general entity screen (ADR-0032 8): a new user is invited, so no password is typed here.
+  await page.goto('/e/md.users');
+  await expect(page.getByRole('heading', { level: 1, name: 'Пользователи' })).toBeVisible();
+  await page.getByRole('link', { name: 'Создать' }).click();
+  await expect(page).toHaveURL(/\/e\/md\.users\/new$/u);
+  await page.getByRole('textbox', { name: 'Имя' }).fill(userName);
+  await page.getByRole('textbox', { name: 'Логин' }).fill(login);
+  await page.getByRole('textbox', { name: 'Email' }).fill(email);
   const createResponse = page.waitForResponse(response =>
-    response.request().method() === 'POST' && response.url().endsWith('/api/v1/iam/users')
+    response.request().method() === 'POST' && /\/api\/v1\/entities\/md\.users$/u.test(response.url())
   );
-  try {
-    await createDialog.getByRole('button', { name: 'Создать', exact: true }).click();
-  } finally {
-    await clearSecret(password);
-  }
+  await page.getByRole('button', { name: 'Сохранить' }).click();
   const createdUser = await createResponse;
-  expect(createdUser.ok()).toBe(true);
+  expect(createdUser.status()).toBe(201);
   expect(new URL(createdUser.url()).origin).toBe(origin);
-  const refreshedUsers = page.waitForResponse(response =>
-    response.request().method() === 'GET'
-      && response.url().includes('/api/v1/iam/users?')
-      && response.url().includes(`q=${encodeURIComponent(login)}`)
-  );
-  await page.getByLabel('Поиск пользователей').fill(login);
-  expect((await refreshedUsers).ok()).toBe(true);
-  await expect(page.getByRole('button', { name: `Открыть профиль пользователя ${userName}` })).toBeVisible();
+  await expect(page).toHaveURL(/\/e\/md\.users\/\d+$/u);
+  await expect(page.getByRole('heading', { level: 1, name: userName })).toBeVisible();
 
-  // Delete lives in the row's "more actions" menu; the confirmation is an alertdialog (modal.confirm).
-  await page.getByRole('button', { name: `Ещё действия: ${userName}` }).click();
-  await page.getByRole('menuitem', { name: 'Удалить', exact: true }).click();
-  const deleteDialog = page.getByRole('alertdialog', { name: 'Удаление пользователя' });
-  const deleteUserResponse = page.waitForResponse(response =>
-    response.request().method() === 'DELETE' && /\/api\/v1\/iam\/users\/\d+$/u.test(response.url())
+  // The list finds the new user by the search.
+  await page.getByRole('link', { name: 'К списку' }).click();
+  await page.getByRole('searchbox', { name: 'Поиск' }).fill(login);
+  const link = page.getByRole('link', { name: userName, exact: true });
+  await expect(link).toBeVisible();
+  await link.click();
+
+  // Anonymisation takes the place of a delete and asks first (ADR-0032 8).
+  await page.getByRole('button', { name: 'Анонимизировать', exact: true }).click();
+  const anonymiseDialog = page.getByRole('alertdialog');
+  await expect(anonymiseDialog).toContainText(userName);
+  const anonymised = page.waitForResponse(response =>
+    response.request().method() === 'POST' && /\/api\/v1\/entities\/md\.users\/\d+\/actions\/anonymize$/u.test(response.url())
   );
-  await deleteDialog.getByRole('button', { name: 'Удалить', exact: true }).click();
-  expect((await deleteUserResponse).ok()).toBe(true);
-  await expect(page.getByRole('button', { name: `Открыть профиль пользователя ${userName}` })).toHaveCount(0);
+  await anonymiseDialog.getByRole('button', { name: 'Анонимизировать', exact: true }).click();
+  expect((await anonymised).status()).toBe(200);
+  await expect(page.getByRole('heading', { level: 1, name: /^Deleted User \d+$/u })).toBeVisible();
 
   await page.goto('/files');
   await page.getByRole('button', { name: 'Загрузить файл' }).click();

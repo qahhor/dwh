@@ -9,7 +9,6 @@ import com.smartup24.cms.instance.kauth.api.SessionView;
 import com.smartup24.cms.instance.kauth.api.UserSecuritySummary;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
@@ -23,13 +22,10 @@ public class KauthSessionController {
 
     private final KauthSessionService sessionService;
     private final MdUserService userService;
-    private final MdUserSecurityService userSecurityService;
 
-    public KauthSessionController(
-            KauthSessionService sessionService, MdUserService userService, MdUserSecurityService userSecurityService) {
+    public KauthSessionController(KauthSessionService sessionService, MdUserService userService) {
         this.sessionService = sessionService;
         this.userService = userService;
-        this.userSecurityService = userSecurityService;
     }
 
     @Operation(summary = "List my sessions", description = "The open sessions of the caller.")
@@ -115,29 +111,5 @@ public class KauthSessionController {
         userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         var user = userService.findAuthUserById(userId).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(sessionService.getUserSecuritySummary(userId, user));
-    }
-
-    @Operation(
-            summary = "Force a password change",
-            description = "Makes the user change the password at the next sign-in.")
-    @PostMapping("/users/{userId}/force-password-change")
-    @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> forcePasswordChange(@PathVariable("userId") Long userId) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-        userService.requireVisible(currentUserId, userId);
-        userSecurityService.setForcePasswordChange(userId, true, currentUserId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Reset the second factor", description = "Resets the second factor of a user.")
-    @PostMapping("/users/{userId}/reset-2fa")
-    @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> reset2fa(@PathVariable("userId") Long userId) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-        userService.requireVisible(currentUserId, userId);
-        userSecurityService.reset2fa(userId, currentUserId);
-        return ResponseEntity.noContent().build();
     }
 }

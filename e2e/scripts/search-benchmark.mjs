@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -218,17 +218,13 @@ async function seedDataset(client, counts) {
   const users = [];
   for (let index = 1; index <= counts.users; index += 1) {
     const login = `sbv1-user-${String(index).padStart(4, '0')}`;
-    const user = await client.post('/api/v1/iam/users', {
+    // A user of the entity runtime (ADR-0032 8): created without a password, as an invitation; nobody signs in.
+    const user = await client.post('/api/v1/entities/md.users', {
       name: `${syntheticText(index)} user`,
       login,
       email: `${login}@example.invalid`,
-      password: `Qa!7${randomBytes(20).toString('hex')}`,
       language: 'ru',
       timezone: 'Asia/Tashkent',
-      is2faEnabled: false,
-      forcePasswordChange: true,
-      roleIds: [],
-      attributes: {},
     }, [201]);
     users.push(String(user.id));
   }

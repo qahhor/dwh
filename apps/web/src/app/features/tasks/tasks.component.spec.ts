@@ -68,7 +68,7 @@ async function setup(
   const api = {
     get: vi.fn(
       (path: string, params: Params = {}) =>
-        options.get?.(path, params) ?? of(path === '/tasks' || path === '/iam/users' ? EMPTY_PAGE : []),
+        options.get?.(path, params) ?? of(path === '/tasks' || path === '/entities/md.users' ? EMPTY_PAGE : []),
     ),
     post: vi.fn((path: string, body?: unknown) => options.post?.(path, body) ?? of({})),
     patch: vi.fn((path: string, body?: unknown) => options.patch?.(path, body) ?? of({})),
@@ -605,7 +605,8 @@ describe('TasksComponent pickers', () => {
     const { fixture, component, api, screen } = await setup({
       get: (path, params) => {
         const search = params['search'] as string | undefined;
-        if (path === '/iam/users') return of(search && searched[search] ? users(searched[search]) : users());
+        const q = params['q'] as string | undefined;
+        if (path === '/entities/md.users') return of(q && searched[q] ? users(searched[q]) : users());
         if (path === '/tasks') return of(page(search === 'Outside' ? [parent] : [task(1)]));
         return undefined;
       },
@@ -650,7 +651,7 @@ describe('TasksComponent pickers', () => {
       get: (path) =>
         path === '/tasks/40'
           ? of({ task: task(40), members })
-          : path === '/iam/users'
+          : path === '/entities/md.users'
             ? throwError(() => ({ status: 403 }))
             : undefined,
     });
@@ -689,7 +690,7 @@ describe('TasksComponent pickers', () => {
     vi.useFakeTimers();
     const [first, second] = [new Subject<unknown>(), new Subject<unknown>()];
     const { fixture, component, screen } = await setup({
-      get: (path, params) => (path === '/iam/users' ? (params['search'] === 'new' ? second : first) : undefined),
+      get: (path, params) => (path === '/entities/md.users' ? (params['q'] === 'new' ? second : first) : undefined),
     });
     component.openCreateTaskModal();
     redraw(fixture);
@@ -715,8 +716,8 @@ describe('TasksComponent pickers', () => {
     const [oldMore, newQuery] = [new Subject<unknown>(), new Subject<unknown>()];
     const { fixture, component, api, screen } = await setup({
       get: (path, params) => {
-        if (path !== '/iam/users') return undefined;
-        if (params['search'] === 'new') return newQuery;
+        if (path !== '/entities/md.users') return undefined;
+        if (params['q'] === 'new') return newQuery;
         if (params['cursor'] === 'u50') return oldMore;
         return of({ ...users(user(1, 'Initial')), nextCursor: 'u50', hasMore: true });
       },
@@ -735,7 +736,7 @@ describe('TasksComponent pickers', () => {
     expect(document.querySelector('.smt-select__more')).toBeNull();
     expect(
       api.get.mock.calls.some(
-        ([path, p]) => path === '/iam/users' && p?.['search'] === 'new' && p?.['cursor'] === 'u50',
+        ([path, p]) => path === '/entities/md.users' && p?.['q'] === 'new' && p?.['cursor'] === 'u50',
       ),
     ).toBe(false);
 

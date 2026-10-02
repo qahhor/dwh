@@ -6,6 +6,7 @@ import { ListQuery } from '@core/models/query-meta.models';
 import { Project } from '@core/models/task.models';
 import { ApiService } from '@core/services/api.service';
 import { toQueryParams } from '@core/services/query-meta.service';
+import { USERS_PATH } from '@shared/lookups/lookup-sources';
 import { ProjectListItem, ProjectMember } from './projects.models';
 
 /** Projects: the list with task counts, one project and its members. */
@@ -52,6 +53,10 @@ export class ProjectsApi {
 
   /** Active users whose name, login or e-mail matches, for adding a member. */
   searchActiveUsers(term: string, limit = 15): Observable<{ items: User[] }> {
-    return this.api.get<{ items: User[] }>('/iam/users', { state: 'A', search: term, limit });
+    return this.api.get<{ items: User[] }>(USERS_PATH, {
+      filter: JSON.stringify([{ field: 'state', op: 'eq', value: 'A' }]),
+      q: term,
+      limit,
+    });
   }
 }

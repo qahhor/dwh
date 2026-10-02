@@ -38,7 +38,7 @@ public class AuditQuery {
                             QueryField.of("changedBy", "audit.col.changed_by_id", QueryFieldType.NUMBER, "a.changed_by")
                                     .asNullable()
                                     .asHidden()
-                                    .refersTo(QueryRef.paged("/iam/users", "name")),
+                                    .refersTo(QueryRef.paged(QueryRef.entityPath("md.users"), "name")),
                             QueryField.of("isApi", "audit.col.channel", QueryFieldType.BOOLEAN, "a.is_api"),
                             QueryField.of("changedAt", "audit.col.changed_at", QueryFieldType.INSTANT, "a.changed_at")
                                     .asSortable()),
@@ -66,7 +66,7 @@ public class AuditQuery {
                             QueryField.of("userId", "audit.col.user_id", QueryFieldType.NUMBER, "s.user_id")
                                     .asNullable()
                                     .asHidden()
-                                    .refersTo(QueryRef.paged("/iam/users", "name")),
+                                    .refersTo(QueryRef.paged(QueryRef.entityPath("md.users"), "name")),
                             QueryField.of("ip", "audit.col.ip", QueryFieldType.TEXT, "host(s.ip)")
                                     .asNullable()
                                     .asSearchable(),

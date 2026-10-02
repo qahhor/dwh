@@ -5,7 +5,7 @@ import type { KeysetPage } from '@core/models/common.models';
 import { Injectable, inject, signal } from '@angular/core';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
-import { LookupSources } from './lookup-sources';
+import { LookupSources, USERS_PATH } from './lookup-sources';
 
 type Row = Record<string, unknown>;
 
@@ -131,6 +131,9 @@ export class RefLookups {
   private known(ref: QueryRefMeta): SMTLookupSource<Row, SMTLookupKey> | null {
     // Each of these is keyed by the row's numeric id, as the server's reference to it is.
     const sources: Record<string, unknown> = {
+      [USERS_PATH]: this.lookups.activeUsers,
+      // The task list names its people by the path of the user list it had before the user entity; it moves to the
+      // model with the tasks (plan 10/10, item 5.6) and names the entity's list then.
       '/iam/users': this.lookups.activeUsers,
       '/tasks': this.lookups.tasks,
       '/tasks/projects/page': this.lookups.projects,

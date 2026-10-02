@@ -68,7 +68,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                     .single());
             try (var executor = Executors.newFixedThreadPool(2)) {
                 var publishing = executor.submit(() -> tx.executeWithoutResult(status -> {
-                    users.updateUser(id, "After activation", null, null, null, null, null, null, null, null, id, 1L);
+                    renameUser(id, "After activation");
                     changed.countDown();
                     SearchRevisionIntegrationTest.await(commit);
                 }));

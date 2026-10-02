@@ -84,18 +84,6 @@ public final class MdFormCatalog {
                                 "manage_tokens", "Управление API-токенами")));
 
         forms.put(
-                MdPref.FORM_USERS,
-                new FormMeta(
-                        "Пользователи",
-                        ordered(
-                                "view", "Просмотр списка",
-                                "create", "Создание пользователя",
-                                "update", "Редактирование",
-                                "block", "Блокировка",
-                                "unblock", "Разблокировка",
-                                "delete", "Удаление (анонимизация)")));
-
-        forms.put(
                 MdPref.FORM_ROLES,
                 new FormMeta(
                         "Роли и права",

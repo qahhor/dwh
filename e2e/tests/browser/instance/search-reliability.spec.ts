@@ -49,6 +49,12 @@ async function api<T>(page: Page, method: 'GET' | 'POST' | 'PATCH', path: string
     const current = await api<{ revision?: number; task?: { revision?: number } }>(page, 'GET', path, 200);
     headers['If-Match'] = `"${current.revision ?? current.task?.revision ?? 1}"`;
   }
+  // A record action of an entity names the revision too (ADR-0032 6.7).
+  const action = /^(\/entities\/[a-z.]+\/\d+)\/actions\/[a-z_0-9]+$/u.exec(path);
+  if (method === 'POST' && action) {
+    const current = await api<{ revision?: number }>(page, 'GET', action[1], 200);
+    headers['If-Match'] = `"${current.revision ?? 1}"`;
+  }
 
   let isolated;
   let response;
@@ -115,13 +121,13 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
   const task = await api<{ id: number }>(page, 'POST', '/tasks', 201,
     { title: `${marker} task`, descriptionMarkdown: 'Synthetic search task', projectId: project.id, priority: 'medium', attributes: { task_type: 'task' } });
   const login = `search${randomBytes(8).toString('hex')}`;
-  const user = await api<{ id: number }>(page, 'POST', '/iam/users', 201,
-    { name: `${marker} user`, login, email: `${login}@example.invalid`, password: `Qa!7${randomBytes(8).toString('hex')}`,
-      language: 'ru', timezone: 'Asia/Tashkent', is2faEnabled: false, forcePasswordChange: true, roleIds: [], attributes: {} });
+  // The user is an entity of the general runtime (ADR-0032 8): created without a password, invited by mail.
+  const user = await api<{ id: number }>(page, 'POST', '/entities/md.users', 201,
+    { name: `${marker} user`, login, email: `${login}@example.invalid`, language: 'ru', timezone: 'Asia/Tashkent' });
   const records = [
     { category: 'TASK' as const, id: String(task.id), endpoint: `/tasks/${task.id}`, route: `/tasks/items/${task.id}`, name: 'task', field: 'title' },
     { category: 'PROJECT' as const, id: String(project.id), endpoint: `/tasks/projects/${project.id}`, route: `/tasks/projects/${project.id}`, name: 'project', field: 'name' },
-    { category: 'USER' as const, id: String(user.id), endpoint: `/iam/users/${user.id}`, route: `/iam/users/${user.id}`, name: 'user', field: 'name' },
+    { category: 'USER' as const, id: String(user.id), endpoint: `/entities/md.users/${user.id}`, route: `/e/md.users/${user.id}`, name: 'user', field: 'name' },
   ];
 
   for (const record of records) {
@@ -133,41 +139,19 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
     const hit = palette.getByRole('option').filter({ hasText: `${marker} ${record.name}` });
     await expect(hit).toHaveCount(1);
     await expect(palette.locator('.palette-degraded')).toHaveCount(0);
-    let freshName = `${marker} refreshed ${record.name}`;
-    await api(page, 'PATCH', record.endpoint, 204, { [record.field]: freshName });
+    const freshName = `${marker} refreshed ${record.name}`;
+    // The general runtime answers a change with the record (200); the task and project screens with 204.
+    await api(page, 'PATCH', record.endpoint, record.category === 'USER' ? 200 : 204, { [record.field]: freshName });
     const detailResponse = page.waitForResponse(response => response.request().method() === 'GET'
       && new URL(response.url()).pathname === `/api/v1${record.endpoint}`);
     await hit.click();
     expect((await detailResponse).status()).toBe(200);
     await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));
-    const detail = page.locator(`[data-record-id="${record.id}"]`);
+    // The user's record is the general entity screen: its heading names the record.
+    const detail = record.category === 'USER'
+      ? page.getByRole('heading', { level: 1 })
+      : page.locator(`[data-record-id="${record.id}"]`);
     await expect(detail).toContainText(freshName);
-    if (record.category === 'USER') {
-      for (const exit of ['cancel', 'escape', 'save'] as const) {
-        const profile = page.getByRole('dialog', { name: 'Профиль пользователя', exact: true });
-        await profile.getByRole('button', { name: 'Редактировать', exact: true }).click();
-        const editor = page.getByRole('dialog', { name: 'Редактировать пользователя', exact: true });
-        await expect(editor).toBeVisible();
-        const editedName = `${freshName} edited`;
-        await editor.locator('#user-edit-name').fill(editedName);
-        const refreshed = page.waitForResponse(response => response.request().method() === 'GET'
-          && new URL(response.url()).pathname === `/api/v1${record.endpoint}`);
-        if (exit === 'escape') await page.keyboard.press('Escape');
-        else if (exit === 'cancel') await editor.getByRole('button', { name: 'Отмена', exact: true }).click();
-        else {
-          const saved = page.waitForResponse(response => response.request().method() === 'PATCH'
-            && new URL(response.url()).pathname === `/api/v1${record.endpoint}`);
-          await editor.getByRole('button', { name: 'Сохранить', exact: true }).click();
-          expect((await saved).status()).toBe(204);
-          freshName = editedName;
-        }
-        expect((await refreshed).status()).toBe(200);
-        await expect(editor).toHaveCount(0);
-        await expect(profile).toBeVisible();
-        await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));
-        await expect(detail.locator('.name')).toHaveText(freshName);
-      }
-    }
     if (record.category === 'PROJECT') await expect(page.locator('.project-edit-form')).toHaveCount(0);
     await page.reload();
     await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));
@@ -177,13 +161,25 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
     await expect(page.getByRole('dialog')).toHaveCount(0);
   }
 
+  // A change of the user on the general form, from the revision on screen, and back to the record.
+  await page.goto(`/e/md.users/${user.id}/edit`);
+  const nameBox = page.getByRole('textbox', { name: 'Имя', exact: true });
+  await expect(nameBox).toHaveValue(`${marker} refreshed user`);
+  await nameBox.fill(`${marker} edited user`);
+  const savedUser = page.waitForResponse(response => response.request().method() === 'PATCH'
+    && new URL(response.url()).pathname === `/api/v1/entities/md.users/${user.id}`);
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  expect((await savedUser).status()).toBe(200);
+  await expect(page).toHaveURL(new RegExp(`/e/md\\.users/${user.id}$`, 'u'));
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(`${marker} edited user`);
+
   await api(page, 'PATCH', `/tasks/projects/${project.id}`, 204, { state: 'P' });
-  await api(page, 'POST', `/iam/users/${user.id}/block`, 204, {});
+  await api(page, 'POST', `/entities/md.users/${user.id}/actions/block`, 200, {});
   await indexed(page, marker, 'PROJECT', String(project.id), false);
   await indexed(page, marker, 'USER', String(user.id), false);
   // Passive search exclusion does not redefine the existing detail policy.
   expect((await api<{ state: string }>(page, 'GET', `/tasks/projects/${project.id}`, 200)).state).toBe('P');
-  expect((await api<{ state: string }>(page, 'GET', `/iam/users/${user.id}`, 200)).state).toBe('P');
+  expect((await api<{ state: string }>(page, 'GET', `/entities/md.users/${user.id}`, 200)).state).toBe('P');
   assertHealthy();
   // No task/project delete endpoint exists. The final QA runtime/volumes are
   // disposable; passive synthetic project/user records remain for evidence.
@@ -200,7 +196,6 @@ test('real missing canonical IDs show localized 404 and a working list action', 
   for (const record of [
     { route: '/tasks/items', endpoint: '/tasks' },
     { route: '/tasks/projects', endpoint: '/tasks/projects' },
-    { route: '/iam/users', endpoint: '/iam/users' },
   ]) {
     // Verify this is an actually absent ID, not a passive or anonymized record.
     const preflight = await page.request.get(`/api/v1${record.endpoint}/${absentId}`);
@@ -215,10 +210,18 @@ test('real missing canonical IDs show localized 404 and a working list action', 
     await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));
     await expect(page.getByRole('dialog')).toHaveCount(0);
   }
+  // A user is the general entity screen (ADR-0032 8): its own "not found" state with the way back to the list.
+  const missingUser = page.waitForResponse(response => response.request().method() === 'GET'
+    && new URL(response.url()).pathname === `/api/v1/entities/md.users/${absentId}`);
+  await page.goto(`/e/md.users/${absentId}`);
+  expect((await missingUser).status()).toBe(404);
+  await expect(page.getByTestId('entity-page-state')).toContainText('Запись не найдена');
+  await page.getByTestId('entity-page-state').getByRole('link', { name: 'К списку', exact: true }).click();
+  await expect(page).toHaveURL(/\/e\/md\.users$/u);
   expect(failures.filter(failure => !failure.path.endsWith('/comments'))).toEqual([
     { method: 'GET', path: `/api/v1/tasks/${absentId}` },
     { method: 'GET', path: `/api/v1/tasks/projects/${absentId}` },
-    { method: 'GET', path: `/api/v1/iam/users/${absentId}` },
+    { method: 'GET', path: `/api/v1/entities/md.users/${absentId}` },
   ]);
   expect(failures.filter(failure => failure.path.endsWith('/comments'))
     .every(failure => failure.method === 'GET' && failure.path === `/api/v1/tasks/${absentId}/comments`)).toBe(true);

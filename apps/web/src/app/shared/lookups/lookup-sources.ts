@@ -26,6 +26,9 @@ export interface RestLookup<Row, K extends SMTLookupKey> {
   readOne?: (body: unknown) => Row | null | undefined;
 }
 
+/** The list of the user entity on the general runtime (ADR-0032 8): user pickers read it. */
+export const USERS_PATH = '/entities/md.users';
+
 /** What a user picker needs of a user; a full User fits, and so does a task member. */
 export type UserRef = Pick<User, 'id' | 'name' | 'login'>;
 
@@ -87,10 +90,14 @@ export function restLookup<Row, K extends SMTLookupKey = number>(
 export class LookupSources {
   private readonly api = inject(ApiService);
 
-  /** Active users, shown as "Name" with "@login" beside it. */
+  /**
+   * Active users of the user entity's list (ADR-0032 8), shown as "Name" with "@login" beside it; a chosen one is read
+   * from its record, a blocked one too.
+   */
   readonly activeUsers = restLookup<UserRef>(this.api, {
-    path: '/iam/users',
-    params: { state: 'A' },
+    path: USERS_PATH,
+    searchParam: 'q',
+    params: { filter: JSON.stringify([{ field: 'state', op: 'eq', value: 'A' }]) },
     key: (user) => user.id,
     option: (user) => ({ label: user.name, subLabel: `@${user.login}` }),
   });
