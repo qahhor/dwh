@@ -1,9 +1,9 @@
-import { NgComponentOutlet } from '@angular/common';
+import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, finalize, map, of, tap } from 'rxjs';
-import type { FormSectionMeta } from '@core/models/form-meta.models';
+import type { FormCollectionMeta, FormSectionMeta, FormTabMeta } from '@core/models/form-meta.models';
 import { hasCapability, recordValues } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -17,6 +17,8 @@ import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
 import { EntitiesApi, EntityRecord } from '../entities.api';
 import { SMTEntityCardComponent } from '../smt-entity-card.component';
+import { SMTEntityRelatedComponent } from '../smt-entity-related.component';
+import { SMTEntityRowsComponent } from '../smt-entity-rows.component';
 import { isNotFound, recordIdOf, recordName } from './entity-page';
 import { SMTEntityPageStateComponent } from './smt-entity-page-state.component';
 import { EntityPageContext } from './smt-entity-page.component';
@@ -28,17 +30,22 @@ const OWN_ACTIONS = new Set(['create', 'update', 'archive', 'delete']);
  * A record of a declared entity, `/e/:code/:id` (ADR-0032 7.1): its fields by the form's sections in words, its
  * change history and the entity's own tabs; the buttons follow the record's `actions` — what this viewer may do with
  * this record now — so a right the viewer lacks is never offered. Archiving, restoring and every action name the
- * revision the record was read at.
+ * revision the record was read at. A document's card has the tabs its declaration gives (ADR-0032 9.3): sections, the
+ * rows of a collection, a related list of another entity, the history; its state shows next to its name, and the
+ * transitions of its process are buttons with their question first (ADR-0032 9.2).
  */
 @Component({
   selector: 'smt-entity-record-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgComponentOutlet,
+    NgTemplateOutlet,
     RouterLink,
     SMTBadgeComponent,
     SMTButtonComponent,
     SMTEntityCardComponent,
+    SMTEntityRelatedComponent,
+    SMTEntityRowsComponent,
     SMTEntityPageStateComponent,
     SMTTabBarComponent,
     TranslatePipe,
@@ -61,6 +68,9 @@ const OWN_ACTIONS = new Set(['create', 'update', 'archive', 'delete']);
               <smt-badge smtSize="SM" smtVariant="gray" data-testid="entity-archived">{{
                 'ui.entity.archived_mark' | t
               }}</smt-badge>
+            }
+            @if (stateLabel(); as state) {
+              <smt-badge smtSize="SM" smtVariant="blue" data-testid="entity-state">{{ state }}</smt-badge>
             }
             <a smt-button smtVariant="ghost" smtIcon="arrow_back" [routerLink]="context.listLink()">
               {{ 'ui.entity_page.back' | t }}
@@ -126,42 +136,78 @@ const OWN_ACTIONS = new Set(['create', 'update', 'archive', 'delete']);
             [attr.aria-labelledby]="tabs().length > 1 ? 'entity-record-' + tab() + '-tab' : null"
             [attr.data-tab]="tab()"
           >
-            @switch (tab()) {
-              @case ('fields') {
-                @for (section of sections(); track section.key) {
-                  <section class="entity-record-section" [attr.data-section]="section.key">
-                    @if (sections().length > 1) {
-                      <h2 class="entity-record-section-title">{{ section.labelKey | t }}</h2>
-                    }
-                    @if (sectionOverride(section.key); as custom) {
-                      <ng-container
-                        *ngComponentOutlet="
-                          custom;
-                          inputs: { meta: context.formMeta(), record: current, values: values() }
-                        "
-                      />
-                    } @else {
-                      <smt-entity-card
-                        [meta]="context.formMeta()"
-                        [value]="values()"
-                        [sections]="[section.key]"
-                        [recordId]="current.id"
-                      />
-                    }
-                  </section>
+            <ng-template #sectionsBlock let-shown>
+              @for (section of shown; track section.key) {
+                <section class="entity-record-section" [attr.data-section]="section.key">
+                  @if (shown.length > 1) {
+                    <h2 class="entity-record-section-title">{{ section.labelKey | t }}</h2>
+                  }
+                  @if (sectionOverride(section.key); as custom) {
+                    <ng-container
+                      *ngComponentOutlet="
+                        custom;
+                        inputs: { meta: context.formMeta(), record: current, values: values() }
+                      "
+                    />
+                  } @else {
+                    <smt-entity-card
+                      [meta]="context.formMeta()"
+                      [value]="values()"
+                      [sections]="[section.key]"
+                      [recordId]="current.id"
+                    />
+                  }
+                </section>
+              }
+            </ng-template>
+            @if (metaTab(); as declared) {
+              @switch (declared.kind) {
+                @case ('sections') {
+                  <ng-container *ngTemplateOutlet="sectionsBlock; context: { $implicit: sectionsOf(declared) }" />
+                }
+                @case ('collection') {
+                  @if (collectionOf(declared); as collection) {
+                    <smt-entity-rows
+                      [collection]="collection"
+                      [rows]="rowsOfRecord(collection.key)"
+                      [record]="recordData()"
+                    />
+                  }
+                }
+                @case ('related') {
+                  <smt-entity-related
+                    [entity]="declared.entity ?? ''"
+                    [field]="declared.field ?? ''"
+                    [recordId]="current.id"
+                    [caption]="declared.labelKey | t"
+                  />
+                }
+                @case ('history') {
+                  <ui-record-history
+                    [kind]="context.code()"
+                    [recordId]="current.id"
+                    [meta]="context.formMeta()"
+                    [expanded]="true"
+                  />
                 }
               }
-              @case ('history') {
-                <ui-record-history
-                  [kind]="context.code()"
-                  [recordId]="current.id"
-                  [meta]="context.formMeta()"
-                  [expanded]="true"
-                />
-              }
-              @default {
-                @if (tabOverride(tab()); as custom) {
-                  <ng-container *ngComponentOutlet="custom; inputs: { meta: context.formMeta(), record: current }" />
+            } @else {
+              @switch (tab()) {
+                @case ('fields') {
+                  <ng-container *ngTemplateOutlet="sectionsBlock; context: { $implicit: sections() }" />
+                }
+                @case ('history') {
+                  <ui-record-history
+                    [kind]="context.code()"
+                    [recordId]="current.id"
+                    [meta]="context.formMeta()"
+                    [expanded]="true"
+                  />
+                }
+                @default {
+                  @if (tabOverride(tab()); as custom) {
+                    <ng-container *ngComponentOutlet="custom; inputs: { meta: context.formMeta(), record: current }" />
+                  }
                 }
               }
             }
@@ -216,7 +262,7 @@ export class SMTEntityRecordPageComponent {
 
   readonly tab = linkedSignal<string>(() => {
     this.recordId();
-    return 'fields';
+    return this.context.formMeta().tabs?.[0]?.key ?? 'fields';
   });
 
   readonly recordId = computed(() => recordIdOf(this.id()));
@@ -246,6 +292,14 @@ export class SMTEntityRecordPageComponent {
   readonly tabs = computed<SMTTabItem[]>(() => {
     this.i18n.currentLang();
     const t = (key: string) => this.i18n.translate(key);
+    const declared = this.context.formMeta().tabs;
+    if (declared?.length) {
+      // The tabs the declaration gives (ADR-0032 9.3), then the entity's own.
+      return [
+        ...declared.map((tab) => ({ value: tab.key, label: t(tab.labelKey), panelId: 'entity-record-panel' })),
+        ...this.ownTabs().map((tab) => ({ value: tab.key, label: t(tab.labelKey), panelId: 'entity-record-panel' })),
+      ];
+    }
     return [
       { value: 'fields', label: t('ui.entity_page.tab_fields'), panelId: 'entity-record-panel' },
       ...(hasCapability(this.context.formMeta(), 'history')
@@ -257,6 +311,23 @@ export class SMTEntityRecordPageComponent {
         panelId: 'entity-record-panel',
       })),
     ];
+  });
+
+  /** The declared tab open now, or null on a card with the platform's own tabs or on an entity's own tab. */
+  readonly metaTab = computed<FormTabMeta | null>(
+    () => this.context.formMeta().tabs?.find((tab) => tab.key === this.tab()) ?? null,
+  );
+
+  /** The record as the server returned it, by property: the rows of its collections and the currency of their money. */
+  readonly recordData = computed<Record<string, unknown>>(() => ({ ...(this.record() ?? {}) }));
+
+  /** The name of the record's state in its process (ADR-0032 9.2), or null without one. */
+  readonly stateLabel = computed(() => {
+    this.i18n.currentLang();
+    const workflow = this.context.formMeta().workflow;
+    const record = this.recordData();
+    const state = workflow?.states.find((candidate) => candidate.code === record[workflow.field]);
+    return state ? this.i18n.translate(state.labelKey) : null;
   });
 
   /** The entity's own tabs the viewer may open: those without rights, or with one of them held. */
@@ -276,6 +347,21 @@ export class SMTEntityRecordPageComponent {
     params: () => this.recordId(),
     stream: ({ params: id }) => (id === null ? of(null) : this.entities.get(this.context.code(), id)),
   });
+
+  /** The sections a declared tab shows, in the order of the form; a section the viewer has no field in is gone. */
+  sectionsOf(tab: FormTabMeta): FormSectionMeta[] {
+    const keys = tab.sections ?? [];
+    return this.sections().filter((section) => keys.includes(section.key));
+  }
+
+  collectionOf(tab: FormTabMeta): FormCollectionMeta | null {
+    return this.context.formMeta().collections?.find((collection) => collection.key === tab.collection) ?? null;
+  }
+
+  rowsOfRecord(key: string): Record<string, unknown>[] {
+    const rows = this.recordData()[key];
+    return Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [];
+  }
 
   can(action: string): boolean {
     return (this.record()?.actions ?? []).includes(action);
@@ -312,13 +398,15 @@ export class SMTEntityRecordPageComponent {
   }
 
   /**
-   * Runs one of the record's actions from the revision on screen (ADR-0032 6.7). An action with a confirmation text in
-   * the catalog (`entity.action_confirm.<code>`: blocking, anonymisation) asks first, with the record's name.
+   * Runs one of the record's actions from the revision on screen (ADR-0032 6.7). An action with a question asks first,
+   * with the record's name: a transition's own (ADR-0032 9.2), or a text in the catalog (`entity.action_confirm.<code>`:
+   * blocking, anonymisation).
    */
   run(action: string): void {
     const record = this.record();
     if (!record || this.busy()) return;
-    const confirmKey = `entity.action_confirm.${action}`;
+    const transition = this.context.formMeta().workflow?.transitions.find((candidate) => candidate.code === action);
+    const confirmKey = transition?.confirmKey ?? `entity.action_confirm.${action}`;
     if (this.i18n.hasKey(confirmKey)) {
       this.modal
         .confirm({

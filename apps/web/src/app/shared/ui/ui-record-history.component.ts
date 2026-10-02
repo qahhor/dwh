@@ -29,6 +29,9 @@ const EVENT_KEYS: Record<HistoryEntry['event'], string> = {
   D: 'ui.history.event.deleted',
 };
 
+/** The property of an audit row that names the record action of the change (ADR-0032 6.8). */
+const ACTION_FIELD = 'action';
+
 let nextHistoryId = 0;
 
 /**
@@ -141,6 +144,11 @@ export class UiRecordHistoryComponent {
     () => new Map((this.meta()?.fields ?? []).map((field) => [field.key, field] as const)),
   );
 
+  /** The collections of a document: a change of rows is kept as a summary (ADR-0032 6.8). */
+  private readonly collections = computed(
+    () => new Set((this.meta()?.collections ?? []).map((collection) => collection.key)),
+  );
+
   readonly headingId = `record-history-heading-${nextHistoryId}`;
   readonly panelId = `record-history-panel-${nextHistoryId++}`;
   private request?: Subscription;
@@ -199,9 +207,13 @@ export class UiRecordHistoryComponent {
     return entry.changedByLogin ? `${entry.changedByName} (@${entry.changedByLogin})` : entry.changedByName;
   }
 
-  /** A field by its label: the dictionary's, else a custom field's own name (plan 10/10, item 5.0), else its key. */
+  /**
+   * A field by its label: the dictionary's, else a custom field's own name (plan 10/10, item 5.0), else its key; the
+   * record action of a change has a label of its own (ADR-0032 6.8).
+   */
   fieldLabel(change: HistoryChange): string {
     if (change.labelKey) return this.i18n.translate(change.labelKey);
+    if (change.field === ACTION_FIELD) return this.i18n.translate('ui.history.action');
     return change.label || change.field;
   }
 
@@ -214,8 +226,31 @@ export class UiRecordHistoryComponent {
     this.i18n.currentLang();
     const field = change ? this.fields().get(change.field) : undefined;
     if (field) return fieldText(field, value, (key) => this.i18n.translate(key), this.refLookups);
+    if (change && this.collections().has(change.field) && typeof value === 'object') return this.rowsText(value);
+    if (change?.field === ACTION_FIELD && typeof value === 'string') {
+      const key = `entity.action.${value}`;
+      return this.i18n.hasKey(key) ? this.i18n.translate(key) : value;
+    }
     if (typeof value === 'boolean') return this.i18n.translate(value ? 'common.yes' : 'common.no');
     if (typeof value === 'object') return JSON.stringify(value);
     return String(value);
+  }
+
+  /**
+   * A change of rows in words: the number of rows, and how many were added, changed and removed (ADR-0032 6.8).
+   */
+  private rowsText(value: object): string {
+    const summary = value as { count?: unknown; added?: unknown; changed?: unknown; removed?: unknown };
+    const size = (list: unknown) => (Array.isArray(list) ? list.length : 0);
+    const count = typeof summary.count === 'number' ? summary.count : 0;
+    if (summary.added === undefined && summary.changed === undefined && summary.removed === undefined) {
+      return this.i18n.translate('ui.history.rows_count', { count });
+    }
+    return this.i18n.translate('ui.history.rows_changed', {
+      count,
+      added: size(summary.added),
+      changed: size(summary.changed),
+      removed: size(summary.removed),
+    });
   }
 }
