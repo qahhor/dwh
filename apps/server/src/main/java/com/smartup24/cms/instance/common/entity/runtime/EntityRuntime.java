@@ -6,10 +6,12 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityRecordStore;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
+import com.smartup24.cms.instance.common.entity.workflow.EntityTransition;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
@@ -63,7 +65,7 @@ public class EntityRuntime implements EntityRecordStore {
             @Nullable String search) {
         EntityDefinition entity = gate.viewable(code);
         KeysetPage<Map<String, Object>> page = read(() -> reads.page(entity, limit, cursor, filter, sort, search));
-        return page.map(record -> new EntityRecordView(record, EntityReads.actions(entity)));
+        return page.map(record -> new EntityRecordView(record, EntityReads.actions(entity, record)));
     }
 
     /** {@code GET /api/v1/entities/{code}/{id}}: the record in the viewer's scope, an archived one too. */
@@ -105,13 +107,21 @@ public class EntityRuntime implements EntityRecordStore {
         return EntityReads.view(entity, change(() -> writes.archive(entity, id, revision, archived)));
     }
 
-    /** {@code POST /api/v1/entities/{code}/{id}/actions/{action}}: a declared record action (ADR-0032, 6.7). */
+    /**
+     * {@code POST /api/v1/entities/{code}/{id}/actions/{action}}: a declared record action (ADR-0032, 6.7) or a
+     * transition of the entity's process (ADR-0032, 9.2).
+     */
     public EntityRecordView action(
             String code, long id, String action, @Nullable String ifMatch, @Nullable JsonNode body) {
         EntityDefinition entity = gate.allowed(code, action);
-        EntityActionHandler handler = registry.handler(entity.code(), action)
-                .orElseThrow(() -> ApiException.notFound(
-                        ErrorCode.NOT_FOUND, "error.common.entity_action_not_found", Map.of("action", action)));
+        Optional<EntityTransition> transition = EntityProcess.transition(entity, action);
+        if (transition.isPresent()) {
+            long revision = Revisions.required(ifMatch);
+            Map<String, Object> params = EntityRequestReader.params(body);
+            return EntityReads.view(
+                    entity, change(() -> writes.transition(entity, id, revision, transition.get(), params)));
+        }
+        EntityActionHandler handler = handler(entity, action);
         long revision = Revisions.required(ifMatch);
         Map<String, Object> params = EntityRequestReader.params(body);
         return EntityReads.view(entity, change(() -> writes.action(entity, id, revision, handler, params)));
@@ -153,11 +163,21 @@ public class EntityRuntime implements EntityRecordStore {
             change(() -> writes.update(entity, id, EntityReads.revision(reads.visible(entity, id, true)), params));
             return;
         }
-        EntityActionHandler handler = registry.handler(entity.code(), action)
+        Map<String, Object> body = EntityRequestReader.params(params);
+        Optional<EntityTransition> transition = EntityProcess.transition(entity, action);
+        if (transition.isPresent()) {
+            change(() -> writes.transition(
+                    entity, id, EntityReads.revision(reads.visible(entity, id, true)), transition.get(), body));
+            return;
+        }
+        EntityActionHandler handler = handler(entity, action);
+        change(() -> writes.action(entity, id, EntityReads.revision(reads.visible(entity, id, true)), handler, body));
+    }
+
+    private EntityActionHandler handler(EntityDefinition entity, String action) {
+        return registry.handler(entity.code(), action)
                 .orElseThrow(() -> ApiException.notFound(
                         ErrorCode.NOT_FOUND, "error.common.entity_action_not_found", Map.of("action", action)));
-        Map<String, Object> body = EntityRequestReader.params(params);
-        change(() -> writes.action(entity, id, EntityReads.revision(reads.visible(entity, id, true)), handler, body));
     }
 
     private Map<String, Object> change(Supplier<Map<String, Object>> work) {

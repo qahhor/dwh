@@ -79,6 +79,14 @@ public final class EntityRowMapper implements RowMapper<Map<String, Object>> {
     }
 
     private @Nullable Object value(ResultSet rs, EntityField field) throws SQLException {
+        return fieldValue(rs, field, json);
+    }
+
+    /**
+     * The value of one field of a row selected by {@link EntitySelect} under the field's key: what the record of an
+     * entity and a row of its collection (ADR-0032, 9.1) hold.
+     */
+    public static @Nullable Object fieldValue(ResultSet rs, EntityField field, JsonColumns json) throws SQLException {
         String key = field.key();
         return switch (field.type()) {
             case TEXT, TEXTAREA, MARKDOWN, EMAIL, PHONE, URL, SELECT, ENUM -> rs.getString(key);

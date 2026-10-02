@@ -4,9 +4,12 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityAction;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityRights;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
+import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
 import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.entity.field.EntityFields;
 import com.smartup24.cms.instance.common.entity.hook.EntityRule;
+import com.smartup24.cms.instance.common.entity.workflow.EntityTransition;
+import com.smartup24.cms.instance.common.entity.workflow.EntityWorkflow;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -59,6 +62,9 @@ public final class Entity {
     private final List<EntityAction> actions = new ArrayList<>();
     private final Set<EntityCapability> capabilities = EnumSet.noneOf(EntityCapability.class);
     private final Map<String, EntityRule> rules = new LinkedHashMap<>();
+    private final List<EntityCollection> collections = new ArrayList<>();
+    private final List<EntityTab> tabs = new ArrayList<>();
+    private @Nullable EntityWorkflow workflow;
 
     private Entity(String code, String form) {
         this.code = Objects.requireNonNull(code, "code");
@@ -149,6 +155,37 @@ public final class Entity {
         return this;
     }
 
+    /**
+     * The rows of a document (ADR-0032, 9.1): the record property {@code collection.key()} holds them, read with the
+     * record and saved with it in one transaction.
+     */
+    public Entity collection(EntityCollection collection) {
+        collections.add(Objects.requireNonNull(collection, "collection"));
+        return this;
+    }
+
+    /**
+     * The process of a document (ADR-0032, 9.2): every transition becomes an action of the entity with its right, in
+     * the order of the process, after the actions declared before it.
+     */
+    public Entity workflow(EntityWorkflow process) {
+        if (workflow != null) {
+            throw new IllegalArgumentException("Entity " + code + " has one process");
+        }
+        this.workflow = Objects.requireNonNull(process, "process");
+        for (EntityTransition transition : process.transitions()) {
+            actions.add(new EntityAction(
+                    transition.code(), transition.permission(), EntityAction.Kind.TRANSITION, transition.confirmKey()));
+        }
+        return this;
+    }
+
+    /** A tab of the record's card (ADR-0032, 9.3), in the order of the card. */
+    public Entity tab(EntityTab tab) {
+        tabs.add(Objects.requireNonNull(tab, "tab"));
+        return this;
+    }
+
     /** The list's default order: a sortable list field. */
     public Entity defaultSort(String key, Sort direction) {
         this.defaultSort = key;
@@ -203,7 +240,12 @@ public final class Entity {
                     defaultDescending,
                     scope,
                     reference,
-                    rules);
+                    rules,
+                    collections,
+                    workflow,
+                    tabs);
+        } else if (!collections.isEmpty() || workflow != null || !tabs.isEmpty()) {
+            throw new IllegalArgumentException("Entity " + code + ": collections, a process and tabs need its table");
         } else if (!rules.isEmpty()) {
             throw new IllegalArgumentException("Entity " + code + ": a rule checks the records of its table");
         } else if (reference != null || fields.stream().anyMatch(field -> field.list() != null)) {

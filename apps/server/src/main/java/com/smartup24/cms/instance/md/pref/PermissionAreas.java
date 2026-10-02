@@ -26,6 +26,7 @@ public final class PermissionAreas {
     private static final Set<String> MODULE_AREAS = Set.of(
             "analytics",
             "audit",
+            "example",
             "jobs",
             "kauth",
             "md",

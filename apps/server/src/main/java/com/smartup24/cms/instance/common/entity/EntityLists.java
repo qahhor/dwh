@@ -99,7 +99,7 @@ public class EntityLists implements QueryListSource {
             columns.add(alias + "." + column.column() + " as \"" + column.key() + "\"");
         }
         for (EntityField field : model.fields()) {
-            columns.addAll(EntitySelect.columns(field, alias));
+            columns.addAll(EntitySelect.columns(field, alias, model::sqlOf));
         }
         columns.add(alias + "." + ATTRIBUTES + "::text as \"" + ATTRIBUTES + "\"");
         if (entity.capabilities().contains(EntityCapability.ARCHIVE)) {

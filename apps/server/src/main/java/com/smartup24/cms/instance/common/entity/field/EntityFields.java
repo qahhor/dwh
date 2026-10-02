@@ -212,6 +212,19 @@ public final class EntityFields {
             return this;
         }
 
+        /**
+         * Money whose currency is the value of the select field {@code fieldKey} (ADR-0032, 9.1): of the record for a
+         * computed value (the total of a document in its currency), of the document for a line of its collection.
+         */
+        public Builder currencyFrom(String fieldKey) {
+            if (type != FieldType.MONEY) {
+                throw new IllegalArgumentException(
+                        "Entity field " + key + ": only money takes its currency from a field");
+            }
+            this.options = options.withCurrencyFrom(fieldKey);
+            return this;
+        }
+
         /** The link table of several references: a row per key, ordered by its {@code position}. */
         public Builder link(String table, String ownerColumn, String targetColumn) {
             return from(new FieldSource.Link(table, ownerColumn, targetColumn));

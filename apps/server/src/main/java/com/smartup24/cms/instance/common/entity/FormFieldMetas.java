@@ -92,7 +92,8 @@ public final class FormFieldMetas {
                 params.maxBytes(),
                 params.contentTypes().isEmpty() ? null : params.contentTypes(),
                 params.currencies().isEmpty() ? null : params.currencies(),
-                params.jsonRoot() == null ? null : params.jsonRoot().wire());
+                params.jsonRoot() == null ? null : params.jsonRoot().wire(),
+                params.currencyFrom());
     }
 
     /** A condition as items: a group of one clause as the clause, a group of several as {@code any}. */
