@@ -33,31 +33,40 @@ class SearchMetricsTest {
         var access = mock(SearchAccessPolicy.class);
         var policies = mock(SearchPolicyProvider.class);
         var snapshots = mock(SearchExecutionSnapshotReader.class);
+        when(access.requireSearchAccess()).thenReturn(1L);
+        SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
+                1L, "admin", "admin@example.invalid", 1L, false, Set.of("*.*"), 1L, false, 0, null));
         when(snapshots.read())
                 .thenReturn(new SearchExecutionSnapshot(
                         new SearchIndexStateRepository.IndexSnapshot(
-                                UUID.randomUUID(),
-                                1,
-                                Map.of("TASK", "fixture_tasks", "PROJECT", "fixture_projects", "USER", "fixture_users"),
-                                "MIXED",
-                                true,
-                                false),
+                                UUID.randomUUID(), 1, Map.of("ms.tasks", "fixture_tasks"), "MIXED", true, false),
                         new SettingsSnapshot(1, SearchQueryPolicy.defaults())));
+        var entities = SearchTestEntities.unscoped();
         var service = new SearchService(
-                client, fallback, access, new SearchResultBudget(), policies, snapshots, Optional.of(metrics));
+                client,
+                fallback,
+                access,
+                new SearchResultBudget(),
+                policies,
+                snapshots,
+                entities,
+                SearchAccessFixtures.unrestrictedScopes(),
+                new SearchFieldPolicies(entities),
+                Optional.empty(),
+                Optional.of(metrics));
         when(client.isEnabled()).thenReturn(true);
-        when(client.multiSearch(anyString(), anyString(), anyInt(), anyMap(), any()))
-                .thenReturn(List.of(new TypesenseSearch.CollectionSearch("TASK", List.of(), 0, 7)));
-        assertThat(service.search("private-query-marker", "TASK", 10).source()).isEqualTo("TYPESENSE");
-        when(client.multiSearch(anyString(), anyString(), anyInt(), anyMap(), any()))
-                .thenThrow(TypesenseException.unavailable());
-        when(fallback.search(anyString(), anyString(), anyInt()))
-                .thenReturn(new SearchFallbackRepository.FallbackSearch(List.of()));
-        assertThat(service.search("private-query-marker", "TASK", 10).degraded())
+        when(client.multiSearch(anyString(), anyList()))
+                .thenReturn(List.of(new TypesenseSearch.CollectionSearch("ms.tasks", List.of(), 0, 7)));
+        assertThat(service.search("private-query-marker", "ms.tasks", 10).source())
+                .isEqualTo("TYPESENSE");
+        when(client.multiSearch(anyString(), anyList())).thenThrow(TypesenseException.unavailable());
+        when(fallback.search(any(SearchEntity.class), anyString(), anyList(), anyInt(), any()))
+                .thenReturn(List.of());
+        assertThat(service.search("private-query-marker", "ms.tasks", 10).degraded())
                 .isTrue();
-        when(fallback.search(anyString(), anyString(), anyInt()))
+        when(fallback.search(any(SearchEntity.class), anyString(), anyList(), anyInt(), any()))
                 .thenThrow(new DataAccessResourceFailureException("safe fixture"));
-        assertThatThrownBy(() -> service.search("private-query-marker", "TASK", 10))
+        assertThatThrownBy(() -> service.search("private-query-marker", "ms.tasks", 10))
                 .isInstanceOf(ApiException.class);
         assertThat(registry.find("smc.search.query.duration").timers()).hasSize(3);
         assertThat(registry.find("smc.search.engine.duration").timer()).isNotNull();
@@ -68,7 +77,7 @@ class SearchMetricsTest {
         assertThat(registry.getMeters())
                 .allSatisfy(meter -> assertThat(meter.getId().getTags()).allSatisfy(tag -> {
                     assertThat(tag.getKey()).isIn("entity", "source", "outcome");
-                    assertThat(tag.getValue()).isIn("TASK", "TYPESENSE", "POSTGRES", "UNKNOWN", "SUCCESS", "ERROR");
+                    assertThat(tag.getValue()).isIn("ms.tasks", "TYPESENSE", "POSTGRES", "UNKNOWN", "SUCCESS", "ERROR");
                 }));
     }
 

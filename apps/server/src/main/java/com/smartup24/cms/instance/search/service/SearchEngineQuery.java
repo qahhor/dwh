@@ -120,7 +120,7 @@ final class SearchEngineQuery {
             if (entity == null) throw TypesenseException.invalidResponse();
             List<Long> ids =
                     group.hits().stream().map(hit -> Long.parseLong(hit.id())).toList();
-            Set<Long> visible = repository.visible(entity, ids, scopes.rows(entity, caller));
+            Set<Long> visible = ids.isEmpty() ? Set.of() : repository.visible(entity, ids, scopes.rows(entity, caller));
             List<SearchHit> kept = group.hits().stream()
                     .filter(hit -> visible.contains(Long.parseLong(hit.id())))
                     .toList();

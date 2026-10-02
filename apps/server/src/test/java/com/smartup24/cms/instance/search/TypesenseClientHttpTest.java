@@ -3,10 +3,12 @@ package com.smartup24.cms.instance.search;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
+import com.smartup24.cms.instance.search.service.SearchEntity;
+import com.smartup24.cms.instance.search.service.SearchFieldPolicies;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionQuery;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -61,7 +63,8 @@ class TypesenseClientHttpTest {
     @Test
     void collectionAuthorizationFailureDoesNotAttemptToCreateAReplacement() {
         configuredResponse.set(new Response(401, "secret-downstream-body"));
-        assertThatThrownBy(() -> client().collections().ensureCollection("generated_tasks", "TASK"))
+        assertThatThrownBy(() -> client().collections()
+                        .ensureCollection("generated_tasks", SearchTestEntities.entity(SearchTestEntities.TASKS)))
                 .isInstanceOf(TypesenseException.class)
                 .hasMessageNotContaining("secret-downstream-body");
         assertThat(requests).extracting(CapturedRequest::method).containsExactly("GET");
@@ -71,7 +74,8 @@ class TypesenseClientHttpTest {
     void failedCollectionCreationIsNotReportedAsInitializationSuccess() {
         responseByRequest =
                 request -> new Response(request.method().equals("GET") ? 404 : 503, "secret-downstream-body");
-        assertThatThrownBy(() -> client().collections().ensureCollection("generated_tasks", "TASK"))
+        assertThatThrownBy(() -> client().collections()
+                        .ensureCollection("generated_tasks", SearchTestEntities.entity(SearchTestEntities.TASKS)))
                 .isInstanceOf(TypesenseException.class)
                 .hasMessageNotContaining("secret-downstream-body");
         assertThat(requests).extracting(CapturedRequest::method).containsExactly("GET", "POST");
@@ -97,8 +101,7 @@ class TypesenseClientHttpTest {
     void allSearchUsesOnePostAndPreservesQueryInTypedMultiSearchBody() {
         TypesenseFixture client = client();
 
-        List<CollectionSearch> result = client.search()
-                .multiSearch("Проект 100%_ready & +", "ALL", 4, collections(), SearchQueryPolicy.defaults());
+        List<CollectionSearch> result = client.search().multiSearch("Проект 100%_ready & +", queries());
 
         assertThat(requests).hasSize(1);
         CapturedRequest request = requests.getFirst();
@@ -106,14 +109,15 @@ class TypesenseClientHttpTest {
         assertThat(request.path()).isEqualTo("/multi_search");
         var searches = new ObjectMapper().readTree(request.body()).path("searches");
         assertThat(searches).hasSize(3);
+        // The fields of each entity's search spec with their default weights (ADR-0032, 10.3), and its scope filter.
         assertSearch(
                 searches.get(0),
                 "tasks",
                 "Проект 100%_ready & +",
-                "title,description_markdown,status_name,project_name",
-                "10,3,2,2",
-                "2,2,2,2",
-                "true,true,true,true",
+                "title,descriptionMarkdown",
+                "10,3",
+                "2,2",
+                "true,true",
                 null);
         assertSearch(
                 searches.get(1),
@@ -123,22 +127,33 @@ class TypesenseClientHttpTest {
                 "10,3",
                 "2,2",
                 "true,true",
-                "state:=A");
+                "scope_units:[1,2]");
         assertSearch(
                 searches.get(2),
                 "users",
                 "Проект 100%_ready & +",
                 "name,login,email,phone",
-                "10,8,6,6",
-                "2,0,0,0",
+                "10,3,3,3",
+                "2,2,0,0",
                 "true,true,true,true",
-                "state:=A");
-        assertThat(result).extracting(CollectionSearch::entityType).containsExactly("TASK", "PROJECT", "USER");
+                "scope_users:=7");
+        assertThat(result)
+                .extracting(CollectionSearch::entityType)
+                .containsExactly(SearchTestEntities.TASKS, SearchTestEntities.PROJECTS, SearchTestEntities.USERS);
         assertThat(result).extracting(CollectionSearch::found).containsExactly(7L, 4L, 1L);
         assertThat(result).extracting(CollectionSearch::searchTimeMs).containsExactly(4L, 3L, 2L);
         assertThat(result.stream().flatMap(group -> group.hits().stream()).toList())
                 .extracting(SearchHit::id)
                 .containsExactly("11", "12", "13", "21", "22", "31");
+        assertThat(result.stream().flatMap(group -> group.hits().stream()).toList())
+                .extracting(SearchHit::targetUrl)
+                .containsExactly(
+                        "/tasks/items/11",
+                        "/tasks/items/12",
+                        "/tasks/items/13",
+                        "/tasks/projects/21",
+                        "/tasks/projects/22",
+                        "/e/md.users/31");
     }
 
     @Test
@@ -146,10 +161,10 @@ class TypesenseClientHttpTest {
         configuredResponse.set(new Response(200, "{\"results\":[{\"found\":0,\"search_time_ms\":1,\"hits\":[]}]}"));
 
         List<CollectionSearch> result =
-                client().search().multiSearch("none", "TASK", 10, collections(), SearchQueryPolicy.defaults());
+                client().search().multiSearch("none", queries().subList(0, 1));
 
         assertThat(result).singleElement().satisfies(group -> {
-            assertThat(group.entityType()).isEqualTo("TASK");
+            assertThat(group.entityType()).isEqualTo(SearchTestEntities.TASKS);
             assertThat(group.found()).isZero();
             assertThat(group.hits()).isEmpty();
         });
@@ -160,8 +175,7 @@ class TypesenseClientHttpTest {
     void malformedOrPartialResponsesFailTheWholeOperation(String ignoredName, Response response) {
         configuredResponse.set(response);
 
-        assertThatThrownBy(() -> client().search()
-                        .multiSearch("safe-query", "ALL", 10, collections(), SearchQueryPolicy.defaults()))
+        assertThatThrownBy(() -> client().search().multiSearch("safe-query", queries()))
                 .isInstanceOf(TypesenseException.class)
                 .hasMessageNotContaining("secret-downstream-body")
                 .hasMessageNotContaining("safe-query");
@@ -198,7 +212,7 @@ class TypesenseClientHttpTest {
                         "invalid id",
                         new Response(
                                 200,
-                                "{\"results\":[{\"found\":1,\"search_time_ms\":1,\"hits\":[{\"document\":{\"id\":\"bad\",\"task_id\":\"bad\",\"title\":\"Task\"}}]},"
+                                "{\"results\":[{\"found\":1,\"search_time_ms\":1,\"hits\":[{\"document\":{\"id\":\"bad\",\"record_id\":\"bad\",\"title\":\"Task\"}}]},"
                                         + validProject + "," + validProject + "]}")),
                 org.junit.jupiter.params.provider.Arguments.of(
                         "missing document",
@@ -252,7 +266,7 @@ class TypesenseClientHttpTest {
         configuredResponse.set(new Response(200, "{\"results\":[" + taskResultWithHighlight(highlightFields) + "]}"));
 
         SearchHit hit = client().search()
-                .multiSearch("task", "TASK", 10, collections(), SearchQueryPolicy.defaults())
+                .multiSearch("task", queries().subList(0, 1))
                 .getFirst()
                 .hits()
                 .getFirst();
@@ -272,13 +286,13 @@ class TypesenseClientHttpTest {
         String oversized = "&lt;script&gt;bad&lt;/script&gt;<b>" + "я".repeat(250) + "</b>";
         configuredResponse.set(new Response(200, """
                 {"results":[{"found":1,"search_time_ms":1,"hits":[{
-                  "document":{"id":"21","project_id":21,"name":"Project","description":"fallback","state":"A"},
+                  "document":{"id":"21","record_id":21,"name":"Project","description":"fallback","state":"A"},
                   "highlight":{"description":{"snippet":"%s"}}
                 }]}]}
                 """.formatted(oversized)));
 
         SearchHit hit = client().search()
-                .multiSearch("project", "PROJECT", 10, collections(), SearchQueryPolicy.defaults())
+                .multiSearch("project", queries().subList(1, 2))
                 .getFirst()
                 .hits()
                 .getFirst();
@@ -311,14 +325,14 @@ class TypesenseClientHttpTest {
         return """
                 {"results":[
                   {"found":7,"search_time_ms":4,"hits":[
-                    {"document":{"id":"11","task_id":11,"title":"Task 11","description_markdown":"First"}},
-                    {"document":{"id":"12","task_id":12,"title":"Task 12","description_markdown":"Second"}},
-                    {"document":{"id":"13","task_id":13,"title":"Task 13","description_markdown":"Third"}}]},
+                    {"document":{"id":"11","record_id":11,"title":"Task 11","descriptionMarkdown":"First"}},
+                    {"document":{"id":"12","record_id":12,"title":"Task 12","descriptionMarkdown":"Second"}},
+                    {"document":{"id":"13","record_id":13,"title":"Task 13","descriptionMarkdown":"Third"}}]},
                   {"found":4,"search_time_ms":3,"hits":[
-                    {"document":{"id":"21","project_id":21,"name":"Project 21","description":"Fourth","state":"A"}},
-                    {"document":{"id":"22","project_id":22,"name":"Project 22","description":"Fifth","state":"A"}}]},
+                    {"document":{"id":"21","record_id":21,"name":"Project 21","description":"Fourth","state":"A"}},
+                    {"document":{"id":"22","record_id":22,"name":"Project 22","description":"Fifth","state":"A"}}]},
                   {"found":1,"search_time_ms":2,"hits":[
-                    {"document":{"id":"31","user_id":31,"name":"User 31","login":"user31","email":"user31@example.invalid","state":"A"}}]}
+                    {"document":{"id":"31","record_id":31,"name":"User 31","login":"user31","email":"user31@example.invalid","state":"A"}}]}
                 ]}
                 """;
     }
@@ -326,16 +340,25 @@ class TypesenseClientHttpTest {
     private static String taskResultWithHighlight(String highlightFields) {
         String suffix = highlightFields.isEmpty() ? "" : "," + highlightFields;
         return "{\"found\":1,\"search_time_ms\":1,\"hits\":[{\"document\":{"
-                + "\"id\":\"11\",\"task_id\":11,\"title\":\"Task 11\","
-                + "\"description_markdown\":\"fallback description\"}" + suffix + "}]}";
+                + "\"id\":\"11\",\"record_id\":11,\"title\":\"Task 11\","
+                + "\"descriptionMarkdown\":\"fallback description\"}" + suffix + "}]}";
     }
 
     private static String threeResults(String task, String empty) {
         return "{\"results\":[" + task + "," + empty + "," + empty + "]}";
     }
 
-    private static Map<String, String> collections() {
-        return Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users");
+    /** The queries of the tasks, projects and users: no filter, a filter of units and a filter of one viewer. */
+    private static List<CollectionQuery> queries() {
+        return List.of(
+                query(SearchTestEntities.TASKS, "tasks", null),
+                query(SearchTestEntities.PROJECTS, "projects", "scope_units:[1,2]"),
+                query(SearchTestEntities.USERS, "users", "scope_users:=7"));
+    }
+
+    private static CollectionQuery query(String code, String collection, String filter) {
+        SearchEntity entity = SearchTestEntities.entity(code);
+        return new CollectionQuery(entity, collection, SearchFieldPolicies.defaults(entity), filter, 4);
     }
 
     private static void assertSearch(

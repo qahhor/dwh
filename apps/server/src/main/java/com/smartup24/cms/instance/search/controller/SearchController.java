@@ -42,7 +42,7 @@ public class SearchController {
 
     @Operation(
             summary = "List search categories",
-            description = "The entities the caller may search, each with the label key and icon of its menu item.")
+            description = "The entities the caller may search, each with the dictionary key of its name and its icon.")
     @GetMapping("/entities")
     @RequiresPermission(form = SearchPref.FORM_SEARCH, action = "view")
     public List<SearchService.SearchCategory> categories() {

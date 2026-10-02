@@ -54,18 +54,14 @@ export class CommandPaletteComponent implements OnDestroy {
 
   readonly searchQuery = signal('');
 
-  readonly categories = computed<CategoryItem[]>(() => {
-    const list: CategoryItem[] = [
-      { value: 'ALL', label: 'search.entity.all', icon: 'apps' },
-      { value: 'TASK', label: 'nav.tasks', icon: 'task_alt' },
-      { value: 'PROJECT', label: 'nav.projects', icon: 'folder' },
-      { value: 'USER', label: 'nav.users', icon: 'person' },
-    ];
-    if (this.moduleService.isModuleActive('notes')) {
-      list.push({ value: 'NOTE', label: 'search.entity.note', icon: 'description' });
-    }
-    return list;
-  });
+  /** The entities the person may search, as the server names them (ADR-0032, 10.3). */
+  private readonly searchCategories = signal<SearchCategory[]>([]);
+
+  /** "All" and a category per entity the person may search. */
+  readonly categories = computed<CategoryItem[]>(() => [
+    { value: 'ALL', label: 'search.entity.all', icon: 'apps' },
+    ...this.searchCategories().map((category) => categoryItem(category)),
+  ]);
 
   private static nextId = 0;
   entityType = 'ALL';

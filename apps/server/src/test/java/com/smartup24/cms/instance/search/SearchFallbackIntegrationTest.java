@@ -4,15 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
-import com.smartup24.cms.instance.search.repository.SearchFallbackRepository.FallbackSearch;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
+import com.smartup24.cms.instance.search.service.SearchEntities;
 import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
-import com.smartup24.cms.instance.search.service.SearchResultBudget;
 import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
@@ -22,6 +22,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -102,35 +104,39 @@ class SearchFallbackIntegrationTest {
         transactions.rollback(transaction);
     }
 
+    /** The caller's scope that restricts nothing: these tests are about the queries, not the scope. */
+    private static final QueryPlan.SqlFragment NO_SCOPE = new QueryPlan.SqlFragment("", Map.of());
+
+    private static final SearchEntities ENTITIES = SearchTestEntities.unscoped();
+
+    private static List<SearchFallbackRepository.FallbackHit> search(
+            SearchFallbackRepository source, String query, String code, int limit) {
+        return source.search(ENTITIES.find(code).orElseThrow(), query, List.of(query), limit, NO_SCOPE);
+    }
+
     @Test
     void percentAndUnderscoreAreLiteralQueryCharacters() {
         long reporter = user("Reporter", "A", null);
         long literal = task("Release 100%_ready", "", reporter, null);
         task("Release 100XYready", "", reporter, null);
 
-        FallbackSearch result = repository.search("%_", "TASK", 10);
-
-        assertThat(result.groups())
-                .singleElement()
-                .satisfies(group -> assertThat(group.hits())
-                        .extracting(SearchFallbackRepository.FallbackHit::id)
-                        .containsExactly(Long.toString(literal)));
+        assertThat(search(repository, "%_", SearchTestEntities.TASKS, 10))
+                .extracting(SearchFallbackRepository.FallbackHit::id)
+                .containsExactly(Long.toString(literal));
     }
 
     @Test
     void phoneAndProjectOrUserStateAreAppliedInPostgres() {
-        long activeUser = user("Active phone", "A", "+998-90-123-45-67");
-        user("Pending phone", "P", "+998-90-123-45-67");
+        long activeUser = user("Active phone", "A", "+998901234567");
+        user("Pending phone", "P", "+998901234567");
         long activeProject = project("active-token", "A");
         project("active-token pending", "P");
 
-        FallbackSearch users = repository.search("90-123", "USER", 10);
-        FallbackSearch projects = repository.search("active-token", "PROJECT", 10);
-
-        assertThat(users.groups().getFirst().hits())
+        // An active user and a project in use: the condition and the archive of the declarations (ADR-0032, 10.3).
+        assertThat(search(repository, "90123", SearchTestEntities.USERS, 10))
                 .extracting(SearchFallbackRepository.FallbackHit::id)
                 .containsExactly(Long.toString(activeUser));
-        assertThat(projects.groups().getFirst().hits())
+        assertThat(search(repository, "active-token", SearchTestEntities.PROJECTS, 10))
                 .extracting(SearchFallbackRepository.FallbackHit::id)
                 .containsExactly(Long.toString(activeProject));
     }
@@ -140,12 +146,30 @@ class SearchFallbackIntegrationTest {
         long reporter = user("Exact reporter", "A", null);
         long task = task("Unrelated title", "", reporter, null);
 
-        FallbackSearch result = repository.searchExact(task, "TASK");
+        var hits = repository.exact(ENTITIES.find(SearchTestEntities.TASKS).orElseThrow(), task, NO_SCOPE);
 
-        assertThat(result.groups().getFirst().hits()).singleElement().satisfies(hit -> {
+        assertThat(hits).singleElement().satisfies(hit -> {
             assertThat(hit.id()).isEqualTo(Long.toString(task));
+            assertThat(hit.entityType()).isEqualTo(SearchTestEntities.TASKS);
             assertThat(hit.targetUrl()).isEqualTo("/tasks/items/" + task);
         });
+    }
+
+    @Test
+    void theDatabaseCheckKeepsOnlyTheRecordsTheScopeAndTheDeclarationStillFind() {
+        long reporter = user("Check reporter", "A", null);
+        long kept = task("check-token kept", "", reporter, null);
+        long other = task("check-token other", "", reporter, null);
+        long archived = project("check-token archived", "P");
+        var tasks = ENTITIES.find(SearchTestEntities.TASKS).orElseThrow();
+        var projects = ENTITIES.find(SearchTestEntities.PROJECTS).orElseThrow();
+        var onlyKept = new QueryPlan.SqlFragment(" and t.id = :kept_id", Map.of("kept_id", kept));
+
+        assertThat(repository.visible(tasks, List.of(kept, other, 9_000_000_000L), NO_SCOPE))
+                .containsExactlyInAnyOrder(kept, other);
+        assertThat(repository.visible(tasks, List.of(kept, other), onlyKept)).containsExactly(kept);
+        assertThat(repository.visible(projects, List.of(archived), NO_SCOPE)).isEmpty();
+        assertThat(repository.visible(tasks, List.of(), NO_SCOPE)).isEmpty();
     }
 
     @Test
@@ -161,11 +185,9 @@ class SearchFallbackIntegrationTest {
         when(typesense.isEnabled()).thenReturn(false);
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 999L, "admin", "admin@example.invalid", 1L, false, Set.of("*.*"), 1, false, 0, null));
-        SearchService service = new SearchService(
+        SearchService service = SearchAccessFixtures.service(
                 typesense,
-                repository,
-                SearchAccessFixtures.policy(),
-                new SearchResultBudget(),
+                jdbc,
                 new SearchPolicyProvider(
                         new SearchOwnerRateLimits() {
                             @Override
@@ -179,11 +201,15 @@ class SearchFallbackIntegrationTest {
                             }
                         },
                         new SearchSettingsRepository(jdbc)),
-                new SearchExecutionSnapshotReader(new SearchIndexStateRepository(jdbc)));
+                new SearchExecutionSnapshotReader(new SearchIndexStateRepository(jdbc, ENTITIES)),
+                ENTITIES);
 
         var result = service.search("budget-token", "ALL", 4);
 
-        assertThat(result.hits()).extracting(SearchHit::entityType).containsExactly("TASK", "TASK", "PROJECT", "USER");
+        // A hit of each entity in turn, in the order of their codes (ADR-0032, 10.3).
+        assertThat(result.hits())
+                .extracting(SearchHit::entityType)
+                .containsExactly("md.users", "ms.projects", "ms.projects", "ms.tasks");
         assertThat(result.totalHits()).isEqualTo(4);
         assertThat(result.foundHits()).isNull();
         assertThat(result.hasMore()).isTrue();
@@ -194,54 +220,35 @@ class SearchFallbackIntegrationTest {
     @Test
     void eachFallbackGroupUsesOneExtraRowToDeriveHasMore() {
         long reporter = user("Page reporter", "A", null);
-        long first = task("page-token 1", "", reporter, null);
-        long second = task("page-token 2", "", reporter, null);
+        task("page-token 1", "", reporter, null);
+        task("page-token 2", "", reporter, null);
         task("page-token 3", "", reporter, null);
 
-        FallbackSearch result = repository.search("page-token", "TASK", 2);
-
-        assertThat(result.groups()).singleElement().satisfies(group -> {
-            assertThat(group.hits())
-                    .extracting(SearchFallbackRepository.FallbackHit::id)
-                    .containsExactly(Long.toString(first), Long.toString(second));
-            assertThat(group.hasMore()).isTrue();
-        });
+        assertThat(search(repository, "page-token", SearchTestEntities.TASKS, 3))
+                .hasSize(3);
+        assertThat(search(repository, "page-token", SearchTestEntities.TASKS, 2))
+                .hasSize(2);
     }
 
     @Test
-    void taskSearchIncludesProjectAndStatusText() {
+    void taskSearchFindsTheTitleAndTheTextOfTheSpecTheTitleFirst() {
         long reporter = user("Context reporter", "A", null);
-        long project = project("search-project-context", "A");
-        long byProject = task("ordinary", "", reporter, project);
-        String status = "Status " + sequence.incrementAndGet();
-        jdbc.sql(
-                        "update ms_task_statuses set name = :name where code = (select status_code from ms_tasks where id = :id)")
-                .param("name", status)
-                .param("id", byProject)
-                .update();
+        long byText = task("ordinary", "the search-text-context here", reporter, null);
+        long byTitle = task("search-text-context in the title", "", reporter, null);
 
-        assertThat(repository
-                        .search("search-project-context", "TASK", 10)
-                        .groups()
-                        .getFirst()
-                        .hits())
+        assertThat(search(repository, "search-text-context", SearchTestEntities.TASKS, 10))
                 .extracting(SearchFallbackRepository.FallbackHit::id)
-                .containsExactly(Long.toString(byProject));
-        assertThat(repository.search(status, "TASK", 10).groups().getFirst().hits())
-                .extracting(SearchFallbackRepository.FallbackHit::id)
-                .containsExactly(Long.toString(byProject));
+                .containsExactly(Long.toString(byTitle), Long.toString(byText));
     }
 
     @Test
     void springProxyRunsFallbackInAReadOnlyPostgresTransaction() {
         observedDatabase.clearObservation();
 
-        FallbackSearch result = proxiedRepository.search("read-only-probe", "TASK", 10);
+        var result = search(proxiedRepository, "read-only-probe", SearchTestEntities.TASKS, 10);
 
         assertThat(AopUtils.isAopProxy(proxiedRepository)).isTrue();
-        assertThat(result.groups())
-                .singleElement()
-                .satisfies(group -> assertThat(group.hits()).isEmpty());
+        assertThat(result).isEmpty();
         assertThat(observedDatabase.transactionReadOnly()).isEqualTo("on");
     }
 
@@ -256,7 +263,7 @@ class SearchFallbackIntegrationTest {
             var future = executor.submit(() -> {
                 long started = System.nanoTime();
                 try {
-                    proxiedRepository.search("lock-budget-probe", "TASK", 10);
+                    search(proxiedRepository, "lock-budget-probe", SearchTestEntities.TASKS, 10);
                     return new TimedFailure(null, elapsedMillis(started));
                 } catch (Throwable failure) {
                     return new TimedFailure(failure, elapsedMillis(started));

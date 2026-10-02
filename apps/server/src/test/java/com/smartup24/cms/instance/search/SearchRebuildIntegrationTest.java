@@ -4,9 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
-import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
+import com.smartup24.cms.instance.search.repository.SearchDocumentSql;
+import com.smartup24.cms.instance.search.service.SearchEntity;
+import com.smartup24.cms.instance.search.service.SearchFieldPolicies;
 import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.typesense.*;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionQuery;
 import java.util.*;
 import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
@@ -15,6 +18,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
+/**
+ * A rebuild on a real Typesense 27.1 (ADR-0032, 10.3): one collection per entity with the SEARCH capability, built from
+ * its declaration, catches the changes made while it runs and activates; the schemas of both profiles round-trip.
+ */
 @Testcontainers
 class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
     private static final String FIXTURE_KEY = UUID.randomUUID().toString();
@@ -48,27 +55,22 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
     void rebuildCatchesConcurrentSourceChangesAndReplacesStaleHitsWithoutDeletingOldCollections() {
         UUID old = activeGeneration();
         String prefix = "seed_" + old.toString().replace("-", "") + "_";
-        jdbc.sql(
-                        "update search_generations set task_collection=:tasks,project_collection=:projects,user_collection=:users where id=:id")
-                .param("tasks", prefix + "tasks")
-                .param("projects", prefix + "projects")
-                .param("users", prefix + "users")
-                .param("id", old)
-                .update();
-        for (String type : List.of("TASK", "PROJECT", "USER"))
-            client.collections().ensureCollection(state.snapshot().collections().get(type), type);
+        renameCollections(old, prefix);
+        for (SearchEntity entity : entities.all())
+            client.collections().ensureCollection(state.snapshot().collections().get(entity.code()), entity);
+        String oldTasks = state.snapshot().collections().get(SearchTestEntities.TASKS);
         long reporter = user("Reporter"),
                 missing = task(reporter, "Before"),
                 deleted = task(reporter, "Delete during catchup");
         worker.runOnce();
-        client.documents().deleteDocument(prefix + "tasks", Long.toString(missing));
+        client.documents().deleteDocument(oldTasks, Long.toString(missing));
         client.documents()
                 .importDocuments(
-                        prefix + "tasks",
+                        oldTasks,
                         List.of(Map.of(
                                 "id",
                                 "999999",
-                                "task_id",
+                                SearchDocumentSql.RECORD_ID,
                                 999999,
                                 "title",
                                 "Stale extra",
@@ -93,12 +95,12 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
                     .param("id", candidate)
                     .query(String.class)
                     .single();
-            if (!updated && !discovered.equals("TASK")) {
+            if (!updated && !discovered.equals(SearchTestEntities.TASKS)) {
                 tasks.rename(missing, "Changed", reporter);
                 updated = true;
             }
             long delivered = jdbc.sql(
-                            "select coalesce(max(delivered_revision),0) from search_generation_delivery where generation_id=:generation and entity_type='TASK' and entity_id=:id")
+                            "select coalesce(max(delivered_revision),0) from search_generation_delivery where generation_id=:generation and entity_type='ms.tasks' and entity_id=:id")
                     .param("generation", candidate)
                     .param("id", deleted)
                     .query(Long.class)
@@ -111,7 +113,7 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
                     jdbc.sql("delete from ms_tasks where id=:id")
                             .param("id", deleted)
                             .update();
-                    publisher.changed("TASK", deleted);
+                    publisher.changed(SearchTestEntities.TASKS, deleted);
                 });
                 removed = true;
             }
@@ -122,23 +124,31 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(state.snapshot().generationId()).isEqualTo(candidate);
         var exported = new ArrayList<TypesenseDocumentStream.DocumentMetadata>();
         client.documents()
-                .forEachDocumentMetadata(state.snapshot().collections().get("TASK"), exported::add);
+                .forEachDocumentMetadata(state.snapshot().collections().get(SearchTestEntities.TASKS), exported::add);
         assertThat(exported)
                 .extracting(TypesenseDocumentStream.DocumentMetadata::id)
                 .containsExactly(Long.toString(missing));
-        var authoritative = reader.read("TASK", missing).orElseThrow();
+        var authoritative = reader.read(SearchTestEntities.TASKS, missing).orElseThrow();
         assertThat(exported.getFirst().revision()).isEqualTo(authoritative.revision());
         assertThat(exported.getFirst().fingerprint()).isEqualTo(authoritative.fingerprint());
         assertThat(exported.getFirst().contentFingerprint()).isEqualTo(authoritative.fingerprint());
+        SearchEntity tasksEntity = entities.find(SearchTestEntities.TASKS).orElseThrow();
         assertThat(client.search()
                         .multiSearch(
-                                "Changed", "TASK", 10, state.snapshot().collections(), SearchQueryPolicy.defaults())
+                                "Changed",
+                                List.of(new CollectionQuery(
+                                        tasksEntity,
+                                        state.snapshot().collections().get(SearchTestEntities.TASKS),
+                                        SearchFieldPolicies.defaults(tasksEntity),
+                                        null,
+                                        10)))
                         .getFirst()
                         .hits())
                 .extracting(SearchService.SearchHit::id)
                 .containsExactly(Long.toString(missing));
-        for (String type : List.of("tasks", "projects", "users"))
-            assertThat(client.collections().collectionExists(prefix + type)).isTrue();
+        for (SearchEntity entity : entities.all())
+            assertThat(client.collections().collectionExists(entity.collection(prefix)))
+                    .isTrue();
         assertThat(jdbc.sql("select state from search_generations where id=:id")
                         .param("id", old)
                         .query(String.class)
@@ -154,75 +164,63 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
     }
 
     @Test
-    void ruGenerationSchemaRoundtripsThroughRealTypesense271() {
+    void schemasOfBothProfilesRoundtripThroughRealTypesense271() {
         var client = client();
         assertThat(client.health().observeDependency().version()).isEqualTo("27.1");
-        for (String type : List.of("TASK", "PROJECT", "USER")) {
-            String collection = "ru_" + UUID.randomUUID().toString().replace("-", "");
-            client.collections().ensureCollection(collection, type, "RU");
-            assertThat(client.collections()
-                            .observeCollection(collection, type, "RU")
-                            .schemaMatches())
-                    .isTrue();
-            assertThat(client.collections()
-                            .observeCollection(collection, type, "MIXED")
-                            .schemaMatches())
-                    .isFalse();
-            Map<String, Object> document = switch (type) {
-                case "TASK" ->
-                    Map.of(
-                            "id",
-                            "7",
-                            "task_id",
-                            7,
-                            "title",
-                            "Поставка",
-                            "_projection_revision",
-                            1,
-                            "_projection_fingerprint",
-                            "fixture");
-                case "PROJECT" ->
-                    Map.of(
-                            "id",
-                            "7",
-                            "project_id",
-                            7,
-                            "name",
-                            "Поставка",
-                            "state",
-                            "A",
-                            "_projection_revision",
-                            1,
-                            "_projection_fingerprint",
-                            "fixture");
-                default ->
-                    Map.of(
-                            "id",
-                            "7",
-                            "user_id",
-                            7,
-                            "name",
-                            "Поставка",
-                            "login",
-                            "identifier",
-                            "email",
-                            "fixture@example.invalid",
-                            "state",
-                            "A",
-                            "_projection_revision",
-                            1,
-                            "_projection_fingerprint",
-                            "fixture");
-            };
-            assertThat(client.documents().importDocuments(collection, List.of(document)))
-                    .singleElement()
-                    .satisfies(ack -> assertThat(ack.success()).isTrue());
-            var exported = new ArrayList<TypesenseDocumentStream.DocumentMetadata>();
-            client.documents().forEachDocumentMetadata(collection, exported::add);
-            assertThat(exported).singleElement().satisfies(row -> {
-                assertThat(row.id()).isEqualTo("7");
-                assertThat(row.revision()).isOne();
-            });
+        for (SearchEntity entity : entities.all()) {
+            for (String profile : List.of("RU", "MIXED")) {
+                String collection = "p_" + UUID.randomUUID().toString().replace("-", "");
+                client.collections().ensureCollection(collection, entity, profile);
+                assertThat(client.collections()
+                                .observeCollection(collection, entity, profile)
+                                .schemaMatches())
+                        .as("%s %s", entity.code(), profile)
+                        .isTrue();
+                assertThat(client.collections()
+                                .observeCollection(collection, entity, profile.equals("RU") ? "MIXED" : "RU")
+                                .schemaMatches())
+                        .isFalse();
+                Map<String, Object> document = Map.of(
+                        "id",
+                        "7",
+                        SearchDocumentSql.RECORD_ID,
+                        7,
+                        entity.titleField().key(),
+                        "Поставка",
+                        SearchDocumentSql.SCOPE_USERS,
+                        List.of(3, 4),
+                        SearchDocumentSql.SCOPE_UNITS,
+                        List.of(),
+                        "_projection_revision",
+                        1,
+                        "_projection_fingerprint",
+                        "fixture");
+                assertThat(client.documents().importDocuments(collection, List.of(document)))
+                        .singleElement()
+                        .satisfies(ack -> assertThat(ack.success()).isTrue());
+                var exported = new ArrayList<TypesenseDocumentStream.DocumentMetadata>();
+                client.documents().forEachDocumentMetadata(collection, exported::add);
+                assertThat(exported).singleElement().satisfies(row -> {
+                    assertThat(row.id()).isEqualTo("7");
+                    assertThat(row.revision()).isOne();
+                });
+                // The scope keys filter the documents (ADR-0032, 10.3): a viewer of another user finds nothing.
+                var query = new CollectionQuery(
+                        entity, collection, SearchFieldPolicies.defaults(entity), "scope_users:=3", 10);
+                assertThat(client.search()
+                                .multiSearch("Поставка", List.of(query))
+                                .getFirst()
+                                .hits())
+                        .extracting(SearchService.SearchHit::id)
+                        .containsExactly("7");
+                var other = new CollectionQuery(
+                        entity, collection, SearchFieldPolicies.defaults(entity), "scope_users:=5", 10);
+                assertThat(client.search()
+                                .multiSearch("Поставка", List.of(other))
+                                .getFirst()
+                                .hits())
+                        .isEmpty();
+            }
         }
     }
 }

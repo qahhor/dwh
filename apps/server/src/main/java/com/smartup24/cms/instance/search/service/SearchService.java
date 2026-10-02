@@ -122,13 +122,18 @@ public class SearchService {
     /** The entities the caller may search, for the categories of the search screen. */
     public List<SearchCategory> categories() {
         accessPolicy.requireSearchAccess();
-        return entities.visible().stream()
-                .map(entity -> {
-                    var menu = entity.definition().menu();
-                    return new SearchCategory(
-                            entity.code(), menu == null ? null : menu.labelKey(), menu == null ? null : menu.icon());
-                })
+        return entities.visible().stream().map(SearchService::category).toList();
+    }
+
+    /** An entity's category: named by its menu item, else by its right (ADR-0031), with the menu item's icon. */
+    private static SearchCategory category(SearchEntity entity) {
+        var menu = entity.definition().menu();
+        var rights = entity.definition().rights();
+        String label = menu != null ? menu.labelKey() : rights != null ? rights.nameKey() : null;
+        List<SearchCategoryField> fields = entity.fields().stream()
+                .map(field -> new SearchCategoryField(field.key(), field.labelKey()))
                 .toList();
+        return new SearchCategory(entity.code(), label, menu == null ? null : menu.icon(), fields);
     }
 
     /** {@code ALL} — every entity the caller may search — or the one named; another name is a 400. */
@@ -245,11 +250,22 @@ public class SearchService {
      */
     public record SearchHit(String entityType, String id, String title, String description, String targetUrl) {}
 
-    /** An entity the caller may search: its code, the label key and icon of its menu item (null without one). */
+    /**
+     * An entity the caller may search: its code, the dictionary key of its name (its menu item's, else its right's) and
+     * the icon of its menu item (null when it has none), and its searched fields.
+     */
     public record SearchCategory(
             String code,
             @Nullable String labelKey,
-            @Nullable String icon) {}
+            @Nullable String icon,
+            List<SearchCategoryField> fields) {
+        public SearchCategory {
+            fields = List.copyOf(fields);
+        }
+    }
+
+    /** A searched field of a category: its key and the dictionary key of its label, as the settings name it. */
+    public record SearchCategoryField(String key, String labelKey) {}
 
     public record SearchResult(
             String query,
