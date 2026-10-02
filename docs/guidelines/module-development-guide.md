@@ -87,7 +87,12 @@ CRUD модуль **не пишет** — серверная часть сущн
 `scripts/dev/test-create-module.ps1` проверяет, что результат генератора —
 два серверных файла, собирается, проходит архитектурные тесты и стартует.
 Образец в коде — заметки (`ms.note`: один файл `MsNoteEntity`, хуки им не
-нужны).
+нужны). Образец модуля с хуками, своим скоупом и действиями записи — задачи
+(`ms.task`, план 10/10, пункт 5.6): справочники `MsTaskTypeEntity` и
+`MsTaskStatusEntity`, проекты `MsProjectEntity` (скоуп `custom`, участники
+действиями `add_member`/`remove_member`) и задачи `MsTaskEntity` (статус —
+`ENUM` и действие `set_status`, исполнители и наблюдатели — `MULTI_REF` в
+одной таблице участников).
 
 1. **Миграция:** таблица со стандартными полями (`id`, `attributes jsonb`,
    `created_by`/`modified_by`/`created_at`/`modified_at`, `revision`) по
@@ -104,11 +109,14 @@ CRUD модуль **не пишет** — серверная часть сущн
    ключи названий права для матрицы (`EntityRights`, `<код>.rights.*` по
    ADR-0031), пункт меню (`EntityMenu`, его `module` выключает и сущность),
    сортировка списка по умолчанию, возможности (`HISTORY` — аудит под
-   таблицей сущности, `EXPORT`, `SAVED_VIEWS`, `BULK` с действием `delete`,
+   таблицей сущности, `EXPORT`, `SAVED_VIEWS`, `BULK` — массовые `delete`,
+   `archive`, `update` (поля из `params`) и любое объявленное действие записи
+   (`params` — его параметры), каждое по записи со своими проверками и хуками;
+   нужно хотя бы одно действие над записью,
    `archivable()` — `ARCHIVE` с колонками `archived_at`/`archived_by` и
    частичными уникальными индексами `where archived_at is null`,
    `customFields(тип)`) и кросс-полевые правила (`.rule("period",
-   Rules.notBefore("endsOn", "startsOn"))`). Поле:
+   Rules.notBefore("endsOn", "startsOn"))` — даты или моменты времени). Поле:
 
    ```java
    .field(text("title", "notes.col.title").column("title").required().length(1, 255)
@@ -129,8 +137,10 @@ CRUD модуль **не пишет** — серверная часть сущн
    Типы ERP/SFA (план 10/10, пункт 5.2; ADR-0032, §4): `email`, `phone`,
    `url`, `money(..., валюты).money(колонка суммы, колонка валюты)`,
    `enumeration(..., код справочника)` — справочник объявляется
-   `.reference("code", "name")`, `multiRef(...).link(таблица, владелец,
-   цель)`, `file`/`image` — колонка `uuid` с FK на `mf_files`, `json(...,
+   `.reference("code", "name")` (список справочника кэшируется и сбрасывается
+   при каждом изменении его записи), `multiRef(...).link(таблица, владелец,
+   цель)` или `.link(таблица, владелец, цель, колонка вида, вид)` — несколько
+   списков в одной таблице связи, каждый со своим видом строки, `file`/`image` — колонка `uuid` с FK на `mf_files`, `json(...,
    корень)`, вычисляемое `computed(sql)` любого скалярного типа. Признаки
    формы: `readonly()`, `readonlyOnUpdate()`, `readonlyWhen(условие)`,
    `defaultValue(FieldDefault.fixed/now/today/currentUser/currentOrgUnit/sequence)`,
@@ -141,6 +151,7 @@ CRUD модуль **не пишет** — серверная часть сущн
    что объявление сказать не может (ADR-0032, §6.5): `beforeSave` видит уже
    проверенные значения, может изменить записываемое поле
    (`save.values().set(...)`) и добавить ошибку (`save.reject(...)` — один 422);
+   `beforeArchive` может отказать в архиве или восстановлении (`ApiException`);
    `afterSave`/`afterDelete` — в той же транзакции; `afterCommit` — после
    коммита (сбой пишется в журнал и не меняет ответ; то, что нельзя повторить,
    ставится в очередь или outbox). Данные своего модуля хук пишет через свой

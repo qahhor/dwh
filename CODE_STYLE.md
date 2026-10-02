@@ -19,7 +19,7 @@
    - **`upl`, `report`, `search`, `webhook`:** загрузки данных, экспорт списков, поиск, вебхуки (`webhook` до пункта 4.3 назывался `kwh`, таблицы `kwh_*` прежние). Полный список — [карта модулей](docs/architecture/module-map.md).
 2. **Именование классов с модульным префиксом:**
    - **Контроллеры:** `{Prefix}{Entity}Controller` (например, `MdUserController`, `KauthAuthController`, `MsTaskController`, `MfFileController`).
-   - **Сервисы и Фасады:** `{Prefix}{Entity}Service` / `{Prefix}{Entity}Facade` (например, `MdUserService`, `KauthSessionService`, `MsTaskService`, `MsNotificationService`).
+   - **Сервисы и Фасады:** `{Prefix}{Entity}Service` / `{Prefix}{Entity}Facade` (например, `MdUserService`, `KauthSessionService`, `MsTaskCommentService`, `MsNotificationService`).
    - **Репозитории:** `{Prefix}{Entity}Repository` (например, `MdUserRepository`, `KauthSessionRepository`, `MsTaskRepository`).
    - **DTO:** `{Prefix}{Entity}{Action}Request` / `{Prefix}{Entity}Response` (например, `MdUserCreateRequest`, `KauthLoginRequest`, `MsTaskResponse`).
    - **Доменные события:** `{Prefix}{Entity}{Action}Event` (например, `MdUserBlockedEvent`, `MsTaskAssignedEvent`, `KauthSessionRevokedEvent`).
