@@ -1,6 +1,8 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
+import { chooseOption } from '../../support/select.js';
+
 /*
  * WCAG 2.1 A and AA through axe on the screens rebuilt on the shared table,
  * tree and server table, in both themes. The build is the production one and
@@ -206,6 +208,26 @@ const screens: Screen[] = [
       await expect(page.getByRole('cell', { name: 'Сахар, 25 кг' })).toBeVisible();
       await page.getByRole('tab', { name: 'История' }).click();
       await expect(page.getByText('Иван Петров').first()).toBeVisible();
+    },
+  },
+  // ADR-0032 10.2: a report built on the list without code, and the viewer's widget on the dashboard.
+  {
+    name: 'document report with its chart and table',
+    path: '/e/example.orders',
+    open: async page => {
+      await page.getByTestId('entity-mode').getByRole('radio', { name: 'Отчёт' }).click();
+      await chooseOption(page.getByLabel('Группировать по'), 'status');
+      await expect(page.getByTestId('report-chart')).toBeVisible();
+      await expect(page.getByRole('table', { name: 'Отчёт: Заказы (эталон)', exact: true })).toBeVisible();
+    },
+  },
+  {
+    name: 'analytics dashboard with a widget',
+    path: '/analytics',
+    open: async page => {
+      const widget = page.getByTestId('analytics-widget');
+      await expect(widget.getByRole('heading', { name: 'Заказы по статусам' })).toBeVisible();
+      await expect(widget.getByTestId('bar-chart-bar').first()).toBeVisible();
     },
   },
 ];

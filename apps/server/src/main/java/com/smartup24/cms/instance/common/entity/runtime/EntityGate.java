@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.module.InstalledModules;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import java.util.Map;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,11 +37,15 @@ public class EntityGate {
 
     /** The entity with its custom fields, when the viewer may see it (step 1). */
     public EntityDefinition viewable(String code) {
+        return findViewable(code).orElseThrow(EntityGate::unknownEntity);
+    }
+
+    /** The entity with a table, when its module is on and the viewer holds its {@code view} right; else empty. */
+    public Optional<EntityDefinition> findViewable(String code) {
         return registry.find(code)
                 .filter(entity -> entity.model() != null)
                 .filter(this::moduleActive)
-                .filter(entity -> SecurityContext.hasPermission(entity.form(), "view"))
-                .orElseThrow(EntityGate::unknownEntity);
+                .filter(entity -> SecurityContext.hasPermission(entity.form(), "view"));
     }
 
     /**

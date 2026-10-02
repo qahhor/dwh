@@ -1240,7 +1240,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/entities/{code}/import-template": {
+    "/api/v1/entities/{code}/report": {
         parameters: {
             query?: never;
             header?: never;
@@ -1248,10 +1248,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Download an import template
-         * @description An xlsx file with a column per field of the entity the caller may write; the second, hidden row names the fields by key, a hint sheet lists the values of each choice.
+         * Run a report over a list
+         * @description Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups.
          */
-        get: operations["importTemplate"];
+        get: operations["report"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1260,20 +1260,20 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/entities/{code}/imports": {
+    "/api/v1/entities/{code}/reports/{viewId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * Start an import
-         * @description Queues the import of an xlsx file the caller uploaded: a dry run checks every row and writes nothing, apply creates or changes records by the entity's import key.
+         * Run a saved report
+         * @description Runs a report or widget the viewer saved as a view of the entity's list.
          */
-        post: operations["startImport"];
+        get: operations["saved"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2164,46 +2164,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/imports/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get an import
-         * @description The caller's import: its state, counters and first problems by row.
-         */
-        get: operations["getImport"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/imports/{id}/report": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Download an import report
-         * @description The file of a finished import with a column that lists the problems of each refused row.
-         */
-        get: operations["importReport"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/list-views/{listCode}": {
         parameters: {
             query?: never;
@@ -2213,7 +2173,7 @@ export interface paths {
         };
         /**
          * List saved views
-         * @description The saved views (filters, columns, sort) of a list.
+         * @description The saved views of a list of the given kinds: table views (filters, columns, sort) when no kind is named, reports and widgets (grouping, measures, chart) when asked for.
          */
         get: operations["list_2"];
         put?: never;
@@ -2584,6 +2544,26 @@ export interface paths {
          * @description The fields, filters, sorts and defaults of a registry list, including custom fields; the list's own right is checked.
          */
         get: operations["get_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-widgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my widgets
+         * @description The viewer's widgets for the dashboard, at most 12, over the entities the viewer may see.
+         */
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3392,6 +3372,19 @@ export interface components {
             fileIds?: string[];
             textMarkdown?: string;
         };
+        AggregateGroup: {
+            field?: string;
+            implicit?: boolean;
+            trunc?: string;
+        };
+        AggregateMeasure: {
+            field?: string;
+            op?: string;
+        };
+        AggregateRow: {
+            groups?: (string | number | boolean | null)[];
+            values?: (number | null)[];
+        };
         AnalyticsSummaryDto: {
             /** Format: int64 */
             activeProjectsCount?: number;
@@ -4166,45 +4159,6 @@ export interface components {
             /** Format: int64 */
             id?: number;
             isApi?: boolean;
-        };
-        ImportRequest: {
-            /** Format: uuid */
-            fileId?: string;
-            lang?: string;
-            mode?: string;
-        };
-        ImportRowError: {
-            code?: string;
-            field?: string;
-            message?: string;
-            /** Format: int32 */
-            row?: number;
-        };
-        ImportView: {
-            /** Format: int32 */
-            created?: number;
-            /** Format: date-time */
-            createdAt?: string;
-            entity?: string;
-            errorCode?: string;
-            errors?: components["schemas"]["ImportRowError"][];
-            /** Format: date-time */
-            expiresAt?: string;
-            /** Format: int32 */
-            failed?: number;
-            /** Format: date-time */
-            finishedAt?: string;
-            /** Format: uuid */
-            id?: string;
-            mode?: string;
-            report?: boolean;
-            /** Format: int32 */
-            rowsDone?: number;
-            /** Format: int32 */
-            rowsTotal?: number;
-            state?: string;
-            /** Format: int32 */
-            updated?: number;
         };
         InstalledModuleView: {
             attributes?: {
@@ -5137,6 +5091,12 @@ export interface components {
             /** Format: date */
             validFrom: string;
         };
+        QueryAggregateResult: {
+            groups?: components["schemas"]["AggregateGroup"][];
+            measures?: components["schemas"]["AggregateMeasure"][];
+            rows?: components["schemas"]["AggregateRow"][];
+            truncated?: boolean;
+        };
         QueryRef: {
             keyField?: string;
             labelField?: string;
@@ -5616,6 +5576,8 @@ export interface components {
         };
         ViewRequest: {
             isDefault?: boolean;
+            /** @enum {string} */
+            kind?: "table" | "report" | "widget";
             /** Format: int32 */
             lockVersion?: number;
             name?: string;
@@ -5625,6 +5587,20 @@ export interface components {
             /** Format: int64 */
             id?: number;
             isDefault?: boolean;
+            /** @enum {string} */
+            kind?: "table" | "report" | "widget";
+            /** Format: int32 */
+            lockVersion?: number;
+            /** Format: date-time */
+            modifiedAt?: string;
+            name?: string;
+            state?: components["schemas"]["JsonNode"];
+        };
+        WidgetResponse: {
+            entity?: string;
+            /** Format: int64 */
+            id?: number;
+            listCode?: string;
             /** Format: int32 */
             lockVersion?: number;
             /** Format: date-time */
@@ -8979,10 +8955,15 @@ export interface operations {
             };
         };
     };
-    importTemplate: {
+    report: {
         parameters: {
             query?: {
-                lang?: string;
+                /** @description JSON array: [{"field":"status"},{"field":"createdAt","trunc":"month"}] */
+                groupBy?: string;
+                /** @description JSON array: [{"op":"count"},{"op":"sum","field":"total"}] */
+                measures?: string;
+                /** @description The list's filter DSL (JSON array) */
+                filter?: string;
             };
             header?: never;
             path: {
@@ -8998,7 +8979,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": string;
+                    "application/json": components["schemas"]["QueryAggregateResult"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -9012,31 +8993,25 @@ export interface operations {
             };
         };
     };
-    startImport: {
+    saved: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
+            header?: never;
             path: {
                 code: string;
+                viewId: number;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ImportRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Accepted */
-            202: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ImportView"];
+                    "application/json": components["schemas"]["QueryAggregateResult"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -11066,71 +11041,12 @@ export interface operations {
             };
         };
     };
-    getImport: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ImportView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    importReport: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string;
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
     list_2: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description table, report or widget; repeat for several */
+                kind?: string[];
+            };
             header?: never;
             path: {
                 listCode: string;
@@ -12009,6 +11925,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListMeta"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WidgetResponse"][];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */

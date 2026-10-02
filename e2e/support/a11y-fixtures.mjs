@@ -78,6 +78,13 @@ const order = id => ({
   customer: `Магазин «Ассорти» ${id}`, currency: 'UZS', status: id === 1 ? 'draft' : 'posted', total: money('41.70'),
   attributes: {}, createdAt: at(id), modifiedAt: at(id), revision: 1,
 });
+// A report of the orders: totals per status, the currency of money added by the platform (ADR-0032 10.2).
+const ORDER_REPORT = {
+  groups: [{ field: 'status', implicit: false }, { field: 'totalCurrency', implicit: true }],
+  measures: [{ op: 'sum', field: 'total' }],
+  rows: [{ groups: ['draft', 'UZS'], values: [41.7] }, { groups: ['posted', 'UZS'], values: [208.5] }, { groups: ['posted', 'USD'], values: [12] }],
+  truncated: false,
+};
 const MONEY_FIELD = { currencies: ['UZS', 'USD', 'EUR'], currencyFrom: 'currency' };
 const range = (from, to) => Array.from({ length: Math.abs(to - from) + 1 }, (_, i) => from < to ? from + i : from - i);
 
@@ -338,6 +345,24 @@ export const fixtures = {
     ...order(1), actions: ['create', 'update', 'post', 'cancel'],
     lines: [orderLine(1, 'Мука пшеничная, 50 кг', 3, '10.00'), orderLine(2, 'Сахар, 25 кг', 1.5, '4.20'), orderLine(3, 'Соль, 1 кг', 10, '0.54')],
   },
+  // ADR-0032 10.2: a report of the orders and the viewer's widget on the analytics dashboard.
+  '/entities/example.orders/report': ORDER_REPORT,
+  '/entities/example.orders/reports/7': ORDER_REPORT,
+  '/report-widgets': [
+    {
+      id: 7, kind: 'widget', listCode: 'example.orders', entity: 'example.orders', name: 'Заказы по статусам', lockVersion: 0,
+      modifiedAt: at(3), state: { groupBy: [{ field: 'status' }], measures: [{ op: 'sum', field: 'total' }], filter: [], chart: 'bar' },
+    },
+  ],
+  '/analytics/summary': {
+    totalTasks: 120, activeTasks: 70, completedTasks: 50, overdueTasks: 6, completionRatePercent: 41.7,
+    createdLast7d: 18, completedLast7d: 12, activeProjectsCount: 4, activeUsersCount: 25,
+  },
+  '/analytics/trends': range(1, 7).map(day => ({ date: `2026-09-${String(day).padStart(2, '0')}`, createdCount: 2 + day, completedCount: day })),
+  '/analytics/projects': range(1, 3).map(id => ({
+    projectId: id, projectName: `Открытие точки ${id}`, totalTasks: 10 * id, activeTasks: 6 * id, completedTasks: 4 * id, progressPercent: 40,
+  })),
+  '/analytics/workload': range(1, 4).map(id => ({ userId: id, userName: `Сотрудник ${id}`, userLogin: `user${id}`, assignedTasks: 8, completedTasks: id })),
   '/history/example.orders/1': page([
     { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'lines', labelKey: 'example.orders.lines', oldValue: { count: 2 }, newValue: { count: 3, added: [{}] } }] },
     { id: 1, event: 'I', changedAt: at(1), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [] },

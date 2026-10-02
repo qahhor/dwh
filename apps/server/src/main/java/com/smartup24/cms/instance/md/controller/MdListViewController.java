@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewResponse;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdListViewService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
@@ -21,12 +22,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * The user's own saved list views. Like personal settings, they are part of the profile: the permission
- * comes from the profile form every role has; the service checks access to the list itself in the registry.
+ * The user's own saved list views: table views, reports and widgets (ADR-0016; ADR-0032, 10.2). Like personal
+ * settings, they are part of the profile: the permission comes from the profile form every role has; the service
+ * checks access to the list itself in the registry.
  */
 @RestController
 @RequestMapping("/api/v1/list-views/{listCode}")
@@ -42,11 +45,17 @@ public class MdListViewController {
         return Objects.requireNonNull(SecurityContext.getCurrentUserId(), "user");
     }
 
-    @Operation(summary = "List saved views", description = "The saved views (filters, columns, sort) of a list.")
+    @Operation(
+            summary = "List saved views",
+            description = "The saved views of a list of the given kinds: table views (filters, columns, sort) when no"
+                    + " kind is named, reports and widgets (grouping, measures, chart) when asked for.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
-    public ResponseEntity<List<ViewResponse>> list(@PathVariable String listCode) {
-        return ResponseEntity.ok(service.list(userId(), listCode));
+    public ResponseEntity<List<ViewResponse>> list(
+            @PathVariable String listCode,
+            @Parameter(description = "table, report or widget; repeat for several") @RequestParam(required = false)
+                    List<String> kind) {
+        return ResponseEntity.ok(service.list(userId(), listCode, kind));
     }
 
     @Operation(
