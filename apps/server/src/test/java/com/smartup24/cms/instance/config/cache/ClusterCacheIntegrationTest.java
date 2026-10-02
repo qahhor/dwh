@@ -2,9 +2,15 @@ package com.smartup24.cms.instance.config.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.ms.task.service.MsTaskStatusService;
+import com.smartup24.cms.instance.common.entity.EntityEnums;
+import com.smartup24.cms.instance.common.entity.event.EntityChanged;
+import com.smartup24.cms.instance.common.entity.event.EntityEventType;
+import com.smartup24.cms.instance.ms.task.service.MsTaskStatusEntity;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import javax.sql.DataSource;
@@ -16,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -35,7 +42,7 @@ class ClusterCacheIntegrationTest extends EmbeddedPostgresTest {
     private CacheInvalidations invalidations;
 
     @Autowired
-    private MsTaskStatusService statuses;
+    private ApplicationEventPublisher events;
 
     @Autowired
     private TransactionTemplate transactions;
@@ -67,33 +74,40 @@ class ClusterCacheIntegrationTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("3.13: a committed change on one node clears the cache of the other within two seconds")
     void committedChangeReachesTheOtherNode() {
-        Cache remote = secondCaches.getCache(CacheConfig.TASK_TYPES_CACHE);
+        Cache remote = secondCaches.getCache(CacheConfig.NAVIGATION_ITEMS_CACHE);
         remote.put("all", "stale types");
 
         long started = System.nanoTime();
-        transactions.executeWithoutResult(
-                status -> cacheManager.getCache(CacheConfig.TASK_TYPES_CACHE).clear());
+        transactions.executeWithoutResult(status ->
+                cacheManager.getCache(CacheConfig.NAVIGATION_ITEMS_CACHE).clear());
 
         awaitTrue(() -> remote.get("all") == null, WITHIN);
         assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(WITHIN);
     }
 
     @Test
-    @DisplayName("3.13: a service change (@CacheEvict) clears the other node's cache after its commit")
-    void serviceChangeReachesTheOtherNode() {
+    @DisplayName("3.13: a change of a reference entity clears the other node's cached items after its commit")
+    void referenceChangeReachesTheOtherNode() {
         Long status = jdbc.sql("select id from ms_task_statuses order by id limit 1")
                 .query(Long.class)
                 .single();
-        long revision = jdbc.sql("select revision from ms_task_statuses where id = :id")
-                .param("id", status)
-                .query(Long.class)
-                .single();
-        Cache remote = secondCaches.getCache(CacheConfig.TASK_STATUSES_CACHE);
-        remote.put("all", "stale statuses");
+        Cache remote = secondCaches.getCache(EntityEnums.CACHE);
+        remote.put(MsTaskStatusEntity.CODE, "stale statuses");
 
-        statuses.updateStatusRecord(status, null, "#112233", null, null, revision);
+        // What the runtime publishes in the transaction of a change of a status (ADR-0032, 6.9).
+        transactions.executeWithoutResult(transaction -> events.publishEvent(new EntityChanged(
+                MsTaskStatusEntity.CODE,
+                MsTaskStatusEntity.DEFINITION.form(),
+                status,
+                2,
+                EntityEventType.UPDATED,
+                null,
+                List.of("color"),
+                null,
+                Instant.now(),
+                UUID.randomUUID())));
 
-        awaitTrue(() -> remote.get("all") == null, WITHIN);
+        awaitTrue(() -> remote.get(MsTaskStatusEntity.CODE) == null, WITHIN);
     }
 
     @Test

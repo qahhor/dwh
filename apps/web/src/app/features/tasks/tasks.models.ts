@@ -3,6 +3,22 @@ import { CustomField } from '@core/models/custom-field.models';
 import { I18nService } from '@core/services/i18n.service';
 import { momentText } from '@shared/entity/entity-values';
 
+/**
+ * The status chips of the screen: only open tasks, every task, or the tasks of one status — `status:<code>`, so a
+ * status code never reads as one of the first two.
+ */
+export type TaskStatusFilter = 'active' | 'all' | `status:${string}`;
+
+/** The chip of one status. */
+export function statusFilter(code: string): TaskStatusFilter {
+  return `status:${code}`;
+}
+
+/** The status code a chip names, or null for "active" and "all". */
+export function statusFilterCode(filter: TaskStatusFilter): string | null {
+  return filter.startsWith('status:') ? filter.slice('status:'.length) : null;
+}
+
 export interface TaskDeadlineInfo {
   state: 'none' | 'overdue' | 'today' | 'tomorrow' | 'upcoming';
   label: string;
@@ -95,7 +111,7 @@ export function createDefaultTaskCreateForm(
 }
 
 export function getTypeObj(task: Task, taskTypes: TaskType[]): TaskType | null {
-  const code = (task.attributes && task.attributes['task_type']) || 'task';
+  const code = task.typeCode || 'task';
   return taskTypes.find((ty) => ty.code === code) || null;
 }
 
@@ -129,18 +145,18 @@ export function getProjectName(task: TaskProjectRef | null | undefined): string 
 }
 
 export function getStatusName(
-  statusId: number | null | undefined,
+  statusCode: string | null | undefined,
   statuses: TaskStatus[],
   uiI18n: I18nService,
 ): string {
-  if (!statusId) return uiI18n.translate('tasks.list.status_new');
-  const s = statuses.find((x) => x.id === statusId);
+  if (!statusCode) return uiI18n.translate('tasks.list.status_new');
+  const s = statuses.find((x) => x.code === statusCode);
   return s ? s.name : uiI18n.translate('tasks.list.status_in_progress');
 }
 
-export function getStatusColor(statusId: number | null | undefined, statuses: TaskStatus[]): string {
-  if (!statusId) return 'var(--primary)';
-  const s = statuses.find((x) => x.id === statusId);
+export function getStatusColor(statusCode: string | null | undefined, statuses: TaskStatus[]): string {
+  if (!statusCode) return 'var(--primary)';
+  const s = statuses.find((x) => x.code === statusCode);
   return s?.color || 'var(--primary)';
 }
 
@@ -159,22 +175,22 @@ export function getPriorityLabel(priority: string, uiI18n: I18nService): string 
   }
 }
 
-export function isOverdue(endTime: string | null | undefined, statusId: number, statuses: TaskStatus[]): boolean {
+export function isOverdue(endTime: string | null | undefined, statusCode: string, statuses: TaskStatus[]): boolean {
   if (!endTime) return false;
-  const s = statuses.find((x) => x.id === statusId);
-  if (s && s.isTerminal) return false;
+  const s = statuses.find((x) => x.code === statusCode);
+  if (s && s.terminal) return false;
   return new Date(endTime).getTime() < Date.now();
 }
 
 export function getDeadlineInfo(
   endTime: string | null | undefined,
-  statusId: number,
+  statusCode: string,
   statuses: TaskStatus[],
   uiI18n: I18nService,
 ): TaskDeadlineInfo {
   if (!endTime) return { state: 'none', label: '—' };
-  const s = statuses.find((x) => x.id === statusId);
-  if (s && s.isTerminal) {
+  const s = statuses.find((x) => x.code === statusCode);
+  if (s && s.terminal) {
     const d = new Date(endTime);
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -259,7 +275,7 @@ export type RecordAttributes = Record<string, unknown> | null | undefined;
 
 export function hasAttributes(attrs: RecordAttributes): attrs is Record<string, unknown> {
   if (!attrs || typeof attrs !== 'object') return false;
-  const keys = Object.keys(attrs).filter((k) => k !== 'task_type');
+  const keys = Object.keys(attrs);
   return keys.length > 0;
 }
 
@@ -270,36 +286,34 @@ export function formatAttributes(
   uiI18n: I18nService,
 ): Array<{ key: string; value: string }> {
   if (!hasAttributes(attrs)) return [];
-  return Object.entries(attrs)
-    .filter(([k]) => k !== 'task_type')
-    .map(([k, v]) => {
-      const field = taskCustomFields.find((f) => f.code === k);
-      const keyLabel = field ? field.name : k;
-      let valueStr = String(v ?? '');
-      if (field?.fieldType === 'boolean') {
-        valueStr = v === true || v === 'true' ? uiI18n.translate('common.yes') : uiI18n.translate('common.no');
-      } else if (field?.fieldType === 'datetime') {
-        valueStr = momentText(v);
-      } else if (field?.fieldType === 'user_ref') {
-        const name = nameOf(Number(v));
-        if (name) {
-          valueStr = name;
-        }
-      } else if (field?.fieldType === 'select' && field.optionsJson) {
-        try {
-          const opts = JSON.parse(field.optionsJson);
-          if (Array.isArray(opts)) {
-            const matched = opts.find((o) => (typeof o === 'object' && o !== null ? o.value === v : o === v));
-            if (matched && typeof matched === 'object' && matched.label) {
-              valueStr = matched.label;
-            }
-          }
-        } catch {
-          // ignore
-        }
+  return Object.entries(attrs).map(([k, v]) => {
+    const field = taskCustomFields.find((f) => f.code === k);
+    const keyLabel = field ? field.name : k;
+    let valueStr = String(v ?? '');
+    if (field?.fieldType === 'boolean') {
+      valueStr = v === true || v === 'true' ? uiI18n.translate('common.yes') : uiI18n.translate('common.no');
+    } else if (field?.fieldType === 'datetime') {
+      valueStr = momentText(v);
+    } else if (field?.fieldType === 'user_ref') {
+      const name = nameOf(Number(v));
+      if (name) {
+        valueStr = name;
       }
-      return { key: keyLabel, value: valueStr };
-    });
+    } else if (field?.fieldType === 'select' && field.optionsJson) {
+      try {
+        const opts = JSON.parse(field.optionsJson);
+        if (Array.isArray(opts)) {
+          const matched = opts.find((o) => (typeof o === 'object' && o !== null ? o.value === v : o === v));
+          if (matched && typeof matched === 'object' && matched.label) {
+            valueStr = matched.label;
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return { key: keyLabel, value: valueStr };
+  });
 }
 
 export function sameIdSet(left: number[], right: number[]): boolean {

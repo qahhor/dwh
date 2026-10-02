@@ -182,8 +182,8 @@ class OpenApiContractTest extends EmbeddedPostgresTest {
                         .has("ETag"))
                 .as("a 204 marked @AnswersRevision carries ETag")
                 .isTrue();
-        assertThat(paths.path("/api/v1/tasks/{id}")
-                        .path("patch")
+        assertThat(paths.path("/api/v1/tasks/{id}/view")
+                        .path("post")
                         .path("responses")
                         .path("204")
                         .path("headers")
@@ -197,14 +197,16 @@ class OpenApiContractTest extends EmbeddedPostgresTest {
                 .as("a body with lockVersion can conflict")
                 .isTrue();
 
-        assertThat(parameterNames(paths.path("/api/v1/tasks").path("post"))).contains("Idempotency-Key");
+        assertThat(parameterNames(paths.path("/api/v1/tasks/{taskId}/comments").path("post")))
+                .contains("Idempotency-Key");
         assertThat(parameterNames(paths.path("/api/v1/auth/login").path("post")))
                 .as("sign-in refuses the key")
                 .doesNotContain("Idempotency-Key");
         assertThat(parameterNames(paths.path("/api/v1/files/upload").path("post")))
                 .as("a multipart body is refused with the key")
                 .doesNotContain("Idempotency-Key");
-        assertThat(parameterNames(paths.path("/api/v1/tasks").path("get"))).doesNotContain("Idempotency-Key");
+        assertThat(parameterNames(paths.path("/api/v1/tasks/{taskId}/comments").path("get")))
+                .doesNotContain("Idempotency-Key");
     }
 
     @Test

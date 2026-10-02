@@ -54,9 +54,10 @@ const securityEvent = id => ({
   ip: `10.0.0.${id}`, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0', details: { login: 'guest' },
   createdAt: at((id % 27) + 1), ...(id % 2 ? { userName: 'Иван Петров', userLogin: 'ipetrov' } : {}),
 });
+// A record of ms.tasks on the general runtime (ADR-0032 8): its status and type are codes.
 const task = id => ({
-  id, title: `Проверить выкладку в торговой точке ${id}`, projectId: null, typeId: null, statusId: 1, priority: ['low', 'medium', 'high'][id % 3],
-  parentTaskId: null, endTime: at((id % 27) + 1), createdAt: at(1), modifiedAt: at(1),
+  id, title: `Проверить выкладку в торговой точке ${id}`, projectId: null, typeCode: 'task', statusCode: 'open', priority: ['low', 'medium', 'high'][id % 3],
+  parentTaskId: null, endTime: at((id % 27) + 1), createdAt: at(1), modifiedAt: at(1), attributes: {}, revision: 1,
 });
 const page = (items, nextCursor = null, totalEstimated = items.length) => ({ items, nextCursor, hasMore: nextCursor !== null, totalEstimated });
 const metaField = (key, labelKey, type, extra = {}) =>
@@ -194,34 +195,36 @@ export const fixtures = {
       metaField('descriptionMarkdown', 'tasks.col.description', 'text', { searchable: true, defaultVisible: false }),
       metaField('projectId', 'tasks.col.project', 'number', { nullable: true }),
       metaField('priority', 'tasks.col.priority', 'enum', { enumValues: ['low', 'medium', 'high', 'critical'], enumLabelPrefix: 'tasks.priority.' }),
-      metaField('statusId', 'tasks.col.status', 'number'),
+      metaField('statusCode', 'tasks.col.status', 'enum'),
       metaField('endTime', 'tasks.col.due', 'instant', { nullable: true })
     ]
   },
   '/list-views/ms.tasks': [],
-  '/tasks': page(range(100, 51).map(task), 't2', 60),
-  '/tasks#t2': page(range(50, 41).map(task), null, 60),
-  // The project screen pages the registry list ms.projects (roadmap item 51); counts come with each row.
+  '/entities/ms.tasks': page(range(100, 51).map(task), 't2', 60),
+  '/entities/ms.tasks#t2': page(range(50, 41).map(task), null, 60),
+  // The project screen pages the runtime list ms.projects (ADR-0032 8); the progress of the page comes beside it.
   '/query-meta/ms.projects': {
     code: 'ms.projects', defaultSort: 'name', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
     fields: [
       metaField('id', 'projects.col.id', 'number', { sortable: true }),
       metaField('name', 'projects.col.name', 'text', { sortable: true, searchable: true }),
-      metaField('state', 'projects.col.state', 'enum', { enumValues: ['A', 'P'], enumLabelPrefix: 'projects.state.' }),
+      metaField('archived', 'entity.col.archived', 'boolean'),
       metaField('createdAt', 'projects.col.created_at', 'instant', { sortable: true }),
       metaField('progress', 'projects.col.progress', 'number', { sortable: true })
     ]
   },
   '/list-views/ms.projects': [],
-  '/tasks/projects/page': page(range(1, 10).map(id => ({
+  '/entities/ms.projects': page(range(1, 10).map(id => ({
     id, name: `Выкладка в сети ${id}`, description: id % 2 ? `Регион ${id}: контроль полки и POSM` : undefined,
-    state: id % 5 ? 'A' : 'P', attributes: {}, createdAt: at(id), createdBy: 1,
-    totalTasks: id + 2, doneTasks: id, progress: Math.round(id * 100 / (id + 2)),
+    archived: id % 5 === 0, attributes: {}, createdAt: at(id), revision: 1,
   })), 'p2', 14),
-  '/tasks/projects/page#p2': page(range(11, 14).map(id => ({
-    id, name: `Выкладка в сети ${id}`, state: 'A', attributes: {}, createdAt: at(id), createdBy: 1,
-    totalTasks: 0, doneTasks: 0, progress: 0,
+  '/entities/ms.projects#p2': page(range(11, 14).map(id => ({
+    id, name: `Выкладка в сети ${id}`, archived: false, attributes: {}, createdAt: at(id), revision: 1,
   })), null, 14),
+  // One answer for every page: the screen keeps the entries of the projects it shows.
+  '/tasks/projects/progress': range(1, 14).map(id => ({
+    projectId: id, totalTasks: id > 10 ? 0 : id + 2, doneTasks: id > 10 ? 0 : id, progress: id > 10 ? 0 : Math.round(id * 100 / (id + 2)),
+  })),
   // The notes screen is the reference entity screen (plan 10/10, item 2.1): its form and list come from the server.
   '/form-meta/ms.notes': {
     code: 'ms.notes', listCode: 'ms.notes',
@@ -259,6 +262,6 @@ export const fixtures = {
     { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'title', labelKey: 'notes.col.title', oldValue: 'Планёрка', newValue: 'Планёрка филиала 1' }] },
     { id: 1, event: 'I', changedAt: at(1), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [] },
   ]),
-  '/tasks/statuses': [{ id: 1, name: 'Открыта', color: '#3b82f6', orderNo: 1, isFinal: false }],
-  '/tasks/types': [],
+  '/entities/ms.task_statuses': page([{ id: 1, code: 'open', name: 'Открыта', color: '#3b82f6', sortOrder: 1, terminal: false, system: true }]),
+  '/entities/ms.task_types': page([]),
 };

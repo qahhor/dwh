@@ -2,56 +2,78 @@ package com.smartup24.cms.instance.architecture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Plan 10/10, item 5.6, acceptance "{@code Legacy*Filters} = 0" (ADR-0032, 8): an entity on the model filters its list
- * with the DSL of ADR-0016 only — the flat query parameters a list took before the registry are gone with the
- * entity's own controller, and nothing keeps a class for them.
+ * ADR-0032, 8 (plan 10/10, item 5.6, acceptance "{@code Legacy*Filters} = 0"): a list is filtered by the filter
+ * expression of ADR-0016 only. No class keeps the filter parameters of an old list ({@code Legacy*Filters}, nested
+ * classes included, nothing pending: the users and the tasks are both on the model), and the task module's own
+ * endpoints take no list parameter beside paging.
  */
 class NoLegacyFiltersTest {
 
-    private static final Path SOURCES = Path.of("src/main/java/com/smartup24/cms");
+    private static final String ROOT = "com.smartup24.cms";
+    private static final String TASK_MODULE = ROOT + ".instance.ms.task";
+    private static final Pattern LEGACY = Pattern.compile("Legacy\\w*Filters");
 
-    /**
-     * Flat filters of a list whose entity is still on the way to the model (plan 10/10, item 5.6: the tasks): each
-     * leaves this set together with its class, and the set ends empty.
-     */
-    private static final Set<String> PENDING = Set.of("LegacyTaskFilters");
+    /** What a module endpoint of the tasks may take as a query parameter: a page, or the records it names. */
+    private static final Set<String> TASK_PARAMETERS = Set.of("limit", "cursor", "ids");
 
-    @Test
-    @DisplayName("5.6: no class of flat list filters besides the pending ones; the users' are gone")
-    void noLegacyFilters() throws IOException {
-        List<String> found;
-        try (Stream<Path> tree = Files.walk(SOURCES)) {
-            found = tree.map(path -> path.getFileName().toString())
-                    .filter(name -> name.matches("Legacy\\w*Filters\\.java"))
-                    .map(name -> name.substring(0, name.length() - ".java".length()))
-                    .sorted()
-                    .toList();
-        }
-        assertThat(found).as("Legacy*Filters classes").isSubsetOf(PENDING).doesNotContain("LegacyUserFilters");
-        assertThat(sourcesMention("LegacyUserFilters"))
-                .as("the user list's flat filters (ADR-0032, 8)")
-                .isFalse();
+    private static JavaClasses main;
+
+    @BeforeAll
+    static void importClasses() {
+        main = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages(ROOT);
     }
 
-    private static boolean sourcesMention(String name) throws IOException {
-        try (Stream<Path> tree = Files.walk(SOURCES)) {
-            return tree.filter(path -> path.toString().endsWith(".java")).anyMatch(path -> {
-                try {
-                    return Files.readString(path).contains(name);
-                } catch (IOException e) {
-                    throw new IllegalStateException("Cannot read " + path, e);
+    @Test
+    @DisplayName("ADR-0032, 8: no Legacy*Filters class is left beside the filter expression")
+    void noLegacyFilterClasses() {
+        List<String> legacy = main.stream()
+                .filter(type -> LEGACY.matcher(type.getSimpleName()).matches())
+                .map(JavaClass::getName)
+                .sorted()
+                .toList();
+        assertThat(legacy)
+                .as("old list filters: filter by the expression of ADR-0016")
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("ADR-0032, 8: the task module's endpoints take only paging and record ids as query parameters")
+    void taskEndpointsTakeNoListFilters() throws ClassNotFoundException {
+        List<String> offending = new ArrayList<>();
+        for (JavaClass type : main) {
+            if (!type.getPackageName().startsWith(TASK_MODULE) || !type.isAnnotatedWith(RestController.class)) {
+                continue;
+            }
+            for (Method method : Class.forName(type.getName()).getDeclaredMethods()) {
+                for (Parameter parameter : method.getParameters()) {
+                    RequestParam param = parameter.getAnnotation(RequestParam.class);
+                    if (param != null && !TASK_PARAMETERS.contains(param.name())) {
+                        offending.add(type.getSimpleName() + "#" + method.getName() + "(" + param.name() + ")");
+                    }
                 }
-            });
+            }
         }
+        assertThat(offending)
+                .as("list parameters outside the filter expression")
+                .isEmpty();
     }
 }

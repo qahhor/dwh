@@ -30,50 +30,65 @@ export interface ProjectMember {
   createdAt: string;
 }
 
+/** A task status: a record of the reference entity `ms.task_statuses` on the general runtime (ADR-0032 8). */
 export interface TaskStatus {
   id: number;
-  pcode?: string | null;
+  /** What a task's status keeps; given once and kept. */
+  code: string;
   name: string;
   color?: string;
-  colorHex?: string;
-  isTerminal: boolean;
-  orderNo: number;
-  /** What a change of the record names in If-Match (plan item 3.6). */
+  /** A terminal status closes the task. */
+  terminal: boolean;
+  sortOrder: number;
+  /** One of the statuses the product ships with: never archived or deleted. */
+  system?: boolean;
+  /** What a change of the record names in If-Match (ADR-0024). */
   revision?: number;
 }
 
+/** A task type: a record of the reference entity `ms.task_types` on the general runtime (ADR-0032 8). */
 export interface TaskType {
   id: number;
   code: string;
   name: string;
   icon: string;
   color: string;
-  orderNo: number;
-  isSystem: boolean;
-  /** What a change of the record names in If-Match (plan item 3.6). */
+  sortOrder: number;
+  /** One of the types the product ships with: never archived or deleted. */
+  system?: boolean;
+  /** What a change of the record names in If-Match (ADR-0024). */
   revision?: number;
 }
 
+/**
+ * A task: a record of `ms.tasks` on the general runtime (ADR-0032 8). Its status and type are codes of the reference
+ * lists `ms.task_statuses` and `ms.task_types`; the status changes only by the record action `set_status`.
+ */
 export interface Task {
   id: number;
+  title: string;
+  descriptionMarkdown?: string | null;
+  /** The code of the task's type (`ms.task_types`). */
+  typeCode: string;
+  /** The code of the task's status (`ms.task_statuses`). */
+  statusCode: string;
+  priority: 'low' | 'medium' | 'high' | 'critical' | string;
   projectId?: number | null;
-  /** The project's name, answered with the task, so the screen needs no list of projects (plan 10/10, item 3.5). */
+  /** The project's name, answered with each list row, so the screen needs no list of projects (plan 10/10, item 3.5). */
   projectName?: string | null;
   parentTaskId?: number | null;
-  title: string;
-  descriptionMarkdown?: string;
-  statusId: number;
-  priority: 'low' | 'medium' | 'high' | 'critical' | string;
+  responsibleId?: number | null;
+  executorIds?: number[];
+  observerIds?: number[];
   reporterId?: number;
-  attributes: Record<string, unknown>;
   beginTime?: string | null;
   endTime?: string | null;
   resolvedTime?: string | null;
-  createdAt: string;
+  createdAt?: string;
   modifiedAt?: string;
-  createdBy?: number;
-  modifiedBy?: number;
-  /** What a change of the task names: `expectedRevision` or If-Match (plan item 3.6). */
+  /** Custom field values by field code. */
+  attributes: Record<string, unknown>;
+  /** What a change of the task names in If-Match (ADR-0024). */
   revision?: number;
 }
 
@@ -108,12 +123,4 @@ export interface TaskFile {
   sizeBytes: number;
   mimeType: string;
   createdAt: string;
-}
-
-export interface TaskDetailResponse {
-  task: Task;
-  members: TaskMember[];
-  subtasks?: Task[];
-  ancestors?: Task[];
-  files?: TaskFile[];
 }

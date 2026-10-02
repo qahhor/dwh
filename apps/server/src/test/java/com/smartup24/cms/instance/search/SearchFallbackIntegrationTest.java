@@ -214,7 +214,8 @@ class SearchFallbackIntegrationTest {
         long project = project("search-project-context", "A");
         long byProject = task("ordinary", "", reporter, project);
         String status = "Status " + sequence.incrementAndGet();
-        jdbc.sql("update ms_task_statuses set name = :name where id = (select status_id from ms_tasks where id = :id)")
+        jdbc.sql(
+                        "update ms_task_statuses set name = :name where code = (select status_code from ms_tasks where id = :id)")
                 .param("name", status)
                 .param("id", byProject)
                 .update();
@@ -307,8 +308,10 @@ class SearchFallbackIntegrationTest {
                 .single();
     }
 
+    /** A project in use ({@code A}) or in the archive ({@code P}, the paused state of before ADR-0032, 5.4). */
     private static long project(String name, String state) {
-        return jdbc.sql("insert into ms_task_projects (name, state) values (:name, :state) returning id")
+        return jdbc.sql("insert into ms_task_projects (name, archived_at) values (:name,"
+                        + " case when :state = 'P' then clock_timestamp() end) returning id")
                 .param("name", name + "-" + sequence.incrementAndGet())
                 .param("state", state)
                 .query(Long.class)
@@ -317,11 +320,9 @@ class SearchFallbackIntegrationTest {
 
     private static long task(String title, String description, long reporter, Long project) {
         return jdbc.sql("""
-                insert into ms_tasks (project_id, title, description_markdown, status_id, priority,
+                insert into ms_tasks (project_id, title, description_markdown, priority,
                                       reporter_id, attributes, created_by, modified_by)
-                values (:project, :title, :description,
-                        (select id from ms_task_statuses order by id limit 1), 'medium',
-                        :reporter, '{}', :reporter, :reporter)
+                values (:project, :title, :description, 'medium', :reporter, '{}', :reporter, :reporter)
                 returning id
                 """)
                 .param("project", project)

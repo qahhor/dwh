@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import tools.jackson.databind.JsonNode;
 
 /**
  * The records of every entity declared with a table, as the general runtime keeps them (ADR-0032, 6.5; plan 10/10,
@@ -21,6 +22,12 @@ public interface EntityRecordStore {
 
     /** Archives one record as the archive switch does, from whatever revision (ADR-0032, 5.4). */
     void archive(EntityDefinition entity, long id);
+
+    /**
+     * Changes one record from whatever revision it has: {@code update} with the fields of {@code params} as
+     * {@code PATCH} does, any other code as that record action does (ADR-0032, 6.7).
+     */
+    void change(EntityDefinition entity, long id, String action, JsonNode params);
 
     /** The records of one entity, for the registry. */
     default EntityRecords of(EntityDefinition entity) {
@@ -49,6 +56,11 @@ public interface EntityRecordStore {
             @Override
             public void archive(long id) {
                 store.archive(entity, id);
+            }
+
+            @Override
+            public void change(long id, String action, JsonNode params) {
+                store.change(entity, id, action, params);
             }
         };
     }

@@ -21,7 +21,7 @@
       [style.border-top-color]="status.color || 'var(--primary)'"
       (dragover)="onHtml5DragOver($event)"
       (dragleave)="onHtml5DragLeave($event)"
-      (drop)="onHtml5Drop($event, status.id)"
+      (drop)="onHtml5Drop($event, status.code)"
     >
       <!-- Column Header -->
       <div class="column-header">
@@ -29,19 +29,19 @@
           <span class="status-dot" [style.background-color]="status.color || 'var(--primary)'"></span>
           <h3 class="column-title">{{ status.name }}</h3>
         </div>
-        <span class="column-badge">{{ getTasksByStatus(status.id).length }}</span>
+        <span class="column-badge">{{ getTasksByStatus(status.code).length }}</span>
       </div>
 
       <!-- Drop List Zone for CDK Drag & Drop -->
       <div
         cdkDropList
         [cdkDropListDisabled]="!canUpdateTask()"
-        [cdkDropListData]="getTasksByStatus(status.id)"
-        [id]="'col-' + status.id"
+        [cdkDropListData]="getTasksByStatus(status.code)"
+        [id]="'col-' + status.code"
         class="column-tasks-dropzone"
-        (cdkDropListDropped)="onTaskDrop($event, status.id)"
+        (cdkDropListDropped)="onTaskDrop($event, status.code)"
       >
-        @for (task of getTasksByStatus(status.id); track task) {
+        @for (task of getTasksByStatus(status.code); track task) {
           <!-- A click anywhere on the card opens it for the mouse; the card's title is the button a keyboard uses. -->
           <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
           <div
@@ -53,7 +53,7 @@
             (dragend)="onHtml5DragEnd()"
             class="kanban-card"
             [class.can-drag]="canUpdateTask()"
-            [class.card-overdue]="isOverdue()(task.endTime, task.statusId)"
+            [class.card-overdue]="isOverdue()(task.endTime, task.statusCode)"
             (click)="onTaskContainerClick($event, task)"
           >
             <!-- Card Top -->
@@ -88,7 +88,7 @@
             <button
               type="button"
               class="card-title kanban-title-open"
-              [class.title-overdue]="isOverdue()(task.endTime, task.statusId)"
+              [class.title-overdue]="isOverdue()(task.endTime, task.statusCode)"
               [attr.aria-label]="'tasks.open_task_named' | t: { id: task.id, title: task.title }"
               (click)="openTaskDetails.emit(task)"
             >
@@ -114,7 +114,7 @@
             <!-- Keeps a click on the row's controls from opening the card; the controls are keyboard reachable themselves. -->
             <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
             <div class="card-bottom-row" (click)="$event.stopPropagation()">
-              @if (getDeadlineInfo()(task.endTime, task.statusId); as dl) {
+              @if (getDeadlineInfo()(task.endTime, task.statusCode); as dl) {
                 @if (dl.state !== 'none') {
                   <span
                     class="deadline-pill"
@@ -142,7 +142,7 @@
                     class="move-btn"
                     [attr.aria-label]="'tasks.move_task_back' | t: { id: task.id }"
                     [title]="'tasks.kanban.move_back' | t"
-                    [disabled]="isFirstStatus(status.id)"
+                    [disabled]="isFirstStatus(status.code)"
                     (click)="moveTaskStatus(task, -1)"
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
@@ -152,7 +152,7 @@
                     class="move-btn"
                     [attr.aria-label]="'tasks.move_task_forward' | t: { id: task.id }"
                     [title]="'tasks.kanban.move_forward' | t"
-                    [disabled]="isLastStatus(status.id)"
+                    [disabled]="isLastStatus(status.code)"
                     (click)="moveTaskStatus(task, 1)"
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
@@ -163,7 +163,7 @@
           </div>
         }
 
-        @if (getTasksByStatus(status.id).length === 0) {
+        @if (getTasksByStatus(status.code).length === 0) {
           <div class="kanban-empty-col">
             {{ 'tasks.kanban.drag_task_here' | t }}
           </div>

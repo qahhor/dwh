@@ -24,9 +24,7 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileQuery;
-import com.smartup24.cms.instance.ms.task.repository.LegacyTaskFilters;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
-import com.smartup24.cms.instance.ms.task.service.MsTaskListService;
 import com.smartup24.cms.instance.support.TestDatabases;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +75,7 @@ class MdScopeServiceIntegrationTest {
         roleRepository = new MdRoleRepository(jdbc);
         userRepository = new MdUserRepository(jdbc, new ObjectMapper());
         permissionService = new MdPermissionService(new MdPermissionRepository(jdbc));
-        taskRepository = new MsTaskRepository(jdbc, new ObjectMapper());
+        taskRepository = new MsTaskRepository(jdbc);
         fileRepository = new MfFileRepository(jdbc, new QueryListRepository(jdbc));
 
         scopeService = new MdScopeService(scopeRepository, orgUnitRepository, permissionService, auditLogService);
@@ -389,13 +387,9 @@ class MdScopeServiceIntegrationTest {
         UUID hiddenFile = createFile("repository-hidden.txt", other);
 
         var taskScope = scopeService.filterForTasks(viewer);
-        var taskIds = new MsTaskListService(new QueryListRepository(jdbc), taskRepository, scopeService)
-                .page(viewer, 100, null, null, null, null, LegacyTaskFilters.none()).items().stream()
-                        .map(MsTaskRepository.TaskRecord::id)
-                        .toList();
-        assertThat(taskIds).contains(visibleTask).doesNotContain(hiddenTask);
-        assertThat(taskRepository.findById(visibleTask, taskScope)).isPresent();
-        assertThat(taskRepository.findById(hiddenTask, taskScope)).isEmpty();
+        assertThat(visibleTaskIds(viewer)).contains(visibleTask).doesNotContain(hiddenTask);
+        assertThat(taskRepository.visibleTitle(visibleTask, taskScope)).isPresent();
+        assertThat(taskRepository.visibleTitle(hiddenTask, taskScope)).isEmpty();
 
         var fileScope = scopeService.filterForFiles(viewer);
         var fileIds = fileRepository
@@ -443,17 +437,13 @@ class MdScopeServiceIntegrationTest {
     }
 
     private static Long createTask(String title, Long participantUserId) {
-        Long statusId = jdbc.sql("select id from ms_task_statuses order by id limit 1")
-                .query(Long.class)
-                .single();
         Long taskId = jdbc.sql("""
-                        insert into ms_tasks (title, description_markdown, status_id, priority, reporter_id,
+                        insert into ms_tasks (title, description_markdown, priority, reporter_id,
                                               attributes, created_by, modified_by)
-                        values (:title, '', :statusId, 'medium', :userId, '{}'::jsonb, :userId, :userId)
+                        values (:title, '', 'medium', :userId, '{}'::jsonb, :userId, :userId)
                         returning id
                         """)
                 .param("title", title)
-                .param("statusId", statusId)
                 .param("userId", participantUserId)
                 .query(Long.class)
                 .single();

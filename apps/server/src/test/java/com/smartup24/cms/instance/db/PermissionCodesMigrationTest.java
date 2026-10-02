@@ -101,7 +101,9 @@ class PermissionCodesMigrationTest {
         effectiveBefore = effective();
         versionsBefore = versions();
 
-        flyway(null).migrate();
+        // Up to the last migration before item 5.6: V169 then grants the new task dictionary forms to whoever may
+        // work with tasks, a new right this check of V147's renaming does not count.
+        flyway("167").migrate();
     }
 
     @AfterAll

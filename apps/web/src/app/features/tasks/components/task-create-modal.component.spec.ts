@@ -9,8 +9,8 @@ import { TaskCreateFormValue, createDefaultTaskCreateForm } from '../tasks.model
 import { TaskCreateModalComponent } from './task-create-modal.component';
 
 const TYPES: TaskType[] = [
-  { id: 1, code: 'task', name: 'Задача', icon: 'task_alt', color: '#2563eb', orderNo: 1, isSystem: true },
-  { id: 2, code: 'bug', name: 'Ошибка', icon: 'bug_report', color: '#dc2626', orderNo: 2, isSystem: false },
+  { id: 1, code: 'task', name: 'Задача', icon: 'task_alt', color: '#2563eb', sortOrder: 1, system: true },
+  { id: 2, code: 'bug', name: 'Ошибка', icon: 'bug_report', color: '#dc2626', sortOrder: 2, system: false },
 ];
 
 function render(inputs: Record<string, unknown> = {}) {

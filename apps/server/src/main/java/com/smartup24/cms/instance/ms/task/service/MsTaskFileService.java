@@ -32,7 +32,7 @@ public class MsTaskFileService {
 
     @Transactional
     public void attachFile(Long taskId, UUID fileId, Long currentUserId) {
-        access.find(taskId, currentUserId);
+        access.requireVisible(taskId, currentUserId);
         fileService.getFileMetadata(fileId, currentUserId);
         fileRepository.attachFile(taskId, fileId);
         audit.fileChanged(taskId, fileId, true);
@@ -40,7 +40,7 @@ public class MsTaskFileService {
 
     @Transactional
     public void detachFile(Long taskId, UUID fileId, Long currentUserId) {
-        access.find(taskId, currentUserId);
+        access.requireVisible(taskId, currentUserId);
         fileRepository.detachFile(taskId, fileId);
         audit.fileChanged(taskId, fileId, false);
     }
@@ -52,7 +52,7 @@ public class MsTaskFileService {
 
     @Transactional(readOnly = true)
     public List<TaskFileView> listTaskFiles(Long taskId, Long currentUserId) {
-        access.find(taskId, currentUserId);
+        access.requireVisible(taskId, currentUserId);
         return MsTaskViews.all(fileRepository.listTaskFiles(taskId), MsTaskViews::file);
     }
 }

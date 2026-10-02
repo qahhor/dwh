@@ -46,7 +46,7 @@ describe('LookupSources', () => {
   it('searches projects on the paged list with q, 20 at a time, and names a chosen one from its card', () => {
     let items: readonly unknown[] = [];
     sources.projects.page('ware', null, 50).subscribe((page) => (items = page?.items ?? []));
-    const request = http.expectOne((req) => req.url === '/api/v1/tasks/projects/page');
+    const request = http.expectOne((req) => req.url === '/api/v1/entities/ms.projects');
     expect(request.request.params.get('q')).toBe('ware');
     expect(request.request.params.has('search')).toBe(false);
     expect(request.request.params.get('limit')).toBe('20');
@@ -55,8 +55,8 @@ describe('LookupSources', () => {
 
     let found: readonly unknown[] = [];
     sources.projects.resolve!([5]).subscribe((rows) => (found = rows));
-    http.expectOne('/api/v1/tasks/projects/5').flush({ id: 5, name: 'Warehouse', state: 'A' });
-    expect(found).toEqual([{ id: 5, name: 'Warehouse', state: 'A' }]);
+    http.expectOne('/api/v1/entities/ms.projects/5').flush({ id: 5, name: 'Warehouse', archived: false });
+    expect(found).toEqual([{ id: 5, name: 'Warehouse', archived: false }]);
   });
 
   it('names chosen users by id, drops the ones it cannot read and raises no toast for them', () => {

@@ -3,109 +3,34 @@ package com.smartup24.cms.instance.ms.task.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.common.web.AnswersRevision;
-import com.smartup24.cms.instance.common.web.Created;
-import com.smartup24.cms.instance.common.web.Revisions;
-import com.smartup24.cms.instance.ms.task.api.AddProjectMemberRequest;
-import com.smartup24.cms.instance.ms.task.api.CreateProjectRequest;
 import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
-import com.smartup24.cms.instance.ms.task.api.ProjectView;
-import com.smartup24.cms.instance.ms.task.api.UpdateProjectRequest;
+import com.smartup24.cms.instance.ms.task.api.ProjectProgressView;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
-import com.smartup24.cms.instance.ms.task.service.MsProjectListService;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
 import io.swagger.v3.oas.annotations.Operation;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import java.util.List;
+import java.util.Objects;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * What a project has besides its record, which the general runtime serves at {@code /api/v1/entities/ms.projects}
+ * (ADR-0032, 8): the page of its members — a collection of its own until collections come (ADR-0032, 9.1) — and the
+ * progress of projects over the tasks the viewer may see, which depends on the viewer's task scope and so is no field
+ * of the record (ADR-0013).
+ */
 @RestController
 @RequestMapping("/api/v1/tasks/projects")
 public class MsProjectController {
 
     private final MsProjectService projectService;
-    private final MsProjectListService projectListService;
 
-    public MsProjectController(MsProjectService projectService, MsProjectListService projectListService) {
+    public MsProjectController(MsProjectService projectService) {
         this.projectService = projectService;
-        this.projectListService = projectListService;
-    }
-
-    /**
-     * The project list a page at a time on the registry (ms.projects, roadmap item 51): filter, sort, search and
-     * the viewer's task counts. The project pickers search it a page at a time (plan 10/10, item 3.5).
-     */
-    @Operation(
-            summary = "Page through projects",
-            description =
-                    "The projects a keyset page at a time on the registry: filter, sort, search and the caller's task counts.")
-    @GetMapping("/page")
-    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
-    public ResponseEntity<KeysetPage<MsProjectListService.ProjectListItem>> pageProjects(
-            @RequestParam(name = "limit", required = false) Integer limit,
-            @RequestParam(name = "cursor", required = false) String cursor,
-            @RequestParam(name = "filter", required = false) String filter,
-            @RequestParam(name = "sort", required = false) String sort,
-            @RequestParam(name = "q", required = false) String query,
-            @RequestParam(name = "state", required = false) String state) {
-        return ResponseEntity.ok(
-                projectListService.page(SecurityContext.getCurrentUserId(), limit, cursor, filter, sort, query, state));
-    }
-
-    @Operation(summary = "Get a project", description = "One project with its custom field values.")
-    @GetMapping("/{id}")
-    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
-    public ResponseEntity<ProjectView> getProject(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(projectService.getProjectById(id, SecurityContext.getCurrentUserId()));
-    }
-
-    @Operation(
-            summary = "Create a project",
-            description = "Adds a project with its name, description, state and custom field values.")
-    @PostMapping
-    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "create")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<ProjectView> createProject(@Valid @RequestBody CreateProjectRequest body) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-        var project = projectService.createProject(
-                body.name(), body.description(), body.state(), body.attributes(), currentUserId);
-        return Created.at("/api/v1/tasks/projects/{id}", project.id(), project);
-    }
-
-    @Operation(summary = "Update a project", description = "Changes a project; names the revision it was read at.")
-    @PatchMapping("/{id}")
-    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @AnswersRevision
-    public ResponseEntity<Void> updateProject(
-            @PathVariable("id") Long id,
-            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
-            @RequestBody UpdateProjectRequest body) {
-        projectService.requireVisible(id, SecurityContext.getCurrentUserId());
-        long revision = projectService.updateProject(
-                id, body.name(), body.description(), body.state(), body.attributes(), Revisions.required(ifMatch));
-        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
-    }
-
-    @Operation(summary = "Add a project member", description = "Adds a user to a project.")
-    @PostMapping("/{id}/members")
-    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> addMember(
-            @PathVariable("id") Long id, @Valid @RequestBody AddProjectMemberRequest body) {
-        projectService.addProjectMember(id, body.userId(), body.accessKind(), SecurityContext.getCurrentUserId());
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Remove a project member", description = "Removes a user from a project.")
-    @DeleteMapping("/{id}/members/{userId}")
-    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> removeMember(@PathVariable("id") Long id, @PathVariable("userId") Long userId) {
-        projectService.requireVisible(id, SecurityContext.getCurrentUserId());
-        projectService.removeProjectMember(id, userId);
-        return ResponseEntity.noContent().build();
     }
 
     /** The members of a project a page at a time, by name (plan 10/10, item 3.5). */
@@ -115,10 +40,21 @@ public class MsProjectController {
     @GetMapping("/{id}/members/page")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<KeysetPage<ProjectMemberView>> pageMembers(
-            @PathVariable("id") Long id,
+            @PathVariable("id") long id,
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "cursor", required = false) String cursor) {
-        projectService.requireVisible(id, SecurityContext.getCurrentUserId());
         return ResponseEntity.ok(projectService.pageProjectMembers(id, limit, cursor));
+    }
+
+    /** The progress of the projects of a list page; a project the viewer may not see is left out. */
+    @Operation(
+            summary = "Read the progress of projects",
+            description = "Total and closed tasks of each named project over the tasks the caller may see, at most"
+                    + " 200 projects.")
+    @GetMapping("/progress")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    public ResponseEntity<List<ProjectProgressView>> progress(@RequestParam(name = "ids") List<Long> ids) {
+        long viewer = Objects.requireNonNull(SecurityContext.getCurrentUserId());
+        return ResponseEntity.ok(projectService.progress(ids, viewer));
     }
 }

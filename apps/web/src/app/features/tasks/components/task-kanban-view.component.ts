@@ -17,7 +17,7 @@ export class TaskKanbanViewComponent {
   readonly getDeadlineInfo = input.required<
     (
       endTime: string | null | undefined,
-      statusId: number,
+      statusCode: string,
     ) => {
       state: string;
       label: string;
@@ -29,7 +29,7 @@ export class TaskKanbanViewComponent {
   readonly getTypeLabel = input.required<(task: Task) => string>();
   /** The task's project as the row names it (`projectName`). */
   readonly getProjectName = input.required<(task: TaskProjectRef) => string | null>();
-  readonly isOverdue = input.required<(endTime: string | null | undefined, statusId: number) => boolean>();
+  readonly isOverdue = input.required<(endTime: string | null | undefined, statusCode: string) => boolean>();
 
   readonly tasks = input<Task[]>([]);
   readonly statuses = input<TaskStatus[]>([]);
@@ -43,7 +43,7 @@ export class TaskKanbanViewComponent {
   readonly openTaskDetails = output<Task>();
   readonly taskStatusChange = output<{
     task: Task;
-    targetStatusId: number;
+    targetStatusCode: string;
   }>();
   readonly taskDragStart = output<Task>();
   readonly taskDragEnd = output<void>();
@@ -52,35 +52,35 @@ export class TaskKanbanViewComponent {
 
   private draggedTask: Task | null = null;
 
-  getTasksByStatus(statusId: number): Task[] {
-    return this.tasks().filter((t) => t.statusId === statusId);
+  getTasksByStatus(statusCode: string): Task[] {
+    return this.tasks().filter((t) => t.statusCode === statusCode);
   }
 
-  isFirstStatus(statusId: number): boolean {
-    return this.statuses().length > 0 && this.statuses()[0].id === statusId;
+  isFirstStatus(statusCode: string): boolean {
+    return this.statuses().length > 0 && this.statuses()[0].code === statusCode;
   }
 
-  isLastStatus(statusId: number): boolean {
-    return this.statuses().length > 0 && this.statuses()[this.statuses().length - 1].id === statusId;
+  isLastStatus(statusCode: string): boolean {
+    return this.statuses().length > 0 && this.statuses()[this.statuses().length - 1].code === statusCode;
   }
 
   moveTaskStatus(task: Task, direction: -1 | 1) {
     if (!this.canUpdateTask()) return;
-    const currentIndex = this.statuses().findIndex((s) => s.id === task.statusId);
+    const currentIndex = this.statuses().findIndex((s) => s.code === task.statusCode);
     if (currentIndex === -1) return;
 
     const targetIndex = currentIndex + direction;
     if (targetIndex >= 0 && targetIndex < this.statuses().length) {
       const targetStatus = this.statuses()[targetIndex];
-      this.taskStatusChange.emit({ task, targetStatusId: targetStatus.id });
+      this.taskStatusChange.emit({ task, targetStatusCode: targetStatus.code });
     }
   }
 
-  onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusId: number) {
+  onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusCode: string) {
     if (!this.canUpdateTask()) return;
     const task = event.item.data as Task;
-    if (!task || task.statusId === targetStatusId) return;
-    this.taskStatusChange.emit({ task, targetStatusId });
+    if (!task || task.statusCode === targetStatusCode) return;
+    this.taskStatusChange.emit({ task, targetStatusCode });
   }
 
   onHtml5DragStart(event: DragEvent, task: Task) {
@@ -121,7 +121,7 @@ export class TaskKanbanViewComponent {
     }
   }
 
-  onHtml5Drop(event: DragEvent, targetStatusId: number) {
+  onHtml5Drop(event: DragEvent, targetStatusCode: string) {
     if (!this.canUpdateTask()) return;
     event.preventDefault();
     const col = event.currentTarget as HTMLElement;
@@ -131,9 +131,9 @@ export class TaskKanbanViewComponent {
 
     const task = this.draggedTask;
     this.draggedTask = null;
-    if (!task || task.statusId === targetStatusId) return;
+    if (!task || task.statusCode === targetStatusCode) return;
 
-    this.taskStatusChange.emit({ task, targetStatusId });
+    this.taskStatusChange.emit({ task, targetStatusCode });
   }
 
   onTaskContainerClick(event: MouseEvent, task: Task) {

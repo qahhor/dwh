@@ -31,4 +31,6 @@ public final class MsTaskPref {
     public static final String FORM_PROJECTS = "tasks.projects";
     public static final String FORM_TASKS = "tasks.items";
     public static final String FORM_COMMENTS = "tasks.comments";
+    public static final String FORM_TYPES = "tasks.types";
+    public static final String FORM_STATUSES = "tasks.statuses";
 }

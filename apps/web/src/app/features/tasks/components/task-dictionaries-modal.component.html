@@ -27,13 +27,13 @@
                 }}</span>
                 <span class="dict-name">{{ ty.name }}</span>
                 <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
-                @if (ty.isSystem) {
+                @if (ty.system) {
                   <span class="sys-badge">{{ 'tasks.dictionaries.system' | t }}</span>
                 }
               </div>
             </ng-template>
             <ng-template smtSortableActions let-ty>
-              @if (!ty.isSystem) {
+              @if (!ty.system) {
                 <button
                   type="button"
                   class="mini-del-btn"
@@ -103,16 +103,16 @@
               <div class="dict-item-info">
                 <span class="status-dot" [style.background-color]="s.color"></span>
                 <span class="dict-name">{{ s.name }}</span>
-                @if (s.isTerminal) {
+                @if (s.terminal) {
                   <span class="term-badge">{{ 'tasks.dictionaries.final_status' | t }}</span>
                 }
-                @if (s.pcode) {
+                @if (s.system) {
                   <span class="sys-badge">{{ 'tasks.dictionaries.base_status' | t }}</span>
                 }
               </div>
             </ng-template>
             <ng-template smtSortableActions let-s>
-              @if (!s.pcode) {
+              @if (!s.system) {
                 <button
                   type="button"
                   class="mini-del-btn"
@@ -152,8 +152,8 @@
                 smt-checkbox
                 class="terminal-toggle-label"
                 name="taskStatusTerminal"
-                [checked]="newStatusForm().isTerminal"
-                (checkedChange)="patchStatusForm({ isTerminal: $event })"
+                [checked]="newStatusForm().terminal"
+                (checkedChange)="patchStatusForm({ terminal: $event })"
               >
                 {{ 'tasks.dictionaries.final_status' | t }}
               </div>

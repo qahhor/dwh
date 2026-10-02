@@ -1,17 +1,19 @@
 import type { KeysetPage } from '@core/models/common.models';
 import { Injectable, inject, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription, catchError, combineLatest, map, of, switchMap, take } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
-import { Task, TaskMember, TaskFile, TaskComment, TaskDetailResponse } from '@core/models/task.models';
+import { Task, TaskMember, TaskFile, TaskComment } from '@core/models/task.models';
 import { recordResponseMatches, safeNumericRecordId } from '@core/services/search-target';
+import { TasksApi } from '../tasks.api';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TaskDetailsService {
   private readonly api = inject(ApiService);
+  private readonly tasksApi = inject(TasksApi);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
 
@@ -99,31 +101,29 @@ export class TaskDetailsService {
     this.detailLoading.set(true);
     this.detailLoadError.set(false);
     this.detailNotFound.set(false);
-    this.detailRequest = this.api
-      .get<TaskDetailResponse>(`/tasks/${taskId}`, undefined, { notifyError: false })
-      .subscribe({
-        next: (res) => {
-          if (requestId !== this.detailRequestId || this.detailRecordId(routeRecordId) !== String(taskId)) return;
-          this.detailLoading.set(false);
-          if (recordResponseMatches(res?.task?.id, String(taskId))) {
-            this.selectedTask.set(res.task);
-            this.taskMembers.set(res.members || []);
-            this.taskSubtasks.set(res.subtasks || []);
-            this.taskAncestors.set(res.ancestors || []);
-            this.taskFiles.set(res.files || []);
-            // The requested key, exact: a large id comes back rounded in JSON.
-            this.markViewed(taskId);
-          } else {
-            this.detailLoadError.set(true);
-          }
-        },
-        error: (error) => {
-          if (requestId !== this.detailRequestId || this.detailRecordId(routeRecordId) !== String(taskId)) return;
-          this.detailLoading.set(false);
+    this.detailRequest = this.cardOf(taskId).subscribe({
+      next: (res) => {
+        if (requestId !== this.detailRequestId || this.detailRecordId(routeRecordId) !== String(taskId)) return;
+        this.detailLoading.set(false);
+        if (recordResponseMatches(res?.task?.id, String(taskId))) {
+          this.selectedTask.set(res.task);
+          this.taskMembers.set(res.members || []);
+          this.taskSubtasks.set(res.subtasks || []);
+          this.taskAncestors.set(res.ancestors || []);
+          this.taskFiles.set(res.files || []);
+          // The requested key, exact: a large id comes back rounded in JSON.
+          this.markViewed(taskId);
+        } else {
           this.detailLoadError.set(true);
-          this.detailNotFound.set(error?.status === 404 || error?.status === 403);
-        },
-      });
+        }
+      },
+      error: (error) => {
+        if (requestId !== this.detailRequestId || this.detailRecordId(routeRecordId) !== String(taskId)) return;
+        this.detailLoading.set(false);
+        this.detailLoadError.set(true);
+        this.detailNotFound.set(error?.status === 404 || error?.status === 403);
+      },
+    });
   }
 
   retryTaskDetails(routeRecordId: () => string | null): void {
@@ -278,4 +278,39 @@ export class TaskDetailsService {
   private markViewed(taskId: number | string): void {
     this.api.post(`/tasks/${taskId}/view`, null, { notifyError: false }).subscribe({ error: () => undefined });
   }
+
+  /**
+   * The card of a task: its record, people, files and subtasks, and its parent for the trail above the title. A parent
+   * the viewer may not see leaves the trail empty rather than failing the card.
+   */
+  private cardOf(taskId: number | string): Observable<TaskCard> {
+    // Each read answers once; the card is shown when all have.
+    return combineLatest({
+      task: this.tasksApi.get(taskId),
+      members: this.tasksApi.members(taskId),
+      files: this.tasksApi.files(taskId),
+      subtasks: this.tasksApi.subtasks(taskId),
+    }).pipe(
+      take(1),
+      switchMap((card) => {
+        const parentId = card.task.parentTaskId;
+        const trail = parentId
+          ? this.tasksApi.get(parentId).pipe(
+              map((parent) => [parent]),
+              catchError(() => of<Task[]>([])),
+            )
+          : of<Task[]>([]);
+        return trail.pipe(map((ancestors) => ({ ...card, ancestors })));
+      }),
+    );
+  }
+}
+
+/** What the card of a task shows. */
+interface TaskCard {
+  task: Task;
+  members: TaskMember[];
+  files: TaskFile[];
+  subtasks: Task[];
+  ancestors: Task[];
 }

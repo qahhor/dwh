@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, input, output } from '@angu
 
 import { TranslatePipe } from '@core/services/i18n.service';
 import { TaskStatus } from '@core/models/task.models';
+import { TaskStatusFilter, statusFilter } from '../tasks.models';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { SMTDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
 import { TaskLookupsService } from '../services/task-lookups.service';
@@ -105,7 +106,7 @@ export class TaskFilterBarComponent {
 
   readonly activePreset = input<TaskPreset>('all');
   readonly searchQuery = input('');
-  readonly statusFilterMode = input<'active' | 'all' | number>('active');
+  readonly statusFilterMode = input<TaskStatusFilter>('active');
   readonly statuses = input<TaskStatus[]>([]);
   readonly selectedProjectId = input<number | null>(null);
   readonly selectedPriority = input('');
@@ -115,14 +116,14 @@ export class TaskFilterBarComponent {
   readonly searchQueryChange = output<string>();
   readonly searchApply = output<void>();
   readonly searchClear = output<void>();
-  readonly statusFilterModeChange = output<'active' | 'all' | number>();
+  readonly statusFilterModeChange = output<TaskStatusFilter>();
   readonly selectedProjectIdChange = output<number | null>();
   readonly selectedPriorityChange = output<string>();
   readonly resetFilters = output<void>();
 
   private readonly presetMemo = optionsMemo<SMTRadioOption<TaskPreset>[]>();
 
-  private readonly statusMemo = optionsMemo<SMTRadioOption<'active' | 'all' | number>[]>();
+  private readonly statusMemo = optionsMemo<SMTRadioOption<TaskStatusFilter>[]>();
 
   private readonly priorityMemo = optionsMemo<SMTSelectOption<string>[]>();
 
@@ -152,7 +153,7 @@ export class TaskFilterBarComponent {
   }
 
   /** Active, all, then each status with its colour mark. */
-  statusOptions(): SMTRadioOption<'active' | 'all' | number>[] {
+  statusOptions(): SMTRadioOption<TaskStatusFilter>[] {
     return this.statusMemo([this.statuses(), this.optionText.currentLang()], () => [
       {
         value: 'active',
@@ -164,7 +165,11 @@ export class TaskFilterBarComponent {
         label: this.optionText.translate('common.all'),
         title: this.optionText.translate('tasks.filter.include_completed'),
       },
-      ...this.statuses().map((status) => ({ value: status.id, label: status.name, color: status.color || undefined })),
+      ...this.statuses().map((status) => ({
+        value: statusFilter(status.code),
+        label: status.name,
+        color: status.color || undefined,
+      })),
     ]);
   }
 

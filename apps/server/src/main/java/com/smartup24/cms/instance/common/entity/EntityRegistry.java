@@ -21,6 +21,7 @@ import java.util.function.Supplier;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Every declared entity by code (ADR-0019, 2.1). An entity is handed out with its custom fields as they are now:
@@ -297,6 +298,11 @@ public class EntityRegistry {
         @Override
         public void archive(EntityDefinition entity, long id) {
             store.get().archive(entity, id);
+        }
+
+        @Override
+        public void change(EntityDefinition entity, long id, String action, JsonNode params) {
+            store.get().change(entity, id, action, params);
         }
     }
 }

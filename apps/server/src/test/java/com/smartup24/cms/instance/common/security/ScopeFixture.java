@@ -5,12 +5,12 @@ import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.support.TestUsers;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
@@ -31,7 +31,6 @@ final class ScopeFixture {
     }
 
     final JdbcClient jdbc;
-    final MsTaskService tasks;
     final MfFileService files;
     final String tag = UUID.randomUUID().toString().substring(0, 8);
     final long unitA;
@@ -41,7 +40,6 @@ final class ScopeFixture {
     final long insider;
     final long outsider;
     final UUID viewerFile;
-    final long statusId;
 
     ScopeFixture(
             JdbcClient jdbc,
@@ -49,10 +47,8 @@ final class ScopeFixture {
             MdScopeService scopes,
             MdScopeRepository scopeRepository,
             MdRoleRepository roles,
-            MsTaskService tasks,
             MfFileService files) {
         this.jdbc = jdbc;
-        this.tasks = tasks;
         this.files = files;
         TestUsers testUsers = new TestUsers(jdbc, users, scopes, scopeRepository, roles);
         unitA = testUsers.unit("scope-a");
@@ -64,9 +60,6 @@ final class ScopeFixture {
         insider = user(unitA);
         outsider = user(unitB);
         viewerFile = upload(viewer);
-        statusId = jdbc.sql("select id from ms_task_statuses order by id limit 1")
-                .query(Long.class)
-                .single();
     }
 
     /** A fresh record of the kind, inside the viewer's scope or outside it. */
@@ -83,9 +76,7 @@ final class ScopeFixture {
                         .param("owner", owner)
                         .query(Long.class)
                         .single();
-            case TASK ->
-                tasks.createTask(null, null, "TEST scope task", "", "medium", null, null, null, null, null, null, owner)
-                        .id();
+            case TASK -> task(owner, null);
             case NOTE ->
                 jdbc.sql("""
                             insert into ms_notes (title, content_md, created_by, modified_by)
@@ -136,6 +127,26 @@ final class ScopeFixture {
                 .param("file", viewerFile)
                 .update();
         return viewerFile;
+    }
+
+    /**
+     * A task of {@code owner}, written as the general runtime writes one: the owner is its reporter and takes part
+     * in it as its author (ADR-0013: the author and the participants see a task).
+     */
+    long task(long owner, @Nullable Long project) {
+        long id = jdbc.sql("""
+                        insert into ms_tasks (project_id, title, priority, reporter_id, created_by, modified_by)
+                        values (:project, 'TEST scope task', 'medium', :owner, :owner, :owner) returning id
+                        """)
+                .param("project", project)
+                .param("owner", owner)
+                .query(Long.class)
+                .single();
+        jdbc.sql("insert into ms_task_members (task_id, user_id, involve_kind) values (:task, :user, 'A')")
+                .param("task", id)
+                .param("user", owner)
+                .update();
+        return id;
     }
 
     private long user(long unit) {

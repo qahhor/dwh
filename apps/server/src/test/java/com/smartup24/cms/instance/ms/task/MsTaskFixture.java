@@ -1,160 +1,87 @@
 package com.smartup24.cms.instance.ms.task;
 
-import static org.mockito.Mockito.mock;
-
-import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.md.service.MdCustomFieldService;
-import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.ms.task.controller.MsTaskController;
-import com.smartup24.cms.instance.ms.task.controller.MsTaskFileController;
-import com.smartup24.cms.instance.ms.task.controller.MsTaskStatusController;
-import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskFileRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskTreeRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
-import com.smartup24.cms.instance.ms.task.service.MsTaskAccess;
-import com.smartup24.cms.instance.ms.task.service.MsTaskAuditTrail;
-import com.smartup24.cms.instance.ms.task.service.MsTaskBulkService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskFileService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskListService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskMemberService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskReadService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskStatusService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskStatusViewService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskWorkflowService;
 import com.smartup24.cms.instance.search.service.SearchChangePublisher;
-import org.springframework.context.ApplicationEventPublisher;
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import tools.jackson.databind.ObjectMapper;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * The task services wired by hand for tests that run without a Spring context, the way the application context wires
- * them. Each service goes through {@link Proxy}, so a test decides how transactions wrap it.
+ * Tasks written the way the general runtime and the task hooks write them (ADR-0032, 6.3 and 8), for tests that run
+ * without the Spring context: the row read for update and written with its revision, the author's participation, and
+ * the search revision in the same transaction — the steps whose order the search's serialization tests check.
+ *
+ * @param jdbc      the database
+ * @param publisher the search revisions, or null when a test does not look at them
+ * @param tx        the transactions; a write joins the caller's when there is one
  */
-public record MsTaskFixture(
-        MsTaskService tasks,
-        MsTaskReadService reads,
-        MsTaskMemberService members,
-        MsTaskFileService files,
-        MsTaskWorkflowService workflow,
-        MsTaskStatusService statuses,
-        MsTaskStatusViewService statusViews,
-        MsTaskBulkService bulk) {
+public record MsTaskFixture(JdbcClient jdbc, @Nullable SearchChangePublisher publisher, TransactionTemplate tx) {
 
-    /** Wraps a service, e.g. in a transaction proxy; {@link #NO_PROXY} leaves it as it is. */
-    public interface Proxy {
-        <T> T wrap(T target);
+    /** A task created by {@code reporter}, in the initial status, in {@code project} under {@code parent}. */
+    public long create(String title, long reporter, @Nullable Long project, @Nullable Long parent) {
+        return Objects.requireNonNull(tx.execute(transaction -> {
+            if (publisher != null) publisher.lockStatusMembership("new");
+            long id = jdbc.sql("""
+                            insert into ms_tasks (project_id, parent_task_id, title, description_markdown, priority,
+                                                  reporter_id, created_by, modified_by)
+                            values (:project, :parent, :title, 'body', 'medium', :reporter, :reporter, :reporter)
+                            returning id
+                            """)
+                    .param("project", project)
+                    .param("parent", parent)
+                    .param("title", title)
+                    .param("reporter", reporter)
+                    .query(Long.class)
+                    .single();
+            jdbc.sql("insert into ms_task_members (task_id, user_id, involve_kind, is_viewed)"
+                            + " values (:task, :user, 'A', true)")
+                    .param("task", id)
+                    .param("user", reporter)
+                    .update();
+            if (publisher != null) publisher.changed("TASK", id);
+            return id;
+        }));
     }
 
-    public static final Proxy NO_PROXY = new Proxy() {
-        @Override
-        public <T> T wrap(T target) {
-            return target;
-        }
-    };
-
-    /** The repositories of the task module. */
-    public record Repositories(
-            MsTaskRepository tasks,
-            MsTaskTreeRepository tree,
-            MsTaskFileRepository files,
-            MsTaskStatsRepository stats,
-            MsTaskStatusRepository statuses,
-            MsTaskTypeRepository types,
-            MsTaskMemberRepository members,
-            MsProjectRepository projects) {
-
-        public static Repositories jdbc(JdbcClient jdbc, ObjectMapper mapper) {
-            return jdbc(new MsTaskRepository(jdbc, mapper), new MsTaskStatusRepository(jdbc), jdbc, mapper);
-        }
-
-        /** Real repositories, with the given task and status repositories (a test that keeps its own). */
-        public static Repositories jdbc(
-                MsTaskRepository tasks, MsTaskStatusRepository statuses, JdbcClient jdbc, ObjectMapper mapper) {
-            return new Repositories(
-                    tasks,
-                    new MsTaskTreeRepository(jdbc, mapper),
-                    new MsTaskFileRepository(jdbc),
-                    new MsTaskStatsRepository(jdbc),
-                    statuses,
-                    new MsTaskTypeRepository(jdbc),
-                    new MsTaskMemberRepository(jdbc),
-                    new MsProjectRepository(jdbc, mapper));
-        }
-
-        public static Repositories mocks() {
-            return new Repositories(
-                    mock(MsTaskRepository.class),
-                    mock(MsTaskTreeRepository.class),
-                    mock(MsTaskFileRepository.class),
-                    mock(MsTaskStatsRepository.class),
-                    mock(MsTaskStatusRepository.class),
-                    mock(MsTaskTypeRepository.class),
-                    mock(MsTaskMemberRepository.class),
-                    mock(MsProjectRepository.class));
-        }
+    /** A task created by {@code reporter} without a project or a parent. */
+    public long create(String title, long reporter) {
+        return create(title, reporter, null, null);
     }
 
-    /** Collaborators outside the task module. */
-    public record Collaborators(
-            MdCustomFieldService customFields,
-            MdScopeService scopes,
-            MfFileService files,
-            ApplicationEventPublisher events,
-            SearchChangePublisher search,
-            AuditLogService audit) {
-
-        /** Everything mocked except the data scope, the search publisher and the audit a test cares about. */
-        public static Collaborators with(MdScopeService scopes, SearchChangePublisher search, AuditLogService audit) {
-            return new Collaborators(
-                    mock(MdCustomFieldService.class),
-                    scopes,
-                    mock(MfFileService.class),
-                    mock(ApplicationEventPublisher.class),
-                    search,
-                    audit);
-        }
+    /** A task renamed by {@code actor} from the revision it has. */
+    public void rename(long id, String title, long actor) {
+        tx.executeWithoutResult(transaction -> {
+            lock(id);
+            jdbc.sql("update ms_tasks set title = :title, revision = revision + 1, modified_by = :actor,"
+                            + " modified_at = clock_timestamp() where id = :id")
+                    .param("title", title)
+                    .param("actor", actor)
+                    .param("id", id)
+                    .update();
+            if (publisher != null) publisher.changed("TASK", id);
+        });
     }
 
-    public static MsTaskFixture wire(Repositories repos, Collaborators with, Proxy proxy) {
-        var access = new MsTaskAccess(repos.tasks(), repos.projects(), with.scopes());
-        var audit = new MsTaskAuditTrail(with.audit());
-        var statuses =
-                proxy.wrap(new MsTaskStatusService(repos.statuses(), repos.types(), with.search(), with.audit()));
-        var members = proxy.wrap(new MsTaskMemberService(repos.members(), access, with.events(), audit));
-        var files = proxy.wrap(new MsTaskFileService(repos.files(), access, with.files(), audit));
-        var tasks = proxy.wrap(new MsTaskService(
-                repos.tasks(),
-                repos.tree(),
-                with.customFields(),
-                access,
-                members,
-                statuses,
-                with.events(),
-                with.search(),
-                audit));
-        var reads =
-                proxy.wrap(new MsTaskReadService(access, repos.tree(), repos.stats(), with.scopes(), members, files));
-        var workflow = proxy.wrap(new MsTaskWorkflowService(
-                access, repos.tasks(), repos.statuses(), members, with.events(), with.search(), audit));
-        var statusViews = proxy.wrap(new MsTaskStatusViewService(statuses));
-        // Not proxied: the bulk run is not transactional, each item runs on its own.
-        var bulk = new MsTaskBulkService(tasks, workflow, statuses, null);
-        return new MsTaskFixture(tasks, reads, members, files, workflow, statuses, statusViews, bulk);
+    /** A task moved to the status with {@code code} as the record action {@code set_status} moves it. */
+    public void moveStatus(long id, String code, long actor) {
+        tx.executeWithoutResult(transaction -> {
+            lock(id);
+            if (publisher != null) publisher.lockStatusMembership(code);
+            jdbc.sql("update ms_tasks set status_code = :code, revision = revision + 1, modified_by = :actor,"
+                            + " modified_at = clock_timestamp() where id = :id")
+                    .param("code", code)
+                    .param("actor", actor)
+                    .param("id", id)
+                    .update();
+            if (publisher != null) publisher.changed("TASK", id);
+        });
     }
 
-    /** The task controllers for a standalone MockMvc. */
-    public Object[] controllers(MsTaskListService list) {
-        return new Object[] {
-            new MsTaskController(tasks, reads, list, members, workflow, bulk),
-            new MsTaskStatusController(statusViews),
-            new MsTaskFileController(files)
-        };
+    /** Step 4 of the runtime: the row locked for the rest of the transaction; a missing task fails the test. */
+    private void lock(long id) {
+        jdbc.sql("select id from ms_tasks where id = :id for update")
+                .param("id", id)
+                .query(Long.class)
+                .single();
     }
 }

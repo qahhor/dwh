@@ -9,12 +9,16 @@ import { TaskFormsService } from './task-forms.service';
 const task = (id: number, title = `Task ${id}`, extra: Partial<Task> = {}): Task => ({
   id,
   title,
-  statusId: 1,
+  typeCode: 'task',
+  statusCode: 's1',
   priority: 'medium',
   attributes: {},
   createdAt: '2026-09-05T00:00:00Z',
   ...extra,
 });
+/** The task list on the general runtime (ADR-0032 8) and one task's record. */
+const LIST = '/entities/ms.tasks';
+const record = (id: number) => `${LIST}/${id}`;
 const member = (userId: number, involveKind: string, userName = `User ${userId}`): TaskMember =>
   ({ taskId: 9, userId, involveKind, userName, userLogin: `u${userId}` }) as TaskMember;
 
@@ -32,10 +36,10 @@ describe('TaskFormsService', () => {
   let retainParent: Mock<(id: number, title: string) => void>;
   const openEdit = (t: Task, returnTask: Task | null = null) =>
     forms.openEditModal(t, () => returnTask, retainMember, retainParent);
-  /** A queue answers one request per entry; a single answer serves every request. */
+  /** A queue answers one request per entry; a single answer serves every request; a task has no participants. */
   const answer = (key: string) => {
     const value = responses[key];
-    return Array.isArray(value) ? value.shift()! : (value ?? of({}));
+    return Array.isArray(value) ? value.shift()! : (value ?? of(key.endsWith('/members') ? [] : {}));
   };
 
   beforeEach(() => {
@@ -59,7 +63,7 @@ describe('TaskFormsService', () => {
 
   it('keeps a failed edit read out of the save-ready state and loads it again on retry', () => {
     const [first, retry] = [new Subject<unknown>(), new Subject<unknown>()];
-    responses['/tasks/7'] = [first, retry];
+    responses[record(7)] = [first, retry];
 
     openEdit(task(7, 'Stale row'));
     first.error({ detail: 'offline' });
@@ -69,7 +73,7 @@ describe('TaskFormsService', () => {
     expect(api.patch).not.toHaveBeenCalled();
 
     forms.retryEditLoad(retainMember, retainParent);
-    retry.next({ task: task(7, 'Fresh task'), members: [] });
+    retry.next(task(7, 'Fresh task'));
     expect(forms.editingTask?.title).toBe('Fresh task');
     expect(forms.editForm.title).toBe('Fresh task');
     expect(forms.editLoadError()).toBe(false);
@@ -80,12 +84,12 @@ describe('TaskFormsService', () => {
       descriptionMarkdown: 'fresh body',
       parentTaskId: 999,
       endTime: '2026-09-05T12:00:37.123Z',
+      responsibleId: 31,
+      observerIds: [44],
+      executorIds: [45],
     });
-    responses['/tasks/9'] = of({
-      task: fresh,
-      members: [member(31, 'R', 'Owner'), member(44, 'O'), member(45, 'E')],
-      ancestors: [task(999, 'Parent')],
-    });
+    responses[record(9)] = of(fresh);
+    responses['/tasks/9/members'] = of([member(31, 'R', 'Owner'), member(44, 'O'), member(45, 'E')]);
 
     openEdit(task(9, 'Stale title'));
 
@@ -101,18 +105,17 @@ describe('TaskFormsService', () => {
       }),
     );
     expect(retainMember).toHaveBeenCalledWith(expect.objectContaining({ userId: 31, userName: 'Owner' }));
-    expect(retainParent).toHaveBeenCalledWith(999, 'Parent');
   });
 
   it('treats an answer for another task or without members as a failed read', () => {
-    responses['/tasks/9'] = of({ task: task(10), members: [] });
+    responses[record(9)] = of(task(10));
     openEdit(task(9));
     expect(forms.editLoadError()).toBe(true);
     expect(forms.editingTask).toBeNull();
   });
 
   it('asks before discarding a dirty edit but closes an unchanged edit directly, back to the card', () => {
-    responses['/tasks/6'] = of({ task: task(6, 'Original'), members: [] });
+    responses[record(6)] = of(task(6, 'Original'));
     const openDetails = vi.fn();
 
     openEdit(task(6), task(6));
@@ -135,8 +138,8 @@ describe('TaskFormsService', () => {
 
   it('keeps a busy edit open and sends only one PATCH, then closes and reports the saved task', () => {
     const patch = new Subject<unknown>();
-    responses['/tasks/8'] = of({ task: task(8), members: [] });
-    responses['PATCH /tasks/8'] = patch;
+    responses[record(8)] = of(task(8));
+    responses[`PATCH ${record(8)}`] = patch;
     const saved = vi.fn();
 
     openEdit(task(8), task(8));
@@ -154,17 +157,14 @@ describe('TaskFormsService', () => {
   });
 
   it('omits unchanged assignments from the edit PATCH while sending explicit clears', () => {
-    responses['/tasks/30'] = of({
-      task: task(30, 'Task 30', { parentTaskId: 999 }),
-      members: [member(501, 'R'), member(502, 'O')],
-    });
+    responses[record(30)] = of(task(30, 'Task 30', { parentTaskId: 999, responsibleId: 501, observerIds: [502] }));
 
     openEdit(task(30));
     forms.editForm.title = 'Title only';
     forms.submitEditTask(vi.fn());
     const titleOnly = api.patch.mock.calls[0][1] as Record<string, unknown>;
     expect(titleOnly).toEqual(expect.objectContaining({ title: 'Title only' }));
-    for (const key of ['parentTaskId', 'responsibleUserId', 'observerUserIds', 'executorUserIds']) {
+    for (const key of ['parentTaskId', 'responsibleId', 'observerIds', 'executorIds']) {
       expect(titleOnly).not.toHaveProperty(key);
     }
 
@@ -172,13 +172,15 @@ describe('TaskFormsService', () => {
     Object.assign(forms.editForm, { parentTaskId: null, responsibleUserId: null, observerUserIds: [] });
     forms.submitEditTask(vi.fn());
     expect(api.patch.mock.calls[1][1]).toEqual(
-      expect.objectContaining({ parentTaskId: null, responsibleUserId: null, observerUserIds: [] }),
+      expect.objectContaining({ parentTaskId: null, responsibleId: null, observerIds: [] }),
     );
   });
 
   it('needs a title to save an edit, and keeps the form open when the PATCH fails', () => {
-    responses['/tasks/12'] = of({ task: task(12), members: [] });
-    responses['PATCH /tasks/12'] = new Observable((subscriber) => subscriber.error({ status: 503, detail: 'Busy' }));
+    responses[record(12)] = of(task(12));
+    responses[`PATCH ${record(12)}`] = new Observable((subscriber) =>
+      subscriber.error({ status: 503, detail: 'Busy' }),
+    );
     openEdit(task(12));
 
     forms.editForm.title = '  ';
@@ -194,8 +196,8 @@ describe('TaskFormsService', () => {
   });
 
   it('shows a save refused over a newer revision once and reads the task again from its button', () => {
-    responses['/tasks/14'] = [of({ task: task(14, 'Old'), members: [] }), of({ task: task(14, 'New'), members: [] })];
-    responses['PATCH /tasks/14'] = new Observable((subscriber) =>
+    responses[record(14)] = [of(task(14, 'Old')), of(task(14, 'New'))];
+    responses[`PATCH ${record(14)}`] = new Observable((subscriber) =>
       subscriber.error({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' }),
     );
     openEdit(task(14));
@@ -207,14 +209,14 @@ describe('TaskFormsService', () => {
     expect(toast.show).toHaveBeenCalledTimes(1);
     expect(toast.show.mock.calls[0][1]).toBe('Запись уже изменил другой пользователь');
     toast.show.mock.calls[0][4].run();
-    expect(api.get.mock.calls.filter(([path]) => path === '/tasks/14')).toHaveLength(2);
+    expect(api.get.mock.calls.filter(([path]) => path === record(14))).toHaveLength(2);
     expect(forms.editForm.title).toBe('New');
     expect(forms.isEditModalOpen()).toBe(true);
   });
 
   it('creates one task at a time with its co-executors and locks closing while it is sent', () => {
     const post = new Subject<unknown>();
-    responses['POST /tasks'] = post;
+    responses[`POST ${LIST}`] = post;
     const created = vi.fn();
 
     forms.openCreateTaskModal('task', 5);
@@ -233,10 +235,11 @@ describe('TaskFormsService', () => {
       expect.objectContaining({
         title: 'New task',
         projectId: 5,
-        responsibleUserId: 10,
-        executorUserIds: [20, 30],
-        observerUserIds: [40],
-        attributes: { task_type: 'task' },
+        typeCode: 'task',
+        responsibleId: 10,
+        executorIds: [20, 30],
+        observerIds: [40],
+        attributes: {},
       }),
     );
     expect(forms.isCreateModalOpen()).toBe(true);

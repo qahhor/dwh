@@ -28,16 +28,16 @@ export class TaskPresenter {
   private readonly i18n = inject(I18nService);
 
   // Stable function inputs for the child views, so they are not re-rendered on every check.
-  readonly getDeadlineInfoFn = (e: string | null | undefined, id: number) => this.getDeadlineInfo(e, id);
+  readonly getDeadlineInfoFn = (e: string | null | undefined, code: string) => this.getDeadlineInfo(e, code);
   readonly getPriorityLabelFn = (p: string) => this.getPriorityLabel(p);
   readonly getTypeColorFn = (t: Task) => this.getTypeColor(t);
   readonly getTypeIconFn = (t: Task) => this.getTypeIcon(t);
   readonly getProjectNameFn = (task: TaskProjectRef | null | undefined) => this.getProjectName(task);
-  readonly isOverdueFn = (e: string | null | undefined, id: number) => this.isOverdue(e, id);
+  readonly isOverdueFn = (e: string | null | undefined, code: string) => this.isOverdue(e, code);
   readonly getTypeLabelFn = (t: Task) => this.getTypeLabel(t);
   readonly getTypeBgFn = (t: Task) => this.getTypeBg(t);
-  readonly getStatusColorFn = (id: number | null | undefined) => this.getStatusColor(id);
-  readonly getStatusNameFn = (id: number | null | undefined) => this.getStatusName(id);
+  readonly getStatusColorFn = (code: string | null | undefined) => this.getStatusColor(code);
+  readonly getStatusNameFn = (code: string | null | undefined) => this.getStatusName(code);
 
   private readonly viewMemo = optionsMemo<SMTRadioOption<'table' | 'kanban'>[]>();
 
@@ -57,20 +57,20 @@ export class TaskPresenter {
   getProjectName(task: TaskProjectRef | null | undefined) {
     return getProjectName(task);
   }
-  getStatusName(statusId: number | null | undefined) {
-    return getStatusName(statusId, this.dictionaries.statuses(), this.i18n);
+  getStatusName(statusCode: string | null | undefined) {
+    return getStatusName(statusCode, this.dictionaries.statuses(), this.i18n);
   }
-  getStatusColor(statusId: number | null | undefined) {
-    return getStatusColor(statusId, this.dictionaries.statuses());
+  getStatusColor(statusCode: string | null | undefined) {
+    return getStatusColor(statusCode, this.dictionaries.statuses());
   }
   getPriorityLabel(priority: string) {
     return getPriorityLabel(priority, this.i18n);
   }
-  isOverdue(endTime: string | null | undefined, statusId: number) {
-    return isOverdue(endTime, statusId, this.dictionaries.statuses());
+  isOverdue(endTime: string | null | undefined, statusCode: string) {
+    return isOverdue(endTime, statusCode, this.dictionaries.statuses());
   }
-  getDeadlineInfo(endTime: string | null | undefined, statusId: number) {
-    return getDeadlineInfo(endTime, statusId, this.dictionaries.statuses(), this.i18n);
+  getDeadlineInfo(endTime: string | null | undefined, statusCode: string) {
+    return getDeadlineInfo(endTime, statusCode, this.dictionaries.statuses(), this.i18n);
   }
 
   viewOptions(): SMTRadioOption<'table' | 'kanban'>[] {

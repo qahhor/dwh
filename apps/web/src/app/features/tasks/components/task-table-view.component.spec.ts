@@ -14,7 +14,7 @@ const TASKS = [
     id: 11,
     title: 'Отчёт за январь',
     priority: 'medium',
-    statusId: 1,
+    statusCode: 'new',
     endTime: null,
     projectId: null,
     parentTaskId: null,
@@ -23,7 +23,7 @@ const TASKS = [
     id: 12,
     title: 'Сверка остатков',
     priority: 'low',
-    statusId: 1,
+    statusCode: 'new',
     endTime: null,
     projectId: null,
     parentTaskId: null,
@@ -31,8 +31,8 @@ const TASKS = [
 ] as unknown as Task[];
 
 const STATUSES = [
-  { id: 1, name: 'Новая' },
-  { id: 3, name: 'Готово' },
+  { id: 1, code: 'new', name: 'Новая' },
+  { id: 3, code: 'done', name: 'Готово' },
 ] as unknown as TaskStatus[];
 
 async function render(
@@ -114,13 +114,13 @@ describe('TaskTableViewComponent bulk actions', () => {
     apply(fixture, 'bulk-status-apply');
 
     expect(post).toHaveBeenCalledWith(
-      '/tasks/bulk',
-      { action: 'status', ids: [11, 12], params: { statusId: 3 } },
+      '/entities/ms.tasks/bulk',
+      { action: 'set_status', ids: [11, 12], params: { status: 'done' } },
       { notifyError: false },
     );
     expect(toast.success).toHaveBeenCalledWith('Изменено задач: 2');
     expect(reload).toHaveBeenCalledTimes(1);
-    expect(fixture.componentInstance.bulkStatusId()).toBeNull();
+    expect(fixture.componentInstance.bulkStatusCode()).toBeNull();
   });
 
   it('names the tasks that could not be changed, with the reason', async () => {
@@ -143,7 +143,7 @@ describe('TaskTableViewComponent bulk actions', () => {
     choose(fixture, 'bulk-priority', PACKAGED_RUSSIAN['task.priority.high']);
     apply(fixture, 'bulk-priority-apply');
 
-    expect(post.mock.calls[0][1]).toEqual({ action: 'priority', ids: [11, 12], params: { priority: 'high' } });
+    expect(post.mock.calls[0][1]).toEqual({ action: 'update', ids: [11, 12], params: { priority: 'high' } });
     const failure = document
       .querySelector('[data-testid="bulk-result-failure"]')
       ?.textContent?.replace(/\s+/g, ' ')
@@ -161,7 +161,7 @@ describe('TaskTableViewComponent bulk actions', () => {
 
     expect(toast.error).toHaveBeenCalledWith(PACKAGED_RUSSIAN['tasks.bulk.error']);
     expect(reload).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.bulkStatusId()).toBe(3);
+    expect(fixture.componentInstance.bulkStatusCode()).toBe('done');
     expect(fixture.componentInstance.selectedTasks().map((task) => task.id)).toEqual([11]);
   });
 });

@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import tools.jackson.databind.JsonNode;
 
 /**
  * What only the module knows about its entity's records (ADR-0019, roadmap item 56): who may see one, the list
@@ -31,5 +32,14 @@ public interface EntityRecords {
     /** Archives one record as the single archive does, with its checks and audit (ADR-0032, 5.4). */
     default void archive(long id) {
         throw new UnsupportedOperationException(entity() + " has no archive");
+    }
+
+    /**
+     * Changes one record from whatever revision it has, as a bulk action does (ADR-0032, 6.1): {@code update} with
+     * the fields of {@code params}, or the declared record action {@code action} with its parameters — each with the
+     * single change's checks, hooks, audit and event.
+     */
+    default void change(long id, String action, JsonNode params) {
+        throw new UnsupportedOperationException(entity() + " has no bulk change " + action);
     }
 }

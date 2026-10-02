@@ -21,6 +21,21 @@ export function toQueryParams(query: ListQuery | null | undefined): { filter?: s
   return params;
 }
 
+/**
+ * The query's parameters with the screen's own conditions added to its filter (ADR-0016): conditions a screen keeps
+ * outside the saved views — a preset, the archive switch — joined to the view's filter with "and".
+ */
+export function toQueryParamsWith(
+  query: ListQuery | null | undefined,
+  extra: readonly unknown[],
+): { filter?: string; sort?: string; q?: string } {
+  const params = toQueryParams(query);
+  if (extra.length === 0) return params;
+  const conditions = query?.conditions ?? [];
+  const own = conditions.length > 0 ? filterDsl(conditions, query?.match) : [];
+  return { ...params, filter: JSON.stringify([...own, ...extra]) };
+}
+
 export function formatSort(sort: QuerySort): string {
   return (sort.descending ? '-' : '') + sort.field;
 }

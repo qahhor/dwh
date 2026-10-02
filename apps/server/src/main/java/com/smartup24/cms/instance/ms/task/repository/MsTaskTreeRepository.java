@@ -1,68 +1,20 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
-import com.smartup24.cms.instance.common.security.ScopeFilter;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
-import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.databind.ObjectMapper;
 
-/** The task tree through {@code parent_task_id}: subtasks, the ancestor chain and the cycle check. */
+/** The tree of tasks: whether a new parent would close a cycle. */
 @Repository
 public class MsTaskTreeRepository {
 
     private final JdbcClient jdbcClient;
-    private final MsTaskRows rows;
 
-    public MsTaskTreeRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
+    public MsTaskTreeRepository(JdbcClient jdbcClient) {
         this.jdbcClient = jdbcClient;
-        this.rows = new MsTaskRows(objectMapper);
     }
 
-    public List<TaskRecord> findSubtasks(Long parentTaskId) {
-        return findSubtasks(parentTaskId, ScopeFilter.unrestricted());
-    }
-
-    public List<TaskRecord> findSubtasks(Long parentTaskId, ScopeFilter scope) {
-        String sql = "select " + MsTaskRepository.LIST_COLUMNS + """
-
-                from ms_tasks t
-                where t.parent_task_id = :parentTaskId
-                """ + scope.sql() + " order by t.id asc";
-        var query = jdbcClient.sql(sql).param("parentTaskId", parentTaskId);
-        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
-        return query.query(rows::map).list();
-    }
-
-    public List<TaskRecord> findAncestorChain(Long taskId) {
-        return findAncestorChain(taskId, ScopeFilter.unrestricted());
-    }
-
-    public List<TaskRecord> findAncestorChain(Long taskId, ScopeFilter scope) {
-        String sql = """
-                with recursive ancestors(id, depth) as (
-                    select root.parent_task_id, 1
-                    from ms_tasks root
-                    where root.id = :taskId and root.parent_task_id is not null
-                    union all
-                    select parent.parent_task_id, a.depth + 1
-                    from ms_tasks parent
-                    join ancestors a on a.id = parent.id
-                    where parent.parent_task_id is not null
-                )
-                """ + "select " + MsTaskRepository.LIST_COLUMNS + """
-
-                from ancestors a
-                join ms_tasks t on t.id = a.id
-                where 1=1
-                """ + scope.sql() + " order by a.depth desc";
-        var query = jdbcClient.sql(sql).param("taskId", taskId);
-        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
-        return query.query(rows::map).list();
-    }
-
-    public boolean isDescendantOf(Long potentialDescendantId, Long ancestorId) {
-        // Recursive CTE to check parent tree cycle
+    /** Whether {@code potentialDescendantId} lies under {@code ancestorId}: walks up its parents to the root. */
+    public boolean isDescendantOf(long potentialDescendantId, long ancestorId) {
         return jdbcClient
                         .sql("""
                 with recursive task_tree as (

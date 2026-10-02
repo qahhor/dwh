@@ -151,18 +151,49 @@ public sealed interface FieldSource
     /**
      * The link table of several references ({@code ex_order_tags(order_id, tag_id, position)}): a row per key, in the
      * order of {@code position} (ADR-0032, 4.1). {@link #sql} reads the keys as a {@code bigint[]}.
+     *
+     * <p>A table shared by several fields tells each field's rows by a kind column: the participants of a task
+     * ({@code ms_task_members(task_id, user_id, involve_kind, position)}) hold the executors under {@code E} and the
+     * observers under {@code O}; a field reads and replaces only the rows of its kind.
+     *
+     * @param kindColumn the column that tells the field's rows, or null when the table is the field's alone
+     * @param kind       the value of that column on the field's rows: letters, digits, underscores
      */
-    record Link(String table, String ownerColumn, String targetColumn) implements FieldSource {
+    record Link(
+            String table,
+            String ownerColumn,
+            String targetColumn,
+            @Nullable String kindColumn,
+            @Nullable String kind) implements FieldSource {
         public Link {
             requireIdentifier(table);
             requireIdentifier(ownerColumn);
             requireIdentifier(targetColumn);
+            if ((kindColumn == null) != (kind == null)) {
+                throw new IllegalArgumentException("A link table's kind column goes with its kind");
+            }
+            if (kindColumn != null) {
+                requireIdentifier(kindColumn);
+                if (!KIND.matcher(Objects.requireNonNull(kind)).matches()) {
+                    throw new IllegalArgumentException("Bad link kind: " + kind);
+                }
+            }
+        }
+
+        /** A link table that holds the rows of one field. */
+        public Link(String table, String ownerColumn, String targetColumn) {
+            this(table, ownerColumn, targetColumn, null, null);
         }
 
         @Override
         public String sql(String alias) {
             return "array(select l." + targetColumn + " from " + table + " l where l." + ownerColumn + " = " + alias
-                    + ".id order by l.position, l." + targetColumn + ")";
+                    + ".id" + kindSql("l") + " order by l.position, l." + targetColumn + ")";
+        }
+
+        /** The condition on the field's kind over the link table aliased {@code alias}: {@code ""} without a kind. */
+        public String kindSql(String alias) {
+            return kindColumn == null ? "" : " and " + alias + "." + kindColumn + " = '" + kind + "'";
         }
 
         @Override
@@ -170,6 +201,9 @@ public sealed interface FieldSource
             return true;
         }
     }
+
+    /** The kind of a shared link table's rows: a literal in SQL, so letters, digits and underscores only. */
+    Pattern KIND = Pattern.compile("^[A-Za-z0-9_]{1,32}$");
 
     /** An ISO 4217 currency code. */
     Pattern CURRENCY = Pattern.compile("^[A-Z]{3}$");

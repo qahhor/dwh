@@ -17,7 +17,12 @@ const project = (id: number, name = `Project ${id}`, description = ''): Project 
 
 describe('ProjectFormsService', () => {
   let reads: Record<number, Observable<unknown> | Observable<unknown>[]>;
-  let api: { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn> };
+  let api: {
+    get: ReturnType<typeof vi.fn>;
+    post: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+    put: ReturnType<typeof vi.fn>;
+  };
   let toast: {
     success: ReturnType<typeof vi.fn>;
     warning: ReturnType<typeof vi.fn>;
@@ -33,7 +38,8 @@ describe('ProjectFormsService', () => {
         return Array.isArray(read) ? read.shift()! : (read ?? of(project(Number(url.split('/').at(-1)))));
       }),
       post: vi.fn(() => of(project(10))),
-      patch: vi.fn(() => of(undefined)),
+      patch: vi.fn(() => of({ id: 0, revision: 3 })),
+      put: vi.fn(() => of({ id: 0, revision: 4, archived: true })),
     };
     toast = { success: vi.fn(), warning: vi.fn(), error: vi.fn(), show: vi.fn() };
     TestBed.configureTestingModule({
@@ -88,7 +94,11 @@ describe('ProjectFormsService', () => {
     forms.submitCreateProject();
     forms.requestCloseCreate();
     expect(api.post).toHaveBeenCalledTimes(1);
-    expect(api.post).toHaveBeenCalledWith('/tasks/projects', { name: 'New project', description: 'Draft description' });
+    expect(api.post).toHaveBeenCalledWith(
+      '/entities/ms.projects',
+      { name: 'New project', description: 'Draft description' },
+      { notifyError: false },
+    );
     expect(forms.isCreateModalOpen()).toBe(true);
 
     first.error({ status: 422, detail: 'Normalized create detail' });
@@ -118,7 +128,7 @@ describe('ProjectFormsService', () => {
     setup();
 
     forms.openEditModal(project(7));
-    expect(api.get).toHaveBeenCalledWith('/tasks/projects/7', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/entities/ms.projects/7', undefined, { notifyError: false });
     expect(forms.editLoading()).toBe(true);
     expect(forms.editingProject).toBeNull();
 
@@ -187,17 +197,19 @@ describe('ProjectFormsService', () => {
     forms.openEditModal(project(1));
     forms.editForm.name = ' Renamed ';
     forms.submitEditProject();
-    expect(api.patch).toHaveBeenLastCalledWith('/tasks/projects/1', { name: 'Renamed' }, expect.any(Object));
+    expect(api.patch).toHaveBeenLastCalledWith('/entities/ms.projects/1', { name: 'Renamed' }, expect.any(Object));
     expect(updated).toHaveBeenCalledTimes(1);
 
     forms.openEditModal(project(2));
     forms.editForm.description = '   ';
     forms.editForm.state = 'P';
     forms.submitEditProject();
-    expect(api.patch).toHaveBeenLastCalledWith(
-      '/tasks/projects/2',
-      { description: '', state: 'P' },
-      expect.any(Object),
+    expect(api.patch).toHaveBeenLastCalledWith('/entities/ms.projects/2', { description: '' }, expect.any(Object));
+    // A paused project is archived from the revision the change answered with (ADR-0032 5.4).
+    expect(api.put).toHaveBeenCalledWith(
+      '/entities/ms.projects/2/archived',
+      { archived: true },
+      { notifyError: false, ifMatch: 3 },
     );
 
     forms.openEditModal(project(3));
@@ -253,7 +265,7 @@ describe('ProjectFormsService', () => {
     forms.submitEditProject();
 
     expect(api.patch).toHaveBeenCalledWith(
-      '/tasks/projects/4',
+      '/entities/ms.projects/4',
       { name: 'Changed' },
       { notifyError: false, ifMatch: 2 },
     );

@@ -135,8 +135,8 @@ export class RefLookups {
       // The task list names its people by the path of the user list it had before the user entity; it moves to the
       // model with the tasks (plan 10/10, item 5.6) and names the entity's list then.
       '/iam/users': this.lookups.activeUsers,
-      '/tasks': this.lookups.tasks,
-      '/tasks/projects/page': this.lookups.projects,
+      '/entities/ms.tasks': this.lookups.tasks,
+      '/entities/ms.projects': this.lookups.projects,
     };
     const source = ref.keyField === 'id' ? sources[ref.path] : undefined;
     return (source as SMTLookupSource<Row, SMTLookupKey> | undefined) ?? null;

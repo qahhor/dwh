@@ -18,15 +18,12 @@ import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.mf.api.FileView;
 import com.smartup24.cms.instance.mf.controller.MfFileController;
 import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.ms.task.api.TaskDetail;
-import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.controller.MsTaskCommentController;
 import com.smartup24.cms.instance.ms.task.controller.MsTaskController;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskReadService;
+import com.smartup24.cms.instance.ms.task.service.MsTaskMemberService;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -43,42 +40,37 @@ class TaskFileDataScopeControllerTest {
 
     @Test
     void taskEndpointRejectsMissingActionPermissionBeforeService() throws Exception {
-        MsTaskReadService service = mock(MsTaskReadService.class);
+        MsTaskMemberService service = mock(MsTaskMemberService.class);
         SecurityContext.setPrincipal(principal(Set.of()));
 
         taskMvc(service)
-                .perform(get("/api/v1/tasks/42"))
+                .perform(get("/api/v1/tasks/42/members"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("permission_denied"));
     }
 
     @Test
     void taskEndpointReturnsNotFoundForOutOfScopeIdentifier() throws Exception {
-        MsTaskReadService service = mock(MsTaskReadService.class);
+        MsTaskMemberService service = mock(MsTaskMemberService.class);
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
-        when(service.getTaskDetail(42L, 10L))
+        when(service.getTaskMembers(42L, 10L))
                 .thenThrow(ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
 
         taskMvc(service)
-                .perform(get("/api/v1/tasks/42"))
+                .perform(get("/api/v1/tasks/42/members"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("task_not_found"));
     }
 
     @Test
-    void taskEndpointPassesAuthenticatedUserToEveryScopedRead() throws Exception {
-        MsTaskReadService service = mock(MsTaskReadService.class);
+    void taskEndpointPassesAuthenticatedUserToTheScopedRead() throws Exception {
+        MsTaskMemberService service = mock(MsTaskMemberService.class);
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
-        // Each part of the card is read in this user's scope: MsTaskServiceTest checks the service side.
-        when(service.getTaskDetail(42L, 10L))
-                .thenReturn(new TaskDetail(task(42L), List.of(), List.of(), List.of(), List.of()));
+        when(service.getTaskMembers(42L, 10L)).thenReturn(List.of());
 
-        taskMvc(service)
-                .perform(get("/api/v1/tasks/42"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.task.id").value(42));
+        taskMvc(service).perform(get("/api/v1/tasks/42/members")).andExpect(status().isOk());
 
-        verify(service).getTaskDetail(42L, 10L);
+        verify(service).getTaskMembers(42L, 10L);
     }
 
     @Test
@@ -145,8 +137,8 @@ class TaskFileDataScopeControllerTest {
         verify(service).getFileMetadata(id, 10L);
     }
 
-    private static MockMvc taskMvc(MsTaskReadService service) {
-        return MockMvcBuilders.standaloneSetup(new MsTaskController(null, service, null, null, null, null))
+    private static MockMvc taskMvc(MsTaskMemberService service) {
+        return MockMvcBuilders.standaloneSetup(new MsTaskController(service))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
@@ -169,29 +161,6 @@ class TaskFileDataScopeControllerTest {
     private static SecurityContext.KauthPrincipal principal(Set<String> permissions) {
         return new SecurityContext.KauthPrincipal(
                 10L, "scoped", "scoped@example.invalid", 20L, false, permissions, 1L, false, 0, null);
-    }
-
-    private static TaskView task(Long id) {
-        Instant now = Instant.parse("2026-09-04T10:15:30Z");
-        return new TaskView(
-                id,
-                null,
-                null,
-                null,
-                "Scoped task",
-                "",
-                1L,
-                "medium",
-                10L,
-                Map.of(),
-                null,
-                null,
-                null,
-                now,
-                now,
-                10L,
-                10L,
-                1L);
     }
 
     private static FileView file(UUID id) {

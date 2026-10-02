@@ -15,7 +15,6 @@ import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.*;
 import com.smartup24.cms.instance.ms.task.MsTaskFixture;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.service.*;
 import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
@@ -88,7 +87,7 @@ abstract class SearchDeliveryTestSupport {
     SearchGenerationService generationService;
     SearchReconciliationService reconciliation;
     SearchStoragePreflight storage;
-    MsTaskService tasks;
+    MsTaskFixture tasks;
     MdUserService users;
     MdUserSecurityService userSecurity;
     UUID owner;
@@ -132,7 +131,11 @@ abstract class SearchDeliveryTestSupport {
                 "truncate ms_tasks,ms_task_projects,md_users cascade",
                 // The cascade follows search_settings.updated_by to md_users (plan 10/10, item 4.6) and takes the
                 // singleton settings row along; it comes back as the migration seeds it.
-                "insert into search_settings(id) values(1) on conflict (id) do nothing"))
+                "insert into search_settings(id) values(1) on conflict (id) do nothing",
+                // It also follows the author of the task statuses (ADR-0032, 14.1): the status a new task starts in
+                // comes back as the product ships it.
+                "insert into ms_task_statuses (code, name, color, sort_order, is_system) select 'new', 'Новая',"
+                        + " '#3b82f6', 10, true where not exists (select 1 from ms_task_statuses where code = 'new')"))
             jdbc.sql(sql).update();
         publisher = SearchRevisionIntegrationTest.proxied(new SearchChangePublisher(jdbc), manager);
         reader = new SearchProjectionReader(jdbc, mapper);
@@ -142,16 +145,7 @@ abstract class SearchDeliveryTestSupport {
         when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
         when(scopes.filterForProjects(any())).thenReturn(ScopeFilter.unrestricted());
         var audit = mock(AuditLogService.class);
-        tasks = MsTaskFixture.wire(
-                        MsTaskFixture.Repositories.jdbc(jdbc, mapper),
-                        MsTaskFixture.Collaborators.with(scopes, publisher, audit),
-                        new MsTaskFixture.Proxy() {
-                            @Override
-                            public <T> T wrap(T target) {
-                                return SearchRevisionIntegrationTest.proxied(target, manager);
-                            }
-                        })
-                .tasks();
+        tasks = new MsTaskFixture(jdbc, publisher, new TransactionTemplate(manager));
         users = SearchRevisionIntegrationTest.proxied(
                 new MdUserService(
                         new MdUserRepository(jdbc, mapper),
@@ -301,8 +295,7 @@ abstract class SearchDeliveryTestSupport {
     }
 
     long task(long reporter, String title) {
-        return tasks.createTask(null, null, title, "body", "medium", null, null, null, null, null, reporter)
-                .id();
+        return tasks.create(title, reporter);
     }
 
     long delivered(String type, long id) {

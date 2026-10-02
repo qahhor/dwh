@@ -20,16 +20,20 @@ type Params = Record<string, unknown>;
 type Read = (path: string, params: Params) => Observable<unknown> | undefined;
 
 const EMPTY_PAGE = { items: [], nextCursor: null, hasMore: false, totalReturned: 0 };
+/** The task list on the general runtime (ADR-0032 8) and one task's record. */
+const LIST = '/entities/ms.tasks';
+const record = (id: number) => `${LIST}/${id}`;
 const task = (id: number, title = `Task ${id}`, extra: Partial<Task> = {}): Task => ({
   id,
   title,
-  statusId: 1,
+  typeCode: 'task',
+  statusCode: 's1',
   priority: 'medium',
   attributes: {},
   createdAt: '2026-09-05T00:00:00Z',
   ...extra,
 });
-const page = (items: Task[], nextCursor: string | null = null) => ({
+const page = <T>(items: T[], nextCursor: string | null = null) => ({
   items,
   nextCursor,
   hasMore: nextCursor !== null,
@@ -51,8 +55,8 @@ const user = (id: number, name: string): User => ({
 });
 const users = (...items: User[]) => ({ items, nextCursor: null, hasMore: false, totalReturned: items.length });
 const STATUSES: TaskStatus[] = [
-  { id: 1, name: 'Active', color: '#ff0000', isTerminal: false, orderNo: 1 },
-  { id: 2, name: 'Done', color: '#00ff00', isTerminal: true, orderNo: 2 },
+  { id: 1, code: 's1', name: 'Active', color: '#ff0000', terminal: false, sortOrder: 1 },
+  { id: 2, code: 's2', name: 'Done', color: '#00ff00', terminal: true, sortOrder: 2 },
 ];
 
 /** The screen over an API that answers a path through `get`, and the list, users and the rest empty. */
@@ -68,7 +72,7 @@ async function setup(
   const api = {
     get: vi.fn(
       (path: string, params: Params = {}) =>
-        options.get?.(path, params) ?? of(path === '/tasks' || path === '/entities/md.users' ? EMPTY_PAGE : []),
+        options.get?.(path, params) ?? of(path.startsWith('/entities/') ? EMPTY_PAGE : []),
     ),
     post: vi.fn((path: string, body?: unknown) => options.post?.(path, body) ?? of({})),
     patch: vi.fn((path: string, body?: unknown) => options.patch?.(path, body) ?? of({})),
@@ -99,8 +103,14 @@ async function setup(
   return { fixture, component: fixture.componentInstance, api, toast, screen: inScreen(fixture.nativeElement) };
 }
 
+/** The reads of the list itself: a card's subtasks are read from the same list, by their parent. */
 const listCalls = (api: { get: ReturnType<typeof vi.fn> }, match: (params: Params) => boolean = () => true) =>
-  api.get.mock.calls.filter(([path, params]) => path === '/tasks' && match(params as Params));
+  api.get.mock.calls.filter(
+    ([path, params]) =>
+      path === LIST &&
+      !String((params as Params)?.['filter'] ?? '').includes('parentTaskId') &&
+      match(params as Params),
+  );
 const button = (screen: Screen, label: string) =>
   screen.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement;
 const radio = (screen: Screen, group: string, label: string) =>
@@ -208,7 +218,7 @@ describe('TasksComponent', () => {
 
   it('creates a task: asks for the title, locks the dialog while sending, then reloads the list', async () => {
     const post = new Subject<unknown>();
-    const { fixture, component, api, screen } = await setup({ post: (path) => (path === '/tasks' ? post : undefined) });
+    const { fixture, component, api, screen } = await setup({ post: (path) => (path === LIST ? post : undefined) });
     component.openCreateTaskModal();
     redraw(fixture);
     TestBed.tick();
@@ -231,9 +241,9 @@ describe('TasksComponent', () => {
     component.submitCreateTask();
     component.requestCloseCreate();
     redraw(fixture);
-    expect(api.post.mock.calls.filter(([path]) => path === '/tasks')).toHaveLength(1);
+    expect(api.post.mock.calls.filter(([path]) => path === LIST)).toHaveLength(1);
     expect(api.post.mock.calls[0][1]).toEqual(
-      expect.objectContaining({ title: 'Новая задача', executorUserIds: [20, 30], observerUserIds: [40] }),
+      expect.objectContaining({ title: 'Новая задача', responsibleId: 10, executorIds: [20, 30], observerIds: [40] }),
     );
     expect((screen.querySelector('fieldset.task-create-form') as HTMLFieldSetElement).disabled).toBe(true);
 
@@ -246,7 +256,7 @@ describe('TasksComponent', () => {
   it('asks in the dialog before deleting a dictionary item', async () => {
     const { fixture, component, screen } = await setup();
     component.taskTypes.set([
-      { id: 5, code: 'review', name: 'Проверка', icon: 'fact_check', color: '#6366f1', orderNo: 10, isSystem: false },
+      { id: 5, code: 'review', name: 'Проверка', icon: 'fact_check', color: '#6366f1', sortOrder: 10, system: false },
     ]);
     component.dictService.openSettingsModal();
     redraw(fixture);
@@ -262,7 +272,6 @@ describe('TasksComponent', () => {
   });
 
   it('opens a card with its comments, naming a removed author and posting only with the right to', async () => {
-    const detail = { task: task(14), members: [], subtasks: [], ancestors: [], files: [] };
     const removedAuthor = {
       id: 1,
       taskId: 14,
@@ -275,7 +284,7 @@ describe('TasksComponent', () => {
     const { fixture, component, api, screen } = await setup({
       canComment: false,
       get: (path) =>
-        path === '/tasks/14' ? of(detail) : path === '/tasks/14/comments' ? of(thread([removedAuthor])) : undefined,
+        path === record(14) ? of(task(14)) : path === '/tasks/14/comments' ? of(thread([removedAuthor])) : undefined,
     });
 
     component.openTaskDetails(task(14));
@@ -293,10 +302,7 @@ describe('TasksComponent', () => {
 
   it('uses one detail or edit dialog at a time and returns to the card after cancel', async () => {
     const { component } = await setup({
-      get: (path) =>
-        path === '/tasks/16'
-          ? of({ task: task(16, 'Fresh'), members: [], subtasks: [], ancestors: [], files: [] })
-          : undefined,
+      get: (path) => (path === record(16) ? of(task(16, 'Fresh')) : undefined),
     });
 
     component.openTaskDetails(task(16));
@@ -311,7 +317,7 @@ describe('TasksComponent', () => {
 
   it('closes an open selector on Escape without dismissing its editor', async () => {
     const { fixture, component, screen } = await setup({
-      get: (path) => (path === '/tasks/61' ? of({ task: task(61, 'Fresh'), members: [] }) : undefined),
+      get: (path) => (path === record(61) ? of(task(61, 'Fresh')) : undefined),
     });
     component.openEditModal(task(61));
     redraw(fixture);
@@ -352,10 +358,10 @@ describe('TasksComponent', () => {
   it('ignores every outstanding response once the screen is gone', async () => {
     const [list, detail, comments, edit] = [1, 2, 3, 4].map(() => new Subject<unknown>());
     const reads: Record<string, Subject<unknown>> = {
-      '/tasks': list,
-      '/tasks/12': detail,
+      [LIST]: list,
+      [record(12)]: detail,
       '/tasks/12/comments': comments,
-      '/tasks/18': edit,
+      [record(18)]: edit,
     };
     const { fixture, component } = await setup({ get: (path) => reads[path] });
     component.openTaskDetails(task(12));
@@ -363,9 +369,9 @@ describe('TasksComponent', () => {
     fixture.destroy();
 
     list.next(page([task(90)]));
-    detail.next({ task: task(12, 'Late'), members: [], subtasks: [task(13)], ancestors: [], files: [] });
+    detail.next(task(12, 'Late'));
     comments.next([{ id: 1, taskId: 12, userId: 1, textMarkdown: 'late' }]);
-    edit.next({ task: task(18, 'Late edit'), members: [] });
+    edit.next(task(18, 'Late edit'));
 
     expect(component.tasks()).toEqual([]);
     expect(component.taskSubtasks()).toEqual([]);
@@ -377,7 +383,11 @@ describe('TasksComponent', () => {
     const { component, api } = await setup();
     component.tasks.set([task(42)]);
     component.updatePriority(42, 'critical');
-    expect(api.patch).toHaveBeenCalledWith('/tasks/42', { priority: 'critical' }, { notifyError: false });
+    expect(api.patch).toHaveBeenCalledWith(
+      record(42),
+      { priority: 'critical' },
+      { notifyError: false, ifMatch: undefined },
+    );
     expect(component.tasks()[0].priority).toBe('critical');
   });
 
@@ -388,11 +398,7 @@ describe('TasksComponent', () => {
 
     component.updatePriority(42, 'critical');
 
-    expect(api.patch).toHaveBeenCalledWith(
-      '/tasks/42',
-      { priority: 'critical', expectedRevision: 3 },
-      { notifyError: false },
-    );
+    expect(api.patch).toHaveBeenCalledWith(record(42), { priority: 'critical' }, { notifyError: false, ifMatch: 3 });
     expect(toast.error).not.toHaveBeenCalled();
     expect(toast.show).toHaveBeenCalledTimes(1);
     expect(component.tasks()[0].priority).not.toBe('critical');
@@ -429,8 +435,7 @@ describe('TasksComponent list', () => {
     vi.useFakeTimers();
     const initial = new Subject<unknown>();
     const { fixture, component, api, screen } = await setup({
-      get: (path, params) =>
-        path === '/tasks' ? (params['q'] ? of(page([task(70, 'Filtered')])) : initial) : undefined,
+      get: (path, params) => (path === LIST ? (params['q'] ? of(page([task(70, 'Filtered')])) : initial) : undefined),
     });
     const input = screen.querySelector('#task-search') as HTMLInputElement;
     input.value = 'current';
@@ -452,7 +457,7 @@ describe('TasksComponent list', () => {
     vi.useFakeTimers();
     const { fixture, screen } = await setup({
       get: (path, params) =>
-        path !== '/tasks'
+        path !== LIST
           ? undefined
           : params['cursor'] === 'c50'
             ? throwError(() => ({ status: 503 }))
@@ -482,7 +487,7 @@ describe('TasksComponent list', () => {
     const cursors: Array<unknown> = [];
     const { fixture, component, screen } = await setup({
       get: (path, params) => {
-        if (path !== '/tasks') return undefined;
+        if (path !== LIST) return undefined;
         cursors.push(params['cursor']);
         const cursor = params['cursor'];
         return of(
@@ -515,13 +520,14 @@ describe('TasksComponent list', () => {
 
   it('keeps active and all filters visible and equivalent in table and kanban, including after a terminal move', async () => {
     const active = task(1, 'Active task');
-    const done = task(2, 'Done task', { statusId: 2 });
+    const done = task(2, 'Done task', { statusCode: 's2' });
     const { fixture, component, screen } = await setup({
       get: (path, params) =>
-        path === '/tasks/statuses'
-          ? of(STATUSES)
-          : path === '/tasks'
-            ? of(page(params['hideTerminal'] === false ? [active, done] : [active]))
+        path === '/entities/ms.task_statuses'
+          ? of(page(STATUSES))
+          : path === LIST
+            ? // "Active" is the condition terminal = false of the list's filter; "all" names none.
+              of(page(String(params['filter'] ?? '').includes('terminal') ? [active] : [active, done]))
             : undefined,
     });
     const statusRadio = (label: string) =>
@@ -541,7 +547,7 @@ describe('TasksComponent list', () => {
     redraw(fixture);
     expect(component.tasks().map((item) => item.id)).toEqual([1]);
 
-    component.updateStatus(1, 2);
+    component.updateStatus(1, 's2');
     expect(component.tasks()).toEqual([]);
   });
 
@@ -550,7 +556,7 @@ describe('TasksComponent list', () => {
     const cursorReads = [firstNext, retryNext];
     const { fixture, component, api, screen } = await setup({
       get: (path, params) =>
-        path !== '/tasks' ? undefined : params['cursor'] ? cursorReads.shift() : of(page([task(1)], 'c50')),
+        path !== LIST ? undefined : params['cursor'] ? cursorReads.shift() : of(page([task(1)], 'c50')),
     });
 
     button(screen, 'Следующая страница').click();
@@ -578,15 +584,15 @@ describe('TasksComponent list', () => {
   it('keeps Previous on a later page once its last active task becomes final', async () => {
     const { fixture, component, screen } = await setup({
       get: (path, params) =>
-        path === '/tasks/statuses'
-          ? of(STATUSES)
-          : path === '/tasks'
+        path === '/entities/ms.task_statuses'
+          ? of(page(STATUSES))
+          : path === LIST
             ? of(params['cursor'] === 'c50' ? page([task(51)]) : page([task(1)], 'c50'))
             : undefined,
     });
     button(screen, 'Следующая страница').click();
     redraw(fixture);
-    component.updateStatus(51, 2);
+    component.updateStatus(51, 's2');
     redraw(fixture);
 
     expect(component.list.taskPager.page()).toBe(2);
@@ -604,10 +610,9 @@ describe('TasksComponent pickers', () => {
     const searched: Record<string, User> = { user501: user(501, 'Remote User'), user502: user(502, 'Remote Observer') };
     const { fixture, component, api, screen } = await setup({
       get: (path, params) => {
-        const search = params['search'] as string | undefined;
         const q = params['q'] as string | undefined;
         if (path === '/entities/md.users') return of(q && searched[q] ? users(searched[q]) : users());
-        if (path === '/tasks') return of(page(search === 'Outside' ? [parent] : [task(1)]));
+        if (path === LIST) return of(page(q === 'Outside' ? [parent] : [task(1)]));
         return undefined;
       },
     });
@@ -628,12 +633,7 @@ describe('TasksComponent pickers', () => {
     expect(component.createForm.parentTaskId).toBe(999);
     expect(component.createForm.observerUserIds).toEqual([502]);
     // The parent search ignores the list's own filters.
-    expect(
-      listCalls(
-        api,
-        (p) => p['search'] === 'Outside' && p['projectId'] === undefined && p['hideTerminal'] === undefined,
-      ),
-    ).toHaveLength(1);
+    expect(listCalls(api, (p) => p['q'] === 'Outside' && p['filter'] === undefined)).toHaveLength(1);
     redraw(fixture);
     // The pickers name what was chosen, whatever their lists show now.
     expect(responsible.textContent).toContain('Remote User');
@@ -649,11 +649,13 @@ describe('TasksComponent pickers', () => {
     ];
     const { fixture, component, screen } = await setup({
       get: (path) =>
-        path === '/tasks/40'
-          ? of({ task: task(40), members })
-          : path === '/entities/md.users'
-            ? throwError(() => ({ status: 403 }))
-            : undefined,
+        path === record(40)
+          ? of(task(40, 'Task 40', { responsibleId: 501, observerIds: [502] }))
+          : path === '/tasks/40/members'
+            ? of(members)
+            : path === '/entities/md.users'
+              ? throwError(() => ({ status: 403 }))
+              : undefined,
     });
     component.openEditModal(task(40));
     redraw(fixture);
@@ -670,11 +672,15 @@ describe('TasksComponent pickers', () => {
   });
 
   it('lets a fresh card name a member instead of the name an older card left', async () => {
-    const card = (userName: string) =>
-      of({ task: task(60), members: [{ taskId: 60, userId: 501, involveKind: 'R', userName, userLogin: 'u501' }] });
+    const card = (userName: string) => of([{ taskId: 60, userId: 501, involveKind: 'R', userName, userLogin: 'u501' }]);
     const cards = [card('Old Name'), card('Fresh Name')];
     const { fixture, component, screen } = await setup({
-      get: (path) => (path === '/tasks/60' ? cards.shift() : undefined),
+      get: (path) =>
+        path === record(60)
+          ? of(task(60, 'Task 60', { responsibleId: 501 }))
+          : path === '/tasks/60/members'
+            ? cards.shift()
+            : undefined,
     });
     component.openEditModal(task(60));
     component.requestCloseEdit();

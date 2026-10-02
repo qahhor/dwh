@@ -11,7 +11,7 @@ const task = (id: number, title: string, extra: Partial<Task> = {}): Task =>
   ({
     id,
     title,
-    statusId: 1,
+    statusCode: 's1',
     priority: 'medium',
     attributes: {},
     createdAt: '2026-09-01T00:00:00Z',
@@ -21,12 +21,13 @@ const task = (id: number, title: string, extra: Partial<Task> = {}): Task =>
 const TASK = task(7, 'Отчёт за январь', {
   projectId: 5,
   descriptionMarkdown: 'Свести продажи',
-  attributes: { task_type: 'task', urgent: true, contract: 'Д-15' },
+  typeCode: 'task',
+  attributes: { urgent: true, contract: 'Д-15' },
 });
 
 const STATUSES = [
-  { id: 1, name: 'Новая', isTerminal: false, orderNo: 1 },
-  { id: 3, name: 'Готово', isTerminal: true, orderNo: 2 },
+  { id: 1, code: 's1', name: 'Новая', terminal: false, sortOrder: 1 },
+  { id: 3, code: 's3', name: 'Готово', terminal: true, sortOrder: 2 },
 ] as TaskStatus[];
 
 const MEMBERS = [
@@ -147,7 +148,7 @@ describe('TaskDetailModalComponent', () => {
   });
 
   it('lists the subtasks as named buttons that open them, or says there are none', () => {
-    const subtasks = [task(8, 'Выгрузка'), task(9, 'Сверка', { statusId: 3 })];
+    const subtasks = [task(8, 'Выгрузка'), task(9, 'Сверка', { statusCode: 's3' })];
     const { fixture, screen } = render({ taskSubtasks: subtasks });
     const opened = vi.fn();
     fixture.componentInstance.openTaskDetails.subscribe(opened);
@@ -187,7 +188,7 @@ describe('TaskDetailModalComponent', () => {
 
     expect(added).toHaveBeenCalledWith(TASK);
     expect(edited).toHaveBeenCalledWith(TASK);
-    expect(changed).toHaveBeenCalledWith({ taskId: 7, statusId: 3 });
+    expect(changed).toHaveBeenCalledWith({ taskId: 7, statusCode: 's3' });
   });
 
   it('shows the comments, a retry when they fail, and passes a new comment to the page', () => {

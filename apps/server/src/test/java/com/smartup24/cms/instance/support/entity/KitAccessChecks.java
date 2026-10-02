@@ -176,14 +176,19 @@ final class KitAccessChecks {
     }
 
     private void outsideBulk() throws Exception {
-        List<String> actions = new ArrayList<>(List.of(EntityDefinition.DELETE));
+        // The bulk actions the entity declares: delete, archive, and the change of its fields (ADR-0032, 6.1).
+        List<String> actions = new ArrayList<>();
+        if (world.declares(EntityDefinition.DELETE)) actions.add(EntityDefinition.DELETE);
         if (world.has(EntityCapability.ARCHIVE)) actions.add(EntityDefinition.ARCHIVE);
+        if (world.declares("update")) actions.add("update");
         for (String action : actions) {
             Created record = world.create(world.owner);
+            Map<String, Object> request = new LinkedHashMap<>();
+            request.put("action", action);
+            request.put("ids", List.of(record.id(), MISSING));
+            if ("update".equals(action)) request.put("params", world.updateValues());
             MockHttpServletResponse bulk = world.session(world.outsider)
-                    .send(
-                            post("/api/v1/entities/" + world.entity.code() + "/bulk"),
-                            Map.of("action", action, "ids", List.of(record.id(), MISSING)));
+                    .send(post("/api/v1/entities/" + world.entity.code() + "/bulk"), request);
             assertThat(bulk.getStatus()).as(bulk.getContentAsString()).isEqualTo(200);
             Map<String, Object> result = TestSession.object(bulk);
             assertThat(result).as(action).containsEntry("succeeded", 0).containsEntry("failed", 2);

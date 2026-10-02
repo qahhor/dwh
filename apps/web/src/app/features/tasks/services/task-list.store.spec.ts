@@ -3,6 +3,7 @@ import { Observable, Subject, of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Task } from '@core/models/task.models';
 import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
 import { QueryMetaService } from '@core/services/query-meta.service';
 import { TASKS_META, registryProviders } from '@testing/registry-meta';
 import { TaskListStore } from './task-list.store';
@@ -10,7 +11,8 @@ import { TaskListStore } from './task-list.store';
 const task = (id: number, title = `Task ${id}`): Task => ({
   id,
   title,
-  statusId: 1,
+  typeCode: 'task',
+  statusCode: 's1',
   priority: 'medium',
   attributes: {},
   createdAt: '2026-09-05T00:00:00Z',
@@ -18,21 +20,25 @@ const task = (id: number, title = `Task ${id}`): Task => ({
 const page = (items: Task[], nextCursor: string | null = null) => ({ items, nextCursor, hasMore: nextCursor !== null });
 type Params = Record<string, unknown>;
 
+/** The task list on the general runtime (ADR-0032 8). */
+const LIST = '/entities/ms.tasks';
+const ACTIVE = JSON.stringify([{ field: 'terminal', op: 'eq', value: false }]);
+
 describe('TaskListStore', () => {
   let listReads: (params: Params) => Observable<unknown>;
   let api: { get: ReturnType<typeof vi.fn> };
   let store: TaskListStore;
-  const listCalls = () =>
-    api.get.mock.calls.filter(([path]) => path === '/tasks').map(([, params]) => params as Params);
+  const listCalls = () => api.get.mock.calls.filter(([path]) => path === LIST).map(([, params]) => params as Params);
 
   function setup(meta: Observable<unknown> = of(TASKS_META)) {
     api = {
-      get: vi.fn((path: string, params: Params) => (path === '/tasks' ? listReads(params) : of([]))),
+      get: vi.fn((path: string, params: Params) => (path === LIST ? listReads(params) : of([]))),
     };
     TestBed.configureTestingModule({
       providers: [
         TaskListStore,
         { provide: ApiService, useValue: api },
+        { provide: AuthService, useValue: { currentUser: () => ({ id: 7 }) } },
         ...registryProviders(TASKS_META),
         { provide: QueryMetaService, useValue: { get: vi.fn(() => meta) } },
       ],
@@ -52,7 +58,7 @@ describe('TaskListStore', () => {
 
     expect(store.meta()?.code).toBe('ms.tasks');
     expect(store.tasks().map((t) => t.id)).toEqual([1]);
-    expect(listCalls()[0]).toEqual(expect.objectContaining({ limit: 50, hideTerminal: true }));
+    expect(listCalls()[0]).toEqual(expect.objectContaining({ limit: 50, filter: ACTIVE }));
     // Plan 10/10, item 3.5: each row names its project; pickers search the paged list.
     expect(api.get.mock.calls.filter(([path]) => String(path).startsWith('/tasks/projects'))).toHaveLength(0);
   });
@@ -98,7 +104,8 @@ describe('TaskListStore', () => {
     oldPage.next(page([task(51, 'Old answer')]));
 
     expect(listCalls()[1]['cursor']).toBe('next');
-    expect(listCalls()[2]).toEqual(expect.objectContaining({ cursor: undefined, hideTerminal: false }));
+    expect(listCalls()[2]).toEqual(expect.objectContaining({ cursor: undefined }));
+    expect(listCalls()[2]['filter']).toBeUndefined();
     expect(store.taskPager.page()).toBe(1);
     expect(store.tasks().map((t) => t.id)).toEqual([700]);
   });
@@ -107,20 +114,27 @@ describe('TaskListStore', () => {
     setup();
     store.loadTasks(true);
 
+    // The quick filters are conditions of the list's filter expression (ADR-0016).
+    const conditions = () => JSON.parse(String(listCalls().at(-1)?.['filter'] ?? '[]'));
+    const active = { field: 'terminal', op: 'eq', value: false };
+
     store.setPreset('overdue');
-    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ overdue: true }));
+    expect(conditions()).toEqual([active, { field: 'overdue', op: 'eq', value: true }]);
     store.setPreset('executor');
-    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ memberRole: 'E' }));
+    expect(conditions()).toEqual([active, { field: 'executorIds', op: 'in', value: [7] }]);
     store.setPreset('observer');
-    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ memberRole: 'O' }));
+    expect(conditions()).toEqual([active, { field: 'observerIds', op: 'in', value: [7] }]);
     store.onProjectFilterChange(5);
     store.onPriorityFilterChange('high');
-    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ projectId: 5, priority: 'high' }));
+    expect(conditions()).toEqual(
+      expect.arrayContaining([
+        { field: 'priority', op: 'eq', value: 'high' },
+        { field: 'projectId', op: 'eq', value: 5 },
+      ]),
+    );
 
     store.resetFilters();
-    expect(listCalls().at(-1)).toEqual(
-      expect.objectContaining({ memberRole: undefined, projectId: undefined, priority: undefined }),
-    );
+    expect(conditions()).toEqual([active]);
   });
 
   it('searches 350 ms after typing, cancels the old page at once and blocks its retry meanwhile', async () => {
@@ -161,10 +175,10 @@ describe('TaskListStore', () => {
     store.onSort({ column: 'title', sortBy: 'DESC' as never });
     expect(listCalls().at(-1)).toEqual(expect.objectContaining({ sort: '-title' }));
 
-    const options = store.exportOptions();
-    expect(options).toEqual({ hideTerminal: 'true' });
-    expect(store.exportOptions()).toBe(options);
-    store.setStatusFilterMode(3);
-    expect(store.exportOptions()).toEqual({ statusId: '3' });
+    const conditions = store.exportFilter();
+    expect(conditions).toEqual([{ field: 'terminal', op: 'eq', value: false }]);
+    expect(store.exportFilter()).toBe(conditions);
+    store.setStatusFilterMode('status:review');
+    expect(store.exportFilter()).toEqual([{ field: 'statusCode', op: 'eq', value: 'review' }]);
   });
 });

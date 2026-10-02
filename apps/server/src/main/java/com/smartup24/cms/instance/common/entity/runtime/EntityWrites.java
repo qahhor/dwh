@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.common.entity.EntityFieldValues;
 import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.event.EntityEventType;
 import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
+import com.smartup24.cms.instance.common.entity.hook.EntityArchive;
 import com.smartup24.cms.instance.common.entity.hook.EntityDelete;
 import com.smartup24.cms.instance.common.entity.hook.EntityOperation;
 import com.smartup24.cms.instance.common.entity.hook.EntityValues;
@@ -112,13 +113,16 @@ public class EntityWrites {
 
     /**
      * Archives or restores the record (ADR-0032, 5.4), a switch of ADR-0023: written and audited only when the state
-     * changes; with a revision only from it — a stale one is 409 — without one (a bulk action) from whatever it is.
+     * changes; with a revision only from it — a stale one is 409 — without one (a bulk action) from whatever it is. The
+     * entity's {@code beforeArchive} hook may refuse the switch before it is written.
      */
     Map<String, Object> archive(EntityDefinition entity, long id, @Nullable Long expected, boolean archived) {
         long user = EntityReads.userId();
         Map<String, Object> before = reads.visible(entity, id, true);
         if (expected != null) requireRevision(before, expected);
         if (Boolean.valueOf(archived).equals(before.get(EntityModel.ARCHIVED))) return before;
+        changes.beforeArchive(
+                new EntityArchive(entity, id, EntityValues.readOnly(entity, before), archived, AuditActor.user(user)));
         long revision = store.archive(entity, id, archived, user).orElseThrow(Revisions::conflict);
         changes.auditArchive(entity, id, archived);
         EntityEventType type = archived ? EntityEventType.ARCHIVED : EntityEventType.RESTORED;

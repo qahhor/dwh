@@ -24,7 +24,7 @@ type SearchResponse = {
   hits: Array<{ id: string; entityType: Category; title: string }>;
 };
 
-async function api<T>(page: Page, method: 'GET' | 'POST' | 'PATCH', path: string, expected: number, data?: unknown): Promise<T> {
+async function api<T>(page: Page, method: 'GET' | 'POST' | 'PATCH' | 'PUT', path: string, expected: number, data?: unknown): Promise<T> {
   if (method === 'GET') {
     const response = await page.request.get(`/api/v1${path}`);
     try {
@@ -45,9 +45,11 @@ async function api<T>(page: Page, method: 'GET' | 'POST' | 'PATCH', path: string
 
   // A change names the revision it was made from (plan item 3.6): read the record as the screen would first.
   const headers: Record<string, string> = { 'X-XSRF-TOKEN': token };
-  if (method === 'PATCH') {
-    const current = await api<{ revision?: number; task?: { revision?: number } }>(page, 'GET', path, 200);
-    headers['If-Match'] = `"${current.revision ?? current.task?.revision ?? 1}"`;
+  if (method === 'PATCH' || method === 'PUT') {
+    // The archive switch of a record is PUT .../archived: its revision is the record's.
+    const record = path.replace(/\/archived$/u, '');
+    const current = await api<{ revision?: number }>(page, 'GET', record, 200);
+    headers['If-Match'] = `"${current.revision ?? 1}"`;
   }
   // A record action of an entity names the revision too (ADR-0032 6.7).
   const action = /^(\/entities\/[a-z.]+\/\d+)\/actions\/[a-z_0-9]+$/u.exec(path);
@@ -116,17 +118,18 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
   await loginToInstance(page);
   const assertHealthy = collectPageErrors(page);
   const marker = uniqueRunName('E2Esearch');
-  const project = await api<{ id: number }>(page, 'POST', '/tasks/projects', 201,
-    { name: `${marker} project`, description: 'Synthetic search project', state: 'A', attributes: {} });
-  const task = await api<{ id: number }>(page, 'POST', '/tasks', 201,
-    { title: `${marker} task`, descriptionMarkdown: 'Synthetic search task', projectId: project.id, priority: 'medium', attributes: { task_type: 'task' } });
+  // Tasks and projects are records of the general runtime (ADR-0032 8).
+  const project = await api<{ id: number }>(page, 'POST', '/entities/ms.projects', 201,
+    { name: `${marker} project`, description: 'Synthetic search project' });
+  const task = await api<{ id: number }>(page, 'POST', '/entities/ms.tasks', 201,
+    { title: `${marker} task`, descriptionMarkdown: 'Synthetic search task', typeCode: 'task', projectId: project.id, priority: 'medium' });
   const login = `search${randomBytes(8).toString('hex')}`;
   // The user is an entity of the general runtime (ADR-0032 8): created without a password, invited by mail.
   const user = await api<{ id: number }>(page, 'POST', '/entities/md.users', 201,
     { name: `${marker} user`, login, email: `${login}@example.invalid`, language: 'ru', timezone: 'Asia/Tashkent' });
   const records = [
-    { category: 'TASK' as const, id: String(task.id), endpoint: `/tasks/${task.id}`, route: `/tasks/items/${task.id}`, name: 'task', field: 'title' },
-    { category: 'PROJECT' as const, id: String(project.id), endpoint: `/tasks/projects/${project.id}`, route: `/tasks/projects/${project.id}`, name: 'project', field: 'name' },
+    { category: 'TASK' as const, id: String(task.id), endpoint: `/entities/ms.tasks/${task.id}`, route: `/tasks/items/${task.id}`, name: 'task', field: 'title' },
+    { category: 'PROJECT' as const, id: String(project.id), endpoint: `/entities/ms.projects/${project.id}`, route: `/tasks/projects/${project.id}`, name: 'project', field: 'name' },
     { category: 'USER' as const, id: String(user.id), endpoint: `/entities/md.users/${user.id}`, route: `/e/md.users/${user.id}`, name: 'user', field: 'name' },
   ];
 
@@ -140,8 +143,8 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
     await expect(hit).toHaveCount(1);
     await expect(palette.locator('.palette-degraded')).toHaveCount(0);
     const freshName = `${marker} refreshed ${record.name}`;
-    // The general runtime answers a change with the record (200); the task and project screens with 204.
-    await api(page, 'PATCH', record.endpoint, record.category === 'USER' ? 200 : 204, { [record.field]: freshName });
+    // Each of them is a record of the general runtime, which answers a change with the record (200).
+    await api(page, 'PATCH', record.endpoint, 200, { [record.field]: freshName });
     const detailResponse = page.waitForResponse(response => response.request().method() === 'GET'
       && new URL(response.url()).pathname === `/api/v1${record.endpoint}`);
     await hit.click();
@@ -173,12 +176,12 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
   await expect(page).toHaveURL(new RegExp(`/e/md\\.users/${user.id}$`, 'u'));
   await expect(page.getByRole('heading', { level: 1 })).toContainText(`${marker} edited user`);
 
-  await api(page, 'PATCH', `/tasks/projects/${project.id}`, 204, { state: 'P' });
+  await api(page, 'PUT', `/entities/ms.projects/${project.id}/archived`, 200, { archived: true });
   await api(page, 'POST', `/entities/md.users/${user.id}/actions/block`, 200, {});
   await indexed(page, marker, 'PROJECT', String(project.id), false);
   await indexed(page, marker, 'USER', String(user.id), false);
   // Passive search exclusion does not redefine the existing detail policy.
-  expect((await api<{ state: string }>(page, 'GET', `/tasks/projects/${project.id}`, 200)).state).toBe('P');
+  expect((await api<{ archived: boolean }>(page, 'GET', `/entities/ms.projects/${project.id}`, 200)).archived).toBe(true);
   expect((await api<{ state: string }>(page, 'GET', `/entities/md.users/${user.id}`, 200)).state).toBe('P');
   assertHealthy();
   // No task/project delete endpoint exists. The final QA runtime/volumes are
@@ -194,8 +197,8 @@ test('real missing canonical IDs show localized 404 and a working list action', 
   const assertHealthy = collectPageErrors(page, [/^Failed to load resource: the server responded with a status of 404 \((?:Not Found)?\)$/u]);
   const absentId = '9223372036854775807';
   for (const record of [
-    { route: '/tasks/items', endpoint: '/tasks' },
-    { route: '/tasks/projects', endpoint: '/tasks/projects' },
+    { route: '/tasks/items', endpoint: '/entities/ms.tasks' },
+    { route: '/tasks/projects', endpoint: '/entities/ms.projects' },
   ]) {
     // Verify this is an actually absent ID, not a passive or anonymized record.
     const preflight = await page.request.get(`/api/v1${record.endpoint}/${absentId}`);
@@ -218,13 +221,15 @@ test('real missing canonical IDs show localized 404 and a working list action', 
   await expect(page.getByTestId('entity-page-state')).toContainText('Запись не найдена');
   await page.getByTestId('entity-page-state').getByRole('link', { name: 'К списку', exact: true }).click();
   await expect(page).toHaveURL(/\/e\/md\.users$/u);
-  expect(failures.filter(failure => !failure.path.endsWith('/comments'))).toEqual([
-    { method: 'GET', path: `/api/v1/tasks/${absentId}` },
-    { method: 'GET', path: `/api/v1/tasks/projects/${absentId}` },
+  // A task's card also reads its comments, participants and files: each of them answers 404 for a missing task.
+  const subresource = /\/(?:comments|members|files)$/u;
+  expect(failures.filter(failure => !subresource.test(failure.path))).toEqual([
+    { method: 'GET', path: `/api/v1/entities/ms.tasks/${absentId}` },
+    { method: 'GET', path: `/api/v1/entities/ms.projects/${absentId}` },
     { method: 'GET', path: `/api/v1/entities/md.users/${absentId}` },
   ]);
-  expect(failures.filter(failure => failure.path.endsWith('/comments'))
-    .every(failure => failure.method === 'GET' && failure.path === `/api/v1/tasks/${absentId}/comments`)).toBe(true);
+  expect(failures.filter(failure => subresource.test(failure.path))
+    .every(failure => failure.method === 'GET' && failure.path.startsWith(`/api/v1/tasks/${absentId}/`))).toBe(true);
   assertHealthy();
 });
 

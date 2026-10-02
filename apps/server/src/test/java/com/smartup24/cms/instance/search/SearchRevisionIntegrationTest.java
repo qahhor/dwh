@@ -2,18 +2,10 @@ package com.smartup24.cms.instance.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
-import com.smartup24.cms.instance.md.service.MdCustomFieldService;
-import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.MsTaskFixture;
-import com.smartup24.cms.instance.ms.task.repository.*;
-import com.smartup24.cms.instance.ms.task.service.MsProjectService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
 import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import com.smartup24.cms.instance.search.typesense.*;
@@ -59,9 +51,7 @@ class SearchRevisionIntegrationTest {
 
     static JdbcClient jdbc;
     static TransactionTemplate tx;
-    static MsTaskFixture taskServices;
-    static MsTaskService tasks;
-    static MsProjectService projects;
+    static MsTaskFixture tasks;
     static SearchChangePublisher publisher;
     static long reporter;
     static DriverManagerDataSource database;
@@ -76,29 +66,8 @@ class SearchRevisionIntegrationTest {
         jdbc = JdbcClient.create(database);
         var manager = new DataSourceTransactionManager(database);
         tx = new TransactionTemplate(manager);
-        var mapper = new ObjectMapper();
-        var scopes = mock(MdScopeService.class);
-        when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
-        when(scopes.filterForProjects(any())).thenReturn(ScopeFilter.unrestricted());
         publisher = proxied(new SearchChangePublisher(jdbc), manager);
-        taskServices = MsTaskFixture.wire(
-                MsTaskFixture.Repositories.jdbc(jdbc, mapper),
-                MsTaskFixture.Collaborators.with(scopes, publisher, mock(AuditLogService.class)),
-                new MsTaskFixture.Proxy() {
-                    @Override
-                    public <T> T wrap(T target) {
-                        return proxied(target, manager);
-                    }
-                });
-        tasks = taskServices.tasks();
-        projects = proxied(
-                new MsProjectService(
-                        new MsProjectRepository(jdbc, mapper),
-                        mock(MdCustomFieldService.class),
-                        publisher,
-                        mock(AuditLogService.class),
-                        scopes),
-                manager);
+        tasks = new MsTaskFixture(jdbc, publisher, tx);
         reporter = jdbc.sql("""
                 insert into md_users(name,login,email,password_hash,state,language,timezone)
                 values ('Reporter','revision-reporter','revision@example.invalid','x','A','ru','UTC') returning id
@@ -146,22 +115,20 @@ class SearchRevisionIntegrationTest {
     @Test
     void publisherRejectsCallsOutsideBusinessTransaction() {
         assertThatThrownBy(() -> publisher.changed("TASK", 99)).isInstanceOf(IllegalTransactionStateException.class);
-        assertThatThrownBy(() -> publisher.lockStatusMembership(99))
+        assertThatThrownBy(() -> publisher.lockStatusMembership("new"))
                 .isInstanceOf(IllegalTransactionStateException.class);
     }
 
     @Test
     void projectRenamePublishesProjectAndChildTextAtomicallyAndRollbackRestoresBoth() throws Exception {
         var reader = new SearchProjectionReader(jdbc, new ObjectMapper());
-        long project = projects.createProject("Before " + System.nanoTime(), "description", "A", null, reporter)
-                .id();
-        long task = tasks.createTask(project, null, "Child", "body", "medium", null, null, null, null, null, reporter)
-                .id();
+        long project = createProject("Before " + System.nanoTime());
+        long task = tasks.create("Child", reporter, project, null);
         assertThat(reader.read("PROJECT", project)).isPresent();
         var beforeProject = reader.read("PROJECT", project).orElseThrow();
         var beforeTask = reader.read("TASK", task).orElseThrow();
         tx.executeWithoutResult(transaction -> {
-            projects.updateProject(project, "Uncommitted " + project, null, null, null, 1L);
+            renameProject(project, "Uncommitted " + project);
             assertThat(reader.read("TASK", task).orElseThrow().document())
                     .containsEntry("project_name", "Uncommitted " + project);
             assertThat(reader.read("PROJECT", project).orElseThrow().revision()).isEqualTo(2);
@@ -169,7 +136,7 @@ class SearchRevisionIntegrationTest {
         });
         assertThat(reader.read("PROJECT", project).orElseThrow()).isEqualTo(beforeProject);
         assertThat(reader.read("TASK", task).orElseThrow()).isEqualTo(beforeTask);
-        projects.updateProject(project, "Committed " + project, null, null, null, 1L);
+        renameProject(project, "Committed " + project);
         assertThat(reader.read("TASK", task).orElseThrow().document())
                 .containsEntry("project_name", "Committed " + project);
         assertThat(reader.read("TASK", task).orElseThrow().revision()).isEqualTo(2);
@@ -180,8 +147,7 @@ class SearchRevisionIntegrationTest {
     @Test
     void fingerprintIgnoresRevisionAndExcludedOrMissingSourceHasStableTombstone() {
         var reader = new SearchProjectionReader(jdbc, new ObjectMapper());
-        long project = projects.createProject("Fingerprint " + System.nanoTime(), "body", "A", null, reporter)
-                .id();
+        long project = createProject("Fingerprint " + System.nanoTime());
         assertThat(reader.read("PROJECT", project)).isPresent();
         var first = reader.read("PROJECT", project).orElseThrow();
         tx.executeWithoutResult(status -> publisher.changed("PROJECT", project));
@@ -191,7 +157,7 @@ class SearchRevisionIntegrationTest {
         assertThat(next.document())
                 .containsEntry("_projection_revision", 2L)
                 .containsEntry("_projection_fingerprint", next.fingerprint());
-        projects.updateProject(project, null, null, "P", null, 1L);
+        archiveProject(project);
         var excluded = reader.read("PROJECT", project).orElseThrow();
         assertThat(excluded.document()).isNull();
         tx.executeWithoutResult(status -> {
@@ -261,7 +227,7 @@ class SearchRevisionIntegrationTest {
             var reading = executor.submit(() -> reader.read("TASK", id).orElseThrow());
             try {
                 assertThat(selected.await(10, TimeUnit.SECONDS)).isTrue();
-                tasks.updateTask(id, "Snapshot two", null, null, null, null, null, null, reporter);
+                tasks.rename(id, "Snapshot two", reporter);
             } finally {
                 resume.countDown();
             }
@@ -291,25 +257,23 @@ class SearchRevisionIntegrationTest {
     }
 
     private void statusMembershipRace(boolean create, boolean renameFirst) throws Exception {
-        long status = jdbc.sql("select id from ms_task_statuses where pcode='new'")
+        long status = jdbc.sql("select id from ms_task_statuses where code='new'")
                 .query(Long.class)
                 .single();
         var id = new AtomicLong(create ? 0 : create("moving task"));
         if (!create) {
-            long other = taskServices
-                    .statusViews()
-                    .createStatus(null, "Other", "#000000", 99, false)
-                    .id();
-            taskServices.workflow().changeStatus(id.get(), other, reporter);
+            String other = jdbc.sql("insert into ms_task_statuses (code, name, color, sort_order) values" + " ('other_"
+                            + System.nanoTime() + "', 'Other', '#000000', 99) returning code")
+                    .query(String.class)
+                    .single();
+            tasks.moveStatus(id.get(), other, reporter);
         }
         Runnable membership = () -> {
             if (create) id.set(create("joining task"));
-            else taskServices.workflow().changeStatus(id.get(), status, reporter);
+            else tasks.moveStatus(id.get(), "new", reporter);
         };
         String renamed = "Renamed " + System.nanoTime();
-        Runnable rename = () -> taskServices
-                .statusViews()
-                .updateStatusRecord(status, renamed, null, null, null, revision("ms_task_statuses", status));
+        Runnable rename = () -> renameStatus(status, renamed);
         runSerialized(renameFirst ? rename : membership, renameFirst ? membership : rename);
         assertThat(jdbc.sql(
                                 "select revision from search_projection_versions where entity_type='TASK' and entity_id=:id")
@@ -327,11 +291,9 @@ class SearchRevisionIntegrationTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void projectUniqueNameRenameAndTaskCreationAlreadySerializeThroughForeignKey(boolean renameFirst) throws Exception {
-        long project = projects.createProject("Initial " + System.nanoTime(), "body", "A", null, reporter)
-                .id();
-        Runnable membership = () -> tasks.createTask(
-                project, null, "project member", "body", "medium", null, null, null, null, null, reporter);
-        Runnable rename = () -> projects.updateProject(project, "Renamed " + System.nanoTime(), null, null, null, 1L);
+        long project = createProject("Initial " + System.nanoTime());
+        Runnable membership = () -> tasks.create("project member", reporter, project, null);
+        Runnable rename = () -> renameProject(project, "Renamed " + System.nanoTime());
         runSerialized(renameFirst ? rename : membership, renameFirst ? membership : rename);
     }
 
@@ -386,8 +348,7 @@ class SearchRevisionIntegrationTest {
     }
 
     static long create(String title) {
-        return tasks.createTask(null, null, title, "body", "medium", null, null, null, null, null, reporter)
-                .id();
+        return tasks.create(title, reporter);
     }
 
     static long count(String table, String column, long id) {
@@ -406,11 +367,61 @@ class SearchRevisionIntegrationTest {
         }
     }
 
-    /** The current revision of a row, the one a change of it names (plan item 3.6). */
-    private static long revision(String table, long id) {
-        return jdbc.sql("select revision from " + table + " where id = :id")
-                .param("id", id)
-                .query(Long.class)
-                .single();
+    /** A project created the way the entity runtime creates it (ADR-0032, 6.3): the row, then the project hook. */
+    private static long createProject(String name) {
+        return java.util.Objects.requireNonNull(tx.execute(transaction -> {
+            long id = jdbc.sql("insert into ms_task_projects (name, description, created_by, modified_by)"
+                            + " values (:name, 'body', :user, :user) returning id")
+                    .param("name", name)
+                    .param("user", reporter)
+                    .query(Long.class)
+                    .single();
+            publisher.projectChanged(id);
+            return id;
+        }));
+    }
+
+    /** A project renamed as the runtime renames it: read for update, written with its revision, then the hook. */
+    private static void renameProject(long project, String name) {
+        tx.executeWithoutResult(transaction -> {
+            jdbc.sql("select id from ms_task_projects where id = :id for update")
+                    .param("id", project)
+                    .query(Long.class)
+                    .single();
+            jdbc.sql("update ms_task_projects set name = :name, revision = revision + 1 where id = :id")
+                    .param("name", name)
+                    .param("id", project)
+                    .update();
+            publisher.projectChanged(project);
+        });
+    }
+
+    /** A project archived as the runtime archives it (ADR-0032, 5.4): the hook, then the switch. */
+    private static void archiveProject(long project) {
+        tx.executeWithoutResult(transaction -> {
+            publisher.projectChanged(project);
+            jdbc.sql("update ms_task_projects set archived_at = clock_timestamp(), revision = revision + 1"
+                            + " where id = :id")
+                    .param("id", project)
+                    .update();
+        });
+    }
+
+    /**
+     * A status renamed the way the entity runtime renames it (ADR-0032, 6.3): the row read for update in the
+     * transaction, written with its revision, then the status hook re-indexes the tasks in it.
+     */
+    private static void renameStatus(long status, String name) {
+        tx.executeWithoutResult(transaction -> {
+            jdbc.sql("select id from ms_task_statuses where id = :id for update")
+                    .param("id", status)
+                    .query(Long.class)
+                    .single();
+            jdbc.sql("update ms_task_statuses set name = :name, revision = revision + 1 where id = :id")
+                    .param("name", name)
+                    .param("id", status)
+                    .update();
+            publisher.statusChanged(status);
+        });
     }
 }

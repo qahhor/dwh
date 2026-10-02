@@ -225,14 +225,13 @@ async function createUser(page: Page, roleId: number, suffix: string): Promise<{
 }
 
 async function createTask(page: Page, suffix: string, participantId: number): Promise<TaskRecord> {
-  return api<TaskRecord>(page.context(), 'POST', '/tasks', 201, {
+  // A task on the general runtime (ADR-0032 8): the responsible person takes part in it.
+  return api<TaskRecord>(page.context(), 'POST', '/entities/ms.tasks', 201, {
     title: `${runPrefix} task ${suffix}`,
     descriptionMarkdown: 'Synthetic organization-scope browser fixture',
+    typeCode: 'task',
     priority: 'medium',
-    responsibleUserId: participantId,
-    executorUserIds: [],
-    observerUserIds: [],
-    attributes: { task_type: 'task' },
+    responsibleId: participantId,
   });
 }
 
@@ -338,7 +337,7 @@ async function taskScopeSnapshot(
       /^error: Failed to load resource: the server responded with a status of 401/u,
     ]);
     // The task screen no longer reads every project (plan 10/10, item 3.5): its rows name their projects.
-    const dependencyPaths = ['/api/v1/custom-fields', '/api/v1/tasks'] as const;
+    const dependencyPaths = ['/api/v1/custom-fields', '/api/v1/entities/ms.tasks'] as const;
     const dependencies = Promise.all(dependencyPaths.map(path => page.waitForResponse(value => (
       value.request().method() === 'GET' && new URL(value.url()).pathname === path
     ))));
@@ -349,7 +348,7 @@ async function taskScopeSnapshot(
       path: new URL(value.url()).pathname,
       status: value.status(),
     }))).toEqual(dependencyPaths.map(path => ({ method: 'GET', path, status: 200 })));
-    const response = await context.request.get(`/api/v1/tasks?limit=50&search=${encodeURIComponent(runPrefix)}`, {
+    const response = await context.request.get(`/api/v1/entities/ms.tasks?limit=50&q=${encodeURIComponent(runPrefix)}`, {
       maxRedirects: 0,
       maxRetries: 0,
     });
@@ -360,7 +359,7 @@ async function taskScopeSnapshot(
       expectedVisible.map(key => seeded.tasks[key].id).sort((a, b) => a - b),
     );
     for (const key of ['actor', 'peer', 'child', 'other'] as const) {
-      const detail = await context.request.get(`/api/v1/tasks/${seeded.tasks[key].id}`, {
+      const detail = await context.request.get(`/api/v1/entities/ms.tasks/${seeded.tasks[key].id}`, {
         maxRedirects: 0,
         maxRetries: 0,
       });

@@ -42,7 +42,7 @@ export const TASKS_META: QueryListMeta = {
       enumValues: ['low', 'medium', 'high', 'critical'],
       enumLabelPrefix: 'tasks.priority.',
     }),
-    metaField('statusId', 'tasks.col.status', 'number'),
+    metaField('statusCode', 'tasks.col.status', 'enum'),
     metaField('endTime', 'tasks.col.due', 'instant', { nullable: true }),
   ],
 } as QueryListMeta;
@@ -95,7 +95,7 @@ export const PROJECTS_META: QueryListMeta = {
   fields: [
     metaField('id', 'projects.col.id', 'number', { sortable: true }),
     metaField('name', 'projects.col.name', 'text', { sortable: true }),
-    metaField('state', 'projects.col.state', 'enum', { enumValues: ['A', 'P'], enumLabelPrefix: 'projects.state.' }),
+    metaField('archived', 'entity.col.archived', 'boolean'),
     metaField('createdAt', 'projects.col.created_at', 'instant', { sortable: true }),
     metaField('progress', 'projects.col.progress', 'number', { sortable: true }),
   ],

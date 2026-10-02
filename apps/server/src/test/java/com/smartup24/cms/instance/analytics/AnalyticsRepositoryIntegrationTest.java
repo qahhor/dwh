@@ -24,11 +24,13 @@ class AnalyticsRepositoryIntegrationTest {
         user = id(
                 "insert into md_users (name, login, email) values ('Analyst', 'analyst', 'a@example.test') returning id");
         project = id("insert into ms_task_projects (name) values ('Dashboard') returning id");
-        long open = id("insert into ms_task_statuses (name, color) values ('Open', '#000') returning id");
-        long done = id(
-                "insert into ms_task_statuses (name, color, is_terminal) values ('Closed', '#fff', true) returning id");
-        long first = task("First", open);
-        task("Second", done);
+        jdbc.sql("insert into ms_task_statuses (code, name, color) values ('open', 'Open', '#000000')")
+                .update();
+        jdbc.sql(
+                        "insert into ms_task_statuses (code, name, color, is_terminal) values ('closed', 'Closed', '#ffffff', true)")
+                .update();
+        long first = task("First", "open");
+        task("Second", "closed");
         jdbc.sql("insert into ms_task_members (task_id, user_id, involve_kind) values (:task, :user, 'R')")
                 .param("task", first)
                 .param("user", user)
@@ -60,9 +62,9 @@ class AnalyticsRepositoryIntegrationTest {
         });
     }
 
-    private static long task(String title, long status) {
+    private static long task(String title, String status) {
         return jdbc.sql("""
-                        insert into ms_tasks (project_id, title, status_id, reporter_id)
+                        insert into ms_tasks (project_id, title, status_code, reporter_id)
                         values (:project, :title, :status, :user) returning id
                         """)
                 .param("project", project)

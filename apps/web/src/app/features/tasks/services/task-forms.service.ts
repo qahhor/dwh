@@ -1,12 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
-import { ApiService } from '@core/services/api.service';
+import { Observable, Subscription, combineLatest, take } from 'rxjs';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
-import { Task, TaskDetailResponse, TaskMember } from '@core/models/task.models';
+import { Task, TaskMember } from '@core/models/task.models';
 import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
 import { safeNumericRecordId } from '@core/services/search-target';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
+import { TasksApi } from '../tasks.api';
 import { toLocalDateTime, toTaskInstant } from '../task-form-value';
 import { TaskCreateFormValue, TaskEditFormValue, createDefaultTaskCreateForm, sameIdSet } from '../tasks.models';
 
@@ -14,7 +14,7 @@ import { TaskCreateFormValue, TaskEditFormValue, createDefaultTaskCreateForm, sa
   providedIn: 'root',
 })
 export class TaskFormsService {
-  private readonly api = inject(ApiService);
+  private readonly tasksApi = inject(TasksApi);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
@@ -114,25 +114,25 @@ export class TaskFormsService {
       return;
     }
 
-    const attrs = { ...this.createForm.attributes, task_type: this.createForm.taskType };
-
+    // The fields of `ms.tasks` by their keys (ADR-0032 8); the custom fields stay in `attributes`.
     const payload = {
       title: this.createForm.title.trim(),
       descriptionMarkdown: this.createForm.descriptionMarkdown?.trim() || '',
+      typeCode: this.createForm.taskType || 'task',
       projectId: this.createForm.projectId ? Number(this.createForm.projectId) : null,
       priority: this.createForm.priority || 'medium',
-      responsibleUserId: this.createForm.responsibleUserId ? Number(this.createForm.responsibleUserId) : null,
+      responsibleId: this.createForm.responsibleUserId ? Number(this.createForm.responsibleUserId) : null,
       parentTaskId: this.createForm.parentTaskId ? Number(this.createForm.parentTaskId) : null,
-      executorUserIds: this.createForm.executorUserIds,
-      observerUserIds: this.createForm.observerUserIds,
+      executorIds: this.createForm.executorUserIds,
+      observerIds: this.createForm.observerUserIds,
       beginTime: toTaskInstant(this.createForm.beginTime),
       endTime: toTaskInstant(this.createForm.endTime),
-      attributes: attrs,
+      attributes: { ...this.createForm.attributes },
     };
 
     const parentId = this.createForm.parentTaskId ? Number(this.createForm.parentTaskId) : null;
     this.isSubmitting.set(true);
-    this.api.post<Task>('/tasks', payload).subscribe({
+    this.tasksApi.create(payload).subscribe({
       next: () => {
         this.isSubmitting.set(false);
         this.isCreateModalOpen.set(false);
@@ -177,55 +177,50 @@ export class TaskFormsService {
     this.editLoadError.set(false);
     this.editingTask = null;
 
-    this.editRequest = this.api.get<TaskDetailResponse>(`/tasks/${taskId}`).subscribe({
-      next: (res) => {
-        if (requestId !== this.editRequestId || this.editTargetId !== taskId || !this.isEditModalOpen()) return;
-        if (!res?.task || res.task.id !== taskId || !Array.isArray(res.members)) {
+    // The record holds the people by id; their names come with the participants, so the pickers show them at once.
+    this.editRequest = combineLatest({ task: this.tasksApi.get(taskId), members: this.tasksApi.members(taskId) })
+      .pipe(take(1))
+      .subscribe({
+        next: (res) => {
+          if (requestId !== this.editRequestId || this.editTargetId !== taskId || !this.isEditModalOpen()) return;
+          if (!res?.task || res.task.id !== taskId || !Array.isArray(res.members)) {
+            this.editLoading.set(false);
+            this.editLoadError.set(true);
+            return;
+          }
+          const freshTask = res.task;
+          res.members.forEach((member) => onRetainMember(member));
+
+          this.editingTask = freshTask;
+          this.editForm = {
+            title: freshTask.title,
+            taskType: freshTask.typeCode || 'task',
+            descriptionMarkdown: freshTask.descriptionMarkdown || '',
+            projectId: freshTask.projectId ?? null,
+            priority: freshTask.priority || 'medium',
+            responsibleUserId: freshTask.responsibleId ?? null,
+            parentTaskId: freshTask.parentTaskId ?? null,
+            executorUserIds: [...(freshTask.executorIds ?? [])],
+            observerUserIds: [...(freshTask.observerIds ?? [])],
+            beginTime: toLocalDateTime(freshTask.beginTime),
+            endTime: toLocalDateTime(freshTask.endTime),
+            attributes: { ...(freshTask.attributes || {}) },
+          };
+          this.editFormBaseline = this.serializeEditForm();
+          this.editAssignmentBaseline = {
+            parentTaskId: this.editForm.parentTaskId,
+            responsibleUserId: this.editForm.responsibleUserId,
+            executorUserIds: [...this.editForm.executorUserIds],
+            observerUserIds: [...this.editForm.observerUserIds],
+          };
+          this.editLoading.set(false);
+        },
+        error: () => {
+          if (requestId !== this.editRequestId || this.editTargetId !== taskId || !this.isEditModalOpen()) return;
           this.editLoading.set(false);
           this.editLoadError.set(true);
-          return;
-        }
-        const freshTask = res.task;
-        const execIds = res.members.filter((m) => (m.involveKind || m.involvementKind) === 'E').map((m) => m.userId);
-        const obsIds = res.members.filter((m) => (m.involveKind || m.involvementKind) === 'O').map((m) => m.userId);
-
-        const respMember = res.members.find((m) => (m.involveKind || m.involvementKind) === 'R');
-        res.members.forEach((member) => onRetainMember(member));
-        const parent = (res.ancestors || []).find((ancestor) => ancestor.id === freshTask.parentTaskId);
-        if (parent) {
-          onRetainParent(parent.id, parent.title);
-        }
-
-        this.editingTask = freshTask;
-        this.editForm = {
-          title: freshTask.title,
-          taskType: stringAttribute(freshTask.attributes, 'task_type') || 'task',
-          descriptionMarkdown: freshTask.descriptionMarkdown || '',
-          projectId: freshTask.projectId ?? null,
-          priority: freshTask.priority || 'medium',
-          responsibleUserId: respMember ? respMember.userId : null,
-          parentTaskId: freshTask.parentTaskId ?? null,
-          executorUserIds: execIds,
-          observerUserIds: obsIds,
-          beginTime: toLocalDateTime(freshTask.beginTime),
-          endTime: toLocalDateTime(freshTask.endTime),
-          attributes: { ...(freshTask.attributes || {}) },
-        };
-        this.editFormBaseline = this.serializeEditForm();
-        this.editAssignmentBaseline = {
-          parentTaskId: this.editForm.parentTaskId,
-          responsibleUserId: this.editForm.responsibleUserId,
-          executorUserIds: [...this.editForm.executorUserIds],
-          observerUserIds: [...this.editForm.observerUserIds],
-        };
-        this.editLoading.set(false);
-      },
-      error: () => {
-        if (requestId !== this.editRequestId || this.editTargetId !== taskId || !this.isEditModalOpen()) return;
-        this.editLoading.set(false);
-        this.editLoadError.set(true);
-      },
-    });
+        },
+      });
   }
 
   retryEditLoad(onRetainMember: (m: TaskMember) => void, onRetainParent: (id: number, title: string) => void): void {
@@ -314,16 +309,15 @@ export class TaskFormsService {
       return;
     }
 
-    const attrs = { ...this.editForm.attributes, task_type: this.editForm.taskType };
-
     const payload: Record<string, unknown> = {
       title: this.editForm.title.trim(),
       descriptionMarkdown: this.editForm.descriptionMarkdown?.trim() || '',
+      typeCode: this.editForm.taskType || 'task',
       projectId: this.editForm.projectId ? Number(this.editForm.projectId) : null,
       priority: this.editForm.priority || 'medium',
       beginTime: toTaskInstant(this.editForm.beginTime, this.editingTask.beginTime),
       endTime: toTaskInstant(this.editForm.endTime, this.editingTask.endTime),
-      attributes: attrs,
+      attributes: { ...this.editForm.attributes },
     };
     const currentAssignments = {
       parentTaskId: this.editForm.parentTaskId == null ? null : Number(this.editForm.parentTaskId),
@@ -338,43 +332,41 @@ export class TaskFormsService {
       !this.editAssignmentBaseline ||
       currentAssignments.responsibleUserId !== this.editAssignmentBaseline.responsibleUserId
     ) {
-      payload['responsibleUserId'] = currentAssignments.responsibleUserId;
+      payload['responsibleId'] = currentAssignments.responsibleUserId;
     }
     if (
       !this.editAssignmentBaseline ||
       !sameIdSet(currentAssignments.executorUserIds, this.editAssignmentBaseline.executorUserIds)
     ) {
-      payload['executorUserIds'] = currentAssignments.executorUserIds;
+      payload['executorIds'] = currentAssignments.executorUserIds;
     }
     if (
       !this.editAssignmentBaseline ||
       !sameIdSet(currentAssignments.observerUserIds, this.editAssignmentBaseline.observerUserIds)
     ) {
-      payload['observerUserIds'] = currentAssignments.observerUserIds;
+      payload['observerIds'] = currentAssignments.observerUserIds;
     }
 
     const editedTask = this.editingTask;
     const returnTask = this.editReturnTask;
     this.isSubmitting.set(true);
-    this.editSaveRequest = this.api
-      .patch(`/tasks/${editedTask.id}`, payload, { notifyError: false, ifMatch: editedTask.revision })
-      .subscribe({
-        next: () => {
-          if (this.editingTask?.id !== editedTask.id) return;
-          this.isSubmitting.set(false);
-          this.closeEditModal(false, () => {});
-          this.toast.success(this.uiI18n.translate('tasks.editor.updated'));
-          onSuccess(returnTask, editedTask.id);
-        },
-        error: (err: unknown) => {
-          if (this.editingTask?.id !== editedTask.id) return;
-          this.isSubmitting.set(false);
-          this.saveErrors.show(err, {
-            fallbackKey: 'tasks.editor.update_failed',
-            reload: () => this.reloadEdit(),
-          });
-        },
-      });
+    this.editSaveRequest = this.tasksApi.patch(editedTask.id, payload, editedTask.revision).subscribe({
+      next: () => {
+        if (this.editingTask?.id !== editedTask.id) return;
+        this.isSubmitting.set(false);
+        this.closeEditModal(false, () => {});
+        this.toast.success(this.uiI18n.translate('tasks.editor.updated'));
+        onSuccess(returnTask, editedTask.id);
+      },
+      error: (err: unknown) => {
+        if (this.editingTask?.id !== editedTask.id) return;
+        this.isSubmitting.set(false);
+        this.saveErrors.show(err, {
+          fallbackKey: 'tasks.editor.update_failed',
+          reload: () => this.reloadEdit(),
+        });
+      },
+    });
   }
 
   cleanup(): void {
@@ -383,10 +375,4 @@ export class TaskFormsService {
     this.editRequest?.unsubscribe();
     this.editSaveRequest?.unsubscribe();
   }
-}
-
-/** A text attribute of a record, or '' when it is missing or not text. */
-function stringAttribute(attributes: Record<string, unknown> | undefined, key: string): string {
-  const value = attributes?.[key];
-  return typeof value === 'string' ? value : '';
 }

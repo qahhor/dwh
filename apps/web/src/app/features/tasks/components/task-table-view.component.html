@@ -7,7 +7,7 @@
       [filterMeta]="meta()"
       [exportable]="true"
       [exportSearch]="exportSearch()"
-      [exportOptions]="exportOptions()"
+      [exportFilter]="exportFilter()"
       [lockedColumns]="['id', 'title', 'actions']"
       (sortChange)="sortChange.emit($event)"
       [loadingLabel]="'tasks.list_loading' | t"
@@ -27,8 +27,8 @@
             smtTriggerId="task-bulk-status"
             [disabled]="bulkBusy()"
             [options]="statusOptions()"
-            [value]="bulkStatusId()"
-            (valueChange)="bulkStatusId.set($event)"
+            [value]="bulkStatusCode()"
+            (valueChange)="bulkStatusCode.set($event)"
             [placeholder]="'tasks.bulk.choose' | t"
             [emptyLabel]="'tasks.bulk.choose' | t"
           ></smt-select>
@@ -39,7 +39,7 @@
           smtVariant="secondary"
           smtSize="sm"
           data-testid="bulk-status-apply"
-          [disabled]="!bulkStatusId() || bulkBusy()"
+          [disabled]="!bulkStatusCode() || bulkBusy()"
           [smtLoading]="bulkBusy() && bulkAction() === 'status'"
           (click)="applyBulk('status')"
         >
@@ -80,8 +80,8 @@
 <ng-template #idCell let-t>
   <span
     class="tabular-nums font-mono"
-    [class.text-danger]="isOverdue()(t.endTime, t.statusId)"
-    [class.text-muted]="!isOverdue()(t.endTime, t.statusId)"
+    [class.text-danger]="isOverdue()(t.endTime, t.statusCode)"
+    [class.text-muted]="!isOverdue()(t.endTime, t.statusCode)"
     >#{{ t.id }}</span
   >
 </ng-template>
@@ -96,13 +96,13 @@
     <button
       type="button"
       class="task-title task-title-open"
-      [class.title-overdue]="isOverdue()(t.endTime, t.statusId)"
+      [class.title-overdue]="isOverdue()(t.endTime, t.statusCode)"
       [attr.aria-label]="'tasks.open_task_named' | t: { id: t.id, title: t.title }"
       (click)="openTaskDetails.emit(t)"
     >
       {{ t.title }}
     </button>
-    @if (isOverdue()(t.endTime, t.statusId)) {
+    @if (isOverdue()(t.endTime, t.statusCode)) {
       <span class="overdue-tag">{{ 'tasks.table.overdue' | t }}</span>
     }
     @if (t.parentTaskId) {
@@ -138,11 +138,11 @@
 </ng-template>
 <ng-template #statusCell let-t>
   <div class="inline-status-wrapper table-status">
-    <span class="status-dot" [style.background-color]="getStatusColor()(t.statusId)" aria-hidden="true"></span>
+    <span class="status-dot" [style.background-color]="getStatusColor()(t.statusCode)" aria-hidden="true"></span>
     <smt-select
       class="inline-status-select"
       [options]="statusOptions()"
-      [value]="t.statusId"
+      [value]="t.statusCode"
       (valueChange)="onStatusChange(t.id, $event)"
       [allowClear]="false"
       [disabled]="!canUpdateTask()"
@@ -152,7 +152,7 @@
   </div>
 </ng-template>
 <ng-template #deadlineCell let-t>
-  @let dl = getDeadlineInfo()(t.endTime, t.statusId);
+  @let dl = getDeadlineInfo()(t.endTime, t.statusCode);
   @if (dl.state !== 'none') {
     <span
       class="deadline-pill"

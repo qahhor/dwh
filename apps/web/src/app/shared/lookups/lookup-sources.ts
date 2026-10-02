@@ -102,23 +102,22 @@ export class LookupSources {
     option: (user) => ({ label: user.name, subLabel: `@${user.login}` }),
   });
 
-  /** Tasks by number or title, shown as "#12 Title"; a chosen one is read from its card. */
+  /** Tasks by title, shown as "#12 Title", from the runtime list of `ms.tasks` (ADR-0032 8); a chosen one is read by its id. */
   readonly tasks = restLookup<TaskRef>(this.api, {
-    path: '/tasks',
+    path: '/entities/ms.tasks',
+    searchParam: 'q',
     key: (task) => task.id,
     option: (task) => ({ label: `#${task.id} ${task.title}`, icon: 'task_alt' }),
-    readOne: (body) => (body as { task?: TaskRef } | null)?.task,
   });
 
   /**
-   * Projects by name, 20 at a time, archived ones included, from the paged project list (plan 10/10, item 3.5);
-   * a chosen one is read from its own card.
+   * Projects in use by name, 20 at a time, from the runtime list of `ms.projects` (ADR-0032 8; plan 10/10, item 3.5);
+   * a chosen one is read by its id, an archived one too.
    */
   readonly projects = restLookup<ProjectRef>(this.api, {
-    path: '/tasks/projects/page',
+    path: '/entities/ms.projects',
     searchParam: 'q',
     pageSize: 20,
-    readPath: '/tasks/projects',
     key: (project) => project.id,
     option: (project) => ({ label: project.name }),
   });

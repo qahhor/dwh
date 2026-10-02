@@ -24,8 +24,6 @@ class CacheConfigTest {
 
         assertThat(cacheManager.getCacheNames())
                 .containsExactlyInAnyOrder(
-                        CacheConfig.TASK_STATUSES_CACHE,
-                        CacheConfig.TASK_TYPES_CACHE,
                         CacheConfig.ACTIVE_MODULES_CACHE,
                         CacheConfig.ALL_MODULES_CACHE,
                         CacheConfig.MODULE_ACTIVE_CACHE,
@@ -38,11 +36,11 @@ class CacheConfigTest {
     @DisplayName("Кэш должен сохранять и возвращать значения, а также поддерживать очистку")
     void shouldStoreRetrieveAndEvictCachedEntries() {
         CacheManager cacheManager = cacheConfig.cacheManager(localOnly());
-        Cache cache = cacheManager.getCache(CacheConfig.TASK_STATUSES_CACHE);
+        Cache cache = cacheManager.getCache(CacheConfig.CUSTOM_FIELDS_CACHE);
         assertThat(cache).isNotNull();
 
-        cache.put("all", "dummy-status-list");
-        assertThat(cache.get("all", String.class)).isEqualTo("dummy-status-list");
+        cache.put("all", "dummy-field-list");
+        assertThat(cache.get("all", String.class)).isEqualTo("dummy-field-list");
 
         cache.clear();
         assertThat(cache.get("all")).isNull();
@@ -55,8 +53,8 @@ class CacheConfigTest {
         assertThat(bean.getAnnotation(Profile.class).value()).containsExactly("!migrate");
 
         CacheManager cacheManager = cacheConfig.cacheManager(localOnly());
-        cacheManager.getCache(CacheConfig.TASK_TYPES_CACHE).clear();
-        assertThat(cacheManager.getCacheNames()).contains(CacheConfig.TASK_TYPES_CACHE);
+        cacheManager.getCache(CacheConfig.NAVIGATION_ITEMS_CACHE).clear();
+        assertThat(cacheManager.getCacheNames()).contains(CacheConfig.NAVIGATION_ITEMS_CACHE);
     }
 
     /** No cluster bean in the context: what the migrate step sees. */

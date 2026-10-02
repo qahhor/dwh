@@ -241,25 +241,38 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("3.6: a reorder raises the revision of every status it moves, so a stale edit gets 409")
-    void reorderRaisesTheRevision() throws Exception {
+    @DisplayName("3.6: a move raises the revision of every status it shifts, so a stale edit gets 409")
+    void moveRaisesTheRevision() throws Exception {
         Session admin = login(user());
-        List<Map<String, Object>> before = list(send(admin, get("/api/v1/tasks/statuses"), null));
-        List<Long> ids =
-                before.stream().map(row -> ((Number) row.get("id")).longValue()).toList();
+        String statuses = "/api/v1/entities/ms.task_statuses";
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> before = (List<Map<String, Object>>)
+                object(send(admin, get(statuses), null)).get("items");
         Map<String, Object> first = before.getFirst();
+        Map<String, Object> last = before.getLast();
         long read = ((Number) first.get("revision")).longValue();
+        long lastRevision = ((Number) last.get("revision")).longValue();
         try {
-            MockHttpServletResponse reordered = send(admin, post("/api/v1/tasks/statuses/reorder"), ids.reversed());
-            assertThat(reordered.getStatus()).as(reordered.getContentAsString()).isLessThan(300);
+            MockHttpServletResponse moved = send(
+                    admin,
+                    post(statuses + "/" + last.get("id") + "/actions/move")
+                            .header("If-Match", Revisions.etag(lastRevision)),
+                    Map.of("position", 1));
+            assertThat(moved.getStatus()).as(moved.getContentAsString()).isEqualTo(200);
 
             MockHttpServletResponse stale = send(
                     admin,
-                    patch("/api/v1/tasks/statuses/" + first.get("id")).header("If-Match", Revisions.etag(read)),
+                    patch(statuses + "/" + first.get("id")).header("If-Match", Revisions.etag(read)),
                     Map.of("color", "#123456"));
             assertThat(stale.getStatus()).isEqualTo(409);
         } finally {
-            send(admin, post("/api/v1/tasks/statuses/reorder"), ids);
+            long now = ((Number) object(send(admin, get(statuses + "/" + last.get("id")), null))
+                            .get("revision"))
+                    .longValue();
+            send(
+                    admin,
+                    post(statuses + "/" + last.get("id") + "/actions/move").header("If-Match", Revisions.etag(now)),
+                    Map.of("position", before.size()));
         }
     }
 
@@ -391,11 +404,6 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
                 .param("login", login)
                 .query(Long.class)
                 .single();
-    }
-
-    @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> list(MockHttpServletResponse response) throws Exception {
-        return JSON.readValue(response.getContentAsString(StandardCharsets.UTF_8), List.class);
     }
 
     private long note(Session s) throws Exception {
