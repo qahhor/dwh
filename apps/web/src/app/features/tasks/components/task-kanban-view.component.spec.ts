@@ -9,11 +9,11 @@ const STATUSES = [
   { id: 3, code: 's3', name: 'Готово', color: '#16a34a', terminal: true, sortOrder: 3 },
 ] as TaskStatus[];
 
-const task = (id: number, title: string, statusId: number, extra: Partial<Task> = {}): Task =>
+const task = (id: number, title: string, statusCode: string, extra: Partial<Task> = {}): Task =>
   ({
     id,
     title,
-    statusId,
+    statusCode,
     priority: 'medium',
     attributes: {},
     createdAt: '2026-09-01T00:00:00Z',
@@ -21,9 +21,9 @@ const task = (id: number, title: string, statusId: number, extra: Partial<Task> 
   }) as Task;
 
 const TASKS = [
-  task(11, 'Отчёт за январь', 1, { projectId: 5, endTime: '2026-09-20T10:00:00Z' }),
-  task(12, 'Сверка остатков', 1),
-  task(13, 'Закрытие месяца', 3),
+  task(11, 'Отчёт за январь', 's1', { projectId: 5, endTime: '2026-09-20T10:00:00Z' }),
+  task(12, 'Сверка остатков', 's1'),
+  task(13, 'Закрытие месяца', 's3'),
 ];
 
 function render(inputs: Record<string, unknown> = {}) {
@@ -105,9 +105,9 @@ describe('TaskKanbanViewComponent', () => {
     button(fixture, 'Переместить задачу #11 вперёд').click();
     button(fixture, 'Переместить задачу #13 назад').click();
 
-    expect(moved.mock.calls.map(([change]) => [change.task.id, change.targetStatusId])).toEqual([
-      [11, 2],
-      [13, 2],
+    expect(moved.mock.calls.map(([change]) => [change.task.id, change.targetStatusCode])).toEqual([
+      [11, 's2'],
+      [13, 's2'],
     ]);
   });
 
@@ -130,7 +130,7 @@ describe('TaskKanbanViewComponent', () => {
     drag('dragend', card(fixture, 12));
 
     expect(started.mock.calls.map(([dragged]) => dragged.id)).toEqual([12, 12]);
-    expect(moved.mock.calls.map(([change]) => [change.task.id, change.targetStatusId])).toEqual([[12, 3]]);
+    expect(moved.mock.calls.map(([change]) => [change.task.id, change.targetStatusCode])).toEqual([[12, 's3']]);
     expect(ended).toHaveBeenCalledTimes(1);
   });
 

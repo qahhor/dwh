@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MsTaskCommentService {
 
     private final MsTaskCommentRepository commentRepository;
-    private final MsTaskService taskService;
+    private final MsTaskAccess access;
     private final MsTaskMemberService memberService;
     private final MfFileService fileService;
 
@@ -27,13 +27,13 @@ public class MsTaskCommentService {
 
     public MsTaskCommentService(
             MsTaskCommentRepository commentRepository,
-            MsTaskService taskService,
+            MsTaskAccess access,
             MsTaskMemberService memberService,
             MfFileService fileService,
             ApplicationEventPublisher eventPublisher,
             AuditLogService auditLogService) {
         this.commentRepository = commentRepository;
-        this.taskService = taskService;
+        this.access = access;
         this.memberService = memberService;
         this.fileService = fileService;
         this.eventPublisher = eventPublisher;
@@ -42,7 +42,7 @@ public class MsTaskCommentService {
 
     @Transactional
     public TaskCommentView addComment(Long taskId, Long userId, String textMarkdown, List<UUID> fileIds) {
-        var task = taskService.getTaskById(taskId, userId);
+        String title = access.requireVisible(taskId, userId);
         if (fileIds != null) {
             for (UUID fileId : fileIds) {
                 fileService.getFileMetadata(fileId, userId);
@@ -52,11 +52,8 @@ public class MsTaskCommentService {
         memberService.markViewed(taskId, userId);
 
         // FR-TASK-8: members learn about the comment; the author does not notify themselves
-        var recipients = memberService.getTaskMembers(taskId).stream()
-                .map(m -> m.userId())
-                .distinct()
-                .toList();
-        eventPublisher.publishEvent(new MsTaskEvents.TaskCommented(taskId, task.title(), recipients, userId));
+        var recipients = memberService.memberUserIds(taskId);
+        eventPublisher.publishEvent(new MsTaskEvents.TaskCommented(taskId, title, recipients, userId));
 
         // The comment text is not written to the audit log: it is correspondence content,
         // and the audit log is read more widely than the task. The log keeps the fact and the author.
@@ -80,7 +77,7 @@ public class MsTaskCommentService {
     /** The comments of a task the viewer may read, oldest first, a page at a time (plan 10/10, item 3.5). */
     @Transactional(readOnly = true)
     public KeysetPage<TaskCommentView> listComments(Long taskId, Long currentUserId, TimePage page) {
-        taskService.getTaskById(taskId, currentUserId);
+        access.requireVisible(taskId, currentUserId);
         return page.page(
                 MsTaskViews.all(commentRepository.listComments(taskId, page), MsTaskViews::comment),
                 view -> new TimePage.Position(view.createdAt(), view.id()));

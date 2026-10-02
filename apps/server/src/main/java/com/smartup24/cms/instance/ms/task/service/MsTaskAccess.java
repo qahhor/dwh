@@ -3,69 +3,29 @@ package com.smartup24.cms.instance.ms.task.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
-import java.util.List;
-import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * The checks every task service starts with: the task is visible in the actor's data scope (ADR-0013), a referenced
- * project is visible to the actor, a participant is someone the actor may see. One place, so the task services cannot drift apart.
- * Callers hold the transaction; this bean has none of its own.
+ * The check the task's own resources start with — its comments, files, participants and view mark: the task is
+ * visible in the actor's data scope (ADR-0013); an invisible task answers as a missing one. The task itself is the
+ * general runtime's ({@link MsTaskEntity}). Callers hold the transaction; this bean has none of its own.
  */
 @Component
 public class MsTaskAccess {
 
     private final MsTaskRepository taskRepository;
-    private final MsProjectRepository projectRepository;
     private final MdScopeService scopeService;
 
-    public MsTaskAccess(
-            MsTaskRepository taskRepository, MsProjectRepository projectRepository, MdScopeService scopeService) {
+    public MsTaskAccess(MsTaskRepository taskRepository, MdScopeService scopeService) {
         this.taskRepository = taskRepository;
-        this.projectRepository = projectRepository;
         this.scopeService = scopeService;
     }
 
-    /** The task without a data scope: for internal callers that act for the system, not for a user. */
-    public TaskRecord find(Long taskId) {
-        return taskRepository.findById(taskId).orElseThrow(() -> new ApiException(ErrorCode.TASK_NOT_FOUND));
-    }
-
-    /** The task as the user may see it; an invisible task is as good as a missing one. */
-    public TaskRecord find(Long taskId, Long currentUserId) {
+    /** The title of the task as the user may see it; an invisible task is as good as a missing one. */
+    public String requireVisible(long taskId, long userId) {
         return taskRepository
-                .findById(taskId, scopeService.filterForTasks(currentUserId))
+                .visibleTitle(taskId, scopeService.filterForTasks(userId))
                 .orElseThrow(() -> new ApiException(ErrorCode.TASK_NOT_FOUND));
-    }
-
-    /**
-     * A project the task refers to must be visible to the actor; {@code null} means no project. A project outside the
-     * actor's data scope answers exactly like a missing one (404, {@code PROJECT_NOT_FOUND}): its id reveals nothing,
-     * and a task cannot attach to it and so make it visible by participation (ADR-0013). {@code actorId} null is a
-     * system call.
-     */
-    public void requireProject(Long projectId, Long actorId) {
-        if (projectId != null
-                && projectRepository
-                        .visible(Set.of(projectId), scopeService.filterForProjects(actorId))
-                        .isEmpty()) {
-            throw new ApiException(ErrorCode.PROJECT_NOT_FOUND);
-        }
-    }
-
-    public void requireParticipants(Long actorId, List<Long> userIds) {
-        if (userIds == null) return;
-        for (Long userId : userIds) {
-            requireParticipant(actorId, userId);
-        }
-    }
-
-    public void requireParticipant(Long actorId, Long userId) {
-        if (userId != null && !scopeService.canAccessUser(actorId, userId)) {
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.assignee_unavailable");
-        }
     }
 }

@@ -38,13 +38,13 @@ import { RecordAttributes } from '../tasks.models';
 export class TaskDetailModalComponent {
   private readonly i18n = inject(I18nService);
 
-  readonly isOverdue = input.required<(endTime: string | null | undefined, statusId: number) => boolean>();
+  readonly isOverdue = input.required<(endTime: string | null | undefined, statusCode: string) => boolean>();
   readonly getTypeColor = input.required<(task: Task) => string>();
   readonly getTypeBg = input.required<(task: Task) => string>();
   readonly getTypeIcon = input.required<(task: Task) => string>();
   readonly getTypeLabel = input.required<(task: Task) => string>();
-  readonly getStatusName = input.required<(statusId: number | null | undefined) => string>();
-  readonly getStatusColor = input.required<(statusId: number | null | undefined) => string>();
+  readonly getStatusName = input.required<(statusCode: string | null | undefined) => string>();
+  readonly getStatusColor = input.required<(statusCode: string | null | undefined) => string>();
   readonly getPriorityLabel = input.required<(priority: string) => string>();
   /** The task's project as the card names it (`projectName`). */
   readonly getProjectName = input.required<(task: TaskProjectRef) => string | null>();
@@ -82,7 +82,7 @@ export class TaskDetailModalComponent {
   readonly openEditModal = output<Task>();
   readonly statusChange = output<{
     taskId: number;
-    statusId: number;
+    statusCode: string;
   }>();
   readonly fileAttached = output<TaskFile>();
   readonly fileRemoved = output<TaskFile>();
@@ -93,17 +93,17 @@ export class TaskDetailModalComponent {
 
   readonly safeRecordId = safeNumericRecordId;
 
-  private readonly statusMemo = optionsMemo<SMTSelectOption<number>[]>();
+  private readonly statusMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   /** Statuses as smt-select options; the same array while the statuses stay the same. */
-  statusOptions(): SMTSelectOption<number>[] {
+  statusOptions(): SMTSelectOption<string>[] {
     return this.statusMemo([this.statuses()], () =>
-      this.statuses().map((status) => ({ id: status.id, label: status.name })),
+      this.statuses().map((status) => ({ id: status.code, label: status.name })),
     );
   }
 
-  onStatusChange(taskId: number, statusId: number | null): void {
-    if (statusId !== null) this.statusChange.emit({ taskId, statusId });
+  onStatusChange(taskId: number, statusCode: string | null): void {
+    if (statusCode !== null) this.statusChange.emit({ taskId, statusCode });
   }
 
   get groupedMembers(): GroupedTaskMembers {

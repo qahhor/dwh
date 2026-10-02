@@ -10,7 +10,7 @@ import { TaskEditModalComponent } from './task-edit-modal.component';
 const TASK = {
   id: 7,
   title: 'Отчёт за январь',
-  statusId: 1,
+  statusCode: 's1',
   priority: 'medium',
   attributes: {},
   createdAt: '2026-09-01T00:00:00Z',

@@ -117,7 +117,7 @@ public class SearchProjectionReader {
                         'status_name',coalesce(s.name,''),'priority',coalesce(t.priority,'medium'),
                         'project_id',t.project_id,'project_name',coalesce(p.name,''))) as document
                     from ms_task_pub_tasks t
-                    left join ms_task_pub_statuses s on s.id=t.status_id
+                    left join ms_task_pub_statuses s on s.code=t.status_code
                     left join ms_task_pub_projects p on p.id=t.project_id
                     where t.id=v.entity_id
                     """;

@@ -85,7 +85,7 @@ describe('TaskFilterBarComponent', () => {
     expect(picked).toHaveBeenCalledWith('overdue');
   });
 
-  it('offers active, all and every status, and reports a status by its id', () => {
+  it('offers active, all and every status, and reports a status by its code', () => {
     const fixture = render();
     const chips = radios(fixture, 'Фильтр по статусу');
     const changed = vi.fn();
@@ -95,7 +95,7 @@ describe('TaskFilterBarComponent', () => {
     expect(chips[0].getAttribute('aria-checked')).toBe('true');
 
     chips[3].click();
-    expect(changed).toHaveBeenCalledWith(3);
+    expect(changed).toHaveBeenCalledWith('status:s3');
   });
 
   it('reports typed search text, a cleared field as a cleared search, and Enter as apply', () => {

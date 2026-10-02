@@ -77,11 +77,11 @@ class CapacityGuardsIntegrationTest {
                 returning id
                 """).query(Long.class).single();
 
-        // Seed 10 tasks with default status (status_id=1)
+        // Seed 10 tasks in the initial status
         for (int i = 1; i <= 10; i++) {
             jdbc.sql("""
-                    insert into ms_tasks (title, priority, status_id, reporter_id)
-                    values (:title, 'medium', 1, :reporterId)
+                    insert into ms_tasks (title, priority, reporter_id)
+                    values (:title, 'medium', :reporterId)
                     """)
                     .param("title", "Capacity Task " + i)
                     .param("reporterId", userId)

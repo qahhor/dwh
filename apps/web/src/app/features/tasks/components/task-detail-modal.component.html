@@ -52,7 +52,7 @@
         }
 
         <!-- Overdue Notice Banner -->
-        @if (isOverdue()(t.endTime, t.statusId)) {
+        @if (isOverdue()(t.endTime, t.statusCode)) {
           <div class="overdue-banner">
             <span class="material-symbols-outlined" aria-hidden="true">error</span>
             <span>{{ 'tasks.deadline_expired_at' | t: { date: (t.endTime | date: 'dd.MM.yyyy HH:mm') || '' } }}</span>
@@ -101,7 +101,7 @@
                       class="subtask-row"
                       [disabled]="!safeRecordId(sub.id)"
                       [attr.aria-label]="'tasks.open_subtask_named' | t: { id: sub.id, title: sub.title }"
-                      [class.row-overdue]="isOverdue()(sub.endTime, sub.statusId)"
+                      [class.row-overdue]="isOverdue()(sub.endTime, sub.statusCode)"
                       (click)="openTaskDetails.emit(sub)"
                     >
                       <span class="subtask-type" [style.color]="getTypeColor()(sub)">
@@ -117,10 +117,10 @@
                       <span class="inline-status-badge status-label">
                         <span
                           class="status-dot"
-                          [style.background-color]="getStatusColor()(sub.statusId)"
+                          [style.background-color]="getStatusColor()(sub.statusCode)"
                           aria-hidden="true"
                         ></span>
-                        {{ getStatusName()(sub.statusId) }}
+                        {{ getStatusName()(sub.statusCode) }}
                       </span>
                       <span class="priority-pill" [attr.data-priority]="sub.priority">
                         {{ getPriorityLabel()(sub.priority) }}
@@ -254,13 +254,13 @@
                 <div class="prop-v">
                   <span
                     class="status-dot"
-                    [style.background-color]="getStatusColor()(t.statusId)"
+                    [style.background-color]="getStatusColor()(t.statusCode)"
                     aria-hidden="true"
                   ></span>
                   <smt-select
                     class="status-select"
                     [options]="statusOptions()"
-                    [value]="t.statusId"
+                    [value]="t.statusCode"
                     (valueChange)="onStatusChange(t.id, $event)"
                     [allowClear]="false"
                     [disabled]="!canUpdateTask() || !safeRecordId(t.id)"
@@ -306,7 +306,7 @@
 
               <div class="side-prop-row">
                 <span class="prop-k">{{ 'tasks.detail.deadline' | t }}</span>
-                <div class="prop-v" [class.text-danger]="isOverdue()(t.endTime, t.statusId)">
+                <div class="prop-v" [class.text-danger]="isOverdue()(t.endTime, t.statusCode)">
                   {{ t.endTime ? (t.endTime | date: 'dd.MM.yyyy HH:mm') : ('common.not_set' | t) }}
                 </div>
               </div>

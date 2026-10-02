@@ -1,51 +1,29 @@
 package com.smartup24.cms.instance.ms.task;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
-import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
-import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
-import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
-import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.interceptor.TransactionProxyFactoryBean;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -64,14 +42,11 @@ class TaskConcurrencyIntegrationTest {
 
     static JdbcClient jdbc;
     static DriverManagerDataSource dataSource;
-    static MsTaskRepository taskRepository;
-    static MsTaskStatusRepository statusRepository;
     static KauthSessionRepository sessionRepository;
     static KauthApiTokenRepository apiTokenRepository;
     static MdScopeRepository scopeRepository;
     static MdRoleRepository roles;
     static MdScopeService scopes;
-    static MockMvc mvc;
     static Long testUserId;
     static Long rootUnit;
 
@@ -84,11 +59,8 @@ class TaskConcurrencyIntegrationTest {
                 .load()
                 .migrate();
         jdbc = JdbcClient.create(dataSource);
-        var transactions = new DataSourceTransactionManager(dataSource);
         var objectMapper = new ObjectMapper();
 
-        taskRepository = new MsTaskRepository(jdbc, objectMapper);
-        statusRepository = new MsTaskStatusRepository(jdbc);
         sessionRepository = new KauthSessionRepository(jdbc);
         apiTokenRepository = new KauthApiTokenRepository(jdbc);
 
@@ -100,21 +72,6 @@ class TaskConcurrencyIntegrationTest {
                 new MdOrgUnitRepository(jdbc),
                 new MdPermissionService(new MdPermissionRepository(jdbc)),
                 audit);
-
-        var tasks = MsTaskFixture.wire(
-                MsTaskFixture.Repositories.jdbc(taskRepository, statusRepository, jdbc, objectMapper),
-                MsTaskFixture.Collaborators.with(scopes, mock(SearchChangePublisher.class), audit),
-                new MsTaskFixture.Proxy() {
-                    @Override
-                    public <T> T wrap(T target) {
-                        return transactional(target, transactions);
-                    }
-                });
-
-        mvc = MockMvcBuilders.standaloneSetup(tasks.controllers(null))
-                .addInterceptors(new RequiresPermissionInterceptor())
-                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
-                .build();
 
         rootUnit = orgUnit(null, "root");
         testUserId = user("ConcurrencyActor", rootUnit);
@@ -136,7 +93,8 @@ class TaskConcurrencyIntegrationTest {
         assertThat(indexes).doesNotContain("idx_ms_tasks_status_id");
         assertThat(indexes).doesNotContain("idx_ms_tasks_project_id");
 
-        assertThat(indexes).contains("ms_tasks_status_idx");
+        // A task keeps the code of its status (ADR-0032, 8): the index follows the column.
+        assertThat(indexes).contains("ms_tasks_status_code_idx");
         assertThat(indexes).contains("ms_tasks_project_idx");
     }
 
@@ -194,199 +152,6 @@ class TaskConcurrencyIntegrationTest {
         assertThat(updated.lastUsedAt()).isAfter(initialUsed);
     }
 
-    @Test
-    void a03_taskRevisionOptimisticConcurrencyControl_repository() {
-
-        var defaultStatus = statusRepository.findByCode(MsTaskPref.STATUS_NEW).orElseThrow();
-
-        // 1. Create task has monotonic revision = 1
-        var task = taskRepository.create(
-                new MsTaskRepository.TaskCreateData(
-                        null,
-                        null,
-                        "OCC Task",
-                        "Description",
-                        defaultStatus.id(),
-                        "medium",
-                        testUserId,
-                        Map.of(),
-                        null,
-                        null),
-                testUserId);
-
-        assertThat(task.revision()).isEqualTo(1L);
-
-        // 2. Matching expectedRevision updates revision to 2
-        taskRepository.update(
-                task.id(),
-                new MsTaskRepository.TaskUpdateData(
-                        null,
-                        "OCC Task Updated",
-                        "Description",
-                        defaultStatus.id(),
-                        "high",
-                        null,
-                        Map.of(),
-                        null,
-                        null,
-                        null,
-                        1L),
-                testUserId);
-
-        var current = taskRepository.findById(task.id()).orElseThrow();
-        assertThat(current.revision()).isEqualTo(2L);
-        assertThat(current.title()).isEqualTo("OCC Task Updated");
-
-        // 3. Stale expectedRevision (1L vs current 2L) throws TASK_REVISION_CONFLICT
-        assertThatThrownBy(() -> taskRepository.update(
-                        task.id(),
-                        new MsTaskRepository.TaskUpdateData(
-                                null,
-                                "Stale OCC Task",
-                                "Description",
-                                defaultStatus.id(),
-                                "low",
-                                null,
-                                Map.of(),
-                                null,
-                                null,
-                                null,
-                                1L),
-                        testUserId))
-                .isInstanceOf(ApiException.class)
-                .satisfies(ex ->
-                        assertThat(((ApiException) ex).getErrorCode()).isEqualTo(ErrorCode.TASK_REVISION_CONFLICT));
-
-        // 4. Stale status transition throws TASK_REVISION_CONFLICT
-        assertThatThrownBy(() -> taskRepository.updateStatus(task.id(), defaultStatus.id(), null, 1L, testUserId))
-                .isInstanceOf(ApiException.class)
-                .satisfies(ex ->
-                        assertThat(((ApiException) ex).getErrorCode()).isEqualTo(ErrorCode.TASK_REVISION_CONFLICT));
-
-        // 5. Matching status transition increments revision to 3
-        taskRepository.updateStatus(task.id(), defaultStatus.id(), null, 2L, testUserId);
-        current = taskRepository.findById(task.id()).orElseThrow();
-        assertThat(current.revision()).isEqualTo(3L);
-
-        // 6. Omitted expectedRevision increments revision without conflict (backward compatibility)
-        taskRepository.update(
-                task.id(),
-                new MsTaskRepository.TaskUpdateData(
-                        null, "No Expected Revision", null, null, null, null, null, null, null, null),
-                testUserId);
-        current = taskRepository.findById(task.id()).orElseThrow();
-        assertThat(current.revision()).isEqualTo(4L);
-        assertThat(current.title()).isEqualTo("No Expected Revision");
-
-        taskRepository.updateStatus(task.id(), defaultStatus.id(), null, null, testUserId);
-        current = taskRepository.findById(task.id()).orElseThrow();
-        assertThat(current.revision()).isEqualTo(5L);
-    }
-
-    @Test
-    void a03_taskRevisionOptimisticConcurrencyControl_httpApi() throws Exception {
-
-        var defaultStatus = statusRepository.findByCode(MsTaskPref.STATUS_NEW).orElseThrow();
-        var inProgressStatus =
-                statusRepository.findByCode(MsTaskPref.STATUS_IN_PROGRESS).orElseThrow();
-
-        var task = taskRepository.create(
-                new MsTaskRepository.TaskCreateData(
-                        null,
-                        null,
-                        "HTTP OCC Task",
-                        "Description",
-                        defaultStatus.id(),
-                        "medium",
-                        testUserId,
-                        Map.of(),
-                        null,
-                        null),
-                testUserId);
-
-        signIn(testUserId);
-
-        // 1. PATCH with matching expectedRevision = 1 -> 204 No Content
-        mvc.perform(patch("/api/v1/tasks/{id}", task.id())
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                    "title": "HTTP OCC Updated",
-                                    "expectedRevision": 1
-                                }
-                                """))
-                .andExpect(status().isNoContent());
-
-        var fetched = taskRepository.findById(task.id()).orElseThrow();
-        assertThat(fetched.revision()).isEqualTo(2L);
-        assertThat(fetched.title()).isEqualTo("HTTP OCC Updated");
-
-        // 2. Concurrent/stale PATCH with expectedRevision = 1 -> 409 Conflict
-        mvc.perform(patch("/api/v1/tasks/{id}", task.id())
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                    "title": "Stale HTTP Edit",
-                                    "expectedRevision": 1
-                                }
-                                """))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("task_revision_conflict"));
-
-        // 3. Status change with matching expectedRevision = 2 -> 204 No Content
-        mvc.perform(post("/api/v1/tasks/{id}/status", task.id())
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                    "statusId": %d,
-                                    "expectedRevision": 2
-                                }
-                                """.formatted(inProgressStatus.id())))
-                .andExpect(status().isNoContent());
-
-        fetched = taskRepository.findById(task.id()).orElseThrow();
-        assertThat(fetched.revision()).isEqualTo(3L);
-        assertThat(fetched.statusId()).isEqualTo(inProgressStatus.id());
-
-        // 4. Stale status change with expectedRevision = 2 -> 409 Conflict
-        mvc.perform(post("/api/v1/tasks/{id}/status", task.id())
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                    "statusId": %d,
-                                    "expectedRevision": 2
-                                }
-                                """.formatted(defaultStatus.id())))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("task_revision_conflict"));
-
-        // 5. Omitted expectedRevision -> 428 (plan item 3.6): a change names the revision it was made from
-        mvc.perform(patch("/api/v1/tasks/{id}", task.id())
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                    "title": "No OCC Header"
-                                }
-                                """))
-                .andExpect(status().isPreconditionRequired())
-                .andExpect(jsonPath("$.code").value("precondition_required"));
-
-        // 6. The same change through If-Match -> 204 (revision increments to 4)
-        mvc.perform(patch("/api/v1/tasks/{id}", task.id())
-                        .header("If-Match", "\"3\"")
-                        .contentType("application/json")
-                        .content("""
-                                {
-                                    "title": "No OCC Header"
-                                }
-                                """))
-                .andExpect(status().isNoContent());
-
-        fetched = taskRepository.findById(task.id()).orElseThrow();
-        assertThat(fetched.revision()).isEqualTo(4L);
-        assertThat(fetched.title()).isEqualTo("No OCC Header");
-    }
-
     private static Long user(String prefix, Long orgUnitId) {
         String login = (prefix + "-" + SEQUENCE.incrementAndGet()).toLowerCase();
         return jdbc.sql("""
@@ -400,13 +165,6 @@ class TaskConcurrencyIntegrationTest {
                 .param("login", login)
                 .param("orgUnitId", orgUnitId)
                 .query(Long.class)
-                .single();
-    }
-
-    private static String login(Long userId) {
-        return jdbc.sql("select login from md_users where id = :id")
-                .param("id", userId)
-                .query(String.class)
                 .single();
     }
 
@@ -428,32 +186,5 @@ class TaskConcurrencyIntegrationTest {
         roles.assignRolesToUser(userId, List.of(role.id()));
         scopeRepository.replaceUserOrgUnits(userId, orgUnitIds);
         scopes.recalculateFor(userId);
-    }
-
-    private static void signIn(Long userId) {
-        SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
-                userId,
-                login(userId),
-                login(userId) + "@example.invalid",
-                1000L,
-                false,
-                Set.of("*.*"),
-                1L,
-                false,
-                0,
-                null));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T transactional(T target, DataSourceTransactionManager tx) {
-        var proxy = new TransactionProxyFactoryBean();
-        proxy.setTarget(target);
-        proxy.setProxyTargetClass(true);
-        proxy.setTransactionManager(tx);
-        var props = new Properties();
-        props.setProperty("*", "PROPAGATION_REQUIRED");
-        proxy.setTransactionAttributes(props);
-        proxy.afterPropertiesSet();
-        return (T) proxy.getObject();
     }
 }

@@ -34,7 +34,7 @@ public class MsProjectQuery {
             String tasks = "from ms_tasks t where t.project_id = p.id" + scope.sql();
             String total = "(select count(*) " + tasks + ")";
             String done = "(select count(*) " + tasks
-                    + " and t.status_id in (select s.id from ms_task_statuses s where s.is_terminal))";
+                    + " and t.status_code in (select s.code from ms_task_statuses s where s.is_terminal))";
             String progress =
                     "(case when " + total + " = 0 then 0 else round(" + done + " * 100.0 / " + total + ") end)";
             return List.of(

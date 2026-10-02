@@ -34,10 +34,12 @@ public class MsTaskDictionaryRepository {
         this.jdbc = jdbc;
     }
 
-    /** Whether an item in use other than {@code exceptId} already has the code. */
+    /**
+     * Whether an item other than {@code exceptId} — in use or archived — already has the code: a task keeps the code of
+     * an archived item, so a new item may not take it.
+     */
     public boolean codeTaken(Dictionary dictionary, String code, long exceptId) {
-        return jdbc.sql("select exists (select 1 from " + dictionary.table
-                        + " where code = :code and archived_at is null and id <> :exceptId)")
+        return jdbc.sql("select exists (select 1 from " + dictionary.table + " where code = :code and id <> :exceptId)")
                 .param("code", code)
                 .param("exceptId", exceptId)
                 .query(Boolean.class)
@@ -80,8 +82,7 @@ public class MsTaskDictionaryRepository {
 
     /** Whether a task is in the status with this code. */
     public boolean statusInUse(String code) {
-        return jdbc.sql("select exists (select 1 from ms_tasks t join ms_task_statuses s on s.id = t.status_id"
-                        + " where s.code = :code)")
+        return jdbc.sql("select exists (select 1 from ms_tasks where status_code = :code)")
                 .param("code", code)
                 .query(Boolean.class)
                 .single();
@@ -89,7 +90,7 @@ public class MsTaskDictionaryRepository {
 
     /** Whether a task is of the type with this code. */
     public boolean typeInUse(String code) {
-        return jdbc.sql("select exists (select 1 from ms_tasks where attributes ->> 'task_type' = :code)")
+        return jdbc.sql("select exists (select 1 from ms_tasks where type_code = :code)")
                 .param("code", code)
                 .query(Boolean.class)
                 .single();

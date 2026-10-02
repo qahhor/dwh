@@ -69,7 +69,7 @@ async function startControlledBenchmarkServer({
       });
       return;
     }
-    if (request.method === 'POST' && url.pathname === '/api/v1/tasks/projects') {
+    if (request.method === 'POST' && url.pathname === '/api/v1/entities/ms.projects') {
       state.created.projects += 1;
       sendJson(201, { id: nextId++ });
       return;
@@ -79,14 +79,22 @@ async function startControlledBenchmarkServer({
       sendJson(201, { id: nextId++ });
       return;
     }
-    if (request.method === 'POST' && url.pathname === '/api/v1/tasks') {
+    if (request.method === 'POST' && url.pathname === '/api/v1/entities/ms.tasks') {
       state.created.tasks += 1;
       taskId = String(nextId);
       sendJson(201, { id: nextId++ });
       return;
     }
-    if (request.method === 'PATCH' && /^\/api\/v1\/tasks\/\d+$/u.test(url.pathname)) {
-      response.writeHead(204).end();
+    if (request.method === 'GET' && /^\/api\/v1\/entities\/ms\.tasks\/\d+$/u.test(url.pathname)) {
+      sendJson(200, { id: Number(taskId), revision: 1 });
+      return;
+    }
+    if (request.method === 'PATCH' && /^\/api\/v1\/entities\/ms\.tasks\/\d+$/u.test(url.pathname)) {
+      if (request.headers['if-match'] !== '"1"') {
+        sendJson(428, { status: 428 });
+        return;
+      }
+      sendJson(200, { id: Number(taskId), revision: 2 });
       return;
     }
     if (request.method === 'GET' && url.pathname === '/api/v1/search/settings') {
@@ -318,11 +326,11 @@ test('a controlled current run seeds fixed multilingual data and records thirty 
       pollingIntervalMs: 2_500,
       patchRoundTripMs: 1,
       requestStartToObservedMs: 2,
-      post204ToObservedMs: 1,
+      patchAnswerToObservedMs: 1,
       interpretation: {
-        patchRoundTrip: 'PATCH request round-trip ending at HTTP 204',
+        patchRoundTrip: 'PATCH request round-trip ending at HTTP 200',
         requestStartToObserved: 'PATCH request start until indexed marker observation',
-        post204ToObserved: 'HTTP 204 receipt until indexed marker observation; not exact database-commit lag',
+        patchAnswerToObserved: 'HTTP 200 receipt until indexed marker observation; not exact database-commit lag',
       },
     });
     assert.deepEqual(result.queryMix.map(query => query.kind), [

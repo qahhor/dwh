@@ -28,8 +28,8 @@ describe('TaskLookupsService', () => {
       { notifyError: false },
     );
     expect(api.get).toHaveBeenCalledWith(
-      '/tasks',
-      { limit: 50, cursor: 'c1', search: 'Outside' },
+      '/entities/ms.tasks',
+      { limit: 50, cursor: 'c1', q: 'Outside' },
       { notifyError: false },
     );
     expect(lookups.tasks.option({ id: 12, title: 'Report' })).toEqual({ label: '#12 Report', icon: 'task_alt' });
@@ -82,11 +82,11 @@ describe('TaskLookupsService', () => {
     expect(lookups.nameOf(502)).toBe('Resolved');
   });
 
-  it('reads a chosen parent from its card', () => {
-    api.get.mockReturnValue(of({ task: { id: 999, title: 'Remote Parent' }, members: [] }));
+  it('reads a chosen parent by its id from the runtime', () => {
+    api.get.mockReturnValue(of({ id: 999, title: 'Remote Parent' }));
     let found: readonly unknown[] = [];
     lookups.tasks.resolve!([999]).subscribe((rows) => (found = rows));
-    expect(api.get).toHaveBeenCalledWith('/tasks/999', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/entities/ms.tasks/999', undefined, { notifyError: false });
     expect(found).toEqual([{ id: 999, title: 'Remote Parent' }]);
   });
 });

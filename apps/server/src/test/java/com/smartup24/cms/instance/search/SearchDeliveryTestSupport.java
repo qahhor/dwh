@@ -15,7 +15,6 @@ import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.*;
 import com.smartup24.cms.instance.ms.task.MsTaskFixture;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.service.*;
 import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
@@ -88,7 +87,7 @@ abstract class SearchDeliveryTestSupport {
     SearchGenerationService generationService;
     SearchReconciliationService reconciliation;
     SearchStoragePreflight storage;
-    MsTaskService tasks;
+    MsTaskFixture tasks;
     MdUserService users;
     MdUserSecurityService userSecurity;
     UUID owner;
@@ -146,16 +145,7 @@ abstract class SearchDeliveryTestSupport {
         when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
         when(scopes.filterForProjects(any())).thenReturn(ScopeFilter.unrestricted());
         var audit = mock(AuditLogService.class);
-        tasks = MsTaskFixture.wire(
-                        MsTaskFixture.Repositories.jdbc(jdbc, mapper),
-                        MsTaskFixture.Collaborators.with(scopes, publisher, audit),
-                        new MsTaskFixture.Proxy() {
-                            @Override
-                            public <T> T wrap(T target) {
-                                return SearchRevisionIntegrationTest.proxied(target, manager);
-                            }
-                        })
-                .tasks();
+        tasks = new MsTaskFixture(jdbc, publisher, new TransactionTemplate(manager));
         users = SearchRevisionIntegrationTest.proxied(
                 new MdUserService(
                         new MdUserRepository(jdbc, mapper),
@@ -275,8 +265,7 @@ abstract class SearchDeliveryTestSupport {
     }
 
     long task(long reporter, String title) {
-        return tasks.createTask(null, null, title, "body", "medium", null, null, null, null, null, reporter)
-                .id();
+        return tasks.create(title, reporter);
     }
 
     long delivered(String type, long id) {

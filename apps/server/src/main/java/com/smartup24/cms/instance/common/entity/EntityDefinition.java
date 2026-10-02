@@ -170,8 +170,9 @@ public record EntityDefinition(
                 && listCode == null) {
             throw new IllegalArgumentException("Entity " + code + ": export and saved views need its list");
         }
-        if (capabilities.contains(EntityCapability.BULK) && actions.stream().noneMatch(a -> DELETE.equals(a.code()))) {
-            throw new IllegalArgumentException("Entity " + code + ": bulk delete needs the delete action");
+        // A bulk action is a change of each record: delete, archive, update or a record action (ADR-0032, 6.1).
+        if (capabilities.contains(EntityCapability.BULK) && actions.stream().allMatch(a -> "create".equals(a.code()))) {
+            throw new IllegalArgumentException("Entity " + code + ": bulk actions need an action on a record");
         }
         requireArchive(code, capabilities, actions, model);
         if (rights != null) {

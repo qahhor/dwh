@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.common.security;
 import com.smartup24.cms.instance.common.security.ScopeFixture.Kind;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
 import com.smartup24.cms.instance.ms.task.service.MsProjectEntity;
+import com.smartup24.cms.instance.ms.task.service.MsTaskEntity;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,14 +60,28 @@ final class ScopeByIdCases {
     /** A by-id handler of the entity runtime on a project; an action names its code as the path variable. */
     private static Case project(
             String handler, String action, BiFunction<ScopeFixture, Object, Object> body, Set<Integer> inScope) {
-        String label = action.isEmpty() ? MsProjectEntity.CODE : MsProjectEntity.CODE + " " + action;
+        return runtime(MsProjectEntity.CODE, Kind.PROJECT, handler, action, body, inScope);
+    }
+
+    /** A by-id handler of the entity runtime on a task; an action names its code as the path variable. */
+    private static Case task(
+            String handler, String action, BiFunction<ScopeFixture, Object, Object> body, Set<Integer> inScope) {
+        return runtime(MsTaskEntity.CODE, Kind.TASK, handler, action, body, inScope);
+    }
+
+    private static Case runtime(
+            String code,
+            Kind kind,
+            String handler,
+            String action,
+            BiFunction<ScopeFixture, Object, Object> body,
+            Set<Integer> inScope) {
+        String label = action.isEmpty() ? code : code + " " + action;
         return new Case(
                 handler,
                 label,
-                Kind.PROJECT,
-                (f, id) -> action.isEmpty()
-                        ? Map.of("code", MsProjectEntity.CODE)
-                        : Map.of("code", MsProjectEntity.CODE, "action", action),
+                kind,
+                (f, id) -> action.isEmpty() ? Map.of("code", code) : Map.of("code", code, "action", action),
                 body,
                 inScope);
     }
@@ -128,12 +143,13 @@ final class ScopeByIdCases {
                     OK),
             read("MsProjectController#pageMembers", Kind.PROJECT),
             history(MsProjectEntity.CODE, Kind.PROJECT),
-            // tasks (ms.task): the card, its subresources and history
-            read("MsTaskController#getTask", Kind.TASK),
+            // tasks (ms.task) on the general entity runtime (ADR-0032, 8): seen by their author and participants;
+            // their participants, comments and files stay the module's
+            task("EntityController#get", "", NO_BODY, OK),
+            task("EntityController#update", "", (f, id) -> Map.of("title", "TEST changed"), OK),
+            task("EntityController#action", MsTaskEntity.SET_STATUS, (f, id) -> Map.of("status", "in_progress"), OK),
+            read("MsTaskController#getMembers", Kind.TASK),
             write("MsTaskController#markViewed", Kind.TASK, NO_CONTENT),
-            read("MsTaskController#getSubtasks", Kind.TASK),
-            write("MsTaskController#updateTask", Kind.TASK, (f, id) -> Map.of("title", "TEST changed"), NO_CONTENT),
-            write("MsTaskController#changeStatus", Kind.TASK, (f, id) -> Map.of("statusId", f.statusId), NO_CONTENT),
             read("MsTaskFileController#getTaskFiles", Kind.TASK),
             write("MsTaskFileController#attachFile", Kind.TASK, (f, id) -> Map.of("fileId", f.viewerFile), NO_CONTENT),
             new Case(
@@ -149,7 +165,7 @@ final class ScopeByIdCases {
                     Kind.TASK,
                     (f, id) -> Map.of("textMarkdown", "TEST comment"),
                     Set.of(201)),
-            history("tasks", Kind.TASK),
+            history(MsTaskEntity.CODE, Kind.TASK),
             // notes on the general entity runtime (ADR-0032, 6): personal, so another person's note is outside the
             // scope
             entity("EntityController#get", NO_BODY, OK),

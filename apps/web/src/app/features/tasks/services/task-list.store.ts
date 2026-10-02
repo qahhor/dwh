@@ -12,7 +12,8 @@ import { OrderBy } from '@shared/ui-kit/components/table/table.types';
 import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
 import { sortFromHeader } from '@shared/ui/registry-table-config';
 import { TasksApi } from '../tasks.api';
-import { TaskFilterService } from './task-filter.service';
+import { TaskStatusFilter } from '../tasks.models';
+import { TaskFilterService, TaskPresetKey } from './task-filter.service';
 
 /**
  * The task list of one screen: its metadata, saved views, pages, quick filters
@@ -41,7 +42,7 @@ export class TaskListStore {
       ),
   });
 
-  private exportFilters: Record<string, string> = {};
+  private exportConditions: unknown[] = [];
 
   /** Sort, filter and columns of the list; saved views keep them under a name. */
   readonly views = new ListViewState('ms.tasks', inject(ListViewsApi), {
@@ -58,12 +59,17 @@ export class TaskListStore {
      the quick filters, the search, the sort and the filter are read when each request is made. */
   readonly taskPager = new KeysetPager<Task>(
     (cursor, limit) =>
-      this.tasksApi.page(this.filters.buildListParams(cursor, limit), {
-        sort: this.views.sort(),
-        conditions: this.views.filter(),
-        match: this.views.match(),
-        search: this.filters.searchQuery,
-      }),
+      this.tasksApi.page(
+        this.filters.buildConditions(),
+        {
+          sort: this.views.sort(),
+          conditions: this.views.filter(),
+          match: this.views.match(),
+          search: this.filters.searchQuery,
+        },
+        cursor,
+        limit,
+      ),
     // One page size: the pager's, which is also the limit each request sends.
     { pageSize: this.filters.pageSize, destroyRef: this.destroyRef },
   );
@@ -102,19 +108,11 @@ export class TaskListStore {
     this.taskPager.first();
   }
 
-  /** The quick filters as export options; the same object while they stay, so the button is not re-rendered. */
-  exportOptions(): Record<string, string> {
-    const next: Record<string, string> = {};
-    for (const [key, value] of Object.entries(this.filters.buildListParams(null))) {
-      // Paging is not a filter: the export takes every row.
-      if (key === 'limit' || key === 'cursor') continue;
-      if (value !== undefined && value !== null && value !== '') next[key] = String(value);
-    }
-    const same =
-      Object.keys(next).length === Object.keys(this.exportFilters).length &&
-      Object.entries(next).every(([key, value]) => this.exportFilters[key] === value);
-    if (!same) this.exportFilters = next;
-    return this.exportFilters;
+  /** The quick filters as the export's conditions; the same array while they stay, so the button is not re-rendered. */
+  exportFilter(): unknown[] {
+    const next = this.filters.buildConditions();
+    if (JSON.stringify(next) !== JSON.stringify(this.exportConditions)) this.exportConditions = next;
+    return this.exportConditions;
   }
 
   onTaskSearchChange(query: string) {
@@ -143,10 +141,10 @@ export class TaskListStore {
     this.cancelListRequestForFilterChange();
     this.filters.clearSearch(() => this.loadTasks(true));
   }
-  setPreset(preset: 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue') {
+  setPreset(preset: TaskPresetKey) {
     this.filters.setPreset(preset, () => this.loadTasks(true));
   }
-  setStatusFilterMode(mode: 'active' | 'all' | number) {
+  setStatusFilterMode(mode: TaskStatusFilter) {
     this.filters.setStatusFilterMode(mode, () => this.loadTasks(true));
   }
   onProjectFilterChange(projectId: number | null) {

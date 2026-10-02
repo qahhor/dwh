@@ -42,7 +42,7 @@ export const TASKS_META: QueryListMeta = {
       enumValues: ['low', 'medium', 'high', 'critical'],
       enumLabelPrefix: 'tasks.priority.',
     }),
-    metaField('statusId', 'tasks.col.status', 'number'),
+    metaField('statusCode', 'tasks.col.status', 'enum'),
     metaField('endTime', 'tasks.col.due', 'instant', { nullable: true }),
   ],
 } as QueryListMeta;

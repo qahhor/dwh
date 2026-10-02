@@ -132,7 +132,7 @@ export class RefLookups {
     // Each of these is keyed by the row's numeric id, as the server's reference to it is.
     const sources: Record<string, unknown> = {
       '/iam/users': this.lookups.activeUsers,
-      '/tasks': this.lookups.tasks,
+      '/entities/ms.tasks': this.lookups.tasks,
       '/entities/ms.projects': this.lookups.projects,
     };
     const source = ref.keyField === 'id' ? sources[ref.path] : undefined;

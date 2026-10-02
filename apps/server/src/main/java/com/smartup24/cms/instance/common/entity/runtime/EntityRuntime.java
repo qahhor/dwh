@@ -143,6 +143,23 @@ public class EntityRuntime implements EntityRecordStore {
         change(() -> writes.archive(entity, id, null, true));
     }
 
+    /**
+     * A record of a bulk change, from the revision it has when its turn comes: the entity's right of the action was
+     * checked for the whole request; each record goes through the single change's steps (ADR-0032, 6.3).
+     */
+    @Override
+    public void change(EntityDefinition entity, long id, String action, @Nullable JsonNode params) {
+        if ("update".equals(action)) {
+            change(() -> writes.update(entity, id, EntityReads.revision(reads.visible(entity, id, true)), params));
+            return;
+        }
+        EntityActionHandler handler = registry.handler(entity.code(), action)
+                .orElseThrow(() -> ApiException.notFound(
+                        ErrorCode.NOT_FOUND, "error.common.entity_action_not_found", Map.of("action", action)));
+        Map<String, Object> body = EntityRequestReader.params(params);
+        change(() -> writes.action(entity, id, EntityReads.revision(reads.visible(entity, id, true)), handler, body));
+    }
+
     private Map<String, Object> change(Supplier<Map<String, Object>> work) {
         return Objects.requireNonNull(changes.execute(status -> work.get()));
     }

@@ -16,7 +16,7 @@ test('project to task to comment works through the visible UI', async ({ page })
   await page.getByLabel('Название проекта').fill(projectName);
   await page.getByLabel('Описание проекта').fill('Playwright critical vertical slice');
   const projectResponse = page.waitForResponse(response =>
-    response.request().method() === 'POST' && response.url().endsWith('/api/v1/tasks/projects')
+    response.request().method() === 'POST' && response.url().endsWith('/api/v1/entities/ms.projects')
   );
   await page.getByRole('button', { name: 'Создать проект' }).click();
   expect((await projectResponse).ok()).toBe(true);
@@ -36,7 +36,7 @@ test('project to task to comment works through the visible UI', async ({ page })
   await page.getByRole('radio', { name: 'Высокий' }).click();
   await page.getByLabel('Описание', { exact: true }).fill('Created by the browser E2E suite.');
   const taskResponse = page.waitForResponse(response =>
-    response.request().method() === 'POST' && response.url().endsWith('/api/v1/tasks')
+    response.request().method() === 'POST' && response.url().endsWith('/api/v1/entities/ms.tasks')
   );
   await page.getByRole('button', { name: 'Создать задачу' }).click();
   expect((await taskResponse).ok()).toBe(true);
@@ -63,13 +63,17 @@ test('project to task to comment works through the visible UI', async ({ page })
   await projectFilter.click();
   const projectSearch = page.waitForResponse(response => {
     const url = new URL(response.url());
-    return url.pathname === '/api/v1/tasks/projects/page' && url.searchParams.get('q') === projectName;
+    return url.pathname === '/api/v1/entities/ms.projects' && url.searchParams.get('q') === projectName;
   });
   await page.getByPlaceholder('Найти проект по названию').fill(projectName);
   expect((await projectSearch).ok()).toBe(true);
   const narrowed = page.waitForResponse(response => {
     const url = new URL(response.url());
-    return url.pathname === '/api/v1/tasks' && url.searchParams.get('projectId') === projectId;
+    // The project filter is a condition of the runtime list's filter expression (ADR-0016, ADR-0032 8).
+    return (
+      url.pathname === '/api/v1/entities/ms.tasks' &&
+      (url.searchParams.get('filter') ?? '').includes(`{"field":"projectId","op":"eq","value":${projectId}}`)
+    );
   });
   await page.getByRole('option', { name: projectName, exact: true }).click();
   expect((await narrowed).ok()).toBe(true);

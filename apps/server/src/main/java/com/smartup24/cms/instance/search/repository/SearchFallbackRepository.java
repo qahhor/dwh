@@ -68,7 +68,7 @@ public class SearchFallbackRepository {
                 .sql("""
                 select t.id, t.title, t.priority, s.name as status_name, p.name as project_name
                 from ms_task_pub_tasks t
-                left join ms_task_pub_statuses s on s.id = t.status_id
+                left join ms_task_pub_statuses s on s.code = t.status_code
                 left join ms_task_pub_projects p on p.id = t.project_id
                 where t.title ilike any(:patterns)
                    or t.description_markdown ilike any(:patterns)
@@ -164,7 +164,7 @@ public class SearchFallbackRepository {
                 .sql("""
                 select t.id, t.title, t.priority, s.name as status_name, p.name as project_name
                 from ms_task_pub_tasks t
-                left join ms_task_pub_statuses s on s.id = t.status_id
+                left join ms_task_pub_statuses s on s.code = t.status_code
                 left join ms_task_pub_projects p on p.id = t.project_id
                 where t.id = :id
                 order by t.id

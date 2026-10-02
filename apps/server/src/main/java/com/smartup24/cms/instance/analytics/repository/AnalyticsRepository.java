@@ -29,7 +29,7 @@ public class AnalyticsRepository {
                         count(*) filter (where t.created_at >= now() - interval '7 days') as created_7d,
                         count(*) filter (where t.resolved_time >= now() - interval '7 days' or (s.is_terminal = true and t.modified_at >= now() - interval '7 days')) as completed_7d
                     from ms_task_pub_tasks t
-                    left join ms_task_pub_statuses s on s.id = t.status_id
+                    left join ms_task_pub_statuses s on s.code = t.status_code
                 ),
                 project_metrics as (
                     select count(*) as active_projects from ms_task_pub_projects where not archived
@@ -88,7 +88,7 @@ public class AnalyticsRepository {
                 completed as (
                     select date_trunc('day', coalesce(resolved_time, modified_at))::date as day, count(*) as count
                     from ms_task_pub_tasks t
-                    join ms_task_pub_statuses s on s.id = t.status_id and s.is_terminal = true
+                    join ms_task_pub_statuses s on s.code = t.status_code and s.is_terminal = true
                     where coalesce(resolved_time, modified_at) >= date_trunc('day', now()) - (:days - 1) * interval '1 day'
                     group by 1
                 )
@@ -122,7 +122,7 @@ public class AnalyticsRepository {
                     end as progress_percent
                 from ms_task_pub_projects p
                 left join ms_task_pub_tasks t on t.project_id = p.id
-                left join ms_task_pub_statuses s on s.id = t.status_id
+                left join ms_task_pub_statuses s on s.code = t.status_code
                 where not p.archived
                 group by p.id, p.name
                 order by total_tasks desc, p.name asc
@@ -150,7 +150,7 @@ public class AnalyticsRepository {
                 from md_pub_users u
                 left join ms_task_pub_members tm on tm.user_id = u.id
                 left join ms_task_pub_tasks t on t.id = tm.task_id
-                left join ms_task_pub_statuses s on s.id = t.status_id
+                left join ms_task_pub_statuses s on s.code = t.status_code
                 where u.state = 'A'
                 group by u.id, u.name, u.login
                 order by assigned_tasks desc, u.name asc

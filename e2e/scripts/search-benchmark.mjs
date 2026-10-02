@@ -136,8 +136,10 @@ class BenchmarkClient {
     }
   }
 
-  async request(method, path, { body, expected = [200] } = {}) {
+  async request(method, path, { body, expected = [200], revision } = {}) {
     const headers = { accept: 'application/json' };
+    // A change of a revisioned record names the revision it was made from (ADR-0024).
+    if (revision !== undefined) headers['if-match'] = `"${revision}"`;
     if (this.cookies.size > 0) {
       headers.cookie = [...this.cookies].map(([name, value]) => `${name}=${value}`).join('; ');
     }
@@ -179,8 +181,8 @@ class BenchmarkClient {
     return this.request('POST', path, { body, expected });
   }
 
-  patch(path, body, expected) {
-    return this.request('PATCH', path, { body, expected });
+  patch(path, body, expected, revision) {
+    return this.request('PATCH', path, { body, expected, revision });
   }
 }
 
@@ -206,11 +208,9 @@ async function authenticate(client, configuration) {
 async function seedDataset(client, counts) {
   const projects = [];
   for (let index = 1; index <= counts.projects; index += 1) {
-    const project = await client.post('/api/v1/tasks/projects', {
+    const project = await client.post('/api/v1/entities/ms.projects', {
       name: `${syntheticText(index)} project`,
       description: `${FIXED_SEED} synthetic project`,
-      state: 'A',
-      attributes: {},
     }, [201]);
     projects.push(String(project.id));
   }
@@ -235,12 +235,12 @@ async function seedDataset(client, counts) {
 
   const tasks = [];
   for (let index = 1; index <= counts.tasks; index += 1) {
-    const task = await client.post('/api/v1/tasks', {
+    const task = await client.post('/api/v1/entities/ms.tasks', {
       title: `${syntheticText(index)} task`,
       descriptionMarkdown: `${FIXED_SEED} synthetic task`,
+      typeCode: 'task',
       projectId: Number(projects[(index - 1) % projects.length]),
       priority: 'medium',
-      attributes: { task_type: 'task' },
     }, [201]);
     tasks.push(String(task.id));
   }
@@ -457,7 +457,8 @@ async function waitForSuccessfulJob(client, jobId, sleep, epochNow) {
 async function measureDeliveryLag(client, taskId, sleep, now, epochNow, pollingIntervalMs) {
   const marker = 'sbv1-delivery-update';
   const requestStartedAt = now();
-  await client.patch(`/api/v1/tasks/${taskId}`, { title: `${syntheticText(1)} ${marker}` }, [204]);
+  const current = await client.get(`/api/v1/entities/ms.tasks/${taskId}`, [200]);
+  await client.patch(`/api/v1/entities/ms.tasks/${taskId}`, { title: `${syntheticText(1)} ${marker}` }, [200], current?.revision);
   const patchCompletedAt = now();
   const deadline = epochNow() + 120_000;
   let polls = 0;
@@ -472,11 +473,11 @@ async function measureDeliveryLag(client, taskId, sleep, now, epochNow, pollingI
         pollingIntervalMs,
         patchRoundTripMs: patchCompletedAt - requestStartedAt,
         requestStartToObservedMs: observedAt - requestStartedAt,
-        post204ToObservedMs: observedAt - patchCompletedAt,
+        patchAnswerToObservedMs: observedAt - patchCompletedAt,
         interpretation: {
-          patchRoundTrip: 'PATCH request round-trip ending at HTTP 204',
+          patchRoundTrip: 'PATCH request round-trip ending at HTTP 200',
           requestStartToObserved: 'PATCH request start until indexed marker observation',
-          post204ToObserved: 'HTTP 204 receipt until indexed marker observation; not exact database-commit lag',
+          patchAnswerToObserved: 'HTTP 200 receipt until indexed marker observation; not exact database-commit lag',
         },
       };
     }

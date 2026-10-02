@@ -94,7 +94,7 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
                     .query(String.class)
                     .single();
             if (!updated && !discovered.equals("TASK")) {
-                tasks.updateTask(missing, "Changed", null, null, null, null, null, null, reporter);
+                tasks.rename(missing, "Changed", reporter);
                 updated = true;
             }
             long delivered = jdbc.sql(

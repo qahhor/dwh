@@ -9,7 +9,6 @@ import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestSession;
 import java.util.Map;
@@ -70,9 +69,6 @@ class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
     private MdRoleRepository roles;
 
     @Autowired
-    private MsTaskService tasks;
-
-    @Autowired
     private MfFileService files;
 
     @Autowired
@@ -84,7 +80,7 @@ class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
 
     @BeforeAll
     void setUp() throws Exception {
-        fixture = new ScopeFixture(jdbc, users, scopes, scopeRepository, roles, tasks, files);
+        fixture = new ScopeFixture(jdbc, users, scopes, scopeRepository, roles, files);
         viewer = TestSession.signIn(wac, fixture.viewerLogin);
     }
 

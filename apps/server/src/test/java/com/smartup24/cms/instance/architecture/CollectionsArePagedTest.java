@@ -50,7 +50,7 @@ class CollectionsArePagedTest {
             Map.entry("MsAnnouncementController#getAnnouncements", "announcements active now for the reader"),
             Map.entry("MsNotificationController#getPreferences", "one per notification kind"),
             Map.entry("MsProjectController#progress", "the projects of one list page, 200 at most"),
-            Map.entry("MsTaskController#getSubtasks", "the subtasks of one task, created by hand"),
+            Map.entry("MsTaskController#getMembers", "the participants of one task, chosen by hand"),
             Map.entry("MsTaskFileController#getTaskFiles", "the files attached to one task"),
             Map.entry("NavigationItemController#getActiveItems", "the menu"),
             Map.entry("NavigationItemController#getAllItems", "the menu"),

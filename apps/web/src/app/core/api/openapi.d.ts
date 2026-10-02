@@ -876,6 +876,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entities/ms.tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List records of ms.tasks
+         * @description List records of ms.tasks through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["listMsTasks"];
+        put?: never;
+        /**
+         * Create a record of ms.tasks
+         * @description Create a record of ms.tasks through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["createMsTasks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a record of ms.tasks
+         * @description Get a record of ms.tasks through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["getMsTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a record of ms.tasks
+         * @description Change a record of ms.tasks through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        patch: operations["patchMsTasks"];
+        trace?: never;
+    };
+    "/api/v1/entities/ms.tasks/{id}/actions/set_status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run set_status on a record
+         * @description Run set_status on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["set_statusMsTasks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/entities/{code}/bulk": {
         parameters: {
             query?: never;
@@ -889,7 +957,7 @@ export interface paths {
          * Run a bulk action on records
          * @description Applies a bulk action of an entity to the selected records; the entity's own right is checked.
          */
-        post: operations["bulk_1"];
+        post: operations["bulk"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2596,50 +2664,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/tasks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List tasks
-         * @description The tasks the caller may see, with filters, sort and search.
-         */
-        get: operations["listTasks"];
-        put?: never;
-        /**
-         * Create a task
-         * @description Adds a task with its project, participants, dates and custom field values.
-         */
-        post: operations["createTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/bulk": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Run a bulk action on tasks
-         * @description Applies one bulk action to the selected tasks.
-         */
-        post: operations["bulk"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/tasks/projects/progress": {
         parameters: {
             query?: never;
@@ -2678,30 +2702,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a task
-         * @description The task card; reading it changes nothing.
-         */
-        get: operations["getTask"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Update a task
-         * @description Changes the given fields of a task; a field left out keeps its value.
-         */
-        patch: operations["updateTask"];
         trace?: never;
     };
     "/api/v1/tasks/{id}/files": {
@@ -2748,27 +2748,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/tasks/{id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Change the status of a task
-         * @description Moves a task to another status of its workflow.
-         */
-        post: operations["changeStatus"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/{id}/subtasks": {
+    "/api/v1/tasks/{id}/members": {
         parameters: {
             query?: never;
             header?: never;
@@ -2776,10 +2756,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List subtasks
-         * @description The direct subtasks of a task.
+         * List task participants
+         * @description The participants of a task with their names, roles and whether each has seen it.
          */
-        get: operations["getSubtasks"];
+        get: operations["getMembers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3364,12 +3344,6 @@ export interface components {
             newPassword: string;
             oldPassword: string;
         };
-        ChangeStatusRequest: {
-            /** Format: int64 */
-            expectedRevision?: number;
-            /** Format: int64 */
-            statusId?: number;
-        };
         ChannelVerification: {
             verifyToken?: string;
         };
@@ -3482,26 +3456,6 @@ export interface components {
             name: string;
             subscribedEvents: string[];
             targetUrl: string;
-        };
-        CreateTaskRequest: {
-            attributes?: {
-                [key: string]: unknown;
-            };
-            /** Format: date-time */
-            beginTime?: string;
-            descriptionMarkdown?: string;
-            /** Format: date-time */
-            endTime?: string;
-            executorUserIds?: number[];
-            observerUserIds?: number[];
-            /** Format: int64 */
-            parentTaskId?: number;
-            priority?: string;
-            /** Format: int64 */
-            projectId?: number;
-            /** Format: int64 */
-            responsibleUserId?: number;
-            title: string;
         };
         CreateTokenRequest: {
             /** Format: date-time */
@@ -4035,14 +3989,6 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
-        KeysetPageTaskView: {
-            hasMore?: boolean;
-            items?: components["schemas"]["TaskView"][];
-            nextCursor?: string;
-            /** Format: int64 */
-            totalEstimated?: number;
-            totalExact?: boolean;
-        };
         LanguageSummary: {
             active?: boolean;
             builtin?: boolean;
@@ -4401,6 +4347,124 @@ export interface components {
             revision: number;
             sortOrder?: number;
             readonly system?: boolean;
+        };
+        /** @description A new record of ms.tasks; any other property is refused (unknown_field) */
+        MsTasksCreate: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            beginTime?: string;
+            descriptionMarkdown?: string;
+            /** Format: date-time */
+            endTime?: string;
+            executorIds?: number[];
+            observerIds?: number[];
+            /** Format: int64 */
+            parentTaskId?: number;
+            /** @enum {string} */
+            priority?: "low" | "medium" | "high" | "critical";
+            /** Format: int64 */
+            projectId?: number;
+            /** Format: int64 */
+            reporterId?: number;
+            /** Format: date-time */
+            resolvedTime?: string;
+            /** Format: int64 */
+            responsibleId?: number;
+            /** @description The code of an item of ms.task_statuses */
+            statusCode?: string;
+            title: string;
+            /** @description The code of an item of ms.task_types */
+            typeCode?: string;
+        };
+        MsTasksPage: {
+            hasMore?: boolean;
+            items?: components["schemas"]["MsTasksRecord"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        /** @description The fields to change of a record of ms.tasks; any other property is refused (unknown_field) */
+        MsTasksPatch: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            beginTime?: string;
+            descriptionMarkdown?: string;
+            /** Format: date-time */
+            endTime?: string;
+            executorIds?: number[];
+            observerIds?: number[];
+            /** Format: int64 */
+            parentTaskId?: number;
+            /** @enum {string} */
+            priority?: "low" | "medium" | "high" | "critical";
+            /** Format: int64 */
+            projectId?: number;
+            /** Format: int64 */
+            reporterId?: number;
+            /** Format: date-time */
+            resolvedTime?: string;
+            /** Format: int64 */
+            responsibleId?: number;
+            /** @description The code of an item of ms.task_statuses */
+            statusCode?: string;
+            title?: string;
+            /** @description The code of an item of ms.task_types */
+            typeCode?: string;
+        };
+        /** @description A record of ms.tasks as the viewer may read it */
+        MsTasksRecord: {
+            /** @description What the viewer may do with this record */
+            actions?: string[];
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            beginTime?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            descriptionMarkdown?: string;
+            /** Format: date-time */
+            endTime?: string;
+            executorIds?: number[];
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            modifiedAt?: string;
+            /** Format: int64 */
+            modifiedBy?: number;
+            observerIds?: number[];
+            readonly overdue?: boolean;
+            /** Format: int64 */
+            parentTaskId?: number;
+            /** @enum {string} */
+            priority?: "low" | "medium" | "high" | "critical";
+            /** Format: int64 */
+            projectId?: number;
+            readonly projectName?: string;
+            /** Format: int64 */
+            readonly reporterId?: number;
+            /** Format: date-time */
+            readonly resolvedTime?: string;
+            /** Format: int64 */
+            responsibleId?: number;
+            /** Format: int64 */
+            revision: number;
+            /** @description The code of an item of ms.task_statuses */
+            readonly statusCode?: string;
+            readonly terminal?: boolean;
+            title?: string;
+            /** @description The code of an item of ms.task_types */
+            typeCode?: string;
         };
         NavigationItemView: {
             code?: string;
@@ -4906,13 +4970,6 @@ export interface components {
             userLogin?: string;
             userName?: string;
         };
-        TaskDetail: {
-            ancestors?: components["schemas"]["TaskView"][];
-            files?: components["schemas"]["TaskFileView"][];
-            members?: components["schemas"]["TaskMemberView"][];
-            subtasks?: components["schemas"]["TaskView"][];
-            task?: components["schemas"]["TaskView"];
-        };
         TaskFileView: {
             /** Format: date-time */
             createdAt?: string;
@@ -4933,41 +4990,6 @@ export interface components {
             userId?: number;
             userLogin?: string;
             userName?: string;
-        };
-        TaskView: {
-            attributes?: {
-                [key: string]: unknown;
-            };
-            /** Format: date-time */
-            beginTime?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: int64 */
-            createdBy?: number;
-            descriptionMarkdown?: string;
-            /** Format: date-time */
-            endTime?: string;
-            /** Format: int64 */
-            id?: number;
-            /** Format: date-time */
-            modifiedAt?: string;
-            /** Format: int64 */
-            modifiedBy?: number;
-            /** Format: int64 */
-            parentTaskId?: number;
-            priority?: string;
-            /** Format: int64 */
-            projectId?: number;
-            projectName?: string;
-            /** Format: int64 */
-            reporterId?: number;
-            /** Format: date-time */
-            resolvedTime?: string;
-            /** Format: int64 */
-            revision?: number;
-            /** Format: int64 */
-            statusId?: number;
-            title?: string;
         };
         ToggleStatusRequest: {
             enabled?: boolean;
@@ -5054,28 +5076,6 @@ export interface components {
             state?: string;
             subscribedEvents?: string[];
             targetUrl?: string;
-        };
-        UpdateTaskRequest: {
-            attributes?: {
-                [key: string]: unknown;
-            };
-            /** Format: date-time */
-            beginTime?: string;
-            descriptionMarkdown?: string;
-            /** Format: date-time */
-            endTime?: string;
-            executorUserIds?: number[];
-            /** Format: int64 */
-            expectedRevision?: number;
-            observerUserIds?: number[];
-            /** Format: int64 */
-            parentTaskId?: number;
-            priority?: string;
-            /** Format: int64 */
-            projectId?: number;
-            /** Format: int64 */
-            responsibleUserId?: number;
-            title?: string;
         };
         UpdateTranslationsRequest: {
             /** Format: int64 */
@@ -7425,7 +7425,231 @@ export interface operations {
             };
         };
     };
-    bulk_1: {
+    listMsTasks: {
+        parameters: {
+            query?: {
+                q?: string;
+                filter?: string;
+                sort?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the list (ADR-0016) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTasksPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createMsTasks: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsTasksCreate"];
+            };
+        };
+        responses: {
+            /** @description The created record */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTasksRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    getMsTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTasksRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    patchMsTasks: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsTasksPatch"];
+            };
+        };
+        responses: {
+            /** @description The changed record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTasksRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    set_statusMsTasks: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTasksRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    bulk: {
         parameters: {
             query?: never;
             header?: {
@@ -11312,124 +11536,6 @@ export interface operations {
             };
         };
     };
-    listTasks: {
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-                filter?: string;
-                sort?: string;
-                q?: string;
-                projectId?: number;
-                statusId?: number;
-                priority?: string;
-                search?: string;
-                hideTerminal?: boolean;
-                assignedUserId?: number;
-                memberRole?: string;
-                reporterId?: number;
-                overdue?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeysetPageTaskView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    createTask: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTaskRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    bulk: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BulkResult"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
     progress: {
         parameters: {
             query: {
@@ -11482,92 +11588,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["KeysetPageProjectMemberView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDetail"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateTask: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTaskRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -11681,62 +11701,7 @@ export interface operations {
             };
         };
     };
-    changeStatus: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangeStatusRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getSubtasks: {
+    getMembers: {
         parameters: {
             query?: never;
             header?: never;
@@ -11753,7 +11718,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskView"][];
+                    "application/json": components["schemas"]["TaskMemberView"][];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */

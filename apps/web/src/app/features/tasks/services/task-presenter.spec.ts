@@ -32,26 +32,26 @@ describe('TaskPresenter', () => {
   it('names the deadline of an open task: overdue, today, tomorrow, or none', () => {
     const presenter = setup();
 
-    const overdue = presenter.getDeadlineInfo(daysFromNow(-2), 1);
+    const overdue = presenter.getDeadlineInfo(daysFromNow(-2), 's1');
     expect(overdue.state).toBe('overdue');
     expect(overdue.label).toContain('Просрочено');
-    const today = presenter.getDeadlineInfo(new Date().toISOString(), 1);
+    const today = presenter.getDeadlineInfo(new Date().toISOString(), 's1');
     expect(today.state).toBe('today');
     expect(today.label).toContain('Сегодня');
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    expect(presenter.getDeadlineInfo(tomorrow.toISOString(), 1)).toEqual(
+    expect(presenter.getDeadlineInfo(tomorrow.toISOString(), 's1')).toEqual(
       expect.objectContaining({ state: 'tomorrow', label: 'Завтра' }),
     );
-    expect(presenter.getDeadlineInfo(null, 1)).toEqual(expect.objectContaining({ state: 'none', label: '—' }));
+    expect(presenter.getDeadlineInfo(null, 's1')).toEqual(expect.objectContaining({ state: 'none', label: '—' }));
   });
 
   it('does not call a finished task overdue, and names its status', () => {
     const presenter = setup();
 
-    expect(presenter.isOverdue(daysFromNow(-2), 1)).toBe(true);
-    expect(presenter.isOverdue(daysFromNow(-2), 2)).toBe(false);
-    expect(presenter.getStatusName(2)).toBe('Готово');
+    expect(presenter.isOverdue(daysFromNow(-2), 's1')).toBe(true);
+    expect(presenter.isOverdue(daysFromNow(-2), 's2')).toBe(false);
+    expect(presenter.getStatusName('s2')).toBe('Готово');
   });
 
   it('names a project by the name the task carries, by number without it, and nothing without a project', () => {

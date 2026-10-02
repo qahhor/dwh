@@ -19,18 +19,23 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.NullNode;
 
 /**
  * {@code POST /api/v1/entities/{code}/bulk} (roadmap item 56): the bulk actions an entity declares, over up to
- * {@value BulkRunner#MAX_IDS} records, reported record by record ({@link BulkRunner}). Today that is
- * {@code delete} and, for an archivable entity, {@code archive}, run through the module's own operation, so each record
- * keeps its checks and audit. The right is
- * the one the entity's action declares; an entity without bulk actions, or one the viewer may not see, answers
- * the same 404 as {@code form-meta}.
+ * {@value BulkRunner#MAX_IDS} records, reported record by record ({@link BulkRunner}): {@code delete}, {@code archive}
+ * of an archivable entity, {@code update} with the fields of {@code params} and any declared record action with
+ * {@code params} as its parameters (ADR-0032, 6.1 and 6.7), each run as the record's single operation, so every record
+ * keeps its checks, hooks and audit. The right is the one the entity's action declares; an entity without bulk
+ * actions, or one the viewer may not see, answers the same 404 as {@code form-meta}.
  */
 @RestController
 @RequestMapping("/api/v1/entities")
 public class EntityBulkController {
+
+    /** The one declared action that is no change of a record. */
+    private static final String CREATE = "create";
 
     private final EntityRegistry registry;
     private final @Nullable BulkItemScope bulkItems;
@@ -59,7 +64,7 @@ public class EntityBulkController {
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.entity_not_found"));
         List<Long> ids = BulkRunner.checkedIds(body);
         String action = body.action() == null ? "" : body.action();
-        if (!EntityDefinition.DELETE.equals(action) && !EntityDefinition.ARCHIVE.equals(action)) {
+        if (CREATE.equals(action)) {
             throw BulkRunner.unknownAction(action);
         }
         EntityDefinition.EntityAction declared =
@@ -68,8 +73,19 @@ public class EntityBulkController {
             throw ApiException.permissionDenied(entity.form(), declared.permission());
         }
         EntityRecords records = registry.records(code).orElseThrow();
-        // Archiving runs as the single archive does, record by record (ADR-0032, 5.4).
-        LongConsumer operation = EntityDefinition.DELETE.equals(action) ? records::delete : records::archive;
-        return ResponseEntity.ok(BulkRunner.run(action, ids, operation, bulkItems));
+        return ResponseEntity.ok(BulkRunner.run(action, ids, operation(records, action, body.params()), bulkItems));
+    }
+
+    /**
+     * What a bulk action does to one record, as its single operation does: delete, archive (ADR-0032, 5.4), the
+     * fields of {@code params} changed ({@code update}) or a declared record action with {@code params} (ADR-0032,
+     * 6.7) — each record from the revision it has when its turn comes.
+     */
+    private static LongConsumer operation(EntityRecords records, String action, @Nullable JsonNode params) {
+        return switch (action) {
+            case EntityDefinition.DELETE -> records::delete;
+            case EntityDefinition.ARCHIVE -> records::archive;
+            default -> id -> records.change(id, action, params == null ? NullNode.getInstance() : params);
+        };
     }
 }

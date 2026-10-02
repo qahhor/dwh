@@ -95,12 +95,12 @@ export class LookupSources {
     option: (user) => ({ label: user.name, subLabel: `@${user.login}` }),
   });
 
-  /** Tasks by number or title, shown as "#12 Title"; a chosen one is read from its card. */
+  /** Tasks by title, shown as "#12 Title", from the runtime list of `ms.tasks` (ADR-0032 8); a chosen one is read by its id. */
   readonly tasks = restLookup<TaskRef>(this.api, {
-    path: '/tasks',
+    path: '/entities/ms.tasks',
+    searchParam: 'q',
     key: (task) => task.id,
     option: (task) => ({ label: `#${task.id} ${task.title}`, icon: 'task_alt' }),
-    readOne: (body) => (body as { task?: TaskRef } | null)?.task,
   });
 
   /**

@@ -431,7 +431,6 @@ system.refresh_succeeded
 system.showing_data_from
 system.storage_local_disk
 system.storage_s3
-task.description
 task.new
 task.parent
 task.responsible

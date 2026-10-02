@@ -16,7 +16,7 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
 import { UiBulkResultComponent } from '@shared/ui/ui-bulk-result.component';
 import { BulkResult } from '@shared/bulk/bulk';
-import { TasksApi } from '../tasks.api';
+import { SET_STATUS, TasksApi } from '../tasks.api';
 import { ToastService } from '@core/services/toast.service';
 import { KeysetPager } from '@shared/paging/keyset-pager';
 import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
@@ -64,18 +64,18 @@ export class TaskTableViewComponent {
 
   readonly pager = input.required<KeysetPager<Task>>();
 
-  readonly isOverdue = input.required<(endTime: string | null | undefined, statusId: number) => boolean>();
+  readonly isOverdue = input.required<(endTime: string | null | undefined, statusCode: string) => boolean>();
   readonly getTypeColor = input.required<(task: Task) => string>();
   readonly getTypeBg = input.required<(task: Task) => string>();
   readonly getTypeIcon = input.required<(task: Task) => string>();
   readonly getTypeLabel = input.required<(task: Task) => string>();
   /** The task's project as the row names it (`projectName`). */
   readonly getProjectName = input.required<(task: TaskProjectRef) => string | null>();
-  readonly getStatusColor = input.required<(statusId: number | null | undefined) => string>();
+  readonly getStatusColor = input.required<(statusCode: string | null | undefined) => string>();
   readonly getDeadlineInfo = input.required<
     (
       endTime: string | null | undefined,
-      statusId: number,
+      statusCode: string,
     ) => {
       state: string;
       label: string;
@@ -86,7 +86,7 @@ export class TaskTableViewComponent {
   readonly views = input<ListViewState | null>(null);
   /** The search text and quick filters on screen, so an export matches the list shown. */
   readonly exportSearch = input<string | null>(null);
-  readonly exportOptions = input<Record<string, string> | null>(null);
+  readonly exportFilter = input<readonly unknown[]>([]);
   readonly taskTypes = input<TaskType[]>([]);
   readonly canCreateTask = input(false);
   readonly hasActiveFilters = input(false);
@@ -101,7 +101,7 @@ export class TaskTableViewComponent {
   }>();
   readonly updateStatus = output<{
     taskId: number;
-    statusId: number;
+    statusCode: string;
   }>();
   readonly resetFilters = output<void>();
   readonly createTask = output<void>();
@@ -125,7 +125,7 @@ export class TaskTableViewComponent {
 
   /** Rows chosen on the page on screen; the table clears them when the page changes. */
   readonly selectedTasks = signal<Task[]>([]);
-  readonly bulkStatusId = signal<number | null>(null);
+  readonly bulkStatusCode = signal<string | null>(null);
   readonly bulkPriority = signal<string | null>(null);
   readonly bulkBusy = signal(false);
   readonly bulkAction = signal<'status' | 'priority' | null>(null);
@@ -150,7 +150,7 @@ export class TaskTableViewComponent {
         title: cell(this.titleCell),
         projectId: cell(this.projectCell),
         priority: cell(this.priorityCell),
-        statusId: cell(this.statusCell),
+        statusCode: cell(this.statusCell),
         endTime: cell(this.deadlineCell),
       },
       widths: {
@@ -158,7 +158,7 @@ export class TaskTableViewComponent {
         title: `max(220px, calc(${rest} * 0.6))`,
         projectId: `max(140px, calc(${rest} * 0.4))`,
         priority: '130px',
-        statusId: '150px',
+        statusCode: '150px',
         endTime: '180px',
       },
       align: { id: 'left' },
@@ -169,7 +169,7 @@ export class TaskTableViewComponent {
     return {
       ...base,
       layout: 'fit',
-      rowClass: (task) => (this.isOverdue()(task.endTime, task.statusId) ? 'task-row-overdue' : null),
+      rowClass: (task) => (this.isOverdue()(task.endTime, task.statusCode) ? 'task-row-overdue' : null),
       columns: {
         ...base.columns,
         type: {
@@ -190,7 +190,7 @@ export class TaskTableViewComponent {
     };
   });
 
-  private readonly statusMemo = optionsMemo<SMTSelectOption<number>[]>();
+  private readonly statusMemo = optionsMemo<SMTSelectOption<string>[]>();
   private readonly priorityMemo = optionsMemo<SMTSelectOption<string>[]>();
   /** Titles of the tasks sent, so the result can name a task after the page reloads. */
   private bulkTitles = new Map<number, string>();
@@ -200,9 +200,9 @@ export class TaskTableViewComponent {
   };
 
   /** Statuses as smt-select options; the same array while the statuses stay the same. */
-  statusOptions(): SMTSelectOption<number>[] {
+  statusOptions(): SMTSelectOption<string>[] {
     return this.statusMemo([this.statuses()], () =>
-      this.statuses().map((status) => ({ id: status.id, label: status.name })),
+      this.statuses().map((status) => ({ id: status.code, label: status.name })),
     );
   }
 
@@ -225,21 +225,24 @@ export class TaskTableViewComponent {
     if (priority !== null) this.updatePriority.emit({ taskId, priority });
   }
 
-  onStatusChange(taskId: number, statusId: number | null): void {
-    if (statusId !== null) this.updateStatus.emit({ taskId, statusId });
+  onStatusChange(taskId: number, statusCode: string | null): void {
+    if (statusCode !== null) this.updateStatus.emit({ taskId, statusCode });
   }
 
-  /** One status or priority for every chosen task; the page reloads with what the server now holds. */
+  /**
+   * One status or priority for every chosen task, as the record action `set_status` or a change of the priority of
+   * each (ADR-0032 6.7); the page reloads with what the server now holds.
+   */
   applyBulk(action: 'status' | 'priority'): void {
     const tasks = this.selectedTasks();
     if (tasks.length === 0 || this.bulkBusy()) return;
-    const params = action === 'status' ? { statusId: this.bulkStatusId() } : { priority: this.bulkPriority() };
+    const params = action === 'status' ? { status: this.bulkStatusCode() } : { priority: this.bulkPriority() };
     this.bulkTitles = new Map(tasks.map((task) => [task.id, task.title]));
     this.bulkBusy.set(true);
     this.bulkAction.set(action);
     this.tasksApi
       .bulk(
-        action,
+        action === 'status' ? SET_STATUS : 'update',
         tasks.map((task) => task.id),
         params,
       )
@@ -247,7 +250,7 @@ export class TaskTableViewComponent {
         next: (result) => {
           this.bulkBusy.set(false);
           this.bulkAction.set(null);
-          this.bulkStatusId.set(null);
+          this.bulkStatusCode.set(null);
           this.bulkPriority.set(null);
           if (result.succeeded > 0) {
             this.toast.success(this.i18n.translate('tasks.bulk.done', { count: result.succeeded }));

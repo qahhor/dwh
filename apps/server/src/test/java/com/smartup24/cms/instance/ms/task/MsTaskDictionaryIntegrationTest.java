@@ -132,9 +132,9 @@ class MsTaskDictionaryIntegrationTest extends EmbeddedPostgresTest {
         long user = jdbc.sql("select id from md_users where login = 'system'")
                 .query(Long.class)
                 .single();
-        jdbc.sql("insert into ms_tasks (title, status_id, reporter_id, created_by) values ('used', :status, :user,"
+        jdbc.sql("insert into ms_tasks (title, status_code, reporter_id, created_by) values ('used', :status, :user,"
                         + " :user)")
-                .param("status", own)
+                .param("status", tag)
                 .param("user", user)
                 .update();
         MockHttpServletResponse used = admin.send(delete(STATUSES + "/" + own));

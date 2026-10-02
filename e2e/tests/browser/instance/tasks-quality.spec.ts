@@ -32,17 +32,17 @@ function taskFixture(id: number, title = `Mock task ${String(id).padStart(3, '0'
     parentTaskId: null,
     title,
     descriptionMarkdown: '',
-    statusId: 1,
+    typeCode: 'task',
+    statusCode: 'new',
     priority: 'medium',
     reporterId: 1,
-    attributes: { task_type: 'task' },
+    attributes: {},
     beginTime: null,
     endTime: null,
     resolvedTime: null,
     createdAt: '2026-09-05T12:00:00Z',
     modifiedAt: '2026-09-05T12:00:00Z',
-    createdBy: 1,
-    modifiedBy: 1,
+    revision: 1,
   };
 }
 
@@ -129,7 +129,7 @@ async function createTaskThroughUi(
   }
 
   const response = page.waitForResponse(candidate =>
-    candidate.request().method() === 'POST' && candidate.url().endsWith('/api/v1/tasks')
+    candidate.request().method() === 'POST' && candidate.url().endsWith('/api/v1/entities/ms.tasks')
   );
   await dialog.getByRole('button', { name: 'Создать задачу' }).click();
   expect((await response).ok()).toBe(true);
@@ -143,10 +143,11 @@ function taskOpenButton(page: Page, title: string): Locator {
   }).first();
 }
 
+/** The task list on the general runtime (ADR-0032 8): `/api/v1/entities/ms.tasks`. */
 async function routeTaskList(page: Page, handler: (route: Route, url: URL) => Promise<void>): Promise<void> {
-  await page.route('**/api/v1/tasks?*', async (route) => {
+  await page.route('**/api/v1/entities/ms.tasks?*', async (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname !== '/api/v1/tasks') {
+    if (url.pathname !== '/api/v1/entities/ms.tasks') {
       await route.continue();
       return;
     }
@@ -184,7 +185,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
   await expect(titleInput).toHaveValue(editedTitle);
 
   const titlePatch = page.waitForResponse(candidate =>
-    candidate.request().method() === 'PATCH' && /\/api\/v1\/tasks\/\d+$/u.test(candidate.url())
+    candidate.request().method() === 'PATCH' && /\/api\/v1\/entities\/ms\.tasks\/\d+$/u.test(candidate.url())
   );
   await editDialog.getByRole('button', { name: 'Сохранить изменения' }).click();
   expect((await titlePatch).ok()).toBe(true);
@@ -197,7 +198,7 @@ test('task edit round-trips and clears a local deadline while retaining observer
 
   await fillDeadline(editDialog, 'task-edit-deadline', '');
   const clearPatch = page.waitForResponse(candidate =>
-    candidate.request().method() === 'PATCH' && /\/api\/v1\/tasks\/\d+$/u.test(candidate.url())
+    candidate.request().method() === 'PATCH' && /\/api\/v1\/entities\/ms\.tasks\/\d+$/u.test(candidate.url())
   );
   await editDialog.getByRole('button', { name: 'Сохранить изменения' }).click();
   expect((await clearPatch).ok()).toBe(true);

@@ -11,7 +11,6 @@ import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestSession;
 import java.util.LinkedHashMap;
@@ -30,7 +29,9 @@ import tools.jackson.databind.JsonNode;
 /**
  * ADR-0013, "404, not 403" for a project named in a request body or a filter: a project outside the caller's data
  * scope answers exactly like a missing one, so a task cannot reveal it, attach to it, or make it visible by
- * participation. The caller is the matrix viewer: every administrator permission and the rule UNITS on unit A.
+ * participation. The tasks are the general runtime's (ADR-0032, 8): the reference to a project the caller may not see
+ * is the field error {@code not_found}, the same as for a missing project. The caller is the matrix viewer: every
+ * administrator permission and the rule UNITS on unit A.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
@@ -58,10 +59,9 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
     private MdRoleRepository roles;
 
     @Autowired
-    private MsTaskService tasks;
-
-    @Autowired
     private MfFileService files;
+
+    private static final String TASKS = "/api/v1/entities/ms.tasks";
 
     private ScopeFixture fixture;
     private TestSession viewer;
@@ -71,24 +71,12 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
 
     @BeforeAll
     void setUp() throws Exception {
-        fixture = new ScopeFixture(jdbc, users, scopes, scopeRepository, roles, tasks, files);
+        fixture = new ScopeFixture(jdbc, users, scopes, scopeRepository, roles, files);
         viewer = TestSession.signIn(wac, fixture.viewerLogin);
         outsideProject = (Long) fixture.create(Kind.PROJECT, false);
         insideProject = (Long) fixture.create(Kind.PROJECT, true);
         // The hidden project has a task of its own whose people all stand outside the viewer's scope.
-        tasks.createTask(
-                outsideProject,
-                null,
-                "TEST hidden task",
-                "",
-                "medium",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                fixture.outsider);
+        fixture.task(fixture.outsider, outsideProject);
         missingProject = jdbc.sql("select coalesce(max(id), 0) + 1000000 from ms_task_projects")
                 .query(Long.class)
                 .single();
@@ -97,10 +85,10 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("ADR-0013: creating a task in a project outside the scope answers like a missing project")
     void createInHiddenProjectAnswersLikeMissing() throws Exception {
-        MockHttpServletResponse hidden = viewer.send(post("/api/v1/tasks"), createBody(outsideProject));
-        MockHttpServletResponse missing = viewer.send(post("/api/v1/tasks"), createBody(missingProject));
+        MockHttpServletResponse hidden = viewer.send(post(TASKS), createBody(outsideProject));
+        MockHttpServletResponse missing = viewer.send(post(TASKS), createBody(missingProject));
 
-        assertThat(hidden.getStatus()).as(hidden.getContentAsString()).isEqualTo(404);
+        assertThat(hidden.getStatus()).as(hidden.getContentAsString()).isEqualTo(422);
         assertThat(answer(hidden)).isEqualTo(answer(missing));
         assertHiddenProjectUntouched();
     }
@@ -113,7 +101,7 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
         MockHttpServletResponse hidden = movePatch(task, outsideProject);
         MockHttpServletResponse missing = movePatch(task, missingProject);
 
-        assertThat(hidden.getStatus()).as(hidden.getContentAsString()).isEqualTo(404);
+        assertThat(hidden.getStatus()).as(hidden.getContentAsString()).isEqualTo(422);
         assertThat(answer(hidden)).isEqualTo(answer(missing));
         assertThat(jdbc.sql("select count(*) from ms_tasks where id = :id and project_id is null")
                         .param("id", task)
@@ -122,14 +110,14 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
                 .isEqualTo(1L);
         assertHiddenProjectUntouched();
         // A project in the scope still takes the task: the check is the scope, not a blanket refusal.
-        assertThat(movePatch(task, insideProject).getStatus()).isEqualTo(204);
+        assertThat(movePatch(task, insideProject).getStatus()).isEqualTo(200);
     }
 
     @Test
     @DisplayName("ADR-0013: filtering the task list by a project outside the scope answers like a missing project")
     void filterByHiddenProjectAnswersLikeMissing() throws Exception {
-        MockHttpServletResponse hidden = viewer.send(get("/api/v1/tasks").param("projectId", "" + outsideProject));
-        MockHttpServletResponse missing = viewer.send(get("/api/v1/tasks").param("projectId", "" + missingProject));
+        MockHttpServletResponse hidden = viewer.send(get(TASKS).param("filter", projectFilter(outsideProject)));
+        MockHttpServletResponse missing = viewer.send(get(TASKS).param("filter", projectFilter(missingProject)));
 
         assertThat(hidden.getStatus()).as(hidden.getContentAsString()).isEqualTo(200);
         assertThat(missing.getStatus()).isEqualTo(200);
@@ -139,7 +127,7 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
 
     private MockHttpServletResponse movePatch(long task, long project) throws Exception {
         return viewer.send(
-                patch("/api/v1/tasks/{id}", task).header("If-Match", fixture.ifMatch(Kind.TASK, task)),
+                patch(TASKS + "/{id}", task).header("If-Match", fixture.ifMatch(Kind.TASK, task)),
                 Map.of("projectId", project));
     }
 
@@ -156,7 +144,11 @@ class ScopeProjectReferenceIntegrationTest extends EmbeddedPostgresTest {
     }
 
     private static Map<String, Object> createBody(long project) {
-        return Map.of("title", "TEST project reference", "projectId", project);
+        return Map.of("title", "TEST project reference", "typeCode", "task", "projectId", project);
+    }
+
+    private static String projectFilter(long project) {
+        return "[{\"field\":\"projectId\",\"op\":\"eq\",\"value\":" + project + "}]";
     }
 
     private static Map<String, String> answer(MockHttpServletResponse response) throws Exception {

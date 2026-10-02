@@ -134,19 +134,25 @@ public class EntityStoreRepository {
         return jdbc.sql(sql).params(params).query(Long.class).optional();
     }
 
-    /** Replaces the keys of a several-references field: a row per key, in order (ADR-0032, 4.1). */
+    /**
+     * Replaces the keys of a several-references field: a row per key, in order (ADR-0032, 4.1); in a table shared by
+     * several fields only the rows of the field's kind.
+     */
     public void writeLinks(FieldSource.Link link, long id, List<Long> keys) {
-        jdbc.sql("delete from " + link.table() + " where " + link.ownerColumn() + " = :rid")
+        jdbc.sql("delete from " + link.table() + " l where l." + link.ownerColumn() + " = :rid" + link.kindSql("l"))
                 .param("rid", id)
                 .update();
+        String kindColumn = link.kindColumn() == null ? "" : ", " + link.kindColumn();
+        String kindValue = link.kind() == null ? "" : ", :kind";
         int position = 1;
         for (Long key : keys) {
-            jdbc.sql("insert into " + link.table() + " (" + link.ownerColumn() + ", " + link.targetColumn()
-                            + ", position) values (:rid, :key, :position)")
+            var insert = jdbc.sql("insert into " + link.table() + " (" + link.ownerColumn() + ", " + link.targetColumn()
+                            + kindColumn + ", position) values (:rid, :key" + kindValue + ", :position)")
                     .param("rid", id)
                     .param("key", key)
-                    .param("position", position++)
-                    .update();
+                    .param("position", position++);
+            if (link.kind() != null) insert = insert.param("kind", link.kind());
+            insert.update();
         }
     }
 
@@ -157,7 +163,8 @@ public class EntityStoreRepository {
                 .map(field -> field.source())
                 .filter(FieldSource.Link.class::isInstance)
                 .map(FieldSource.Link.class::cast)
-                .forEach(link -> jdbc.sql("delete from " + link.table() + " where " + link.ownerColumn() + " = :rid")
+                .forEach(link -> jdbc.sql("delete from " + link.table() + " l where l." + link.ownerColumn() + " = :rid"
+                                + link.kindSql("l"))
                         .param("rid", id)
                         .update());
         return jdbc.sql("delete from " + model.table() + " where id = :rid")

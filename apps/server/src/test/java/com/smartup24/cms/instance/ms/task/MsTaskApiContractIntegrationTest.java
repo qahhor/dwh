@@ -33,34 +33,17 @@ import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Plan 10/10, item 3.2: the JSON property sets the tasks, projects and comments screens read. The API answers
- * through DTOs of {@code ms.task.api}; these sets pin the wire format so a change of a DTO fails here first.
- * Null properties are left out of the JSON ({@code non_null}), so each set matches the fixture it reads.
+ * Plan 10/10, item 3.2: the JSON property sets the task screens read from the module's own endpoints — participants,
+ * files, project members and comments — through DTOs of {@code ms.task.api}; these sets pin the wire format so a change
+ * of a DTO fails here first. The tasks and projects themselves are records of the general runtime (ADR-0032, 8), whose
+ * shape the entity contract kit pins. Null properties are left out of the JSON ({@code non_null}).
  */
 class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
 
     private static final String PASSWORD = "StrongPassword2026!";
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    private static final Set<String> TASK = Set.of(
-            "id",
-            "projectId",
-            "projectName",
-            "parentTaskId",
-            "title",
-            "descriptionMarkdown",
-            "statusId",
-            "priority",
-            "reporterId",
-            "attributes",
-            "beginTime",
-            "endTime",
-            "createdAt",
-            "modifiedAt",
-            "createdBy",
-            "modifiedBy",
-            "revision");
-    private static final Set<String> ROOT_TASK = without(TASK, "parentTaskId");
+    private static final String TASKS = "/api/v1/entities/ms.tasks";
 
     @Autowired
     private WebApplicationContext wac;
@@ -87,63 +70,33 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("3.2: tasks, their detail, files, statuses, types and project stats keep their JSON properties")
+    @DisplayName("3.2: the participants and files of a task keep their JSON properties")
     void taskResponsesKeepTheirProperties() throws Exception {
         String login = user();
         long userId = userId(login);
         Session s = login(login);
 
         long projectId = project(s, "TEST contract " + suffix());
-        Map<String, Object> parent = created(send(
+        long taskId = task(
                 s,
-                post("/api/v1/tasks"),
                 Map.of(
                         "title", "TEST contract parent",
                         "descriptionMarkdown", "body",
                         "projectId", projectId,
-                        "priority", "medium",
-                        "responsibleUserId", userId,
+                        "responsibleId", userId,
                         "beginTime", "2026-09-01T09:00:00Z",
-                        "endTime", "2099-09-30T18:00:00Z")));
-        assertKeys(parent, ROOT_TASK);
-        long parentId = id(parent);
-        Map<String, Object> child = created(send(
-                s,
-                post("/api/v1/tasks"),
-                Map.of(
-                        "title", "TEST contract child",
-                        "descriptionMarkdown", "child body",
-                        "projectId", projectId,
-                        "parentTaskId", parentId,
-                        "priority", "high",
-                        "beginTime", "2026-09-01T09:00:00Z",
-                        "endTime", "2099-09-30T18:00:00Z")));
-        assertKeys(child, TASK);
+                        "endTime", "2099-09-30T18:00:00Z"));
         UUID fileId = upload(s);
-        assertThat(send(s, post("/api/v1/tasks/" + parentId + "/files"), Map.of("fileId", fileId))
+        assertThat(send(s, post("/api/v1/tasks/" + taskId + "/files"), Map.of("fileId", fileId))
                         .getStatus())
                 .isEqualTo(204);
 
-        Map<String, Object> detail = object(ok(send(s, get("/api/v1/tasks/" + parentId), null)));
-        assertKeys(detail, Set.of("task", "members", "subtasks", "ancestors", "files"));
-        assertKeys(map(detail.get("task")), ROOT_TASK);
         assertKeys(
-                first(detail.get("members")),
+                first(array(ok(send(s, get("/api/v1/tasks/" + taskId + "/members"), null)))),
                 Set.of("taskId", "userId", "userName", "userLogin", "userEmail", "involveKind", "isViewed"));
-        assertKeys(first(detail.get("subtasks")), TASK);
-        assertThat(list(detail.get("ancestors"))).isEmpty();
-        Set<String> file = Set.of("fileId", "fileName", "sizeBytes", "mimeType", "createdAt");
-        assertKeys(first(detail.get("files")), file);
         assertKeys(
-                map(object(ok(send(s, get("/api/v1/tasks/" + id(child)), null))).get("ancestors"), 0), ROOT_TASK);
-
-        assertKeys(first(array(ok(send(s, get("/api/v1/tasks/" + parentId + "/files"), null)))), file);
-        assertKeys(first(array(ok(send(s, get("/api/v1/tasks/" + parentId + "/subtasks"), null)))), TASK);
-
-        Map<String, Object> page =
-                object(ok(send(s, get("/api/v1/tasks?projectId=" + projectId + "&limit=1&sort=title"), null)));
-        assertKeys(page, Set.of("items", "nextCursor", "hasMore", "totalEstimated", "totalExact"));
-        assertKeys(first(page.get("items")), TASK);
+                first(array(ok(send(s, get("/api/v1/tasks/" + taskId + "/files"), null)))),
+                Set.of("fileId", "fileName", "sizeBytes", "mimeType", "createdAt"));
     }
 
     @Test
@@ -158,7 +111,7 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
                 first(items(ok(send(s, get("/api/v1/tasks/projects/" + projectId + "/members/page"), null)))),
                 Set.of("projectId", "userId", "userName", "userEmail", "accessKind"));
 
-        long taskId = id(created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST contract comments"))));
+        long taskId = task(s, Map.of("title", "TEST contract comments"));
         UUID fileId = upload(s);
         Set<String> comment =
                 Set.of("id", "taskId", "userId", "textMarkdown", "fileIds", "createdAt", "userName", "userLogin");
@@ -209,17 +162,10 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         Session s = login(user());
         String name = "TEST picker " + suffix();
         long projectId = project(s, name);
-        Map<String, Object> task =
-                created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST named", "projectId", projectId)));
-        assertThat(task.get("projectName")).isEqualTo(name);
-        Map<String, Object> page = object(ok(send(s, get("/api/v1/tasks?projectId=" + projectId), null)));
+        task(s, Map.of("title", "TEST named", "projectId", projectId));
+        String filter = "[{\"field\":\"projectId\",\"op\":\"eq\",\"value\":" + projectId + "}]";
+        Map<String, Object> page = object(ok(send(s, get(TASKS).param("filter", filter), null)));
         assertThat(items(page)).extracting(row -> row.get("projectName")).containsExactly(name);
-        assertThat(map(object(ok(send(s, get("/api/v1/tasks/" + id(task)), null)))
-                                .get("task"))
-                        .get("projectName"))
-                .isEqualTo(name);
-        Map<String, Object> loose = created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST without project")));
-        assertThat(loose).doesNotContainKey("projectName");
 
         Map<String, Object> found = object(
                 ok(send(s, get("/api/v1/entities/ms.projects").param("q", name).param("limit", "20"), null)));
@@ -227,6 +173,11 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         assertThat(send(s, get("/api/v1/entities/ms.projects").param("limit", "201"), null)
                         .getStatus())
                 .isEqualTo(422);
+    }
+
+    /** A task created on the general runtime (ADR-0032, 8). */
+    private long task(Session s, Map<String, Object> values) throws Exception {
+        return id(created(send(s, post(TASKS), values)));
     }
 
     /** A project created on the general runtime (ADR-0032, 8). */
@@ -257,10 +208,6 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         assertThat(node.keySet()).as("JSON properties of %s", node).containsExactlyInAnyOrderElementsOf(expected);
     }
 
-    private static Set<String> without(Set<String> set, String removed) {
-        return set.stream().filter(key -> !key.equals(removed)).collect(java.util.stream.Collectors.toSet());
-    }
-
     private static String suffix() {
         return UUID.randomUUID().toString().substring(0, 8);
     }
@@ -272,10 +219,6 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> map(Object node) {
         return (Map<String, Object>) node;
-    }
-
-    private static Map<String, Object> map(Object node, int index) {
-        return map(list(node).get(index));
     }
 
     @SuppressWarnings("unchecked")

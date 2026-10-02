@@ -2,16 +2,10 @@ package com.smartup24.cms.instance.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
-import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.MsTaskFixture;
-import com.smartup24.cms.instance.ms.task.repository.*;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
 import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import com.smartup24.cms.instance.search.typesense.*;
@@ -57,8 +51,7 @@ class SearchRevisionIntegrationTest {
 
     static JdbcClient jdbc;
     static TransactionTemplate tx;
-    static MsTaskFixture taskServices;
-    static MsTaskService tasks;
+    static MsTaskFixture tasks;
     static SearchChangePublisher publisher;
     static long reporter;
     static DriverManagerDataSource database;
@@ -73,21 +66,8 @@ class SearchRevisionIntegrationTest {
         jdbc = JdbcClient.create(database);
         var manager = new DataSourceTransactionManager(database);
         tx = new TransactionTemplate(manager);
-        var mapper = new ObjectMapper();
-        var scopes = mock(MdScopeService.class);
-        when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
-        when(scopes.filterForProjects(any())).thenReturn(ScopeFilter.unrestricted());
         publisher = proxied(new SearchChangePublisher(jdbc), manager);
-        taskServices = MsTaskFixture.wire(
-                MsTaskFixture.Repositories.jdbc(jdbc, mapper),
-                MsTaskFixture.Collaborators.with(scopes, publisher, mock(AuditLogService.class)),
-                new MsTaskFixture.Proxy() {
-                    @Override
-                    public <T> T wrap(T target) {
-                        return proxied(target, manager);
-                    }
-                });
-        tasks = taskServices.tasks();
+        tasks = new MsTaskFixture(jdbc, publisher, tx);
         reporter = jdbc.sql("""
                 insert into md_users(name,login,email,password_hash,state,language,timezone)
                 values ('Reporter','revision-reporter','revision@example.invalid','x','A','ru','UTC') returning id
@@ -135,7 +115,7 @@ class SearchRevisionIntegrationTest {
     @Test
     void publisherRejectsCallsOutsideBusinessTransaction() {
         assertThatThrownBy(() -> publisher.changed("TASK", 99)).isInstanceOf(IllegalTransactionStateException.class);
-        assertThatThrownBy(() -> publisher.lockStatusMembership(99))
+        assertThatThrownBy(() -> publisher.lockStatusMembership("new"))
                 .isInstanceOf(IllegalTransactionStateException.class);
     }
 
@@ -143,8 +123,7 @@ class SearchRevisionIntegrationTest {
     void projectRenamePublishesProjectAndChildTextAtomicallyAndRollbackRestoresBoth() throws Exception {
         var reader = new SearchProjectionReader(jdbc, new ObjectMapper());
         long project = createProject("Before " + System.nanoTime());
-        long task = tasks.createTask(project, null, "Child", "body", "medium", null, null, null, null, null, reporter)
-                .id();
+        long task = tasks.create("Child", reporter, project, null);
         assertThat(reader.read("PROJECT", project)).isPresent();
         var beforeProject = reader.read("PROJECT", project).orElseThrow();
         var beforeTask = reader.read("TASK", task).orElseThrow();
@@ -248,7 +227,7 @@ class SearchRevisionIntegrationTest {
             var reading = executor.submit(() -> reader.read("TASK", id).orElseThrow());
             try {
                 assertThat(selected.await(10, TimeUnit.SECONDS)).isTrue();
-                tasks.updateTask(id, "Snapshot two", null, null, null, null, null, null, reporter);
+                tasks.rename(id, "Snapshot two", reporter);
             } finally {
                 resume.countDown();
             }
@@ -283,15 +262,15 @@ class SearchRevisionIntegrationTest {
                 .single();
         var id = new AtomicLong(create ? 0 : create("moving task"));
         if (!create) {
-            long other = jdbc.sql("insert into ms_task_statuses (code, name, color, sort_order) values" + " ('other_"
-                            + System.nanoTime() + "', 'Other', '#000000', 99) returning id")
-                    .query(Long.class)
+            String other = jdbc.sql("insert into ms_task_statuses (code, name, color, sort_order) values" + " ('other_"
+                            + System.nanoTime() + "', 'Other', '#000000', 99) returning code")
+                    .query(String.class)
                     .single();
-            taskServices.workflow().changeStatus(id.get(), other, reporter);
+            tasks.moveStatus(id.get(), other, reporter);
         }
         Runnable membership = () -> {
             if (create) id.set(create("joining task"));
-            else taskServices.workflow().changeStatus(id.get(), status, reporter);
+            else tasks.moveStatus(id.get(), "new", reporter);
         };
         String renamed = "Renamed " + System.nanoTime();
         Runnable rename = () -> renameStatus(status, renamed);
@@ -313,8 +292,7 @@ class SearchRevisionIntegrationTest {
     @ValueSource(booleans = {true, false})
     void projectUniqueNameRenameAndTaskCreationAlreadySerializeThroughForeignKey(boolean renameFirst) throws Exception {
         long project = createProject("Initial " + System.nanoTime());
-        Runnable membership = () -> tasks.createTask(
-                project, null, "project member", "body", "medium", null, null, null, null, null, reporter);
+        Runnable membership = () -> tasks.create("project member", reporter, project, null);
         Runnable rename = () -> renameProject(project, "Renamed " + System.nanoTime());
         runSerialized(renameFirst ? rename : membership, renameFirst ? membership : rename);
     }
@@ -370,8 +348,7 @@ class SearchRevisionIntegrationTest {
     }
 
     static long create(String title) {
-        return tasks.createTask(null, null, title, "body", "medium", null, null, null, null, null, reporter)
-                .id();
+        return tasks.create(title, reporter);
     }
 
     static long count(String table, String column, long id) {

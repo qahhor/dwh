@@ -190,9 +190,8 @@ class MsProjectEntityIntegrationTest extends EmbeddedPostgresTest {
 
     private void task(long project, String status, long reporter) {
         jdbc.sql("""
-                        insert into ms_tasks (project_id, title, status_id, reporter_id, created_by)
-                        values (:project, 'TEST progress', (select id from ms_task_statuses where code = :status),
-                                :reporter, :reporter)
+                        insert into ms_tasks (project_id, title, status_code, reporter_id, created_by)
+                        values (:project, 'TEST progress', :status, :reporter, :reporter)
                         """)
                 .param("project", project)
                 .param("status", status)

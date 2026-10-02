@@ -31,7 +31,7 @@ public class MsTaskStatsRepository {
                 from ms_task_projects p
                 left join ms_tasks t on t.project_id = p.id
                 """ + scope.sql() + """
-                left join ms_task_statuses s on s.id = t.status_id
+                left join ms_task_statuses s on s.code = t.status_code
                 where p.id in (:ids)
                 group by p.id
                 order by p.id
@@ -55,7 +55,7 @@ public class MsTaskStatsRepository {
                 .sql("""
                 select distinct t.id as task_id, t.title, tm.user_id
                 from ms_tasks t
-                join ms_task_statuses s on s.id = t.status_id and s.is_terminal = false
+                join ms_task_statuses s on s.code = t.status_code and s.is_terminal = false
                 join ms_task_members tm on tm.task_id = t.id and tm.involve_kind in ('R', 'E')
                 where t.end_time is not null
                   and t.end_time > now()
