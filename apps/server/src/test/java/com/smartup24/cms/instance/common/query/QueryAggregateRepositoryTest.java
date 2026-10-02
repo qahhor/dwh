@@ -23,7 +23,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Plan 10/10, item 5.8 (ADR-0032, 10.2 and 12): a report runs as one grouped query on PostgreSQL вЂ” its values come back
+ * Plan 10/10, item 5.8 (ADR-0032, 10.2 and 12): a report runs as one grouped query on PostgreSQL — its values come back
  * typed, at most 1000 groups with the cut reported, and a report that takes longer than its limit is refused with a
  * request to narrow it instead of holding the database.
  */
@@ -91,15 +91,15 @@ class QueryAggregateRepositoryTest {
         assertThat(result.truncated()).isFalse();
         assertThat(result.groups())
                 .containsExactly(
-                        new QueryAggregateResult.GroupColumn("kind", null, false),
-                        new QueryAggregateResult.GroupColumn("third", null, false));
+                        new QueryAggregateResult.AggregateGroup("kind", null, false),
+                        new QueryAggregateResult.AggregateGroup("third", null, false));
         assertThat(result.measures())
                 .containsExactly(
-                        new QueryAggregateResult.MeasureColumn("count", null),
-                        new QueryAggregateResult.MeasureColumn("sum", "amount"),
-                        new QueryAggregateResult.MeasureColumn("min", "amount"));
+                        new QueryAggregateResult.AggregateMeasure("count", null),
+                        new QueryAggregateResult.AggregateMeasure("sum", "amount"),
+                        new QueryAggregateResult.AggregateMeasure("min", "amount"));
         assertThat(result.rows())
-                .extracting(QueryAggregateResult.Row::groups)
+                .extracting(QueryAggregateResult.AggregateRow::groups)
                 .containsExactly(
                         List.of("even", false), List.of("even", true), List.of("odd", false), List.of("odd", true));
         assertThat(result.rows().getFirst().values()).containsExactly(2L, new BigDecimal("9.0"), new BigDecimal("3.0"));
@@ -118,7 +118,7 @@ class QueryAggregateRepositoryTest {
                 null,
                 "[{\"field\":\"g\",\"op\":\"between\",\"value\":[1,400]}]");
         assertThat(months.rows())
-                .extracting(QueryAggregateResult.Row::groups)
+                .extracting(QueryAggregateResult.AggregateRow::groups)
                 .containsExactly(Arrays.asList("2024-01-01"), Arrays.asList("2025-01-01"));
         QueryAggregateResult quarters = run(
                 new QueryAggregateRepository(jdbc),

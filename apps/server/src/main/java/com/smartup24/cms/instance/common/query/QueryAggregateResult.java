@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.common.query;
 
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -12,7 +14,7 @@ import org.jspecify.annotations.Nullable;
  * @param truncated more groups exist than {@value QueryAggregate#MAX_ROWS}: the answer holds the first ones
  */
 public record QueryAggregateResult(
-        List<GroupColumn> groups, List<MeasureColumn> measures, List<Row> rows, boolean truncated) {
+        List<AggregateGroup> groups, List<AggregateMeasure> measures, List<AggregateRow> rows, boolean truncated) {
 
     public QueryAggregateResult {
         groups = List.copyOf(groups);
@@ -27,7 +29,7 @@ public record QueryAggregateResult(
      * @param trunc    the date bucket ({@code month}), or null
      * @param implicit added by the platform: the currency of a money measure
      */
-    public record GroupColumn(String field, @Nullable String trunc, boolean implicit) {}
+    public record AggregateGroup(String field, @Nullable String trunc, boolean implicit) {}
 
     /**
      * A measure column.
@@ -35,8 +37,13 @@ public record QueryAggregateResult(
      * @param op    {@code count}, {@code sum}, {@code avg}, {@code min} or {@code max}
      * @param field the list field's key, or null for {@code count}
      */
-    public record MeasureColumn(String op, @Nullable String field) {}
+    public record AggregateMeasure(String op, @Nullable String field) {}
 
     /** One group: the values of its groups and of its measures, in the order of the columns. */
-    public record Row(List<@Nullable Object> groups, List<@Nullable Object> values) {}
+    public record AggregateRow(
+            @ArraySchema(schema = @Schema(types = {"string", "number", "boolean", "null"}))
+            List<@Nullable Object> groups,
+
+            @ArraySchema(schema = @Schema(types = {"number", "null"}))
+            List<@Nullable Object> values) {}
 }

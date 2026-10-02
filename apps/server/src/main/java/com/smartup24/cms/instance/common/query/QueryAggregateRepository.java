@@ -4,9 +4,9 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.jdbc.StatementTimeouts;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Group;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Measure;
-import com.smartup24.cms.instance.common.query.QueryAggregateResult.GroupColumn;
-import com.smartup24.cms.instance.common.query.QueryAggregateResult.MeasureColumn;
-import com.smartup24.cms.instance.common.query.QueryAggregateResult.Row;
+import com.smartup24.cms.instance.common.query.QueryAggregateResult.AggregateGroup;
+import com.smartup24.cms.instance.common.query.QueryAggregateResult.AggregateMeasure;
+import com.smartup24.cms.instance.common.query.QueryAggregateResult.AggregateRow;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -61,7 +61,7 @@ public class QueryAggregateRepository {
      */
     public QueryAggregateResult run(QueryAggregate aggregate, QueryPlan.SqlFragment extra) {
         QueryPlan.SqlFragment sql = aggregate.sql(extra);
-        List<Row> rows;
+        List<AggregateRow> rows;
         try {
             rows = StatementTimeouts.within(
                     jdbc,
@@ -78,19 +78,19 @@ public class QueryAggregateRepository {
         boolean truncated = rows.size() > QueryAggregate.MAX_ROWS;
         return new QueryAggregateResult(
                 aggregate.groups().stream()
-                        .map(group -> new GroupColumn(
+                        .map(group -> new AggregateGroup(
                                 group.field().key(),
                                 group.trunc() == null ? null : group.trunc().wire(),
                                 group.implicit()))
                         .toList(),
                 aggregate.measures().stream()
-                        .map(measure -> new MeasureColumn(measure.op().wire(), measure.fieldKey()))
+                        .map(measure -> new AggregateMeasure(measure.op().wire(), measure.fieldKey()))
                         .toList(),
                 truncated ? rows.subList(0, QueryAggregate.MAX_ROWS) : rows,
                 truncated);
     }
 
-    private static Row row(ResultSet rs, QueryAggregate aggregate) throws SQLException {
+    private static AggregateRow row(ResultSet rs, QueryAggregate aggregate) throws SQLException {
         List<@Nullable Object> groups = new ArrayList<>();
         for (int i = 0; i < aggregate.groups().size(); i++) {
             groups.add(groupValue(
@@ -106,7 +106,7 @@ public class QueryAggregateRepository {
                 values.add(rs.getBigDecimal(column));
             }
         }
-        return new Row(groups, values);
+        return new AggregateRow(groups, values);
     }
 
     private static @Nullable Object groupValue(ResultSet rs, String column, Group group) throws SQLException {

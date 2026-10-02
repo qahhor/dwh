@@ -25,6 +25,8 @@
   }, {
     "name" : "entity-menu-controller"
   }, {
+    "name" : "entity-report-controller"
+  }, {
     "name" : "example.orders"
   }, {
     "name" : "form-meta-controller"
@@ -52,6 +54,8 @@
     "name" : "md-list-view-controller"
   }, {
     "name" : "md-org-unit-controller"
+  }, {
+    "name" : "md-report-widget-controller"
   }, {
     "name" : "md-role-controller"
   }, {
@@ -5116,6 +5120,114 @@
         "tags" : [ "entity-bulk-controller" ]
       }
     },
+    "/api/v1/entities/{code}/report" : {
+      "get" : {
+        "description" : "Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups.",
+        "operationId" : "report",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "JSON array: [{\"field\":\"status\"},{\"field\":\"createdAt\",\"trunc\":\"month\"}]",
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "JSON array: [{\"op\":\"count\"},{\"op\":\"sum\",\"field\":\"total\"}]",
+          "in" : "query",
+          "name" : "measures",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "The list's filter DSL (JSON array)",
+          "in" : "query",
+          "name" : "filter",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueryAggregateResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run a report over a list",
+        "tags" : [ "entity-report-controller" ]
+      }
+    },
+    "/api/v1/entities/{code}/reports/{viewId}" : {
+      "get" : {
+        "description" : "Runs a report or widget the viewer saved as a view of the entity's list.",
+        "operationId" : "saved",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "viewId",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueryAggregateResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run a saved report",
+        "tags" : [ "entity-report-controller" ]
+      }
+    },
     "/api/v1/entities/{code}/{id}/files/{fileId}" : {
       "get" : {
         "description" : "The content of a file attached to a file or image field of a record the viewer may see.",
@@ -7820,7 +7932,7 @@
     },
     "/api/v1/list-views/{listCode}" : {
       "get" : {
-        "description" : "The saved views (filters, columns, sort) of a list.",
+        "description" : "The saved views of a list of the given kinds: table views (filters, columns, sort) when no kind is named, reports and widgets (grouping, measures, chart) when asked for.",
         "operationId" : "list_2",
         "parameters" : [ {
           "in" : "path",
@@ -7828,6 +7940,17 @@
           "required" : true,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "description" : "table, report or widget; repeat for several",
+          "in" : "query",
+          "name" : "kind",
+          "required" : false,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         } ],
         "responses" : {
@@ -9037,6 +9160,39 @@
         },
         "summary" : "Get a list description",
         "tags" : [ "query-meta-controller" ]
+      }
+    },
+    "/api/v1/report-widgets" : {
+      "get" : {
+        "description" : "The viewer's widgets for the dashboard, at most 12, over the entities the viewer may see.",
+        "operationId" : "list_5",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WidgetResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List my widgets",
+        "tags" : [ "md-report-widget-controller" ]
       }
     },
     "/api/v1/reports/tasks/export" : {
@@ -11484,6 +11640,48 @@
           },
           "textMarkdown" : {
             "type" : "string"
+          }
+        }
+      },
+      "AggregateGroup" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "implicit" : {
+            "type" : "boolean"
+          },
+          "trunc" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AggregateMeasure" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "op" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AggregateRow" : {
+        "type" : "object",
+        "properties" : {
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "type" : [ "string", "number", "boolean", "null" ]
+            }
+          },
+          "values" : {
+            "type" : "array",
+            "items" : {
+              "type" : [ "number", "null" ]
+            }
           }
         }
       },
@@ -15999,6 +16197,32 @@
         },
         "required" : [ "validFrom" ]
       },
+      "QueryAggregateResult" : {
+        "type" : "object",
+        "properties" : {
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AggregateGroup"
+            }
+          },
+          "measures" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AggregateMeasure"
+            }
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AggregateRow"
+            }
+          },
+          "truncated" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "QueryRef" : {
         "type" : "object",
         "properties" : {
@@ -17242,6 +17466,10 @@
           "isDefault" : {
             "type" : "boolean"
           },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "table", "report", "widget" ]
+          },
           "lockVersion" : {
             "type" : "integer",
             "format" : "int32"
@@ -17263,6 +17491,39 @@
           },
           "isDefault" : {
             "type" : "boolean"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "table", "report", "widget" ]
+          },
+          "lockVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          }
+        }
+      },
+      "WidgetResponse" : {
+        "type" : "object",
+        "properties" : {
+          "entity" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "listCode" : {
+            "type" : "string"
           },
           "lockVersion" : {
             "type" : "integer",
