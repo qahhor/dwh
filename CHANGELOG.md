@@ -9,6 +9,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.7 — documents with lines and statuses (ADR-0032 §9.5):
+  `EntityCollection` saves lines with their document in one transaction
+  (errors addressed `lines[3].qty`, at most 500 lines — assumption);
+  `EntityWorkflow` changes a status only by declared transitions with their
+  own rights (an invalid one answers 422 `entity_transition_not_allowed`) and
+  locks fields by status; record actions follow the status; the card shows
+  tabs and related lists (projects list their tasks). The reference order
+  `example.orders` (draft → posted → cancelled, lines with computed amounts,
+  V181–V182) lives in the `example` module, shipped switched off, and works
+  on the generic screen with no screen of its own.
+
 - Plan 10/10, item 5.6 — tasks, projects, task types and statuses, and users
   run on the entity runtime (ADR-0032 §8.1): `ms.task_types`,
   `ms.task_statuses` (reference lists; reorder is the `move` action),
