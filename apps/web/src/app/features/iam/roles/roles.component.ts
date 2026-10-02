@@ -282,7 +282,10 @@ export class RolesComponent implements OnInit {
 
   navigateToUsersWithRole(role: Role, event: Event): void {
     event.stopPropagation();
-    this.router?.navigate(['/iam/users'], { queryParams: { roleId: role.id } });
+    // The users' list of the general screen, filtered by the role (ADR-0016 DSL, ADR-0032 8).
+    this.router?.navigate(['/e/md.users'], {
+      queryParams: { filter: JSON.stringify([{ field: 'roleIds', op: 'in', value: [role.id] }]) },
+    });
   }
 
   submitCreateRole() {

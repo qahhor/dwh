@@ -19,11 +19,6 @@ export const projectRecordMatcher: UrlMatcher = (segments) => {
   return { consumed: segments, ...(segments[2] ? { posParams: { id: segments[2] } } : {}) };
 };
 
-export const userRecordMatcher: UrlMatcher = (segments) => {
-  if (segments[0]?.path !== 'iam' || segments[1]?.path !== 'users' || segments.length > 3) return null;
-  return { consumed: segments, ...(segments[2] ? { posParams: { id: segments[2] } } : {}) };
-};
-
 export function safeNumericRecordId(id: unknown): id is number {
   return typeof id === 'number' && Number.isSafeInteger(id) && id > 0;
 }
@@ -44,7 +39,7 @@ export function searchTarget(hit: SearchHit): string[] | null {
     case 'PROJECT':
       return ['/tasks/projects', hit.id];
     case 'USER':
-      return ['/iam/users', hit.id];
+      return ['/e/md.users', hit.id];
     case 'NOTE':
       return ['/notes'];
     default:

@@ -10,7 +10,6 @@ import { PermissionService } from '../services/permission.service';
 import { AuthService } from '../services/auth.service';
 import { TasksComponent } from '@features/tasks/tasks.component';
 import { ProjectsComponent } from '@features/tasks/projects/projects.component';
-import { UsersComponent } from '@features/iam/users/users.component';
 
 describe('Record routes with the actual router and actual templates', () => {
   async function setup() {
@@ -27,32 +26,8 @@ describe('Record routes with the actual router and actual templates', () => {
         }
         if (path === '/query-meta/ms.tasks') return of(TASKS_META);
         if (path === '/query-meta/ms.projects') return of(PROJECTS_META);
-        if (path === '/query-meta/iam.users') {
-          // The user list is a registry list: its columns come from the server's field list.
-          return of({
-            code: 'iam.users',
-            defaultSort: 'name',
-            defaultLimit: 20,
-            maxLimit: 200,
-            maxConditions: 20,
-            maxInValues: 100,
-            fields: [
-              {
-                key: 'name',
-                labelKey: 'iam.users.col.name',
-                type: 'text',
-                ops: ['eq'],
-                sortable: true,
-                nullable: false,
-                defaultVisible: true,
-                enumValues: [],
-                enumLabelPrefix: null,
-              },
-            ],
-          });
-        }
         return of(
-          path === '/tasks' || path === '/iam/users' || path === '/tasks/projects/page'
+          path === '/tasks' || path === '/tasks/projects/page'
             ? { items: [], hasMore: false, nextCursor: null, totalReturned: 0 }
             : [],
         );
@@ -120,27 +95,11 @@ describe('Record routes with the actual router and actual templates', () => {
       { id: 42, name: 'Fresh project', description: 'Detail', state: 'A' },
       'Fresh project',
     ],
-    [
-      '/iam/users',
-      '/iam/users/42',
-      UsersComponent,
-      '/iam/users/42',
-      {
-        id: 42,
-        name: 'Fresh user',
-        login: 'fixture',
-        state: 'A',
-        roleIds: [],
-        attributes: {},
-        createdAt: '2026-01-01',
-      },
-      'Fresh user',
-    ],
   ] as const)(
     'opens readonly detail and preserves filters for %s',
     async (listUrl, detailUrl, type, endpoint, record, title) => {
       const { harness, api, requests } = await setup();
-      const list = (await harness.navigateByUrl(listUrl)) as ProjectsComponent | UsersComponent;
+      const list = (await harness.navigateByUrl(listUrl)) as ProjectsComponent;
       list.searchQuery = 'keep';
       const detail = await harness.navigateByUrl(detailUrl).catch(() => null);
       expect(detail === list).toBe(true);
@@ -163,7 +122,7 @@ describe('Record routes with the actual router and actual templates', () => {
     page.openCreateModal();
     page.createForm.name = 'unsaved';
     let settled = false;
-    const navigation = router.navigateByUrl('/iam/users').then((value) => {
+    const navigation = router.navigateByUrl('/iam/roles').then((value) => {
       settled = true;
       return value;
     });
@@ -173,122 +132,6 @@ describe('Record routes with the actual router and actual templates', () => {
     page.confirmDiscardCreate();
     expect(await navigation).toBe(true);
   });
-
-  it.each(['cancel', 'escape', 'save'] as const)(
-    'restores canonical user detail after editor %s and opens another row with its own route identity',
-    async (exit) => {
-      const { harness, router, requests, api } = await setup();
-      const page = await harness.navigateByUrl('/iam/users/41', UsersComponent);
-      const original = {
-        id: 41,
-        name: 'Original user',
-        login: 'original',
-        email: 'original@example.test',
-        language: 'ru',
-        timezone: 'Asia/Tashkent',
-        is2faEnabled: false,
-        forcePasswordChange: false,
-        state: 'A' as const,
-        roleIds: [],
-        attributes: {},
-        createdAt: '2026-01-01',
-        modifiedAt: '2026-01-01',
-      };
-      const other = { ...original, id: 42, name: 'Other user', login: 'other' };
-      requests.get('/iam/users/41')!.next(original);
-      page.users.set([original, other]);
-      page.openEditFromView();
-      page.editForm.name = 'Saved user';
-      harness.detectChanges();
-      expect(page.isEditModalOpen()).toBe(true);
-      const beforeExit = requests.get('/iam/users/41');
-      if (exit === 'escape') {
-        (document.activeElement ?? document.body).dispatchEvent(
-          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-        );
-      } else {
-        const label = exit === 'save' ? 'Сохранить' : 'Отмена';
-        Array.from(document.body.querySelectorAll('[role="dialog"] button'))
-          .find((button) => button.textContent?.trim() === label)!
-          .dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      }
-      harness.detectChanges();
-      expect(page.isEditModalOpen()).toBe(false);
-      expect(page.isViewModalOpen()).toBe(true);
-      expect(router.url).toBe('/iam/users/41');
-      expect(requests.get('/iam/users/41')).not.toBe(beforeExit);
-      const restored = { ...original, name: exit === 'save' ? 'Saved user' : 'Original user' };
-      requests.get('/iam/users/41')!.next(restored);
-      harness.detectChanges();
-      const identity = document.body.querySelector('[data-record-id="41"]');
-      expect(identity?.textContent).toContain(restored.name);
-      if (exit === 'save')
-        expect(api.patch).toHaveBeenCalledWith(
-          '/iam/users/41',
-          expect.objectContaining({ name: 'Saved user' }),
-          expect.any(Object),
-        );
-      else expect(api.patch).not.toHaveBeenCalled();
-
-      // Exercise the existing list-row binding while a detail route is active:
-      // it must never replace the record underneath the old canonical ID.
-      page.users.set([restored, other]);
-      harness.detectChanges();
-      (document.body.querySelectorAll('.user-identity')[1] as HTMLButtonElement).click();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      expect(router.url).toBe('/iam/users/42');
-      expect(requests.has('/iam/users/42')).toBe(true);
-      requests.get('/iam/users/42')!.next({ ...other, name: 'Fresh other user' });
-      harness.detectChanges();
-      expect(document.body.querySelector('[data-record-id="41"]')).toBeNull();
-      expect(document.body.querySelector('[data-record-id="42"]')?.textContent).toContain('Fresh other user');
-      page.closeRecordView();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      expect(router.url).toBe('/iam/users');
-      expect(page.isViewModalOpen()).toBe(false);
-    },
-  );
-
-  it.each([42, Number('9223372036854775807')])(
-    'keeps row identity consistent with the active user route for ID %s',
-    async (id) => {
-      const { harness, router, requests, api } = await setup();
-      const page = await harness.navigateByUrl('/iam/users/41', UsersComponent);
-      const original = {
-        id: 41,
-        name: 'Original user',
-        login: 'original',
-        email: 'original@example.test',
-        language: 'ru',
-        timezone: 'Asia/Tashkent',
-        is2faEnabled: false,
-        forcePasswordChange: false,
-        state: 'A' as const,
-        roleIds: [],
-        attributes: {},
-        createdAt: '2026-01-01',
-        modifiedAt: '2026-01-01',
-      };
-      requests.get('/iam/users/41')!.next(original);
-      const previous = requests.get('/iam/users/41')!;
-      page.openViewModal({ ...original, id, name: 'Other row' });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      harness.detectChanges();
-      if (id === 42) {
-        expect(router.url).toBe('/iam/users/42');
-        expect(previous.observed).toBe(false);
-        requests.get('/iam/users/42')!.next({ ...original, id: 42, name: 'Fresh other user' });
-        previous.next(original);
-        harness.detectChanges();
-        expect(document.body.querySelector('[data-record-id="42"]')?.textContent).toContain('Fresh other user');
-        expect(document.body.querySelector('[data-record-id="41"]')).toBeNull();
-      } else {
-        expect(router.url).toBe('/iam/users/41');
-        expect(document.body.querySelector('[data-record-id="41"]')?.textContent).toContain('Original user');
-      }
-      expect(api.get.mock.calls.some(([path]) => path.includes('9223372036854776000'))).toBe(false);
-    },
-  );
 
   it('preserves a task draft on list-to-detail cancel and settles superseded confirmations', async () => {
     const { harness, router, requests } = await setup();
@@ -407,14 +250,11 @@ describe('Record routes with the actual router and actual templates', () => {
     expect(api.get.mock.calls.some(([path]) => path.includes('9223372036854776000'))).toBe(false);
   });
 
-  it.each([
-    ['/tasks/projects/9223372036854775807', ProjectsComponent, '/tasks/projects/9223372036854775807'],
-    ['/iam/users/9223372036854775807', UsersComponent, '/iam/users/9223372036854775807'],
-  ] as const)(
+  it.each([['/tasks/projects/9223372036854775807', ProjectsComponent, '/tasks/projects/9223372036854775807']] as const)(
     'uses the exact bigint identity and prevents numeric editor handoff for %s',
     async (url, type, endpoint) => {
       const { harness, requests, api } = await setup();
-      const page = (await harness.navigateByUrl(url)) as ProjectsComponent | UsersComponent;
+      const page = (await harness.navigateByUrl(url)) as ProjectsComponent;
       const record = JSON.parse(
         '{"id":9223372036854775807,"name":"Exact record","description":"x","login":"fixture","state":"A","createdAt":"2026-01-01","roleIds":[],"attributes":{}}',
       );
@@ -423,7 +263,6 @@ describe('Record routes with the actual router and actual templates', () => {
       expect(document.body.querySelector('[data-record-id]')?.getAttribute('data-record-id')).toBe(
         '9223372036854775807',
       );
-      if (page instanceof UsersComponent) page.openEditFromView();
       page.openEditModal(record);
       expect(page.isEditModalOpen()).toBe(false);
       expect(api.get.mock.calls.some(([path]) => path.includes('9223372036854776000'))).toBe(false);
@@ -502,7 +341,6 @@ describe('Record routes with the actual router and actual templates', () => {
   it.each([
     ['/tasks/items', '/tasks', TasksComponent],
     ['/tasks/projects', '/tasks/projects', ProjectsComponent],
-    ['/iam/users', '/iam/users', UsersComponent],
   ] as const)(
     'cancels old detail requests and shows a localized 404 with a working list action for %s',
     async (route, endpoint, _type) => {

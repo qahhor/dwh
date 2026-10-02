@@ -36,7 +36,6 @@ export interface BuildNavSectionsOptions {
   canViewFiles: () => boolean;
   canViewAnalytics: () => boolean;
   canViewNotifications: () => boolean;
-  canViewUsers: () => boolean;
   canViewRoles: () => boolean;
   canViewOrgUnits: () => boolean;
   canViewCustomFields: () => boolean;
@@ -171,7 +170,8 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
       id: 'iam',
       titleKey: 'nav.section.iam',
       items: [
-        { id: 'users', route: '/iam/users', labelKey: 'nav.users', icon: 'people', permission: options.canViewUsers },
+        // The user accounts are a declared entity (ADR-0032 8): their item comes from the server's menu, first.
+        ...entityNavItems(options, 'iam'),
         { id: 'roles', route: '/iam/roles', labelKey: 'nav.roles', icon: 'security', permission: options.canViewRoles },
         {
           id: 'org-units',
@@ -188,7 +188,6 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
           icon: 'tune',
           permission: options.canViewCustomFields,
         },
-        ...entityNavItems(options, 'iam'),
       ],
     },
     {

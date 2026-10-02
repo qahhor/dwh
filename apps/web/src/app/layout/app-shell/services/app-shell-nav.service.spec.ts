@@ -21,6 +21,18 @@ const NOTES_ENTITY: EntityMenuItem = {
   module: 'notes',
 };
 
+/** The user accounts, a declared entity of the iam section without a route of its own (ADR-0032 8). */
+const USERS_ENTITY: EntityMenuItem = {
+  code: 'md.users',
+  form: 'md.users',
+  route: '/e/md.users',
+  labelKey: 'nav.users',
+  icon: 'people',
+  section: 'iam',
+  order: 10,
+  module: null,
+};
+
 const SALES_REPORT: CustomNavigationItem = {
   id: 1,
   code: 'superset-sales',
@@ -76,7 +88,7 @@ describe('AppShellNavService', () => {
             getActiveCustomModules: () => customModules(),
           },
         },
-        { provide: NavigationService, useValue: { activeItems, entityItems: signal([NOTES_ENTITY]) } },
+        { provide: NavigationService, useValue: { activeItems, entityItems: signal([NOTES_ENTITY, USERS_ENTITY]) } },
         { provide: NotificationService, useValue: { unreadCount: signal(3) } },
         {
           provide: Router,

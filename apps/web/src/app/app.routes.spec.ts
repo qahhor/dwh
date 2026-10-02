@@ -3,7 +3,6 @@ import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot } fr
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PermissionService } from './core/services/permission.service';
 import { recordNavigationGuard } from './core/guards/record-navigation.guard';
-import { userRecordMatcher } from './core/services/search-target';
 import { routes } from './app.routes';
 
 describe('application route permissions', () => {
@@ -39,10 +38,8 @@ describe('application route permissions', () => {
     expect(runOrgUnitsGuard()).toBe(true);
 
     const shell = routes.find((route) => route.path === '');
-    const users = shell?.children?.find((route) => route.matcher === userRecordMatcher);
     const rolesRoute = shell?.children?.find((route) => route.path === 'iam/roles');
     const orgUnits = shell?.children?.find((route) => route.path === 'iam/org-units');
-    expect(users?.canDeactivate).toContain(recordNavigationGuard);
     expect(rolesRoute?.canDeactivate).toContain(recordNavigationGuard);
     expect(orgUnits?.canDeactivate).toContain(recordNavigationGuard);
   });

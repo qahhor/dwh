@@ -6,6 +6,7 @@ import { Observable, finalize, map, of, tap } from 'rxjs';
 import type { FormSectionMeta } from '@core/models/form-meta.models';
 import { hasCapability, recordValues } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
@@ -207,6 +208,7 @@ export class SMTEntityRecordPageComponent {
   private readonly i18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
   private readonly saveErrors = inject(SaveErrorNotifier);
+  private readonly permissions = inject(PermissionService);
 
   /** The record as last read: loaded, or as an archive switch or an action returned it. */
   readonly record = linkedSignal<EntityRecord | null>(() => (this.loaded.hasValue() ? this.loaded.value() : null));
@@ -249,13 +251,21 @@ export class SMTEntityRecordPageComponent {
       ...(hasCapability(this.context.formMeta(), 'history')
         ? [{ value: 'history', label: t('ui.entity_page.tab_history'), panelId: 'entity-record-panel' }]
         : []),
-      ...(this.context.overrides().tabs ?? []).map((tab) => ({
+      ...this.ownTabs().map((tab) => ({
         value: tab.key,
         label: t(tab.labelKey),
         panelId: 'entity-record-panel',
       })),
     ];
   });
+
+  /** The entity's own tabs the viewer may open: those without rights, or with one of them held. */
+  private readonly ownTabs = computed(() =>
+    (this.context.overrides().tabs ?? []).filter(
+      (tab) =>
+        !tab.requires?.length || tab.requires.some((right) => this.permissions.hasPermission(right.form, right.action)),
+    ),
+  );
 
   /** The record's id from the route. */
   readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('id'))), {
@@ -276,7 +286,7 @@ export class SMTEntityRecordPageComponent {
   }
 
   tabOverride(key: string) {
-    return this.context.overrides().tabs?.find((tab) => tab.key === key)?.component ?? null;
+    return this.ownTabs().find((tab) => tab.key === key)?.component ?? null;
   }
 
   /** An action's label: `entity.action.<code>` when the catalog has it, otherwise the code itself. */
@@ -301,18 +311,29 @@ export class SMTEntityRecordPageComponent {
     });
   }
 
-  /** Runs one of the record's actions from the revision on screen (ADR-0032 6.7). */
+  /**
+   * Runs one of the record's actions from the revision on screen (ADR-0032 6.7). An action with a confirmation text in
+   * the catalog (`entity.action_confirm.<code>`: blocking, anonymisation) asks first, with the record's name.
+   */
   run(action: string): void {
     const record = this.record();
     if (!record || this.busy()) return;
-    this.track(this.entities.action(this.context.code(), record.id, action, record.revision)).subscribe({
-      next: () => this.toast.success(this.i18n.translate('ui.entity_page.action_done')),
-      error: (problem: unknown) =>
-        this.saveErrors.show(problem, {
-          fallbackKey: 'ui.entity_page.action_failed',
-          reload: () => this.loaded.reload(),
-        }),
-    });
+    const confirmKey = `entity.action_confirm.${action}`;
+    if (this.i18n.hasKey(confirmKey)) {
+      this.modal
+        .confirm({
+          title: this.actionLabel(action),
+          message: this.i18n.translate(confirmKey, { name: this.name() }),
+          yesLabel: this.actionLabel(action),
+          noLabel: this.i18n.translate('common.cancel'),
+          destructive: true,
+        })
+        .subscribe((confirmed) => {
+          if (confirmed) this.perform(action);
+        });
+      return;
+    }
+    this.perform(action);
   }
 
   /** Asks first; the dialog stays open while the record is deleted and shows the failure. */
@@ -337,6 +358,19 @@ export class SMTEntityRecordPageComponent {
         actionError: () => t('ui.entity_page.delete_failed'),
       })
       .subscribe();
+  }
+
+  private perform(action: string): void {
+    const record = this.record();
+    if (!record || this.busy()) return;
+    this.track(this.entities.action(this.context.code(), record.id, action, record.revision)).subscribe({
+      next: () => this.toast.success(this.i18n.translate('ui.entity_page.action_done')),
+      error: (problem: unknown) =>
+        this.saveErrors.show(problem, {
+          fallbackKey: 'ui.entity_page.action_failed',
+          reload: () => this.loaded.reload(),
+        }),
+    });
   }
 
   /** A change of the record: busy while it goes, and the record as the server returns it afterwards. */

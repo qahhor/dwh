@@ -11,9 +11,9 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import type { ListQuery, QueryListMeta } from '@core/models/query-meta.models';
+import type { ListQuery, QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
 import { canDo, hasCapability } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
@@ -163,6 +163,7 @@ export class SMTEntityListPageComponent {
   private readonly refLookups = inject(RefLookups);
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly openCell = viewChild.required<TemplateRef<unknown>>('openCell');
@@ -283,6 +284,7 @@ export class SMTEntityListPageComponent {
         next: (meta) => {
           this.listMeta.set(meta);
           this.views.load().subscribe(() => {
+            this.applyLinkedFilter(meta);
             if (this.viewsReady()) this.pager.first();
             this.viewsReady.set(true);
           });
@@ -308,5 +310,32 @@ export class SMTEntityListPageComponent {
     return text === null || text === undefined || text === '' || text === '—'
       ? this.i18n.translate('ui.entity_page.record', { id: row.id })
       : String(text);
+  }
+
+  /**
+   * A link to the list with a filter — `?filter=` with the conditions of the DSL (ADR-0016), as another screen links
+   * to "the users of this role" — starts the list with it over the default view. Conditions on fields the list does
+   * not have are dropped; the server checks the rest as for any filter.
+   */
+  private applyLinkedFilter(meta: QueryListMeta): void {
+    const text = this.route.snapshot.queryParamMap.get('filter');
+    if (!text) return;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(parsed)) return;
+    const keys = new Set(meta.fields.map((field) => field.key));
+    const conditions = parsed.filter(
+      (item): item is QueryCondition =>
+        typeof item === 'object' &&
+        item !== null &&
+        typeof (item as QueryCondition).field === 'string' &&
+        typeof (item as QueryCondition).op === 'string' &&
+        keys.has((item as QueryCondition).field),
+    );
+    if (conditions.length > 0) this.views.setFilter(conditions, 'all');
   }
 }

@@ -51,7 +51,7 @@ describe('SMTEntityCardComponent', () => {
     });
     const { lines, api } = await render(withCustomField(NOTES_FORM_META, owner), { cfOwner: 42 }, ['custom']);
 
-    expect(api.get).toHaveBeenCalledWith('/iam/users/42', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/entities/md.users/42', undefined, { notifyError: false });
     expect(lines()).toEqual(['Ответственный=Анна Смирнова']);
   });
 

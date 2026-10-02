@@ -15,7 +15,7 @@ const members: ProjectMember[] = [
 async function createFixture(
   canUpdateProject: boolean,
   list: ProjectMember[] = members,
-  get: (url: string, params: { search: string }) => Observable<unknown> = () => of({ items: [] }),
+  get: (url: string, params: { q: string }) => Observable<unknown> = () => of({ items: [] }),
 ) {
   await TestBed.configureTestingModule({
     imports: [ProjectMembersModalComponent],
@@ -105,8 +105,8 @@ describe('ProjectMembersModalComponent', () => {
 
   it('searches users after a pause, keeps searching after a failed search, and hands the pick to the page', async () => {
     const alisher = { id: 5, name: 'Алишер', login: 'alisher' } as User;
-    const get = vi.fn((_url: string, params: { search: string }) =>
-      params.search === 'bad' ? throwError(() => ({ status: 503 })) : of({ items: [alisher] }),
+    const get = vi.fn((_url: string, params: { q: string }) =>
+      params.q === 'bad' ? throwError(() => ({ status: 503 })) : of({ items: [alisher] }),
     );
     const fixture = await createFixture(true, members, get);
     const modal = fixture.componentInstance;
@@ -124,7 +124,11 @@ describe('ProjectMembersModalComponent', () => {
       expect(modal.foundUsers()).toEqual([]);
       expect(modal.isUserDropdownOpen()).toBe(false);
       await search('али');
-      expect(get).toHaveBeenLastCalledWith('/iam/users', { state: 'A', search: 'али', limit: 15 });
+      expect(get).toHaveBeenLastCalledWith('/entities/md.users', {
+        filter: JSON.stringify([{ field: 'state', op: 'eq', value: 'A' }]),
+        q: 'али',
+        limit: 15,
+      });
       expect(modal.foundUsers()).toEqual([alisher]);
       expect(modal.isUserDropdownOpen()).toBe(true);
 
