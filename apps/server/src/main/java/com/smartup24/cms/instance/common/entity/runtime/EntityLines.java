@@ -119,8 +119,8 @@ public class EntityLines {
 
     /**
      * What a save changed in a collection, as the audit keeps it (ADR-0032, 6.8): the rows added whole, of a changed
-     * row its id and the values it changed, the ids of the rows removed, and the number of rows after; empty when
-     * nothing changed.
+     * row its id and the values it changed, the ids of the rows removed, and the number of rows after — the fields with
+     * history only, so a computed value is not kept; empty when nothing changed.
      */
     public static Map<String, Object> change(EntityCollection collection, List<?> before, List<?> after) {
         Map<Long, Map<String, Object>> was = new LinkedHashMap<>();
@@ -130,12 +130,12 @@ public class EntityLines {
         for (Map<String, Object> row : rowsOf(after)) {
             Map<String, Object> old = was.remove(EntityReads.id(row));
             if (old == null) {
-                added.add(row);
+                added.add(audited(collection, row));
                 continue;
             }
             Map<String, Object> difference = new LinkedHashMap<>();
             for (EntityField field : collection.fields()) {
-                if (!Objects.equals(old.get(field.key()), row.get(field.key()))) {
+                if (field.history() && !Objects.equals(old.get(field.key()), row.get(field.key()))) {
                     difference.put(field.key(), row.get(field.key()));
                 }
             }
@@ -156,6 +156,16 @@ public class EntityLines {
         if (!changed.isEmpty()) summary.put("changed", changed);
         if (!was.isEmpty()) summary.put("removed", List.copyOf(was.keySet()));
         return summary;
+    }
+
+    /** A row as the audit keeps it: its id and the values of the fields with history, not the computed ones. */
+    private static Map<String, Object> audited(EntityCollection collection, Map<String, Object> row) {
+        Map<String, Object> kept = new LinkedHashMap<>();
+        kept.put(EntityCollection.ID, row.get(EntityCollection.ID));
+        for (EntityField field : collection.fields()) {
+            if (field.history() && row.get(field.key()) != null) kept.put(field.key(), row.get(field.key()));
+        }
+        return kept;
     }
 
     private static List<Row> check(

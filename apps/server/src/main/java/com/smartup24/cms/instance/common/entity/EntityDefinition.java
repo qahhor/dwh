@@ -220,14 +220,16 @@ public record EntityDefinition(
     }
 
     /**
-     * The tabs of the card fit the form (ADR-0032, 9.3): once a tab shows sections, every section is on exactly one tab,
-     * and a history tab needs the history.
+     * The tabs of the card fit the form (ADR-0032, 9.3): once a tab shows sections, every declared section is on exactly
+     * one tab — the section of the administrator's custom fields goes with the first such tab — and a history tab needs
+     * the history.
      */
     private static void requireTabs(
             String code, Set<EntityCapability> capabilities, List<FormSection> layout, @Nullable EntityModel model) {
         if (model == null || model.tabs().isEmpty()) return;
         Set<String> sections = new HashSet<>();
         layout.forEach(section -> sections.add(section.key()));
+        sections.remove(EntityRegistry.CUSTOM_SECTION);
         Set<String> placed = new HashSet<>();
         boolean sectionTabs = false;
         for (EntityTab tab : model.tabs()) {

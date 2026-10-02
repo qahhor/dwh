@@ -11,6 +11,7 @@ import com.smartup24.cms.instance.common.entity.Entity;
 import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityScope;
+import com.smartup24.cms.instance.common.entity.EntityTab;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
@@ -69,6 +70,11 @@ public class MsProjectEntity {
                         .system(SystemColumn.MODIFIED_AT)
                         .list(sortable().hidden()))
                 .section("main", "entity.section.main", "name", "description")
+                // The card of the general screen: the fields, the project's tasks as a related list of ms.tasks (read
+                // with the tasks' own rights and scope, ADR-0032, 9.3) and the history.
+                .tab(EntityTab.sections("main", "ui.entity_page.tab_fields", "main"))
+                .tab(EntityTab.related("tasks", "nav.tasks", MsTaskEntity.CODE, "projectId"))
+                .tab(EntityTab.history("history", "ui.entity_page.tab_history"))
                 .actions("create", "update")
                 .action(ADD_MEMBER, "update")
                 .action(REMOVE_MEMBER, "update")

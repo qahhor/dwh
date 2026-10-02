@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
 import com.smartup24.cms.instance.common.entity.workflow.EntityState;
 import com.smartup24.cms.instance.common.entity.workflow.EntityTransition;
 import com.smartup24.cms.instance.common.entity.workflow.EntityWorkflow;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -106,16 +107,26 @@ public final class FormDocumentMetas {
     static @Nullable List<FormTabMeta> tabs(EntityDefinition entity, Predicate<String> viewable) {
         EntityModel model = entity.model();
         if (model == null || model.tabs().isEmpty()) return null;
-        return model.tabs().stream()
-                .filter(tab -> tab.kind() != EntityTab.Kind.RELATED || viewable.test(String.valueOf(tab.entity())))
-                .map(tab -> new FormTabMeta(
-                        tab.key(),
-                        tab.labelKey(),
-                        tab.kind().wire(),
-                        tab.sections().isEmpty() ? null : tab.sections(),
-                        tab.collection(),
-                        tab.entity(),
-                        tab.field()))
-                .toList();
+        boolean custom =
+                entity.layout().stream().anyMatch(section -> EntityRegistry.CUSTOM_SECTION.equals(section.key()));
+        List<FormTabMeta> tabs = new ArrayList<>();
+        for (EntityTab tab : model.tabs()) {
+            if (tab.kind() == EntityTab.Kind.RELATED && !viewable.test(String.valueOf(tab.entity()))) continue;
+            List<String> sections = new ArrayList<>(tab.sections());
+            if (custom && tab.kind() == EntityTab.Kind.SECTIONS) {
+                // The administrator's custom fields go with the first tab of sections.
+                sections.add(EntityRegistry.CUSTOM_SECTION);
+                custom = false;
+            }
+            tabs.add(new FormTabMeta(
+                    tab.key(),
+                    tab.labelKey(),
+                    tab.kind().wire(),
+                    sections.isEmpty() ? null : List.copyOf(sections),
+                    tab.collection(),
+                    tab.entity(),
+                    tab.field()));
+        }
+        return tabs;
     }
 }
