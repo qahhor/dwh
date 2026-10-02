@@ -292,8 +292,8 @@ export const fixtures = {
       { key: 'main', labelKey: 'entity.section.main', fields: ['number', 'orderDate', 'customer', 'currency', 'status', 'total'] },
       { key: 'settings', labelKey: 'entity.section.settings', fields: ['comment'] },
     ],
-    actions: ['create', 'update', 'post', 'unpost', 'cancel'],
-    capabilities: ['bulk', 'export', 'history', 'saved_views'],
+    actions: ['create', 'update', 'post', 'unpost', 'cancel', 'import'],
+    capabilities: ['bulk', 'export', 'history', 'import', 'saved_views'],
     collections: [{
       key: 'lines', labelKey: 'example.orders.lines', maxRows: 500,
       fields: [
