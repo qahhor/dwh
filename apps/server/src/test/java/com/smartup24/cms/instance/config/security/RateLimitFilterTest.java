@@ -225,6 +225,29 @@ class RateLimitFilterTest {
     }
 
     @Test
+    @DisplayName("Reading the searchable entities takes the user budget, not the search management one")
+    void searchCategoriesUseTheUserBudget() throws Exception {
+        mockAuthenticatedUser(18L, "session-18");
+
+        for (int i = 0; i < 3; i++) {
+            mvc.perform(get("/api/v1/search/entities")
+                            .with(r -> {
+                                r.setRemoteAddr("10.9.9.18");
+                                return r;
+                            })
+                            .cookie(new Cookie("SMC_SESSION", "session-18")))
+                    .andExpect(status().isNotFound());
+        }
+        mvc.perform(get("/api/v1/search/rebuild")
+                        .with(r -> {
+                            r.setRemoteAddr("10.9.9.18");
+                            return r;
+                        })
+                        .cookie(new Cookie("SMC_SESSION", "session-18")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("Публичные i18n reads не расходуют строгий bucket входа за общим NAT")
     void publicI18nReadsUseIndependentHigherCapacityBucket() throws Exception {
         for (int i = 0; i < 2; i++) {
