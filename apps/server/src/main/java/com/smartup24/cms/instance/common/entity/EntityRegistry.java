@@ -75,6 +75,7 @@ public class EntityRegistry {
             }
         }
         EntityRegistryChecks.references(entities);
+        EntityRegistryChecks.relatedLists(entities);
         for (EntityRecords one : records) {
             EntityDefinition entity = entities.get(one.entity());
             if (entity == null) {
@@ -219,6 +220,11 @@ public class EntityRegistry {
                         .forEach(field -> labels.put(field.key(), field.labelKey()));
                 if (entity.capabilities().contains(EntityCapability.ARCHIVE)) {
                     labels.put(EntityModel.ARCHIVED, EntityLists.ARCHIVED_LABEL);
+                }
+                EntityModel model = entity.model();
+                if (model != null) {
+                    // A collection's change is one property of the record's history (ADR-0032, 6.8).
+                    model.collections().forEach(collection -> labels.put(collection.key(), collection.labelKey()));
                 }
                 return labels;
             }

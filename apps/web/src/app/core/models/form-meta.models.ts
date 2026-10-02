@@ -98,6 +98,60 @@ export interface FormFieldMeta {
   currencies?: string[] | null;
   /** The root JSON must have; none — an object or an array. */
   jsonRoot?: 'object' | 'array' | null;
+  /**
+   * Money in the currency of a select field (ADR-0032 9.1): a field of the record for a computed total, a field of the
+   * document for a line of its collection. The form shows that currency and does not offer another.
+   */
+  currencyFrom?: string | null;
+}
+
+/** A collection of a document (ADR-0032 9.1): the rows saved with the record, each with the fields of a row. */
+export interface FormCollectionMeta {
+  key: string;
+  labelKey: string;
+  fields: FormFieldMeta[];
+  /** The most rows a record has and a save sends. */
+  maxRows: number;
+}
+
+/** A state of a document's process (ADR-0032 9.2) and the fields and collections a save cannot change in it. */
+export interface FormStateMeta {
+  code: string;
+  labelKey: string;
+  initial: boolean;
+  /** No transition leaves it; the record is only read. */
+  terminal: boolean;
+  locks: string[];
+}
+
+/** A transition of the process: a record action from one of `from` to `to`, asked about first when it has a question. */
+export interface FormTransitionMeta {
+  code: string;
+  from: string[];
+  to: string;
+  permission: string;
+  confirmKey?: string | null;
+}
+
+/** The process of a document: its status field, states and transitions. */
+export interface FormWorkflowMeta {
+  field: string;
+  states: FormStateMeta[];
+  transitions: FormTransitionMeta[];
+}
+
+/**
+ * A tab of a record's card (ADR-0032 9.3): sections of the form, the rows of a collection, the records of another
+ * entity that refer to this one (a related list), or the history.
+ */
+export interface FormTabMeta {
+  key: string;
+  labelKey: string;
+  kind: 'sections' | 'collection' | 'related' | 'history';
+  sections?: string[] | null;
+  collection?: string | null;
+  entity?: string | null;
+  field?: string | null;
 }
 
 export interface FormSectionMeta {
@@ -114,6 +168,12 @@ export interface FormMeta {
   layout: FormSectionMeta[];
   actions: string[];
   capabilities: string[];
+  /** A document's collections of rows (ADR-0032 9.1). */
+  collections?: FormCollectionMeta[] | null;
+  /** A document's process (ADR-0032 9.2). */
+  workflow?: FormWorkflowMeta | null;
+  /** The tabs of the card; none — the platform's own (fields, history). */
+  tabs?: FormTabMeta[] | null;
 }
 
 /** A record's values in the form, by field key. */

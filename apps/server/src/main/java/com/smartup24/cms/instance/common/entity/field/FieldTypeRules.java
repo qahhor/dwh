@@ -48,20 +48,17 @@ final class FieldTypeRules {
         require(key, (type == FieldType.JSON) || options.jsonRoot() == null, "only JSON has a root");
         require(
                 key,
-                (type == FieldType.MONEY) == (source instanceof FieldSource.MoneyColumns),
-                "money lives in a pair of money columns, and only money does");
+                source instanceof FieldSource.MoneyColumns
+                        ? type == FieldType.MONEY
+                        : type != FieldType.MONEY || source instanceof FieldSource.Computed,
+                "money lives in a pair of money columns or is computed, and only money lives in money columns");
         require(
                 key,
                 source instanceof FieldSource.Link
                         ? type == FieldType.MULTI_REF
                         : type != FieldType.MULTI_REF || source instanceof FieldSource.Expression,
                 "several references live in a link table, and only they do; an expression may read them");
-        if (source instanceof FieldSource.MoneyColumns money) {
-            require(
-                    key,
-                    money.currency() != null || options.currencies().size() == 1,
-                    "money without a currency column holds one currency");
-        }
+        checkMoney(key, type, source, options);
         if (type == FieldType.FILE || type == FieldType.IMAGE || type == FieldType.JSON) {
             require(key, source instanceof FieldSource.Column, "a file and JSON live in a column of their own");
         }
@@ -75,13 +72,33 @@ final class FieldTypeRules {
                     "an attribute holds a scalar value and is never sorted (ADR-0019, 2.3)");
         }
         if (source instanceof FieldSource.Computed) {
-            require(key, type.scalar(), "a computed value is a scalar");
+            require(key, type.scalar() || type == FieldType.MONEY, "a computed value is a scalar or money");
         }
         if (list != null && list.isSortable()) {
             require(key, type.listType().sortable(), "a " + type.wire() + " is never sorted");
         }
         if (form != null) {
             checkForm(key, source, form);
+        }
+    }
+
+    /** Where money keeps its currency: its column, its one currency, or the select field it takes it from. */
+    private static void checkMoney(String key, FieldType type, FieldSource source, FieldOptions options) {
+        if (source instanceof FieldSource.MoneyColumns money) {
+            require(
+                    key,
+                    money.currency() != null || options.currencies().size() == 1 || options.currencyFrom() != null,
+                    "money without a currency column holds one currency or takes it from a field");
+            require(
+                    key,
+                    money.currency() == null || options.currencyFrom() == null,
+                    "money keeps its currency in its column or takes it from a field, not both");
+        }
+        if (type == FieldType.MONEY && source instanceof FieldSource.Computed) {
+            require(
+                    key,
+                    options.currencies().size() == 1 || options.currencyFrom() != null,
+                    "computed money holds one currency or takes it from a field");
         }
     }
 

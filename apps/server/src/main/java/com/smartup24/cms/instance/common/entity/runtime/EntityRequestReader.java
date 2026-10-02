@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
 import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
+import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
 import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.entity.field.FieldSource;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -25,7 +26,9 @@ import tools.jackson.databind.JsonNode;
  * {@code createdBy}…), {@code labels}, {@code actions}, an undeclared key, a field written by the server only (an
  * expression, a computed value, a system column) is {@code unknown_field}; a value of the wrong JSON type is
  * {@code invalid}. The custom field values come as the object {@code attributes}; a declared attribute field may come
- * under its own key or in {@code attributes}.
+ * under its own key or in {@code attributes}. The rows of a collection come as an array of objects under its key
+ * (ADR-0032, 9.1): a row takes its {@code id} and the written fields of a row, each problem addressed
+ * {@code lines[3].qty} by the row's place in the body.
  */
 public final class EntityRequestReader {
 
@@ -37,17 +40,20 @@ public final class EntityRequestReader {
     /**
      * What the body says.
      *
-     * @param values     the declared fields the body writes, by key, as Java values
-     * @param attributes the custom field values, or null when the body leaves them as they are
-     * @param errors     the properties refused, each addressed to its key
+     * @param values      the declared fields the body writes, by key, as Java values
+     * @param attributes  the custom field values, or null when the body leaves them as they are
+     * @param errors      the properties refused, each addressed to its key
+     * @param collections the rows of each collection the body sends, by the collection's key, as Java values
      */
     public record Body(
             Map<String, @Nullable Object> values,
             @Nullable Map<String, Object> attributes,
-            List<FieldErrorItem> errors) {
+            List<FieldErrorItem> errors,
+            Map<String, List<Map<String, @Nullable Object>>> collections) {
         public Body {
             values = Collections.unmodifiableMap(new LinkedHashMap<>(values));
             errors = List.copyOf(errors);
+            collections = Collections.unmodifiableMap(new LinkedHashMap<>(collections));
         }
     }
 
@@ -60,9 +66,19 @@ public final class EntityRequestReader {
         Map<String, @Nullable Object> values = new LinkedHashMap<>();
         Map<String, Object> attributes = null;
         List<FieldErrorItem> errors = new ArrayList<>();
+        Map<String, List<Map<String, @Nullable Object>>> collections = new LinkedHashMap<>();
         for (Map.Entry<String, JsonNode> property : body.properties()) {
             String key = property.getKey();
             JsonNode node = property.getValue();
+            Optional<EntityCollection> collection = model.collection(key);
+            if (collection.isPresent()) {
+                if (!node.isArray()) {
+                    errors.add(wrongType(key));
+                } else {
+                    collections.put(key, rows(collection.get(), node, errors));
+                }
+                continue;
+            }
             if (EntityModel.ATTRIBUTES.equals(key)) {
                 if (node.isNull()) continue;
                 if (!node.isObject()) {
@@ -94,7 +110,51 @@ public final class EntityRequestReader {
                 values.put(key, valueOf(node));
             }
         }
-        return new Body(values, attributes, errors);
+        return new Body(values, attributes, errors, collections);
+    }
+
+    /**
+     * The rows of a collection as sent: each an object of its {@code id} — a whole number, absent for a new row — and
+     * the written fields of a row; anything else is refused at {@code <collection>[<i>].<key>}.
+     */
+    private static List<Map<String, @Nullable Object>> rows(
+            EntityCollection collection, JsonNode array, List<FieldErrorItem> errors) {
+        List<Map<String, @Nullable Object>> rows = new ArrayList<>();
+        int index = 0;
+        for (JsonNode node : array.values()) {
+            String at = collection.key() + "[" + index++ + "]";
+            Map<String, @Nullable Object> row = new LinkedHashMap<>();
+            rows.add(row);
+            if (!node.isObject()) {
+                errors.add(wrongType(at));
+                continue;
+            }
+            for (Map.Entry<String, JsonNode> property : node.properties()) {
+                String key = property.getKey();
+                JsonNode value = property.getValue();
+                if (EntityCollection.ID.equals(key)) {
+                    if (value.isNull()) continue;
+                    if (value.isIntegralNumber() && value.canConvertToLong()) {
+                        row.put(key, value.asLong());
+                    } else {
+                        errors.add(wrongType(at + "." + key));
+                    }
+                    continue;
+                }
+                Optional<EntityField> field = collection
+                        .field(key)
+                        .filter(declared -> declared.source().writable());
+                if (field.isEmpty()) {
+                    errors.add(FieldErrorItem.keyed(
+                            at + "." + key, EntityFieldRights.UNKNOWN_FIELD, "error.field.unknown"));
+                } else if (!takes(field.get(), value)) {
+                    errors.add(wrongType(at + "." + key));
+                } else {
+                    row.put(key, valueOf(value));
+                }
+            }
+        }
+        return rows;
     }
 
     /** The parameters of a record action: a JSON object, else 400; an empty body is no parameters. */
@@ -132,7 +192,9 @@ public final class EntityRequestReader {
             case BOOLEAN -> node.isBoolean();
             case REF -> node.isIntegralNumber() || node.isString();
             case MULTI_REF -> node.isArray();
-            case MONEY -> node.isObject();
+            // Money in the document's currency may come as its amount alone (ADR-0032, 9.1).
+            case MONEY ->
+                node.isObject() || (field.options().currencyFrom() != null && (node.isNumber() || node.isString()));
             case FILE, IMAGE -> node.isString() || node.isObject();
             case JSON -> true;
             default -> node.isString();

@@ -48,6 +48,7 @@ class ModuleBoundariesTest {
     static final List<String> MODULES = List.of(
             "analytics",
             "audit",
+            "example",
             "jobs",
             "kauth",
             "md",
@@ -282,6 +283,7 @@ class ModuleBoundariesTest {
         if (table.startsWith("fnd_unit")) return Optional.of("units");
         if (table.startsWith("fnd_load")) return Optional.of("warehouse");
         if (table.startsWith("kwh_")) return Optional.of("webhook");
+        if (table.startsWith("ex_")) return Optional.of("example");
         for (String module : List.of("kauth", "md", "mf", "report", "search", "upl")) {
             if (table.startsWith(module + "_")) return Optional.of(module);
         }

@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.support.entity;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -35,7 +36,11 @@ import org.springframework.web.context.WebApplicationContext;
  *       may not write is read-only and refused;
  *   <li>validation: every rule of every written field refuses its invalid value with 422 on the field;
  *   <li>audit: every declared field reaches the history with its label;
- *   <li>export: the export holds the rows of the viewer's list and only the columns the viewer may see.
+ *   <li>export: the export holds the rows of the viewer's list and only the columns the viewer may see;
+ *   <li>collections and process: a document reads back its rows, a row's mistake is addressed {@code lines[i].field},
+ *       a row of another record and too many rows are refused, a change of the rows raises the revision once; a
+ *       transition from a state it does not leave is 422 {@code entity_transition_not_allowed}, without its right
+ *       403, and moves the record from a state it leaves; a field a state locks is 422 {@code readonly} (ADR-0032, 9).
  * </ul>
  *
  * <pre>{@code
@@ -88,6 +93,7 @@ public abstract class EntityContractTestKit extends EmbeddedPostgresTest {
         KitCrudChecks crud = new KitCrudChecks(world);
         KitAccessChecks access = new KitAccessChecks(world);
         KitDataChecks data = new KitDataChecks(world);
+        KitCollectionChecks collections = new KitCollectionChecks(world);
         return Stream.of(
                         group("metadata", data::metadata),
                         group("CRUD", crud::crud),
@@ -99,8 +105,16 @@ public abstract class EntityContractTestKit extends EmbeddedPostgresTest {
                         group("validation (ADR-0032, 4.2)", data::validation),
                         group("audit (ADR-0017)", data::audit),
                         group("export (ADR-0018)", new KitExportChecks(world)::export),
-                        group("events (ADR-0032, 6.9)", new KitEventChecks(world)::events))
+                        group("events (ADR-0032, 6.9)", new KitEventChecks(world)::events),
+                        group("collections and process (ADR-0032, 9)", () -> document(world, collections)))
                 .flatMap(Stream::ofNullable);
+    }
+
+    /** The checks of a document's rows and process; none for an entity without them. */
+    private static List<DynamicTest> document(KitWorld world, KitCollectionChecks collections) {
+        List<DynamicTest> tests = new ArrayList<>(collections.collections());
+        tests.addAll(KitProcessChecks.of(world, collections));
+        return tests;
     }
 
     /** A group of checks, or null when the declaration gives it nothing to check. */

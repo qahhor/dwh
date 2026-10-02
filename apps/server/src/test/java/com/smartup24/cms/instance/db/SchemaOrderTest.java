@@ -136,6 +136,7 @@ class SchemaOrderTest {
                 .list();
         assertThat(columns)
                 .containsOnlyKeys(
+                        "ex_orders",
                         "md_installed_modules",
                         "md_users",
                         "ms_notes",

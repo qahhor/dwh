@@ -102,11 +102,33 @@ public record EntityDefinition(
     /** The route prefix of the general entity screen in the web application (ADR-0032, 7.1). */
     public static final String GENERAL_SCREEN = "/e/";
 
-    /** An action on the entity and the action of the entity's right it needs ({@code create} → {@code notes.create}). */
-    public record EntityAction(String code, String permission) {
+    /**
+     * An action on the entity and the action of the entity's right it needs ({@code create} → {@code notes.create}): a
+     * record action — run by the runtime itself or by its handler — or a transition of the entity's process (ADR-0032,
+     * 6.7 and 9.2), with the dictionary key of the question the screen asks first, or null.
+     */
+    public record EntityAction(
+            String code,
+            String permission,
+            Kind kind,
+            @Nullable String confirmKey) {
         public EntityAction {
             Objects.requireNonNull(code, "code");
             Objects.requireNonNull(permission, "permission");
+            Objects.requireNonNull(kind, "kind");
+        }
+
+        /** A record action without a question. */
+        public EntityAction(String code, String permission) {
+            this(code, permission, Kind.RECORD, null);
+        }
+
+        /** What an action is. */
+        public enum Kind {
+            /** Done by the runtime itself (create, update, archive, delete) or by the action's handler. */
+            RECORD,
+            /** A transition of the entity's process (ADR-0032, 9.2). */
+            TRANSITION
         }
     }
 
@@ -175,6 +197,7 @@ public record EntityDefinition(
             throw new IllegalArgumentException("Entity " + code + ": bulk actions need an action on a record");
         }
         requireArchive(code, capabilities, actions, model);
+        requireTabs(code, capabilities, layout, model);
         if (rights != null) {
             Set<String> named = rights.actionKeys().keySet();
             if (!named.contains("view") || actions.stream().anyMatch(action -> !named.contains(action.permission()))) {
@@ -193,6 +216,36 @@ public record EntityDefinition(
         }
         if (archivable && model == null) {
             throw new IllegalArgumentException("Entity " + code + ": archived records live in the entity's table");
+        }
+    }
+
+    /**
+     * The tabs of the card fit the form (ADR-0032, 9.3): once a tab shows sections, every declared section is on exactly
+     * one tab — the section of the administrator's custom fields goes with the first such tab — and a history tab needs
+     * the history.
+     */
+    private static void requireTabs(
+            String code, Set<EntityCapability> capabilities, List<FormSection> layout, @Nullable EntityModel model) {
+        if (model == null || model.tabs().isEmpty()) return;
+        Set<String> sections = new HashSet<>();
+        layout.forEach(section -> sections.add(section.key()));
+        sections.remove(EntityRegistry.CUSTOM_SECTION);
+        Set<String> placed = new HashSet<>();
+        boolean sectionTabs = false;
+        for (EntityTab tab : model.tabs()) {
+            if (tab.kind() == EntityTab.Kind.HISTORY && !capabilities.contains(EntityCapability.HISTORY)) {
+                throw new IllegalArgumentException("Entity " + code + ": a history tab needs the history");
+            }
+            for (String section : tab.sections()) {
+                sectionTabs = true;
+                if (!sections.contains(section) || !placed.add(section)) {
+                    throw new IllegalArgumentException(
+                            "Entity " + code + ": the tab " + tab.key() + " shows an unknown or repeated section");
+                }
+            }
+        }
+        if (sectionTabs && !placed.equals(sections)) {
+            throw new IllegalArgumentException("Entity " + code + ": every section of the form is on one tab");
         }
     }
 

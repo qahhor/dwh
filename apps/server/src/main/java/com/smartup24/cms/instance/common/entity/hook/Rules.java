@@ -64,6 +64,18 @@ public final class Rules {
         };
     }
 
+    /**
+     * The collection {@code key} has at least one row (ADR-0032, 9.1): {@code required} on the collection — a document
+     * posted without lines, say.
+     */
+    public static EntityRule hasRows(String key) {
+        return (values, before, errors) -> {
+            if (values.collection(key).isEmpty()) {
+                errors.field(key, "required", "error.field.required");
+            }
+        };
+    }
+
     /** At least one of {@code keys} has a value: {@code required} on the record, with the keys as {@code fields}. */
     public static EntityRule atLeastOne(String... keys) {
         List<String> fields = Arrays.asList(keys);

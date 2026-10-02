@@ -168,6 +168,7 @@ class PermissionCodesTest {
         for (String area : List.of(
                 "analytics",
                 "audit",
+                "example",
                 "jobs",
                 "kauth",
                 "md",

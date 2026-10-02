@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.FormField;
+import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
 import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.entity.field.FieldAccess;
 import com.smartup24.cms.instance.common.entity.field.FieldRules;
@@ -31,7 +32,9 @@ import java.util.TreeMap;
  * body of a create and of a change, and a page of its list. A type becomes its JSON form — money and a file a schema
  * of their own, several references an array of keys, a select its options — {@code required} comes from the form,
  * {@code readOnly} from read-only and computed fields, and a field that needs a right is described too, marked
- * {@code x-requires}: the description does not depend on who reads it.
+ * {@code x-requires}: the description does not depend on who reads it. The rows of a collection are an array of row
+ * objects under its key (ADR-0032, 9.1): read with their {@code id} and {@code position}, written with the {@code id}
+ * of a row to keep and without one for a new row.
  */
 final class EntitySchemas {
 
@@ -106,6 +109,9 @@ final class EntitySchemas {
             }
             record.addProperty(field.key(), marked(schema, field.access()));
         }
+        for (EntityCollection collection : model(entity).collections()) {
+            record.addProperty(collection.key(), rows(collection, true));
+        }
         record.addProperty(EntityModel.ATTRIBUTES, attributes());
         record.addProperty(
                 "actions",
@@ -134,9 +140,37 @@ final class EntitySchemas {
                 required.add(field.key());
             }
         }
+        for (EntityCollection collection : model(entity).collections()) {
+            body.addProperty(collection.key(), rows(collection, false));
+        }
         body.addProperty(EntityModel.ATTRIBUTES, attributes());
         if (!required.isEmpty()) body.required(required);
         return body;
+    }
+
+    /**
+     * The rows of a collection: as read ({@code read}), each with its id, place and every field, a computed one read
+     * only; as written, each with the id of a row to keep — none for a new row — and its written fields.
+     */
+    private static Schema<?> rows(EntityCollection collection, boolean read) {
+        ObjectSchema row = new ObjectSchema();
+        row.addProperty(EntityCollection.ID, new IntegerSchema().format("int64"));
+        if (read) {
+            row.addProperty(EntityCollection.POSITION, new IntegerSchema().format("int32"));
+        } else {
+            row.additionalProperties(false);
+        }
+        for (EntityField field : collection.fields()) {
+            boolean written = field.source().writable();
+            if (!read && !written) continue;
+            Schema<?> schema = value(field, read);
+            if (!written) schema.readOnly(true);
+            row.addProperty(field.key(), schema);
+        }
+        return new ArraySchema()
+                .items(row)
+                .maxItems(collection.maxRows())
+                .description("The rows of " + collection.key() + " in their order (ADR-0032, 9.1)");
     }
 
     /** A page of the entity's list (ADR-0016). */

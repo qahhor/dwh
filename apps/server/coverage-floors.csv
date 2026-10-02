@@ -8,11 +8,13 @@
 # fnd floor.
 # 2026-10-01: kwh renamed to webhook (plan 10/10, item 4.3); the floor moves with the module unchanged.
 # 2026-10-01: the fnd package with the old migrate entry point removed (no installations to keep, ADR-0030).
+# 2026-10-02: example, the reference document of plan 10/10, item 5.7, at its first measure.
 module,line,branch
 analytics,14,0
 audit,87,68
 common,91,82
 config,91,73
+example,100,100
 jobs,95,78
 kauth,83,71
 md,82,65

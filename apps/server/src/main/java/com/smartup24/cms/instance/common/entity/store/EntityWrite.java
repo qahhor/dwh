@@ -49,10 +49,20 @@ public record EntityWrite(
      */
     public static EntityWrite of(EntityDefinition entity, Map<String, ?> values, JsonColumns json) {
         EntityModel model = Objects.requireNonNull(entity.model(), entity.code());
+        return of(model.fields(), values, json);
+    }
+
+    /**
+     * The write of values of {@code fields}: the fields of a record, or of a row of its collection (ADR-0032, 9.1).
+     *
+     * @param values the values by field key, as the field rules left them
+     * @param json   the JSON of the table written
+     */
+    public static EntityWrite of(List<EntityField> fields, Map<String, ?> values, JsonColumns json) {
         List<Column> columns = new ArrayList<>();
         Map<FieldSource.Link, List<Long>> links = new LinkedHashMap<>();
         Map<String, @Nullable UUID> files = new LinkedHashMap<>();
-        for (EntityField field : model.fields()) {
+        for (EntityField field : fields) {
             if (!values.containsKey(field.key())) continue;
             Object value = values.get(field.key());
             switch (field.source()) {

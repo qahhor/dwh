@@ -108,6 +108,24 @@ public final class EntityValues {
     }
 
     /**
+     * The rows of a collection (ADR-0032, 9.1) as the save leaves them, in their order: each row's values by field key
+     * with its {@code id} — a new row has none. A hook compares them with the rows of {@link EntitySave#before()} to
+     * tell the added, changed and removed rows; empty without rows.
+     */
+    public List<Map<String, Object>> collection(String key) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        if (values.get(key) instanceof List<?> list) {
+            for (Object item : list) {
+                if (!(item instanceof Map<?, ?> row)) continue;
+                Map<String, Object> copy = new LinkedHashMap<>();
+                row.forEach((name, value) -> copy.put(String.valueOf(name), value));
+                rows.add(Collections.unmodifiableMap(copy));
+            }
+        }
+        return List.copyOf(rows);
+    }
+
+    /**
      * Changes a written field of the form; the value must be one its type accepts (ADR-0032, 6.5).
      *
      * @throws UnsupportedOperationException on values that are only read

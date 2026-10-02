@@ -68,6 +68,17 @@ const note = id => ({
   createdBy: 1, createdAt: at(id), modifiedAt: at(id + 1),
 });
 const formField = (key, labelKey, type, extra = {}) => ({ key, labelKey, label: null, type, required: false, ...extra });
+// The reference document (ADR-0032 9.4): an order with lines and statuses on the general screen, no web code of its own.
+const money = (amount, currency = 'UZS') => ({ amount, currency });
+const orderLine = (id, product, qty, price) => ({
+  id, position: id, product, qty, price: money(price), amount: money((qty * Number(price)).toFixed(2)),
+});
+const order = id => ({
+  id, number: `ORD-${String(id).padStart(6, '0')}`, orderDate: `2026-09-${String(id).padStart(2, '0')}`,
+  customer: `Магазин «Ассорти» ${id}`, currency: 'UZS', status: id === 1 ? 'draft' : 'posted', total: money('41.70'),
+  attributes: {}, createdAt: at(id), modifiedAt: at(id), revision: 1,
+});
+const MONEY_FIELD = { currencies: ['UZS', 'USD', 'EUR'], currencyFrom: 'currency' };
 const range = (from, to) => Array.from({ length: Math.abs(to - from) + 1 }, (_, i) => from < to ? from + i : from - i);
 
 export const me = {
@@ -90,6 +101,7 @@ export const fixtures = {
   '/settings/user': {},
   '/modules/active': [
     { code: 'notes', name: 'Заметки', version: '1.0.0', route: '/notes', icon: 'description', isSystem: false, status: 'ACTIVE', isActive: true },
+    { code: 'example', name: 'Эталон', version: '1.0.0', route: '/e/example.orders', icon: 'receipt_long', isSystem: false, status: 'ACTIVE', isActive: true },
   ],
   '/navigation/items/active': [],
   '/notifications/unread-count': { unread_count: 0 },
@@ -257,6 +269,7 @@ export const fixtures = {
   '/entities/menu': [
     { code: 'ms.notes', form: 'notes', route: '/notes', labelKey: 'nav.notes', icon: 'description', section: 'workspace', order: 30, module: 'notes' },
     { code: 'md.users', form: 'md.users', route: '/e/md.users', labelKey: 'nav.users', icon: 'people', section: 'iam', order: 10, module: null },
+    { code: 'example.orders', form: 'example.orders', route: '/e/example.orders', labelKey: 'nav.example_orders', icon: 'receipt_long', section: 'workspace', order: 90, module: 'example' },
   ],
   '/history/ms.notes/1': page([
     { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'title', labelKey: 'notes.col.title', oldValue: 'Планёрка', newValue: 'Планёрка филиала 1' }] },
@@ -264,4 +277,69 @@ export const fixtures = {
   ]),
   '/entities/ms.task_statuses': page([{ id: 1, code: 'open', name: 'Открыта', color: '#3b82f6', sortOrder: 1, terminal: false, system: true }]),
   '/entities/ms.task_types': page([]),
+  '/form-meta/example.orders': {
+    code: 'example.orders', listCode: 'example.orders',
+    fields: [
+      formField('number', 'example.orders.col.number', 'text', { readonly: true, defaultValue: { kind: 'sequence', value: 'ORD-{000000}' } }),
+      formField('orderDate', 'example.orders.col.order_date', 'date', { required: true, defaultValue: { kind: 'today' } }),
+      formField('customer', 'example.orders.col.customer', 'text', { required: true, minLength: 1, maxLength: 255 }),
+      formField('currency', 'example.orders.col.currency', 'select', { required: true, options: ['UZS', 'USD', 'EUR'], defaultValue: { kind: 'fixed', value: 'UZS' } }),
+      formField('status', 'example.orders.col.status', 'select', { readonly: true, options: ['draft', 'posted', 'cancelled'], optionLabelPrefix: 'example.orders.status.', defaultValue: { kind: 'fixed', value: 'draft' } }),
+      formField('total', 'example.orders.col.total', 'money', { readonly: true, computed: true, ...MONEY_FIELD }),
+      formField('comment', 'example.orders.col.comment', 'textarea', { maxLength: 2000 }),
+    ],
+    layout: [
+      { key: 'main', labelKey: 'entity.section.main', fields: ['number', 'orderDate', 'customer', 'currency', 'status', 'total'] },
+      { key: 'settings', labelKey: 'entity.section.settings', fields: ['comment'] },
+    ],
+    actions: ['create', 'update', 'post', 'unpost', 'cancel'],
+    capabilities: ['bulk', 'export', 'history', 'saved_views'],
+    collections: [{
+      key: 'lines', labelKey: 'example.orders.lines', maxRows: 500,
+      fields: [
+        formField('product', 'example.orders.line.product', 'text', { required: true, minLength: 1, maxLength: 255 }),
+        formField('qty', 'example.orders.line.qty', 'number', { required: true, scale: 3 }),
+        formField('price', 'example.orders.line.price', 'money', { required: true, ...MONEY_FIELD }),
+        formField('amount', 'example.orders.line.amount', 'money', { readonly: true, computed: true, ...MONEY_FIELD }),
+      ],
+    }],
+    workflow: {
+      field: 'status',
+      states: [
+        { code: 'draft', labelKey: 'example.orders.status.draft', initial: true, terminal: false, locks: [] },
+        { code: 'posted', labelKey: 'example.orders.status.posted', initial: false, terminal: false, locks: ['currency', 'customer', 'lines', 'orderDate'] },
+        { code: 'cancelled', labelKey: 'example.orders.status.cancelled', initial: false, terminal: true, locks: [] },
+      ],
+      transitions: [
+        { code: 'post', from: ['draft'], to: 'posted', permission: 'post' },
+        { code: 'unpost', from: ['posted'], to: 'draft', permission: 'unpost' },
+        { code: 'cancel', from: ['draft'], to: 'cancelled', permission: 'cancel', confirmKey: 'example.orders.cancel_confirm' },
+      ],
+    },
+    tabs: [
+      { key: 'main', labelKey: 'ui.entity_page.tab_fields', kind: 'sections', sections: ['main', 'settings'] },
+      { key: 'lines', labelKey: 'example.orders.lines', kind: 'collection', collection: 'lines' },
+      { key: 'history', labelKey: 'ui.entity_page.tab_history', kind: 'history' },
+    ],
+  },
+  '/query-meta/example.orders': {
+    code: 'example.orders', defaultSort: '-number', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+    fields: [
+      metaField('number', 'example.orders.col.number', 'text', { sortable: true, searchable: true }),
+      metaField('orderDate', 'example.orders.col.order_date', 'date', { sortable: true }),
+      metaField('customer', 'example.orders.col.customer', 'text', { sortable: true, searchable: true }),
+      metaField('status', 'example.orders.col.status', 'enum', { enumValues: ['draft', 'posted', 'cancelled'], enumLabelPrefix: 'example.orders.status.' }),
+      metaField('total', 'example.orders.col.total', 'number', { sortable: true, format: 'money' }),
+    ],
+  },
+  '/list-views/example.orders': [],
+  '/entities/example.orders': page(range(6, 1).map(order), null, 6),
+  '/entities/example.orders/1': {
+    ...order(1), actions: ['create', 'update', 'post', 'cancel'],
+    lines: [orderLine(1, 'Мука пшеничная, 50 кг', 3, '10.00'), orderLine(2, 'Сахар, 25 кг', 1.5, '4.20'), orderLine(3, 'Соль, 1 кг', 10, '0.54')],
+  },
+  '/history/example.orders/1': page([
+    { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'lines', labelKey: 'example.orders.lines', oldValue: { count: 2 }, newValue: { count: 3, added: [{}] } }] },
+    { id: 1, event: 'I', changedAt: at(1), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [] },
+  ]),
 };

@@ -19,6 +19,9 @@ import org.jspecify.annotations.Nullable;
  * @param target            the code of the entity whose rows a reference names ({@code md.users}, ADR-0032, 4.6): the
  *                          runtime checks a new value against that entity's scope and archive; null for a reference
  *                          declared by its path only
+ * @param currencyFrom      the key of the select field whose value is the currency of money (ADR-0032, 9.1): a field of
+ *                          the record for a computed value, a field of the document for a line of its collection; null
+ *                          when money keeps its currency itself
  */
 public record FieldOptions(
         List<String> options,
@@ -27,10 +30,11 @@ public record FieldOptions(
         List<String> currencies,
         @Nullable String enumeration,
         @Nullable JsonRoot jsonRoot,
-        @Nullable String target) {
+        @Nullable String target,
+        @Nullable String currencyFrom) {
 
     /** No parameters. */
-    public static final FieldOptions NONE = new FieldOptions(List.of(), null, null, List.of(), null, null, null);
+    public static final FieldOptions NONE = new FieldOptions(List.of(), null, null, List.of(), null, null, null, null);
 
     /** The root a JSON value must have. */
     public enum JsonRoot {
@@ -53,6 +57,26 @@ public record FieldOptions(
         if (target != null && (ref == null || !ref.path().equals(QueryRef.entityPath(target)))) {
             throw new IllegalArgumentException("A reference to " + target + " is picked from that entity's list");
         }
+        if (currencyFrom != null && currencies.isEmpty()) {
+            throw new IllegalArgumentException("Only money takes its currency from a field");
+        }
+    }
+
+    /** Parameters whose money keeps its currency itself. */
+    public FieldOptions(
+            List<String> options,
+            @Nullable String optionLabelPrefix,
+            @Nullable QueryRef ref,
+            List<String> currencies,
+            @Nullable String enumeration,
+            @Nullable JsonRoot jsonRoot,
+            @Nullable String target) {
+        this(options, optionLabelPrefix, ref, currencies, enumeration, jsonRoot, target, null);
+    }
+
+    /** The same money whose currency is the value of the select field {@code key}. */
+    public FieldOptions withCurrencyFrom(String key) {
+        return new FieldOptions(options, optionLabelPrefix, ref, currencies, enumeration, jsonRoot, target, key);
     }
 
     /** A select's options. */

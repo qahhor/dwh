@@ -167,6 +167,36 @@ const screens: Screen[] = [
       await expect(page.getByText('Иван Петров').first()).toBeVisible();
     },
   },
+  // ADR-0032 9.4: the reference document with lines and statuses on the general screen.
+  {
+    name: 'document list',
+    path: '/e/example.orders',
+    open: async page => {
+      await expect(page.getByRole('table', { name: 'Заказы (эталон)' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'ORD-000006', exact: true })).toBeVisible();
+    },
+  },
+  {
+    name: 'document form with its lines',
+    path: '/e/example.orders/1/edit',
+    open: async page => {
+      await expect(page.getByRole('textbox', { name: 'Клиент' })).toHaveValue('Магазин «Ассорти» 1');
+      await expect(page.getByRole('group', { name: 'Строка 3' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Добавить строку' })).toBeVisible();
+    },
+  },
+  {
+    name: 'document record with its lines and history',
+    path: '/e/example.orders/1',
+    open: async page => {
+      await expect(page.getByRole('heading', { name: 'ORD-000001' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Провести' })).toBeVisible();
+      await page.getByRole('tab', { name: 'Строки' }).click();
+      await expect(page.getByRole('cell', { name: 'Сахар, 25 кг' })).toBeVisible();
+      await page.getByRole('tab', { name: 'История' }).click();
+      await expect(page.getByText('Иван Петров').first()).toBeVisible();
+    },
+  },
 ];
 
 for (const theme of ['light', 'dark'] as const) {

@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFiles;
 import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
+import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
 import com.smartup24.cms.instance.common.entity.field.FieldSource;
 import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.entity.hook.EntityArchive;
@@ -123,6 +124,7 @@ public class EntityChanges {
             @Nullable String action) {
         Map<String, Object> old = before == null ? null : row(entity, before);
         Map<String, Object> neu = after == null ? null : row(entity, after);
+        rows(entity, before, after, old, neu);
         List<String> changed = old == null
                 ? List.copyOf(Objects.requireNonNull(neu).keySet())
                 : neu == null ? List.copyOf(old.keySet()) : EntityAuditRow.changed(old, neu);
@@ -135,6 +137,31 @@ public class EntityChanges {
             log.log(table, id, event, changed, old, neu);
         }
         return changed;
+    }
+
+    /**
+     * The rows of the collections in the audit rows (ADR-0032, 6.8): one property per collection that changed — the
+     * new row holds what changed ({@link EntityLines#change}), the old row the number of rows before; a deleted record
+     * keeps the number of its rows.
+     */
+    private static void rows(
+            EntityDefinition entity,
+            @Nullable Map<String, Object> before,
+            @Nullable Map<String, Object> after,
+            @Nullable Map<String, Object> old,
+            @Nullable Map<String, Object> neu) {
+        for (EntityCollection collection : EntityProcess.collections(entity)) {
+            List<?> was = before != null && before.get(collection.key()) instanceof List<?> list ? list : List.of();
+            if (after == null || neu == null) {
+                if (old != null && !was.isEmpty()) old.put(collection.key(), Map.of("count", was.size()));
+                continue;
+            }
+            List<?> now = after.get(collection.key()) instanceof List<?> list ? list : List.of();
+            Map<String, Object> change = EntityLines.change(collection, was, now);
+            if (change.isEmpty()) continue;
+            neu.put(collection.key(), change);
+            if (old != null) old.put(collection.key(), Map.of("count", was.size()));
+        }
     }
 
     /** The audit row of an archive or a restore (ADR-0032, 5.4): the change of {@code archived}, labelled in history. */

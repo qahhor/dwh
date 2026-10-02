@@ -25,7 +25,8 @@ import org.springframework.stereotype.Component;
  * How the runtime reads records (ADR-0032, 6.1–6.2 and 5.1): a record by id only in the viewer's scope — outside it the
  * same 404 as a missing id (ADR-0013) — and the pages of the entity's list with the scope and the archive in the same
  * SQL; every record is answered with the fields the viewer may see ({@link EntityFieldRights#project}) and the actions
- * the viewer's rights allow.
+ * the viewer's rights and the record's state allow (ADR-0032, 6.2 and 9.2). A record read by id holds the rows of its
+ * collections (ADR-0032, 9.1); a page of the list does not.
  */
 @Component
 public class EntityReads {
@@ -33,11 +34,13 @@ public class EntityReads {
     private final QueryListRegistry lists;
     private final EntityScopes scopes;
     private final EntityStoreRepository store;
+    private final EntityLines lines;
 
-    public EntityReads(QueryListRegistry lists, EntityScopes scopes, EntityStoreRepository store) {
+    public EntityReads(QueryListRegistry lists, EntityScopes scopes, EntityStoreRepository store, EntityLines lines) {
         this.lists = lists;
         this.scopes = scopes;
         this.store = store;
+        this.lines = lines;
     }
 
     /** The entity's list with its custom fields: its select is the projection of every record read. */
@@ -52,8 +55,9 @@ public class EntityReads {
      * @throws ApiException 404 {@code error.common.record_not_found} for a missing record and one outside the scope
      */
     public Map<String, Object> visible(EntityDefinition entity, long id, boolean lock) {
-        return store.find(entity, list(entity), id, scopes.rows(entity, userId()), lock)
+        Map<String, Object> record = store.find(entity, list(entity), id, scopes.rows(entity, userId()), lock)
                 .orElseThrow(EntityReads::recordNotFound);
+        return lines.withRows(entity, record);
     }
 
     /**
@@ -61,7 +65,8 @@ public class EntityReads {
      * restricted fields left out by the caller. Empty when the record is gone.
      */
     public Optional<Map<String, Object>> unscoped(EntityDefinition entity, long id) {
-        return store.find(entity, list(entity), id, EntityScopes.fragment(ScopeFilter.unrestricted()), false);
+        return store.find(entity, list(entity), id, EntityScopes.fragment(ScopeFilter.unrestricted()), false)
+                .map(record -> lines.withRows(entity, record));
     }
 
     /** A page of the entity's list for the viewer, each record as the viewer may read it. */
@@ -79,15 +84,20 @@ public class EntityReads {
 
     /** The answer of a record: the fields the viewer may see and the actions they may take. */
     public static EntityRecordView view(EntityDefinition entity, Map<String, Object> record) {
-        return new EntityRecordView(EntityFieldRights.project(entity, record), actions(entity));
+        return new EntityRecordView(EntityFieldRights.project(entity, record), actions(entity, record));
     }
 
-    /** The declared actions whose right the viewer holds, in declaration order. */
-    public static List<String> actions(EntityDefinition entity) {
-        return entity.actions().stream()
-                .filter(action -> SecurityContext.hasPermission(entity.form(), action.permission()))
-                .map(EntityDefinition.EntityAction::code)
-                .toList();
+    /**
+     * The declared actions whose right the viewer holds, in declaration order, that the record's state allows: a
+     * transition only from a state it leaves, no change in a terminal state (ADR-0032, 9.2).
+     */
+    public static List<String> actions(EntityDefinition entity, Map<String, ?> record) {
+        return EntityProcess.actions(entity, record);
+    }
+
+    /** The id of a record or of a row read. */
+    public static long id(Map<String, ?> record) {
+        return ((Number) Objects.requireNonNull(record.get(SystemColumn.ID.key()))).longValue();
     }
 
     /** The revision of a record read. */

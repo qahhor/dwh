@@ -15,6 +15,7 @@ import org.jspecify.annotations.Nullable;
  * @param currencies   the currencies money may be in; empty for other types
  * @param enumeration  the code of an enumeration's reference entity, or null
  * @param jsonRoot     the root JSON must have, or null for an object or an array
+ * @param currencyFrom the key of the select field whose value is the currency of money (ADR-0032, 9.1), or null
  */
 public record FieldParams(
         @Nullable Integer scale,
@@ -23,7 +24,8 @@ public record FieldParams(
         List<String> contentTypes,
         List<String> currencies,
         @Nullable String enumeration,
-        FieldOptions.@Nullable JsonRoot jsonRoot) {
+        FieldOptions.@Nullable JsonRoot jsonRoot,
+        @Nullable String currencyFrom) {
 
     /** No parameters. */
     public static final FieldParams NONE = new FieldParams(null, null, null, List.of(), List.of(), null, null);
@@ -31,6 +33,18 @@ public record FieldParams(
     public FieldParams {
         contentTypes = contentTypes == null ? List.of() : List.copyOf(contentTypes);
         currencies = currencies == null ? List.of() : List.copyOf(currencies);
+    }
+
+    /** Parameters whose money keeps its currency itself. */
+    public FieldParams(
+            @Nullable Integer scale,
+            @Nullable Integer maxItems,
+            @Nullable Long maxBytes,
+            List<String> contentTypes,
+            List<String> currencies,
+            @Nullable String enumeration,
+            FieldOptions.@Nullable JsonRoot jsonRoot) {
+        this(scale, maxItems, maxBytes, contentTypes, currencies, enumeration, jsonRoot, null);
     }
 
     /** The parameters a field's rules and options give. */
@@ -42,6 +56,7 @@ public record FieldParams(
                 rules.contentTypes(),
                 options.currencies(),
                 options.enumeration(),
-                options.jsonRoot());
+                options.jsonRoot(),
+                options.currencyFrom());
     }
 }
