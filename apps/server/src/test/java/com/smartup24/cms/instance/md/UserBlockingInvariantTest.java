@@ -13,7 +13,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * FR-USR-4: blocking a user closes all of their sessions and revokes all of their API tokens.
- * Implementation: MdUserSecurityService.setUserState, then the UserSessionInvalidator port, then
+ * Implementation: the action block of the user entity, MdUserSecurityService.revokeAccess, the UserSessionInvalidator
+ * port, then
  * KauthUserSessionInvalidator (in the same transaction).
  */
 class UserBlockingInvariantTest {

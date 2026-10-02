@@ -10,7 +10,6 @@ import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.search.service.SearchChangePublisher;
-import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
@@ -149,12 +148,8 @@ public class MdUserHooks implements EntityHooks {
         }
     }
 
+    /** A zone of the time-zone database, or UTC; the pattern of the field already refused offsets and other forms. */
     private static boolean knownZone(String zone) {
-        try {
-            ZoneId.of(zone);
-            return true;
-        } catch (DateTimeException e) {
-            return false;
-        }
+        return "UTC".equals(zone) || ZoneId.getAvailableZoneIds().contains(zone);
     }
 }

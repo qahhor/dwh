@@ -7,13 +7,17 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.RolePermission;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
+import com.smartup24.cms.instance.md.service.MdI18nCatalog;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
+import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.instance.support.entity.EntityRegistries;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * FR-PERM-1: the form catalog is brought in line with the code.
@@ -45,7 +50,12 @@ class MdFormCatalogIntegrationTest {
         var ds = TestDatabases.migratedCopy("smc_catalog_test");
         jdbc = JdbcClient.create(ds);
 
-        permissionService = new MdPermissionService(new MdPermissionRepository(jdbc));
+        // The user entity names its right (EntityRights, ADR-0031): the words come from its dictionary keys.
+        permissionService = new MdPermissionService(
+                new MdPermissionRepository(jdbc),
+                EntityRegistries.declarations(
+                        List.of(MdUserEntity.definition((userId, alias) -> ScopeFilter.unrestricted()))),
+                new MdI18nCatalog(JsonMapper.shared()));
         roleRepository = new MdRoleRepository(jdbc);
         roleService = new MdRoleService(
                 roleRepository,
