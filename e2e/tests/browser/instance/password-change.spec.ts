@@ -16,6 +16,7 @@ import {
 import { loginToInstance } from '../../../support/auth.js';
 import { loadE2eEnv } from '../../../support/env.mjs';
 import { clearSecret, fillSecret } from '../../../support/secret.js';
+import { inviteUser, runUserAction } from '../../../support/users.js';
 
 const environment = loadE2eEnv();
 const desktopViewport = { width: 1366, height: 900 } as const;
@@ -123,35 +124,14 @@ async function csrfHeaders(context: BrowserContext): Promise<Record<string, stri
   return { 'X-XSRF-TOKEN': csrf.value };
 }
 
+/** A user invited by the administrator, whose mailed invitation sets the password (ADR-0032 8). */
 async function createSyntheticUser(
   adminContext: BrowserContext,
   roleId: number,
   user: { name: string; login: string; email: string; password: string },
 ): Promise<number> {
-  const response = await adminContext.request.post('/api/v1/iam/users', {
-    headers: await csrfHeaders(adminContext),
-    data: {
-      name: user.name,
-      login: user.login,
-      email: user.email,
-      password: user.password,
-      language: 'ru',
-      timezone: 'Asia/Tashkent',
-      is2faEnabled: false,
-      forcePasswordChange: false,
-      roleIds: [roleId],
-      attributes: {},
-    },
-  });
-  const status = response.status();
-  if (status !== 201) {
-    await response.dispose();
-    throw new Error(`Synthetic user setup returned HTTP ${status}, expected 201`);
-  }
-  const body = await response.json() as { id?: unknown };
-  await response.dispose();
-  if (!Number.isInteger(body.id)) throw new Error('Synthetic user setup returned no numeric id');
-  return Number(body.id);
+  const invited = await inviteUser(adminContext, user, user.password, [roleId]);
+  return invited.id;
 }
 
 async function createApiToken(context: BrowserContext, name: string): Promise<string> {
@@ -415,12 +395,8 @@ test.describe.serial('authentication generation password-change acceptance', () 
       for (const tokenContext of tokenContexts) await tokenContext.dispose();
       for (const context of subjectContexts) await context.close();
       if (unaffectedContext) await unaffectedContext.close();
-      for (const userId of createdUserIds) {
-        const response = await page.context().request.delete(`/api/v1/iam/users/${userId}`, {
-          headers: await csrfHeaders(page.context()),
-        });
-        await expectStatus(response, 204, 'Synthetic user cleanup');
-      }
+      // Anonymisation takes the place of a delete (ADR-0032 8).
+      for (const userId of createdUserIds) await runUserAction(page.context(), userId, 'anonymize');
       assertAdminConsoleHealthy();
     }
   });

@@ -50,7 +50,7 @@ test('critical pages and create forms fit a mobile viewport', async ({ page }) =
   const routes = [
     { path: '/tasks', heading: 'Задачи', action: 'Новая задача' },
     { path: '/analytics', heading: 'Аналитика и дашборды', action: 'Обновить' },
-    { path: '/iam/users', heading: 'Пользователи', action: 'Новый пользователь' },
+    { path: '/e/md.users', heading: 'Пользователи' },
     { path: '/iam/profile', heading: 'Мой профиль' }
   ] as const;
 
@@ -69,9 +69,12 @@ test('critical pages and create forms fit a mobile viewport', async ({ page }) =
   await page.waitForSelector('.smt-dialog__body');
   await expect.poll(() => page.locator('.smt-dialog__body').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
 
-  await page.goto('/iam/users');
-  await page.getByRole('button', { name: 'Новый пользователь', exact: true }).click();
-  await expect.poll(() => page.locator('.smt-dialog__body').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  // The users are the general entity screen (ADR-0032 8): its create link and form fit the viewport too.
+  await page.goto('/e/md.users');
+  await expectInsideViewport(page.getByRole('link', { name: 'Создать', exact: true }), MOBILE_VIEWPORT.width);
+  await page.goto('/e/md.users/new');
+  await expect(page.getByRole('textbox', { name: 'Логин' })).toBeVisible();
+  await expectNoPageOverflow(page);
 });
 
 test('compact administration actions preserve a 28px minimum hit target', async ({ page }) => {

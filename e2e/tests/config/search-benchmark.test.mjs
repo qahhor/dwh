@@ -74,7 +74,7 @@ async function startControlledBenchmarkServer({
       sendJson(201, { id: nextId++ });
       return;
     }
-    if (request.method === 'POST' && url.pathname === '/api/v1/iam/users') {
+    if (request.method === 'POST' && url.pathname === '/api/v1/entities/md.users') {
       state.created.users += 1;
       sendJson(201, { id: nextId++ });
       return;
