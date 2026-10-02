@@ -9,6 +9,19 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.6 — tasks, projects, task types and statuses, and users
+  run on the entity runtime (ADR-0032 §8.1): `ms.task_types`,
+  `ms.task_statuses` (reference lists; reorder is the `move` action),
+  `ms.projects` (own scope: author, members, task participants; members by
+  the `add_member` / `remove_member` actions; archive replaces "paused"),
+  `ms.tasks` (status changed only by `set_status`; the kanban stays its own
+  screen on the runtime; web presets are query filters) and `md.users`
+  (created by an invitation link valid 72 h — assumption; `block`, `unblock`,
+  `reset_2fa`, `enable_2fa`, `force_password_change`, `anonymize` actions).
+  Six entities pass the contract kit; every `Legacy*Filters` class is gone
+  (`NoLegacyFiltersTest`). The web now sends If-Match with record actions and
+  deletes (every action answered 428 before).
+
 - Plan 10/10, item 5.5 — the generic entity screen (ADR-0032 step 7):
   `/e/:code` (list, `/new`, `/:id`, `/:id/edit`) builds the list, toolbar,
   form and record card from query-meta, form-meta and the record's actions,
@@ -862,6 +875,21 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Apache-2.0 community, governance, security, and contribution policies.
 
 ### Changed
+
+- **API-breaking (item 5.6):** removed `/api/v1/tasks/statuses*`,
+  `/api/v1/tasks/types*`, the project endpoints (`/tasks/projects/page`,
+  `/tasks/projects/{id}`, `POST /tasks/projects`, members add/remove), the
+  task endpoints (`GET/POST /api/v1/tasks`, `GET/PATCH /tasks/{id}`,
+  `POST /tasks/{id}/status`, `/tasks/{id}/subtasks`, `POST /tasks/bulk`) and
+  the user endpoints (`GET|POST /api/v1/iam/users`,
+  `GET|PATCH|DELETE /iam/users/{id}`, block, unblock, force-password-change,
+  reset-2fa); all are served by `/api/v1/entities/{ms.task_types,
+  ms.task_statuses, ms.projects, ms.tasks, md.users}`. Kept: task comments,
+  files, `/view`, `GET /tasks/{id}/members`, `GET /tasks/projects/progress`,
+  user roles, permissions and org units. Project `state` is gone; tasks have
+  `status_code`, `type_code`, `responsible_id` (V168–V172); a user record has
+  `credentialChangeRequired`, a user is created without a password; history
+  keys are entity codes; uniqueness answers 422 on the field.
 
 - **API-breaking (item 5.4):** notes moved to the runtime —
   `/api/v1/notes…` is removed, use `/api/v1/entities/ms.notes…`; an update is
