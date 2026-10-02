@@ -18,21 +18,25 @@ public class SearchSettingsService {
     private final SearchPolicyProvider provider;
     private final SearchAccessPolicy access;
     private final AuditLogService audit;
+    private final SearchFieldPolicies fieldPolicies;
 
     public SearchSettingsService(
             SearchSettingsRepository repository,
             SearchPolicyProvider provider,
             SearchAccessPolicy access,
-            AuditLogService audit) {
+            AuditLogService audit,
+            SearchFieldPolicies fieldPolicies) {
         this.repository = repository;
         this.provider = provider;
         this.access = access;
         this.audit = audit;
+        this.fieldPolicies = fieldPolicies;
     }
 
     public SettingsSnapshot current() {
         access.requireSettingsRead();
-        return repository.current();
+        SettingsSnapshot stored = repository.current();
+        return new SettingsSnapshot(stored.version(), fieldPolicies.effective(stored.policy()));
     }
 
     /** The limit of each statement of a save; inside an outer transaction too, unlike the transaction timeout. */
@@ -45,6 +49,7 @@ public class SearchSettingsService {
     }
 
     private SettingsSnapshot saveNow(SaveSettingsRequest request) {
+        fieldPolicies.requireKnown(request.policy());
         var saved = repository.save(request, SecurityContext.getCurrentUserId());
         audit.logChange(
                 "search_settings",
@@ -65,6 +70,6 @@ public class SearchSettingsService {
                 provider.publishCommitted(saved);
             }
         });
-        return saved;
+        return new SettingsSnapshot(saved.version(), fieldPolicies.effective(saved.policy()));
     }
 }

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.search.typesense;
 
+import com.smartup24.cms.instance.search.service.SearchEntity;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,10 +15,6 @@ import tools.jackson.databind.JsonNode;
 public class TypesenseCollections {
 
     private static final Logger log = LoggerFactory.getLogger(TypesenseCollections.class);
-
-    public static final String COL_TASKS = "tasks";
-    public static final String COL_PROJECTS = "projects";
-    public static final String COL_USERS = "users";
 
     private final TypesenseClient client;
 
@@ -41,17 +38,17 @@ public class TypesenseCollections {
         }
     }
 
-    public void ensureCollection(String name, String entityType) {
-        ensureCollection(name, entityType, "MIXED");
+    public void ensureCollection(String name, SearchEntity entity) {
+        ensureCollection(name, entity, "MIXED");
     }
 
-    public void ensureCollection(String name, String entityType, String profile) {
+    public void ensureCollection(String name, SearchEntity entity, String profile) {
         if (collectionExists(name)) return;
         try {
             client.rest()
                     .post()
                     .uri("/collections")
-                    .body(SearchCollectionSchema.forProfile(name, entityType, profile))
+                    .body(SearchCollectionSchema.forProfile(name, entity, profile))
                     .retrieve()
                     .toBodilessEntity();
         } catch (Exception failure) {
@@ -59,12 +56,12 @@ public class TypesenseCollections {
         }
     }
 
-    public CollectionMetadata observeCollection(String collection, String entityType, String registeredProfile) {
+    public CollectionMetadata observeCollection(String collection, SearchEntity entity, String registeredProfile) {
         if (!client.isEnabled()) return new CollectionMetadata(null, null, null, "DEPENDENCY_UNAVAILABLE");
         try {
             var schema = client.metadata("/collections/{collection}", collection);
             Long count = TypesenseClient.nonnegativeInteger(schema.path("num_documents"), false);
-            Boolean matches = matchesSchema(schema, collection, entityType, registeredProfile);
+            Boolean matches = matchesSchema(schema, collection, entity, registeredProfile);
             return new CollectionMetadata(
                     count, null, matches, count == null ? "COLLECTION_METADATA_UNAVAILABLE" : null);
         } catch (HttpClientErrorException.NotFound missing) {
@@ -75,7 +72,7 @@ public class TypesenseCollections {
         }
     }
 
-    private boolean matchesSchema(JsonNode actual, String collection, String entityType, String profile) {
+    private boolean matchesSchema(JsonNode actual, String collection, SearchEntity entity, String profile) {
         for (String property : List.of("token_separators", "symbols_to_index")) {
             if (actual.has(property)
                     && (!actual.get(property).isArray() || !actual.get(property).isEmpty())) return false;
@@ -84,7 +81,7 @@ public class TypesenseCollections {
                 && (!actual.get("default_sorting_field").isString()
                         || !actual.get("default_sorting_field").asString().isEmpty())) return false;
         var expected = client.mapper()
-                .valueToTree(SearchCollectionSchema.forProfile(collection, entityType, profile))
+                .valueToTree(SearchCollectionSchema.forProfile(collection, entity, profile))
                 .path("fields");
         if (!actual.path("fields").isArray()) return false;
         Map<String, JsonNode> fields = new LinkedHashMap<>();

@@ -20,6 +20,7 @@ import com.smartup24.cms.instance.common.entity.EntityScope;
 import com.smartup24.cms.instance.common.entity.field.FieldDefault;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.entity.hook.Rules;
+import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserEntity;
@@ -74,6 +75,14 @@ public class MsTaskEntity {
     private static final String TERMINAL =
             "coalesce((select s.is_terminal from ms_task_statuses s where s.code = t.status_code), false)";
 
+    /**
+     * The participants of a task — its creator, its author and its members — whose own rule ({@code SELF}) sees it and
+     * whose org units open it to the rules {@code SUBTREE}/{@code UNITS}: the scope keys of its search document, the
+     * same people {@link MdScopeService#filterForTasks} reads.
+     */
+    static final String PARTICIPANTS = "array(select t.created_by union select t.reporter_id"
+            + " union select m.user_id from ms_task_members m where m.task_id = t.id)";
+
     /** The declaration with the rule that says which tasks a viewer sees. */
     public static EntityDefinition definition(EntityScope.ScopeProvider visible) {
         Entity task = Entity.define(CODE, MsTaskPref.FORM_TASKS)
@@ -101,6 +110,12 @@ public class MsTaskEntity {
                         "endTime",
                         "resolvedTime")
                 .rule("period", Rules.notBefore("endTime", "beginTime"))
+                // Found by the global search among the tasks the viewer takes part in or whose participants stand in
+                // the viewer's scope (ADR-0013, 2.5; ADR-0032, 10.3); a hit opens the task's own card.
+                .search(EntitySearchSpec.title("title")
+                        .body("descriptionMarkdown")
+                        .route("/tasks/items/{id}")
+                        .scopeUsers(PARTICIPANTS))
                 .actions("create", "update")
                 .action(SET_STATUS, "update")
                 .defaultSort("id", Entity.Sort.ASC)

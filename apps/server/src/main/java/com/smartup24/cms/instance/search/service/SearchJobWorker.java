@@ -26,6 +26,7 @@ public class SearchJobWorker implements AutoCloseable {
     private final SearchJobService service;
     private final SearchReconciliationService reconciliation;
     private final SearchStoragePreflight storage;
+    private final SearchEntities entities;
     private UUID owner, proofJob;
     private SearchReconciliationService.Proof proof;
     private FrozenGeneration frozen;
@@ -44,8 +45,19 @@ public class SearchJobWorker implements AutoCloseable {
             SearchJobService service,
             SearchReconciliationService reconciliation,
             SearchStoragePreflight storage,
+            SearchEntities entities,
             Optional<SearchMetrics> metrics) {
-        this(collections, delivery, state, jobs, generations, generationService, service, reconciliation, storage);
+        this(
+                collections,
+                delivery,
+                state,
+                jobs,
+                generations,
+                generationService,
+                service,
+                reconciliation,
+                storage,
+                entities);
         this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
     }
 
@@ -58,7 +70,8 @@ public class SearchJobWorker implements AutoCloseable {
             SearchGenerationService generationService,
             SearchJobService service,
             SearchReconciliationService reconciliation,
-            SearchStoragePreflight storage) {
+            SearchStoragePreflight storage,
+            SearchEntities entities) {
         this.collections = collections;
         this.delivery = delivery;
         this.state = state;
@@ -68,6 +81,7 @@ public class SearchJobWorker implements AutoCloseable {
         this.service = service;
         this.reconciliation = reconciliation;
         this.storage = storage;
+        this.entities = entities;
     }
 
     public synchronized void startLifecycle(UUID owner) {
@@ -91,10 +105,7 @@ public class SearchJobWorker implements AutoCloseable {
                         .map(job -> !List.of("VERIFYING", "ACTIVATING").contains(job.state()))
                         .orElse(true)) discardProof();
         if (!state.snapshot().initialized() && !jobs.anyJobExists()) {
-            boolean legacy = collections.collectionExists(TypesenseCollections.COL_TASKS)
-                    && collections.collectionExists(TypesenseCollections.COL_PROJECTS)
-                    && collections.collectionExists(TypesenseCollections.COL_USERS);
-            service.initialize(owner, legacy);
+            service.initialize(owner);
         }
         var claimed = jobs.claim(owner);
         if (claimed.isEmpty()) {
@@ -154,8 +165,13 @@ public class SearchJobWorker implements AutoCloseable {
     /** True once every document of the generation is delivered; otherwise this cycle's step is done. */
     private boolean delivered(JobStatus job, FrozenGeneration generation) {
         storage.requireSpace();
-        for (String type : List.of("TASK", "PROJECT", "USER"))
-            collections.ensureCollection(generation.collections().get(type), type, generation.schemaProfile());
+        // A collection per entity of the generation (ADR-0032, 10.3); an entity that no longer declares the search has
+        // none to create, and the proof finds its collection out of place.
+        generation
+                .collections()
+                .forEach((type, collection) -> entities.find(type)
+                        .ifPresent(entity ->
+                                collections.ensureCollection(collection, entity, generation.schemaProfile())));
         if (!generation.discoveryEntity().equals("DONE")) {
             state.discoverPage(generation.delivery(state.snapshot().version()), owner, 100);
             jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);

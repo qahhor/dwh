@@ -20,6 +20,7 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
 import com.smartup24.cms.instance.common.entity.EntityScope;
 import com.smartup24.cms.instance.common.entity.field.FieldDefault;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import java.util.List;
@@ -116,6 +117,12 @@ public class MdUserEntity {
                 .action(FORCE_PASSWORD_CHANGE, "update")
                 // Anonymisation takes the place of a delete and needs its right (ADR-0032, 8).
                 .action(ANONYMIZE, "delete")
+                // Found by the global search among the active users of the viewer's scope (ADR-0013, 2.5; ADR-0032,
+                // 10.3): a user stands in the home and the additional units, SELF sees only oneself.
+                .search(EntitySearchSpec.title(NAME)
+                        .body(LOGIN, EMAIL, PHONE)
+                        .when("u.state = '" + MdPref.STATE_ACTIVE + "'")
+                        .scopeUsers("array[u.id]"))
                 .defaultSort(NAME, Entity.Sort.ASC)
                 .customFields("USER")
                 .capabilities(EntityCapability.SAVED_VIEWS, EntityCapability.EXPORT, EntityCapability.HISTORY)

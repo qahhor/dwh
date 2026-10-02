@@ -7,7 +7,6 @@ import com.smartup24.cms.instance.common.entity.hook.EntityValues;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTreeRepository;
-import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -21,11 +20,11 @@ import org.springframework.stereotype.Component;
  *
  * <ul>
  *   <li>before the save, every new participant is someone the author may see (ADR-0013) and a new parent closes no
- *       cycle; the status a new task starts in is locked against a concurrent rename for the search;
+ *       cycle;
  *   <li>after the save, the participation rows follow the record (the author once, the responsible person as the
  *       participant {@code R}; the executors and observers are written by the runtime in the participants table), the
- *       people who join or leave, the members of a task whose deadline moved or whose status changed are told, and the
- *       task is indexed again for the search.
+ *       people who join or leave, the members of a task whose deadline moved or whose status changed are told. The
+ *       search indexes the task from its change event (ADR-0032, 10.3).
  * </ul>
  */
 @Component
@@ -34,17 +33,11 @@ public class MsTaskHooks implements EntityHooks {
     private final MdScopeService scopes;
     private final MsTaskTreeRepository tree;
     private final MsTaskMemberService members;
-    private final SearchChangePublisher search;
 
-    public MsTaskHooks(
-            MdScopeService scopes,
-            MsTaskTreeRepository tree,
-            MsTaskMemberService members,
-            SearchChangePublisher search) {
+    public MsTaskHooks(MdScopeService scopes, MsTaskTreeRepository tree, MsTaskMemberService members) {
         this.scopes = scopes;
         this.tree = tree;
         this.members = members;
-        this.search = search;
     }
 
     @Override
@@ -71,9 +64,6 @@ public class MsTaskHooks implements EntityHooks {
                 && (parent.equals(id) || tree.isDescendantOf(parent, id))) {
             save.reject("parentTaskId", "cycle", "error.task.parent_cycle", Map.of());
         }
-        if (save.operation() == EntityOperation.CREATE) {
-            search.lockStatusMembership(Objects.requireNonNull(values.text("statusCode")));
-        }
     }
 
     @Override
@@ -98,7 +88,6 @@ public class MsTaskHooks implements EntityHooks {
         if (was != null && save.changed("statusCode")) {
             members.tellStatus(id, title, Objects.requireNonNull(now.text("statusCode")), actor);
         }
-        search.changed("TASK", id);
     }
 
     private void tellList(EntitySave save, long id, String title, String key, String kind, long actor) {

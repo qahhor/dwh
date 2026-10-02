@@ -121,7 +121,8 @@ public class MdUserService {
 
         scopeService.recalculateFor(user.id());
 
-        searchChangePublisher.changed("USER", user.id());
+        // Created outside the entity runtime: no change event names the user, so the search hears of it here.
+        searchChangePublisher.changed(MdUserEntity.CODE, user.id());
 
         auditLogService.logChange(
                 "md_users",

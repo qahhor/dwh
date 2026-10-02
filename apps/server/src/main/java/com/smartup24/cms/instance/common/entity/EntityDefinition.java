@@ -197,6 +197,9 @@ public record EntityDefinition(
             throw new IllegalArgumentException("Entity " + code + ": bulk actions need an action on a record");
         }
         requireArchive(code, capabilities, actions, model);
+        if (capabilities.contains(EntityCapability.SEARCH) != (model != null && model.search() != null)) {
+            throw new IllegalArgumentException("Entity " + code + ": the search capability goes with its search spec");
+        }
         requireTabs(code, capabilities, layout, model);
         if (rights != null) {
             Set<String> named = rights.actionKeys().keySet();

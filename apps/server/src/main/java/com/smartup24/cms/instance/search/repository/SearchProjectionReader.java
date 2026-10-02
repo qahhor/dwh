@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.search.repository;
 
+import com.smartup24.cms.instance.search.service.SearchEntities;
+import com.smartup24.cms.instance.search.service.SearchEntity;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
@@ -12,15 +14,30 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
+/**
+ * Reads the search document of a record together with its projection revision (ADR-0032, 10.3): the document is built
+ * from the entity's declaration ({@link SearchDocumentSql}); a record the search does not find, or of a type no entity
+ * indexes any more, has no document, so its delivery removes it from the index.
+ */
 @Repository
 public class SearchProjectionReader {
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
+    private final SearchEntities entities;
     private static final TypeReference<Map<String, Object>> DOCUMENT = new TypeReference<>() {};
 
-    public SearchProjectionReader(JdbcClient jdbc, ObjectMapper mapper) {
+    /** The largest serialized document the index takes, a little under Typesense's 1 MiB request line. */
+    private static final int MAX_DOCUMENT_BYTES = 1_048_320;
+
+    public SearchProjectionReader(JdbcClient jdbc, ObjectMapper mapper, SearchEntities entities) {
         this.jdbc = jdbc;
         this.mapper = mapper;
+        this.entities = entities;
+    }
+
+    /** The entity whose records are indexed under the type, if one still declares the search. */
+    public Optional<SearchEntity> entity(String entityType) {
+        return entities.find(entityType);
     }
 
     /** Revision and joined source are deliberately read in one PostgreSQL statement snapshot. */
@@ -32,11 +49,13 @@ public class SearchProjectionReader {
         return readSnapshot(entityType, entityId, true);
     }
 
+    /** The ids after {@code after} that hold a projection version or a record the search finds, in order. */
     public List<Long> reconciliationIds(String type, long after, int limit) {
-        return jdbc.sql("select entity_id from search_projection_versions where entity_type=:type and entity_id>:after "
-                        + "union select id from " + sourceTable(type) + " where id>:after"
-                        + (type.equals("TASK") ? "" : " and " + active(type))
-                        + " order by 1 limit :limit")
+        Optional<SearchEntity> entity = entities.find(type);
+        String records = entity.map(found -> " union (" + SearchDocumentSql.ids(found) + ")")
+                .orElse("");
+        return jdbc.sql("(select entity_id from search_projection_versions where entity_type=:type and entity_id>:after"
+                        + " order by entity_id limit :limit)" + records + " order by 1 limit :limit")
                 .param("type", type)
                 .param("after", after)
                 .param("limit", Math.max(1, Math.min(100, limit)))
@@ -48,10 +67,15 @@ public class SearchProjectionReader {
         String versions = includeUnversioned
                 ? "(select cast(:type as text) as entity_type,cast(:id as bigint) as entity_id,coalesce((select revision from search_projection_versions where entity_type=:type and entity_id=:id),0) as revision)"
                 : "search_projection_versions";
+        String source = entities.find(entityType)
+                .map(SearchDocumentSql::document)
+                .orElse("select cast(null as jsonb) as document");
         return jdbc.sql("select v.revision, "
-                        + "case when octet_length(source.document::text)<=1048320 then source.document::text else null end as document, "
-                        + "coalesce(octet_length(source.document::text)>1048320,false) as oversized "
-                        + "from " + versions + " v left join lateral (" + source(entityType) + ") source on true "
+                        + "case when octet_length(source.document::text)<=" + MAX_DOCUMENT_BYTES
+                        + " then source.document::text else null end as document, "
+                        + "coalesce(octet_length(source.document::text)>" + MAX_DOCUMENT_BYTES
+                        + ",false) as oversized "
+                        + "from " + versions + " v left join lateral (" + source + ") source on true "
                         + "where v.entity_type=:type and v.entity_id=:id")
                 .param("type", entityType)
                 .param("id", entityId)
@@ -77,62 +101,19 @@ public class SearchProjectionReader {
     /** Bounded sample; observed maximum serialized row size plus metadata, scaled by authoritative counts. */
     public long estimateSerializedBytes() {
         long total = 0;
-        for (String type : List.of("TASK", "PROJECT", "USER")) {
-            String table = sourceTable(type);
-            String filter = type.equals("TASK") ? "" : " where " + active(type);
-            long estimate = jdbc.sql("select (select count(*) from " + table + filter + ") * "
+        for (SearchEntity entity : entities.all()) {
+            long estimate = jdbc.sql("select (" + SearchDocumentSql.count(entity) + ") * "
                             + "coalesce(max(least(octet_length(source.document::text),1048576))+256,256) "
-                            + "from (select id as entity_id from " + table + filter + " order by id limit 100) v "
-                            + "left join lateral (" + source(type) + ") source on true")
+                            + "from (select entity_id from (" + SearchDocumentSql.ids(entity)
+                            + ") sample(entity_id)) v left join lateral (" + SearchDocumentSql.document(entity)
+                            + ") source on true")
+                    .param("after", 0L)
+                    .param("limit", 100)
                     .query(Long.class)
                     .single();
             total = Math.addExact(total, estimate);
         }
         return total;
-    }
-
-    /**
-     * The rows of a projection type the index holds: an active user, a project not in the archive (ADR-0032, 5.4; its
-     * document keeps the state {@code A} of the index schema).
-     */
-    private static String active(String type) {
-        return type.equals("PROJECT") ? "not archived" : "state='A'";
-    }
-
-    public static String sourceTable(String type) {
-        return switch (type) {
-            case "TASK" -> "ms_task_pub_tasks";
-            case "PROJECT" -> "ms_task_pub_projects";
-            case "USER" -> "md_pub_users";
-            default -> throw new IllegalArgumentException("Unknown projection type");
-        };
-    }
-
-    private static String source(String entityType) {
-        return switch (entityType) {
-            case "TASK" -> """
-                    select jsonb_strip_nulls(jsonb_build_object(
-                        'id',t.id::text,'task_id',t.id,'title',t.title,
-                        'description_markdown',coalesce(t.description_markdown,''),
-                        'status_name',coalesce(s.name,''),'priority',coalesce(t.priority,'medium'),
-                        'project_id',t.project_id,'project_name',coalesce(p.name,''))) as document
-                    from ms_task_pub_tasks t
-                    left join ms_task_pub_statuses s on s.code=t.status_code
-                    left join ms_task_pub_projects p on p.id=t.project_id
-                    where t.id=v.entity_id
-                    """;
-            case "PROJECT" -> """
-                    select jsonb_build_object('id',p.id::text,'project_id',p.id,'name',p.name,
-                        'description',coalesce(p.description,''),'state','A') as document
-                    from ms_task_pub_projects p where p.id=v.entity_id and not p.archived
-                    """;
-            case "USER" -> """
-                    select jsonb_build_object('id',u.id::text,'user_id',u.id,'name',u.name,
-                        'login',u.login,'email',u.email,'phone',coalesce(u.phone,''),'state',u.state) as document
-                    from md_pub_users u where u.id=v.entity_id and u.state='A'
-                    """;
-            default -> throw new IllegalArgumentException("Unknown projection type");
-        };
     }
 
     public static final class DocumentTooLargeException extends RuntimeException {
