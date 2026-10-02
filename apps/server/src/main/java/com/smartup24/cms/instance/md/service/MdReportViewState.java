@@ -61,7 +61,9 @@ public class MdReportViewState {
             aggregate = QueryAggregates.compile(
                     list, state.get("groupBy"), state.get("measures"), noFilter ? null : filterNode.toString());
         } catch (ApiException e) {
-            e.getFieldErrors().forEach(item -> errors.add(item.at("state." + item.field())));
+            List<FieldErrorItem> found = e.getFieldErrors();
+            if (found == null) throw e;
+            found.forEach(item -> errors.add(item.at("state." + item.field())));
         }
         String chart = chart(state.get("chart"), aggregate, errors);
         if (!errors.isEmpty() || aggregate == null) {

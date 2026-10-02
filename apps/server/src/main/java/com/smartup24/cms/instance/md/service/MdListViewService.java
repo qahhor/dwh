@@ -60,7 +60,7 @@ public class MdListViewService {
     private static final Pattern WIDTH = Pattern.compile("^\\d{1,4}px$");
     private static final Set<String> STATE_KEYS = Set.of("columns", "sort", "filter");
     private static final Set<String> COLUMN_KEYS = Set.of("order", "hidden", "widths");
-    private static final String TABLE = "md_list_views";
+    private static final String AUDIT_TABLE = "md_list_views";
     private static final List<String> AUDITED = List.of("list_code", "kind", "name", "state", "is_default");
     private static final Set<String> KINDS = Set.of(TABLE, REPORT, WIDGET);
 
@@ -121,7 +121,7 @@ public class MdListViewService {
             throw nameTaken();
         }
         ListView created = repo.find(userId, listCode, id).orElseThrow();
-        audit.logChange(TABLE, Long.toString(id), "I", AUDITED, null, row(created));
+        audit.logChange(AUDIT_TABLE, Long.toString(id), "I", AUDITED, null, row(created));
         return response(created);
     }
 
@@ -144,7 +144,7 @@ public class MdListViewService {
             throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.list_view_stale");
         }
         ListView after = repo.find(userId, listCode, id).orElseThrow();
-        audit.logChange(TABLE, Long.toString(id), "U", AUDITED, row(before), row(after));
+        audit.logChange(AUDIT_TABLE, Long.toString(id), "U", AUDITED, row(before), row(after));
         return response(after);
     }
 
@@ -153,7 +153,7 @@ public class MdListViewService {
         visibleList(listCode);
         ListView before = repo.find(userId, listCode, id).orElseThrow(MdListViewService::notFound);
         repo.delete(userId, listCode, id);
-        audit.logChange(TABLE, Long.toString(id), "D", AUDITED, row(before), null);
+        audit.logChange(AUDIT_TABLE, Long.toString(id), "D", AUDITED, row(before), null);
     }
 
     /**

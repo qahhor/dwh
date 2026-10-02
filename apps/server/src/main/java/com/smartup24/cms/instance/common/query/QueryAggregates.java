@@ -81,7 +81,9 @@ public final class QueryAggregates {
         try {
             plan = QueryCompiler.compile(list, filter, null, null, null);
         } catch (ApiException e) {
-            errors.addAll(e.getFieldErrors());
+            List<FieldErrorItem> found = e.getFieldErrors();
+            if (found == null) throw e;
+            errors.addAll(found);
         }
         if (!errors.isEmpty() || plan == null) {
             throw invalid(errors);

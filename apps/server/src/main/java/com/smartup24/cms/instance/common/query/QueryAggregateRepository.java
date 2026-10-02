@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -35,16 +36,28 @@ public class QueryAggregateRepository {
     private static final String QUERY_CANCELED = "57014";
 
     private final JdbcClient jdbc;
+    private final Duration limit;
 
+    @Autowired
     public QueryAggregateRepository(JdbcClient jdbc) {
+        this(jdbc, LIMIT);
+    }
+
+    private QueryAggregateRepository(JdbcClient jdbc, Duration limit) {
         this.jdbc = jdbc;
+        this.limit = limit;
+    }
+
+    /** A repository whose reports may take {@code limit}: for tests of the refusal. */
+    public static QueryAggregateRepository limitedTo(JdbcClient jdbc, Duration limit) {
+        return new QueryAggregateRepository(jdbc, limit);
     }
 
     /**
      * The report's rows for the viewer; runs inside the caller's transaction.
      *
      * @param extra the data scope ({@code " and ..."}) with its parameters, not prefixed {@code q_}
-     * @throws ApiException 422 {@code error.common.report_too_slow} when the report takes longer than {@link #LIMIT}
+     * @throws ApiException 422 {@code error.common.report_too_slow} when the report takes longer than its limit
      */
     public QueryAggregateResult run(QueryAggregate aggregate, QueryPlan.SqlFragment extra) {
         QueryPlan.SqlFragment sql = aggregate.sql(extra);
@@ -52,7 +65,7 @@ public class QueryAggregateRepository {
         try {
             rows = StatementTimeouts.within(
                     jdbc,
-                    LIMIT,
+                    limit,
                     () -> jdbc.sql(sql.sql())
                             .params(sql.params())
                             .query((rs, rowNum) -> row(rs, aggregate))
@@ -60,7 +73,7 @@ public class QueryAggregateRepository {
         } catch (DataAccessException e) {
             if (!cancelled(e)) throw e;
             throw ApiException.validation(
-                    "error.common.report_too_slow", Map.of("seconds", LIMIT.toSeconds()), List.of());
+                    "error.common.report_too_slow", Map.of("seconds", Math.max(1, limit.toSeconds())), List.of());
         }
         boolean truncated = rows.size() > QueryAggregate.MAX_ROWS;
         return new QueryAggregateResult(
