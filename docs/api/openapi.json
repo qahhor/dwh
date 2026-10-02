@@ -105,6 +105,8 @@
   }, {
     "name" : "report-export-controller"
   }, {
+    "name" : "report-import-controller"
+  }, {
     "name" : "search-controller"
   }, {
     "name" : "search-management-controller"
@@ -5120,6 +5122,109 @@
         "tags" : [ "entity-bulk-controller" ]
       }
     },
+    "/api/v1/entities/{code}/import-template" : {
+      "get" : {
+        "description" : "An xlsx file with a column per field of the entity the caller may write; the second, hidden row names the fields by key, a hint sheet lists the values of each choice.",
+        "operationId" : "importTemplate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lang",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Download an import template",
+        "tags" : [ "report-import-controller" ]
+      }
+    },
+    "/api/v1/entities/{code}/imports" : {
+      "post" : {
+        "description" : "Queues the import of an xlsx file the caller uploaded: a dry run checks every row and writes nothing, apply creates or changes records by the entity's import key.",
+        "operationId" : "startImport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ImportRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportView"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Start an import",
+        "tags" : [ "report-import-controller" ]
+      }
+    },
     "/api/v1/entities/{code}/report" : {
       "get" : {
         "description" : "Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups.",
@@ -7928,6 +8033,83 @@
         },
         "summary" : "Close a session of a user",
         "tags" : [ "kauth-session-controller" ]
+      }
+    },
+    "/api/v1/imports/{id}" : {
+      "get" : {
+        "description" : "The caller's import: its state, counters and first problems by row.",
+        "operationId" : "getImport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Get an import",
+        "tags" : [ "report-import-controller" ]
+      }
+    },
+    "/api/v1/imports/{id}/report" : {
+      "get" : {
+        "description" : "The file of a finished import with a column that lists the problems of each refused row.",
+        "operationId" : "importReport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Download an import report",
+        "tags" : [ "report-import-controller" ]
       }
     },
     "/api/v1/list-views/{listCode}" : {
@@ -13789,6 +13971,101 @@
           },
           "isApi" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "ImportRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fileId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lang" : {
+            "type" : "string"
+          },
+          "mode" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ImportRowError" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "row" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ImportView" : {
+        "type" : "object",
+        "properties" : {
+          "created" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "entity" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportRowError"
+            }
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "failed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "report" : {
+            "type" : "boolean"
+          },
+          "rowsDone" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rowsTotal" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "updated" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
