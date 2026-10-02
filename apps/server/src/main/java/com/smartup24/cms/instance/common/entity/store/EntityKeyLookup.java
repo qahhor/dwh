@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.entity.store;
 
+import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.query.QueryList;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Repository;
 /**
  * Finds the record an import row names by the entity's import key (ADR-0032, 10.1): only in the importer's scope — a
  * record outside it is not found, as a read by id does not find it (ADR-0013) — archived ones too, since the key is
- * unique over every record. The SQL is built from the declaration, the key's value is a parameter.
+ * unique (among the records in use at least; one in use comes first). The SQL is built from the declaration, the key's value is a parameter.
  */
 @Repository
 public class EntityKeyLookup {
@@ -32,7 +33,14 @@ public class EntityKeyLookup {
         Map<String, Object> params = new LinkedHashMap<>(scope.params());
         params.put("importKey", value);
         String sql = "select " + model.alias() + ".id from " + list.from() + " where " + model.sqlOf(key)
-                + " = :importKey" + scope.sql() + " limit 1";
+                + " = :importKey" + scope.sql() + order(entity, model) + " limit 1";
         return jdbc.sql(sql).params(params).query(Long.class).optional();
+    }
+
+    /** A record in use before an archived one, when a key is unique only among the records in use. */
+    private static String order(EntityDefinition entity, EntityModel model) {
+        return entity.capabilities().contains(EntityCapability.ARCHIVE)
+                ? " order by " + model.alias() + ".archived_at is not null, " + model.alias() + ".id"
+                : "";
     }
 }

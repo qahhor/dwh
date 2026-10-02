@@ -40,6 +40,7 @@ public class ReportImportController {
     }
 
     @Operation(
+            operationId = "importTemplate",
             summary = "Download an import template",
             description = "An xlsx file with a column per field of the entity the caller may write; the second, hidden"
                     + " row names the fields by key, a hint sheet lists the values of each choice.")
@@ -51,6 +52,7 @@ public class ReportImportController {
     }
 
     @Operation(
+            operationId = "startImport",
             summary = "Start an import",
             description = "Queues the import of an xlsx file the caller uploaded: a dry run checks every row and writes"
                     + " nothing, apply creates or changes records by the entity's import key.")
@@ -65,6 +67,7 @@ public class ReportImportController {
     }
 
     @Operation(
+            operationId = "getImport",
             summary = "Get an import",
             description = "The caller's import: its state, counters and first problems by row.")
     @GetMapping("/api/v1/imports/{id}")
@@ -74,6 +77,7 @@ public class ReportImportController {
     }
 
     @Operation(
+            operationId = "importReport",
             summary = "Download an import report",
             description = "The file of a finished import with a column that lists the problems of each refused row.")
     @GetMapping("/api/v1/imports/{id}/report")
