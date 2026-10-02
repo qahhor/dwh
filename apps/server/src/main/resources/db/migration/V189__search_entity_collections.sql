@@ -19,9 +19,14 @@ alter table search_projection_versions
     add constraint search_projection_versions_ck_entity_type
         check (entity_type ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$');
 
-alter table search_generations drop column task_collection;
-alter table search_generations drop column project_collection;
-alter table search_generations drop column user_collection;
+-- The three framework columns stay (the framework schema is frozen below V100) and are no longer written:
+-- an empty default and no uniqueness let a generation leave them out.
+alter table search_generations drop constraint search_generations_task_collection_key;
+alter table search_generations drop constraint search_generations_project_collection_key;
+alter table search_generations drop constraint search_generations_user_collection_key;
+alter table search_generations alter column task_collection set default '';
+alter table search_generations alter column project_collection set default '';
+alter table search_generations alter column user_collection set default '';
 alter table search_generations drop constraint search_generations_discovery_entity_check;
 alter table search_generations
     add constraint search_generations_ck_discovery_entity
