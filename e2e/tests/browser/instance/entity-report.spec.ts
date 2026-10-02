@@ -70,20 +70,15 @@ test('a report of the orders is built, saved as a widget and shown on the dashbo
       && decodeURIComponent(response.url()).includes('"op":"sum"'));
     await chooseOption(page.getByLabel('Группировать по'), 'status');
     await chooseOption(page.getByLabel('Показатель', { exact: true }), 'sum');
-    const groupedResponse = await grouped;
-    expect(groupedResponse.status()).toBe(200);
-    const report = await groupedResponse.json() as {
-      groups: { field: string; implicit: boolean }[];
-      rows: { groups: unknown[]; values: number[] }[];
-    };
-    expect(report.groups.map(group => group.field)).toEqual(['status', 'totalCurrency']);
-    expect(report.rows.some(row => row.groups[0] === 'draft' && row.groups[1] === 'UZS')).toBe(true);
+    expect((await grouped).status()).toBe(200);
 
     await expect(page.getByTestId('report-chart')).toBeVisible();
     const table = page.getByRole('table', { name: 'Отчёт: Заказы (эталон)', exact: true });
     await expect(table.getByRole('columnheader', { name: 'Статус' })).toBeVisible();
     await expect(table.getByRole('columnheader', { name: 'Валюта' })).toBeVisible();
     await expect(table.getByRole('rowheader', { name: 'Черновик' }).first()).toBeVisible();
+    // Money is summed per currency: the platform adds the currency to the grouping.
+    await expect(table.getByRole('row').filter({ hasText: 'Черновик' }).filter({ hasText: 'UZS' }).first()).toBeVisible();
 
     // Save it as a widget of the dashboard: a saved view of the list, of the kind "widget".
     await page.getByTestId('report-save-as').click();
