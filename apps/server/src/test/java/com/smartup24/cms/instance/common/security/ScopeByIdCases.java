@@ -1,7 +1,10 @@
 package com.smartup24.cms.instance.common.security;
 
 import com.smartup24.cms.instance.common.security.ScopeFixture.Kind;
+import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
+import com.smartup24.cms.instance.ms.task.service.MsProjectEntity;
+import com.smartup24.cms.instance.ms.task.service.MsTaskEntity;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,17 +58,60 @@ final class ScopeByIdCases {
                 handler, MsNoteEntity.CODE, Kind.NOTE, (f, id) -> Map.of("code", MsNoteEntity.CODE), body, inScope);
     }
 
+    /** A by-id handler of the entity runtime, on a user (ADR-0032, 8). */
+    private static Case user(String handler, BiFunction<ScopeFixture, Object, Object> body, Set<Integer> inScope) {
+        return runtime(MdUserEntity.CODE, Kind.USER, handler, "", body, inScope);
+    }
+
+    /** A record action of a user through the runtime: the action is the path variable {@code action}. */
+    private static Case userAction(String action) {
+        return runtime(MdUserEntity.CODE, Kind.USER, "EntityController#action", action, NO_BODY, OK);
+    }
+
+    /** A by-id handler of the entity runtime on a project; an action names its code as the path variable. */
+    private static Case project(
+            String handler, String action, BiFunction<ScopeFixture, Object, Object> body, Set<Integer> inScope) {
+        return runtime(MsProjectEntity.CODE, Kind.PROJECT, handler, action, body, inScope);
+    }
+
+    /** A by-id handler of the entity runtime on a task; an action names its code as the path variable. */
+    private static Case task(
+            String handler, String action, BiFunction<ScopeFixture, Object, Object> body, Set<Integer> inScope) {
+        return runtime(MsTaskEntity.CODE, Kind.TASK, handler, action, body, inScope);
+    }
+
+    private static Case runtime(
+            String code,
+            Kind kind,
+            String handler,
+            String action,
+            BiFunction<ScopeFixture, Object, Object> body,
+            Set<Integer> inScope) {
+        String label = action.isEmpty() ? code : code + " " + action;
+        return new Case(
+                handler,
+                label,
+                kind,
+                (f, id) -> action.isEmpty() ? Map.of("code", code) : Map.of("code", code, "action", action),
+                body,
+                inScope);
+    }
+
     private static Case history(String key, Kind kind) {
         return new Case("RecordHistoryController#history", key, kind, (f, id) -> Map.of("kind", key), NO_BODY, OK);
     }
 
     static final List<Case> CASES = List.of(
-            // users (md): the card, its changes, roles, units, sessions and history
-            read("MdUserController#getUser", Kind.USER),
-            write("MdUserController#updateUser", Kind.USER, (f, id) -> Map.of("name", "TEST renamed"), NO_CONTENT),
-            write("MdUserController#blockUser", Kind.USER, NO_CONTENT),
-            write("MdUserController#unblockUser", Kind.USER, NO_CONTENT),
-            write("MdUserController#deleteUser", Kind.USER, NO_CONTENT),
+            // users (md) on the general entity runtime (ADR-0032, 8): the record, its change and actions, then the
+            // roles, units, sessions and history of the user
+            user("EntityController#get", NO_BODY, OK),
+            user("EntityController#update", (f, id) -> Map.of("name", "TEST renamed"), OK),
+            userAction(MdUserEntity.BLOCK),
+            userAction(MdUserEntity.UNBLOCK),
+            userAction(MdUserEntity.RESET_2FA),
+            userAction(MdUserEntity.ENABLE_2FA),
+            userAction(MdUserEntity.FORCE_PASSWORD_CHANGE),
+            userAction(MdUserEntity.ANONYMIZE),
             read("MdAssignmentController#getUserRoles", Kind.USER),
             write("MdAssignmentController#assignRoles", Kind.USER, (f, id) -> Map.of("roleIds", List.of()), OK),
             read("MdAssignmentController#getPersonalPermissions", Kind.USER),
@@ -92,36 +138,31 @@ final class ScopeByIdCases {
                     NO_BODY,
                     NO_CONTENT),
             read("KauthSessionController#getUserSecuritySummary", Kind.USER),
-            write("KauthSessionController#forcePasswordChange", Kind.USER, NO_CONTENT),
-            write("KauthSessionController#reset2fa", Kind.USER, NO_CONTENT),
-            history("users", Kind.USER),
-            // projects (ms.task)
-            read("MsProjectController#getProject", Kind.PROJECT),
-            write(
-                    "MsProjectController#updateProject",
-                    Kind.PROJECT,
-                    (f, id) -> Map.of("description", "TEST changed"),
-                    NO_CONTENT),
-            write(
-                    "MsProjectController#addMember",
-                    Kind.PROJECT,
+            history(MdUserEntity.CODE, Kind.USER),
+            // projects (ms.task) on the general entity runtime (ADR-0032, 8): seen by their author, members and the
+            // participants of their tasks
+            project("EntityController#get", "", NO_BODY, OK),
+            project("EntityController#update", "", (f, id) -> Map.of("description", "TEST changed"), OK),
+            project("EntityController#archive", "", (f, id) -> Map.of("archived", true), OK),
+            project(
+                    "EntityController#action",
+                    MsProjectEntity.ADD_MEMBER,
                     (f, id) -> Map.of("userId", f.insider, "accessKind", "R"),
-                    NO_CONTENT),
-            new Case(
-                    "MsProjectController#removeMember",
-                    "",
-                    Kind.PROJECT,
+                    OK),
+            project(
+                    "EntityController#action",
+                    MsProjectEntity.REMOVE_MEMBER,
                     (f, id) -> Map.of("userId", f.insider),
-                    NO_BODY,
-                    NO_CONTENT),
+                    OK),
             read("MsProjectController#pageMembers", Kind.PROJECT),
-            history("projects", Kind.PROJECT),
-            // tasks (ms.task): the card, its subresources and history
-            read("MsTaskController#getTask", Kind.TASK),
+            history(MsProjectEntity.CODE, Kind.PROJECT),
+            // tasks (ms.task) on the general entity runtime (ADR-0032, 8): seen by their author and participants;
+            // their participants, comments and files stay the module's
+            task("EntityController#get", "", NO_BODY, OK),
+            task("EntityController#update", "", (f, id) -> Map.of("title", "TEST changed"), OK),
+            task("EntityController#action", MsTaskEntity.SET_STATUS, (f, id) -> Map.of("status", "in_progress"), OK),
+            read("MsTaskController#getMembers", Kind.TASK),
             write("MsTaskController#markViewed", Kind.TASK, NO_CONTENT),
-            read("MsTaskController#getSubtasks", Kind.TASK),
-            write("MsTaskController#updateTask", Kind.TASK, (f, id) -> Map.of("title", "TEST changed"), NO_CONTENT),
-            write("MsTaskController#changeStatus", Kind.TASK, (f, id) -> Map.of("statusId", f.statusId), NO_CONTENT),
             read("MsTaskFileController#getTaskFiles", Kind.TASK),
             write("MsTaskFileController#attachFile", Kind.TASK, (f, id) -> Map.of("fileId", f.viewerFile), NO_CONTENT),
             new Case(
@@ -137,7 +178,7 @@ final class ScopeByIdCases {
                     Kind.TASK,
                     (f, id) -> Map.of("textMarkdown", "TEST comment"),
                     Set.of(201)),
-            history("tasks", Kind.TASK),
+            history(MsTaskEntity.CODE, Kind.TASK),
             // notes on the general entity runtime (ADR-0032, 6): personal, so another person's note is outside the
             // scope
             entity("EntityController#get", NO_BODY, OK),
@@ -162,11 +203,6 @@ final class ScopeByIdCases {
             Map.entry("EntityBulkController#bulk", "an entity code; every record passes the entity's own by-id path"),
             Map.entry("EntityController#list", "an entity code: its list holds only the viewer's scope (the kit)"),
             Map.entry("EntityController#create", "an entity code: a new record, in the creator's scope"),
-            Map.entry(
-                    "EntityController#action",
-                    "a declared record action: no entity of the application declares one; the record is read in its"
-                            + " scope for update as for every change (EntityRuntimeIntegrationTest, the kit's scope"
-                            + " group of an entity with an action)"),
             Map.entry(
                     "EntityFileController#download",
                     "a record's file: the runtime's read in the entity's scope decides (EntityFileControllerTest);"
@@ -212,10 +248,6 @@ final class ScopeByIdCases {
             Map.entry("MsAnnouncementController#markAsRead", "an announcement, instance-wide; the caller's mark"),
             Map.entry(
                     "MsNotificationController#markAsRead", "the caller's own notification; another id changes nothing"),
-            Map.entry("MsTaskStatusController#updateStatus", "a task status, a directory (ADR-0032: all())"),
-            Map.entry("MsTaskStatusController#deleteStatus", "a task status, a directory (ADR-0032: all())"),
-            Map.entry("MsTaskStatusController#updateType", "a task type, a directory (ADR-0032: all())"),
-            Map.entry("MsTaskStatusController#deleteType", "a task type, a directory (ADR-0032: all())"),
             Map.entry("ReportExportController#file", "the caller's own export; another id answers 404"),
             Map.entry("SearchManagementController#job", "a search index job, administrator only, instance-wide"),
             Map.entry("SearchManagementController#cancel", "a search index job, administrator only, instance-wide"),

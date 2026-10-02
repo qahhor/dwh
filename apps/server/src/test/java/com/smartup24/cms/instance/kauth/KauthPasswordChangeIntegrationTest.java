@@ -284,13 +284,7 @@ class KauthPasswordChangeIntegrationTest {
                         scopes));
         testContext.registerBean(
                 MdUserSecurityService.class,
-                () -> new MdUserSecurityService(
-                        users,
-                        hasher,
-                        new PasswordValidator(),
-                        credentialInvalidator,
-                        mock(SearchChangePublisher.class),
-                        audit));
+                () -> new MdUserSecurityService(users, hasher, new PasswordValidator(), credentialInvalidator, audit));
         testContext.refresh();
         return testContext;
     }

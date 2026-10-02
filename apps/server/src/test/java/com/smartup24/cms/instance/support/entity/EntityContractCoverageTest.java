@@ -27,6 +27,10 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
  */
 class EntityContractCoverageTest extends EmbeddedPostgresTest {
 
+    /** The entities moved to the model by plan 10/10, items 5.4 and 5.6 (ADR-0032, 8). */
+    private static final Set<String> ON_THE_MODEL =
+            Set.of("ms.notes", "ms.task_types", "ms.task_statuses", "ms.projects", "ms.tasks", "md.users");
+
     @Autowired
     private List<EntityDefinition> declared;
 
@@ -39,8 +43,9 @@ class EntityContractCoverageTest extends EmbeddedPostgresTest {
                 .collect(Collectors.toCollection(TreeSet::new));
 
         assertThat(entities)
-                .as("the application declares entities with a table")
-                .isNotEmpty();
+                .as("plan 10/10, item 5.6: at least five entities on the model, each with its kit")
+                .containsAll(ON_THE_MODEL)
+                .hasSizeGreaterThanOrEqualTo(5);
         assertThat(problems(entities, kits())).isEmpty();
     }
 

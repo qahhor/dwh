@@ -1,6 +1,7 @@
 # The e2e stack's mail channel (plan 10/10, item 0.8): the server sends real SMTP to Mailpit, a stub that keeps every
 # message and serves it over HTTP, so a browser test can read a login code or a reset link the way a person would.
-# Never part of a deployment. Used by the e2e job of ci.yml and scripts/dev/test-e2e.ps1:
+# Never part of a deployment. Used by the e2e job of ci.yml, scripts/dev/test-e2e.ps1 and the nightly API smoke
+# (scripts/dev/test-api.ps1 accepts the invitations of the users it creates):
 #   docker compose -f docker-compose.yml -f scripts/dev/e2e-mail.compose.yml up -d --wait
 # Mailpit's HTTP API is published on the loopback address only; other host port: MAILPIT_HTTP_PORT.
 services:

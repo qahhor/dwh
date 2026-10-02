@@ -73,7 +73,7 @@ describe('ui-record-history', () => {
           labelKey: '',
           label: 'Ответственный',
           attribute: 'owner',
-          ref: { path: '/iam/users', labelField: 'name', keyField: 'id', paged: true },
+          ref: { path: '/entities/md.users', labelField: 'name', keyField: 'id', paged: true },
         }),
       ),
     );

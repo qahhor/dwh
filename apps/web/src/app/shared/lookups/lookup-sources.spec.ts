@@ -17,12 +17,12 @@ describe('LookupSources', () => {
 
   afterEach(() => http.verify());
 
-  it('asks the users endpoint for active users by search, cursor and page size', () => {
+  it('asks the user entity list for active users by search, cursor and page size', () => {
     let items: readonly unknown[] = [];
     sources.activeUsers.page('ann', 'c2', 50).subscribe((page) => (items = page?.items ?? []));
-    const request = http.expectOne((req) => req.url === '/api/v1/iam/users');
-    expect(request.request.params.get('state')).toBe('A');
-    expect(request.request.params.get('search')).toBe('ann');
+    const request = http.expectOne((req) => req.url === '/api/v1/entities/md.users');
+    expect(JSON.parse(request.request.params.get('filter')!)).toEqual([{ field: 'state', op: 'eq', value: 'A' }]);
+    expect(request.request.params.get('q')).toBe('ann');
     expect(request.request.params.get('cursor')).toBe('c2');
     expect(request.request.params.get('limit')).toBe('50');
     request.flush({
@@ -37,8 +37,8 @@ describe('LookupSources', () => {
 
   it('leaves out an empty search and a first-page cursor', () => {
     sources.activeUsers.page('', null, 20).subscribe();
-    const request = http.expectOne((req) => req.url === '/api/v1/iam/users');
-    expect(request.request.params.has('search')).toBe(false);
+    const request = http.expectOne((req) => req.url === '/api/v1/entities/md.users');
+    expect(request.request.params.has('q')).toBe(false);
     expect(request.request.params.has('cursor')).toBe(false);
     request.flush({ items: [], nextCursor: null, hasMore: false, totalReturned: 0 });
   });
@@ -46,7 +46,7 @@ describe('LookupSources', () => {
   it('searches projects on the paged list with q, 20 at a time, and names a chosen one from its card', () => {
     let items: readonly unknown[] = [];
     sources.projects.page('ware', null, 50).subscribe((page) => (items = page?.items ?? []));
-    const request = http.expectOne((req) => req.url === '/api/v1/tasks/projects/page');
+    const request = http.expectOne((req) => req.url === '/api/v1/entities/ms.projects');
     expect(request.request.params.get('q')).toBe('ware');
     expect(request.request.params.has('search')).toBe(false);
     expect(request.request.params.get('limit')).toBe('20');
@@ -55,15 +55,17 @@ describe('LookupSources', () => {
 
     let found: readonly unknown[] = [];
     sources.projects.resolve!([5]).subscribe((rows) => (found = rows));
-    http.expectOne('/api/v1/tasks/projects/5').flush({ id: 5, name: 'Warehouse', state: 'A' });
-    expect(found).toEqual([{ id: 5, name: 'Warehouse', state: 'A' }]);
+    http.expectOne('/api/v1/entities/ms.projects/5').flush({ id: 5, name: 'Warehouse', archived: false });
+    expect(found).toEqual([{ id: 5, name: 'Warehouse', archived: false }]);
   });
 
   it('names chosen users by id, drops the ones it cannot read and raises no toast for them', () => {
     let found: readonly unknown[] = [];
     sources.activeUsers.resolve!([4, 9]).subscribe((rows) => (found = rows));
-    http.expectOne('/api/v1/iam/users/4').flush({ id: 4, name: 'Anna', login: 'anna' });
-    http.expectOne('/api/v1/iam/users/9').flush({ detail: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    http.expectOne('/api/v1/entities/md.users/4').flush({ id: 4, name: 'Anna', login: 'anna' });
+    http
+      .expectOne('/api/v1/entities/md.users/9')
+      .flush({ detail: 'Not found' }, { status: 404, statusText: 'Not Found' });
     expect(found).toEqual([{ id: 4, name: 'Anna', login: 'anna' }]);
     expect(TestBed.inject(ToastService).toasts()).toHaveLength(0);
   });

@@ -10,7 +10,7 @@ import { TaskEditModalComponent } from './task-edit-modal.component';
 const TASK = {
   id: 7,
   title: 'Отчёт за январь',
-  statusId: 1,
+  statusCode: 's1',
   priority: 'medium',
   attributes: {},
   createdAt: '2026-09-01T00:00:00Z',
@@ -115,7 +115,7 @@ describe('TaskEditModalComponent', () => {
   });
 
   it('makes every control inert while the changes are being saved', () => {
-    const types = [{ id: 1, code: 'task', name: 'Задача', icon: 'task', color: '#000', orderNo: 1, isSystem: true }];
+    const types = [{ id: 1, code: 'task', name: 'Задача', icon: 'task', color: '#000', sortOrder: 1, system: true }];
     const { screen } = render({ editingTask: TASK, isSubmitting: true, taskTypes: types });
     const form = screen.querySelector('fieldset.task-edit-form') as HTMLFieldSetElement;
     const controls = [...form.querySelectorAll('input, select, textarea, button')] as HTMLElement[];

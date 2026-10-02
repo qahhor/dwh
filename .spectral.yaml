@@ -19,14 +19,15 @@ rules:
   smc-path-kebab-case:
     description: >-
       A path segment is lower-case kebab-case; a variable is camelCase. The segment after /entities/ may be the dotted
-      code of an entity (ADR-0032, 6.13: /api/v1/entities/ms.notes).
+      code of an entity (ADR-0032, 6.13: /api/v1/entities/ms.notes); the segment after /actions/ is the snake_case
+      code of a record action (/api/v1/entities/ms.tasks/{id}/actions/set_status), the key its texts are built on.
     severity: error
     given: $.paths
     then:
       field: '@key'
       function: pattern
       functionOptions:
-        match: '^(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))*(/entities/[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+)?(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))*$'
+        match: '^(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))*(/entities/[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+)?(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))*(/actions/[a-z][a-z0-9_]*)?$'
 
   smc-query-camel-case:
     description: A query parameter is camelCase; its snake_case name stays only as a deprecated alias.

@@ -319,7 +319,7 @@ describe('CommandPaletteComponent', () => {
     expect(event.defaultPrevented).toBe(false);
     expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
     option.click();
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/iam/users', '7']);
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/e/md.users', '7']);
   });
 
   it('supports the physical search shortcut on a non-Latin keyboard layout without repeating it', async () => {

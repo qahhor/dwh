@@ -27,6 +27,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 /** Real JDBC and Spring transactions; hooks surround real operations, only delivery/indexing are faked. */
@@ -105,12 +106,7 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
         context.registerBean(
                 MdUserSecurityService.class,
                 () -> new MdUserSecurityService(
-                        users,
-                        hasher,
-                        new PasswordValidator(),
-                        context.getBean(UserSessionInvalidator.class),
-                        mock(SearchChangePublisher.class),
-                        audit));
+                        users, hasher, new PasswordValidator(), context.getBean(UserSessionInvalidator.class), audit));
         var guard = new KauthCredentialGuard(sessions, tokens);
         context.registerBean(KauthApiTokenService.class, () -> new KauthApiTokenService(tokens, guard));
         context.registerBean(
@@ -190,6 +186,46 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
 
     KauthAuthService.LoginResult login(Long id, String password) {
         return auth.login(users.findById(id).orElseThrow().login(), password, "127.0.0.1", "test", "test");
+    }
+
+    /**
+     * The record action {@code anonymize} of the user entity as the runtime runs it, in one transaction: the account
+     * read, its fields replaced — the login and the e-mail are unique keys, so the row takes an update lock — then
+     * the credentials wiped and every access taken away ({@code MdUserHooks.afterSave}).
+     */
+    void anonymize(Long id) {
+        inTransaction(() -> {
+            var unused = users.findById(id).orElseThrow();
+            jdbc.sql("""
+                    update md_users
+                    set name = 'Deleted User ' || :id, login = 'deleted_' || :id,
+                        email = 'deleted_' || :id || '@anonymized.local', phone = null, state = 'P',
+                        revision = revision + 1
+                    where id = :id
+                    """).param("id", id).update();
+            userSecurityService.anonymizeCredentials(id);
+        });
+    }
+
+    /** The record actions {@code block}, then {@code unblock}, each in its transaction as the runtime runs them. */
+    void blockAndUnblock(Long id) {
+        inTransaction(() -> {
+            setState(id, "P");
+            userSecurityService.revokeAccess(id);
+        });
+        inTransaction(() -> setState(id, "A"));
+    }
+
+    private void setState(Long id, String state) {
+        jdbc.sql("update md_users set state = :state, revision = revision + 1 where id = :id")
+                .param("state", state)
+                .param("id", id)
+                .update();
+    }
+
+    private void inTransaction(Runnable work) {
+        new TransactionTemplate(context.getBean(PlatformTransactionManager.class))
+                .executeWithoutResult(status -> work.run());
     }
 
     long count(String table, Long id, String condition) {

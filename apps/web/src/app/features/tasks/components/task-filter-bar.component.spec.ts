@@ -7,8 +7,8 @@ import { TaskLookupsService } from '../services/task-lookups.service';
 import { TaskFilterBarComponent } from './task-filter-bar.component';
 
 const STATUSES = [
-  { id: 1, name: 'Новая', color: '#0284c7', isTerminal: false, orderNo: 1 },
-  { id: 3, name: 'Готово', color: '#16a34a', isTerminal: true, orderNo: 2 },
+  { id: 1, code: 's1', name: 'Новая', color: '#0284c7', terminal: false, sortOrder: 1 },
+  { id: 3, code: 's3', name: 'Готово', color: '#16a34a', terminal: true, sortOrder: 2 },
 ] as TaskStatus[];
 
 const PROJECTS = [
@@ -19,12 +19,12 @@ const PROJECTS = [
 /** The paged project list (plan 10/10, item 3.5): searched with q, one project read by id. */
 const api = {
   get: vi.fn((path: string, params?: Record<string, unknown>) => {
-    if (path === '/tasks/projects/page') {
+    if (path === '/entities/ms.projects') {
       const text = String(params?.['q'] ?? '').toLowerCase();
       const items = PROJECTS.filter((project) => project.name.toLowerCase().includes(text));
       return of({ items, nextCursor: null, hasMore: false });
     }
-    return of(PROJECTS.find((project) => path === `/tasks/projects/${project.id}`) ?? null);
+    return of(PROJECTS.find((project) => path === `/entities/ms.projects/${project.id}`) ?? null);
   }),
 };
 
@@ -85,7 +85,7 @@ describe('TaskFilterBarComponent', () => {
     expect(picked).toHaveBeenCalledWith('overdue');
   });
 
-  it('offers active, all and every status, and reports a status by its id', () => {
+  it('offers active, all and every status, and reports a status by its code', () => {
     const fixture = render();
     const chips = radios(fixture, 'Фильтр по статусу');
     const changed = vi.fn();
@@ -95,7 +95,7 @@ describe('TaskFilterBarComponent', () => {
     expect(chips[0].getAttribute('aria-checked')).toBe('true');
 
     chips[3].click();
-    expect(changed).toHaveBeenCalledWith(3);
+    expect(changed).toHaveBeenCalledWith('status:s3');
   });
 
   it('reports typed search text, a cleared field as a cleared search, and Enter as apply', () => {
@@ -146,7 +146,7 @@ describe('TaskFilterBarComponent', () => {
 
     trigger.click();
     fixture.detectChanges();
-    const read = api.get.mock.calls.find(([path]) => path === '/tasks/projects/page');
+    const read = api.get.mock.calls.find(([path]) => path === '/entities/ms.projects');
     expect(read?.[1]).toEqual(expect.objectContaining({ limit: 20 }));
     expect(api.get.mock.calls.some(([path]) => path === '/tasks/projects')).toBe(false);
   });

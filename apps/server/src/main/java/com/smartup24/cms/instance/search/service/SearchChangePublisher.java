@@ -40,23 +40,26 @@ public class SearchChangePublisher {
                 """).param("id", projectId).update();
     }
 
+    /** The tasks in the status, whose documents carry its name, are indexed again (a task keeps its status code). */
     public void statusChanged(long statusId) {
         barrier();
         jdbc.sql("""
                 insert into search_projection_versions(entity_type,entity_id,revision)
-                select 'TASK',id,1 from ms_tasks where status_id=:id order by id
+                select 'TASK',t.id,1 from ms_tasks t
+                join ms_task_statuses s on s.code=t.status_code and s.id=:id
+                order by t.id
                 on conflict(entity_type,entity_id) do update
                 set revision=search_projection_versions.revision+1, changed_at=clock_timestamp()
                 """).param("id", statusId).update();
     }
 
     /**
-     * Take before creating/moving a status membership. FK KEY SHARE alone does not
-     * conflict with a non-key name update; SHARE closes the phantom fan-out race.
+     * Take before creating/moving a status membership: a task keeps the status code (ADR-0032, 8), so no foreign key
+     * locks the status row; SHARE on the status in use with the code closes the phantom fan-out race with a rename.
      */
-    public void lockStatusMembership(long statusId) {
-        boolean present = jdbc.sql("select id from ms_task_statuses where id=:id for share")
-                .param("id", statusId)
+    public void lockStatusMembership(String statusCode) {
+        boolean present = jdbc.sql("select id from ms_task_statuses where code=:code and archived_at is null for share")
+                .param("code", statusCode)
                 .query(Long.class)
                 .optional()
                 .isPresent();

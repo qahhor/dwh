@@ -304,8 +304,7 @@ class MdOrgUnitWriteIntegrationTest {
                 "role-update",
                 "role-delete",
                 "assign-roles",
-                "user-create",
-                "user-update"
+                "user-create"
             })
     void scopeWritersWaitForMutationLockBeforeTakingRowWriteLocks(String operation) throws Exception {
         Long node = unit(root),
@@ -385,20 +384,6 @@ class MdOrgUnitWriteIntegrationTest {
                                     List.of(role),
                                     null);
                         }
-                        case "user-update" ->
-                            userService.updateUser(
-                                    user,
-                                    "Updated",
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    List.of(unusedRole),
-                                    null,
-                                    users.findById(user).orElseThrow().revision());
                         default -> throw new AssertionError(operation);
                     }
                 })));

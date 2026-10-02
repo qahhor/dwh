@@ -1,0 +1,151 @@
+<div class="security-tab-content" data-testid="user-security-tab">
+  @if (security.isLoadingSecurity() && !summary()) {
+    <div class="security-loading" role="status">
+      <span class="material-symbols-outlined spin-icon" aria-hidden="true">sync</span>
+      <span>{{ 'common.loading' | t }}</span>
+    </div>
+  }
+
+  @if (summary(); as sec) {
+    <div class="sec-metrics-grid">
+      <div class="sec-metric-card">
+        <span class="sec-metric-lbl">{{ 'iam.common.two_factor_status' | t }}</span>
+        <span class="sec-metric-badge" [class.success]="sec.is2faEnabled" [class.muted]="!sec.is2faEnabled">
+          <span class="material-symbols-outlined metric-icon" aria-hidden="true">{{
+            sec.is2faEnabled ? 'lock' : 'lock_open'
+          }}</span>
+          {{ (sec.is2faEnabled ? 'iam.users.enabled_feminine' : 'iam.users.disabled_feminine') | t }}
+        </span>
+      </div>
+      <div class="sec-metric-card">
+        <span class="sec-metric-lbl">{{ 'iam.common.force_password_change' | t }}</span>
+        <span
+          class="sec-metric-badge"
+          [class.warning]="sec.forcePasswordChange"
+          [class.success]="!sec.forcePasswordChange"
+        >
+          <span class="material-symbols-outlined metric-icon" aria-hidden="true">{{
+            sec.forcePasswordChange ? 'priority_high' : 'check'
+          }}</span>
+          {{ (sec.forcePasswordChange ? 'iam.users.detail.required' : 'iam.users.detail.not_required') | t }}
+        </span>
+      </div>
+      <div class="sec-metric-card">
+        <span class="sec-metric-lbl">{{ 'iam.users.detail.active_sessions_count' | t }}</span>
+        <span class="sec-metric-val">{{ sec.activeSessionsCount }}</span>
+      </div>
+      <div class="sec-metric-card">
+        <span class="sec-metric-lbl">{{ 'iam.users.detail.security_version' | t }}</span>
+        <span class="sec-metric-val font-mono">v{{ sec.authVersion }}</span>
+      </div>
+    </div>
+
+    @if (canCloseSessions()) {
+      <div class="sec-actions-bar">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="logout"
+          data-testid="user-close-sessions"
+          [disabled]="security.isSecurityActionPending() || sec.activeSessionsCount === 0"
+          (click)="closeAll()"
+        >
+          {{ 'iam.users.terminate_all_sessions' | t }}
+        </button>
+      </div>
+    }
+
+    <section class="sec-section">
+      <div class="sec-section-title">
+        <span class="material-symbols-outlined sec-title-icon" aria-hidden="true">devices</span>
+        <h2>{{ 'iam.common.active_sessions' | t }}</h2>
+        <span class="count-pill">{{ sec.activeSessions.length }}</span>
+      </div>
+      @if (sec.activeSessions.length === 0) {
+        <div class="sec-empty-state">
+          <p>{{ 'iam.common.no_active_sessions' | t }}</p>
+        </div>
+      } @else {
+        <div class="sec-table-scroll">
+          <ui-local-table
+            data-testid="user-sessions-table"
+            [rows]="sessions()"
+            [config]="sessionsConfig()"
+            [sortValues]="sessionSortValues"
+          />
+        </div>
+      }
+    </section>
+
+    <section class="sec-section">
+      <div class="sec-section-title">
+        <span class="material-symbols-outlined sec-title-icon" aria-hidden="true">history</span>
+        <h2>{{ 'iam.users.detail.login_attempts_history' | t }}</h2>
+        <span class="count-pill">{{ sec.recentLoginAttempts.length }}</span>
+      </div>
+      @if (sec.recentLoginAttempts.length === 0) {
+        <div class="sec-empty-state">
+          <p>{{ 'iam.users.detail.no_login_attempts' | t }}</p>
+        </div>
+      } @else {
+        <div class="sec-table-scroll">
+          <ui-local-table
+            data-testid="user-login-attempts-table"
+            [rows]="attempts()"
+            [config]="attemptsConfig()"
+            [sortValues]="attemptSortValues"
+          />
+        </div>
+      }
+    </section>
+  }
+</div>
+
+<ng-template #sessionIpCell let-s
+  ><span class="font-mono text-xs">{{ s.ip }}</span></ng-template
+>
+<ng-template #sessionAgentCell let-s
+  ><span class="text-xs text-truncate" [title]="s.userAgent">{{ s.userAgent || '—' }}</span></ng-template
+>
+<ng-template #sessionCreatedCell let-s
+  ><span class="font-mono text-xs text-muted">{{ s.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span></ng-template
+>
+<ng-template #sessionSeenCell let-s
+  ><span class="font-mono text-xs text-muted">{{ s.lastSeenAt | date: 'dd.MM.yyyy HH:mm' }}</span></ng-template
+>
+<ng-template #sessionActionCell let-s>
+  <div class="text-right">
+    @if (canCloseSessions()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIconOnly
+        smtIcon="close"
+        class="danger"
+        [title]="'iam.users.detail.terminate_session' | t"
+        [attr.aria-label]="'iam.terminate_session_ip_named' | t: { ip: s.ip }"
+        [disabled]="security.isSecurityActionPending()"
+        (click)="close(s)"
+      ></button>
+    }
+  </div>
+</ng-template>
+<ng-template #attemptTimeCell let-att
+  ><span class="font-mono text-xs text-muted">{{ att.attemptAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span></ng-template
+>
+<ng-template #attemptIpCell let-att
+  ><span class="font-mono text-xs">{{ att.ip }}</span></ng-template
+>
+<ng-template #attemptStatusCell let-att>
+  <span class="status-indicator" [class.active]="att.isSuccess" [class.danger-dot]="!att.isSuccess">
+    <span class="dot" aria-hidden="true"></span>
+    {{ attemptStatus(att) }}
+  </span>
+</ng-template>
+<ng-template #attemptReasonCell let-att
+  ><span class="text-xs text-muted">{{ att.failureReason || '—' }}</span></ng-template
+>

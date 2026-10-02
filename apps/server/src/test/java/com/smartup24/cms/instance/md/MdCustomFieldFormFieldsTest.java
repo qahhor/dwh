@@ -41,7 +41,7 @@ class MdCustomFieldFormFieldsTest {
         assertThat(topic.attribute()).isEqualTo("topic");
         assertThat(fields.get(1).options()).containsExactly("a", "b");
         assertThat(fields.get(2).type()).isEqualTo(FieldType.REF);
-        assertThat(fields.get(2).ref().path()).isEqualTo("/iam/users");
+        assertThat(fields.get(2).ref().path()).isEqualTo("/entities/md.users");
         // Plan 10/10, item 5.0: a moment and a time of day.
         assertThat(fields.get(3).type()).isEqualTo(FieldType.DATETIME);
         assertThat(fields.get(4).type()).isEqualTo(FieldType.TIME);

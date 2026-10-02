@@ -206,11 +206,14 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
     @DisplayName("3.6: a reset of 2FA raises the user's revision, so a form opened before it gets 409")
     void securityActionRaisesTheRevision() throws Exception {
         Session admin = login(user());
-        String target = "/api/v1/iam/users/" + userId(user());
+        long id = userId(user());
+        String target = "/api/v1/entities/md.users/" + id;
+        String assignments = "/api/v1/iam/users/" + id;
         long read = revisionOf(admin, target);
 
-        MockHttpServletResponse reset = send(admin, post(target + "/reset-2fa"), null);
-        assertThat(reset.getStatus()).as(reset.getContentAsString()).isEqualTo(204);
+        MockHttpServletResponse reset =
+                send(admin, post(target + "/actions/reset_2fa").header("If-Match", Revisions.etag(read)), null);
+        assertThat(reset.getStatus()).as(reset.getContentAsString()).isEqualTo(200);
 
         MockHttpServletResponse stale =
                 send(admin, patch(target).header("If-Match", Revisions.etag(read)), Map.of("name", "Stale form"));
@@ -221,42 +224,55 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
         assertThat(now).isGreaterThan(read);
         MockHttpServletResponse fresh =
                 send(admin, patch(target).header("If-Match", Revisions.etag(now)), Map.of("name", "Fresh form"));
-        assertThat(fresh.getStatus()).as(fresh.getContentAsString()).isEqualTo(204);
+        assertThat(fresh.getStatus()).as(fresh.getContentAsString()).isEqualTo(200);
         assertThat(fresh.getHeader("ETag")).isEqualTo(Revisions.etag(now + 1));
 
         // The personal rights are part of the user: saved from its revision, 428 without one, 409 from a stale one.
         Map<String, Object> grants = Map.of("grants", List.of());
-        assertThat(send(admin, put(target + "/permissions"), grants).getStatus())
+        assertThat(send(admin, put(assignments + "/permissions"), grants).getStatus())
                 .isEqualTo(428);
-        assertThat(send(admin, put(target + "/permissions").header("If-Match", Revisions.etag(now)), grants)
+        assertThat(send(admin, put(assignments + "/permissions").header("If-Match", Revisions.etag(now)), grants)
                         .getStatus())
                 .isEqualTo(409);
         MockHttpServletResponse rights =
-                send(admin, put(target + "/permissions").header("If-Match", Revisions.etag(now + 1)), grants);
+                send(admin, put(assignments + "/permissions").header("If-Match", Revisions.etag(now + 1)), grants);
         assertThat(rights.getStatus()).as(rights.getContentAsString()).isEqualTo(200);
         assertThat(rights.getHeader("ETag")).isEqualTo(Revisions.etag(now + 2));
     }
 
     @Test
-    @DisplayName("3.6: a reorder raises the revision of every status it moves, so a stale edit gets 409")
-    void reorderRaisesTheRevision() throws Exception {
+    @DisplayName("3.6: a move raises the revision of every status it shifts, so a stale edit gets 409")
+    void moveRaisesTheRevision() throws Exception {
         Session admin = login(user());
-        List<Map<String, Object>> before = list(send(admin, get("/api/v1/tasks/statuses"), null));
-        List<Long> ids =
-                before.stream().map(row -> ((Number) row.get("id")).longValue()).toList();
+        String statuses = "/api/v1/entities/ms.task_statuses";
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> before = (List<Map<String, Object>>)
+                object(send(admin, get(statuses), null)).get("items");
         Map<String, Object> first = before.getFirst();
+        Map<String, Object> last = before.getLast();
         long read = ((Number) first.get("revision")).longValue();
+        long lastRevision = ((Number) last.get("revision")).longValue();
         try {
-            MockHttpServletResponse reordered = send(admin, post("/api/v1/tasks/statuses/reorder"), ids.reversed());
-            assertThat(reordered.getStatus()).as(reordered.getContentAsString()).isLessThan(300);
+            MockHttpServletResponse moved = send(
+                    admin,
+                    post(statuses + "/" + last.get("id") + "/actions/move")
+                            .header("If-Match", Revisions.etag(lastRevision)),
+                    Map.of("position", 1));
+            assertThat(moved.getStatus()).as(moved.getContentAsString()).isEqualTo(200);
 
             MockHttpServletResponse stale = send(
                     admin,
-                    patch("/api/v1/tasks/statuses/" + first.get("id")).header("If-Match", Revisions.etag(read)),
+                    patch(statuses + "/" + first.get("id")).header("If-Match", Revisions.etag(read)),
                     Map.of("color", "#123456"));
             assertThat(stale.getStatus()).isEqualTo(409);
         } finally {
-            send(admin, post("/api/v1/tasks/statuses/reorder"), ids);
+            long now = ((Number) object(send(admin, get(statuses + "/" + last.get("id")), null))
+                            .get("revision"))
+                    .longValue();
+            send(
+                    admin,
+                    post(statuses + "/" + last.get("id") + "/actions/move").header("If-Match", Revisions.etag(now)),
+                    Map.of("position", before.size()));
         }
     }
 
@@ -316,7 +332,7 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
         // The units are part of the user: a profile form opened before the change is stale too.
         assertThat(send(
                                 admin,
-                                patch("/api/v1/iam/users/" + userId).header("If-Match", Revisions.etag(read)),
+                                patch("/api/v1/entities/md.users/" + userId).header("If-Match", Revisions.etag(read)),
                                 Map.of("name", "Stale form"))
                         .getStatus())
                 .isEqualTo(409);
@@ -388,11 +404,6 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
                 .param("login", login)
                 .query(Long.class)
                 .single();
-    }
-
-    @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> list(MockHttpServletResponse response) throws Exception {
-        return JSON.readValue(response.getContentAsString(StandardCharsets.UTF_8), List.class);
     }
 
     private long note(Session s) throws Exception {

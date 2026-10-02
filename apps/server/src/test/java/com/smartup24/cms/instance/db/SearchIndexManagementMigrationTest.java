@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.db.SchemaVersionGate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -190,9 +191,35 @@ class SearchIndexManagementMigrationTest {
         }
     }
 
+    /**
+     * The business values of a table: every column but the revision, and for the tasks and projects the columns that
+     * outlive the move of both to the general runtime (ADR-0032, 8), which replaces their status and state columns.
+     */
     private static List<String> snapshot(JdbcClient jdbc, String table) {
-        return jdbc.sql("select (to_jsonb(t) - 'revision')::text from " + table + " t order by id")
+        List<String> kept = KEPT_COLUMNS.get(table);
+        String row = kept == null
+                ? "to_jsonb(t) - 'revision'"
+                : "(select jsonb_object_agg(e.key, e.value) from jsonb_each(to_jsonb(t)) e where e.key in ('"
+                        + String.join("','", kept) + "'))";
+        return jdbc.sql("select (" + row + ")::text from " + table + " t order by id")
                 .query(String.class)
                 .list();
     }
+
+    private static final Map<String, List<String>> KEPT_COLUMNS = Map.of(
+            "ms_task_projects",
+            List.of("id", "name", "description", "attributes", "created_at", "created_by"),
+            "ms_tasks",
+            List.of(
+                    "id",
+                    "title",
+                    "description_markdown",
+                    "priority",
+                    "project_id",
+                    "parent_task_id",
+                    "reporter_id",
+                    "attributes",
+                    "begin_time",
+                    "end_time",
+                    "created_at"));
 }

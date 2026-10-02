@@ -67,7 +67,9 @@ class EntityScopeDeclaredTest extends EmbeddedPostgresTest {
         assertThat(review)
                 .as("every entity the application runs, with its scope for review")
                 .hasSameSizeAs(entities)
-                .containsEntry("ms.notes", "owner(created_by)");
+                .containsEntry("ms.notes", "owner(created_by)")
+                // ADR-0013 for users: a home or an additional unit in the viewer's scope, SELF — oneself.
+                .containsEntry("md.users", "custom(users)");
         assertThat(problems).as("scopes: %s", review).isEmpty();
     }
 

@@ -209,15 +209,15 @@ export class TasksComponent implements OnInit, OnDestroy {
     );
   }
 
-  updateStatus(taskId: number, newStatusId: number) {
+  updateStatus(taskId: number, newStatusCode: string) {
     this.kanbanService.updateStatus(
       taskId,
-      newStatusId,
+      newStatusCode,
       this.taskRevision(taskId),
-      () => this.applyStatusToVisibleTasks(taskId, newStatusId),
+      () => this.applyStatusToVisibleTasks(taskId, newStatusCode),
       () => {
         if (this.selectedTask()?.id === taskId) {
-          this.selectedTask.update((t) => (t ? { ...t, statusId: newStatusId } : null));
+          this.selectedTask.update((t) => (t ? { ...t, statusCode: newStatusCode } : null));
         }
         this.bumpRevision(taskId);
       },
@@ -225,15 +225,15 @@ export class TasksComponent implements OnInit, OnDestroy {
     );
   }
 
-  executeStatusChange(task: Task, targetStatusId: number) {
+  executeStatusChange(task: Task, targetStatusCode: string) {
     this.kanbanService.executeStatusChange(
       task,
-      targetStatusId,
-      this.presenter.getStatusName(targetStatusId),
-      () => this.applyStatusToVisibleTasks(task.id, targetStatusId),
+      targetStatusCode,
+      this.presenter.getStatusName(targetStatusCode),
+      () => this.applyStatusToVisibleTasks(task.id, targetStatusCode),
       () => {
         if (this.selectedTask()?.id === task.id) {
-          this.selectedTask.update((t) => (t ? { ...t, statusId: targetStatusId } : null));
+          this.selectedTask.update((t) => (t ? { ...t, statusCode: targetStatusCode } : null));
         }
       },
       () => this.list.loadTasks(true),
@@ -348,16 +348,16 @@ export class TasksComponent implements OnInit, OnDestroy {
     });
   }
 
-  onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusId: number) {
-    this.kanbanService.onTaskDrop(event, targetStatusId, this.canUpdateTask(), (task, sId) =>
+  onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusCode: string) {
+    this.kanbanService.onTaskDrop(event, targetStatusCode, this.canUpdateTask(), (task, sId) =>
       this.executeStatusChange(task, sId),
     );
   }
 
-  private applyStatusToVisibleTasks(taskId: number, statusId: number) {
+  private applyStatusToVisibleTasks(taskId: number, statusCode: string) {
     this.kanbanService.applyStatusToVisibleTasks(
       taskId,
-      statusId,
+      statusCode,
       this.statuses(),
       this.filterService.statusFilterMode,
       this.tasks,

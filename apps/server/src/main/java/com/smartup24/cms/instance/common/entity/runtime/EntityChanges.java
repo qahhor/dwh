@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.field.FieldSource;
 import com.smartup24.cms.instance.common.entity.field.FieldType;
+import com.smartup24.cms.instance.common.entity.hook.EntityArchive;
 import com.smartup24.cms.instance.common.entity.hook.EntityDelete;
 import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
 import com.smartup24.cms.instance.common.entity.store.EntityStoreRepository;
@@ -68,6 +69,10 @@ public class EntityChanges {
 
     void afterDelete(EntityDelete delete) {
         hooks(delete.entity()).ifPresent(hook -> hook.afterDelete(delete));
+    }
+
+    void beforeArchive(EntityArchive archive) {
+        hooks(archive.entity()).ifPresent(hook -> hook.beforeArchive(archive));
     }
 
     /** The problems a hook or an action's handler added: one 422, which rolls the save back. */

@@ -68,7 +68,7 @@ public class SearchFallbackRepository {
                 .sql("""
                 select t.id, t.title, t.priority, s.name as status_name, p.name as project_name
                 from ms_task_pub_tasks t
-                left join ms_task_pub_statuses s on s.id = t.status_id
+                left join ms_task_pub_statuses s on s.code = t.status_code
                 left join ms_task_pub_projects p on p.id = t.project_id
                 where t.title ilike any(:patterns)
                    or t.description_markdown ilike any(:patterns)
@@ -94,7 +94,7 @@ public class SearchFallbackRepository {
                 .sql("""
                 select id, name, description
                 from ms_task_pub_projects
-                where state = 'A'
+                where not archived
                   and (name ilike any(:patterns) or description ilike any(:patterns))
                 order by (name ilike :primary) desc, id
                 limit :limit
@@ -164,7 +164,7 @@ public class SearchFallbackRepository {
                 .sql("""
                 select t.id, t.title, t.priority, s.name as status_name, p.name as project_name
                 from ms_task_pub_tasks t
-                left join ms_task_pub_statuses s on s.id = t.status_id
+                left join ms_task_pub_statuses s on s.code = t.status_code
                 left join ms_task_pub_projects p on p.id = t.project_id
                 where t.id = :id
                 order by t.id
@@ -183,7 +183,7 @@ public class SearchFallbackRepository {
         return jdbcClient
                 .sql("""
                 select id, name, description from ms_task_pub_projects
-                where id = :id and state = 'A' order by id
+                where id = :id and not archived order by id
                 """)
                 .param("id", id)
                 .query((rs, rowNum) -> new FallbackHit(
@@ -238,7 +238,7 @@ public class SearchFallbackRepository {
 
     private static FallbackHit userHit(long id, String name, String login, String email) {
         return new FallbackHit(
-                "USER", Long.toString(id), name, bounded(email + " (@" + login + ")"), "/iam/users/" + id);
+                "USER", Long.toString(id), name, bounded(email + " (@" + login + ")"), "/e/md.users/" + id);
     }
 
     private static List<String> requestedTypes(String entityType) {

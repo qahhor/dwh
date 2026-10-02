@@ -217,6 +217,14 @@ public final class EntityFields {
             return from(new FieldSource.Link(table, ownerColumn, targetColumn));
         }
 
+        /**
+         * A link table shared by several fields: the field's rows are the ones whose {@code kindColumn} holds
+         * {@code kind} ({@code involve_kind = 'E'} for the executors of a task).
+         */
+        public Builder link(String table, String ownerColumn, String targetColumn, String kindColumn, String kind) {
+            return from(new FieldSource.Link(table, ownerColumn, targetColumn, kindColumn, kind));
+        }
+
         public Builder required() {
             this.required = true;
             return this;

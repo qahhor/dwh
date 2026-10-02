@@ -3,16 +3,15 @@ import { firstValueFrom, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import type { QueryRefMeta } from '@core/models/query-meta.models';
 import { ApiService } from '@core/services/api.service';
-import { LookupSources } from './lookup-sources';
+import { LookupSources, USERS_PATH } from './lookup-sources';
 import { RefLookups } from './ref-lookup';
 
-const USERS: QueryRefMeta = { path: '/iam/users', labelField: 'name', keyField: 'id', paged: true };
+const USERS: QueryRefMeta = { path: USERS_PATH, labelField: 'name', keyField: 'id', paged: true };
 const PROJECTS: QueryRefMeta = {
-  path: '/tasks/projects/page',
+  path: '/entities/ms.projects',
   labelField: 'name',
   keyField: 'id',
   paged: true,
-  readPath: '/tasks/projects',
 };
 const UNITS: QueryRefMeta = { path: '/org/units', labelField: 'title', keyField: 'code', paged: false };
 
@@ -46,7 +45,7 @@ describe('RefLookups', () => {
 
     expect(refs.name(UNITS, 'hq')).toBe('Головной офис');
     expect(refs.name(PROJECTS, 7)).toBe('Проект А');
-    expect(get).toHaveBeenCalledWith('/tasks/projects/7', undefined, { notifyError: false });
+    expect(get).toHaveBeenCalledWith('/entities/ms.projects/7', undefined, { notifyError: false });
     expect(get).toHaveBeenCalledTimes(2);
     expect(refs.name(UNITS, null)).toBeNull();
   });

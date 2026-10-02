@@ -9,14 +9,17 @@ import { TaskDetailsService } from './task-details.service';
 const task = (id: number, title = `Task ${id}`): Task => ({
   id,
   title,
-  statusId: 1,
+  typeCode: 'task',
+  statusCode: 's1',
   priority: 'medium',
   attributes: {},
   createdAt: '2026-09-05T00:00:00Z',
 });
 const comment = (id: number, taskId: number): TaskComment =>
   ({ id, taskId, userId: 1, userName: null, userLogin: null, textMarkdown: `c${id}`, createdAt: '' }) as TaskComment;
-const detail = (t: Task, subtasks: Task[] = []) => ({ task: t, members: [], subtasks, ancestors: [], files: [] });
+/** The task list on the general runtime (ADR-0032 8), one task's record and the subtasks read from the list. */
+const LIST = '/entities/ms.tasks';
+const record = (id: number) => `${LIST}/${id}`;
 const FILE = { fileId: 'file-1', fileName: 'one.txt', sizeBytes: 3, mimeType: 'text/plain', createdAt: '' };
 
 /** Opened from the list: no record in the address and no edit dialog in the way. */
@@ -34,7 +37,7 @@ describe('TaskDetailsService', () => {
   beforeEach(() => {
     responses = {};
     api = {
-      get: vi.fn((path: string) => responses[path] ?? of([])),
+      get: vi.fn((path: string) => responses[path] ?? of(path === LIST ? page([]) : [])),
       post: vi.fn((path: string) => responses[`POST ${path}`] ?? of({})),
       delete: vi.fn(() => of({})),
     };
@@ -48,12 +51,19 @@ describe('TaskDetailsService', () => {
   });
 
   it('shows the fresh card and its comments, and keeps only comments of that task', () => {
-    responses['/tasks/2'] = of(detail(task(2, 'Fresh'), [task(21)]));
+    responses[record(2)] = of(task(2, 'Fresh'));
+    responses[LIST] = of(page([task(21)]));
     responses['/tasks/2/comments'] = of(page([comment(1, 2), comment(2, 9)]));
 
     open(task(2));
 
-    expect(api.get).toHaveBeenCalledWith('/tasks/2', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith(record(2), undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/tasks/2/members', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith(
+      LIST,
+      { filter: JSON.stringify([{ field: 'parentTaskId', op: 'eq', value: 2 }]), limit: 100 },
+      { notifyError: false },
+    );
     expect(details.selectedTask()?.title).toBe('Fresh');
     expect(details.taskSubtasks().map((t) => t.id)).toEqual([21]);
     expect(details.comments().map((c) => c.id)).toEqual([1]);
@@ -63,7 +73,7 @@ describe('TaskDetailsService', () => {
   });
 
   it('reads a long thread a page at a time and appends the next page below the first', () => {
-    responses['/tasks/2'] = of(detail(task(2, 'Long')));
+    responses[record(2)] = of(task(2, 'Long'));
     responses['/tasks/2/comments'] = of({ items: [comment(1, 2)], nextCursor: 'c2', hasMore: true });
 
     open(task(2));
@@ -81,17 +91,17 @@ describe('TaskDetailsService', () => {
   it('ignores out-of-order detail and comment responses for a previously selected task', () => {
     const [detail1, detail2, comments1, comments2] = [1, 2, 3, 4].map(() => new Subject<unknown>());
     Object.assign(responses, {
-      '/tasks/1': detail1,
-      '/tasks/2': detail2,
+      [record(1)]: detail1,
+      [record(2)]: detail2,
       '/tasks/1/comments': comments1,
       '/tasks/2/comments': comments2,
     });
 
     open(task(1));
     open(task(2));
-    detail2.next(detail(task(2, 'Fresh 2')));
+    detail2.next(task(2, 'Fresh 2'));
     comments2.next(page([comment(20, 2)]));
-    detail1.next(detail(task(1, 'Late 1'), [task(11)]));
+    detail1.next(task(1, 'Late 1'));
     comments1.next(page([comment(10, 1)]));
 
     expect(details.selectedTask()?.title).toBe('Fresh 2');
@@ -101,11 +111,11 @@ describe('TaskDetailsService', () => {
 
   it('ignores detail and comment responses after the card closes', () => {
     const [late, lateComments] = [new Subject<unknown>(), new Subject<unknown>()];
-    Object.assign(responses, { '/tasks/3': late, '/tasks/3/comments': lateComments });
+    Object.assign(responses, { [record(3)]: late, '/tasks/3/comments': lateComments });
 
     open(task(3));
     details.closeTaskDetails(true, onList, vi.fn());
-    late.next(detail(task(3, 'Late'), [task(30)]));
+    late.next(task(3, 'Late'));
     lateComments.next(page([comment(30, 3)]));
 
     expect(details.selectedTask()).toBeNull();
@@ -114,12 +124,12 @@ describe('TaskDetailsService', () => {
   });
 
   it('marks a missing or forbidden card as not found, and a mismatched answer as an error', () => {
-    responses['/tasks/4'] = new Observable((subscriber) => subscriber.error({ status: 404 }));
+    responses[record(4)] = new Observable((subscriber) => subscriber.error({ status: 404 }));
     open(task(4));
     expect(details.detailLoadError()).toBe(true);
     expect(details.detailNotFound()).toBe(true);
 
-    responses['/tasks/4'] = of(detail(task(5)));
+    responses[record(4)] = of(task(5));
     details.retryTaskDetails(onList);
     expect(details.detailLoadError()).toBe(true);
     expect(details.detailNotFound()).toBe(false);

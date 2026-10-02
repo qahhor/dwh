@@ -23,13 +23,13 @@ describe('TaskLookupsService', () => {
     lookups.users.page('ann', null, 50).subscribe();
     lookups.tasks.page('Outside', 'c1', 50).subscribe();
     expect(api.get).toHaveBeenCalledWith(
-      '/iam/users',
-      { state: 'A', limit: 50, cursor: undefined, search: 'ann' },
+      '/entities/md.users',
+      { filter: JSON.stringify([{ field: 'state', op: 'eq', value: 'A' }]), limit: 50, cursor: undefined, q: 'ann' },
       { notifyError: false },
     );
     expect(api.get).toHaveBeenCalledWith(
-      '/tasks',
-      { limit: 50, cursor: 'c1', search: 'Outside' },
+      '/entities/ms.tasks',
+      { limit: 50, cursor: 'c1', q: 'Outside' },
       { notifyError: false },
     );
     expect(lookups.tasks.option({ id: 12, title: 'Report' })).toEqual({ label: '#12 Report', icon: 'task_alt' });
@@ -39,7 +39,7 @@ describe('TaskLookupsService', () => {
     api.get.mockReturnValue(of({ items: [], nextCursor: null, hasMore: false }));
     lookups.projects.page('skl', null, 50).subscribe();
     expect(api.get).toHaveBeenCalledWith(
-      '/tasks/projects/page',
+      '/entities/ms.projects',
       { limit: 20, cursor: undefined, q: 'skl' },
       { notifyError: false },
     );
@@ -76,17 +76,17 @@ describe('TaskLookupsService', () => {
     lookups.resolveUserNames([501, 502, 502, 0, -3]);
     lookups.resolveUserNames([502]);
     expect(api.get).toHaveBeenCalledTimes(1);
-    expect(api.get).toHaveBeenCalledWith('/iam/users/502', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/entities/md.users/502', undefined, { notifyError: false });
     answer.next({ id: 502, name: 'Resolved', login: 'u502' });
     answer.complete();
     expect(lookups.nameOf(502)).toBe('Resolved');
   });
 
-  it('reads a chosen parent from its card', () => {
-    api.get.mockReturnValue(of({ task: { id: 999, title: 'Remote Parent' }, members: [] }));
+  it('reads a chosen parent by its id from the runtime', () => {
+    api.get.mockReturnValue(of({ id: 999, title: 'Remote Parent' }));
     let found: readonly unknown[] = [];
     lookups.tasks.resolve!([999]).subscribe((rows) => (found = rows));
-    expect(api.get).toHaveBeenCalledWith('/tasks/999', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/entities/ms.tasks/999', undefined, { notifyError: false });
     expect(found).toEqual([{ id: 999, title: 'Remote Parent' }]);
   });
 });

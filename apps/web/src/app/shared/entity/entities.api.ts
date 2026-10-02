@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { EMPTY, Observable, expand, map, reduce } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
 import type { FileValue } from '@core/services/field-values';
 import type { ApiSchema } from '@core/api/api-schema';
@@ -37,6 +37,18 @@ export class EntitiesApi {
   page(code: string, query: ListQuery, cursor: string | null, limit: number): Observable<KeysetPage<EntityRecord>> {
     const params = { limit, ...(cursor ? { cursor } : {}), ...toQueryParams(query) };
     return this.api.get<KeysetPage<EntityRecord>>(path(code), params, { notifyError: false });
+  }
+
+  /**
+   * Every record of a short list — a reference entity holds at most 500 items (ADR-0032 4.5) — in its default order,
+   * page after page of the largest size.
+   */
+  all(code: string, query: ListQuery = {}): Observable<EntityRecord[]> {
+    const page = (cursor: string | null) => this.page(code, query, cursor, ALL_PAGE);
+    return page(null).pipe(
+      expand((current) => (current.hasMore && current.nextCursor ? page(current.nextCursor) : EMPTY)),
+      reduce((items, current) => items.concat(current.items), [] as EntityRecord[]),
+    );
   }
 
   /** One record as it is now; a record out of the viewer's scope is a 404, like one that does not exist. */
@@ -123,6 +135,9 @@ export class EntitiesApi {
     return this.api.post<BulkResult>(`${path(code)}/bulk`, { action, ids }, { notifyError: false });
   }
 }
+
+/** The largest page of a list (ADR-0016). */
+const ALL_PAGE = 200;
 
 function path(code: string, id?: number): string {
   const base = `/entities/${encodeURIComponent(code)}`;

@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { permissionGuard } from './core/services/permission.service';
-import { projectRecordMatcher, taskRecordMatcher, userRecordMatcher } from './core/services/search-target';
+import { projectRecordMatcher, taskRecordMatcher } from './core/services/search-target';
 import { recordNavigationGuard } from './core/guards/record-navigation.guard';
 import { uplFormatMatcher, uplSourceMatcher } from './features/upl/upl-routes';
 
@@ -37,11 +37,6 @@ export const routes: Routes = [
         matcher: taskRecordMatcher,
         canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/tasks/tasks.component').then((m) => m.TasksComponent),
-      },
-      {
-        matcher: userRecordMatcher,
-        canDeactivate: [recordNavigationGuard],
-        loadComponent: () => import('./features/iam/users/users.component').then((m) => m.UsersComponent),
       },
       {
         path: 'iam/roles',
@@ -141,7 +136,7 @@ export const routes: Routes = [
         // The general screen of every declared entity (ADR-0032 7.1): a new entity needs no route of its own.
         path: 'e/:code',
         canActivate: [entityGuard],
-        loadChildren: () => import('./shared/entity/page/entity.routes').then((m) => m.ENTITY_ROUTES),
+        loadChildren: () => import('./features/entity-screens.routes').then((m) => m.ENTITY_SCREEN_ROUTES),
       },
       {
         path: 'settings/modules',

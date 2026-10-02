@@ -162,8 +162,7 @@ class ReportExportIntegrationTest {
         Long outsider = user("outsider", null);
         Long first = task("Первая", outsider, outsider);
         Long second = task("Завершённая", outsider, outsider);
-        jdbc.sql(
-                        "update ms_tasks set status_id = (select id from ms_task_statuses where pcode = 'done'), resolved_time = now() where id = :id")
+        jdbc.sql("update ms_tasks set status_code = 'done', resolved_time = now() where id = :id")
                 .param("id", second)
                 .update();
         signIn(viewer, Set.of("*.*"), false);
@@ -288,7 +287,8 @@ class ReportExportIntegrationTest {
                 .param("project", project)
                 .param("id", taskId)
                 .update();
-        jdbc.sql("update ms_task_statuses set name = :name where id = (select status_id from ms_tasks where id = :id)")
+        jdbc.sql(
+                        "update ms_task_statuses set name = :name where code = (select status_code from ms_tasks where id = :id)")
                 .param("name", text)
                 .param("id", taskId)
                 .update();
@@ -405,9 +405,9 @@ class ReportExportIntegrationTest {
 
     private static Long task(String title, Long creator, Long reporter) {
         return jdbc.sql("""
-                insert into ms_tasks (title, description_markdown, status_id, priority, reporter_id,
+                insert into ms_tasks (title, description_markdown, priority, reporter_id,
                                       attributes, created_by, modified_by, created_at)
-                values (:title, '', (select id from ms_task_statuses order by id limit 1), 'medium', :reporter,
+                values (:title, '', 'medium', :reporter,
                         '{}', :creator, :creator, '2026-09-05T08:30:00Z') returning id
                 """)
                 .param("title", title)

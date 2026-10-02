@@ -1,129 +1,77 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
-import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
-import com.smartup24.cms.instance.common.web.Revisions;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.databind.ObjectMapper;
 
+/**
+ * What the project hooks, member actions and reads of the module need besides the project record, which the general
+ * runtime keeps ({@code ms.projects}, ADR-0032, 8): whether a name is taken, the members of a project, and which of
+ * some projects a viewer may see.
+ */
 @Repository
 public class MsProjectRepository {
 
     private final JdbcClient jdbcClient;
-    private final ObjectMapper objectMapper;
-    private final JsonColumns jsonColumns;
 
-    public MsProjectRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
+    public MsProjectRepository(JdbcClient jdbcClient) {
         this.jdbcClient = jdbcClient;
-        this.objectMapper = objectMapper;
-        this.jsonColumns = new JsonColumns(objectMapper, "ms_task_projects");
     }
 
-    public ProjectRecord create(
-            String name, String description, String state, Map<String, Object> attributes, Long createdBy) {
-        String attrsJson = jsonColumns.object(attributes);
-
+    /** Whether a project in use other than {@code exceptId} already has the name. */
+    public boolean nameTaken(String name, long exceptId) {
         return jdbcClient
-                .sql("""
-                insert into ms_task_projects (name, description, state, attributes, created_at, created_by)
-                values (:name, :description, :state, cast(:attributes as jsonb), now(), :createdBy)
-                returning id, name, description, state, attributes::text as attributes_str, created_at, created_by, revision
-                """)
-                .param("name", name.trim())
-                .param("description", description)
-                .param("state", state != null ? state : "A")
-                .param("attributes", attrsJson)
-                .param("createdBy", createdBy)
-                .query(this::mapRecord)
+                .sql("select exists (select 1 from ms_task_projects where name = :name and archived_at is null"
+                        + " and id <> :exceptId)")
+                .param("name", name)
+                .param("exceptId", exceptId)
+                .query(Boolean.class)
                 .single();
     }
 
-    public Optional<ProjectRecord> findById(Long id) {
-        return jdbcClient.sql("""
-                select id, name, description, state, attributes::text as attributes_str, created_at, created_by, revision
-                from ms_task_projects
-                where id = :id
-                """).param("id", id).query(this::mapRecord).optional();
+    /** Of {@code ids}, the projects the predicate lets the viewer see (its alias is {@code p}, ADR-0013). */
+    public List<Long> visible(Set<Long> ids, ScopeFilter scope) {
+        var query = jdbcClient
+                .sql("select p.id from ms_task_projects p where p.id in (:ids)" + scope.sql() + " order by p.id")
+                .param("ids", List.copyOf(ids));
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
+        return query.query(Long.class).list();
     }
 
-    /** The project as the viewer may see it (ADR-0013): outside the scope it is as good as missing. */
-    public Optional<ProjectRecord> findById(Long id, ScopeFilter scope) {
-        var query = jdbcClient.sql("""
-                select p.id, p.name, p.description, p.state, p.attributes::text as attributes_str, p.created_at,
-                       p.created_by, p.revision
-                from ms_task_projects p
-                where p.id = :id
-                """ + scope.sql()).param("id", id);
-        if (scope.bindsUserId()) {
-            query = query.param("scopeUserId", scope.userId());
-        }
-        return query.query(this::mapRecord).optional();
-    }
-
-    /** Saves the project made from {@code expectedRevision} (plan item 3.6) and answers its new revision. */
-    public long update(
-            Long id,
-            String name,
-            String description,
-            String state,
-            Map<String, Object> attributes,
-            long expectedRevision) {
-        String attrsJson = attributes != null ? jsonColumns.object(attributes) : null;
-
+    /** Adds the user to the project, or changes their access; true when anything changed. */
+    public boolean addMember(long projectId, long userId, String accessKind) {
         return jdbcClient
-                .sql("""
-                update ms_task_projects
-                set name = coalesce(:name, name),
-                    description = coalesce(:description, description),
-                    state = coalesce(:state, state),
-                    attributes = coalesce(cast(:attributes as jsonb), attributes),
-                    revision = revision + 1
-                where id = :id and revision = :expectedRevision
-                returning revision
-                """)
-                .param("id", id)
-                .param("name", name)
-                .param("description", description)
-                .param("state", state)
-                .param("attributes", attrsJson)
-                .param("expectedRevision", expectedRevision)
-                .query(Long.class)
-                .optional()
-                .orElseThrow(Revisions::conflict);
-    }
-
-    public void addMember(Long projectId, Long userId, String accessKind) {
-        jdbcClient
-                .sql("""
+                        .sql("""
                 insert into ms_task_project_members (project_id, user_id, access_kind)
                 values (:projectId, :userId, :accessKind)
                 on conflict (project_id, user_id) do update set access_kind = :accessKind
+                where ms_task_project_members.access_kind <> :accessKind
                 """)
-                .param("projectId", projectId)
-                .param("userId", userId)
-                .param("accessKind", accessKind)
-                .update();
+                        .param("projectId", projectId)
+                        .param("userId", userId)
+                        .param("accessKind", accessKind)
+                        .update()
+                > 0;
     }
 
-    public void removeMember(Long projectId, Long userId) {
-        jdbcClient
-                .sql("delete from ms_task_project_members where project_id = :projectId and user_id = :userId")
-                .param("projectId", projectId)
-                .param("userId", userId)
-                .update();
+    /** Removes the user from the project; true when they were a member. */
+    public boolean removeMember(long projectId, long userId) {
+        return jdbcClient
+                        .sql("delete from ms_task_project_members where project_id = :projectId and user_id = :userId")
+                        .param("projectId", projectId)
+                        .param("userId", userId)
+                        .update()
+                > 0;
     }
 
     /**
      * The members of a project by name, then user id (plan 10/10, item 3.5): at most {@code limit} after
      * {@code after}, the name and user id of the last member of the previous page (null for the first page).
      */
-    public List<ProjectMemberRecord> getMembers(Long projectId, @Nullable ProjectMemberRecord after, int limit) {
+    public List<ProjectMemberRecord> getMembers(long projectId, @Nullable ProjectMemberRecord after, int limit) {
         return jdbcClient
                 .sql("""
                 select pm.project_id, pm.user_id, u.name as user_name, u.email as user_email, pm.access_kind
@@ -147,29 +95,10 @@ public class MsProjectRepository {
                 .list();
     }
 
-    /** Reads a project row; the project list (registry {@code ms.projects}) maps its pages with it. */
-    public ProjectRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
-        return new ProjectRecord(
-                rs.getLong("id"),
-                rs.getString("name"),
-                rs.getString("description"),
-                rs.getString("state"),
-                jsonColumns.readObject(rs.getString("attributes_str")),
-                rs.getTimestamp("created_at").toInstant(),
-                rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
-                rs.getLong("revision"));
-    }
-
-    public record ProjectRecord(
-            Long id,
-            String name,
-            String description,
-            String state,
-            Map<String, Object> attributes,
-            Instant createdAt,
-            Long createdBy,
-            long revision) {}
-
     public record ProjectMemberRecord(
-            Long projectId, Long userId, String userName, String userEmail, String accessKind) {}
+            Long projectId,
+            Long userId,
+            String userName,
+            @Nullable String userEmail,
+            @Nullable String accessKind) {}
 }

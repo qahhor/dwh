@@ -6,6 +6,7 @@ import { formField } from '@testing/form-meta';
 import { EntityFormHarness } from '@testing/entity-form';
 import { entityRecord, metaField, problem, queryMetaFixture, renderEntityScreen } from '@testing/entity-page';
 import { translateTest } from '@testing/i18n-test.stub';
+import { PermissionService } from '@core/services/permission.service';
 import { provideEntityOverrides } from './entity-overrides';
 
 /*
@@ -97,6 +98,23 @@ describe('the general entity list /e/:code', () => {
     expect(root.querySelector('input[type="checkbox"]')).toBeNull();
     // Without a menu item the entity is named by its code.
     expect(root.querySelector('ui-page-header')?.textContent).toContain(CODE);
+  });
+
+  it('starts with the filter a link gives, leaving out conditions on fields the list does not have', async () => {
+    const filter = JSON.stringify([
+      { field: 'status', op: 'eq', value: 'posted' },
+      { field: 'unknown', op: 'eq', value: 1 },
+    ]);
+    const { api } = await renderEntityScreen(`/e/${CODE}?filter=${encodeURIComponent(filter)}`, {
+      meta: META,
+      list: LIST,
+      records: ORDERS,
+    });
+
+    const last = api.get.mock.calls.filter(([path]) => path === `/entities/${CODE}`).at(-1)!;
+    const sent = String((last[1] as { filter?: string }).filter);
+    expect(sent).toContain('"status"');
+    expect(sent).not.toContain('"unknown"');
   });
 
   it('shows the archive when the switch is pressed', async () => {
@@ -367,6 +385,66 @@ describe('the general entity record /e/:code/:id', () => {
     expect(root.querySelector('[data-action="post"]')).toBeNull();
   });
 
+  it('asks before an action with a confirmation text, naming the record, and runs it on yes', async () => {
+    const order = entityRecord(1, { number: 'ЗК-1', revision: 4, actions: ['block'] });
+    const { root, api, confirm, settle } = await renderEntityScreen(`/e/${CODE}/1`, {
+      meta: META,
+      records: [order],
+      changes: { [`POST /entities/${CODE}/1/actions/block`]: () => of({ ...order, revision: 5, actions: [] }) },
+    });
+
+    root.querySelector<HTMLButtonElement>('[data-action="block"]')!.click();
+    await settle();
+
+    expect(confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: translateTest('entity.action_confirm.block', { name: 'ЗК-1' }),
+        destructive: true,
+      }),
+    );
+    expect(api.post).toHaveBeenCalledWith(`/entities/${CODE}/1/actions/block`, {}, { notifyError: false, ifMatch: 4 });
+  });
+
+  it('offers a tab of the entity own only to a viewer who holds one of its rights', async () => {
+    const tabs = [
+      { key: 'open', labelKey: 'test.tab.open', component: TabComponent },
+      {
+        key: 'audit',
+        labelKey: 'test.tab.audit',
+        component: TabComponent,
+        requires: [{ form: 'orders', action: 'audit' }],
+      },
+      {
+        key: 'either',
+        labelKey: 'test.tab.either',
+        component: TabComponent,
+        requires: [
+          { form: 'orders', action: 'audit' },
+          { form: 'orders', action: 'view' },
+        ],
+      },
+    ];
+    const { root } = await renderEntityScreen(`/e/${CODE}/1`, {
+      meta: META,
+      records: ORDERS,
+      providers: [
+        provideEntityOverrides(CODE, { tabs }),
+        {
+          provide: PermissionService,
+          useValue: { hasPermission: (form: string, action: string) => form === 'orders' && action === 'view' },
+        },
+      ],
+    });
+
+    const labels = Array.from(root.querySelectorAll('[role="tab"]')).map((tab) => tab.textContent?.trim());
+    expect(labels).toEqual([
+      translateTest('ui.entity_page.tab_fields'),
+      translateTest('ui.entity_page.tab_history'),
+      'test.tab.open',
+      'test.tab.either',
+    ]);
+  });
+
   it('says "not found" for a record out of reach', async () => {
     const { root } = await renderEntityScreen(`/e/${CODE}/99`, { meta: META, records: ORDERS });
 
@@ -412,4 +490,14 @@ class StatusControlComponent {
   readonly problem = input('');
   readonly disabled = input(false);
   readonly set = input.required<(value: unknown) => void>();
+}
+
+@Component({
+  selector: 'smt-test-tab',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<p class="test-tab">{{ record()['number'] }}</p>`,
+})
+class TabComponent {
+  readonly meta = input<unknown>();
+  readonly record = input.required<Record<string, unknown>>();
 }

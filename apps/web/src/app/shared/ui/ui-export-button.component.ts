@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angu
 import { QueryListMeta } from '@core/models/query-meta.models';
 import { ExportsService } from '@core/services/exports.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { toQueryParams } from '@core/services/query-meta.service';
+import { toQueryParamsWith } from '@core/services/query-meta.service';
 import { ToastService } from '@core/services/toast.service';
 import { ListViewState } from '../list-views/list-views';
 import { normalizeColumnState } from '../ui-kit/components/table/column-state';
@@ -48,6 +48,8 @@ export class UiExportButtonComponent {
   readonly search = input<string | null>(null);
   /** List options the export keeps, e.g. the files list's scope. */
   readonly options = input<Record<string, string> | null>(null);
+  /** The screen's own conditions, outside the saved view (a preset, the archive switch), in the filter DSL. */
+  readonly extraFilter = input<readonly unknown[]>([]);
 
   readonly busy = signal(false);
 
@@ -55,7 +57,10 @@ export class UiExportButtonComponent {
     const meta = this.meta();
     if (!meta || this.busy()) return;
     const views = this.views();
-    const params = toQueryParams({ sort: views.sort(), conditions: views.filter(), search: this.search() ?? '' });
+    const params = toQueryParamsWith(
+      { sort: views.sort(), conditions: views.filter(), match: views.match(), search: this.search() ?? '' },
+      this.extraFilter(),
+    );
     this.busy.set(true);
     this.exports
       .request({

@@ -12,6 +12,7 @@ import {
 
 import { loginToInstance } from '../../../support/auth.js';
 import { clearSecret, fillSecret } from '../../../support/secret.js';
+import { inviteUser } from '../../../support/users.js';
 
 type ScopeRule = 'UNITS' | 'SUBTREE' | 'SELF';
 type OrgUnit = {
@@ -213,30 +214,24 @@ async function createUser(page: Page, roleId: number, suffix: string): Promise<{
   const token = randomBytes(4).toString('hex');
   const login = `oe2e-${Date.now().toString(36)}-${suffix}-${token}`.toLowerCase();
   const password = `Qa!7${randomBytes(8).toString('hex')}`; // 20 characters, the policy maximum
-  const user = await api<User>(page.context(), 'POST', '/iam/users', 201, {
-    name: `${runPrefix} ${suffix}`,
-    login,
-    email: `${login}@example.invalid`,
+  // The user is invited (ADR-0032 8): the mailed link sets the password, as a person accepting it would.
+  const user = await inviteUser(
+    page.context(),
+    { name: `${runPrefix} ${suffix}`, login, email: `${login}@example.invalid` },
     password,
-    language: 'ru',
-    timezone: 'Asia/Tashkent',
-    is2faEnabled: false,
-    forcePasswordChange: false,
-    roleIds: [roleId],
-    attributes: {},
-  });
+    [roleId],
+  );
   return { user, password };
 }
 
 async function createTask(page: Page, suffix: string, participantId: number): Promise<TaskRecord> {
-  return api<TaskRecord>(page.context(), 'POST', '/tasks', 201, {
+  // A task on the general runtime (ADR-0032 8): the responsible person takes part in it.
+  return api<TaskRecord>(page.context(), 'POST', '/entities/ms.tasks', 201, {
     title: `${runPrefix} task ${suffix}`,
     descriptionMarkdown: 'Synthetic organization-scope browser fixture',
+    typeCode: 'task',
     priority: 'medium',
-    responsibleUserId: participantId,
-    executorUserIds: [],
-    observerUserIds: [],
-    attributes: { task_type: 'task' },
+    responsibleId: participantId,
   });
 }
 
@@ -265,16 +260,14 @@ async function selectOrgUnit(page: Page, name: string): Promise<void> {
 }
 
 async function openActorPanel(page: Page, actorId: number) {
-  await page.goto(`/iam/users/${actorId}`);
-  const profile = page.getByRole('dialog', { name: 'Профиль пользователя', exact: true });
-  await expect(profile).toBeVisible();
-  const orgTab = profile.getByRole('tab', { name: 'Оргструктура' });
-  const panel = profile.getByRole('region', { name: 'Подразделения и область данных', exact: true });
-  // The tabs render once the user record has loaded: wait for the tab (or a
-  // panel already open) instead of sampling visibility before they exist.
-  await expect(orgTab.or(panel).first()).toBeVisible();
-  if (await orgTab.isVisible() && await orgTab.getAttribute('aria-selected') !== 'true') {
-    await orgTab.click();
+  // The user's record on the general entity screen (ADR-0032 8): the units are on its tab "Roles and rights".
+  await page.goto(`/e/md.users/${actorId}`);
+  const accessTab = page.getByRole('tab', { name: 'Роли и права', exact: true });
+  const panel = page.getByRole('region', { name: 'Подразделения и область данных', exact: true });
+  // The tabs render once the record has loaded: wait for the tab instead of sampling before it exists.
+  await expect(accessTab).toBeVisible();
+  if (await accessTab.getAttribute('aria-selected') !== 'true') {
+    await accessTab.click();
   }
   await expect(panel).toBeVisible();
   await expect(panel.getByRole('heading', { name: 'Фактическая область данных', exact: true })).toBeVisible();
@@ -344,7 +337,7 @@ async function taskScopeSnapshot(
       /^error: Failed to load resource: the server responded with a status of 401/u,
     ]);
     // The task screen no longer reads every project (plan 10/10, item 3.5): its rows name their projects.
-    const dependencyPaths = ['/api/v1/custom-fields', '/api/v1/tasks'] as const;
+    const dependencyPaths = ['/api/v1/custom-fields', '/api/v1/entities/ms.tasks'] as const;
     const dependencies = Promise.all(dependencyPaths.map(path => page.waitForResponse(value => (
       value.request().method() === 'GET' && new URL(value.url()).pathname === path
     ))));
@@ -355,7 +348,7 @@ async function taskScopeSnapshot(
       path: new URL(value.url()).pathname,
       status: value.status(),
     }))).toEqual(dependencyPaths.map(path => ({ method: 'GET', path, status: 200 })));
-    const response = await context.request.get(`/api/v1/tasks?limit=50&search=${encodeURIComponent(runPrefix)}`, {
+    const response = await context.request.get(`/api/v1/entities/ms.tasks?limit=50&q=${encodeURIComponent(runPrefix)}`, {
       maxRedirects: 0,
       maxRetries: 0,
     });
@@ -366,7 +359,7 @@ async function taskScopeSnapshot(
       expectedVisible.map(key => seeded.tasks[key].id).sort((a, b) => a - b),
     );
     for (const key of ['actor', 'peer', 'child', 'other'] as const) {
-      const detail = await context.request.get(`/api/v1/tasks/${seeded.tasks[key].id}`, {
+      const detail = await context.request.get(`/api/v1/entities/ms.tasks/${seeded.tasks[key].id}`, {
         maxRedirects: 0,
         maxRetries: 0,
       });
@@ -700,16 +693,15 @@ test.describe.serial('organization structure vertical acceptance', () => {
 
       const panel = await openActorPanel(page, seeded.actor.id);
       await expect(panel.getByRole('heading', { name: 'Историческая привязка', exact: true })).toBeVisible();
-      const modal = page.getByRole('dialog', { name: 'Профиль пользователя', exact: true });
-      expect(await modal.evaluate(element => {
-        // smt-dialog: the scrolling body is .smt-dialog__body.
-        const body = element.querySelector<HTMLElement>('.smt-dialog__body');
+      // The user's record is the general entity screen (ADR-0032 8), not a dialog: its units panel stays within the
+      // viewport and the page does not scroll sideways.
+      expect(await panel.evaluate(element => {
         const rect = element.getBoundingClientRect();
         return {
           withinViewport: rect.left >= 0 && rect.right <= window.innerWidth,
-          bodyContained: !!body && body.scrollWidth <= body.clientWidth,
+          pageContained: document.documentElement.scrollWidth <= window.innerWidth,
         };
-      })).toEqual({ withinViewport: true, bodyContained: true });
+      })).toEqual({ withinViewport: true, pageContained: true });
       await page.screenshot({
         path: testInfo.outputPath(`user-scope-${current.theme}-${current.width}x${current.height}.png`),
         fullPage: false,

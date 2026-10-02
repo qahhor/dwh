@@ -52,8 +52,10 @@ final class FieldTypeRules {
                 "money lives in a pair of money columns, and only money does");
         require(
                 key,
-                (type == FieldType.MULTI_REF) == (source instanceof FieldSource.Link),
-                "several references live in a link table, and only they do");
+                source instanceof FieldSource.Link
+                        ? type == FieldType.MULTI_REF
+                        : type != FieldType.MULTI_REF || source instanceof FieldSource.Expression,
+                "several references live in a link table, and only they do; an expression may read them");
         if (source instanceof FieldSource.MoneyColumns money) {
             require(
                     key,

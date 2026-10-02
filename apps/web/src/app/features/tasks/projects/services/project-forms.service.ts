@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Subscription, Observable } from 'rxjs';
-import { ApiService } from '@core/services/api.service';
+import { Subscription, Observable, map, of, switchMap } from 'rxjs';
+import { EntitiesApi, EntityRecord } from '@shared/entity/entities.api';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
@@ -9,10 +9,11 @@ import { safeNumericRecordId } from '@core/services/search-target';
 import { SaveErrorNotifier, isRevisionConflict } from '@shared/ui/save-errors';
 import { Project } from '@core/models/task.models';
 import { ProjectCreateForm, ProjectEditForm } from '../projects.models';
+import { PROJECTS, toProject } from '../projects.api';
 
 @Injectable()
 export class ProjectFormsService {
-  private readonly api = inject(ApiService);
+  private readonly entities = inject(EntitiesApi);
   private readonly permService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
@@ -133,32 +134,35 @@ export class ProjectFormsService {
     if (this.createForm.attributes && Object.keys(this.createForm.attributes).length > 0) {
       payload.attributes = this.createForm.attributes;
     }
-    this.createSaveRequest = this.api.post<Project>('/tasks/projects', payload).subscribe({
-      next: (created) => {
-        if (
-          this.destroyed ||
-          requestId !== this.createSaveRequestId ||
-          !this.isCreateModalOpen() ||
-          this.isEditModalOpen()
-        )
-          return;
-        this.isSubmitting.set(false);
-        this.closeCreateModal();
-        this.toast.success(this.uiI18n.translate('projects.editor.created'));
-        this.onProjectCreated?.(created);
-      },
-      error: (err) => {
-        if (
-          this.destroyed ||
-          requestId !== this.createSaveRequestId ||
-          !this.isCreateModalOpen() ||
-          this.isEditModalOpen()
-        )
-          return;
-        this.isSubmitting.set(false);
-        this.createSaveError.set(err?.detail || this.uiI18n.translate('projects.create_save_error'));
-      },
-    });
+    this.createSaveRequest = this.entities
+      .create(PROJECTS, payload)
+      .pipe(map(toProject))
+      .subscribe({
+        next: (created) => {
+          if (
+            this.destroyed ||
+            requestId !== this.createSaveRequestId ||
+            !this.isCreateModalOpen() ||
+            this.isEditModalOpen()
+          )
+            return;
+          this.isSubmitting.set(false);
+          this.closeCreateModal();
+          this.toast.success(this.uiI18n.translate('projects.editor.created'));
+          this.onProjectCreated?.(created);
+        },
+        error: (err) => {
+          if (
+            this.destroyed ||
+            requestId !== this.createSaveRequestId ||
+            !this.isCreateModalOpen() ||
+            this.isEditModalOpen()
+          )
+            return;
+          this.isSubmitting.set(false);
+          this.createSaveError.set(err?.detail || this.uiI18n.translate('projects.create_save_error'));
+        },
+      });
   }
 
   openEditModal(p: Project) {
@@ -240,11 +244,11 @@ export class ProjectFormsService {
     const description = this.editForm.description.trim();
     if (name !== this.editFormBaseline.name) payload['name'] = name;
     if (description !== this.editFormBaseline.description) payload['description'] = description;
-    if (this.editForm.state !== this.editFormBaseline.state) payload['state'] = this.editForm.state;
     if (JSON.stringify(this.editForm.attributes || {}) !== JSON.stringify(this.editFormBaseline.attributes || {})) {
       payload['attributes'] = this.editForm.attributes;
     }
-    if (Object.keys(payload).length === 0) {
+    const archive = this.editForm.state !== this.editFormBaseline.state ? this.editForm.state === 'P' : null;
+    if (Object.keys(payload).length === 0 && archive === null) {
       this.closeEditModal();
       return;
     }
@@ -253,48 +257,43 @@ export class ProjectFormsService {
     const requestId = ++this.editSaveRequestId;
     this.editSaveError.set(null);
     this.isSubmitting.set(true);
-    this.editSaveRequest = this.api
-      .patch<void>(`/tasks/projects/${editedProjectId}`, payload, {
-        notifyError: false,
-        ifMatch: this.editingProject.revision,
-      })
-      .subscribe({
-        next: () => {
-          if (
-            this.destroyed ||
-            requestId !== this.editSaveRequestId ||
-            !this.isEditModalOpen() ||
-            this.editingProject?.id !== editedProjectId
-          )
-            return;
-          this.isSubmitting.set(false);
-          this.closeEditModal();
-          this.toast.success(this.uiI18n.translate('projects.editor.updated'));
-          this.onProjectUpdated?.();
-        },
-        error: (err) => {
-          if (
-            this.destroyed ||
-            requestId !== this.editSaveRequestId ||
-            !this.isEditModalOpen() ||
-            this.editingProject?.id !== editedProjectId
-          )
-            return;
-          this.isSubmitting.set(false);
-          if (isRevisionConflict(err)) {
-            // Saved by someone else since it was opened: the dialog closes and the projects are read again.
-            this.saveErrors.show(err, {
-              fallbackKey: 'projects.edit_save_error',
-              reload: () => {
-                this.closeEditModal();
-                this.onProjectUpdated?.();
-              },
-            });
-            return;
-          }
-          this.editSaveError.set(err?.detail || this.uiI18n.translate('projects.edit_save_error'));
-        },
-      });
+    this.editSaveRequest = this.saveEdit(editedProjectId, payload, archive, this.editingProject.revision).subscribe({
+      next: () => {
+        if (
+          this.destroyed ||
+          requestId !== this.editSaveRequestId ||
+          !this.isEditModalOpen() ||
+          this.editingProject?.id !== editedProjectId
+        )
+          return;
+        this.isSubmitting.set(false);
+        this.closeEditModal();
+        this.toast.success(this.uiI18n.translate('projects.editor.updated'));
+        this.onProjectUpdated?.();
+      },
+      error: (err) => {
+        if (
+          this.destroyed ||
+          requestId !== this.editSaveRequestId ||
+          !this.isEditModalOpen() ||
+          this.editingProject?.id !== editedProjectId
+        )
+          return;
+        this.isSubmitting.set(false);
+        if (isRevisionConflict(err)) {
+          // Saved by someone else since it was opened: the dialog closes and the projects are read again.
+          this.saveErrors.show(err, {
+            fallbackKey: 'projects.edit_save_error',
+            reload: () => {
+              this.closeEditModal();
+              this.onProjectUpdated?.();
+            },
+          });
+          return;
+        }
+        this.editSaveError.set(err?.detail || this.uiI18n.translate('projects.edit_save_error'));
+      },
+    });
   }
 
   isCreateDraftDirty(): boolean {
@@ -363,6 +362,27 @@ export class ProjectFormsService {
     return true;
   }
 
+  /**
+   * The fields a save changes, from the revision on screen, then the archive switch from the revision the change
+   * answered with (ADR-0024, ADR-0032 5.4): a paused project is an archived one.
+   */
+  private saveEdit(
+    projectId: number,
+    fields: Record<string, unknown>,
+    archive: boolean | null,
+    revision: number | undefined,
+  ): Observable<EntityRecord | null> {
+    const changed: Observable<EntityRecord | null> =
+      Object.keys(fields).length > 0 ? this.entities.patch(PROJECTS, projectId, fields, revision) : of(null);
+    return changed.pipe(
+      switchMap((record: EntityRecord | null) =>
+        archive === null
+          ? of(record)
+          : this.entities.setArchived(PROJECTS, projectId, archive, record?.revision ?? revision),
+      ),
+    );
+  }
+
   private loadEditDetails(projectId: number) {
     const requestId = ++this.editDetailRequestId;
     this.editDetailRequest?.unsubscribe();
@@ -372,8 +392,9 @@ export class ProjectFormsService {
     this.editingProject = null;
     this.editFormBaseline = null;
 
-    this.editDetailRequest = this.api
-      .get<Project>(`/tasks/projects/${projectId}`, undefined, { notifyError: false })
+    this.editDetailRequest = this.entities
+      .get(PROJECTS, projectId)
+      .pipe(map(toProject))
       .subscribe({
         next: (project) => {
           if (

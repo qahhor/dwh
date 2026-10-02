@@ -32,6 +32,8 @@ import tools.jackson.databind.ObjectMapper;
 class RecordHistoryControllerTest extends EmbeddedPostgresTest {
 
     private static final String PASSWORD = "StrongPassword2026!";
+    private static final String TASKS = "/api/v1/entities/ms.tasks";
+    private static final String TASK_HISTORY = "/api/v1/history/ms.tasks/";
 
     @Autowired
     private WebApplicationContext wac;
@@ -62,19 +64,16 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
     void taskHistoryListsChangesNewestFirst() throws Exception {
         Session admin = login(user("chief_admin"));
         long task = createTask(admin, "TEST history before");
-        var patched = send(
-                admin,
-                patch("/api/v1/tasks/" + task),
-                Map.of("title", "TEST history after", "priority", "medium", "expectedRevision", 1));
+        var patched = send(admin, patchTask(task), Map.of("title", "TEST history after", "priority", "medium"));
         assertThat(patched.getStatus()).as(patched.getContentAsString()).isLessThan(300);
 
-        var response = send(admin, get("/api/v1/history/tasks/" + task), null);
+        var response = send(admin, get(TASK_HISTORY + task), null);
 
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         assertThat((List<String>) read(response, "$.items[*].event")).containsExactly("U", "I");
         // The update names only the title: the priority did not change.
         assertThat((List<String>) read(response, "$.items[0].changes[*].field")).containsExactly("title");
-        assertThat((String) read(response, "$.items[0].changes[0].labelKey")).isEqualTo("task.title");
+        assertThat((String) read(response, "$.items[0].changes[0].labelKey")).isEqualTo("tasks.col.title");
         assertThat((String) read(response, "$.items[0].changes[0].oldValue")).isEqualTo("TEST history before");
         assertThat((String) read(response, "$.items[0].changes[0].newValue")).isEqualTo("TEST history after");
         assertThat((String) read(response, "$.items[0].changedByLogin")).isEqualTo(admin.login());
@@ -91,14 +90,12 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
         long task = createTask(admin, "TEST history rights");
         Session analyst = login(user("analyst"));
 
-        assertThat(send(analyst, get("/api/v1/history/tasks/" + task), null).getStatus())
-                .isEqualTo(403);
+        assertThat(send(analyst, get(TASK_HISTORY + task), null).getStatus()).isEqualTo(403);
         assertThat(send(admin, get("/api/v1/history/invoices/" + task), null).getStatus())
                 .isEqualTo(404);
-        assertThat(send(admin, get("/api/v1/history/tasks/999999999"), null).getStatus())
+        assertThat(send(admin, get(TASK_HISTORY + "999999999"), null).getStatus())
                 .isEqualTo(404);
-        assertThat(send(admin, get("/api/v1/history/tasks/abc"), null).getStatus())
-                .isEqualTo(404);
+        assertThat(send(admin, get(TASK_HISTORY + "abc"), null).getStatus()).isEqualTo(404);
     }
 
     @Test
@@ -108,7 +105,7 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
         Session analyst = login(user("analyst"));
 
         assertThat((List<String>) read(send(admin, get("/api/v1/history"), null), "$"))
-                .contains("tasks", "projects", "users");
+                .contains("ms.tasks", "ms.projects", "md.users");
         assertThat((List<String>) read(send(analyst, get("/api/v1/history"), null), "$"))
                 .isEmpty();
     }
@@ -123,7 +120,7 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
                 .query(Long.class)
                 .single();
 
-        var response = send(admin, get("/api/v1/history/users/" + id), null);
+        var response = send(admin, get("/api/v1/history/md.users/" + id), null);
 
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         assertThat((List<String>) read(response, "$.items[-1:].event")).containsExactly("I");
@@ -132,7 +129,7 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
                 .contains("name", "login")
                 .noneMatch(field -> field.toLowerCase().contains("password"));
         assertThat((List<String>) read(response, "$.items[-1:].changes[?(@.field == 'name')].labelKey"))
-                .containsExactly("iam.common.full_name");
+                .containsExactly("iam.users.col.name");
     }
 
     @Test
@@ -140,10 +137,9 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
     void historyIsPagedWithoutCounting() throws Exception {
         Session admin = login(user("chief_admin"));
         long task = createTask(admin, "TEST history paging");
-        var patched = send(
-                admin, patch("/api/v1/tasks/" + task), Map.of("title", "TEST history paged", "expectedRevision", 1));
+        var patched = send(admin, patchTask(task), Map.of("title", "TEST history paged"));
         assertThat(patched.getStatus()).as(patched.getContentAsString()).isLessThan(300);
-        String path = "/api/v1/history/tasks/" + task;
+        String path = TASK_HISTORY + task;
 
         var first = send(admin, get(path).param("limit", "1"), null);
         assertThat(first.getStatus()).as(first.getContentAsString()).isEqualTo(200);
@@ -167,9 +163,18 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
     }
 
     private long createTask(Session s, String title) throws Exception {
-        var created = send(s, post("/api/v1/tasks"), Map.of("title", title, "priority", "medium"));
+        var created = send(s, post(TASKS), Map.of("title", title, "typeCode", "task", "priority", "medium"));
         assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
         return ((Number) read(created, "$.id")).longValue();
+    }
+
+    /** A change of the task on the general runtime, with the revision a client that just read it sends. */
+    private MockHttpServletRequestBuilder patchTask(long task) {
+        long revision = jdbc.sql("select revision from ms_tasks where id = :id")
+                .param("id", task)
+                .query(Long.class)
+                .single();
+        return patch(TASKS + "/" + task).header("If-Match", "\"" + revision + "\"");
     }
 
     private String user(String role) {

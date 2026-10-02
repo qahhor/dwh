@@ -11,7 +11,11 @@ import {
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors, uniqueRunName } from '../../../support/diagnostics.js';
 
-const PROJECTS_PATH = '/api/v1/tasks/projects';
+/** The projects on the general runtime (ADR-0032 8). */
+const PROJECTS_PATH = '/api/v1/entities/ms.projects';
+const PROJECT_RECORD = /^\/api\/v1\/entities\/ms\.projects\/\d+$/u;
+/** The progress of the listed projects over the viewer's tasks. */
+const PROGRESS_PATH = '/api/v1/tasks/projects/progress';
 const EXPECTED_HTTP_503_CONSOLE = /^Failed to load resource: the server responded with a status of 503 \(Service Unavailable\)$/u;
 
 type ExpectedProject503 = {
@@ -40,15 +44,16 @@ function collectExpectedProject503(page: Page): (expected: ExpectedProject503) =
   };
 }
 
+/** A project record of the runtime: a paused project is one in the archive. */
 function projectFixture(id: number, name: string, state: 'A' | 'P', description: string) {
   return {
     id,
     name,
     description,
-    state,
+    archived: state === 'P',
     attributes: {},
     createdAt: '2026-09-06T06:00:00Z',
-    createdBy: 1,
+    revision: 1,
   };
 }
 
@@ -74,7 +79,7 @@ function observeProjectMutations(page: Page): Request[] {
     const path = new URL(request.url()).pathname;
     const method = request.method();
     if ((method === 'POST' && path === PROJECTS_PATH)
-      || (method === 'PATCH' && /^\/api\/v1\/tasks\/projects\/\d+$/u.test(path))) {
+      || (method === 'PATCH' && PROJECT_RECORD.test(path))) {
       requests.push(request);
     }
   });
@@ -116,7 +121,7 @@ async function expectTabFocusContained(page: Page, dialog: Locator): Promise<voi
 
 async function openEditorAndObserveDetail(page: Page, projectName: string): Promise<string> {
   const detailResponse = page.waitForResponse(response => response.request().method() === 'GET'
-    && /^\/api\/v1\/tasks\/projects\/\d+$/u.test(new URL(response.url()).pathname));
+    && PROJECT_RECORD.test(new URL(response.url()).pathname));
   await projectEditButton(page, projectName).click();
   const response = await detailResponse;
   expect(response.status()).toBe(200);
@@ -176,7 +181,7 @@ test('native Enter creates and edits exactly once while description newlines and
     && new URL(response.url()).pathname === detailPath);
   await editName.press('Enter');
   const namePatchResponse = await namePatch;
-  expect(namePatchResponse.status()).toBe(204);
+  expect(namePatchResponse.status()).toBe(200);
   expect(namePatchResponse.request().postDataJSON()).toEqual({ name: editedName });
   expect(mutations.filter(request => request.method() === 'PATCH')).toHaveLength(1);
   await expect(page.getByRole('button', { name: editedName, exact: true })).toBeVisible();
@@ -188,7 +193,7 @@ test('native Enter creates and edits exactly once while description newlines and
     && new URL(response.url()).pathname === detailPath);
   await editDialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
   const clearPatchResponse = await clearPatch;
-  expect(clearPatchResponse.status()).toBe(204);
+  expect(clearPatchResponse.status()).toBe(200);
   expect(clearPatchResponse.request().postDataJSON()).toEqual({ description: '' });
 
   expect(await openEditorAndObserveDetail(page, editedName)).toBe(detailPath);
@@ -262,7 +267,7 @@ test('controlled HTTP 503 create retry preserves the draft and reaches the real 
     });
   };
 
-  await page.route('**/api/v1/tasks/projects', controlledCreateFailure);
+  await page.route(`**${PROJECTS_PATH}`, controlledCreateFailure);
   try {
     await createDialog.getByRole('button', { name: 'Создать проект', exact: true }).click();
     await expect(createDialog.getByTestId('project-create-save-error')).toHaveText('Controlled create failure');
@@ -274,7 +279,7 @@ test('controlled HTTP 503 create retry preserves the draft and reaches the real 
     expect(controlledKeys.size).toBe(1);
     expect([...controlledKeys][0]).toBeTruthy();
   } finally {
-    await page.unroute('**/api/v1/tasks/projects', controlledCreateFailure);
+    await page.unroute(`**${PROJECTS_PATH}`, controlledCreateFailure);
   }
 
   const retryResponse = page.waitForResponse(response => response.request().method() === 'POST'
@@ -374,7 +379,7 @@ test('controlled HTTP 503 edit retry preserves the draft and reaches the real se
     && new URL(response.url()).pathname === detailPath);
   await editDialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
   const response = await retryResponse;
-  expect(response.status()).toBe(204);
+  expect(response.status()).toBe(200);
   expect(response.request().postDataJSON()).toEqual({ name: retriedName });
   // Three controlled attempts under one key, then the person's retry (roadmap item 29).
   expect(mutations.filter(request => request.method() === 'PATCH')).toHaveLength(4);
@@ -417,33 +422,34 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
       await route.abort();
       return;
     }
-    if (path === PROJECTS_PATH) {
-      await route.fulfill({ contentType: 'application/json', json: fixtures });
+    if (path === PROGRESS_PATH) {
+      // The progress of the listed projects; a project without statistics is left out.
+      const ids = (new URL(request.url()).searchParams.get('ids') ?? '').split(',').map(Number);
+      const progress = stats
+        .filter(entry => ids.includes(entry.projectId))
+        .map(entry => ({
+          projectId: entry.projectId,
+          totalTasks: entry.totalTasks,
+          doneTasks: entry.doneTasks,
+          progress: Math.round(entry.doneTasks * 100 / entry.totalTasks),
+        }));
+      await route.fulfill({ contentType: 'application/json', json: progress });
       return;
     }
-    if (path === `${PROJECTS_PATH}/page`) {
-      // The screen pages the registry list ms.projects (roadmap item 51); counts come with each row.
+    if (path === PROJECTS_PATH) {
+      // The screen pages the runtime list ms.projects (ADR-0032 8); the archive switch is its filter (5.4).
       const params = new URL(request.url()).searchParams;
       const text = (params.get('q') ?? '').toLowerCase();
-      const state = params.get('state');
+      const filter = params.get('filter') ?? '';
+      const archived = filter.includes('"any"') ? null : filter.includes('"archived"');
       const matching = fixtures
         .filter(project => !text || project.name.toLowerCase().includes(text))
-        .filter(project => !state || project.state === state)
-        .map(project => {
-          const entry = stats.find(item => item.projectId === project.id);
-          return entry
-            ? { ...project, totalTasks: entry.totalTasks, doneTasks: entry.doneTasks, progress: Math.round(entry.doneTasks * 100 / entry.totalTasks) }
-            : project;
-        });
+        .filter(project => archived === null || project.archived === archived);
       const size = Number(params.get('limit') ?? 10);
       const start = params.get('cursor') ? Number(params.get('cursor')) : 0;
       const items = matching.slice(start, start + size);
       const next = start + size < matching.length ? String(start + size) : null;
       await route.fulfill({ contentType: 'application/json', json: { items, nextCursor: next, hasMore: next !== null, totalEstimated: matching.length } });
-      return;
-    }
-    if (path === `${PROJECTS_PATH}/stats`) {
-      await route.fulfill({ contentType: 'application/json', json: stats });
       return;
     }
     const fixture = fixtures.find(project => path === `${PROJECTS_PATH}/${project.id}`);
@@ -453,7 +459,8 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
     }
     await route.continue();
   };
-  await page.route('**/api/v1/tasks/projects**', projectFixtureRoute);
+  await page.route(`**${PROJECTS_PATH}**`, projectFixtureRoute);
+  await page.route(`**${PROGRESS_PATH}**`, projectFixtureRoute);
 
   try {
     await page.goto('/tasks/projects');
@@ -531,6 +538,7 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
     expect(unexpectedMutations).toEqual([]);
     assertNoPageErrors();
   } finally {
-    await page.unroute('**/api/v1/tasks/projects**', projectFixtureRoute);
+    await page.unroute(`**${PROJECTS_PATH}**`, projectFixtureRoute);
+    await page.unroute(`**${PROGRESS_PATH}**`, projectFixtureRoute);
   }
 });

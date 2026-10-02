@@ -33,34 +33,17 @@ import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Plan 10/10, item 3.2: the JSON property sets the tasks, projects and comments screens read. The API answers
- * through DTOs of {@code ms.task.api}; these sets pin the wire format so a change of a DTO fails here first.
- * Null properties are left out of the JSON ({@code non_null}), so each set matches the fixture it reads.
+ * Plan 10/10, item 3.2: the JSON property sets the task screens read from the module's own endpoints — participants,
+ * files, project members and comments — through DTOs of {@code ms.task.api}; these sets pin the wire format so a change
+ * of a DTO fails here first. The tasks and projects themselves are records of the general runtime (ADR-0032, 8), whose
+ * shape the entity contract kit pins. Null properties are left out of the JSON ({@code non_null}).
  */
 class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
 
     private static final String PASSWORD = "StrongPassword2026!";
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    private static final Set<String> TASK = Set.of(
-            "id",
-            "projectId",
-            "projectName",
-            "parentTaskId",
-            "title",
-            "descriptionMarkdown",
-            "statusId",
-            "priority",
-            "reporterId",
-            "attributes",
-            "beginTime",
-            "endTime",
-            "createdAt",
-            "modifiedAt",
-            "createdBy",
-            "modifiedBy",
-            "revision");
-    private static final Set<String> ROOT_TASK = without(TASK, "parentTaskId");
+    private static final String TASKS = "/api/v1/entities/ms.tasks";
 
     @Autowired
     private WebApplicationContext wac;
@@ -87,98 +70,33 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("3.2: tasks, their detail, files, statuses, types and project stats keep their JSON properties")
+    @DisplayName("3.2: the participants and files of a task keep their JSON properties")
     void taskResponsesKeepTheirProperties() throws Exception {
         String login = user();
         long userId = userId(login);
         Session s = login(login);
 
-        long projectId =
-                id(created(send(s, post("/api/v1/tasks/projects"), Map.of("name", "TEST contract " + suffix()))));
-        Map<String, Object> parent = created(send(
+        long projectId = project(s, "TEST contract " + suffix());
+        long taskId = task(
                 s,
-                post("/api/v1/tasks"),
                 Map.of(
                         "title", "TEST contract parent",
                         "descriptionMarkdown", "body",
                         "projectId", projectId,
-                        "priority", "medium",
-                        "responsibleUserId", userId,
+                        "responsibleId", userId,
                         "beginTime", "2026-09-01T09:00:00Z",
-                        "endTime", "2099-09-30T18:00:00Z")));
-        assertKeys(parent, ROOT_TASK);
-        long parentId = id(parent);
-        Map<String, Object> child = created(send(
-                s,
-                post("/api/v1/tasks"),
-                Map.of(
-                        "title", "TEST contract child",
-                        "descriptionMarkdown", "child body",
-                        "projectId", projectId,
-                        "parentTaskId", parentId,
-                        "priority", "high",
-                        "beginTime", "2026-09-01T09:00:00Z",
-                        "endTime", "2099-09-30T18:00:00Z")));
-        assertKeys(child, TASK);
+                        "endTime", "2099-09-30T18:00:00Z"));
         UUID fileId = upload(s);
-        assertThat(send(s, post("/api/v1/tasks/" + parentId + "/files"), Map.of("fileId", fileId))
+        assertThat(send(s, post("/api/v1/tasks/" + taskId + "/files"), Map.of("fileId", fileId))
                         .getStatus())
                 .isEqualTo(204);
 
-        Map<String, Object> detail = object(ok(send(s, get("/api/v1/tasks/" + parentId), null)));
-        assertKeys(detail, Set.of("task", "members", "subtasks", "ancestors", "files"));
-        assertKeys(map(detail.get("task")), ROOT_TASK);
         assertKeys(
-                first(detail.get("members")),
+                first(array(ok(send(s, get("/api/v1/tasks/" + taskId + "/members"), null)))),
                 Set.of("taskId", "userId", "userName", "userLogin", "userEmail", "involveKind", "isViewed"));
-        assertKeys(first(detail.get("subtasks")), TASK);
-        assertThat(list(detail.get("ancestors"))).isEmpty();
-        Set<String> file = Set.of("fileId", "fileName", "sizeBytes", "mimeType", "createdAt");
-        assertKeys(first(detail.get("files")), file);
         assertKeys(
-                map(object(ok(send(s, get("/api/v1/tasks/" + id(child)), null))).get("ancestors"), 0), ROOT_TASK);
-
-        assertKeys(first(array(ok(send(s, get("/api/v1/tasks/" + parentId + "/files"), null)))), file);
-        assertKeys(first(array(ok(send(s, get("/api/v1/tasks/" + parentId + "/subtasks"), null)))), TASK);
-
-        Map<String, Object> page =
-                object(ok(send(s, get("/api/v1/tasks?projectId=" + projectId + "&limit=1&sort=title"), null)));
-        assertKeys(page, Set.of("items", "nextCursor", "hasMore", "totalEstimated", "totalExact"));
-        assertKeys(first(page.get("items")), TASK);
-
-        Set<String> status = Set.of("id", "pcode", "name", "color", "orderNo", "isTerminal", "revision");
-        assertKeys(
-                created(send(
-                        s,
-                        post("/api/v1/tasks/statuses"),
-                        Map.of("pcode", "c" + suffix(), "name", "TEST status", "color", "#123456", "orderNo", 90))),
-                status);
-        assertKeys(first(array(ok(send(s, get("/api/v1/tasks/statuses"), null)))), status);
-
-        Set<String> type =
-                Set.of("id", "code", "name", "icon", "color", "orderNo", "isSystem", "createdAt", "revision");
-        assertKeys(
-                created(send(
-                        s,
-                        post("/api/v1/tasks/types"),
-                        Map.of(
-                                "code",
-                                "t" + suffix(),
-                                "name",
-                                "TEST type",
-                                "icon",
-                                "bug",
-                                "color",
-                                "#654321",
-                                "orderNo",
-                                90))),
-                type);
-        assertKeys(
-                array(ok(send(s, get("/api/v1/tasks/types"), null))).stream()
-                        .filter(item -> item.get("icon") != null && item.get("color") != null)
-                        .findFirst()
-                        .orElseThrow(),
-                type);
+                first(array(ok(send(s, get("/api/v1/tasks/" + taskId + "/files"), null)))),
+                Set.of("fileId", "fileName", "sizeBytes", "mimeType", "createdAt"));
     }
 
     @Test
@@ -187,27 +105,13 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         String login = user();
         long userId = userId(login);
         Session s = login(login);
-        Set<String> project =
-                Set.of("id", "name", "description", "state", "attributes", "createdAt", "createdBy", "revision");
-
-        Map<String, Object> created = created(send(
-                s,
-                post("/api/v1/tasks/projects"),
-                Map.of("name", "TEST contract project " + suffix(), "description", "about", "state", "A")));
-        assertKeys(created, project);
-        long projectId = id(created);
-        assertKeys(object(ok(send(s, get("/api/v1/tasks/projects/" + projectId), null))), project);
-        assertThat(send(
-                                s,
-                                post("/api/v1/tasks/projects/" + projectId + "/members"),
-                                Map.of("userId", userId, "accessKind", "W"))
-                        .getStatus())
-                .isEqualTo(204);
+        long projectId = project(s, "TEST contract project " + suffix());
+        addMember(s, projectId, userId, "W");
         assertKeys(
                 first(items(ok(send(s, get("/api/v1/tasks/projects/" + projectId + "/members/page"), null)))),
                 Set.of("projectId", "userId", "userName", "userEmail", "accessKind"));
 
-        long taskId = id(created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST contract comments"))));
+        long taskId = task(s, Map.of("title", "TEST contract comments"));
         UUID fileId = upload(s);
         Set<String> comment =
                 Set.of("id", "taskId", "userId", "textMarkdown", "fileIds", "createdAt", "userName", "userLogin");
@@ -224,18 +128,12 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     @DisplayName("3.5: the members of a project come a page at a time by name; a bad limit or cursor is 422")
     void projectMembersArePaged() throws Exception {
         Session s = login(user());
-        long projectId = id(created(send(
-                s, post("/api/v1/tasks/projects"), Map.of("name", "TEST members page " + suffix(), "state", "A"))));
+        long projectId = project(s, "TEST members page " + suffix());
         List<Long> members = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             long member = userId(user());
             members.add(member);
-            assertThat(send(
-                                    s,
-                                    post("/api/v1/tasks/projects/" + projectId + "/members"),
-                                    Map.of("userId", member, "accessKind", "R"))
-                            .getStatus())
-                    .isEqualTo(204);
+            addMember(s, projectId, member, "R");
         }
         String path = "/api/v1/tasks/projects/" + projectId + "/members/page";
 
@@ -263,25 +161,42 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     void taskRowsNameTheirProjectAndPickersSearchProjects() throws Exception {
         Session s = login(user());
         String name = "TEST picker " + suffix();
-        long projectId = id(created(send(s, post("/api/v1/tasks/projects"), Map.of("name", name, "state", "A"))));
-        Map<String, Object> task =
-                created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST named", "projectId", projectId)));
-        assertThat(task.get("projectName")).isEqualTo(name);
-        Map<String, Object> page = object(ok(send(s, get("/api/v1/tasks?projectId=" + projectId), null)));
+        long projectId = project(s, name);
+        task(s, Map.of("title", "TEST named", "projectId", projectId));
+        String filter = "[{\"field\":\"projectId\",\"op\":\"eq\",\"value\":" + projectId + "}]";
+        Map<String, Object> page = object(ok(send(s, get(TASKS).param("filter", filter), null)));
         assertThat(items(page)).extracting(row -> row.get("projectName")).containsExactly(name);
-        assertThat(map(object(ok(send(s, get("/api/v1/tasks/" + id(task)), null)))
-                                .get("task"))
-                        .get("projectName"))
-                .isEqualTo(name);
-        Map<String, Object> loose = created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST without project")));
-        assertThat(loose).doesNotContainKey("projectName");
 
         Map<String, Object> found = object(
-                ok(send(s, get("/api/v1/tasks/projects/page").param("q", name).param("limit", "20"), null)));
+                ok(send(s, get("/api/v1/entities/ms.projects").param("q", name).param("limit", "20"), null)));
         assertThat(items(found)).extracting(row -> row.get("name")).containsExactly(name);
-        assertThat(send(s, get("/api/v1/tasks/projects/page").param("limit", "201"), null)
+        assertThat(send(s, get("/api/v1/entities/ms.projects").param("limit", "201"), null)
                         .getStatus())
                 .isEqualTo(422);
+    }
+
+    /** A task created on the general runtime (ADR-0032, 8). */
+    private long task(Session s, Map<String, Object> values) throws Exception {
+        return id(created(send(s, post(TASKS), values)));
+    }
+
+    /** A project created on the general runtime (ADR-0032, 8). */
+    private long project(Session s, String name) throws Exception {
+        return id(created(send(s, post("/api/v1/entities/ms.projects"), Map.of("name", name))));
+    }
+
+    /** A member added by the project's record action, from its current revision. */
+    private void addMember(Session s, long projectId, long userId, String accessKind) throws Exception {
+        long revision = ((Number) object(ok(send(s, get("/api/v1/entities/ms.projects/" + projectId), null)))
+                        .get("revision"))
+                .longValue();
+        assertThat(send(
+                                s,
+                                post("/api/v1/entities/ms.projects/" + projectId + "/actions/add_member")
+                                        .header("If-Match", "\"" + revision + "\""),
+                                Map.of("userId", userId, "accessKind", accessKind))
+                        .getStatus())
+                .isEqualTo(200);
     }
 
     @SuppressWarnings("unchecked")
@@ -291,10 +206,6 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
 
     private static void assertKeys(Map<String, Object> node, Set<String> expected) {
         assertThat(node.keySet()).as("JSON properties of %s", node).containsExactlyInAnyOrderElementsOf(expected);
-    }
-
-    private static Set<String> without(Set<String> set, String removed) {
-        return set.stream().filter(key -> !key.equals(removed)).collect(java.util.stream.Collectors.toSet());
     }
 
     private static String suffix() {
@@ -308,10 +219,6 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> map(Object node) {
         return (Map<String, Object>) node;
-    }
-
-    private static Map<String, Object> map(Object node, int index) {
-        return map(list(node).get(index));
     }
 
     @SuppressWarnings("unchecked")

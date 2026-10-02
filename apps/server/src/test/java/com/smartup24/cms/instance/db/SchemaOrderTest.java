@@ -135,7 +135,14 @@ class SchemaOrderTest {
                 .query((rs, rowNum) -> columns.put(rs.getString("table_name"), rs.getBoolean("checked")))
                 .list();
         assertThat(columns)
-                .containsOnlyKeys("md_installed_modules", "md_users", "ms_notes", "ms_task_projects", "ms_tasks")
+                .containsOnlyKeys(
+                        "md_installed_modules",
+                        "md_users",
+                        "ms_notes",
+                        "ms_task_projects",
+                        "ms_task_statuses",
+                        "ms_task_types",
+                        "ms_tasks")
                 .allSatisfy((table, checked) -> assertThat(checked).as(table).isTrue());
     }
 

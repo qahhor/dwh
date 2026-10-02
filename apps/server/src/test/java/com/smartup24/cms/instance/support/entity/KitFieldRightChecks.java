@@ -105,6 +105,7 @@ final class KitFieldRightChecks {
         Map<String, Object> values = world.validValues(plain());
         Object value = EntitySamples.valid(world.form(field), world.token())
                 .or(() -> Optional.ofNullable(world.fixture.validValues().get(field.key())))
+                .or(() -> world.unitOf(field, plain()))
                 .orElseThrow(() -> new AssertionError("a value of " + field.key() + " in EntityFixture.valid(...)"));
         values.put(field.key(), value);
         MockHttpServletResponse response = world.post(plain(), values);

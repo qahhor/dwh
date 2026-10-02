@@ -1,18 +1,26 @@
 import { Injectable, inject } from '@angular/core';
 import { AuthService } from '@core/services/auth.service';
+import { TaskStatusFilter, statusFilterCode } from '../tasks.models';
 
+/** The quick presets of the task screen. */
+export type TaskPresetKey = 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue';
+
+/**
+ * The screen's quick filters (ADR-0016): each one is a condition of the runtime list `ms.tasks`, added to the view's
+ * own filter — "active" is `terminal = false`, "mine" is `responsibleId = me`, "executor" is `executorIds in [me]`.
+ */
 @Injectable({
   providedIn: 'root',
 })
 export class TaskFilterService {
   private readonly authService = inject(AuthService, { optional: true });
 
-  activePreset: 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue' = 'all';
+  activePreset: TaskPresetKey = 'all';
   viewMode: 'table' | 'kanban' = 'table';
   searchQuery = '';
   selectedPriority = '';
   selectedProjectId: number | null = null;
-  statusFilterMode: 'active' | 'all' | number = 'active';
+  statusFilterMode: TaskStatusFilter = 'active';
   readonly pageSize = 50;
   showExportMenu = false;
 
@@ -34,13 +42,13 @@ export class TaskFilterService {
     onReload();
   }
 
-  setPreset(preset: 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue', onReload: () => void): void {
+  setPreset(preset: TaskPresetKey, onReload: () => void): void {
     if (this.activePreset === preset) return;
     this.activePreset = preset;
     onReload();
   }
 
-  setStatusFilterMode(mode: 'active' | 'all' | number, onReload: () => void): void {
+  setStatusFilterMode(mode: TaskStatusFilter, onReload: () => void): void {
     this.statusFilterMode = mode;
     onReload();
   }
@@ -65,54 +73,31 @@ export class TaskFilterService {
     onReload();
   }
 
-  buildListParams(cursor: string | null, limit: number = this.pageSize): Record<string, unknown> {
-    let statusIdParam: number | undefined = undefined;
-    let hideTerminalParam: boolean | undefined = undefined;
+  /** The quick filters as conditions of the list's filter expression. */
+  buildConditions(): unknown[] {
+    const conditions: unknown[] = [];
+    const status = statusFilterCode(this.statusFilterMode);
+    if (status !== null) conditions.push(eq('statusCode', status));
+    else if (this.statusFilterMode === 'active') conditions.push(eq('terminal', false));
+    if (this.selectedPriority) conditions.push(eq('priority', this.selectedPriority));
+    if (this.selectedProjectId) conditions.push(eq('projectId', this.selectedProjectId));
 
-    if (this.statusFilterMode === 'active') {
-      hideTerminalParam = true;
-    } else if (this.statusFilterMode === 'all') {
-      hideTerminalParam = false;
-    } else if (typeof this.statusFilterMode === 'number') {
-      statusIdParam = this.statusFilterMode;
+    const me = this.authService?.currentUser()?.id;
+    if (this.activePreset === 'overdue') conditions.push(eq('overdue', true));
+    else if (me != null) {
+      if (this.activePreset === 'my') conditions.push(eq('responsibleId', me));
+      else if (this.activePreset === 'executor') conditions.push({ field: 'executorIds', op: 'in', value: [me] });
+      else if (this.activePreset === 'observer') conditions.push({ field: 'observerIds', op: 'in', value: [me] });
+      else if (this.activePreset === 'reported') conditions.push(eq('reporterId', me));
     }
-
-    let assignedUserIdParam: number | undefined = undefined;
-    let memberRoleParam: string | undefined = undefined;
-    let reporterIdParam: number | undefined = undefined;
-    let overdueParam: boolean | undefined = undefined;
-
-    const currentUserId = this.authService?.currentUser()?.id;
-    if (this.activePreset === 'my') {
-      assignedUserIdParam = currentUserId;
-      memberRoleParam = 'R';
-    } else if (this.activePreset === 'executor') {
-      assignedUserIdParam = currentUserId;
-      memberRoleParam = 'E';
-    } else if (this.activePreset === 'observer') {
-      assignedUserIdParam = currentUserId;
-      memberRoleParam = 'O';
-    } else if (this.activePreset === 'reported') {
-      reporterIdParam = currentUserId;
-    } else if (this.activePreset === 'overdue') {
-      overdueParam = true;
-    }
-
-    return {
-      limit,
-      cursor: cursor || undefined,
-      priority: this.selectedPriority || undefined,
-      projectId: this.selectedProjectId || undefined,
-      statusId: statusIdParam,
-      hideTerminal: hideTerminalParam,
-      assignedUserId: assignedUserIdParam,
-      memberRole: memberRoleParam,
-      reporterId: reporterIdParam,
-      overdue: overdueParam,
-    };
+    return conditions;
   }
 
   cleanup(): void {
     clearTimeout(this.taskSearchTimer);
   }
+}
+
+function eq(field: string, value: unknown): unknown {
+  return { field, op: 'eq', value };
 }

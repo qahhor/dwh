@@ -106,6 +106,11 @@ class EntityFeaturesTest {
             public void archive(EntityDefinition entity, long id) {
                 byEntity.get(entity.code()).archive(id);
             }
+
+            @Override
+            public void change(EntityDefinition entity, long id, String action, tools.jackson.databind.JsonNode body) {
+                byEntity.get(entity.code()).change(id, action, body);
+            }
         };
     }
 
@@ -155,7 +160,7 @@ class EntityFeaturesTest {
                         layout,
                         create,
                         Set.of(EntityCapability.BULK)))
-                .hasMessageContaining("delete action");
+                .hasMessageContaining("an action on a record");
     }
 
     /**

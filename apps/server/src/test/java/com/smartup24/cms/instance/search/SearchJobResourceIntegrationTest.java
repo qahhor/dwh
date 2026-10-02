@@ -128,7 +128,7 @@ class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
             release.countDown();
             beforeRequest = exchange -> {};
         }
-        users.updateUser(id, "After", null, null, null, null, null, null, null, null, id, 1L);
+        renameUser(id, "After");
         worker.runOnce();
         assertThat(documents.get("users/" + id)).containsEntry("name", "After");
         jobWorker.close();

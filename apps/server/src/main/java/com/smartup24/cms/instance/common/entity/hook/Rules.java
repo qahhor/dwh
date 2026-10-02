@@ -1,7 +1,10 @@
 package com.smartup24.cms.instance.common.entity.hook;
 
 import com.smartup24.cms.instance.common.entity.field.FieldCondition;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
@@ -14,26 +17,37 @@ import org.jspecify.annotations.Nullable;
  */
 public final class Rules {
 
+    /** The length of an ISO date, {@code 2026-10-01}. */
+    private static final int DATE_LENGTH = 10;
+
     private Rules() {}
 
     /**
-     * {@code later} is not before {@code earlier} (both dates): {@code before_start} on {@code later}, the text
-     * {@code error.field.not_before} with the label key of the earlier field as {@code field}.
+     * {@code later} is not before {@code earlier} (both dates, or both moments): {@code before_start} on
+     * {@code later}, the text {@code error.field.not_before} with the label key of the earlier field as
+     * {@code field}.
      */
     public static EntityRule notBefore(String later, String earlier) {
         return (values, before, errors) -> {
-            LocalDate end = date(values, later);
-            LocalDate start = date(values, earlier);
+            Instant end = moment(values, later);
+            Instant start = moment(values, earlier);
             if (end != null && start != null && end.isBefore(start)) {
                 errors.field(later, "before_start", "error.field.not_before", Map.of("field", earlier));
             }
         };
     }
 
-    /** The date of a field, or null without one or when it does not parse (its own rule reports that). */
-    private static @Nullable LocalDate date(EntityValues values, String key) {
+    /**
+     * The date of a field as the moment it starts in UTC, or the moment of a date-time field; null without a value or
+     * when it does not parse (its own rule reports that).
+     */
+    private static @Nullable Instant moment(EntityValues values, String key) {
+        String text = values.text(key);
+        if (text == null || text.isBlank()) return null;
         try {
-            return values.date(key);
+            return text.strip().length() == DATE_LENGTH
+                    ? LocalDate.parse(text.strip()).atStartOfDay(ZoneOffset.UTC).toInstant()
+                    : OffsetDateTime.parse(text.strip()).toInstant();
         } catch (DateTimeParseException e) {
             return null;
         }

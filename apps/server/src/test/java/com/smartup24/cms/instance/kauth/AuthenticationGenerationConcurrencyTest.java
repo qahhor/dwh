@@ -475,14 +475,13 @@ class AuthenticationGenerationConcurrencyTest {
                     };
                     revocation = executor.submit(() -> {
                         Thread.currentThread().setName("anonymizer");
-                        f.userSecurityService.anonymizeUser(id, other);
+                        f.anonymize(id);
                     });
                     assertThat(revokerRead.await(10, TimeUnit.SECONDS)).isTrue();
                     assertBlockedBy(f, revokerPid.get(), issuerPid.get());
-                } else if (anonymize) f.userSecurityService.anonymizeUser(id, other);
+                } else if (anonymize) f.anonymize(id);
                 else {
-                    f.userSecurityService.setUserState(id, "P", other);
-                    f.userSecurityService.setUserState(id, "A", other);
+                    f.blockAndUnblock(id);
                 }
                 release.countDown();
                 var result = pending.get(20, TimeUnit.SECONDS);

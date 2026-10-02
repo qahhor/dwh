@@ -19,6 +19,12 @@ function user(id) {
   };
 }
 
+/** A user as the general runtime reads it (ADR-0032 6.2): the record's properties and the viewer's actions. */
+function userRecord(id) {
+  const { forcePasswordChange, ...fields } = user(id);
+  return { ...fields, credentialChangeRequired: forcePasswordChange, revision: 1, roleIds: [], actions: ['update'] };
+}
+
 function orgUnits() {
   const units = [];
   let id = 0;
@@ -48,9 +54,10 @@ const securityEvent = id => ({
   ip: `10.0.0.${id}`, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0', details: { login: 'guest' },
   createdAt: at((id % 27) + 1), ...(id % 2 ? { userName: 'Иван Петров', userLogin: 'ipetrov' } : {}),
 });
+// A record of ms.tasks on the general runtime (ADR-0032 8): its status and type are codes.
 const task = id => ({
-  id, title: `Проверить выкладку в торговой точке ${id}`, projectId: null, typeId: null, statusId: 1, priority: ['low', 'medium', 'high'][id % 3],
-  parentTaskId: null, endTime: at((id % 27) + 1), createdAt: at(1), modifiedAt: at(1),
+  id, title: `Проверить выкладку в торговой точке ${id}`, projectId: null, typeCode: 'task', statusCode: 'open', priority: ['low', 'medium', 'high'][id % 3],
+  parentTaskId: null, endTime: at((id % 27) + 1), createdAt: at(1), modifiedAt: at(1), attributes: {}, revision: 1,
 });
 const page = (items, nextCursor = null, totalEstimated = items.length) => ({ items, nextCursor, hasMore: nextCursor !== null, totalEstimated });
 const metaField = (key, labelKey, type, extra = {}) =>
@@ -90,9 +97,33 @@ export const fixtures = {
   '/iam/org-units': orgUnits(),
   '/iam/org-units/users/1': { userId: 1, orgUnitIds: [2, 5], legacyOrgUnitId: null, revision: 1 },
   '/iam/org-units/users/1/scope': { rule: 'UNITS', visibleOrgUnitIds: [2, 5] },
-  // The user list is a registry list (roadmap item 48): its fields come from query-meta, the total is real.
-  '/query-meta/iam.users': {
-    code: 'iam.users', defaultSort: 'name', defaultLimit: 20, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+  // The users are an entity of the general runtime (ADR-0032 8): their form and list come from the server, the
+  // records from /entities/md.users, and the screen is the general one with the tabs of the accounts.
+  '/form-meta/md.users': {
+    code: 'md.users', listCode: 'md.users',
+    fields: [
+      formField('name', 'iam.users.col.name', 'text', { required: true, minLength: 1, maxLength: 255 }),
+      formField('login', 'iam.users.col.login', 'text', { required: true, minLength: 3, maxLength: 50, readonlyOnUpdate: true }),
+      formField('email', 'iam.users.col.email', 'email', { required: true, readonlyOnUpdate: true }),
+      formField('phone', 'iam.users.col.phone', 'phone'),
+      formField('state', 'iam.users.col.state', 'select', { options: ['A', 'P'], optionLabelPrefix: 'iam.users.state.', readonly: true }),
+      formField('orgUnitId', 'iam.users.col.org_unit', 'ref', { ref: { path: '/iam/org-units', labelField: 'name', keyField: 'id', paged: false } }),
+      formField('managerId', 'iam.users.col.manager', 'ref', { ref: { path: '/entities/md.users', labelField: 'name', keyField: 'id', paged: true } }),
+      formField('language', 'iam.common.language', 'text', { defaultValue: { kind: 'fixed', value: 'ru' } }),
+      formField('timezone', 'iam.common.time_zone', 'text', { defaultValue: { kind: 'fixed', value: 'UTC' } }),
+      formField('is2faEnabled', 'iam.users.col.two_factor', 'boolean', { readonly: true }),
+      formField('credentialChangeRequired', 'iam.common.force_password_change', 'boolean', { readonly: true }),
+    ],
+    layout: [
+      { key: 'profile', labelKey: 'iam.users.section.profile', fields: ['name', 'login', 'email', 'phone'] },
+      { key: 'work', labelKey: 'iam.users.section.work', fields: ['orgUnitId', 'managerId', 'language', 'timezone'] },
+      { key: 'security', labelKey: 'iam.users.section.security', fields: ['state', 'is2faEnabled', 'credentialChangeRequired'] },
+    ],
+    actions: ['create', 'update', 'block', 'unblock', 'reset_2fa', 'enable_2fa', 'force_password_change', 'anonymize'],
+    capabilities: ['custom_fields', 'export', 'history', 'saved_views'],
+  },
+  '/query-meta/md.users': {
+    code: 'md.users', defaultSort: 'name', defaultLimit: 20, maxLimit: 200, maxConditions: 20, maxInValues: 100,
     fields: [
       metaField('name', 'iam.users.col.name', 'text', { sortable: true, searchable: true }),
       metaField('login', 'iam.users.col.login', 'text', { sortable: true, searchable: true, defaultVisible: false }),
@@ -103,10 +134,26 @@ export const fixtures = {
       metaField('createdAt', 'iam.users.col.created_at', 'instant', { sortable: true })
     ]
   },
-  '/list-views/iam.users': [],
-  '/iam/users': page(range(1, 50).map(user), 'u2', 60),
-  '/iam/users#u2': page(range(51, 60).map(user), null, 60),
-  '/iam/users/80': { ...user(80), managerId: 1 },
+  '/list-views/md.users': [],
+  '/entities/md.users': page(range(1, 50).map(userRecord), 'u2', 60),
+  '/entities/md.users#u2': page(range(51, 60).map(userRecord), null, 60),
+  '/entities/md.users/1': userRecord(1),
+  '/entities/md.users/2': {
+    ...userRecord(2), managerId: 1, orgUnitId: 5,
+    actions: ['update', 'block', 'reset_2fa', 'force_password_change', 'anonymize'],
+  },
+  '/entities/md.users/80': userRecord(80),
+  '/iam/users/2/security': {
+    userId: 2, login: 'user2', is2faEnabled: false, forcePasswordChange: false, createdAt: at(1), authVersion: 3,
+    activeSessionsCount: 1,
+    activeSessions: [{ id: 7, userId: 2, ip: '10.0.0.2', userAgent: 'Mozilla/5.0 Chrome/140.0', deviceInfo: 'browser', createdAt: at(3), lastSeenAt: at(4) }],
+    recentLoginAttempts: [{ id: 9, login: 'user2', ip: '10.0.0.2', isSuccess: true, attemptAt: at(3) }],
+  },
+  '/iam/users/2/effective-permissions': { items: [{ form: 'tasks.items', action: 'view', source: 'role' }] },
+  '/iam/users/2/permissions': { grants: [] },
+  '/iam/forms': [],
+  '/iam/org-units/users/2': { userId: 2, orgUnitIds: [5], legacyOrgUnitId: 5, revision: 4 },
+  '/iam/org-units/users/2/scope': { rule: 'UNITS', visibleOrgUnitIds: [5] },
   '/iam/roles': [],
   '/custom-fields': [],
   '/audit/stats': { totalAuditLogs: 30, totalSecurityEvents: 12, securityEventsLast24h: 3, failedLoginsLast24h: 1 },
@@ -148,34 +195,36 @@ export const fixtures = {
       metaField('descriptionMarkdown', 'tasks.col.description', 'text', { searchable: true, defaultVisible: false }),
       metaField('projectId', 'tasks.col.project', 'number', { nullable: true }),
       metaField('priority', 'tasks.col.priority', 'enum', { enumValues: ['low', 'medium', 'high', 'critical'], enumLabelPrefix: 'tasks.priority.' }),
-      metaField('statusId', 'tasks.col.status', 'number'),
+      metaField('statusCode', 'tasks.col.status', 'enum'),
       metaField('endTime', 'tasks.col.due', 'instant', { nullable: true })
     ]
   },
   '/list-views/ms.tasks': [],
-  '/tasks': page(range(100, 51).map(task), 't2', 60),
-  '/tasks#t2': page(range(50, 41).map(task), null, 60),
-  // The project screen pages the registry list ms.projects (roadmap item 51); counts come with each row.
+  '/entities/ms.tasks': page(range(100, 51).map(task), 't2', 60),
+  '/entities/ms.tasks#t2': page(range(50, 41).map(task), null, 60),
+  // The project screen pages the runtime list ms.projects (ADR-0032 8); the progress of the page comes beside it.
   '/query-meta/ms.projects': {
     code: 'ms.projects', defaultSort: 'name', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
     fields: [
       metaField('id', 'projects.col.id', 'number', { sortable: true }),
       metaField('name', 'projects.col.name', 'text', { sortable: true, searchable: true }),
-      metaField('state', 'projects.col.state', 'enum', { enumValues: ['A', 'P'], enumLabelPrefix: 'projects.state.' }),
+      metaField('archived', 'entity.col.archived', 'boolean'),
       metaField('createdAt', 'projects.col.created_at', 'instant', { sortable: true }),
       metaField('progress', 'projects.col.progress', 'number', { sortable: true })
     ]
   },
   '/list-views/ms.projects': [],
-  '/tasks/projects/page': page(range(1, 10).map(id => ({
+  '/entities/ms.projects': page(range(1, 10).map(id => ({
     id, name: `Выкладка в сети ${id}`, description: id % 2 ? `Регион ${id}: контроль полки и POSM` : undefined,
-    state: id % 5 ? 'A' : 'P', attributes: {}, createdAt: at(id), createdBy: 1,
-    totalTasks: id + 2, doneTasks: id, progress: Math.round(id * 100 / (id + 2)),
+    archived: id % 5 === 0, attributes: {}, createdAt: at(id), revision: 1,
   })), 'p2', 14),
-  '/tasks/projects/page#p2': page(range(11, 14).map(id => ({
-    id, name: `Выкладка в сети ${id}`, state: 'A', attributes: {}, createdAt: at(id), createdBy: 1,
-    totalTasks: 0, doneTasks: 0, progress: 0,
+  '/entities/ms.projects#p2': page(range(11, 14).map(id => ({
+    id, name: `Выкладка в сети ${id}`, archived: false, attributes: {}, createdAt: at(id), revision: 1,
   })), null, 14),
+  // One answer for every page: the screen keeps the entries of the projects it shows.
+  '/tasks/projects/progress': range(1, 14).map(id => ({
+    projectId: id, totalTasks: id > 10 ? 0 : id + 2, doneTasks: id > 10 ? 0 : id, progress: id > 10 ? 0 : Math.round(id * 100 / (id + 2)),
+  })),
   // The notes screen is the reference entity screen (plan 10/10, item 2.1): its form and list come from the server.
   '/form-meta/ms.notes': {
     code: 'ms.notes', listCode: 'ms.notes',
@@ -207,11 +256,12 @@ export const fixtures = {
   '/entities/ms.notes/1': { ...note(1), revision: 2, archived: false, actions: ['update', 'archive', 'delete'] },
   '/entities/menu': [
     { code: 'ms.notes', form: 'notes', route: '/notes', labelKey: 'nav.notes', icon: 'description', section: 'workspace', order: 30, module: 'notes' },
+    { code: 'md.users', form: 'md.users', route: '/e/md.users', labelKey: 'nav.users', icon: 'people', section: 'iam', order: 10, module: null },
   ],
   '/history/ms.notes/1': page([
     { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'title', labelKey: 'notes.col.title', oldValue: 'Планёрка', newValue: 'Планёрка филиала 1' }] },
     { id: 1, event: 'I', changedAt: at(1), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [] },
   ]),
-  '/tasks/statuses': [{ id: 1, name: 'Открыта', color: '#3b82f6', orderNo: 1, isFinal: false }],
-  '/tasks/types': [],
+  '/entities/ms.task_statuses': page([{ id: 1, code: 'open', name: 'Открыта', color: '#3b82f6', sortOrder: 1, terminal: false, system: true }]),
+  '/entities/ms.task_types': page([]),
 };

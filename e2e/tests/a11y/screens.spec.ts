@@ -47,32 +47,41 @@ const screens: Screen[] = [
       await expect(page.getByRole('table', { name: 'События безопасности' })).toBeVisible();
     },
   },
+  // The users on the general entity screen (ADR-0032 8): the list, the form with the manager picker open, the
+  // record with its sessions, and its roles and rights with the division assignments.
   {
     name: 'user list',
-    path: '/iam/users',
+    path: '/e/md.users',
     open: async page => {
-      await expect(page.getByRole('table', { name: 'Список пользователей' })).toBeVisible();
-      await expect(page.getByText('Сотрудник 80', { exact: true }).first()).toBeVisible();
+      await expect(page.getByRole('table', { name: 'Пользователи' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Сотрудник 2', exact: true })).toBeVisible();
     },
   },
   {
     name: 'user edit form with the manager picker open',
-    path: '/iam/users',
+    path: '/e/md.users/2/edit',
     open: async page => {
-      await page.getByRole('button', { name: 'Редактировать пользователя Сотрудник 2', exact: true }).click();
-      await page.getByRole('dialog').getByRole('combobox', { name: 'Руководитель', exact: true }).click();
+      await page.getByRole('combobox', { name: 'Руководитель', exact: true }).click();
       await expect(page.getByRole('listbox', { name: 'Руководитель' })).toBeVisible();
       // Not /Сотрудник 3/: once the manager search lands it also matches Сотрудник 30–39.
       await expect(page.getByRole('option', { name: /Сотрудник 3 @user3$/ })).toBeVisible();
     },
   },
   {
-    name: 'user card division assignments',
-    path: '/iam/users',
+    name: 'user record with its sessions',
+    path: '/e/md.users/2',
     open: async page => {
-      await page.locator('button.user-identity').first().click();
-      await page.getByRole('tab', { name: /Оргструктура/ }).click();
-      await expect(page.getByRole('treegrid')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Сотрудник 2' })).toBeVisible();
+      await page.getByRole('tab', { name: 'Сессии и безопасность' }).click();
+      await expect(page.getByText('10.0.0.2').first()).toBeVisible();
+    },
+  },
+  {
+    name: 'user card division assignments',
+    path: '/e/md.users/2',
+    open: async page => {
+      await page.getByRole('tab', { name: 'Роли и права' }).click();
+      await expect(page.getByRole('treegrid').first()).toBeVisible();
     },
   },
   {

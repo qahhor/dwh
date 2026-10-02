@@ -5,13 +5,13 @@ import { inScreen, Screen } from '@testing/in-screen';
 import { TaskDictionariesModalComponent } from './task-dictionaries-modal.component';
 
 const TYPES: TaskType[] = [
-  { id: 1, code: 'task', name: 'Задача', icon: 'task_alt', color: '#2563eb', orderNo: 1, isSystem: true },
-  { id: 2, code: 'doc', name: 'Документ', icon: 'description', color: '#16a34a', orderNo: 2, isSystem: false },
+  { id: 1, code: 'task', name: 'Задача', icon: 'task_alt', color: '#2563eb', sortOrder: 1, system: true },
+  { id: 2, code: 'doc', name: 'Документ', icon: 'description', color: '#16a34a', sortOrder: 2, system: false },
 ];
 
 const STATUSES: TaskStatus[] = [
-  { id: 1, pcode: 'new', name: 'Новая', color: '#0284c7', isTerminal: false, orderNo: 1 },
-  { id: 4, pcode: null, name: 'Согласовано', color: '#16a34a', isTerminal: true, orderNo: 2 },
+  { id: 1, code: 'new', system: true, name: 'Новая', color: '#0284c7', terminal: false, sortOrder: 1 },
+  { id: 4, code: 'agreed', name: 'Согласовано', color: '#16a34a', terminal: true, sortOrder: 2 },
 ];
 
 function render() {
@@ -115,7 +115,7 @@ describe('TaskDictionariesModalComponent', () => {
     (screen.querySelector('#task-statuses-panel [role="checkbox"]') as HTMLElement).click();
     fixture.detectChanges();
     press(fixture, screen, 'add Добавить статус');
-    expect(created).toHaveBeenCalledWith({ name: 'На проверке', color: '#0284c7', isTerminal: true });
+    expect(created).toHaveBeenCalledWith({ name: 'На проверке', color: '#0284c7', terminal: true });
   });
 
   it('hands a new order of the types to the page when a row is moved', () => {

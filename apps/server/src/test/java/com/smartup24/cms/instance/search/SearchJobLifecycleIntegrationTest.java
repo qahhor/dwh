@@ -291,7 +291,7 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
         var candidate = generationRepository
                 .find(jobRepository.find(job).orElseThrow().generationId())
                 .orElseThrow();
-        users.updateUser(id, "After", null, null, null, null, null, null, null, null, id, 1L);
+        renameUser(id, "After");
         worker.runGeneration(candidate.delivery(state.snapshot().version()));
         assertThat(generationRepository.pending(candidate.id())).isZero();
         jobWorker.runOnce();

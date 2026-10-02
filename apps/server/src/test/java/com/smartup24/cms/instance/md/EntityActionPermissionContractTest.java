@@ -8,10 +8,12 @@ import com.smartup24.cms.instance.md.service.MdFormCatalogSynchronizer;
 import com.smartup24.cms.instance.support.TestFixtureExcludeFilter;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Configuration;
@@ -78,13 +80,16 @@ class EntityActionPermissionContractTest {
         for (var definition : scanner.findCandidateComponents("com.smartup24.cms.instance")) {
             Class<?> type = Class.forName(definition.getBeanClassName());
             for (Method method : type.getDeclaredMethods()) {
+                // A declaration may take the providers of the beans its custom scope reads (the users' scope): they
+                // are asked only when a viewer's rows are read, never while the entity is declared.
                 if (method.isAnnotationPresent(Bean.class)
                         && method.getReturnType() == EntityDefinition.class
-                        && method.getParameterCount() == 0) {
+                        && Arrays.stream(method.getParameterTypes()).allMatch(ObjectProvider.class::equals)) {
                     var ctor = type.getDeclaredConstructor();
                     ctor.setAccessible(true);
                     method.setAccessible(true);
-                    entities.add((EntityDefinition) method.invoke(ctor.newInstance()));
+                    entities.add((EntityDefinition)
+                            method.invoke(ctor.newInstance(), new Object[method.getParameterCount()]));
                 }
             }
         }

@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskAuditTrail;
-import com.smartup24.cms.instance.ms.task.service.MsTaskStatusService;
 import com.smartup24.cms.instance.search.service.SearchJobAudit;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -43,18 +42,10 @@ class AuditCoverageTest {
     private static final Map<String, Class<?>> AUDIT_DELEGATES = Map.of(
             "SearchJobService",
             SearchJobAudit.class,
-            // Plan 10/10, item 3.10: the task services write ms_tasks entries through one trail; the status view
-            // service adapts the status service, which audits the dictionaries itself.
-            "MsTaskService",
-            MsTaskAuditTrail.class,
-            "MsTaskWorkflowService",
-            MsTaskAuditTrail.class,
-            "MsTaskMemberService",
-            MsTaskAuditTrail.class,
+            // Plan 10/10, item 3.10: the files of a task are written to its ms_tasks entries through one trail. The
+            // tasks, projects, task types and statuses are entities the general runtime audits (ADR-0032, 6.8).
             "MsTaskFileService",
-            MsTaskAuditTrail.class,
-            "MsTaskStatusViewService",
-            MsTaskStatusService.class);
+            MsTaskAuditTrail.class);
 
     /**
      * Services without audit, each with a reason. The list is closed: a new service is added only with a reason why
@@ -69,6 +60,8 @@ class AuditCoverageTest {
             "SearchService", // indexing, derived from data that is already logged
             "SearchChangePublisher", // derived revisions; the owner logs the business mutation
             "MsNotificationService", // delivers notifications, does not change data
+            // the participation rows follow the task record the runtime audits; a "seen" mark is no business change
+            "MsTaskMemberService",
             // audited by the foundation triggers (fnd_audit_enable, V100): the actor comes from app.user_id, one
             // audit_log row per insert, update or delete
             "WarehouseLoadService",

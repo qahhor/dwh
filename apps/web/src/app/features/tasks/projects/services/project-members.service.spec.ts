@@ -42,7 +42,12 @@ describe('ProjectMembersService', () => {
     memberReads = [];
     confirmed = undefined;
     api = {
-      get: vi.fn((..._args: unknown[]) => memberReads.shift() ?? of(page([member(10, 'Alice')]))),
+      // A member action reads the project for its revision first (ADR-0032 6.7).
+      get: vi.fn((url: string) =>
+        url === '/entities/ms.projects/42'
+          ? of({ id: 42, revision: 7 })
+          : (memberReads.shift() ?? of(page([member(10, 'Alice')]))),
+      ),
       post: vi.fn(() => of({})),
       delete: vi.fn(() => of({})),
     };
@@ -98,9 +103,9 @@ describe('ProjectMembersService', () => {
     members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
     await settle();
     expect(api.post).toHaveBeenCalledWith(
-      '/tasks/projects/42/members',
+      '/entities/ms.projects/42/actions/add_member',
       { userId: 20, accessKind: 'MEMBER' },
-      { notifyError: false },
+      { notifyError: false, ifMatch: 7 },
     );
     expect(toast.success).toHaveBeenCalled();
     expect(members.projectMembers().map((m) => m.userId)).toEqual([10, 20]);
@@ -146,14 +151,18 @@ describe('ProjectMembersService', () => {
     members.openMembersModal(PROJECT);
     await settle();
     const removal = new Subject<unknown>();
-    api.delete.mockReturnValue(removal);
+    api.post.mockReturnValue(removal);
 
     members.onRemoveProjectMember({ projectId: 42, userId: 10, userName: 'Иван' });
     expect(confirmed?.message).toContain('Иван');
-    expect(api.delete).not.toHaveBeenCalled();
+    expect(api.post).not.toHaveBeenCalled();
     confirmed!.action!().subscribe();
     expect(members.removingMemberId()).toBe(10);
-    expect(api.delete).toHaveBeenCalledWith('/tasks/projects/42/members/10', { notifyError: false });
+    expect(api.post).toHaveBeenCalledWith(
+      '/entities/ms.projects/42/actions/remove_member',
+      { userId: 10 },
+      { notifyError: false, ifMatch: 7 },
+    );
 
     const before = reads();
     removal.next({});

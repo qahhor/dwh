@@ -125,7 +125,6 @@ class KauthPasswordResetIntegrationTest {
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
                 new KauthUserSessionInvalidator(sessionRepository, new KauthApiTokenRepository(jdbc)),
-                Mockito.mock(SearchChangePublisher.class),
                 auditLogService);
         var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), auditLogService);
         var texts = new KauthChannelTexts(

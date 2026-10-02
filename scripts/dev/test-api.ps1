@@ -2,11 +2,15 @@
 # SmartupCMS - End-to-End Live API Verification Script
 # ============================================================================
 # The nightly workflow runs it against a disposable Compose stack whose server ports are published on 127.0.0.1
-# (scripts/dev/api-smoke.compose.yml); locally it targets a server started from the sources.
+# (scripts/dev/api-smoke.compose.yml) and whose mail goes to the SMTP stub (scripts/dev/e2e-mail.compose.yml): a user
+# is created without a password and sets it through the mailed invitation (ADR-0032 8). Locally it targets a server
+# started from the sources with the same mail stub.
 param(
     [string]$BaseUrl = "http://localhost:8080",
     # management.server.port in application.yml.
-    [string]$MgmtUrl = "http://localhost:9090"
+    [string]$MgmtUrl = "http://localhost:9090",
+    # The HTTP API of the mail stub (MAILPIT_HTTP_PORT of scripts/dev/e2e-mail.compose.yml).
+    [string]$MailpitUrl = "http://127.0.0.1:8025"
 )
 
 $ErrorActionPreference = "Stop"
@@ -80,6 +84,10 @@ Write-Host "   User Verified: $($meResponse.user.login)" -ForegroundColor Green
 Write-Host "   Effective Permissions Count: $($meResponse.permissions.Count)" -ForegroundColor Green
 
 function Get-CsrfHeaders {
+    # Invoke-RestMethod -WebSession keeps every -Headers entry in the session and sends it with each later call, so
+    # the If-Match of an earlier change would turn a later create (PUT /api/v1/modules/{code}) into a replace of a
+    # module that does not exist (404). A change names its revision itself (Get-RevisionHeaders).
+    if ($session -and $session.Headers) { [void]$session.Headers.Remove("If-Match") }
     $token = ""
     try {
         foreach ($c in $session.Cookies.GetCookies([System.Uri]$BaseUrl)) {
@@ -89,6 +97,46 @@ function Get-CsrfHeaders {
         }
     } catch {}
     return @{ "X-XSRF-TOKEN" = $token }
+}
+
+# A change of a revisioned record names the revision it was made from (ADR-0024): If-Match with the current one.
+function Get-RevisionHeaders([string]$Path) {
+    $record = Invoke-RestMethod -Uri "$BaseUrl/api/v1$Path" -Method Get -WebSession $session
+    $headers = Get-CsrfHeaders
+    $headers["If-Match"] = "`"$($record.revision)`""
+    return $headers
+}
+
+# The one-time password link of the invitation the mail stub received for the address; the message is removed after
+# reading. Nothing here prints a token or a message body.
+function Get-InvitationToken([string]$Email) {
+    for ($i = 0; $i -lt 40; $i++) {
+        $list = Invoke-RestMethod -Uri "$MailpitUrl/api/v1/messages?limit=100" -Method Get
+        $message = $list.messages | Where-Object { @($_.To | Where-Object { $_.Address -eq $Email }).Count -gt 0 } | Select-Object -First 1
+        if ($message) {
+            $body = Invoke-RestMethod -Uri "$MailpitUrl/api/v1/message/$($message.ID)" -Method Get
+            Invoke-RestMethod -Uri "$MailpitUrl/api/v1/messages" -Method Delete -Body (@{ IDs = @($message.ID) } | ConvertTo-Json) -ContentType "application/json" | Out-Null
+            $match = [regex]::Match([string]$body.Text, '/reset-password#token=([A-Za-z0-9_-]{20,})')
+            if (-not $match.Success) { throw "The invitation to $Email carries no password link." }
+            return $match.Groups[1].Value
+        }
+        Start-Sleep -Milliseconds 500
+    }
+    throw "No invitation reached the mail stub for $Email (start the stack with scripts/dev/e2e-mail.compose.yml)."
+}
+
+# A user of the general entity runtime (ADR-0032 8): created without a password, with the role 'user'; the password
+# is set through the mailed invitation, as the person would accept it.
+function New-InvitedUser([hashtable]$User, [string]$Password) {
+    $created = Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/md.users" -Method Post -Body ($User | ConvertTo-Json) -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+    $confirm = @{ token = (Get-InvitationToken $User.email); newPassword = $Password } | ConvertTo-Json
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/password-reset/confirm" -Method Post -Body $confirm -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
+    return $created
+}
+
+# A record action of a user (block, anonymize, force_password_change...) from its current revision.
+function Invoke-UserAction([long]$Id, [string]$Action) {
+    return Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/md.users/$Id/actions/$Action" -Method Post -Body "{}" -ContentType "application/json" -WebSession $session -Headers (Get-RevisionHeaders "/entities/md.users/$Id")
 }
 
 # 3a. The first administrator of a clean installation must replace the temporary password before any other call
@@ -106,9 +154,9 @@ if ($meResponse.user.forcePasswordChange) {
     Write-Host "   Temporary password replaced; signed in again." -ForegroundColor Green
 }
 
-# 4. GET /api/v1/iam/users
-Write-Host "`n4. List Users with Keyset Pagination (GET /api/v1/iam/users)..." -ForegroundColor Yellow
-$usersResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users?limit=10" -Method Get -WebSession $session
+# 4. GET /api/v1/entities/md.users
+Write-Host "`n4. List Users with Keyset Pagination (GET /api/v1/entities/md.users)..." -ForegroundColor Yellow
+$usersResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/md.users?limit=10" -Method Get -WebSession $session
 Write-Host "   Users found: $($usersResponse.items.Count)" -ForegroundColor Green
 
 # 5. Create Custom Field for Tasks
@@ -131,32 +179,30 @@ try {
 }
 
 # 6. Create Project
-Write-Host "`n6. Create Project (POST /api/v1/tasks/projects)..." -ForegroundColor Yellow
+Write-Host "`n6. Create Project (POST /api/v1/entities/ms.projects)..." -ForegroundColor Yellow
 $rand = Get-Random
 $projectBody = @{
     name = "SmartupCMS Core $rand"
     description = "Enterprise single-tenant instance deployment"
-    state = "A"
-    attributes = @{}
 } | ConvertTo-Json
 
-$projectResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/projects" -Method Post -Body $projectBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+$projectResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/ms.projects" -Method Post -Body $projectBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Project created: ID=$($projectResponse.id), Name=$($projectResponse.name)" -ForegroundColor Green
 
 # 7. Create Task with dynamic custom attributes
-Write-Host "`n7. Create Task with Dynamic JSONB Attributes (POST /api/v1/tasks)..." -ForegroundColor Yellow
+Write-Host "`n7. Create Task with Dynamic JSONB Attributes (POST /api/v1/entities/ms.tasks)..." -ForegroundColor Yellow
 $taskBody = @{
     projectId = $projectResponse.id
     title = "Setup Kafka CDC connector"
     descriptionMarkdown = "Implement Debezium CDC for high-throughput replication"
     priority = "high"
-    responsibleUserId = 1
+    responsibleId = $meResponse.user.id
     attributes = @{
         budget = 50000
     }
 } | ConvertTo-Json
 
-$taskResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $taskBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+$taskResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/ms.tasks" -Method Post -Body $taskBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Task created: ID=$($taskResponse.id), Title=$($taskResponse.title)" -ForegroundColor Green
 Write-Host "   Dynamic attributes stored: $($taskResponse.attributes | ConvertTo-Json -Compress)" -ForegroundColor Green
 
@@ -209,7 +255,7 @@ if (-not $httpRes.IsSuccessStatusCode) {
 }
 
 $fileUploadRes = $resStr | ConvertFrom-Json
-Write-Host "   File uploaded: ID=$($fileUploadRes.id), Name=$($fileUploadRes.originalName), Size=$($fileUploadRes.sizeBytes) bytes, SHA256=$($fileUploadRes.sha256.Substring(0, 16))..." -ForegroundColor Green
+Write-Host "   File uploaded: ID=$($fileUploadRes.id), Name=$($fileUploadRes.originalName), Size=$($fileUploadRes.sizeBytes) bytes" -ForegroundColor Green
 
 
 
@@ -220,9 +266,9 @@ $attachBody = @{
 Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/$($taskResponse.id)/files" -Method Post -Body $attachBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
 Write-Host "   File attached to Task $($taskResponse.id) successfully" -ForegroundColor Green
 
-# Verify in task details
-$taskDetail = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/$($taskResponse.id)" -Method Get -WebSession $session
-Write-Host "   Task details retrieved: Attached files count = $($taskDetail.files.Count), First file = $($taskDetail.files[0].fileName)" -ForegroundColor Green
+# Verify among the task's files
+$taskFiles = @(Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/$($taskResponse.id)/files" -Method Get -WebSession $session)
+Write-Host "   Task files retrieved: Attached files count = $($taskFiles.Count), First file = $($taskFiles[0].fileName)" -ForegroundColor Green
 
 # Storage Quotas & Stats verification
 $storageStats = Invoke-RestMethod -Uri "$BaseUrl/api/v1/files/storage/stats" -Method Get -WebSession $session
@@ -230,7 +276,7 @@ Write-Host "   Storage stats: Company Quota=$([Math]::Round($storageStats.compan
 
 # Files list verification
 $filesList = Invoke-RestMethod -Uri "$BaseUrl/api/v1/files?scope=all" -Method Get -WebSession $session
-Write-Host "   Files list retrieved: Total count = $($filesList.Count), Most recent = $($filesList[0].originalName) by $($filesList[0].creatorName)" -ForegroundColor Green
+Write-Host "   Files list retrieved: Page count = $($filesList.items.Count), Most recent = $($filesList.items[0].originalName)" -ForegroundColor Green
 
 # Download file verification
 $downloadedContent = Invoke-RestMethod -Uri "$BaseUrl/api/v1/files/$($fileUploadRes.id)/download" -Method Get -WebSession $session
@@ -258,31 +304,26 @@ $bearerMe = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -Header
 Write-Host "   Successfully authenticated via API Bearer Token! User=$($bearerMe.user.login)" -ForegroundColor Green
 
 
-# 12. Create User (CRUD: Add) with 10-char password validation
-Write-Host "`n12. Create User (POST /api/v1/iam/users)..." -ForegroundColor Yellow
+# 12. Create User (CRUD: Add): no password in the record, the invitation sets it (ADR-0032 8)
+Write-Host "`n12. Create User (POST /api/v1/entities/md.users, password through the invitation)..." -ForegroundColor Yellow
 $randUser = Get-Random -Minimum 1000 -Maximum 9999
-$newUserBody = @{
+$newUser = New-InvitedUser @{
     name = "Test Engineer $randUser"
     login = "tester_$randUser"
     email = "tester_$randUser@company.local"
     phone = "+99890$randUser"
-    password = "StrongPassword2026!"
     language = "ru"
     timezone = "Asia/Tashkent"
-    is2faEnabled = $false
-    attributes = @{}
-} | ConvertTo-Json
-$newUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users" -Method Post -Body $newUserBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
-Write-Host "   User created: ID=$($newUser.id), Login=$($newUser.login)" -ForegroundColor Green
+} "StrongPassword2026!"
+Write-Host "   User created and invitation accepted: ID=$($newUser.id), Login=$($newUser.login)" -ForegroundColor Green
 
-# 13. Update User (CRUD: Edit)
-Write-Host "`n13. Update User (PATCH /api/v1/iam/users/$($newUser.id))..." -ForegroundColor Yellow
+# 13. Update User (CRUD: Edit) from its revision
+Write-Host "`n13. Update User (PATCH /api/v1/entities/md.users/$($newUser.id))..." -ForegroundColor Yellow
 $updateUserBody = @{
     name = "Senior Test Engineer $randUser"
     language = "en"
 } | ConvertTo-Json
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Patch -Body $updateUserBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
-$updatedUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Get -WebSession $session
+$updatedUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/md.users/$($newUser.id)" -Method Patch -Body $updateUserBody -ContentType "application/json" -WebSession $session -Headers (Get-RevisionHeaders "/entities/md.users/$($newUser.id)")
 Write-Host "   User updated: Name=$($updatedUser.name), Lang=$($updatedUser.language)" -ForegroundColor Green
 
 # 14. Brute-Force Protection Test (5 failed logins -> 423 Locked)
@@ -303,10 +344,9 @@ try {
     Write-Host "   Brute-force protection ACTIVE: Account temporarily locked (HTTP 423 Locked / ErrorCode.LOGIN_LOCKED)" -ForegroundColor Green
 }
 
-# 15. Delete / Anonymize User (CRUD: Delete)
-Write-Host "`n15. Delete & Anonymize User (DELETE /api/v1/iam/users/$($newUser.id))..." -ForegroundColor Yellow
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
-$anonymizedUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($newUser.id)" -Method Get -WebSession $session
+# 15. Anonymize User (CRUD: Delete): the record action takes the place of a delete
+Write-Host "`n15. Anonymize User (POST /api/v1/entities/md.users/$($newUser.id)/actions/anonymize)..." -ForegroundColor Yellow
+$anonymizedUser = Invoke-UserAction $newUser.id "anonymize"
 Write-Host "   User anonymized: Name=$($anonymizedUser.name), State=$($anonymizedUser.state)" -ForegroundColor Green
 
 # 16. Audit Log & Security Events (M8 AUD)
@@ -350,7 +390,7 @@ $enDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/en" -Method Get -WebSessi
 Write-Host "   I18n Dictionaries retrieved: RU: nav.tasks='$($ruDict.'nav.tasks')', UZ: nav.tasks='$($uzDict.'nav.tasks')', EN: nav.tasks='$($enDict.'nav.tasks')'" -ForegroundColor Green
 
 # 18. API Contract & Idempotency Key (M10 API)
-Write-Host "`n18. Idempotency Key & OpenAPI Contract (POST /api/v1/tasks with Idempotency-Key)..." -ForegroundColor Yellow
+Write-Host "`n18. Idempotency Key & OpenAPI Contract (POST /api/v1/entities/ms.tasks with Idempotency-Key)..." -ForegroundColor Yellow
 $idemKey = [guid]::NewGuid().ToString()
 $idemHeaders = @{
     Authorization = "Bearer $($tokenResponse.rawSecretToken)"
@@ -363,11 +403,11 @@ $idemBody = @{
 } | ConvertTo-Json
 
 # 18.1 First request (creates entity and caches response)
-$firstRes = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders
+$firstRes = Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/ms.tasks" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders
 Write-Host "   First Request executed: Task ID=$($firstRes.id), Title='$($firstRes.title)'" -ForegroundColor Green
 
 # 18.2 Second request (must return cached response with Idempotent-Replay header)
-$secondWebRes = Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
+$secondWebRes = Invoke-WebRequest -Uri "$BaseUrl/api/v1/entities/ms.tasks" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
 $secondBody = $secondWebRes.Content | ConvertFrom-Json
 $isReplayed = $secondWebRes.Headers["Idempotent-Replay"]
 Write-Host "   Second Request executed: Task ID=$($secondBody.id), Idempotent-Replay header='$isReplayed'" -ForegroundColor Green
@@ -381,7 +421,7 @@ $tamperedBody = @{
     priority = "low"
 } | ConvertTo-Json
 try {
-    Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $tamperedBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
+    Invoke-WebRequest -Uri "$BaseUrl/api/v1/entities/ms.tasks" -Method Post -Body $tamperedBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
     Write-Host "   ERROR: Expected 409 Conflict for tampered payload" -ForegroundColor Red
 } catch {
     Write-Host "   Payload mismatch protection ACTIVE: HTTP 409 Conflict / ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH" -ForegroundColor Green
@@ -393,7 +433,7 @@ $badIdemHeaders = @{
     "Idempotency-Key" = "not-a-valid-uuid"
 }
 try {
-    Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $idemBody -ContentType "application/json" -Headers $badIdemHeaders -UseBasicParsing
+    Invoke-WebRequest -Uri "$BaseUrl/api/v1/entities/ms.tasks" -Method Post -Body $idemBody -ContentType "application/json" -Headers $badIdemHeaders -UseBasicParsing
     Write-Host "   ERROR: Expected 400 Bad Request for invalid UUID" -ForegroundColor Red
 } catch {
     Write-Host "   Key format validation ACTIVE: HTTP 400 Bad Request / ErrorCode.IDEMPOTENCY_KEY_INVALID" -ForegroundColor Green
@@ -453,7 +493,12 @@ $updateWhBody = @{
     subscribedEvents = @("task.created", "task.status_changed")
     state = "A"
 } | ConvertTo-Json
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions/$($newSub.id)" -Method Patch -Body $updateWhBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+# The change names the revision the list shows (ADR-0024); the create answer carries none.
+$listedSub = @($subsList) | Where-Object { $_.id -eq $newSub.id } | Select-Object -First 1
+if (-not $listedSub) { throw "Webhook subscription $($newSub.id) is missing from the list." }
+$whHeaders = Get-CsrfHeaders
+$whHeaders["If-Match"] = "`"$($listedSub.revision)`""
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions/$($newSub.id)" -Method Patch -Body $updateWhBody -ContentType "application/json" -WebSession $session -Headers $whHeaders
 Write-Host "   Webhook Subscription $($newSub.id) updated successfully" -ForegroundColor Green
 
 # 20.4 Delete Subscription
@@ -467,17 +512,15 @@ $randUser = Get-Random -Minimum 1000 -Maximum 9999
 $rbacUserLogin = "rbac_tester_$randUser"
 $rbacUserPassword = "Password#$randUser"
 
-# 21.1 Admin creates a regular user with 'user' role (role_id = 4)
-$createUserBody = @{
+# 21.1 Admin creates a regular user: a new user gets the role 'user' (ADR-0032 8)
+$createdRbacUser = New-InvitedUser @{
     login = $rbacUserLogin
     name = "Regular Role User $randUser"
     email = "$rbacUserLogin@test.local"
-    password = $rbacUserPassword
-    roleIds = @(4)
-} | ConvertTo-Json
-
-$createdRbacUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users" -Method Post -Body $createUserBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
-Write-Host "   Regular user created: ID=$($createdRbacUser.id), Login='$rbacUserLogin', Role='user' (role_id=4)" -ForegroundColor Green
+    language = "ru"
+    timezone = "Asia/Tashkent"
+} $rbacUserPassword
+Write-Host "   Regular user created: ID=$($createdRbacUser.id), Login='$rbacUserLogin', Role='user'" -ForegroundColor Green
 
 # 21.2 Authenticate as regular user
 $userLoginBody = @{
@@ -507,7 +550,7 @@ $userMe = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -WebSessi
 Write-Host "   Authenticated as regular user '$($userMe.user.login)'. Permissions count: $($userMe.permissions.Count)" -ForegroundColor Green
 
 # 21.3 Positive Check: Regular user CAN view tasks (tasks.items.view)
-$userTasks = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Get -WebSession $userSession
+$userTasks = Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/ms.tasks" -Method Get -WebSession $userSession
 Write-Host "   Positive Check PASSED: Regular user successfully queried tasks (Count: $($userTasks.items.Count))" -ForegroundColor Green
 
 # 21.4 Negative Check: Regular user CANNOT view audit log (audit.log.view) -> HTTP 403
@@ -523,21 +566,24 @@ try {
     }
 }
 
-# 21.5 Negative Check: Regular user CANNOT delete users (iam.users.delete) -> HTTP 403
+# 21.5 Negative Check: Regular user CANNOT anonymize users (md.users delete) -> HTTP 403, or 404 for an entity it may
+# not even view
 try {
-    Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($createdRbacUser.id)" -Method Delete -WebSession $userSession -Headers (Get-UserCsrfHeaders)
+    $userActionHeaders = Get-UserCsrfHeaders
+    $userActionHeaders["If-Match"] = "`"$($createdRbacUser.revision)`""
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/md.users/$($createdRbacUser.id)/actions/anonymize" -Method Post -Body "{}" -ContentType "application/json" -WebSession $userSession -Headers $userActionHeaders
     Write-Host "   ERROR: Regular user should not be able to delete users!" -ForegroundColor Red
 } catch {
     $statusCode = [int]$_.Exception.Response.StatusCode
-    if ($statusCode -eq 403) {
-        Write-Host "   Negative Check PASSED: User deletion correctly denied to regular role (HTTP 403 Forbidden)" -ForegroundColor Green
+    if ($statusCode -eq 403 -or $statusCode -eq 404) {
+        Write-Host "   Negative Check PASSED: User deletion correctly denied to regular role (HTTP $statusCode)" -ForegroundColor Green
     } else {
         Write-Host "   Unexpected status code: $statusCode" -ForegroundColor Yellow
     }
 }
 
 # 21.6 Admin cleans up test user
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($createdRbacUser.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
+Invoke-UserAction $createdRbacUser.id "anonymize" | Out-Null
 Write-Host "   Test user $($createdRbacUser.id) cleaned up by admin" -ForegroundColor Green
 
 # 22. (removed) The licence endpoint left with the single-organization product: there is no licence to report.
@@ -570,17 +616,16 @@ Write-Host "   Excel SpreadsheetML Export generated successfully: Content verifi
 Write-Host "`n25. Mandatory Password Change on First Login & Security Hardening..." -ForegroundColor Yellow
 $tempUserLogin = "temp_user_" + (Get-Random -Minimum 1000 -Maximum 9999)
 $tempInitialPass = "TempInitPass123!"
-$newUserPayload = @{
+$createdTempUser = New-InvitedUser @{
     name = "Temporary Password Tester"
     login = $tempUserLogin
     email = "$tempUserLogin@dev.local"
-    password = $tempInitialPass
-    roleIds = @(4) # regular user
-    forcePasswordChange = $true
-} | ConvertTo-Json
-
-$createdTempUser = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users" -Method Post -Body $newUserPayload -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
-Write-Host "   Created test user with forcePasswordChange=true (ID: $($createdTempUser.id), Login: $tempUserLogin)" -ForegroundColor Green
+    language = "ru"
+    timezone = "Asia/Tashkent"
+} $tempInitialPass
+# The password change is required by the record action, not by a field of the record (ADR-0032 8).
+Invoke-UserAction $createdTempUser.id "force_password_change" | Out-Null
+Write-Host "   Created test user with a required password change (ID: $($createdTempUser.id), Login: $tempUserLogin)" -ForegroundColor Green
 
 # Login as temp user
 $tempSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
@@ -589,7 +634,7 @@ Write-Host "   Logged in as temp user. forcePasswordChange reported: $($loginRes
 
 # Attempt to access tasks before changing password (Must be rejected with 403)
 try {
-    Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Get -WebSession $tempSession
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/ms.tasks" -Method Get -WebSession $tempSession
     Write-Error "Security Failure: Temp user accessed business API without changing password!"
 } catch {
     $code = [int]$_.Exception.Response.StatusCode
@@ -619,7 +664,7 @@ Write-Host "   Password changed successfully via POST /api/v1/auth/password" -Fo
 # A password change ends every session of the user, the one that made the change included
 $revoked = $false
 try {
-    Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Get -WebSession $tempSession | Out-Null
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/ms.tasks" -Method Get -WebSession $tempSession | Out-Null
 } catch {
     if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401) { $revoked = $true } else { throw }
 }
@@ -629,11 +674,11 @@ Write-Host "   Session revoked by the password change (HTTP 401)" -ForegroundCol
 # Sign in with the new password: full access (Must succeed)
 $tempSession = $null
 Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body (@{ login = $tempUserLogin; password = $newPass } | ConvertTo-Json) -ContentType "application/json" -SessionVariable tempSession | Out-Null
-$tasksAfter = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Get -WebSession $tempSession
+$tasksAfter = Invoke-RestMethod -Uri "$BaseUrl/api/v1/entities/ms.tasks" -Method Get -WebSession $tempSession
 Write-Host "   Full access UNLOCKED: Temp user successfully queried tasks (Count: $($tasksAfter.items.Count))" -ForegroundColor Green
 
 # Cleanup temp user
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($createdTempUser.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
+Invoke-UserAction $createdTempUser.id "anonymize" | Out-Null
 Write-Host "   Temporary test user $($createdTempUser.id) cleaned up" -ForegroundColor Green
 
 # 26. OAuth2 / SSO providers configured for sign-in
