@@ -213,10 +213,15 @@ test('real missing canonical IDs show localized 404 and a working list action', 
     await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));
     await expect(page.getByRole('dialog')).toHaveCount(0);
   }
-  // A user is the general entity screen (ADR-0032 8): its own "not found" state with the way back to the list.
+  // A user is the general entity screen (ADR-0032 8): its own "not found" state with the way back to the list. The
+  // general screen reads a record by a safe integer id, so the absent user is the largest one, verified absent first.
+  const absentUserId = String(Number.MAX_SAFE_INTEGER);
+  const userPreflight = await page.request.get(`/api/v1/entities/md.users/${absentUserId}`);
+  const userStatus = userPreflight.status(); await userPreflight.dispose();
+  expect(userStatus).toBe(404);
   const missingUser = page.waitForResponse(response => response.request().method() === 'GET'
-    && new URL(response.url()).pathname === `/api/v1/entities/md.users/${absentId}`);
-  await page.goto(`/e/md.users/${absentId}`);
+    && new URL(response.url()).pathname === `/api/v1/entities/md.users/${absentUserId}`);
+  await page.goto(`/e/md.users/${absentUserId}`);
   expect((await missingUser).status()).toBe(404);
   await expect(page.getByTestId('entity-page-state')).toContainText('Запись не найдена');
   await page.getByTestId('entity-page-state').getByRole('link', { name: 'К списку', exact: true }).click();
@@ -226,7 +231,7 @@ test('real missing canonical IDs show localized 404 and a working list action', 
   expect(failures.filter(failure => !subresource.test(failure.path))).toEqual([
     { method: 'GET', path: `/api/v1/entities/ms.tasks/${absentId}` },
     { method: 'GET', path: `/api/v1/entities/ms.projects/${absentId}` },
-    { method: 'GET', path: `/api/v1/entities/md.users/${absentId}` },
+    { method: 'GET', path: `/api/v1/entities/md.users/${absentUserId}` },
   ]);
   expect(failures.filter(failure => subresource.test(failure.path))
     .every(failure => failure.method === 'GET' && failure.path.startsWith(`/api/v1/tasks/${absentId}/`))).toBe(true);
