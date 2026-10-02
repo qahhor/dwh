@@ -63,7 +63,7 @@ export class ApiService {
   post<T>(path: string, body?: unknown, options: ApiRequestOptions = {}): Observable<T> {
     return this.http
       .post<T>(`${this.baseUrl}${path}`, body || {}, {
-        headers: this.getHeaders(),
+        headers: this.getHeaders(options.ifMatch),
         withCredentials: true,
       })
       .pipe(catchError((err) => this.handleError(err, options)));
@@ -90,7 +90,7 @@ export class ApiService {
   delete<T>(path: string, options: ApiRequestOptions = {}): Observable<T> {
     return this.http
       .delete<T>(`${this.baseUrl}${path}`, {
-        headers: this.getHeaders(),
+        headers: this.getHeaders(options.ifMatch),
         withCredentials: true,
       })
       .pipe(catchError((err) => this.handleError(err, options)));

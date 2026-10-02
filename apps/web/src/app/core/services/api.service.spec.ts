@@ -43,6 +43,20 @@ describe('ApiService localized Problem Details', () => {
     expect(http.expectOne('/api/v1/tasks/projects/5').request.headers.has('If-Match')).toBe(false);
   });
 
+  it('sends If-Match with a record action and a delete too (ADR-0032 6.7)', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const api = TestBed.inject(ApiService);
+    const http = TestBed.inject(HttpTestingController);
+
+    api.post('/entities/md.users/7/actions/block', {}, { ifMatch: 4 }).subscribe();
+    api.delete('/entities/ms.notes/8', { ifMatch: 2 }).subscribe();
+    api.post('/entities/ms.notes', { title: 'z' }).subscribe();
+
+    expect(http.expectOne('/api/v1/entities/md.users/7/actions/block').request.headers.get('If-Match')).toBe('"4"');
+    expect(http.expectOne('/api/v1/entities/ms.notes/8').request.headers.get('If-Match')).toBe('"2"');
+    expect(http.expectOne('/api/v1/entities/ms.notes').request.headers.has('If-Match')).toBe(false);
+  });
+
   it('lets PUT callers own a conflict locally without losing its status or detail', () => {
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     let failure: unknown;
