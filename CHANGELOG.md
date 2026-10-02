@@ -1682,6 +1682,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- Analytics ignored the viewer's data scope: `/api/v1/analytics/summary`,
+  `/trends`, `/projects` and `/workload` counted every task, project and user
+  of the installation for anyone with `analytics.dashboard`, and named users
+  and projects outside the viewer's scope. All four now count only what the
+  viewer may see (ADR-0013 §2.5, `AnalyticsScopeIntegrationTest`); a viewer
+  whose rule is not ALL sees smaller figures. V195 adds `created_by` to the
+  published view `ms_task_pub_projects`.
+
 - A task could be created in, or moved to, a project outside the caller's data
   scope (201/204 where a missing id gave 404), which then made the project
   visible; such a project now answers 404 `project_not_found`

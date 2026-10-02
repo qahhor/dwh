@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.analytics.dto.TrendDataPointDto;
 import com.smartup24.cms.instance.analytics.dto.UserWorkloadDto;
 import com.smartup24.cms.instance.analytics.service.AnalyticsService;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,7 @@ public class AnalyticsController {
     @GetMapping("/summary")
     @RequiresPermission(form = "analytics.dashboard", action = "view")
     public ResponseEntity<AnalyticsSummaryDto> getSummary() {
-        return ResponseEntity.ok(service.getSummary());
+        return ResponseEntity.ok(service.getSummary(SecurityContext.getCurrentUserId()));
     }
 
     @Operation(summary = "Get task trends", description = "Task counts over time for the dashboard chart.")
@@ -36,7 +37,7 @@ public class AnalyticsController {
     @RequiresPermission(form = "analytics.dashboard", action = "view")
     public ResponseEntity<List<TrendDataPointDto>> getTrends(
             @RequestParam(name = "range", defaultValue = "7d") String range) {
-        return ResponseEntity.ok(service.getTrends(range));
+        return ResponseEntity.ok(service.getTrends(range, SecurityContext.getCurrentUserId()));
     }
 
     @Operation(
@@ -45,13 +46,13 @@ public class AnalyticsController {
     @GetMapping("/projects")
     @RequiresPermission(form = "analytics.dashboard", action = "view")
     public ResponseEntity<List<ProjectDistributionDto>> getProjects() {
-        return ResponseEntity.ok(service.getProjectDistribution());
+        return ResponseEntity.ok(service.getProjectDistribution(SecurityContext.getCurrentUserId()));
     }
 
     @Operation(summary = "Get the workload of users", description = "Task load per user, for the dashboard.")
     @GetMapping("/workload")
     @RequiresPermission(form = "analytics.dashboard", action = "view")
     public ResponseEntity<List<UserWorkloadDto>> getWorkload() {
-        return ResponseEntity.ok(service.getUserWorkload());
+        return ResponseEntity.ok(service.getUserWorkload(SecurityContext.getCurrentUserId()));
     }
 }
