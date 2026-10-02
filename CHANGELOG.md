@@ -9,6 +9,18 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.8 — import, reports and search by declaration
+  (ADR-0032 §10). IMPORT: an xlsx template from the declaration, a dry run
+  with errors per row, upsert by a declared key, a background job; every row
+  goes through the same rights, field rights, scope, hooks, audit and events
+  as the runtime (10 000 rows in about 20 s; V186–V187; enabled on orders and
+  task types). Reports and widgets: group and total any entity list
+  (count/sum/avg/min/max, date buckets), save it as a personal report or pin
+  it as a widget on the analytics dashboard, without Java code (V192). SEARCH:
+  Typesense documents built from declarations with scope keys, every hit
+  rechecked in the database; tasks, projects, users, notes (owner only) and
+  orders are found by global search within the caller's scope (V189).
+
 - Plan 10/10, item 5.7 — documents with lines and statuses (ADR-0032 §9.5):
   `EntityCollection` saves lines with their document in one transaction
   (errors addressed `lines[3].qty`, at most 500 lines — assumption);
@@ -886,6 +898,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Apache-2.0 community, governance, security, and contribution policies.
 
 ### Changed
+
+- **API-breaking (item 5.8, search):** entity types in search are entity codes
+  (`ms.tasks`, `ms.projects`, `md.users`, `ms.notes`, `example.orders`)
+  instead of TASK/PROJECT/USER/NOTE, in the `type` parameter, a hit's
+  `entityType`, search settings fields and status document counts; the search
+  preview needs administrator rights; new `GET /api/v1/search/entities`. A
+  non-administrator with `search.view` searches within their own scope
+  (ADR-0013 §2.5, assumption Q8). V189 resets the search index state.
 
 - **API-breaking (item 5.6):** removed `/api/v1/tasks/statuses*`,
   `/api/v1/tasks/types*`, the project endpoints (`/tasks/projects/page`,

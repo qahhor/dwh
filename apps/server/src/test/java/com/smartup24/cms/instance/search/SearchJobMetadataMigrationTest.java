@@ -29,6 +29,7 @@ class SearchJobMetadataMigrationTest extends SearchSettingsIntegrationTestSuppor
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .schemas(schema)
                 .defaultSchema(schema)
+                .target("27")
                 .load();
         upgrade.migrate();
         assertThat(jdbc.sql(
@@ -56,5 +57,16 @@ class SearchJobMetadataMigrationTest extends SearchSettingsIntegrationTestSuppor
                         .single())
                 .isTrue();
         assertThat(upgrade.migrate().migrationsExecuted).isZero();
+        // The index of an entity-coded search starts again (ADR-0032, 10.3; V189): no installation holds one yet.
+        FlywayUtcConfiguration.configure(Flyway.configure())
+                .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .schemas(schema)
+                .defaultSchema(schema)
+                .load()
+                .migrate();
+        assertThat(jdbc.sql("select count(*) from " + schema + ".search_jobs")
+                        .query(Integer.class)
+                        .single())
+                .isZero();
     }
 }

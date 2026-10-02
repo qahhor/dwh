@@ -262,6 +262,8 @@ smc:
       - /api/v1/audit/logs
       - /api/v1/audit/security-events
       - /api/v1/search/**
+      - /api/v1/entities/*/imports
+      - /api/v1/entities/*/import-template
   typesense:
     url: ${SMC_TYPESENSE_URL:http://typesense:8108}
     api-key: ${SMC_TYPESENSE_API_KEY:smartupcms_typesense_local_dev}

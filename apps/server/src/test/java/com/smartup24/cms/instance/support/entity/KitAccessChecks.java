@@ -138,6 +138,9 @@ final class KitAccessChecks {
             world.entity.actions().stream()
                     .filter(action -> held.contains(action.permission()))
                     .forEach(action -> expected.add(action.code()));
+            // The import is the entity's, not a record's: form-meta names it, a record does not (ADR-0032, 10.1).
+            boolean imports = world.has(EntityCapability.IMPORT) && held.contains(EntityDefinition.IMPORT);
+            if (imports) expected.add(EntityDefinition.IMPORT);
             MockHttpServletResponse meta = world.session(user).send(get("/api/v1/form-meta/" + world.entity.code()));
             assertThat(meta.getStatus()).as(meta.getContentAsString()).isEqualTo(200);
             assertThat(new TreeSet<>((List<?>) TestSession.object(meta).get("actions")))
@@ -149,6 +152,7 @@ final class KitAccessChecks {
                 Created record = world.create(world.owner);
                 EntityWorkflow workflow = world.model.workflow();
                 Set<String> offered = new TreeSet<>(expected);
+                offered.remove(EntityDefinition.IMPORT);
                 if (workflow != null) {
                     workflow.transitions().stream()
                             .filter(transition -> !transition

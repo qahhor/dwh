@@ -102,7 +102,7 @@ async function startControlledBenchmarkServer({
         version: 1,
         policy: {
           globalLimit: 10, requestsPerMinute: 600, burst: 60, schemaProfile: 'MIXED',
-          fields: { TASK: [], PROJECT: [], USER: [] },
+          fields: { 'ms.tasks': [], 'ms.projects': [], 'md.users': [] },
         },
       });
       return;
@@ -141,7 +141,7 @@ async function startControlledBenchmarkServer({
       sendJson(200, {
         query, totalHits: visible ? 1 : 0, foundHits: visible ? 1 : 0, hasMore: false,
         source: 'TYPESENSE', degraded: false,
-        hits: visible ? [{ id: taskId, entityType: 'TASK', title: 'synthetic match' }] : [],
+        hits: visible ? [{ id: taskId, entityType: 'ms.tasks', title: 'synthetic match' }] : [],
       });
       return;
     }

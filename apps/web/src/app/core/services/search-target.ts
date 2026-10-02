@@ -31,18 +31,17 @@ export function recordResponseMatches(id: unknown, requestedId: string): boolean
   );
 }
 
-export function searchTarget(hit: SearchHit): string[] | null {
-  if (!canonicalRecordId(hit.id)) return null;
-  switch (hit.entityType) {
-    case 'TASK':
-      return ['/tasks/items', hit.id];
-    case 'PROJECT':
-      return ['/tasks/projects', hit.id];
-    case 'USER':
-      return ['/e/md.users', hit.id];
-    case 'NOTE':
-      return ['/notes'];
-    default:
-      return null;
-  }
+/** An address inside the application: lower-case path segments, no host. */
+const INTERNAL_PATH = /^\/[a-z0-9_.-]+(\/[a-z0-9_.-]+)*$/;
+
+/**
+ * Where a hit leads (ADR-0032, 10.3): the server names it — the entity's general screen `/e/<code>/<id>` or its own
+ * screen — and the application follows it only when it is an internal path that ends with the hit's own record id,
+ * so a hit can never send the person elsewhere.
+ */
+export function searchTarget(hit: SearchHit): string | null {
+  if (!canonicalRecordId(hit.id) || typeof hit.targetUrl !== 'string') return null;
+  const url = hit.targetUrl;
+  if (!INTERNAL_PATH.test(url) || url.split('/').some((segment) => segment === '.' || segment === '..')) return null;
+  return url.endsWith(`/${hit.id}`) ? url : null;
 }

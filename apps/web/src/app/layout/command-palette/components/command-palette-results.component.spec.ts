@@ -6,9 +6,15 @@ import { translateTest } from '@testing/i18n-test.stub';
 import { CommandPaletteResultsComponent } from './command-palette-results.component';
 
 const HITS: SearchHit[] = [
-  { entityType: 'TASK', id: '1', title: 'Сверка остатков', description: 'Склад №2', targetUrl: '/tasks/1' },
-  { entityType: 'USER', id: '2', title: 'Иван Иванов', description: '', targetUrl: '/iam/users/2' },
-  { entityType: 'NOTE', id: '3', title: 'Итоги встречи', description: 'Черновик', targetUrl: '/notes/3' },
+  { entityType: 'ms.tasks', id: '1', title: 'Сверка остатков', description: 'Склад №2', targetUrl: '/tasks/items/1' },
+  { entityType: 'md.users', id: '2', title: 'Иван Иванов', description: '', targetUrl: '/e/md.users/2' },
+  { entityType: 'ms.notes', id: '3', title: 'Итоги встречи', description: 'Черновик', targetUrl: '/e/ms.notes/3' },
+];
+
+// The categories of the palette: a hit of an entity the person has no category of shows its code (ADR-0032, 10.3).
+const CATEGORIES = [
+  { value: 'ms.tasks', label: 'nav.tasks', icon: 'task_alt' },
+  { value: 'md.users', label: 'nav.users', icon: 'people' },
 ];
 
 function meta(overrides: Partial<SearchResult> = {}): SearchResult {
@@ -49,7 +55,7 @@ describe('CommandPaletteResultsComponent', () => {
   }
 
   it('lists the hits as options of a named listbox, the selected one marked, and picks one on click', () => {
-    const { fixture, element } = render({ results: HITS, selectedIndex: 1, metadata: meta() });
+    const { fixture, element } = render({ results: HITS, selectedIndex: 1, metadata: meta(), categories: CATEGORIES });
     const picked: SearchHit[] = [];
     fixture.componentInstance.selectHit.subscribe((hit) => picked.push(hit));
     const listbox = element.querySelector('[role="listbox"]')!;
@@ -64,9 +70,9 @@ describe('CommandPaletteResultsComponent', () => {
     ]);
     expect(options.map((option) => option.getAttribute('aria-selected'))).toEqual(['false', 'true', 'false']);
     expect(options.map((option) => option.querySelector('.result-badge')?.textContent?.trim())).toEqual([
-      PACKAGED_RUSSIAN['tasks.common.task'],
-      PACKAGED_RUSSIAN['analytics.dashboard.employee'],
-      PACKAGED_RUSSIAN['search.entity.note'],
+      PACKAGED_RUSSIAN['nav.tasks'],
+      PACKAGED_RUSSIAN['nav.users'],
+      'ms.notes',
     ]);
     expect(options[0].textContent).toContain('Склад №2');
 

@@ -55,7 +55,7 @@ import { ProjectDistribution } from '../analytics.models';
                   <span class="project-name">{{ p.projectName }}</span>
                 </div>
                 <div class="project-stats">
-                  <span class="project-pct" [style.color]="getProgressColor(p.progressPercent)"
+                  <span class="project-pct" [style.color]="getProgressTextColor(p.progressPercent)"
                     >{{ p.progressPercent }}%</span
                   >
                   <span class="project-tasks-count font-mono">({{ p.completedTasks }}/{{ p.totalTasks }})</span>
@@ -107,6 +107,14 @@ export class AnalyticsProjectsCardComponent {
     if (pct >= 100) return 'var(--success)';
     if (pct >= 50) return 'var(--primary)';
     if (pct > 0) return '#f59e0b';
+    return 'var(--text-muted)';
+  }
+
+  /** The same scale in the text tokens, which keep WCAG AA contrast on the card in both themes. */
+  getProgressTextColor(pct: number): string {
+    if (pct >= 100) return 'var(--success-text)';
+    if (pct >= 50) return 'var(--primary-text)';
+    if (pct > 0) return 'var(--warning-text)';
     return 'var(--text-muted)';
   }
 }

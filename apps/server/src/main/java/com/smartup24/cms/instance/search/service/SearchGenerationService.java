@@ -15,22 +15,25 @@ public class SearchGenerationService {
     private final SearchGenerationRepository generations;
     private final SearchSettingsRepository settings;
     private final SearchJobAudit audit;
+    private final SearchEntities entities;
     private final int maximum;
 
     public SearchGenerationService(
             SearchGenerationRepository generations,
             SearchSettingsRepository settings,
             SearchJobAudit audit,
+            SearchEntities entities,
             @Value("${smc.search.maximum-generations:4}") int maximum) {
         this.generations = generations;
         this.settings = settings;
         this.audit = audit;
+        this.entities = entities;
         this.maximum = Math.max(4, maximum);
     }
     /** Caller owns the singleton FOR UPDATE allocation transaction. Reads an internal typed snapshot without request impersonation. */
     public UUID allocate() {
         requireCapacity();
-        return generations.allocate(settings.current());
+        return generations.allocate(settings.current(), entities.all());
     }
 
     public void requireCapacity() {

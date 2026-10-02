@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.search.repository;
 
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.VerificationSummary;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -83,12 +84,19 @@ public class SearchReconcileRepository {
                 .single();
     }
 
-    /** True while no source revision moved since the proof read them. */
-    public boolean revisionsUnchanged(JdbcClient session) {
+    /**
+     * True while no source revision of the generation's types moved since the proof read them; a type the generation has
+     * no collection for is not its concern (ADR-0032, 10.3).
+     */
+    public boolean revisionsUnchanged(JdbcClient session, List<String> types) {
         return session.sql("""
                         select not exists(select 1 from search_projection_versions v full join search_reconcile_source e
-                            on v.entity_type=e.entity_type and v.entity_id=e.entity_id where v.revision is distinct from e.revision)
-                        """).query(Boolean.class).single();
+                            on v.entity_type=e.entity_type and v.entity_id=e.entity_id
+                            where coalesce(v.entity_type,e.entity_type) = any(:types) and v.revision is distinct from e.revision)
+                        """)
+                .param("types", types.toArray(String[]::new))
+                .query(Boolean.class)
+                .single();
     }
 
     /** Limits the statements of the session's current transaction to two seconds. */

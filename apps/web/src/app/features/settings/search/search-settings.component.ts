@@ -11,7 +11,6 @@ import {
   viewChild,
 } from '@angular/core';
 import {
-  SEARCH_ENTITIES,
   SearchEntityType,
   SearchFieldPolicy,
   SearchGenerationStatus,
@@ -28,14 +27,6 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { formatBytes, formatJobError } from './search-settings.models';
 import { SearchSettingsStore } from './search-settings.store';
-
-/** The name of each indexed entity, as the entity sections of this screen show it. */
-const ENTITY_LABEL_KEYS: Record<SearchEntityType, string> = {
-  TASK: 'settings.search.entity.task',
-  PROJECT: 'settings.search.entity.project',
-  USER: 'settings.search.entity.user',
-  NOTE: 'settings.search.entity.note',
-};
 
 @Component({
   selector: 'app-search-settings',
@@ -138,8 +129,6 @@ export class SearchSettingsComponent implements OnInit {
     };
   });
 
-  readonly entities: readonly SearchEntityType[] = SEARCH_ENTITIES;
-
   readonly schemaProfileOptions: readonly SMTSelectOption<string>[] = [
     { id: 'MIXED', label: 'MIXED' },
     { id: 'RU', label: 'RU' },
@@ -159,18 +148,34 @@ export class SearchSettingsComponent implements OnInit {
     queue: (g: SearchGenerationStatus) => g.pendingDeliveries,
   };
 
+  /** Every entity the search indexes, in the order the server names them (ADR-0032, 10.3). */
   get displayedEntities(): SearchEntityType[] {
-    const draft = this.store.draft();
-    return this.entities.filter(
-      (e) => e !== 'NOTE' || (draft && draft.fields['NOTE'] && draft.fields['NOTE'].length > 0),
-    );
+    return this.store.entities();
   }
 
   previewEntityOptions(): SMTSelectOption<SearchEntityType>[] {
     const entities = this.displayedEntities;
-    return this.previewEntityMemo([this.i18n.currentLang(), entities.join()], () =>
-      entities.map((entity) => ({ id: entity, label: this.i18n.translate(ENTITY_LABEL_KEYS[entity]) })),
+    const names = entities.map((entity) => this.entityLabel(entity));
+    return this.previewEntityMemo([this.i18n.currentLang(), entities.join(), names.join()], () =>
+      entities.map((entity, index) => ({ id: entity, label: names[index] })),
     );
+  }
+
+  /** The name of an indexed entity on this screen. */
+  entityLabel(entity: SearchEntityType): string {
+    return this.i18n.translate(this.store.entityLabelKey(entity));
+  }
+
+  /** The name of a searched field of an entity on this screen. */
+  fieldLabel(entity: SearchEntityType, field: string): string {
+    return this.i18n.translate(this.store.fieldLabelKey(entity, field));
+  }
+
+  /** The documents of each entity of a generation, named. */
+  documentCounts(generation: SearchGenerationStatus): string {
+    return Object.entries(generation.entityDocumentCounts ?? {})
+      .map(([entity, count]) => `${this.entityLabel(entity)} ${this.displayNumber(count)}`)
+      .join(' · ');
   }
 
   ngOnInit(): void {

@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import io.swagger.v3.oas.annotations.Operation;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -164,10 +165,7 @@ public class FormMetaController {
                                         .toList()))
                         .filter(section -> !section.fields().isEmpty())
                         .toList(),
-                entity.actions().stream()
-                        .filter(action -> SecurityContext.hasPermission(entity.form(), action.permission()))
-                        .map(EntityDefinition.EntityAction::code)
-                        .toList(),
+                actions(entity),
                 entity.capabilities().stream()
                         .map(EntityCapability::wire)
                         .sorted()
@@ -175,5 +173,21 @@ public class FormMetaController {
                 FormDocumentMetas.collections(entity, enumItems),
                 FormDocumentMetas.workflow(entity),
                 FormDocumentMetas.tabs(entity, viewable));
+    }
+
+    /**
+     * The actions the viewer may take on the entity, in declaration order, and {@code import} last when the entity
+     * declares IMPORT and the viewer holds its right (ADR-0032, 10.1): the list's toolbar offers the import by it.
+     */
+    private static List<String> actions(EntityDefinition entity) {
+        List<String> actions = new ArrayList<>(entity.actions().stream()
+                .filter(action -> SecurityContext.hasPermission(entity.form(), action.permission()))
+                .map(EntityDefinition.EntityAction::code)
+                .toList());
+        if (entity.capabilities().contains(EntityCapability.IMPORT)
+                && SecurityContext.hasPermission(entity.form(), EntityDefinition.IMPORT)) {
+            actions.add(EntityDefinition.IMPORT);
+        }
+        return actions;
     }
 }

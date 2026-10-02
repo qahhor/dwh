@@ -32,6 +32,7 @@ describe('AppShellComponent', () => {
     close: vi.fn(() => paletteService.isOpen.set(false)),
     toggle: vi.fn(() => paletteService.isOpen.update((open) => !open)),
     search: vi.fn(() => of({ query: '', totalHits: 0, hits: [] })),
+    categories: vi.fn(() => of([])),
   };
   const languages = ['ru', 'uz', 'en', 'de', 'tr'].map((code) => ({ code, name: code.toUpperCase() }));
 

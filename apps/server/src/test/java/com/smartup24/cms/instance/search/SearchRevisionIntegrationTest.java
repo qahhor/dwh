@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.ms.task.MsTaskFixture;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
 import com.smartup24.cms.instance.search.service.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchEntities;
 import com.smartup24.cms.instance.search.typesense.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,8 +40,8 @@ class SearchRevisionIntegrationTest {
         jdbc.sql("update ms_tasks set description_markdown=repeat('x',1048576) where id=:id")
                 .param("id", id)
                 .update();
-        var reader = new SearchProjectionReader(jdbc, new ObjectMapper());
-        assertThatThrownBy(() -> reader.read("TASK", id)).hasMessage("DOCUMENT_TOO_LARGE");
+        var reader = new SearchProjectionReader(jdbc, new ObjectMapper(), ENTITIES);
+        assertThatThrownBy(() -> reader.read(SearchTestEntities.TASKS, id)).hasMessage("DOCUMENT_TOO_LARGE");
     }
 
     @Container
@@ -55,6 +56,7 @@ class SearchRevisionIntegrationTest {
     static SearchChangePublisher publisher;
     static long reporter;
     static DriverManagerDataSource database;
+    static final SearchEntities ENTITIES = SearchTestEntities.unscoped();
 
     @BeforeAll
     static void setup() {
@@ -114,62 +116,103 @@ class SearchRevisionIntegrationTest {
 
     @Test
     void publisherRejectsCallsOutsideBusinessTransaction() {
-        assertThatThrownBy(() -> publisher.changed("TASK", 99)).isInstanceOf(IllegalTransactionStateException.class);
-        assertThatThrownBy(() -> publisher.lockStatusMembership("new"))
+        assertThatThrownBy(() -> publisher.changed(SearchTestEntities.TASKS, 99))
                 .isInstanceOf(IllegalTransactionStateException.class);
     }
 
     @Test
-    void projectRenamePublishesProjectAndChildTextAtomicallyAndRollbackRestoresBoth() throws Exception {
-        var reader = new SearchProjectionReader(jdbc, new ObjectMapper());
+    void projectRenameReindexesTheProjectAtomicallyAndRollbackRestoresIt() throws Exception {
+        var reader = new SearchProjectionReader(jdbc, new ObjectMapper(), ENTITIES);
         long project = createProject("Before " + System.nanoTime());
         long task = tasks.create("Child", reporter, project, null);
-        assertThat(reader.read("PROJECT", project)).isPresent();
-        var beforeProject = reader.read("PROJECT", project).orElseThrow();
-        var beforeTask = reader.read("TASK", task).orElseThrow();
+        var beforeProject = reader.read(SearchTestEntities.PROJECTS, project).orElseThrow();
+        var beforeTask = reader.read(SearchTestEntities.TASKS, task).orElseThrow();
         tx.executeWithoutResult(transaction -> {
             renameProject(project, "Uncommitted " + project);
-            assertThat(reader.read("TASK", task).orElseThrow().document())
-                    .containsEntry("project_name", "Uncommitted " + project);
-            assertThat(reader.read("PROJECT", project).orElseThrow().revision()).isEqualTo(2);
+            assertThat(reader.read(SearchTestEntities.PROJECTS, project)
+                            .orElseThrow()
+                            .revision())
+                    .isEqualTo(2);
             transaction.setRollbackOnly();
         });
-        assertThat(reader.read("PROJECT", project).orElseThrow()).isEqualTo(beforeProject);
-        assertThat(reader.read("TASK", task).orElseThrow()).isEqualTo(beforeTask);
+        assertThat(reader.read(SearchTestEntities.PROJECTS, project).orElseThrow())
+                .isEqualTo(beforeProject);
         renameProject(project, "Committed " + project);
-        assertThat(reader.read("TASK", task).orElseThrow().document())
-                .containsEntry("project_name", "Committed " + project);
-        assertThat(reader.read("TASK", task).orElseThrow().revision()).isEqualTo(2);
-        assertThat(reader.read("PROJECT", project).orElseThrow().document())
+        assertThat(reader.read(SearchTestEntities.PROJECTS, project)
+                        .orElseThrow()
+                        .document())
                 .containsEntry("name", "Committed " + project);
+        // A task's document holds only its own fields (ADR-0032, 10.3): a renamed project leaves it as it was.
+        assertThat(reader.read(SearchTestEntities.TASKS, task).orElseThrow()).isEqualTo(beforeTask);
+    }
+
+    @Test
+    void theDocumentsCarryTheScopeKeysOfTheirRecords() {
+        // ADR-0032, 10.3: the users whose own rule sees the record, and the units of those users.
+        var reader = new SearchProjectionReader(jdbc, new ObjectMapper(), ENTITIES);
+        long unit = jdbc.sql("""
+                        insert into md_org_units (parent_id, code, name, kind, state, order_no)
+                        values (null, :code, 'Scope keys', 'department', 'A', 1) returning id
+                        """)
+                .param("code", "scope-keys-" + System.nanoTime())
+                .query(Long.class)
+                .single();
+        long member = jdbc.sql("""
+                        insert into md_users(name,login,email,password_hash,state,language,timezone,org_unit_id)
+                        values ('Member',:login,:login || '@example.invalid','x','A','ru','UTC',:unit) returning id
+                        """)
+                .param("login", "scope-keys-" + System.nanoTime())
+                .param("unit", unit)
+                .query(Long.class)
+                .single();
+        long project = createProject("Keys " + System.nanoTime());
+        long task = tasks.create("Keys", reporter, project, null);
+        jdbc.sql("insert into ms_task_members (task_id, user_id, involve_kind, is_viewed) values (:task, :user, 'E',"
+                        + " false)")
+                .param("task", task)
+                .param("user", member)
+                .update();
+        var document = reader.read(SearchTestEntities.TASKS, task).orElseThrow().document();
+        assertThat(document).containsEntry("record_id", (int) task);
+        assertThat((java.util.List<?>) document.get("scope_users"))
+                .map(value -> ((Number) value).longValue())
+                .containsExactly(reporter, member);
+        assertThat((java.util.List<?>) document.get("scope_units"))
+                .map(value -> ((Number) value).longValue())
+                .containsExactly(unit);
+        var projectDocument =
+                reader.read(SearchTestEntities.PROJECTS, project).orElseThrow().document();
+        assertThat((java.util.List<?>) projectDocument.get("scope_users"))
+                .map(value -> ((Number) value).longValue())
+                .containsExactly(reporter, member);
     }
 
     @Test
     void fingerprintIgnoresRevisionAndExcludedOrMissingSourceHasStableTombstone() {
-        var reader = new SearchProjectionReader(jdbc, new ObjectMapper());
+        var reader = new SearchProjectionReader(jdbc, new ObjectMapper(), ENTITIES);
         long project = createProject("Fingerprint " + System.nanoTime());
-        assertThat(reader.read("PROJECT", project)).isPresent();
-        var first = reader.read("PROJECT", project).orElseThrow();
-        tx.executeWithoutResult(status -> publisher.changed("PROJECT", project));
-        var next = reader.read("PROJECT", project).orElseThrow();
+        assertThat(reader.read(SearchTestEntities.PROJECTS, project)).isPresent();
+        var first = reader.read(SearchTestEntities.PROJECTS, project).orElseThrow();
+        tx.executeWithoutResult(status -> publisher.changed(SearchTestEntities.PROJECTS, project));
+        var next = reader.read(SearchTestEntities.PROJECTS, project).orElseThrow();
         assertThat(next.revision()).isEqualTo(2);
         assertThat(next.fingerprint()).matches("[0-9a-f]{64}").isEqualTo(first.fingerprint());
         assertThat(next.document())
                 .containsEntry("_projection_revision", 2L)
                 .containsEntry("_projection_fingerprint", next.fingerprint());
         archiveProject(project);
-        var excluded = reader.read("PROJECT", project).orElseThrow();
+        var excluded = reader.read(SearchTestEntities.PROJECTS, project).orElseThrow();
         assertThat(excluded.document()).isNull();
         tx.executeWithoutResult(status -> {
             jdbc.sql("delete from ms_task_projects where id=:id")
                     .param("id", project)
                     .update();
-            publisher.changed("PROJECT", project);
+            publisher.changed(SearchTestEntities.PROJECTS, project);
         });
-        var missing = reader.read("PROJECT", project).orElseThrow();
+        var missing = reader.read(SearchTestEntities.PROJECTS, project).orElseThrow();
         assertThat(missing.document()).isNull();
         assertThat(missing.fingerprint()).isEqualTo(excluded.fingerprint()).isNotEqualTo(first.fingerprint());
-        assertThat(reader.read("TASK", Long.MAX_VALUE)).isEmpty();
+        assertThat(reader.read(SearchTestEntities.TASKS, Long.MAX_VALUE)).isEmpty();
     }
 
     @Test
@@ -222,9 +265,10 @@ class SearchRevisionIntegrationTest {
                 }
             }
         };
-        var reader = new SearchProjectionReader(JdbcClient.create(observed), new ObjectMapper());
+        var reader = new SearchProjectionReader(JdbcClient.create(observed), new ObjectMapper(), ENTITIES);
         try (var executor = Executors.newSingleThreadExecutor()) {
-            var reading = executor.submit(() -> reader.read("TASK", id).orElseThrow());
+            var reading = executor.submit(
+                    () -> reader.read(SearchTestEntities.TASKS, id).orElseThrow());
             try {
                 assertThat(selected.await(10, TimeUnit.SECONDS)).isTrue();
                 tasks.rename(id, "Snapshot two", reporter);
@@ -237,55 +281,11 @@ class SearchRevisionIntegrationTest {
                     .containsEntry("title", "Snapshot one")
                     .containsEntry("_projection_revision", 1L);
         }
-        var current = new SearchProjectionReader(jdbc, new ObjectMapper())
-                .read("TASK", id)
+        var current = new SearchProjectionReader(jdbc, new ObjectMapper(), ENTITIES)
+                .read(SearchTestEntities.TASKS, id)
                 .orElseThrow();
         assertThat(current.revision()).isEqualTo(2);
         assertThat(current.document()).containsEntry("title", "Snapshot two");
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void statusRenameBeforeMembershipSerializesCreateAndStatusMove(boolean create) throws Exception {
-        statusMembershipRace(create, true);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void membershipBeforeStatusRenameIsIncludedByFanout(boolean create) throws Exception {
-        statusMembershipRace(create, false);
-    }
-
-    private void statusMembershipRace(boolean create, boolean renameFirst) throws Exception {
-        long status = jdbc.sql("select id from ms_task_statuses where code='new'")
-                .query(Long.class)
-                .single();
-        var id = new AtomicLong(create ? 0 : create("moving task"));
-        if (!create) {
-            String other = jdbc.sql("insert into ms_task_statuses (code, name, color, sort_order) values" + " ('other_"
-                            + System.nanoTime() + "', 'Other', '#000000', 99) returning code")
-                    .query(String.class)
-                    .single();
-            tasks.moveStatus(id.get(), other, reporter);
-        }
-        Runnable membership = () -> {
-            if (create) id.set(create("joining task"));
-            else tasks.moveStatus(id.get(), "new", reporter);
-        };
-        String renamed = "Renamed " + System.nanoTime();
-        Runnable rename = () -> renameStatus(status, renamed);
-        runSerialized(renameFirst ? rename : membership, renameFirst ? membership : rename);
-        assertThat(jdbc.sql(
-                                "select revision from search_projection_versions where entity_type='TASK' and entity_id=:id")
-                        .param("id", id.get())
-                        .query(Long.class)
-                        .single())
-                .isEqualTo(create ? (renameFirst ? 1L : 2L) : (renameFirst ? 3L : 4L));
-        assertThat(new SearchProjectionReader(jdbc, new ObjectMapper())
-                        .read("TASK", id.get())
-                        .orElseThrow()
-                        .document())
-                .containsEntry("status_name", renamed);
     }
 
     @ParameterizedTest
@@ -376,7 +376,7 @@ class SearchRevisionIntegrationTest {
                     .param("user", reporter)
                     .query(Long.class)
                     .single();
-            publisher.projectChanged(id);
+            publisher.changed(SearchTestEntities.PROJECTS, id);
             return id;
         }));
     }
@@ -392,36 +392,18 @@ class SearchRevisionIntegrationTest {
                     .param("name", name)
                     .param("id", project)
                     .update();
-            publisher.projectChanged(project);
+            publisher.changed(SearchTestEntities.PROJECTS, project);
         });
     }
 
     /** A project archived as the runtime archives it (ADR-0032, 5.4): the hook, then the switch. */
     private static void archiveProject(long project) {
         tx.executeWithoutResult(transaction -> {
-            publisher.projectChanged(project);
+            publisher.changed(SearchTestEntities.PROJECTS, project);
             jdbc.sql("update ms_task_projects set archived_at = clock_timestamp(), revision = revision + 1"
                             + " where id = :id")
                     .param("id", project)
                     .update();
-        });
-    }
-
-    /**
-     * A status renamed the way the entity runtime renames it (ADR-0032, 6.3): the row read for update in the
-     * transaction, written with its revision, then the status hook re-indexes the tasks in it.
-     */
-    private static void renameStatus(long status, String name) {
-        tx.executeWithoutResult(transaction -> {
-            jdbc.sql("select id from ms_task_statuses where id = :id for update")
-                    .param("id", status)
-                    .query(Long.class)
-                    .single();
-            jdbc.sql("update ms_task_statuses set name = :name, revision = revision + 1 where id = :id")
-                    .param("name", name)
-                    .param("id", status)
-                    .update();
-            publisher.statusChanged(status);
         });
     }
 }

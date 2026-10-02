@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
  * {@code /api/v1/entities/ms.task_types}, whose codes a task's type takes ({@code ENUM}, ADR-0032, 4.5). The code is
  * given once and kept; a type is archived instead of deleted while tasks use it, and the four system types the
  * product ships with are neither archived nor deleted ({@link MsTaskTypeHooks}); the order is a record action
- * ({@code move}, {@link MsTaskDictionaryOrder}).
+ * ({@code move}, {@link MsTaskDictionaryOrder}). Types are imported from an xlsx file by their code (ADR-0032, 10.1).
  */
 @Configuration
 public class MsTaskTypeEntity {
@@ -49,7 +49,8 @@ public class MsTaskTypeEntity {
                             "view", "tasks.types.rights.view",
                             "create", "tasks.types.rights.create",
                             "update", "tasks.types.rights.update",
-                            "delete", "tasks.types.rights.delete"))
+                            "delete", "tasks.types.rights.delete",
+                            "import", "tasks.types.rights.import"))
             .field(text("code", "tasks.types.col.code")
                     .column("code")
                     .required()
@@ -85,6 +86,7 @@ public class MsTaskTypeEntity {
             .archivable()
             .actions("delete")
             .reference("code", "name", "sort_order")
+            .importKey("code")
             .defaultSort("sortOrder", Entity.Sort.ASC)
             .capabilities(EntityCapability.HISTORY)
             .build();

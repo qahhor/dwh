@@ -9,7 +9,6 @@ import com.smartup24.cms.instance.common.entity.hook.EntityValues;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
@@ -25,7 +24,7 @@ import org.springframework.stereotype.Component;
  *   <li>before a save — the login and the e-mail in lower case, each taken by one account only, a phone taken by one
  *       active account only (422 on the field), a time zone that exists, and a home unit in the author's data scope
  *       (ADR-0013);
- *   <li>after a create — the default role {@code user}, the effective scope and rights, the search index and the
+ *   <li>after a create — the default role {@code user}, the effective scope and rights and the
  *       invitation that lets the new user set a password (ADR-0032, 19, question 10: an invitation, not a password
  *       an administrator types);
  *   <li>after an action — what takes access away also starts a new authentication generation and closes every
@@ -43,7 +42,6 @@ public class MdUserHooks implements EntityHooks {
     private final MdRoleRepository roles;
     private final MdScopeService scopes;
     private final MdUserSecurityService security;
-    private final SearchChangePublisher search;
     private final ObjectProvider<UserInvitations> invitations;
 
     public MdUserHooks(
@@ -51,13 +49,11 @@ public class MdUserHooks implements EntityHooks {
             MdRoleRepository roles,
             MdScopeService scopes,
             MdUserSecurityService security,
-            SearchChangePublisher search,
             ObjectProvider<UserInvitations> invitations) {
         this.users = users;
         this.roles = roles;
         this.scopes = scopes;
         this.security = security;
-        this.search = search;
         this.invitations = invitations;
     }
 
@@ -120,7 +116,6 @@ public class MdUserHooks implements EntityHooks {
             }
             case ACTION -> acted(id, Objects.requireNonNull(save.action(), "an action names itself"));
         }
-        search.changed("USER", id);
     }
 
     private void created(long id) {

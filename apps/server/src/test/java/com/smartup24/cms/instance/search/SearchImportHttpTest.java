@@ -229,12 +229,13 @@ class SearchImportHttpTest {
         // A missing RU comparator, or stemming identifier fields, must fail this real HTTP contract.
         String schema = """
                 {"name":"ru_users","num_documents":0,"fields":[
-                  {"name":"user_id","type":"int64","locale":"","sort":true},
+                  {"name":"record_id","type":"int64","locale":"","sort":true},
                   {"name":"name","type":"string","locale":"ru","stem":true},
-                  {"name":"login","type":"string","locale":"","stem":false},
-                  {"name":"email","type":"string","locale":"","stem":false},
+                  {"name":"login","type":"string","locale":"ru","optional":true,"stem":true},
+                  {"name":"email","type":"string","locale":"","optional":true,"stem":false},
                   {"name":"phone","type":"string","locale":"","optional":true,"stem":false},
-                  {"name":"state","type":"string","locale":"","facet":true},
+                  {"name":"scope_users","type":"int64[]","locale":"","optional":true,"sort":false},
+                  {"name":"scope_units","type":"int64[]","locale":"","optional":true,"sort":false},
                   {"name":"_projection_revision","type":"int64","index":false,"sort":false,"locale":""},
                   {"name":"_projection_fingerprint","type":"string","index":false,"locale":""}
                 ]}
@@ -254,7 +255,7 @@ class SearchImportHttpTest {
                             "http://127.0.0.1:" + server.getAddress().getPort(), "fixture-key", true, false),
                     new ObjectMapper());
             assertThat(client.collections()
-                            .observeCollection("ru_users", "USER", "RU")
+                            .observeCollection("ru_users", SearchTestEntities.entity(SearchTestEntities.USERS), "RU")
                             .schemaMatches())
                     .isTrue();
         } finally {

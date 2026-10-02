@@ -25,6 +25,8 @@
   }, {
     "name" : "entity-menu-controller"
   }, {
+    "name" : "entity-report-controller"
+  }, {
     "name" : "example.orders"
   }, {
     "name" : "form-meta-controller"
@@ -52,6 +54,8 @@
     "name" : "md-list-view-controller"
   }, {
     "name" : "md-org-unit-controller"
+  }, {
+    "name" : "md-report-widget-controller"
   }, {
     "name" : "md-role-controller"
   }, {
@@ -100,6 +104,8 @@
     "name" : "report-controller"
   }, {
     "name" : "report-export-controller"
+  }, {
+    "name" : "report-import-controller"
   }, {
     "name" : "search-controller"
   }, {
@@ -5116,6 +5122,217 @@
         "tags" : [ "entity-bulk-controller" ]
       }
     },
+    "/api/v1/entities/{code}/import-template" : {
+      "get" : {
+        "description" : "An xlsx file with a column per field of the entity the caller may write; the second, hidden row names the fields by key, a hint sheet lists the values of each choice.",
+        "operationId" : "importTemplate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lang",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Download an import template",
+        "tags" : [ "report-import-controller" ]
+      }
+    },
+    "/api/v1/entities/{code}/imports" : {
+      "post" : {
+        "description" : "Queues the import of an xlsx file the caller uploaded: a dry run checks every row and writes nothing, apply creates or changes records by the entity's import key.",
+        "operationId" : "startImport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ImportRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportView"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Start an import",
+        "tags" : [ "report-import-controller" ]
+      }
+    },
+    "/api/v1/entities/{code}/report" : {
+      "get" : {
+        "description" : "Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups.",
+        "operationId" : "report",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "JSON array: [{\"field\":\"status\"},{\"field\":\"createdAt\",\"trunc\":\"month\"}]",
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "JSON array: [{\"op\":\"count\"},{\"op\":\"sum\",\"field\":\"total\"}]",
+          "in" : "query",
+          "name" : "measures",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "The list's filter DSL (JSON array)",
+          "in" : "query",
+          "name" : "filter",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueryAggregateResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run a report over a list",
+        "tags" : [ "entity-report-controller" ]
+      }
+    },
+    "/api/v1/entities/{code}/reports/{viewId}" : {
+      "get" : {
+        "description" : "Runs a report or widget the viewer saved as a view of the entity's list.",
+        "operationId" : "saved",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "viewId",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueryAggregateResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run a saved report",
+        "tags" : [ "entity-report-controller" ]
+      }
+    },
     "/api/v1/entities/{code}/{id}/files/{fileId}" : {
       "get" : {
         "description" : "The content of a file attached to a file or image field of a record the viewer may see.",
@@ -7818,9 +8035,86 @@
         "tags" : [ "kauth-session-controller" ]
       }
     },
+    "/api/v1/imports/{id}" : {
+      "get" : {
+        "description" : "The caller's import: its state, counters and first problems by row.",
+        "operationId" : "getImport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Get an import",
+        "tags" : [ "report-import-controller" ]
+      }
+    },
+    "/api/v1/imports/{id}/report" : {
+      "get" : {
+        "description" : "The file of a finished import with a column that lists the problems of each refused row.",
+        "operationId" : "importReport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Download an import report",
+        "tags" : [ "report-import-controller" ]
+      }
+    },
     "/api/v1/list-views/{listCode}" : {
       "get" : {
-        "description" : "The saved views (filters, columns, sort) of a list.",
+        "description" : "The saved views of a list of the given kinds: table views (filters, columns, sort) when no kind is named, reports and widgets (grouping, measures, chart) when asked for.",
         "operationId" : "list_2",
         "parameters" : [ {
           "in" : "path",
@@ -7828,6 +8122,17 @@
           "required" : true,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "description" : "table, report or widget; repeat for several",
+          "in" : "query",
+          "name" : "kind",
+          "required" : false,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         } ],
         "responses" : {
@@ -9039,6 +9344,39 @@
         "tags" : [ "query-meta-controller" ]
       }
     },
+    "/api/v1/report-widgets" : {
+      "get" : {
+        "description" : "The viewer's widgets for the dashboard, at most 12, over the entities the viewer may see.",
+        "operationId" : "list_5",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WidgetResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List my widgets",
+        "tags" : [ "md-report-widget-controller" ]
+      }
+    },
     "/api/v1/reports/tasks/export" : {
       "get" : {
         "description" : "The tasks as a downloadable CSV or XLSX file.",
@@ -9073,7 +9411,7 @@
     },
     "/api/v1/search" : {
       "get" : {
-        "description" : "Full-text search over the records the caller may see.",
+        "description" : "Full-text search over the records the caller may see: the entities with the SEARCH capability, in the caller's scope; entity is ALL or the code of one entity.",
         "operationId" : "search",
         "parameters" : [ {
           "in" : "query",
@@ -9121,6 +9459,39 @@
           }
         },
         "summary" : "Search",
+        "tags" : [ "search-controller" ]
+      }
+    },
+    "/api/v1/search/entities" : {
+      "get" : {
+        "description" : "The entities the caller may search, each with the dictionary key of its name and its icon.",
+        "operationId" : "searchCategories",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SearchCategory"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List search categories",
         "tags" : [ "search-controller" ]
       }
     },
@@ -11487,6 +11858,48 @@
           }
         }
       },
+      "AggregateGroup" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "implicit" : {
+            "type" : "boolean"
+          },
+          "trunc" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AggregateMeasure" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "op" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AggregateRow" : {
+        "type" : "object",
+        "properties" : {
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "type" : [ "string", "number", "boolean", "null" ]
+            }
+          },
+          "values" : {
+            "type" : "array",
+            "items" : {
+              "type" : [ "number", "null" ]
+            }
+          }
+        }
+      },
       "AnalyticsSummaryDto" : {
         "type" : "object",
         "properties" : {
@@ -12469,23 +12882,6 @@
           }
         },
         "required" : [ "archived" ]
-      },
-      "EntityDocumentCounts" : {
-        "type" : "object",
-        "properties" : {
-          "PROJECT" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "TASK" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "USER" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }
       },
       "EntityFile" : {
         "type" : "object",
@@ -13498,7 +13894,11 @@
             "format" : "int64"
           },
           "entityDocumentCounts" : {
-            "$ref" : "#/components/schemas/EntityDocumentCounts"
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
           },
           "errorCode" : {
             "type" : "string"
@@ -13591,6 +13991,101 @@
           },
           "isApi" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "ImportRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fileId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lang" : {
+            "type" : "string"
+          },
+          "mode" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ImportRowError" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "row" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ImportView" : {
+        "type" : "object",
+        "properties" : {
+          "created" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "entity" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportRowError"
+            }
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "failed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "report" : {
+            "type" : "boolean"
+          },
+          "rowsDone" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rowsTotal" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "updated" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
@@ -15999,6 +16494,32 @@
         },
         "required" : [ "validFrom" ]
       },
+      "QueryAggregateResult" : {
+        "type" : "object",
+        "properties" : {
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AggregateGroup"
+            }
+          },
+          "measures" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AggregateMeasure"
+            }
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AggregateRow"
+            }
+          },
+          "truncated" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "QueryRef" : {
         "type" : "object",
         "properties" : {
@@ -16170,6 +16691,37 @@
           }
         },
         "required" : [ "rule" ]
+      },
+      "SearchCategory" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SearchCategoryField"
+            }
+          },
+          "icon" : {
+            "type" : "string"
+          },
+          "labelKey" : {
+            "type" : "string"
+          }
+        }
+      },
+      "SearchCategoryField" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "labelKey" : {
+            "type" : "string"
+          }
+        }
       },
       "SearchHit" : {
         "type" : "object",
@@ -17242,6 +17794,10 @@
           "isDefault" : {
             "type" : "boolean"
           },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "table", "report", "widget" ]
+          },
           "lockVersion" : {
             "type" : "integer",
             "format" : "int32"
@@ -17263,6 +17819,39 @@
           },
           "isDefault" : {
             "type" : "boolean"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "table", "report", "widget" ]
+          },
+          "lockVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          }
+        }
+      },
+      "WidgetResponse" : {
+        "type" : "object",
+        "properties" : {
+          "entity" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "listCode" : {
+            "type" : "string"
           },
           "lockVersion" : {
             "type" : "integer",

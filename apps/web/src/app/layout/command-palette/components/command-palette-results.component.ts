@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { SearchHit, SearchResult } from '@core/models/search.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { CategoryItem, DEFAULT_CATEGORY_ICON } from '../command-palette.models';
 
 @Component({
   selector: 'app-command-palette-results',
-  imports: [TranslatePipe, NgClass],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="palette-results">
@@ -96,7 +96,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
               [class.active]="i === selectedIndex()"
               (click)="selectHit.emit(hit)"
             >
-              <div class="result-icon-box" [ngClass]="'icon-' + hit.entityType.toLowerCase()">
+              <div class="result-icon-box">
                 <span class="material-symbols-outlined" aria-hidden="true">{{ getIcon(hit.entityType) }}</span>
               </div>
               <div class="result-info">
@@ -128,6 +128,8 @@ export class CommandPaletteResultsComponent {
   readonly validQuery = input.required<boolean>();
 
   readonly metadata = input<SearchResult | null>(null);
+  /** The categories of the palette: the icon and name of each entity a hit may belong to. */
+  readonly categories = input<CategoryItem[]>([]);
 
   readonly retry = output<void>();
   readonly selectRecent = output<string>();
@@ -142,33 +144,18 @@ export class CommandPaletteResultsComponent {
     return Array.from(query.trim()).length;
   }
 
-  getIcon(type: string): string {
-    switch (type) {
-      case 'USER':
-        return 'person';
-      case 'TASK':
-        return 'task_alt';
-      case 'PROJECT':
-        return 'folder';
-      case 'NOTE':
-        return 'description';
-      default:
-        return 'search';
-    }
+  /** The icon of a hit: its entity's, as the server names the categories (ADR-0032, 10.3). */
+  getIcon(entity: string): string {
+    return this.category(entity)?.icon ?? DEFAULT_CATEGORY_ICON;
   }
 
-  getEntityBadge(type: string): string {
-    switch (type) {
-      case 'TASK':
-        return this.uiI18n.translate('tasks.common.task');
-      case 'PROJECT':
-        return this.uiI18n.translate('projects.common.project');
-      case 'USER':
-        return this.uiI18n.translate('analytics.dashboard.employee');
-      case 'NOTE':
-        return this.uiI18n.translate('search.entity.note');
-      default:
-        return type;
-    }
+  /** The name of a hit's entity, or its code when the person has no category of it. */
+  getEntityBadge(entity: string): string {
+    const category = this.category(entity);
+    return category ? this.uiI18n.translate(category.label) : entity;
+  }
+
+  private category(entity: string): CategoryItem | undefined {
+    return this.categories().find((category) => category.value === entity);
   }
 }

@@ -30,7 +30,12 @@ public record RateLimitProperties(
         if (maxEntries <= 0) maxEntries = 10_000;
         if (expensivePaths == null) {
             expensivePaths = List.of(
-                    "/api/v1/audit/stats", "/api/v1/audit/logs", "/api/v1/audit/security-events", "/api/v1/search/**");
+                    "/api/v1/audit/stats",
+                    "/api/v1/audit/logs",
+                    "/api/v1/audit/security-events",
+                    "/api/v1/search/**",
+                    "/api/v1/entities/*/imports",
+                    "/api/v1/entities/*/import-template");
         }
     }
 }

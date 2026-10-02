@@ -18,12 +18,13 @@ describe('CommandPaletteComponent', () => {
       close: vi.fn(() => isOpen.set(false)),
       toggle: vi.fn(() => isOpen.update((value) => !value)),
       search: vi.fn((_query: string) => of<SearchResult>({ ...metadata, query: '', totalHits: 0, hits: [] })),
+      categories: vi.fn(() => of([])),
     };
     await TestBed.configureTestingModule({
       imports: [CommandPaletteComponent],
       providers: [
         { provide: CommandPaletteService, useValue: service },
-        { provide: Router, useValue: { navigate: vi.fn() } },
+        { provide: Router, useValue: { navigateByUrl: vi.fn() } },
       ],
     }).compileComponents();
     return { fixture: TestBed.createComponent(CommandPaletteComponent), service };
@@ -34,7 +35,7 @@ describe('CommandPaletteComponent', () => {
     fixture.detectChanges();
     fixture.componentInstance.results.set([
       {
-        entityType: 'TASK',
+        entityType: 'ms.tasks',
         id: '42',
         title: 'Проверить отчёт',
         description: 'Финальная проверка',
@@ -119,7 +120,7 @@ describe('CommandPaletteComponent', () => {
             totalHits: 1,
             hits: [
               {
-                entityType: 'TASK',
+                entityType: 'ms.tasks',
                 id: '42',
                 title: 'Тестовая задача',
                 description: 'Результат повторного запроса',
@@ -162,7 +163,7 @@ describe('CommandPaletteComponent', () => {
           totalHits: 1,
           hits: [
             {
-              entityType: 'USER',
+              entityType: 'md.users',
               id: '7',
               title: 'Old result',
               description: '',
@@ -231,7 +232,7 @@ describe('CommandPaletteComponent', () => {
         totalHits: 1,
         hits: [
           {
-            entityType: 'USER',
+            entityType: 'md.users',
             id: '7',
             title: 'Late result',
             description: '',
@@ -308,8 +309,8 @@ describe('CommandPaletteComponent', () => {
     const { fixture } = await createFixture();
     fixture.detectChanges();
     fixture.componentInstance.results.set([
-      { entityType: 'TASK', id: '1', title: 'Task', description: '', targetUrl: '/tasks/1' },
-      { entityType: 'USER', id: '7', title: 'Person', description: '', targetUrl: '/iam/users/7' },
+      { entityType: 'ms.tasks', id: '1', title: 'Task', description: '', targetUrl: '/tasks/1' },
+      { entityType: 'md.users', id: '7', title: 'Person', description: '', targetUrl: '/e/md.users/7' },
     ]);
     fixture.detectChanges();
     const option = fixture.nativeElement.querySelectorAll('[role="option"]')[1] as HTMLButtonElement;
@@ -317,9 +318,9 @@ describe('CommandPaletteComponent', () => {
     option.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
-    expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
+    expect(TestBed.inject(Router).navigateByUrl).not.toHaveBeenCalled();
     option.click();
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/e/md.users', '7']);
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/e/md.users/7');
   });
 
   it('supports the physical search shortcut on a non-Latin keyboard layout without repeating it', async () => {

@@ -207,6 +207,12 @@ final class ScopeByIdCases {
                     "EntityFileController#download",
                     "a record's file: the runtime's read in the entity's scope decides (EntityFileControllerTest);"
                             + " no entity of the application has a file field yet"),
+            Map.entry(
+                    "EntityReportController#report",
+                    "an entity code: totals of its list in the viewer's scope (EntityReportIntegrationTest)"),
+            Map.entry(
+                    "EntityReportController#saved",
+                    "the caller's own saved report; another id answers 404 (EntityReportIntegrationTest)"),
             Map.entry("FormMetaController#get", "metadata of an entity code, no record"),
             Map.entry("QueryMetaController#get", "metadata of a list code, no record"),
             Map.entry("KauthApiTokenController#revokeToken", "the caller's own token; another id changes nothing"),
@@ -249,6 +255,12 @@ final class ScopeByIdCases {
             Map.entry(
                     "MsNotificationController#markAsRead", "the caller's own notification; another id changes nothing"),
             Map.entry("ReportExportController#file", "the caller's own export; another id answers 404"),
+            Map.entry("ReportImportController#template", "an entity code: the template holds no record"),
+            Map.entry(
+                    "ReportImportController#start",
+                    "an entity code: each row is a save in the importer's scope (the kit's import group)"),
+            Map.entry("ReportImportController#get", "the caller's own import; another id answers 404"),
+            Map.entry("ReportImportController#report", "the caller's own import; another id answers 404"),
             Map.entry("SearchManagementController#job", "a search index job, administrator only, instance-wide"),
             Map.entry("SearchManagementController#cancel", "a search index job, administrator only, instance-wide"),
             Map.entry("SearchManagementController#retry", "a search index job, administrator only, instance-wide"),

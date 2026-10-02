@@ -6,28 +6,58 @@ SmartupCMS installation. PostgreSQL is always the source of truth. Typesense
 only the server API; the Typesense URL and API key are neither displayed nor
 editable in Settings.
 
+## What is indexed
+
+The index holds the entities that declare the SEARCH capability
+(ADR-0032 §10.3): today `example.orders`, `md.users`, `ms.notes`,
+`ms.projects` and `ms.tasks`. Each entity's declaration names its searched
+fields (`EntitySearchSpec`); the server builds the collection, the documents
+and the queries from it, so there is no per-entity projection code. A generation
+holds one collection per entity, named `cms_<generation>_entity_<code>`
+(`search_generation_collections`). A record that is archived, or that fails the
+spec's condition (an inactive user), has no document.
+
+Every document carries the scope keys of its record: `scope_users` (the owner,
+or the participants of a custom scope) and `scope_units` (the record's unit, or
+the units of those users). The query filters them by the caller's data scope,
+and every hit is checked again in PostgreSQL with the entity's own scope
+predicate before it is answered. A stale document therefore never shows a
+record the caller may not see; at worst a restricted caller misses a record
+until its document is delivered again. A note is its owner's alone, whatever the
+caller's rule.
+
+The scope keys of a record are refreshed with the record's own change. A change
+that only moves people between org units (an additional unit of a user, the
+participants of a project's tasks) does not re-index the affected documents;
+run **Rebuild** after a large reorganisation if restricted users must find the
+moved records at once.
+
+An entity that gains the SEARCH capability in a release has no collection in
+the active generation until the next rebuild: status reports
+`rebuildRequired=true`, and the search reads that entity from PostgreSQL in the
+meantime.
+
 ## Access and settings
 
-The existing unrestricted-administrator check remains in force until scoped
-row filtering is implemented. UI visibility is not an authorization boundary.
+UI visibility is not an authorization boundary.
 
 | Operation | Required server authorization |
 |---|---|
-| Search, status, job history, and preview with the saved policy | `search.view` plus the unrestricted-administrator check |
+| Search and its categories (`GET /api/v1/search`, `/api/v1/search/entities`) | `search.view`; the caller searches the entities whose `view` right they hold and whose module is on, in their own data scope |
+| Status, job history, and preview with the saved policy | `search.view` plus the administrator check (the preview answers only the administrator's own scope) |
 | Read configuration or preview an unsaved policy | the preceding access plus `md.settings.view` |
-| Save, rebuild, retry, cancel, or rollback | `md.settings.update` plus the unrestricted-administrator check |
+| Save, rebuild, retry, cancel, or rollback | `md.settings.update` plus the administrator check |
 
-This feature introduces no system role and does not delegate index access.
-Projects and users are indexed only while `state=A`; tasks retain the existing
-search projection rules.
+This feature introduces no system role and does not delegate index management.
 
 The saved policy has these bounds:
 
 - global result limit: integer `1–50`;
 - interactive rate: `30–600` requests per minute;
 - burst: `10–60`, and never greater than the per-minute budget;
-- field weight: `0–127`, with at least one non-zero searchable field for each
-  of task, project, and user;
+- field weights per entity code: `0–127`, naming exactly the fields of the
+  entity's search spec, with at least one non-zero field; an entity the saved
+  policy does not name uses the default weights (title 10, other fields 3);
 - typo tolerance: `0–2`; prefix matching is enabled or disabled per field;
 - schema profile: `MIXED` or `RU`.
 
@@ -67,14 +97,16 @@ application-only rollback as preserving delivery.
 Run the supported one-shot `migrate` service before the server. Migration
 `V026__search_index_management.sql` creates the registry, revisions, delivery,
 jobs and settings state. Migration `V027__search_job_request_metadata.sql`
-records the original target and retry lineage needed for safe replay. Do not
+records the original target and retry lineage needed for safe replay. Migration
+`V189__search_entity_collections.sql` keys the index by entity code, moves the
+collections of a generation into `search_generation_collections` and resets the
+index state, its jobs and settings: no installation holds an index yet. Do not
 edit Flyway history or apply these statements manually.
 
-On first start, if the three legacy collections (`tasks`, `projects`, `users`)
-exist and the registry is empty, the worker registers that set as a legacy
-active generation. Otherwise it allocates and verifies a new generation. In
-either case, wait for initialized, healthy status before treating indexed
-search as available.
+On first start with an empty registry the worker allocates and verifies a new
+generation with a collection per entity that declares the search. Wait for
+initialized, healthy status before treating indexed search as available; until
+then the search answers from PostgreSQL with `degraded=true`.
 
 ## Capacity and cleanup policy
 
@@ -92,8 +124,9 @@ capacity conflict must never be worked around by weakening the cap or deleting
 collections to rerun a test.
 
 Manual cleanup requires an explicit operator review of the PostgreSQL registry,
-job history, active generation, retained rollback targets and the exact three
-collection names belonging to one non-active generation. Retain recovery
+job history, active generation, retained rollback targets and the exact
+collection names (`search_generation_collections`) belonging to one non-active
+generation. Retain recovery
 evidence and a database backup first. There is intentionally no generic delete
 command here: never target an unknown collection, the active generation, or a
 collection that is absent from the reviewed registry.
@@ -121,8 +154,9 @@ Use Settings > Search, or the corresponding server endpoints, in this order:
    verification alone never authorizes cutover.
 
 HTTP `400` indicates an invalid request, `401` missing authentication, `403`
-insufficient permission/unrestricted scope, `409` a settings version, job,
-capacity or state conflict, and `503` unavailable/invalid settings, dependency
+insufficient permission (a management call without the administrator check),
+`409` a settings version, job, capacity or state conflict, and `503`
+unavailable/invalid settings, dependency
 or storage metadata. HTTP `429` can come from the interactive Search budget or
 the shared 10/minute Search-management family. Honor `Retry-After`; retry only
 an idempotent read within a bounded observation deadline, and never

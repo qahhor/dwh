@@ -1,14 +1,20 @@
 package com.smartup24.cms.instance.search.repository;
 
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot;
+import com.smartup24.cms.instance.search.service.SearchEntity;
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class SearchGenerationRepository {
+    /** The discovery state of a generation that has found the records of every entity it indexes. */
+    public static final String DONE = "DONE";
+
     private final JdbcClient jdbc;
 
     public SearchGenerationRepository(JdbcClient jdbc) {
@@ -21,20 +27,32 @@ public class SearchGenerationRepository {
                 .single();
     }
 
-    public UUID allocate(SettingsSnapshot snapshot) {
+    /**
+     * Registers a new generation that builds one collection per entity the search indexes (ADR-0032, 10.3); its
+     * discovery starts with the first entity, or is done when there is none.
+     */
+    public UUID allocate(SettingsSnapshot snapshot, List<SearchEntity> entities) {
         UUID id = UUID.randomUUID();
         String prefix = "cms_" + id.toString().replace("-", "") + "_";
         jdbc.sql("""
-                insert into search_generations(id,state,task_collection,project_collection,user_collection,schema_version,schema_profile,settings_version,discovery_entity)
-                values(:id,'BUILDING',:tasks,:projects,:users,1,:profile,:settings,'TASK')
+                insert into search_generations(id,state,schema_version,schema_profile,settings_version,discovery_entity)
+                values(:id,'BUILDING',1,:profile,:settings,:discovery)
                 """)
                 .param("id", id)
-                .param("tasks", prefix + "tasks")
-                .param("projects", prefix + "projects")
-                .param("users", prefix + "users")
                 .param("profile", snapshot.policy().schemaProfile())
                 .param("settings", snapshot.version())
+                .param(
+                        "discovery",
+                        entities.isEmpty() ? DONE : entities.getFirst().code())
                 .update();
+        for (SearchEntity entity : entities) {
+            jdbc.sql("insert into search_generation_collections(generation_id,entity_type,collection)"
+                            + " values(:id,:type,:collection)")
+                    .param("id", id)
+                    .param("type", entity.code())
+                    .param("collection", entity.collection(prefix))
+                    .update();
+        }
         return id;
     }
 
@@ -62,18 +80,13 @@ public class SearchGenerationRepository {
     }
 
     public Optional<FrozenGeneration> find(UUID id) {
-        return jdbc.sql("select * from search_generations where id=:id")
+        return jdbc.sql("select g.*," + SearchGenerationCollections.column("g")
+                        + " from search_generations g where g.id=:id")
                 .param("id", id)
                 .query((rs, row) -> new FrozenGeneration(
                         rs.getObject("id", UUID.class),
                         rs.getString("state"),
-                        Map.of(
-                                "TASK",
-                                rs.getString("task_collection"),
-                                "PROJECT",
-                                rs.getString("project_collection"),
-                                "USER",
-                                rs.getString("user_collection")),
+                        SearchGenerationCollections.parse(rs.getString("collections")),
                         rs.getInt("schema_version"),
                         rs.getString("schema_profile"),
                         rs.getLong("settings_version"),
@@ -85,9 +98,12 @@ public class SearchGenerationRepository {
                 .optional();
     }
 
+    /** The projection versions of the generation's types not yet delivered to it. */
     public long pending(UUID id) {
-        return jdbc.sql(
-                        "select count(*) from search_projection_versions v left join search_generation_delivery d on d.generation_id=:id and d.entity_type=v.entity_type and d.entity_id=v.entity_id where v.revision>coalesce(d.delivered_revision,0)")
+        return jdbc.sql("select count(*) from search_projection_versions v left join search_generation_delivery d"
+                        + " on d.generation_id=:id and d.entity_type=v.entity_type and d.entity_id=v.entity_id"
+                        + " where v.revision>coalesce(d.delivered_revision,0) and "
+                        + SearchGenerationCollections.indexed(":id"))
                 .param("id", id)
                 .query(Long.class)
                 .single();
@@ -122,8 +138,7 @@ public class SearchGenerationRepository {
         boolean eligible = proof.sql("""
                 select exists(select 1 from search_jobs j join search_generations g on g.id=j.generation_id
                     where j.id=:job and j.owner_token=:owner and j.state=:state and g.id=:generation
-                    and g.schema_version=:schema and g.schema_profile=:profile and g.settings_version=:settings
-                    and g.task_collection=:tasks and g.project_collection=:projects and g.user_collection=:users)
+                    and g.schema_version=:schema and g.schema_profile=:profile and g.settings_version=:settings)
                 """)
                 .param("job", job)
                 .param("owner", owner)
@@ -132,22 +147,31 @@ public class SearchGenerationRepository {
                 .param("schema", generation.schemaVersion())
                 .param("profile", generation.schemaProfile())
                 .param("settings", generation.settingsVersion())
-                .param("tasks", generation.collections().get("TASK"))
-                .param("projects", generation.collections().get("PROJECT"))
-                .param("users", generation.collections().get("USER"))
                 .query(Boolean.class)
                 .single();
+        // The collections the proof verified are still the generation's own.
+        String collections = proof.sql("select " + SearchGenerationCollections.column("g")
+                        + " from search_generations g where g.id=:generation")
+                .param("generation", generation.id())
+                .query(String.class)
+                .optional()
+                .orElse(null);
+        eligible &= SearchGenerationCollections.parse(collections).equals(generation.collections());
         return eligible ? Optional.of(barrier) : Optional.empty();
     }
 
+    /**
+     * Whether the generation has found every record and holds the last revision of each of its types; a projection
+     * version of a type it has no collection for never holds it back (ADR-0032, 10.3).
+     */
     public boolean readyToActivate(JdbcClient proof, UUID generation) {
         return proof.sql("""
                 select exists(select 1 from search_generations where id=:generation and state in ('BUILDING','RETAINED')
                     and schema_version=1 and discovery_entity='DONE') and not exists(
                     select 1 from search_projection_versions v left join search_generation_delivery d
                     on d.generation_id=:generation and d.entity_type=v.entity_type and d.entity_id=v.entity_id
-                    where v.revision>coalesce(d.delivered_revision,0))
-                """)
+                    where v.revision>coalesce(d.delivered_revision,0) and %s)
+                """.formatted(SearchGenerationCollections.indexed(":generation")))
                 .param("generation", generation)
                 .query(Boolean.class)
                 .single();
@@ -190,6 +214,11 @@ public class SearchGenerationRepository {
                 != 1) throw new IllegalStateException("JOB_OWNERSHIP_LOST");
     }
 
+    /**
+     * A generation as a job reads it.
+     *
+     * @param collections entity code → collection, one per entity the generation indexes (ADR-0032, 10.3)
+     */
     public record FrozenGeneration(
             UUID id,
             String state,
@@ -200,6 +229,10 @@ public class SearchGenerationRepository {
             String discoveryEntity,
             long discoveryAfterId,
             Instant verifiedAt) {
+        public FrozenGeneration {
+            collections = SearchGenerationCollections.ordered(collections);
+        }
+
         public SearchIndexStateRepository.Generation delivery(long version) {
             return new SearchIndexStateRepository.Generation(
                     id, state, collections, schemaProfile, discoveryEntity, discoveryAfterId, version);

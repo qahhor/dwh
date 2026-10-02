@@ -62,10 +62,10 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
         long accepted = user("Accepted"), rejected = user("Rejected");
         rejectedImportIds.add(Long.toString(rejected));
         worker.runOnce();
-        assertThat(delivered("USER", accepted)).isOne();
-        assertThat(delivered("USER", rejected)).isZero();
+        assertThat(delivered(SearchTestEntities.USERS, accepted)).isOne();
+        assertThat(delivered(SearchTestEntities.USERS, rejected)).isZero();
         assertThat(jdbc.sql(
-                                "select error_code from search_generation_delivery where entity_type='USER' and entity_id=:id")
+                                "select error_code from search_generation_delivery where entity_type='md.users' and entity_id=:id")
                         .param("id", rejected)
                         .query(String.class)
                         .single())
@@ -85,7 +85,7 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
         rejectedImportIds.clear();
         clock.advance(Duration.ofSeconds(2));
         worker.runOnce();
-        assertThat(delivered("USER", rejected)).isOne();
+        assertThat(delivered(SearchTestEntities.USERS, rejected)).isOne();
         assertThat(metricRegistry.find("smc.search.delivery.retries").counter().count())
                 .isOne();
     }
@@ -93,23 +93,23 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
     @Test
     void retryOfFailedRollbackResetsExhaustedClaimsAndReusesTheRetainedGeneration() {
         UUID retained = activeGeneration();
-        jdbc.sql(
-                        "update search_generations set state='RETAINED',task_collection='ret_tasks',project_collection='ret_projects',user_collection='ret_users' where id=:id")
+        jdbc.sql("update search_generations set state='RETAINED' where id=:id")
                 .param("id", retained)
                 .update();
-        for (String type : List.of("TASK", "PROJECT", "USER"))
+        renameCollections(retained, "ret_");
+        for (var entity : entities.all())
             client.collections()
                     .ensureCollection(
                             generationRepository
                                     .find(retained)
                                     .orElseThrow()
                                     .collections()
-                                    .get(type),
-                            type);
+                                    .get(entity.code()),
+                            entity);
         activeGeneration();
         long id = user("Rollback retry");
         jdbc.sql(
-                        "insert into search_generation_delivery(generation_id,entity_type,entity_id,attempted_revision,delivered_revision,attempts,error_code) values(:generation,'USER',:id,1,0,8,'DELIVERY_FAILED')")
+                        "insert into search_generation_delivery(generation_id,entity_type,entity_id,attempted_revision,delivered_revision,attempts,error_code) values(:generation,'md.users',:id,1,0,8,'DELIVERY_FAILED')")
                 .param("generation", retained)
                 .param("id", id)
                 .update();
@@ -182,12 +182,12 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
                 .update();
         worker.runOnce();
         assertThat(jdbc.sql(
-                                "select error_code from search_generation_delivery where entity_type='TASK' and entity_id=:id")
+                                "select error_code from search_generation_delivery where entity_type='ms.tasks' and entity_id=:id")
                         .param("id", id)
                         .query(String.class)
                         .single())
                 .isEqualTo("DOCUMENT_TOO_LARGE");
-        assertThat(documents).doesNotContainKey("tasks/" + id);
+        assertThat(documents).doesNotContainKey(collection(SearchTestEntities.TASKS) + "/" + id);
     }
 
     @Test
@@ -200,7 +200,7 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
                 .param("verified", java.sql.Timestamp.from(verified))
                 .param("id", active)
                 .update();
-        documents.remove("users/" + id);
+        documents.remove(collection(SearchTestEntities.USERS) + "/" + id);
         var priorWrites = List.copyOf(writes);
         UUID job = jobService
                 .start(new StartJobRequest(UUID.randomUUID(), "CHECK", null))
@@ -256,9 +256,10 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
                 .start(new StartJobRequest(UUID.randomUUID(), "REBUILD", null))
                 .id();
         UUID candidate = jobRepository.find(job).orElseThrow().generationId();
-        for (int i = 0; i < 3; i++) runCycle();
+        // One cycle per entity of the generation finds its records (ADR-0032, 10.3).
+        for (int i = 0; i < entities.all().size(); i++) runCycle();
         jdbc.sql(
-                        "insert into search_generation_delivery(generation_id,entity_type,entity_id,attempted_revision,delivered_revision,attempts,error_code) values(:generation,'USER',:id,1,0,8,'DELIVERY_FAILED')")
+                        "insert into search_generation_delivery(generation_id,entity_type,entity_id,attempted_revision,delivered_revision,attempts,error_code) values(:generation,'md.users',:id,1,0,8,'DELIVERY_FAILED')")
                 .param("generation", candidate)
                 .param("id", id)
                 .update();

@@ -173,26 +173,11 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-.result-icon-box .material-symbols-outlined {
-  font-size: 19px;
-}
-
-.icon-user {
   background-color: var(--info-bg);
   color: var(--info-text);
 }
-.icon-task {
-  background-color: var(--success-bg);
-  color: var(--success-text);
-}
-.icon-project {
-  background-color: var(--warning-bg);
-  color: var(--warning-text);
-}
-.icon-note {
-  background-color: var(--accent-violet-bg);
-  color: var(--accent-violet-text);
+.result-icon-box .material-symbols-outlined {
+  font-size: 19px;
 }
 
 .result-info {

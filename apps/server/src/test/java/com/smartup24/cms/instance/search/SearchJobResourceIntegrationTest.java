@@ -47,7 +47,7 @@ class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
                         "insert into md_users(name,login,email) select 'Fixture '||n,'resource-'||n,'resource-'||n||'@example.invalid' from generate_series(1,205) n")
                 .update();
         jdbc.sql(
-                        "insert into search_projection_versions(entity_type,entity_id,revision) select 'USER',id,1 from md_users")
+                        "insert into search_projection_versions(entity_type,entity_id,revision) select 'md.users',id,1 from md_users")
                 .update();
         deliverAll(generation, 205);
         var writesBefore = List.copyOf(writes);
@@ -59,9 +59,9 @@ class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
             var other = JdbcClient.create(new SingleConnectionDataSource(connection, true));
             other.sql("create temporary table search_reconcile_sentinel(id int)")
                     .update();
-            // Three schema checks, two empty exports and one user page: the proof is suspended mid-export,
+            // Five schema checks, the empty export of the orders and one user page: the proof is suspended mid-export,
             // far short of the 14+ cycles a complete proof needs, whatever size its time-bounded pages take.
-            for (int i = 0; i < 6; i++) jobWorker.runOnce();
+            for (int i = 0; i < 7; i++) jobWorker.runOnce();
             assertThat(jobRepository.find(job).orElseThrow().state()).isEqualTo("VERIFYING");
             assertThat(jobRepository.find(job).orElseThrow().processedCount()).isEqualTo(205);
             assertThat(proofObjects()).isEqualTo(2);
@@ -99,11 +99,14 @@ class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
                 .start(new StartJobRequest(UUID.randomUUID(), "CHECK", null))
                 .id();
         jobWorker.runOnce();
-        for (int i = 0; i < 5; i++) jobWorker.runOnce();
+        // Five schema checks and the empty export of the orders: the next cycle exports the users.
+        for (int i = 0; i < 6; i++) jobWorker.runOnce();
         var entered = new CountDownLatch(1);
         var release = new CountDownLatch(1);
         beforeRequest = exchange -> {
-            if (!exchange.getRequestURI().getPath().endsWith("/users/documents/export")) return;
+            if (!exchange.getRequestURI()
+                    .getPath()
+                    .endsWith("/" + collection(SearchTestEntities.USERS) + "/documents/export")) return;
             try {
                 exchange.sendResponseHeaders(200, 0);
                 exchange.getResponseBody().write('{');
@@ -130,7 +133,8 @@ class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
         }
         renameUser(id, "After");
         worker.runOnce();
-        assertThat(documents.get("users/" + id)).containsEntry("name", "After");
+        assertThat(documents.get(collection(SearchTestEntities.USERS) + "/" + id))
+                .containsEntry("name", "After");
         jobWorker.close();
     }
     /**

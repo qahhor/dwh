@@ -20,7 +20,8 @@ type Policy = {
   requestsPerMinute: number;
   burst: number;
   schemaProfile: 'MIXED' | 'RU';
-  fields: Record<'TASK' | 'PROJECT' | 'USER', FieldPolicy[]>;
+  /** The weights of each indexed entity's searched fields, by entity code (ADR-0032 10.3). */
+  fields: Record<string, FieldPolicy[]>;
 };
 type Settings = { version: number; policy: Policy };
 type Job = { id: string; action: 'CHECK' | 'REBUILD' | 'ROLLBACK'; generationId: string; state: string };
@@ -37,21 +38,19 @@ const controlledPolicy: Policy = {
   burst: 20,
   schemaProfile: 'MIXED',
   fields: {
-    TASK: [
+    'ms.tasks': [
       { field: 'title', weight: 10, numTypos: 2, prefix: true },
-      { field: 'description_markdown', weight: 3, numTypos: 2, prefix: true },
-      { field: 'status_name', weight: 2, numTypos: 2, prefix: true },
-      { field: 'project_name', weight: 2, numTypos: 2, prefix: true }
+      { field: 'descriptionMarkdown', weight: 3, numTypos: 2, prefix: true }
     ],
-    PROJECT: [
+    'ms.projects': [
       { field: 'name', weight: 10, numTypos: 2, prefix: true },
       { field: 'description', weight: 3, numTypos: 2, prefix: true }
     ],
-    USER: [
+    'md.users': [
       { field: 'name', weight: 10, numTypos: 2, prefix: true },
-      { field: 'login', weight: 8, numTypos: 0, prefix: true },
-      { field: 'email', weight: 6, numTypos: 0, prefix: true },
-      { field: 'phone', weight: 6, numTypos: 0, prefix: true }
+      { field: 'login', weight: 3, numTypos: 2, prefix: true },
+      { field: 'email', weight: 3, numTypos: 0, prefix: true },
+      { field: 'phone', weight: 3, numTypos: 0, prefix: true }
     ]
   }
 };
@@ -69,7 +68,7 @@ const controlledStatus = {
   lastSuccessfulReconciliation: '2026-09-07T12:00:00Z',
   generations: [{
     id: 'controlled-generation', state: 'ACTIVE', active: true, registeredProfile: 'MIXED',
-    documentCount: 14, entityDocumentCounts: { TASK: 8, PROJECT: 4, USER: 2 },
+    documentCount: 14, entityDocumentCounts: { 'ms.tasks': 8, 'ms.projects': 4, 'md.users': 2 },
     storageBytes: 1024, schemaMatches: true, pendingDeliveries: 0, failedDeliveries: 0,
     queueLagSeconds: 0, createdAt: '2026-09-07T11:00:00Z'
   }],

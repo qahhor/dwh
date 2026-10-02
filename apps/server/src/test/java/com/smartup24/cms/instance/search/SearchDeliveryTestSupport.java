@@ -87,6 +87,7 @@ abstract class SearchDeliveryTestSupport {
     SearchGenerationService generationService;
     SearchReconciliationService reconciliation;
     SearchStoragePreflight storage;
+    final SearchEntities entities = SearchTestEntities.unscoped();
     MsTaskFixture tasks;
     MdUserService users;
     MdUserSecurityService userSecurity;
@@ -138,9 +139,9 @@ abstract class SearchDeliveryTestSupport {
                         + " '#3b82f6', 10, true where not exists (select 1 from ms_task_statuses where code = 'new')"))
             jdbc.sql(sql).update();
         publisher = SearchRevisionIntegrationTest.proxied(new SearchChangePublisher(jdbc), manager);
-        reader = new SearchProjectionReader(jdbc, mapper);
+        reader = new SearchProjectionReader(jdbc, mapper, entities);
         delivery = SearchRevisionIntegrationTest.proxied(new SearchDeliveryRepository(jdbc), manager);
-        state = SearchRevisionIntegrationTest.proxied(new SearchIndexStateRepository(jdbc), manager);
+        state = SearchRevisionIntegrationTest.proxied(new SearchIndexStateRepository(jdbc, entities), manager);
         var scopes = mock(MdScopeService.class);
         when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
         when(scopes.filterForProjects(any())).thenReturn(ScopeFilter.unrestricted());
@@ -196,7 +197,7 @@ abstract class SearchDeliveryTestSupport {
                     .param("name", name)
                     .param("id", id)
                     .update();
-            publisher.changed("USER", id);
+            publisher.changed(SearchTestEntities.USERS, id);
         });
     }
 
@@ -213,7 +214,7 @@ abstract class SearchDeliveryTestSupport {
                     .update();
             if (anonymize) userSecurity.anonymizeCredentials(id);
             else userSecurity.revokeAccess(id);
-            publisher.changed("USER", id);
+            publisher.changed(SearchTestEntities.USERS, id);
         });
     }
 
@@ -227,8 +228,8 @@ abstract class SearchDeliveryTestSupport {
         var jobAudit = new SearchJobAudit(
                 jobRepository,
                 new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor()));
-        generationService =
-                new SearchGenerationService(generationRepository, new SearchSettingsRepository(jdbc), jobAudit, 4);
+        generationService = new SearchGenerationService(
+                generationRepository, new SearchSettingsRepository(jdbc), jobAudit, entities, 4);
         storage = new SearchStoragePreflight(client.health(), reader);
         reconciliation = new SearchReconciliationService(database, reader, client.collections(), client.documents());
         jobService = SearchRevisionIntegrationTest.proxied(
@@ -252,6 +253,7 @@ abstract class SearchDeliveryTestSupport {
                 jobService,
                 reconciliation,
                 storage,
+                entities,
                 Optional.of(metrics));
         jobWorker.startLifecycle(owner);
     }
@@ -261,18 +263,61 @@ abstract class SearchDeliveryTestSupport {
         jobWorker.runOnce();
     }
 
+    /** An active generation with a collection per entity the search indexes, named {@code entity_<code>}. */
     UUID activeGeneration() {
-        collections.addAll(List.of("tasks", "projects", "users"));
-        UUID id = UUID.randomUUID();
-        jdbc.sql("""
-                insert into search_generations(id,state,task_collection,project_collection,user_collection,
-                    schema_version,schema_profile,settings_version,discovery_entity)
-                values (:id,'ACTIVE','tasks','projects','users',1,'MIXED',1,'DONE')
-                """).param("id", id).update();
+        UUID id = generation("ACTIVE");
         jdbc.sql("update search_index_state set active_generation_id=:id,initialized=true where id=1")
                 .param("id", id)
                 .update();
         return id;
+    }
+
+    /**
+     * A generation in {@code state} whose discovery is done, with an existing collection per entity the search indexes,
+     * named {@code entity_<code>} (ADR-0032, 10.3).
+     */
+    UUID generation(String generationState) {
+        UUID id = UUID.randomUUID();
+        jdbc.sql("""
+                insert into search_generations(id,state,schema_version,schema_profile,settings_version,discovery_entity)
+                values (:id,:state,1,'MIXED',1,'DONE')
+                """).param("id", id).param("state", generationState).update();
+        for (SearchEntity entity : entities.all()) {
+            collections.add(collection(entity.code()));
+            jdbc.sql("insert into search_generation_collections(generation_id,entity_type,collection)"
+                            + " values(:id,:type,:collection)")
+                    .param("id", id)
+                    .param("type", entity.code())
+                    .param("collection", collection(entity.code()))
+                    .update();
+        }
+        return id;
+    }
+
+    /** Renames the collections of a generation to {@code <prefix>entity_<code>}. */
+    void renameCollections(UUID generation, String prefix) {
+        jdbc.sql("update search_generation_collections set collection=:prefix||'entity_'||replace(entity_type,'.','_')"
+                        + " where generation_id=:id")
+                .param("prefix", prefix)
+                .param("id", generation)
+                .update();
+    }
+
+    /** The collection of the entity in the generation {@link #activeGeneration()} registers. */
+    static String collection(String code) {
+        return entityOf(code).collection("");
+    }
+
+    private static SearchEntity entityOf(String code) {
+        return SearchTestEntities.entity(code);
+    }
+
+    /** The entity whose collection the name ends with: the fake engine answers its schema. */
+    private SearchEntity entityByCollection(String name) {
+        return entities.all().stream()
+                .filter(entity -> name.endsWith(entity.collection("")))
+                .findFirst()
+                .orElseThrow();
     }
 
     long user(String name) {
@@ -357,11 +402,10 @@ abstract class SearchDeliveryTestSupport {
             return;
         }
         if (parts.length == 3) {
-            String type = parts[2].endsWith("tasks") ? "TASK" : parts[2].endsWith("projects") ? "PROJECT" : "USER";
             var schema = new LinkedHashMap<String, Object>(schemas.stream()
                     .filter(value -> parts[2].equals(value.get("name")))
                     .findFirst()
-                    .orElseGet(() -> SearchCollectionSchema.mixed(parts[2], type)));
+                    .orElseGet(() -> SearchCollectionSchema.mixed(parts[2], entityByCollection(parts[2]))));
             schema.put(
                     "num_documents",
                     documents.keySet().stream()

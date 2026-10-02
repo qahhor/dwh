@@ -16,7 +16,8 @@ class SearchResultBudgetTest {
     @Test
     void allocatesFairlyBeforeRestoringGroupOrder() {
         List<SearchHit> hits = budget.allocate(
-                List.of(group("TASK", "11", "12", "13"), group("PROJECT", "21", "22"), group("USER", "31")), 4);
+                List.of(group("ms.tasks", "11", "12", "13"), group("ms.projects", "21", "22"), group("md.users", "31")),
+                4);
 
         assertThat(hits).extracting(SearchHit::id).containsExactly("11", "12", "21", "31");
     }
@@ -24,7 +25,7 @@ class SearchResultBudgetTest {
     @Test
     void emptyGroupsDoNotWasteTheGlobalBudget() {
         List<SearchHit> hits = budget.allocate(
-                List.of(group("TASK"), group("PROJECT", "21", "22", "23"), group("USER", "31", "32")), 4);
+                List.of(group("ms.tasks"), group("ms.projects", "21", "22", "23"), group("md.users", "31", "32")), 4);
 
         assertThat(hits).extracting(SearchHit::id).containsExactly("21", "22", "31", "32");
     }

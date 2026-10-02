@@ -27,6 +27,7 @@ final class RuntimeSave implements EntityActionCall {
     private final @Nullable String action;
     private final Map<String, Object> params;
     private final AuditActor actor;
+    private boolean imported;
     private final List<FieldErrorItem> rejected = new ArrayList<>();
 
     RuntimeSave(
@@ -86,6 +87,17 @@ final class RuntimeSave implements EntityActionCall {
     @Override
     public AuditActor actor() {
         return actor;
+    }
+
+    @Override
+    public boolean imported() {
+        return imported;
+    }
+
+    /** The save is a row of an import (ADR-0032, 10.1). */
+    RuntimeSave asImported() {
+        this.imported = true;
+        return this;
     }
 
     @Override

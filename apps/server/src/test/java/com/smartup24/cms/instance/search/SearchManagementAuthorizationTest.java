@@ -62,39 +62,82 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
     }
 
     @Test
-    void administratorWithRestrictedDataScopeReadsNoResultsButStillManagesTheIndex() throws Exception {
-        // ADR-0013, 2.5: the results need an administrator whose rule is ALL; status and jobs carry no rows.
-        authenticate(Set.of("search.view"), true);
+    void administratorWithRestrictedDataScopeFindsOnlyTheRowsOfTheScopeAndStillManagesTheIndex() throws Exception {
+        // ADR-0013, 2.5 as ADR-0032, 19 (question 8) changes it: the search answers in the caller's own scope. A rule
+        // UNITS without a unit sees no task, so no query reaches the engine for them; status and jobs carry no rows.
+        authenticate(Set.of("search.view", "tasks.items.view"), true);
         jdbc.sql("insert into md_user_scope (user_id, rule) values (:user, 'UNITS')"
                         + " on conflict (user_id) do update set rule = excluded.rule")
                 .param("user", actorId)
                 .update();
-        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.messageKey").value("error.search.scope_restricted"));
-        mvc.perform(auth(get("/api/v1/search")).param("q", "#1"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.messageKey").value("error.search.scope_restricted"));
-        mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"delivery\"}"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.messageKey").value("error.search.scope_restricted"));
-        assertThat(requests).isEmpty();
-        mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk());
-        mvc.perform(auth(get("/api/v1/search/jobs"))).andExpect(status().isOk());
+        try {
+            mvc.perform(auth(get("/api/v1/search")).param("q", "delivery"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalHits").value(0));
+            mvc.perform(auth(get("/api/v1/search")).param("q", "#1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalHits").value(0));
+            mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"delivery\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.result.totalHits").value(0));
+            assertThat(paths).noneMatch(path -> path.equals("POST /multi_search"));
+            mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk());
+            mvc.perform(auth(get("/api/v1/search/jobs"))).andExpect(status().isOk());
+        } finally {
+            jdbc.sql("delete from md_user_scope where user_id = :user")
+                    .param("user", actorId)
+                    .update();
+        }
     }
 
     @Test
-    void unrestrictedDataScopeAloneDoesNotOpenGlobalSearch() throws Exception {
-        // A non-administrator with the rule ALL is refused: the index does not check per-entity view permissions.
-        authenticate(Set.of("search.view"), false);
-        jdbc.sql("insert into md_user_scope (user_id, rule) values (:user, 'ALL')"
-                        + " on conflict (user_id) do update set rule = excluded.rule")
-                .param("user", actorId)
-                .update();
+    void aViewerSearchesOnlyTheEntitiesTheyMayViewEachCheckedInTheDatabase() throws Exception {
+        // ADR-0032, 10.3: anyone with the search right searches the entities whose view right they hold; the index
+        // query names only those collections, and every hit is checked again in the database.
+        authenticate(Set.of("search.view", "tasks.items.view"), false);
         mvc.perform(auth(get("/api/v1/search")).param("q", "delivery"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.messageKey").value("error.search.admin_only"));
-        assertThat(requests).isEmpty();
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hits[0].entityType").value("ms.tasks"))
+                .andExpect(jsonPath("$.hits[0].targetUrl").value("/tasks/items/1"));
+        assertThat(requests.stream().filter(body -> body.contains("searches")).toList())
+                .singleElement()
+                .satisfies(body -> {
+                    var searches = mapper.readTree(body).path("searches");
+                    assertThat(searches).hasSize(1);
+                    assertThat(searches.get(0).path("collection").asText())
+                            .isEqualTo(ENTITIES.find("ms.tasks").orElseThrow().collection("fixture_"));
+                    // The rule ALL restricts no task: the query carries no scope filter.
+                    assertThat(searches.get(0).has("filter_by")).isFalse();
+                });
+        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "md.users"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messageKey").value("error.search.category_unknown"));
+        mvc.perform(auth(get("/api/v1/search/entities")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].code").value("ms.tasks"));
+    }
+
+    @Test
+    void aStaleIndexHitThatTheDatabaseNoLongerFindsIsNeverAnswered() throws Exception {
+        // ADR-0032, 10.3: the engine answers ids 1..n; a task that is gone is dropped by the database check.
+        authenticate(Set.of("search.view", "tasks.items.view"), false);
+        jdbc.sql("delete from ms_tasks where id = 1").update();
+        try {
+            mvc.perform(auth(get("/api/v1/search"))
+                            .param("q", "delivery")
+                            .param("entity", "ms.tasks")
+                            .param("limit", "3"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalHits").value(3))
+                    .andExpect(jsonPath("$.hits[*].id").value(org.hamcrest.Matchers.contains("2", "3", "4")));
+        } finally {
+            jdbc.sql("""
+                            insert into ms_tasks (id, title, priority, reporter_id, created_by, modified_by)
+                            overriding system value values (1, 'Delivery 1', 'medium', :actor, :actor, :actor)
+                            on conflict (id) do nothing
+                            """).param("actor", actorId).update();
+        }
     }
 
     @Test
@@ -108,8 +151,8 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
     }
 
     @Test
-    void explicitEmptyLimitCannotMoveValidationAheadOfTheServiceAdminCheck() throws Exception {
-        authenticate(Set.of("search.view"), false);
+    void explicitEmptyLimitCannotMoveValidationAheadOfTheAccessCheck() throws Exception {
+        authenticate(Set.of("tasks.items.view"), false);
         mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("limit", ""))
                 .andExpect(status().isForbidden());
         assertThat(paths).isEmpty();
@@ -117,9 +160,9 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
 
     @Test
     void searchAdminCanPreviewCurrentPolicyButCannotReadConfigurationOrSubmitDraft() throws Exception {
-        authenticate(Set.of("search.view"), true);
+        authenticate(Set.of("search.view", "tasks.items.view"), true);
         mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk());
-        mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"поставка 世界\",\"entity\":\"TASK\"}"))
+        mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"поставка 世界\",\"entity\":\"ms.tasks\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.activeProfile").value("MIXED"))
                 .andExpect(jsonPath("$.result.query").value("поставка 世界"));
@@ -177,13 +220,13 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
 
     @Test
     void settingsReadPermissionAllowsDraftsButDoesNotGrantSave() throws Exception {
-        authenticate(Set.of("search.view", "md.settings.view"), true);
+        authenticate(Set.of("search.view", "md.settings.view", "tasks.items.view"), true);
         long version = readSettings().path("version").asLong();
         var policy = new SearchQueryPolicy(
                 3, 120, 20, "RU", SearchQueryPolicy.defaults().fields());
         mvc.perform(auth(post("/api/v1/search/preview"))
-                        .content(
-                                mapper.writeValueAsString(Map.of("q", "delivery", "entity", "TASK", "policy", policy))))
+                        .content(mapper.writeValueAsString(
+                                Map.of("q", "delivery", "entity", "ms.tasks", "policy", policy))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.totalHits").value(3))
                 .andExpect(jsonPath("$.activeProfile").value("MIXED"));
@@ -195,9 +238,9 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
 
     @Test
     void exactIdPreviewRemainsAnIntentionalPostgresLookupDuringAnEngineOutage() throws Exception {
-        authenticate(Set.of("search.view"), true);
+        authenticate(Set.of("search.view", "tasks.items.view"), true);
         healthStatus = 503;
-        mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"#999999999\",\"entity\":\"TASK\"}"))
+        mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"#999999999\",\"entity\":\"ms.tasks\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.source").value("POSTGRES"))
                 .andExpect(jsonPath("$.result.degraded").value(false));
@@ -243,7 +286,7 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
                             status::current,
                             () -> settings.save(
                                     new SearchManagementDtos.SaveSettingsRequest(1, SearchQueryPolicy.defaults())),
-                            () -> search.preview(new SearchManagementDtos.PreviewRequest("query", "TASK", null))))
+                            () -> search.preview(new SearchManagementDtos.PreviewRequest("query", "ms.tasks", null))))
                 org.assertj.core.api.Assertions.assertThatThrownBy(call)
                         .isInstanceOfSatisfying(
                                 ApiException.class,

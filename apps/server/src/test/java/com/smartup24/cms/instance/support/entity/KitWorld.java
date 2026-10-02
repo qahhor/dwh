@@ -100,11 +100,12 @@ final class KitWorld {
         plain = fieldRights().isEmpty() ? null : users.withRights(entityRights(), unitA);
     }
 
-    /** The entity's right: {@code view} and the right of every declared action. */
+    /** The entity's right: {@code view}, the right of every declared action and {@code import} of an importable one. */
     Map<String, Set<String>> entityRights() {
         Set<String> actions = new TreeSet<>();
         actions.add("view");
         entity.actions().forEach(action -> actions.add(action.permission()));
+        if (has(EntityCapability.IMPORT)) actions.add(EntityDefinition.IMPORT);
         return Map.of(entity.form(), actions);
     }
 

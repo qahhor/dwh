@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.search.typesense;
 
+import com.smartup24.cms.instance.common.entity.field.EntityField;
+import com.smartup24.cms.instance.search.repository.SearchDocumentSql;
+import com.smartup24.cms.instance.search.service.SearchEntity;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import java.util.ArrayList;
@@ -8,7 +11,10 @@ import org.springframework.web.util.HtmlUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/** Strictly validates and maps one Typesense multi-search response as one atomic operation. */
+/**
+ * Strictly validates and maps one Typesense multi-search response as one atomic operation. A hit is named by the
+ * entity's title field and described by its highlight or the first filled field of the search spec (ADR-0032, 10.3).
+ */
 public final class TypesenseSearchMapper {
 
     private static final int MAX_SNIPPET_CODE_POINTS = 240;
@@ -19,17 +25,17 @@ public final class TypesenseSearchMapper {
         this.objectMapper = objectMapper;
     }
 
-    public List<CollectionSearch> map(String body, List<String> entityTypes) {
+    public List<CollectionSearch> map(String body, List<SearchEntity> entities) {
         if (body == null || body.isBlank()) throw TypesenseException.invalidResponse();
         try {
             JsonNode root = objectMapper.readTree(body);
             JsonNode results = root.get("results");
-            if (results == null || !results.isArray() || results.size() != entityTypes.size()) {
+            if (results == null || !results.isArray() || results.size() != entities.size()) {
                 throw TypesenseException.invalidResponse();
             }
-            List<CollectionSearch> mapped = new ArrayList<>(entityTypes.size());
-            for (int i = 0; i < entityTypes.size(); i++) {
-                mapped.add(mapCollection(entityTypes.get(i), results.get(i)));
+            List<CollectionSearch> mapped = new ArrayList<>(entities.size());
+            for (int i = 0; i < entities.size(); i++) {
+                mapped.add(mapCollection(entities.get(i), results.get(i)));
             }
             return List.copyOf(mapped);
         } catch (TypesenseException exception) {
@@ -39,7 +45,7 @@ public final class TypesenseSearchMapper {
         }
     }
 
-    private CollectionSearch mapCollection(String entityType, JsonNode result) {
+    private CollectionSearch mapCollection(SearchEntity entity, JsonNode result) {
         if (result == null || !result.isObject() || result.has("error") || result.has("code")) {
             throw TypesenseException.invalidResponse();
         }
@@ -50,61 +56,32 @@ public final class TypesenseSearchMapper {
             throw TypesenseException.invalidResponse();
         }
         List<SearchHit> hits = new ArrayList<>(hitsNode.size());
-        for (JsonNode hit : hitsNode) hits.add(mapHit(entityType, hit));
-        return new CollectionSearch(entityType, hits, found, searchTimeMs);
+        for (JsonNode hit : hitsNode) hits.add(mapHit(entity, hit));
+        return new CollectionSearch(entity.code(), hits, found, searchTimeMs);
     }
 
-    private SearchHit mapHit(String entityType, JsonNode hit) {
+    private SearchHit mapHit(SearchEntity entity, JsonNode hit) {
         if (hit == null || !hit.isObject()) throw TypesenseException.invalidResponse();
         JsonNode document = hit.get("document");
         if (document == null || !document.isObject()) throw TypesenseException.invalidResponse();
-        return switch (entityType) {
-            case "TASK" -> task(hit, document);
-            case "PROJECT" -> project(hit, document);
-            case "USER" -> user(hit, document);
-            case "NOTE" -> note(hit, document);
-            default -> throw TypesenseException.invalidResponse();
-        };
-    }
-
-    private SearchHit note(JsonNode hit, JsonNode document) {
-        long id = requiredDocumentId(document, "note_id");
-        String title = requiredText(document, "title");
-        String fallback = optionalText(document, "content_md");
-        return new SearchHit("NOTE", Long.toString(id), title, snippet(hit, fallback), "/notes?id=" + id);
-    }
-
-    private SearchHit task(JsonNode hit, JsonNode document) {
-        long id = requiredDocumentId(document, "task_id");
-        String title = requiredText(document, "title");
-        String fallback = optionalText(document, "description_markdown");
-        if (fallback.isBlank()) fallback = taskMetadata(document);
-        return new SearchHit("TASK", Long.toString(id), title, snippet(hit, fallback), "/tasks/items/" + id);
-    }
-
-    private SearchHit project(JsonNode hit, JsonNode document) {
-        requireActive(document);
-        long id = requiredDocumentId(document, "project_id");
+        long id = requiredDocumentId(document);
+        List<EntityField> fields = entity.fields();
+        String title = optionalText(document, fields.getFirst().key());
+        String fallback = "";
+        for (EntityField field : fields.subList(1, fields.size())) {
+            fallback = optionalText(document, field.key());
+            if (!fallback.isBlank()) break;
+        }
         return new SearchHit(
-                "PROJECT",
+                entity.code(),
                 Long.toString(id),
-                requiredText(document, "name"),
-                snippet(hit, optionalText(document, "description")),
-                "/tasks/projects/" + id);
+                title.isBlank() ? "#" + id : boundedPlaintext(title),
+                snippet(hit, fallback),
+                entity.targetUrl(id));
     }
 
-    private SearchHit user(JsonNode hit, JsonNode document) {
-        requireActive(document);
-        long id = requiredDocumentId(document, "user_id");
-        String login = requiredText(document, "login");
-        String email = requiredText(document, "email");
-        String fallback = email + " (@" + login + ")";
-        return new SearchHit(
-                "USER", Long.toString(id), requiredText(document, "name"), snippet(hit, fallback), "/e/md.users/" + id);
-    }
-
-    private static long requiredDocumentId(JsonNode document, String typedIdField) {
-        long typedId = positiveLong(document.get(typedIdField));
+    private static long requiredDocumentId(JsonNode document) {
+        long typedId = positiveLong(document.get(SearchDocumentSql.RECORD_ID));
         long stringId = positiveLong(document.get("id"));
         if (typedId != stringId) throw TypesenseException.invalidResponse();
         return typedId;
@@ -134,39 +111,11 @@ public final class TypesenseSearchMapper {
         return parsed;
     }
 
-    private static String requiredText(JsonNode document, String field) {
-        JsonNode value = document.get(field);
-        if (value == null || !value.isTextual() || value.textValue().isBlank()) {
-            throw TypesenseException.invalidResponse();
-        }
-        return value.textValue();
-    }
-
     private static String optionalText(JsonNode document, String field) {
         JsonNode value = document.get(field);
         if (value == null || value.isNull()) return "";
         if (!value.isTextual()) throw TypesenseException.invalidResponse();
         return value.textValue();
-    }
-
-    private static void requireActive(JsonNode document) {
-        if (!"A".equals(requiredText(document, "state"))) throw TypesenseException.invalidResponse();
-    }
-
-    private static String taskMetadata(JsonNode document) {
-        String status = optionalText(document, "status_name");
-        String priority = optionalText(document, "priority");
-        String project = optionalText(document, "project_name");
-        StringBuilder description = new StringBuilder();
-        if (!status.isBlank()) description.append("Статус: ").append(status);
-        if (!priority.isBlank()) appendPart(description, "Приоритет: " + priority);
-        if (!project.isBlank()) appendPart(description, "Проект: " + project);
-        return description.toString();
-    }
-
-    private static void appendPart(StringBuilder text, String part) {
-        if (!text.isEmpty()) text.append(" | ");
-        text.append(part);
     }
 
     private static String snippet(JsonNode hit, String fallback) {

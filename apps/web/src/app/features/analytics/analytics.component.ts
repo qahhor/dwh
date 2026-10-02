@@ -13,6 +13,7 @@ import { AnalyticsMetricsTilesComponent } from './components/analytics-metrics-t
 import { AnalyticsTrendChartComponent } from './components/analytics-trend-chart.component';
 import { AnalyticsProjectsCardComponent } from './components/analytics-projects-card.component';
 import { AnalyticsWorkloadTableComponent } from './components/analytics-workload-table.component';
+import { AnalyticsWidgetsComponent } from './components/analytics-widgets.component';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 
@@ -35,6 +36,7 @@ const FIRST_RANGE = '7d';
     AnalyticsTrendChartComponent,
     AnalyticsProjectsCardComponent,
     AnalyticsWorkloadTableComponent,
+    AnalyticsWidgetsComponent,
   ],
   template: `
     <div class="analytics-container">
@@ -86,6 +88,9 @@ const FIRST_RANGE = '7d';
 
       <!-- KPI Metrics Row -->
       <app-analytics-metrics-tiles [summary]="summary()"></app-analytics-metrics-tiles>
+
+      <!-- The viewer's own widgets: reports saved on entity lists (ADR-0032 10.2) -->
+      <app-analytics-widgets />
 
       <!-- Main Analytics Grid: Trend Chart & Project Distribution -->
       <div class="analytics-grid">

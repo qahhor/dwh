@@ -8,11 +8,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 /** Only finite, server-owned enums enter labels. No query, collection, actor or job identifier is accepted. */
 @Component
 public class SearchMetrics {
+    private static final Pattern ENTITY = Pattern.compile("^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$");
     private final MeterRegistry registry;
     private final Map<String, AtomicLong> gaugeValues = new ConcurrentHashMap<>();
 
@@ -26,7 +28,7 @@ public class SearchMetrics {
 
     public void query(String entity, String source, boolean error, boolean fallback, long elapsedNanos) {
         if (registry == null) return;
-        String safeEntity = finite(entity, Set.of("ALL", "TASK", "PROJECT", "USER"));
+        String safeEntity = entityLabel(entity);
         String safeSource = finite(source, Set.of("POSTGRES", "TYPESENSE"));
         registry.timer(
                         "smc.search.query.duration",
@@ -45,7 +47,7 @@ public class SearchMetrics {
 
     public void engine(String entity, long milliseconds) {
         if (registry != null)
-            registry.timer("smc.search.engine.duration", "entity", finite(entity, Set.of("TASK", "PROJECT", "USER")))
+            registry.timer("smc.search.engine.duration", "entity", entityLabel(entity))
                     .record(Math.max(0, milliseconds), TimeUnit.MILLISECONDS);
     }
 
@@ -97,6 +99,14 @@ public class SearchMetrics {
                     return holder;
                 })
                 .set(Math.max(0, value));
+    }
+
+    /**
+     * {@code ALL} or the code of an entity with the SEARCH capability: the search passes only codes it found in the
+     * declarations (ADR-0032, 10.3), so the labels stay as finite as the declared entities.
+     */
+    private static String entityLabel(String value) {
+        return value != null && (value.equals("ALL") || ENTITY.matcher(value).matches()) ? value : "UNKNOWN";
     }
 
     private static String finite(String value, Set<String> allowed) {

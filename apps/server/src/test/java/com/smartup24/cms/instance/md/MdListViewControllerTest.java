@@ -100,7 +100,7 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
         assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
         // The wire format is pinned (plan item 3.2): the list code and the stored state text stay inside.
         assertThat(new ObjectMapper().readTree(created.getContentAsString()).propertyNames())
-                .containsExactlyInAnyOrder("id", "name", "state", "isDefault", "lockVersion", "modifiedAt");
+                .containsExactlyInAnyOrder("id", "kind", "name", "state", "isDefault", "lockVersion", "modifiedAt");
         long first = ((Number) read(created, "$.id")).longValue();
         assertThat((String) read(created, "$.name")).isEqualTo("Месячные");
         assertThat((Boolean) read(created, "$.isDefault")).isTrue();
@@ -119,7 +119,7 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
                         .readTree(listed.getContentAsString())
                         .get(0)
                         .propertyNames())
-                .containsExactlyInAnyOrder("id", "name", "state", "isDefault", "lockVersion", "modifiedAt");
+                .containsExactlyInAnyOrder("id", "kind", "name", "state", "isDefault", "lockVersion", "modifiedAt");
         assertThat((List<String>) read(listed, "$[*].name")).containsExactly("Все", "Месячные");
         assertThat((List<Boolean>) read(listed, "$[*].isDefault")).containsExactly(true, false);
 

@@ -1,9 +1,7 @@
 import { SearchResult } from './search.models';
 
-/** Entities the search indexes; `settings.search.entity.<lower case>` names each. */
-export const SEARCH_ENTITIES = ['TASK', 'PROJECT', 'USER', 'NOTE'] as const;
-
-export type SearchEntityType = (typeof SEARCH_ENTITIES)[number];
+/** The code of an entity the search indexes (`ms.tasks`): the entities with the SEARCH capability (ADR-0032, 10.3). */
+export type SearchEntityType = string;
 export type SearchSchemaProfile = 'MIXED' | 'RU';
 export type SearchJobAction = 'CHECK' | 'REBUILD' | 'ROLLBACK';
 export type SearchJobState = 'QUEUED' | 'RUNNING' | 'VERIFYING' | 'ACTIVATING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
@@ -20,13 +18,8 @@ export interface SearchQueryPolicy {
   requestsPerMinute: number;
   burst: number;
   schemaProfile: SearchSchemaProfile;
-  fields: {
-    TASK: SearchFieldPolicy[];
-    PROJECT: SearchFieldPolicy[];
-    USER: SearchFieldPolicy[];
-    NOTE?: SearchFieldPolicy[];
-    [key: string]: SearchFieldPolicy[] | undefined;
-  };
+  /** The weights of each entity's searched fields, by entity code; the server answers every indexed entity. */
+  fields: Record<SearchEntityType, SearchFieldPolicy[]>;
 }
 
 export interface SearchSettingsSnapshot {
@@ -83,11 +76,8 @@ export interface SearchJobStatus {
   finishedAt?: string | null;
 }
 
-export interface SearchEntityDocumentCounts {
-  TASK: number | null;
-  PROJECT: number | null;
-  USER: number | null;
-}
+/** The documents of each entity's collection, by entity code; null when they could not be counted. */
+export type SearchEntityDocumentCounts = Record<SearchEntityType, number | null>;
 
 export interface SearchGenerationStatus {
   id: string;

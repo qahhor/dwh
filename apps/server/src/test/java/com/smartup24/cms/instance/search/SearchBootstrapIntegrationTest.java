@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrap;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
@@ -9,14 +10,11 @@ import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
-import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
 import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
 import com.smartup24.cms.instance.search.service.SearchJobWorker;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
-import com.smartup24.cms.instance.search.service.SearchResultBudget;
-import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.service.SearchWorkerCoordinator;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import java.util.List;
@@ -39,16 +37,10 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
     @Test
     void activationWaitsForThePublishingTransactionAndRejectsItsUndeliveredRevision() throws Exception {
         long id = user("Before activation");
-        collections.addAll(List.of("tasks", "projects", "users"));
-        var generation = UUID.randomUUID();
-        jdbc.sql("""
-                insert into search_generations(id,state,task_collection,project_collection,user_collection,
-                    schema_version,schema_profile,settings_version,discovery_entity)
-                values (:id,'BUILDING','tasks','projects','users',1,'MIXED',1,'DONE')
-                """).param("id", generation).update();
+        var generation = generation("BUILDING");
         var claim = delivery.claim(generation, owner, clock.instant(), 100).getFirst();
-        var projection = reader.read("USER", id).orElseThrow();
-        client.documents().upsertDocument("users", projection.document());
+        var projection = reader.read(SearchTestEntities.USERS, id).orElseThrow();
+        client.documents().upsertDocument(collection(SearchTestEntities.USERS), projection.document());
         delivery.acknowledge(claim, projection.fingerprint());
         var receipt = jobRepository.insert(
                 new SearchManagementDtos.StartJobRequest(UUID.randomUUID(), "REBUILD", null), generation, null);
@@ -102,7 +94,8 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         jobRepository.checkpoint(receipt.id(), owner, "RUNNING", 1, 0, null);
         for (int i = 0; i < 40 && !state.snapshot().initialized(); i++) runCycle();
         assertThat(state.snapshot().initialized()).isTrue();
-        assertThat(documents.get("users/" + id)).containsEntry("name", "After activation");
+        assertThat(documents.get(collection(SearchTestEntities.USERS) + "/" + id))
+                .containsEntry("name", "After activation");
     }
 
     @Test
@@ -110,11 +103,9 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 99L, "admin", "admin@example.invalid", 1L, false, Set.of("*.*"), 1L, false, 0, null));
         try {
-            var service = new SearchService(
+            var service = SearchAccessFixtures.service(
                     client.search(),
-                    new SearchFallbackRepository(jdbc),
-                    SearchAccessFixtures.policy(),
-                    new SearchResultBudget(),
+                    jdbc,
                     new SearchPolicyProvider(
                             new SearchOwnerRateLimits() {
                                 @Override
@@ -128,24 +119,26 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                                 }
                             },
                             new SearchSettingsRepository(jdbc)),
-                    new SearchExecutionSnapshotReader(state));
+                    new SearchExecutionSnapshotReader(state),
+                    entities);
             var fallback = service.search("nothing", "ALL", 10);
             assertThat(fallback.source()).isEqualTo("POSTGRES");
             assertThat(fallback.degraded()).isTrue();
             var id = activeGeneration();
-            jdbc.sql(
-                            "update search_generations set task_collection='v1_tasks',project_collection='v1_projects',user_collection='v1_users' where id=:id")
-                    .param("id", id)
-                    .update();
-            beforeRequest = exchange -> jdbc.sql(
-                            "update search_generations set task_collection='v2_tasks',project_collection='v2_projects',user_collection='v2_users' where id=:id")
-                    .param("id", id)
-                    .update();
+            renameCollections(id, "v1_");
+            beforeRequest = exchange -> renameCollections(id, "v2_");
             assertThat(service.search("nothing", "ALL", 10).source()).isEqualTo("TYPESENSE");
-            assertThat(searchCollections.getFirst()).containsExactly("v1_tasks", "v1_projects", "v1_users");
+            // One collection per entity the search indexes, in the order of their codes (ADR-0032, 10.3).
+            assertThat(searchCollections.getFirst())
+                    .containsExactlyElementsOf(entities.all().stream()
+                            .map(entity -> entity.collection("v1_"))
+                            .toList());
             beforeRequest = exchange -> {};
             service.search("nothing", "ALL", 10);
-            assertThat(searchCollections.getLast()).containsExactly("v2_tasks", "v2_projects", "v2_users");
+            assertThat(searchCollections.getLast())
+                    .containsExactlyElementsOf(entities.all().stream()
+                            .map(entity -> entity.collection("v2_"))
+                            .toList());
         } finally {
             SecurityContext.clear();
         }
@@ -157,7 +150,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         failures.set(1);
         try {
             runCycle();
-        } catch (TypesenseException expected) {
+        } catch (TypesenseException | ApiException expected) {
             /* startup retries next cycle */
         }
         assertThat(state.snapshot().initialized()).isFalse();
@@ -169,33 +162,20 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                         .query(Long.class)
                         .single())
                 .isOne();
-        assertThat(schemas).hasSize(3);
-        assertThat(documents.get(state.snapshot().collections().get("USER") + "/" + id))
+        assertThat(schemas).hasSize(entities.all().size());
+        assertThat(state.snapshot().collections().keySet()).containsExactlyElementsOf(entities.codes());
+        assertThat(documents.get(state.snapshot().collections().get(SearchTestEntities.USERS) + "/" + id))
                 .containsEntry("name", "Recovery");
     }
 
     @Test
-    void allExistingCollectionsAreRegisteredAsLegacyWithoutBeingRecreatedOrVerified() {
-        collections.addAll(List.of("tasks", "projects", "users"));
-        runCycle();
-        assertThat(state.snapshot().initialized()).isTrue();
-        assertThat(state.snapshot().legacy()).isTrue();
-        assertThat(state.snapshot().collections())
-                .isEqualTo(Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"));
-        assertThat(schemas).isEmpty();
-        assertThat(jdbc.sql("select count(*) from search_generations where state='LEGACY' and verified_at is null")
-                        .query(Long.class)
-                        .single())
-                .isOne();
-    }
-
-    @Test
-    void partialLegacySetIsPreservedWhileTheNewGenerationBuilds() {
+    void aCollectionOutsideTheSearchIsLeftAloneWhileTheFirstGenerationBuilds() {
         collections.add("tasks");
         runCycle();
         assertThat(state.snapshot().initialized()).isFalse();
         for (int i = 0; i < 40 && !state.snapshot().initialized(); i++) runCycle();
-        assertThat(collections).contains("tasks").hasSize(4);
+        assertThat(state.snapshot().initialized()).isTrue();
+        assertThat(collections).contains("tasks").hasSize(entities.all().size() + 1);
         assertThat(state.snapshot().collections().values()).doesNotContain("tasks");
     }
 
@@ -208,16 +188,17 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                 """).update();
         long first = jdbc.sql("select min(id) from md_users").query(Long.class).single();
         tx.executeWithoutResult(status -> {
-            publisher.changed("USER", first);
-            publisher.changed("USER", first);
+            publisher.changed(SearchTestEntities.USERS, first);
+            publisher.changed(SearchTestEntities.USERS, first);
         });
-        for (int i = 0; i < 3; i++) runCycle();
-        assertThat(jdbc.sql("select count(*) from search_projection_versions where entity_type='USER'")
+        // The first cycle starts the build and finds no example order, the second the first page of users.
+        for (int i = 0; i < 2; i++) runCycle();
+        assertThat(jdbc.sql("select count(*) from search_projection_versions where entity_type='md.users'")
                         .query(Long.class)
                         .single())
                 .isEqualTo(100);
         assertThat(jdbc.sql(
-                                "select revision from search_projection_versions where entity_type='USER' and entity_id=:id")
+                                "select revision from search_projection_versions where entity_type='md.users' and entity_id=:id")
                         .param("id", first)
                         .query(Long.class)
                         .single())
@@ -232,14 +213,14 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         for (int i = 0; i < 40 && !state.snapshot().initialized(); i++) runCycle();
         assertThat(state.snapshot().generationId()).isEqualTo(generation);
         assertThat(documents).hasSize(205);
-        assertThat(schemas).hasSize(3);
+        assertThat(schemas).hasSize(entities.all().size());
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void mixedSchemasPreserveDefaultTokenizerAndIncludeDeliveryMetadata() {
         runCycle();
-        assertThat(schemas).hasSize(3);
+        assertThat(schemas).hasSize(entities.all().size());
         for (var schema : schemas) {
             List<Map<String, Object>> fields = (List<Map<String, Object>>) schema.get("fields");
             assertThat(fields)
@@ -331,7 +312,8 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                     f.generationService,
                     f.jobService,
                     f.reconciliation,
-                    f.storage);
+                    f.storage,
+                    f.entities);
         }
 
         @Bean

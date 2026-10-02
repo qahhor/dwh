@@ -32,6 +32,10 @@ class SchemaOrderTest {
             Map.entry("md_sso_providers.client_id", "an identifier issued by the external identity provider"),
             Map.entry("md_sso_providers.provider_id", "the natural key of the row itself (google, oneid)"),
             Map.entry("report_exports.public_id", "the public identifier of the row itself"),
+            Map.entry("report_imports.public_id", "the public identifier of the row itself"),
+            Map.entry(
+                    "report_imports.file_id",
+                    "a file of the files module, read in the owner's scope by the job; a deleted one fails the import"),
             Map.entry("upl_packages.public_id", "the public identifier of the row itself"),
             Map.entry("search_jobs.request_id", "the idempotency key sent by the caller"),
             Map.entry(

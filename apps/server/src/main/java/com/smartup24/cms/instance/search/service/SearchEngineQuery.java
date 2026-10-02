@@ -2,9 +2,12 @@ package com.smartup24.cms.instance.search.service;
 
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.IndexSnapshot;
+import com.smartup24.cms.instance.search.service.SearchScopes.Caller;
+import com.smartup24.cms.instance.search.service.SearchScopes.IndexFilter;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionQuery;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -16,21 +19,37 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The Typesense path of {@link SearchService}: the primary query, its language variants, and the PostgreSQL note
- * groups for ALL while notes have no collection. Failures surface as {@link TypesenseException} or a data access
- * exception so the caller can fall back.
+ * The Typesense path of {@link SearchService} (ADR-0032, 10.3): one query per entity the caller searches that has a
+ * collection in the active generation, filtered by the caller's scope keys, then the language variants; every hit is
+ * checked again in the database with the caller's scope before it is answered, so a stale index shows nothing the
+ * caller may not see. An entity without a collection yet (its search declared after the last rebuild) is searched in
+ * PostgreSQL. Failures surface as {@link TypesenseException} or a data access exception so the caller can fall back.
  */
 final class SearchEngineQuery {
 
     // The category stays the service's so existing log routing keeps matching.
     private static final Logger log = LoggerFactory.getLogger(SearchService.class);
 
-    private final TypesenseSearch typesense;
-    private final SearchFallbackRepository fallbackRepository;
+    /** How many candidates per wanted hit the index is asked for: the database check may drop some. */
+    private static final int OVERFETCH = 2;
 
-    SearchEngineQuery(TypesenseSearch typesense, SearchFallbackRepository fallbackRepository) {
+    private final TypesenseSearch typesense;
+    private final SearchDatabaseQuery database;
+    private final SearchFallbackRepository repository;
+    private final SearchFieldPolicies fieldPolicies;
+    private final SearchScopes scopes;
+
+    SearchEngineQuery(
+            TypesenseSearch typesense,
+            SearchDatabaseQuery database,
+            SearchFallbackRepository repository,
+            SearchFieldPolicies fieldPolicies,
+            SearchScopes scopes) {
         this.typesense = typesense;
-        this.fallbackRepository = fallbackRepository;
+        this.database = database;
+        this.repository = repository;
+        this.fieldPolicies = fieldPolicies;
+        this.scopes = scopes;
     }
 
     boolean enabled() {
@@ -39,67 +58,80 @@ final class SearchEngineQuery {
 
     List<CollectionSearch> groups(
             String cleanQuery,
-            String cleanEntityType,
+            List<String> queryVariants,
+            List<SearchEntity> targets,
             int effectiveLimit,
             IndexSnapshot snapshot,
-            SearchQueryPolicy currentPolicy,
-            List<String> queryVariants) {
-        if (!snapshot.initialized() || !hasCollections(cleanEntityType, snapshot.collections())) {
-            throw TypesenseException.uninitialized();
+            SearchQueryPolicy policy,
+            Caller caller) {
+        if (!snapshot.initialized()) throw TypesenseException.uninitialized();
+        List<CollectionQuery> queries = new ArrayList<>();
+        List<SearchEntity> unindexed = new ArrayList<>();
+        for (SearchEntity entity : targets) {
+            String collection = snapshot.collections().get(entity.code());
+            if (collection == null || collection.isBlank()) {
+                unindexed.add(entity);
+                continue;
+            }
+            IndexFilter filter = scopes.indexFilter(entity, caller);
+            if (filter.nothing()) continue;
+            queries.add(new CollectionQuery(
+                    entity,
+                    collection,
+                    fieldPolicies.of(policy, entity),
+                    filter.filterBy(),
+                    effectiveLimit * OVERFETCH));
         }
-        List<CollectionSearch> groups = typesense.multiSearch(
-                cleanQuery, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
-
+        List<CollectionSearch> groups = typesense.multiSearch(cleanQuery, queries);
         int initialHits = groups.stream().mapToInt(g -> g.hits().size()).sum();
         if (initialHits < effectiveLimit && queryVariants.size() > 1) {
             for (int i = 1; i < queryVariants.size(); i++) {
-                String variant = queryVariants.get(i);
                 try {
-                    List<CollectionSearch> variantGroups = typesense.multiSearch(
-                            variant, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
-                    groups = mergeGroups(groups, variantGroups);
+                    groups = mergeGroups(groups, typesense.multiSearch(queryVariants.get(i), queries));
                 } catch (RuntimeException variantFailed) {
                     // The main query answered; a failed spelling variant only narrows the hits, but it is a failure.
                     log.warn("search_variant_failed variant_index={}", i, variantFailed);
                 }
             }
         }
-
-        if (cleanEntityType.equals("ALL")
-                && (!snapshot.collections().containsKey("NOTE")
-                        || snapshot.collections().get("NOTE").isBlank())) {
-            groups = withFallbackNotes(groups, cleanQuery, queryVariants, effectiveLimit);
+        List<CollectionSearch> checked = new ArrayList<>(recheck(groups, queries, effectiveLimit, caller));
+        if (!unindexed.isEmpty()) {
+            try {
+                checked.addAll(database.groups(cleanQuery, queryVariants, unindexed, effectiveLimit, caller));
+            } catch (RuntimeException fallbackFailed) {
+                // The Typesense groups still answer; the records found by the database are missing from this answer
+                log.warn("search_unindexed_fallback_failed", fallbackFailed);
+            }
         }
-        return groups;
+        return checked;
     }
 
-    private List<CollectionSearch> withFallbackNotes(
-            List<CollectionSearch> groups, String cleanQuery, List<String> queryVariants, int effectiveLimit) {
-        try {
-            var noteSearch = fallbackRepository.search(cleanQuery, queryVariants, "NOTE", effectiveLimit);
-            if (noteSearch != null && !noteSearch.groups().isEmpty()) {
-                var noteGroup = noteSearch.groups().get(0);
-                if (!noteGroup.hits().isEmpty()) {
-                    groups = new ArrayList<>(groups);
-                    groups.add(new CollectionSearch(
-                            "NOTE",
-                            noteGroup.hits().stream()
-                                    .map(hit -> new SearchHit(
-                                            hit.entityType(),
-                                            hit.id(),
-                                            hit.title(),
-                                            hit.description(),
-                                            hit.targetUrl()))
-                                    .toList(),
-                            noteGroup.hits().size(),
-                            0));
-                }
-            }
-        } catch (RuntimeException fallbackFailed) {
-            // The Typesense groups still answer; the notes found by the database are missing from this answer
-            log.warn("search_note_fallback_failed", fallbackFailed);
+    /**
+     * Keeps the hits the database still finds in the caller's scope, at most {@code limit} per entity; the count found
+     * drops by the candidates the check refused.
+     */
+    private List<CollectionSearch> recheck(
+            List<CollectionSearch> groups, List<CollectionQuery> queries, int limit, Caller caller) {
+        Map<String, SearchEntity> byCode = queries.stream()
+                .collect(Collectors.toMap(query -> query.entity().code(), CollectionQuery::entity, (a, b) -> a));
+        List<CollectionSearch> checked = new ArrayList<>(groups.size());
+        for (CollectionSearch group : groups) {
+            SearchEntity entity = byCode.get(group.entityType());
+            if (entity == null) throw TypesenseException.invalidResponse();
+            List<Long> ids =
+                    group.hits().stream().map(hit -> Long.parseLong(hit.id())).toList();
+            Set<Long> visible = ids.isEmpty() ? Set.of() : repository.visible(entity, ids, scopes.rows(entity, caller));
+            List<SearchHit> kept = group.hits().stream()
+                    .filter(hit -> visible.contains(Long.parseLong(hit.id())))
+                    .toList();
+            long refused = group.hits().size() - kept.size();
+            checked.add(new CollectionSearch(
+                    group.entityType(),
+                    kept.subList(0, Math.min(limit, kept.size())),
+                    Math.max(kept.size(), group.found() - refused),
+                    group.searchTimeMs()));
         }
-        return groups;
+        return checked;
     }
 
     private static List<CollectionSearch> mergeGroups(
@@ -131,13 +163,6 @@ final class SearchEngineQuery {
             }
         }
         return List.copyOf(map.values());
-    }
-
-    private static boolean hasCollections(String entityType, Map<String, String> collections) {
-        List<String> needed = entityType.equals("ALL") ? List.of("TASK", "PROJECT", "USER") : List.of(entityType);
-        return needed.stream()
-                .allMatch(type ->
-                        collections.containsKey(type) && !collections.get(type).isBlank());
     }
 
     static long sumFound(List<CollectionSearch> groups) {

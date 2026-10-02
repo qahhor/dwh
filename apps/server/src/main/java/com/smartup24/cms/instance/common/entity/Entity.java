@@ -8,6 +8,8 @@ import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
 import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.entity.field.EntityFields;
 import com.smartup24.cms.instance.common.entity.hook.EntityRule;
+import com.smartup24.cms.instance.common.entity.importing.EntityImportSpec;
+import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
 import com.smartup24.cms.instance.common.entity.workflow.EntityTransition;
 import com.smartup24.cms.instance.common.entity.workflow.EntityWorkflow;
 import java.util.ArrayList;
@@ -65,6 +67,8 @@ public final class Entity {
     private final List<EntityCollection> collections = new ArrayList<>();
     private final List<EntityTab> tabs = new ArrayList<>();
     private @Nullable EntityWorkflow workflow;
+    private @Nullable EntityImportSpec importing;
+    private @Nullable EntitySearchSpec search;
 
     private Entity(String code, String form) {
         this.code = Objects.requireNonNull(code, "code");
@@ -180,9 +184,30 @@ public final class Entity {
         return this;
     }
 
+    /**
+     * The SEARCH capability (ADR-0032, 10.3; plan 10/10, item 5.8): the global search finds the entity's records by the
+     * fields the spec names, in the viewer's scope.
+     */
+    public Entity search(EntitySearchSpec spec) {
+        this.search = Objects.requireNonNull(spec, "search");
+        capabilities.add(EntityCapability.SEARCH);
+        return this;
+    }
+
     /** A tab of the record's card (ADR-0032, 9.3), in the order of the card. */
     public Entity tab(EntityTab tab) {
         tabs.add(Objects.requireNonNull(tab, "tab"));
+        return this;
+    }
+
+    /**
+     * The IMPORT capability (ADR-0032, 10.1): records are imported from an xlsx file, a row whose {@code key} names a
+     * record of the importer's scope changes it and any other row creates one; the import needs the right's
+     * {@code import} and, per row, {@code create} or {@code update}.
+     */
+    public Entity importKey(String key) {
+        this.importing = new EntityImportSpec(key);
+        capabilities.add(EntityCapability.IMPORT);
         return this;
     }
 
@@ -243,7 +268,13 @@ public final class Entity {
                     rules,
                     collections,
                     workflow,
-                    tabs);
+                    tabs,
+                    importing,
+                    search);
+        } else if (importing != null || capabilities.contains(EntityCapability.IMPORT)) {
+            throw new IllegalArgumentException("Entity " + code + ": an import writes the records of its table");
+        } else if (search != null) {
+            throw new IllegalArgumentException("Entity " + code + ": the search finds the records of its table");
         } else if (!collections.isEmpty() || workflow != null || !tabs.isEmpty()) {
             throw new IllegalArgumentException("Entity " + code + ": collections, a process and tabs need its table");
         } else if (!rules.isEmpty()) {
@@ -252,6 +283,11 @@ public final class Entity {
             throw new IllegalArgumentException("Entity " + code + ": a list field needs the entity's table");
         } else if (scope != null) {
             throw new IllegalArgumentException("Entity " + code + ": a scope restricts the rows of its table");
+        }
+        if (capabilities.contains(EntityCapability.IMPORT)
+                && (importing == null || actions.stream().noneMatch(action -> isWrite(action.code())))) {
+            throw new IllegalArgumentException("Entity " + code
+                    + ": IMPORT needs .importKey(...) and the action create or update (ADR-0032, 10.1)");
         }
         List<FormField> formFields = fields.stream()
                 .flatMap(field -> Stream.ofNullable(field.formField()))
@@ -271,5 +307,9 @@ public final class Entity {
                 actions,
                 capabilities,
                 model);
+    }
+
+    private static boolean isWrite(String action) {
+        return "create".equals(action) || "update".equals(action);
     }
 }

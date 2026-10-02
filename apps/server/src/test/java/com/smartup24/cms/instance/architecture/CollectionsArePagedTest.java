@@ -42,6 +42,7 @@ class CollectionsArePagedTest {
             Map.entry("MdI18nController#listLanguages", "the installed languages"),
             Map.entry("MdListViewController#list", "20 views per list and user (MdListViewService)"),
             Map.entry("MdOrgUnitController#list", "the organization tree, read whole to draw it"),
+            Map.entry("MdReportWidgetController#list", "12 widgets per user (MdListViewService.MAX_WIDGETS)"),
             Map.entry("MdRoleController#getFormCatalog", "the forms the modules declare"),
             Map.entry("MdRoleController#getRolePermissions", "the rights of one role, bounded by the catalog"),
             Map.entry("MdRoleController#listRoles", "roles an administrator creates; the matrix shows them all"),
@@ -57,6 +58,7 @@ class CollectionsArePagedTest {
             Map.entry("NavigationItemController#getPermissionChoices", "the rights of the catalog"),
             Map.entry("OAuth2AuthController#getProviders", "the configured identity providers"),
             Map.entry("RecordHistoryController#kinds", "the declared record kinds"),
+            Map.entry("SearchController#searchCategories", "the declared entities with the SEARCH capability"),
             Map.entry("ReportExportController#journal", "the viewer's last exports (JOURNAL_SIZE)"),
             Map.entry("UplSourceController#versions", "the format versions of one source, published by hand"),
             Map.entry("UplUnitController#list", "the units of measure"));

@@ -16,3 +16,5 @@ src/main/resources/db/migration/V127__audit_log_daily_partitions.sql:2020 # ни
 src/main/resources/db/migration/V127__audit_log_daily_partitions.sql:2100 # верхняя граница года в проверке аргумента, как в V033, не норматив
 src/main/resources/db/migration/V141__published_read_views.sql:0026 # номер ADR-0026 в тексте ошибки, не норматив
 src/main/resources/db/migration/V181__example_orders.sql:2000 # предел длины комментария заказа-эталона, не норматив
+src/main/resources/db/migration/V186__report_imports.sql:1000 # предел длины текста ошибки строки импорта, не норматив
+src/main/resources/db/migration/V187__entity_import_rights.sql:3600 # период задания report.import_cleanup, секунды

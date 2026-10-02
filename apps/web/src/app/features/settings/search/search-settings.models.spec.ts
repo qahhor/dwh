@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { SEARCH_ENTITIES, SearchQueryPolicy } from '@core/models/search-management.models';
+import { SearchQueryPolicy } from '@core/models/search-management.models';
 import { formatBytes, formatJobError, toProblemDetail, validateSearchPolicy } from './search-settings.models';
+
+const ENTITIES = ['ms.tasks', 'ms.projects', 'md.users'];
 
 const valid: SearchQueryPolicy = {
   globalLimit: 10,
@@ -8,22 +10,22 @@ const valid: SearchQueryPolicy = {
   burst: 20,
   schemaProfile: 'MIXED',
   fields: {
-    TASK: [{ field: 'title', weight: 10, numTypos: 2, prefix: true }],
-    PROJECT: [{ field: 'name', weight: 10, numTypos: 2, prefix: true }],
-    USER: [{ field: 'name', weight: 10, numTypos: 2, prefix: true }],
+    'ms.tasks': [{ field: 'title', weight: 10, numTypos: 2, prefix: true }],
+    'ms.projects': [{ field: 'name', weight: 10, numTypos: 2, prefix: true }],
+    'md.users': [{ field: 'name', weight: 10, numTypos: 2, prefix: true }],
   },
 };
 
 function errorsOf(change: (policy: SearchQueryPolicy) => void): string[] {
   const policy = structuredClone(valid);
   change(policy);
-  return validateSearchPolicy(policy, SEARCH_ENTITIES);
+  return validateSearchPolicy(policy, ENTITIES);
 }
 
 describe('search settings rules', () => {
-  it('accepts a valid policy without note fields and refuses a missing one', () => {
-    expect(validateSearchPolicy(valid, SEARCH_ENTITIES)).toEqual([]);
-    expect(validateSearchPolicy(null, SEARCH_ENTITIES)).toEqual(['settings.search.validation.unavailable']);
+  it('accepts a valid policy and refuses a missing one', () => {
+    expect(validateSearchPolicy(valid, ENTITIES)).toEqual([]);
+    expect(validateSearchPolicy(null, ENTITIES)).toEqual(['settings.search.validation.unavailable']);
   });
 
   it('names each broken bound once', () => {
@@ -36,16 +38,17 @@ describe('search settings rules', () => {
         p.burst = 31;
       }),
     ).toEqual(['settings.search.validation.burst']);
-    expect(errorsOf((p) => (p.fields.TASK = []))).toEqual(['settings.search.validation.searchable_field']);
-    expect(errorsOf((p) => (p.fields.TASK[0].weight = 0))).toEqual(['settings.search.validation.searchable_field']);
-    expect(errorsOf((p) => p.fields.TASK.push({ field: 'body', weight: 128, numTypos: 3, prefix: true }))).toEqual([
-      'settings.search.validation.weight',
-      'settings.search.validation.typos',
+    expect(errorsOf((p) => (p.fields['ms.tasks'] = []))).toEqual(['settings.search.validation.searchable_field']);
+    expect(errorsOf((p) => (p.fields['ms.tasks'][0].weight = 0))).toEqual([
+      'settings.search.validation.searchable_field',
     ]);
     expect(
+      errorsOf((p) => p.fields['ms.tasks'].push({ field: 'body', weight: 128, numTypos: 3, prefix: true })),
+    ).toEqual(['settings.search.validation.weight', 'settings.search.validation.typos']);
+    expect(
       errorsOf((p) => {
-        p.fields.TASK[0].weight = 0;
-        p.fields.PROJECT[0].weight = 0;
+        p.fields['ms.tasks'][0].weight = 0;
+        p.fields['ms.projects'][0].weight = 0;
       }),
     ).toEqual(['settings.search.validation.searchable_field']);
   });

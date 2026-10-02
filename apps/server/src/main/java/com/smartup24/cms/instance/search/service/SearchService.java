@@ -4,33 +4,42 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
-import com.smartup24.cms.instance.search.repository.SearchFallbackRepository.FallbackSearch;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.IndexSnapshot;
+import com.smartup24.cms.instance.search.service.SearchScopes.Caller;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
+/**
+ * The global search (ADR-0032, 10.3; plan 10/10, item 5.8): the records of the entities with the SEARCH capability the
+ * caller may see — their module on, their {@code view} right held — in the caller's scope. Typesense answers the
+ * candidates, filtered by the scope keys of their documents, and each is checked again in the database with the
+ * entity's own scope before it is answered; without Typesense the same scope predicate reads PostgreSQL.
+ */
 @Service
 public class SearchService {
     private static final Logger log = LoggerFactory.getLogger(SearchService.class);
     private final SearchEngineQuery engine;
-    private final SearchFallbackRepository fallbackRepository;
+    private final SearchDatabaseQuery database;
     private final SearchAccessPolicy accessPolicy;
     private final SearchResultBudget resultBudget;
     private final Supplier<SearchExecutionSnapshot> executionSnapshot;
     private final Supplier<SettingsSnapshot> fallbackPolicy;
     private final QueryLanguageConverter queryConverter;
-    private SearchMetrics metrics = SearchMetrics.unmetered();
+    private final SearchEntities entities;
+    private final SearchScopes scopes;
+    private final SearchFieldPolicies fieldPolicies;
+    private final SearchMetrics metrics;
 
     @Autowired
     public SearchService(
@@ -40,106 +49,22 @@ public class SearchService {
             SearchResultBudget resultBudget,
             SearchPolicyProvider policyProvider,
             SearchExecutionSnapshotReader snapshotReader,
+            SearchEntities entities,
+            SearchScopes scopes,
+            SearchFieldPolicies fieldPolicies,
             Optional<QueryLanguageConverter> queryConverter,
             Optional<SearchMetrics> metrics) {
-        this(
-                typesense,
-                fallbackRepository,
-                accessPolicy,
-                resultBudget,
-                policyProvider,
-                snapshotReader,
-                queryConverter.orElseGet(QueryLanguageConverter::new));
-        this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
-    }
-
-    public SearchService(
-            TypesenseSearch typesense,
-            SearchFallbackRepository fallbackRepository,
-            SearchAccessPolicy accessPolicy,
-            SearchResultBudget resultBudget,
-            SearchPolicyProvider policyProvider,
-            SearchExecutionSnapshotReader snapshotReader,
-            Optional<SearchMetrics> metrics) {
-        this(
-                typesense,
-                fallbackRepository,
-                accessPolicy,
-                resultBudget,
-                policyProvider,
-                snapshotReader,
-                new QueryLanguageConverter());
-        this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
-    }
-
-    public SearchService(
-            TypesenseSearch typesense,
-            SearchFallbackRepository fallbackRepository,
-            SearchAccessPolicy accessPolicy,
-            SearchResultBudget resultBudget,
-            SearchPolicyProvider policyProvider,
-            SearchExecutionSnapshotReader snapshotReader) {
-        this(
-                typesense,
-                fallbackRepository,
-                accessPolicy,
-                resultBudget,
-                snapshotReader::read,
-                policyProvider::snapshot,
-                new QueryLanguageConverter());
-    }
-
-    public SearchService(
-            TypesenseSearch typesense,
-            SearchFallbackRepository fallbackRepository,
-            SearchAccessPolicy accessPolicy,
-            SearchResultBudget resultBudget,
-            SearchPolicyProvider policyProvider,
-            SearchExecutionSnapshotReader snapshotReader,
-            QueryLanguageConverter queryConverter) {
-        this(
-                typesense,
-                fallbackRepository,
-                accessPolicy,
-                resultBudget,
-                snapshotReader::read,
-                policyProvider::snapshot,
-                queryConverter);
-    }
-
-    /** Policy/snapshot boundary shared with the later saved-settings provider. */
-    protected SearchService(
-            TypesenseSearch typesense,
-            SearchFallbackRepository fallbackRepository,
-            SearchAccessPolicy accessPolicy,
-            SearchResultBudget resultBudget,
-            SearchQueryPolicy queryPolicy,
-            Supplier<IndexSnapshot> indexSnapshot) {
-        this(
-                typesense,
-                fallbackRepository,
-                accessPolicy,
-                resultBudget,
-                () -> new SearchExecutionSnapshot(indexSnapshot.get(), new SettingsSnapshot(1, queryPolicy)),
-                () -> new SettingsSnapshot(1, queryPolicy),
-                new QueryLanguageConverter());
-    }
-
-    private SearchService(
-            TypesenseSearch typesense,
-            SearchFallbackRepository fallbackRepository,
-            SearchAccessPolicy accessPolicy,
-            SearchResultBudget resultBudget,
-            Supplier<SearchExecutionSnapshot> executionSnapshot,
-            Supplier<SettingsSnapshot> fallbackPolicy,
-            QueryLanguageConverter queryConverter) {
-        this.engine = new SearchEngineQuery(typesense, fallbackRepository);
-        this.fallbackRepository = fallbackRepository;
+        this.database = new SearchDatabaseQuery(fallbackRepository, scopes);
+        this.engine = new SearchEngineQuery(typesense, database, fallbackRepository, fieldPolicies, scopes);
         this.accessPolicy = accessPolicy;
         this.resultBudget = resultBudget;
-        this.executionSnapshot = executionSnapshot;
-        this.fallbackPolicy = fallbackPolicy;
-        this.queryConverter = queryConverter != null ? queryConverter : new QueryLanguageConverter();
+        this.executionSnapshot = snapshotReader::read;
+        this.fallbackPolicy = policyProvider::snapshot;
+        this.queryConverter = queryConverter.orElseGet(QueryLanguageConverter::new);
+        this.entities = entities;
+        this.scopes = scopes;
+        this.fieldPolicies = fieldPolicies;
+        this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
     }
 
     public SearchResult search(String query, String entityType, int limit) {
@@ -149,52 +74,94 @@ public class SearchService {
     public SearchResult search(String query, String entityType, Integer limit) {
         long started = System.nanoTime();
         SearchResult result = null;
+        String label = null;
         try {
-            accessPolicy.requireSearchAccess();
+            Caller caller = scopes.caller(accessPolicy.requireSearchAccess());
             String cleanQuery = SearchRequestRules.normalizeQuery(query);
-            String cleanEntityType = SearchRequestRules.normalizeEntityType(entityType);
+            List<SearchEntity> targets = targets(entityType);
+            label = label(entityType, targets);
             SearchRequestRules.validateLimit(limit);
             SearchExecutionSnapshot snapshot = readSnapshot();
             result = execute(
                     cleanQuery,
-                    cleanEntityType,
+                    targets,
                     limit,
                     snapshot.index(),
-                    snapshot.settings().policy());
+                    snapshot.settings().policy(),
+                    caller);
             return result;
         } finally {
-            metrics.query(
-                    entityType == null ? "ALL" : entityType.toUpperCase(Locale.ROOT),
-                    result == null ? null : result.source(),
-                    result == null,
-                    result != null && result.degraded(),
-                    System.nanoTime() - started);
+            record(label, result, started);
         }
     }
 
+    /** The administrator's preview of the settings: a search with a draft policy, in the administrator's own scope. */
     public PreviewResult preview(PreviewRequest request) {
         long started = System.nanoTime();
         SearchResult result = null;
+        String label = null;
         try {
-            accessPolicy.requireSearchAccess();
-            if (request.policy() != null) accessPolicy.requireSettingsRead();
+            Caller caller = scopes.caller(accessPolicy.requireAdministrator());
+            if (request.policy() != null) {
+                accessPolicy.requireSettingsRead();
+                fieldPolicies.requireKnown(request.policy());
+            }
             String query = SearchRequestRules.normalizeQuery(request.q());
-            String entity = SearchRequestRules.normalizeEntityType(request.entity());
+            List<SearchEntity> targets = targets(request.entity());
+            label = label(request.entity(), targets);
             SearchExecutionSnapshot snapshot = readSnapshot();
             SearchQueryPolicy policy =
                     request.policy() == null ? snapshot.settings().policy() : request.policy();
-            result = execute(query, entity, null, snapshot.index(), policy);
+            result = execute(query, targets, null, snapshot.index(), policy, caller);
             return new PreviewResult(result, snapshot.index().schemaProfile());
         } finally {
-            metrics.query(
-                    request == null || request.entity() == null
-                            ? "ALL"
-                            : request.entity().toUpperCase(Locale.ROOT),
-                    result == null ? null : result.source(),
-                    result == null,
-                    result != null && result.degraded(),
-                    System.nanoTime() - started);
+            record(label, result, started);
         }
+    }
+
+    /** The entities the caller may search, for the categories of the search screen. */
+    public List<SearchCategory> categories() {
+        accessPolicy.requireSearchAccess();
+        return entities.visible().stream().map(SearchService::category).toList();
+    }
+
+    /** An entity's category: named by its menu item, else by its right (ADR-0031), with the menu item's icon. */
+    private static SearchCategory category(SearchEntity entity) {
+        var menu = entity.definition().menu();
+        var rights = entity.definition().rights();
+        String label = menu != null ? menu.labelKey() : rights != null ? rights.nameKey() : null;
+        List<SearchCategoryField> fields = entity.fields().stream()
+                .map(field -> new SearchCategoryField(field.key(), field.labelKey()))
+                .toList();
+        return new SearchCategory(entity.code(), label, menu == null ? null : menu.icon(), fields);
+    }
+
+    /** {@code ALL} — every entity the caller may search — or the one named; another name is a 400. */
+    private List<SearchEntity> targets(@Nullable String entityType) {
+        List<SearchEntity> visible = entities.visible();
+        String wanted = SearchRequestRules.normalizeEntityType(entityType);
+        if (wanted.equals(SearchRequestRules.ALL)) return visible;
+        return visible.stream()
+                .filter(entity -> entity.code().equals(wanted))
+                .findFirst()
+                .map(List::of)
+                .orElseThrow(() -> ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.category_unknown"));
+    }
+
+    private void record(@Nullable String label, @Nullable SearchResult result, long started) {
+        metrics.query(
+                label,
+                result == null ? null : result.source(),
+                result == null,
+                result != null && result.degraded(),
+                System.nanoTime() - started);
+    }
+
+    /** The entity label of the metrics: {@code ALL} or the code of the one entity searched, both finite. */
+    private static String label(@Nullable String entityType, List<SearchEntity> targets) {
+        return entityType == null || SearchRequestRules.ALL.equalsIgnoreCase(entityType.trim())
+                ? SearchRequestRules.ALL
+                : targets.getFirst().code();
     }
 
     private SearchExecutionSnapshot readSnapshot() {
@@ -209,24 +176,27 @@ public class SearchService {
 
     private SearchResult execute(
             String cleanQuery,
-            String cleanEntityType,
-            Integer limit,
+            List<SearchEntity> targets,
+            @Nullable Integer limit,
             IndexSnapshot snapshot,
-            SearchQueryPolicy currentPolicy) {
+            SearchQueryPolicy currentPolicy,
+            Caller caller) {
         int effectiveLimit =
                 limit == null ? currentPolicy.globalLimit() : SearchRequestRules.effectiveLimit(limit, currentPolicy);
 
         Long exactId = SearchRequestRules.exactId(cleanQuery);
         if (exactId != null) {
             try {
-                return fallbackResult(
+                return result(
                         cleanQuery,
-                        fallbackRepository.searchExact(exactId, cleanEntityType),
+                        database.exact(exactId, targets, caller),
                         effectiveLimit,
+                        "POSTGRES",
                         false,
                         true,
                         null);
-            } catch (Exception exactFailure) {
+            } catch (RuntimeException exactFailure) {
+                log.warn("search_exact_failed error={}", exactFailure.toString());
                 throw unavailable();
             }
         }
@@ -235,60 +205,67 @@ public class SearchService {
         List<String> queryVariants = expansion.variants();
         String suggestedQuery = expansion.suggestedCorrection();
 
-        if (engine.enabled()) {
+        if (engine.enabled() && snapshot.initialized()) {
             try {
                 List<CollectionSearch> groups = engine.groups(
-                        cleanQuery, cleanEntityType, effectiveLimit, snapshot, currentPolicy, queryVariants);
+                        cleanQuery, queryVariants, targets, effectiveLimit, snapshot, currentPolicy, caller);
                 groups.forEach(group -> metrics.engine(group.entityType(), group.searchTimeMs()));
-                List<SearchHit> hits = resultBudget.allocate(groups, effectiveLimit);
-                long found = SearchEngineQuery.sumFound(groups);
-                return new SearchResult(
-                        cleanQuery, hits.size(), hits, found, found > hits.size(), "TYPESENSE", false, suggestedQuery);
+                return result(cleanQuery, groups, effectiveLimit, "TYPESENSE", false, true, suggestedQuery);
             } catch (TypesenseException | DataAccessException unavailableOrInvalid) {
                 log.warn("Typesense search failed; using PostgreSQL fallback");
             }
         }
 
         try {
-            var searchResult = fallbackRepository.search(cleanQuery, queryVariants, cleanEntityType, effectiveLimit);
-            if (searchResult == null) {
-                searchResult = fallbackRepository.search(cleanQuery, cleanEntityType, effectiveLimit);
-            }
-            return fallbackResult(cleanQuery, searchResult, effectiveLimit, true, false, suggestedQuery);
-        } catch (Exception fallbackFailure) {
+            List<CollectionSearch> groups = database.groups(cleanQuery, queryVariants, targets, effectiveLimit, caller);
+            return result(cleanQuery, groups, effectiveLimit, "POSTGRES", true, false, suggestedQuery);
+        } catch (RuntimeException fallbackFailure) {
+            log.warn("search_fallback_failed error={}", fallbackFailure.toString());
             throw unavailable();
         }
     }
 
-    private SearchResult fallbackResult(
+    private SearchResult result(
             String query,
-            FallbackSearch fallback,
+            List<CollectionSearch> groups,
             int effectiveLimit,
+            String source,
             boolean degraded,
             boolean countKnown,
-            String suggestedQuery) {
-        List<CollectionSearch> groups = fallback.groups().stream()
-                .map(group -> new CollectionSearch(
-                        group.entityType(),
-                        group.hits().stream()
-                                .map(hit -> new SearchHit(
-                                        hit.entityType(), hit.id(), hit.title(), hit.description(), hit.targetUrl()))
-                                .toList(),
-                        group.hits().size(),
-                        0))
-                .toList();
+            @Nullable String suggestedQuery) {
         List<SearchHit> hits = resultBudget.allocate(groups, effectiveLimit);
-        int available = groups.stream().mapToInt(group -> group.hits().size()).sum();
-        boolean hasMore = fallback.groups().stream().anyMatch(group -> group.hasMore()) || available > hits.size();
-        Long foundHits = countKnown ? (long) available : null;
-        return new SearchResult(query, hits.size(), hits, foundHits, hasMore, "POSTGRES", degraded, suggestedQuery);
+        long found = SearchEngineQuery.sumFound(groups);
+        boolean hasMore = found > hits.size();
+        return new SearchResult(
+                query, hits.size(), hits, countKnown ? found : null, hasMore, source, degraded, suggestedQuery);
     }
 
     private static ApiException unavailable() {
         return new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "error.search.unavailable");
     }
 
+    /**
+     * One hit: the code of its entity, the record's id, its title and description, and where it leads in the web
+     * application — the entity's general screen {@code /e/<code>/<id>} or its own screen.
+     */
     public record SearchHit(String entityType, String id, String title, String description, String targetUrl) {}
+
+    /**
+     * An entity the caller may search: its code, the dictionary key of its name (its menu item's, else its right's) and
+     * the icon of its menu item (null when it has none), and its searched fields.
+     */
+    public record SearchCategory(
+            String code,
+            @Nullable String labelKey,
+            @Nullable String icon,
+            List<SearchCategoryField> fields) {
+        public SearchCategory {
+            fields = List.copyOf(fields);
+        }
+    }
+
+    /** A searched field of a category: its key and the dictionary key of its label, as the settings name it. */
+    public record SearchCategoryField(String key, String labelKey) {}
 
     public record SearchResult(
             String query,
@@ -301,17 +278,6 @@ public class SearchService {
             String suggestedQuery) {
         public SearchResult {
             hits = List.copyOf(hits);
-        }
-
-        public SearchResult(
-                String query,
-                int totalHits,
-                List<SearchHit> hits,
-                Long foundHits,
-                boolean hasMore,
-                String source,
-                boolean degraded) {
-            this(query, totalHits, hits, foundHits, hasMore, source, degraded, null);
         }
     }
 }
