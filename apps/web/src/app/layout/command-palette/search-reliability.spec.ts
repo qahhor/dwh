@@ -24,11 +24,13 @@ describe('Reliable search through the real HTTP adapter and template', () => {
     fixture.detectChanges();
     const http = TestBed.inject(HttpTestingController);
     // The categories are the entities the person may search, read each time the palette opens (ADR-0032, 10.3).
-    http.expectOne((req) => req.url === '/api/v1/search/entities').flush([
-      { code: 'ms.tasks', labelKey: 'nav.tasks', icon: null, fields: [] },
-      { code: 'ms.projects', labelKey: 'nav.projects', icon: 'folder', fields: [] },
-      { code: 'md.users', labelKey: 'nav.users', icon: 'people', fields: [] },
-    ]);
+    http
+      .expectOne((req) => req.url === '/api/v1/search/entities')
+      .flush([
+        { code: 'ms.tasks', labelKey: 'nav.tasks', icon: null, fields: [] },
+        { code: 'ms.projects', labelKey: 'nav.projects', icon: 'folder', fields: [] },
+        { code: 'md.users', labelKey: 'nav.users', icon: 'people', fields: [] },
+      ]);
     fixture.detectChanges();
     return { fixture, component: fixture.componentInstance, http };
   }
@@ -160,12 +162,17 @@ describe('Reliable search through the real HTTP adapter and template', () => {
       fixture.nativeElement.querySelectorAll('.category-pills [role="tab"]'),
     ) as HTMLButtonElement[];
     expect(fixture.nativeElement.querySelector('.category-pills').getAttribute('aria-label')).toBeTruthy();
-    expect(pills.map((pill) => pill.getAttribute('data-category'))).toEqual(['ALL', 'ms.tasks', 'ms.projects', 'md.users']);
+    expect(pills.map((pill) => pill.getAttribute('data-category'))).toEqual([
+      'ALL',
+      'ms.tasks',
+      'ms.projects',
+      'md.users',
+    ]);
     pills.find((pill) => pill.getAttribute('data-category') === 'ms.projects')!.click();
     fixture.detectChanges();
-    expect(pills.find((pill) => pill.getAttribute('data-category') === 'ms.projects')!.getAttribute('aria-selected')).toBe(
-      'true',
-    );
+    expect(
+      pills.find((pill) => pill.getAttribute('data-category') === 'ms.projects')!.getAttribute('aria-selected'),
+    ).toBe('true');
     expect(old.cancelled).toBe(true);
     await vi.advanceTimersByTimeAsync(120);
     const request = http.expectOne((req) => req.url === '/api/v1/search');

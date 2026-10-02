@@ -39,11 +39,12 @@ describe('search settings rules', () => {
       }),
     ).toEqual(['settings.search.validation.burst']);
     expect(errorsOf((p) => (p.fields['ms.tasks'] = []))).toEqual(['settings.search.validation.searchable_field']);
-    expect(errorsOf((p) => (p.fields['ms.tasks'][0].weight = 0))).toEqual(['settings.search.validation.searchable_field']);
-    expect(errorsOf((p) => p.fields['ms.tasks'].push({ field: 'body', weight: 128, numTypos: 3, prefix: true }))).toEqual([
-      'settings.search.validation.weight',
-      'settings.search.validation.typos',
+    expect(errorsOf((p) => (p.fields['ms.tasks'][0].weight = 0))).toEqual([
+      'settings.search.validation.searchable_field',
     ]);
+    expect(
+      errorsOf((p) => p.fields['ms.tasks'].push({ field: 'body', weight: 128, numTypos: 3, prefix: true })),
+    ).toEqual(['settings.search.validation.weight', 'settings.search.validation.typos']);
     expect(
       errorsOf((p) => {
         p.fields['ms.tasks'][0].weight = 0;

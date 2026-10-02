@@ -21,12 +21,7 @@ import { searchTarget } from '@core/services/search-target';
 import { EMPTY, Subject, catchError, of, switchMap, timer } from 'rxjs';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
-import {
-  RECENT_SEARCHES_STORAGE_KEY,
-  MAX_RECENT_SEARCHES,
-  CategoryItem,
-  categoryItem,
-} from './command-palette.models';
+import { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, CategoryItem, categoryItem } from './command-palette.models';
 import { CommandPaletteResultsComponent } from './components/command-palette-results.component';
 import { CommandPaletteFooterComponent } from './components/command-palette-footer.component';
 

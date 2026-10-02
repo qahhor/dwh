@@ -225,7 +225,9 @@
                         <div
                           smt-checkbox
                           smtHideLabel
-                          [smtAriaLabel]="('settings.search.fields.prefix' | t) + ': ' + fieldLabel(entity, field.field)"
+                          [smtAriaLabel]="
+                            ('settings.search.fields.prefix' | t) + ': ' + fieldLabel(entity, field.field)
+                          "
                           [checked]="field.prefix"
                           (checkedChange)="store.updateFieldPrefix(entity, i, $event)"
                         ></div>
@@ -666,8 +668,7 @@
 </ng-template>
 <ng-template #generationDocumentsCell let-generation>
   <span class="cell-stack"
-    >{{ displayNumber(generation.documentCount)
-    }}<small>{{ documentCounts(generation) }}</small></span
+    >{{ displayNumber(generation.documentCount) }}<small>{{ documentCounts(generation) }}</small></span
   >
 </ng-template>
 <ng-template #generationQueueCell let-generation

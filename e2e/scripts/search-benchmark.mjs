@@ -11,7 +11,8 @@ const ARGUMENTS = Object.freeze({
 });
 const FIXED_SEED = 'smartupcms-search-benchmark-v1';
 const MEASURED_REQUESTS = 30;
-const SEARCH_ENTITIES = ['TASK', 'PROJECT', 'USER'];
+// The indexed entities the benchmark seeds, by their codes (ADR-0032 10.3).
+const SEARCH_ENTITIES = ['ms.tasks', 'ms.projects', 'md.users'];
 const REQUEST_TIMEOUT_MS = 30_000;
 const SEARCH_POLL_FLOOR_MS = 2_500;
 // Settings, status and job creation share the fixed 10/minute management family.
@@ -251,7 +252,7 @@ function queryMix(taskId) {
     { kind: 'uzbek-ascii-apostrophe', query: "O'zbekiston", entity: 'ALL' },
     { kind: 'typo', query: 'delivry', entity: 'ALL' },
     { kind: 'prefix', query: 'deli', entity: 'ALL' },
-    { kind: 'exact-id', query: `#${taskId}`, entity: 'TASK' },
+    { kind: 'exact-id', query: `#${taskId}`, entity: 'ms.tasks' },
     { kind: 'no-match', query: 'sbv1-no-match-zzzzzz', entity: 'ALL' },
   ];
 }
@@ -419,9 +420,9 @@ export function summarizeJobLifetimeOverlap(measurements, job) {
 async function waitForIndexedTask(client, taskId, sleep, epochNow) {
   const deadline = epochNow() + 120_000;
   while (epochNow() < deadline) {
-    const response = await client.get(searchPath('SBV1', 'TASK'), [200]);
+    const response = await client.get(searchPath('SBV1', 'ms.tasks'), [200]);
     if (response?.source === 'TYPESENSE' && response?.degraded === false
-        && response.hits?.some(hit => String(hit.id) === taskId && hit.entityType === 'TASK')) return;
+        && response.hits?.some(hit => String(hit.id) === taskId && hit.entityType === 'ms.tasks')) return;
     await sleep(Math.min(SEARCH_POLL_FLOOR_MS, Math.max(0, deadline - epochNow())));
   }
   throw new Error('Synthetic task was not delivered to the healthy Typesense index within 120 seconds');
@@ -460,9 +461,9 @@ async function measureDeliveryLag(client, taskId, sleep, now, epochNow, pollingI
   let polls = 0;
   while (epochNow() < deadline) {
     polls += 1;
-    const response = await client.get(searchPath(marker, 'TASK'), [200]);
+    const response = await client.get(searchPath(marker, 'ms.tasks'), [200]);
     if (response?.source === 'TYPESENSE' && response?.degraded === false
-        && response.hits?.some(hit => String(hit.id) === taskId && hit.entityType === 'TASK')) {
+        && response.hits?.some(hit => String(hit.id) === taskId && hit.entityType === 'ms.tasks')) {
       const observedAt = now();
       return {
         polls,

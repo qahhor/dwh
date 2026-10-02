@@ -78,6 +78,8 @@ export class SearchSettingsStore {
   readonly pollError = signal<ProblemDetail | null>(null);
   readonly confirmation = signal<MaintenanceConfirmation | null>(null);
   readonly historyRetryNextPage = signal(false);
+  /** The names of the entities and their fields; an entity the administrator may not view keeps its code. */
+  readonly categories = signal<SearchCategory[]>([]);
 
   /**
    * Each refresh is a new request rather than a reload: a reload is ignored while one
@@ -91,8 +93,6 @@ export class SearchSettingsStore {
   readonly settingsLoading = computed(() => this.settingsResource.isLoading());
   readonly settingsError = computed(() => this.settingsResource.value()?.failure ?? null);
   readonly activeOperation = computed(() => this.activeJobId() !== null);
-  /** The names of the entities and their fields; an entity the administrator may not view keeps its code. */
-  readonly categories = signal<SearchCategory[]>([]);
   /**
    * The entities the search indexes, as the policy the server answers names them (ADR-0032, 10.3); without a readable
    * policy, the entities the administrator may search.
@@ -177,15 +177,6 @@ export class SearchSettingsStore {
   fieldLabelKey(entity: SearchEntityType, field: string): string {
     const category = this.categories().find((candidate) => candidate.code === entity);
     return category?.fields.find((candidate) => candidate.key === field)?.labelKey ?? field;
-  }
-
-  private loadCategories(): void {
-    if (!this.canSearch()) return;
-    this.categoriesRequest?.unsubscribe();
-    this.categoriesRequest = this.management
-      .categories()
-      .pipe(catchError(() => of([] as SearchCategory[])))
-      .subscribe((categories) => this.categories.set(categories));
   }
 
   canSearch(): boolean {
@@ -429,6 +420,15 @@ export class SearchSettingsStore {
 
   isTerminal(job: SearchJobStatus): boolean {
     return ['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(job.state);
+  }
+
+  private loadCategories(): void {
+    if (!this.canSearch()) return;
+    this.categoriesRequest?.unsubscribe();
+    this.categoriesRequest = this.management
+      .categories()
+      .pipe(catchError(() => of([] as SearchCategory[])))
+      .subscribe((categories) => this.categories.set(categories));
   }
 
   private updateField(
