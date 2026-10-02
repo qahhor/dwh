@@ -1,8 +1,13 @@
 package com.smartup24.cms.instance.md.service;
 
+import static com.smartup24.cms.instance.md.api.MdListViewDtos.REPORT;
+import static com.smartup24.cms.instance.md.api.MdListViewDtos.TABLE;
+import static com.smartup24.cms.instance.md.api.MdListViewDtos.WIDGET;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.report.EntityReports;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryField;
@@ -13,6 +18,7 @@ import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewRequest;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewResponse;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository.ListView;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -20,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +38,8 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Saved list views (ADR-0016): columns, sort and filter that the user named and can restore with one
  * choice. The state is validated against the field registry and stored in a canonical form built by the
- * server, so nothing the registry does not know reaches the database.
+ * server, so nothing the registry does not know reaches the database. A view is a table view, a report or a widget
+ * (ADR-0032, 10.2): the state of a report is checked as the report would run ({@link MdReportViewState}).
  */
 @Service
 public class MdListViewService {
@@ -46,51 +54,69 @@ public class MdListViewService {
 
     public static final int MAX_NAME = 80;
 
+    /** A dashboard shows this many widgets of one person at most (ADR-0032, 10.2). */
+    public static final int MAX_WIDGETS = 12;
+
     private static final Pattern WIDTH = Pattern.compile("^\\d{1,4}px$");
     private static final Set<String> STATE_KEYS = Set.of("columns", "sort", "filter");
     private static final Set<String> COLUMN_KEYS = Set.of("order", "hidden", "widths");
     private static final String TABLE = "md_list_views";
-    private static final List<String> AUDITED = List.of("list_code", "name", "state", "is_default");
+    private static final List<String> AUDITED = List.of("list_code", "kind", "name", "state", "is_default");
+    private static final Set<String> KINDS = Set.of(TABLE, REPORT, WIDGET);
 
     private final MdListViewRepository repo;
     private final QueryListRegistry registry;
     private final AuditLogService audit;
+    private final MdReportViewState reports;
+    private final EntityReports entityReports;
     /** Builds and reads the view state trees (plan 10/10, item 3.11: the application's mapper). */
     private final ObjectMapper json;
 
     public MdListViewService(
-            MdListViewRepository repo, QueryListRegistry registry, AuditLogService audit, ObjectMapper json) {
+            MdListViewRepository repo,
+            QueryListRegistry registry,
+            AuditLogService audit,
+            MdReportViewState reports,
+            EntityReports entityReports,
+            ObjectMapper json) {
         this.repo = repo;
         this.registry = registry;
         this.audit = audit;
+        this.reports = reports;
+        this.entityReports = entityReports;
         this.json = json;
     }
 
+    /** The user's views of the list of the given kinds; no kinds means the table views. */
     @Transactional(readOnly = true)
-    public List<ViewResponse> list(long userId, String listCode) {
+    public List<ViewResponse> list(long userId, String listCode, @Nullable List<String> kinds) {
         visibleList(listCode);
-        return repo.list(userId, listCode).stream().map(this::response).toList();
+        List<String> wanted = kinds == null || kinds.isEmpty() ? List.of(TABLE) : List.copyOf(kinds);
+        for (String kind : wanted) {
+            if (!KINDS.contains(kind)) throw invalid(List.of(kindProblem()));
+        }
+        return repo.list(userId, listCode, wanted).stream().map(this::response).toList();
     }
 
     @Transactional
     public ViewResponse create(long userId, String listCode, ViewRequest data) {
         QueryList list = visibleList(listCode);
-        String name = checkName(data.name());
-        String state = canonicalState(list, data.state());
-        boolean isDefault = Boolean.TRUE.equals(data.isDefault());
-        if (repo.count(userId, listCode) >= MAX_VIEWS_PER_LIST) {
+        ListView checked = check(list, data);
+        if (repo.count(userId, listCode, sameClass(checked.kind())) >= MAX_VIEWS_PER_LIST) {
             throw ApiException.validation(
                     "error.md.list_view_limit",
                     Map.of("max", MAX_VIEWS_PER_LIST),
                     List.of(FieldErrorItem.keyed(
                             "name", LIST_VIEW_LIMIT, "error.md.list_view_limit", Map.of("max", MAX_VIEWS_PER_LIST))));
         }
-        if (isDefault) {
+        if (WIDGET.equals(checked.kind())) requireWidgetRoom(userId);
+        if (checked.isDefault()) {
             repo.clearDefault(userId, listCode, null);
         }
         long id;
         try {
-            id = repo.insert(userId, listCode, name, state, isDefault);
+            id = repo.insert(
+                    userId, listCode, checked.kind(), checked.name(), checked.stateJson(), checked.isDefault());
         } catch (DuplicateKeyException e) {
             throw nameTaken();
         }
@@ -102,16 +128,15 @@ public class MdListViewService {
     @Transactional
     public ViewResponse update(long userId, String listCode, long id, int lockVersion, ViewRequest data) {
         QueryList list = visibleList(listCode);
-        String name = checkName(data.name());
-        String state = canonicalState(list, data.state());
-        boolean isDefault = Boolean.TRUE.equals(data.isDefault());
+        ListView checked = check(list, data);
         ListView before = repo.find(userId, listCode, id).orElseThrow(MdListViewService::notFound);
-        if (isDefault) {
+        if (WIDGET.equals(checked.kind()) && !WIDGET.equals(before.kind())) requireWidgetRoom(userId);
+        if (checked.isDefault()) {
             repo.clearDefault(userId, listCode, id);
         }
         int updated;
         try {
-            updated = repo.update(userId, listCode, id, lockVersion, name, state, isDefault);
+            updated = repo.update(userId, listCode, id, lockVersion, checked);
         } catch (DuplicateKeyException e) {
             throw nameTaken();
         }
@@ -129,6 +154,47 @@ public class MdListViewService {
         ListView before = repo.find(userId, listCode, id).orElseThrow(MdListViewService::notFound);
         repo.delete(userId, listCode, id);
         audit.logChange(TABLE, Long.toString(id), "D", AUDITED, row(before), null);
+    }
+
+    /**
+     * The view to store: its kind ({@code table} when absent), name, canonical state and default flag. A report or a
+     * widget is saved only on an entity's list the viewer may see — its report runs with the entity's scope (ADR-0032,
+     * 10.2) — and is never the view a list opens with.
+     */
+    private ListView check(QueryList list, ViewRequest data) {
+        String kind = data.kind() == null ? TABLE : data.kind();
+        if (!KINDS.contains(kind)
+                || (!TABLE.equals(kind)
+                        && entityReports.entityOfList(list.code()).isEmpty())) {
+            throw invalid(List.of(kindProblem()));
+        }
+        boolean isDefault = Boolean.TRUE.equals(data.isDefault());
+        if (isDefault && !TABLE.equals(kind)) {
+            throw invalid(List.of(
+                    FieldErrorItem.keyed("isDefault", LIST_VIEW_INVALID, "error.md.field_list_view_default_table")));
+        }
+        String name = checkName(data.name());
+        String state = TABLE.equals(kind) ? canonicalState(list, data.state()) : reports.canonical(list, data.state());
+        return new ListView(0, list.code(), kind, name, state, isDefault, 0, Instant.EPOCH);
+    }
+
+    /** The kinds counted together toward a list's limit: the table views, or the reports and widgets. */
+    private static List<String> sameClass(String kind) {
+        return TABLE.equals(kind) ? List.of(TABLE) : List.of(REPORT, WIDGET);
+    }
+
+    private void requireWidgetRoom(long userId) {
+        if (repo.countWidgets(userId) >= MAX_WIDGETS) {
+            throw ApiException.validation(
+                    "error.md.widget_limit",
+                    Map.of("max", MAX_WIDGETS),
+                    List.of(FieldErrorItem.keyed(
+                            "kind", LIST_VIEW_LIMIT, "error.md.widget_limit", Map.of("max", MAX_WIDGETS))));
+        }
+    }
+
+    private static FieldErrorItem kindProblem() {
+        return FieldErrorItem.keyed("kind", LIST_VIEW_INVALID, "error.md.field_list_view_kind_invalid");
     }
 
     /** A list the user may view; a forbidden and a missing list look the same, as in {@code query-meta}. */
@@ -275,6 +341,7 @@ public class MdListViewService {
     private ViewResponse response(ListView view) {
         return new ViewResponse(
                 view.id(),
+                view.kind(),
                 view.name(),
                 json.readTree(view.stateJson()),
                 view.isDefault(),
@@ -285,6 +352,7 @@ public class MdListViewService {
     private static Map<String, Object> row(ListView view) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("list_code", view.listCode());
+        row.put("kind", view.kind());
         row.put("name", view.name());
         row.put("state", view.stateJson());
         row.put("is_default", view.isDefault());
