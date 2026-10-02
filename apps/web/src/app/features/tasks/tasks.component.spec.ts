@@ -29,7 +29,7 @@ const task = (id: number, title = `Task ${id}`, extra: Partial<Task> = {}): Task
   createdAt: '2026-09-05T00:00:00Z',
   ...extra,
 });
-const page = (items: Task[], nextCursor: string | null = null) => ({
+const page = <T>(items: T[], nextCursor: string | null = null) => ({
   items,
   nextCursor,
   hasMore: nextCursor !== null,
@@ -51,8 +51,8 @@ const user = (id: number, name: string): User => ({
 });
 const users = (...items: User[]) => ({ items, nextCursor: null, hasMore: false, totalReturned: items.length });
 const STATUSES: TaskStatus[] = [
-  { id: 1, name: 'Active', color: '#ff0000', isTerminal: false, orderNo: 1 },
-  { id: 2, name: 'Done', color: '#00ff00', isTerminal: true, orderNo: 2 },
+  { id: 1, code: 's1', name: 'Active', color: '#ff0000', terminal: false, sortOrder: 1 },
+  { id: 2, code: 's2', name: 'Done', color: '#00ff00', terminal: true, sortOrder: 2 },
 ];
 
 /** The screen over an API that answers a path through `get`, and the list, users and the rest empty. */
@@ -68,7 +68,8 @@ async function setup(
   const api = {
     get: vi.fn(
       (path: string, params: Params = {}) =>
-        options.get?.(path, params) ?? of(path === '/tasks' || path === '/iam/users' ? EMPTY_PAGE : []),
+        options.get?.(path, params) ??
+        of(path === '/tasks' || path === '/iam/users' || path.startsWith('/entities/') ? EMPTY_PAGE : []),
     ),
     post: vi.fn((path: string, body?: unknown) => options.post?.(path, body) ?? of({})),
     patch: vi.fn((path: string, body?: unknown) => options.patch?.(path, body) ?? of({})),
@@ -246,7 +247,7 @@ describe('TasksComponent', () => {
   it('asks in the dialog before deleting a dictionary item', async () => {
     const { fixture, component, screen } = await setup();
     component.taskTypes.set([
-      { id: 5, code: 'review', name: 'Проверка', icon: 'fact_check', color: '#6366f1', orderNo: 10, isSystem: false },
+      { id: 5, code: 'review', name: 'Проверка', icon: 'fact_check', color: '#6366f1', sortOrder: 10, system: false },
     ]);
     component.dictService.openSettingsModal();
     redraw(fixture);
@@ -518,8 +519,8 @@ describe('TasksComponent list', () => {
     const done = task(2, 'Done task', { statusId: 2 });
     const { fixture, component, screen } = await setup({
       get: (path, params) =>
-        path === '/tasks/statuses'
-          ? of(STATUSES)
+        path === '/entities/ms.task_statuses'
+          ? of(page(STATUSES))
           : path === '/tasks'
             ? of(page(params['hideTerminal'] === false ? [active, done] : [active]))
             : undefined,
@@ -578,8 +579,8 @@ describe('TasksComponent list', () => {
   it('keeps Previous on a later page once its last active task becomes final', async () => {
     const { fixture, component, screen } = await setup({
       get: (path, params) =>
-        path === '/tasks/statuses'
-          ? of(STATUSES)
+        path === '/entities/ms.task_statuses'
+          ? of(page(STATUSES))
           : path === '/tasks'
             ? of(params['cursor'] === 'c50' ? page([task(51)]) : page([task(1)], 'c50'))
             : undefined,

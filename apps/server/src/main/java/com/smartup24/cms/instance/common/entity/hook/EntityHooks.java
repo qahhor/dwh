@@ -8,6 +8,8 @@ package com.smartup24.cms.instance.common.entity.hook;
  * <ul>
  *   <li>{@link #beforeSave} and {@link #beforeDelete} — step 9, in the transaction: may change values, add problems
  *       ({@link EntitySave#reject}) or refuse with an {@code ApiException};
+ *   <li>{@link #beforeArchive} — before an archive or a restore is written, in the transaction: may refuse it with an
+ *       {@code ApiException} (ADR-0032, 5.4);
  *   <li>{@link #afterSave} and {@link #afterDelete} — step 12, in the same transaction: an exception rolls everything
  *       back;
  *   <li>{@link #afterCommit} — step 14, after the commit: a failure is logged and does not change the answer.
@@ -25,6 +27,8 @@ public interface EntityHooks {
     default void beforeDelete(EntityDelete delete) {}
 
     default void afterDelete(EntityDelete delete) {}
+
+    default void beforeArchive(EntityArchive archive) {}
 
     default void afterCommit(EntityCommitted committed) {}
 }

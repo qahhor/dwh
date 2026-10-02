@@ -6,8 +6,6 @@ import com.smartup24.cms.instance.ms.task.api.TaskCommentView;
 import com.smartup24.cms.instance.ms.task.api.TaskFileView;
 import com.smartup24.cms.instance.ms.task.api.TaskListFilters;
 import com.smartup24.cms.instance.ms.task.api.TaskMemberView;
-import com.smartup24.cms.instance.ms.task.api.TaskStatusView;
-import com.smartup24.cms.instance.ms.task.api.TaskTypeView;
 import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.repository.LegacyTaskFilters;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository.ProjectMemberRecord;
@@ -16,8 +14,6 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository.Com
 import com.smartup24.cms.instance.ms.task.repository.MsTaskFileRepository.TaskFileRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository.TaskMemberRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository.StatusRecord;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository.TypeRecord;
 import java.util.List;
 import java.util.function.Function;
 
@@ -61,30 +57,6 @@ final class MsTaskViews {
 
     static TaskFileView file(TaskFileRecord file) {
         return new TaskFileView(file.fileId(), file.fileName(), file.sizeBytes(), file.mimeType(), file.createdAt());
-    }
-
-    static TaskStatusView status(StatusRecord status) {
-        return new TaskStatusView(
-                status.id(),
-                status.pcode(),
-                status.name(),
-                status.color(),
-                status.orderNo(),
-                status.isTerminal(),
-                status.revision());
-    }
-
-    static TaskTypeView type(TypeRecord type) {
-        return new TaskTypeView(
-                type.id(),
-                type.code(),
-                type.name(),
-                type.icon(),
-                type.color(),
-                type.orderNo(),
-                type.isSystem(),
-                type.createdAt(),
-                type.revision());
     }
 
     static ProjectView project(ProjectRecord project) {

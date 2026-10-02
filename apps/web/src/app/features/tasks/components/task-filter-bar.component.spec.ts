@@ -7,8 +7,8 @@ import { TaskLookupsService } from '../services/task-lookups.service';
 import { TaskFilterBarComponent } from './task-filter-bar.component';
 
 const STATUSES = [
-  { id: 1, name: 'Новая', color: '#0284c7', isTerminal: false, orderNo: 1 },
-  { id: 3, name: 'Готово', color: '#16a34a', isTerminal: true, orderNo: 2 },
+  { id: 1, code: 's1', name: 'Новая', color: '#0284c7', terminal: false, sortOrder: 1 },
+  { id: 3, code: 's3', name: 'Готово', color: '#16a34a', terminal: true, sortOrder: 2 },
 ] as TaskStatus[];
 
 const PROJECTS = [

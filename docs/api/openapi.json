@@ -77,9 +77,11 @@
   }, {
     "name" : "ms-task-file-controller"
   }, {
-    "name" : "ms-task-status-controller"
-  }, {
     "name" : "ms.notes"
+  }, {
+    "name" : "ms.task_statuses"
+  }, {
+    "name" : "ms.task_types"
   }, {
     "name" : "navigation-item-controller"
   }, {
@@ -1849,6 +1851,1032 @@
         },
         "summary" : "Archive or restore a record of ms.notes",
         "tags" : [ "ms.notes" ]
+      }
+    },
+    "/api/v1/entities/ms.task_statuses" : {
+      "get" : {
+        "description" : "List records of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "listMsTaskStatuses",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "filter",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskStatusesPage"
+                }
+              }
+            },
+            "description" : "A page of the list (ADR-0016)"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List records of ms.task_statuses",
+        "tags" : [ "ms.task_statuses" ]
+      },
+      "post" : {
+        "description" : "Create a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "createMsTaskStatuses",
+        "parameters" : [ {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MsTaskStatusesCreate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskStatusesRecord"
+                }
+              }
+            },
+            "description" : "The created record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a record of ms.task_statuses",
+        "tags" : [ "ms.task_statuses" ]
+      }
+    },
+    "/api/v1/entities/ms.task_statuses/{id}" : {
+      "delete" : {
+        "description" : "Delete a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "deleteMsTaskStatuses",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Deleted"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Delete a record of ms.task_statuses",
+        "tags" : [ "ms.task_statuses" ]
+      },
+      "get" : {
+        "description" : "Get a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "getMsTaskStatuses",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskStatusesRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Get a record of ms.task_statuses",
+        "tags" : [ "ms.task_statuses" ]
+      },
+      "patch" : {
+        "description" : "Change a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "patchMsTaskStatuses",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MsTaskStatusesPatch"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskStatusesRecord"
+                }
+              }
+            },
+            "description" : "The changed record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Change a record of ms.task_statuses",
+        "tags" : [ "ms.task_statuses" ]
+      }
+    },
+    "/api/v1/entities/ms.task_statuses/{id}/actions/move" : {
+      "post" : {
+        "description" : "Run move on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "moveMsTaskStatuses",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskStatusesRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run move on a record",
+        "tags" : [ "ms.task_statuses" ]
+      }
+    },
+    "/api/v1/entities/ms.task_statuses/{id}/archived" : {
+      "put" : {
+        "description" : "Archive or restore a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "archiveMsTaskStatuses",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EntityArchivedRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskStatusesRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Archive or restore a record of ms.task_statuses",
+        "tags" : [ "ms.task_statuses" ]
+      }
+    },
+    "/api/v1/entities/ms.task_types" : {
+      "get" : {
+        "description" : "List records of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "listMsTaskTypes",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "filter",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskTypesPage"
+                }
+              }
+            },
+            "description" : "A page of the list (ADR-0016)"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List records of ms.task_types",
+        "tags" : [ "ms.task_types" ]
+      },
+      "post" : {
+        "description" : "Create a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "createMsTaskTypes",
+        "parameters" : [ {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MsTaskTypesCreate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskTypesRecord"
+                }
+              }
+            },
+            "description" : "The created record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a record of ms.task_types",
+        "tags" : [ "ms.task_types" ]
+      }
+    },
+    "/api/v1/entities/ms.task_types/{id}" : {
+      "delete" : {
+        "description" : "Delete a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "deleteMsTaskTypes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Deleted"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Delete a record of ms.task_types",
+        "tags" : [ "ms.task_types" ]
+      },
+      "get" : {
+        "description" : "Get a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "getMsTaskTypes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskTypesRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Get a record of ms.task_types",
+        "tags" : [ "ms.task_types" ]
+      },
+      "patch" : {
+        "description" : "Change a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "patchMsTaskTypes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MsTaskTypesPatch"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskTypesRecord"
+                }
+              }
+            },
+            "description" : "The changed record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Change a record of ms.task_types",
+        "tags" : [ "ms.task_types" ]
+      }
+    },
+    "/api/v1/entities/ms.task_types/{id}/actions/move" : {
+      "post" : {
+        "description" : "Run move on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "moveMsTaskTypes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskTypesRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run move on a record",
+        "tags" : [ "ms.task_types" ]
+      }
+    },
+    "/api/v1/entities/ms.task_types/{id}/archived" : {
+      "put" : {
+        "description" : "Archive or restore a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "archiveMsTaskTypes",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EntityArchivedRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MsTaskTypesRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Archive or restore a record of ms.task_types",
+        "tags" : [ "ms.task_types" ]
       }
     },
     "/api/v1/entities/{code}/bulk" : {
@@ -7768,540 +8796,6 @@
         "tags" : [ "ms-project-controller" ]
       }
     },
-    "/api/v1/tasks/statuses" : {
-      "get" : {
-        "description" : "The task statuses in their order.",
-        "operationId" : "listStatuses",
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/TaskStatusView"
-                  }
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "List task statuses",
-        "tags" : [ "ms-task-status-controller" ]
-      },
-      "post" : {
-        "description" : "Adds a task status.",
-        "operationId" : "createStatus",
-        "parameters" : [ {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateStatusRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TaskStatusView"
-                }
-              }
-            },
-            "description" : "Created",
-            "headers" : {
-              "ETag" : {
-                "description" : "The revision of the record, the value a following change sends in If-Match",
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Location" : {
-                "description" : "Path of the created resource, when it has one",
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Create a task status",
-        "tags" : [ "ms-task-status-controller" ]
-      }
-    },
-    "/api/v1/tasks/statuses/reorder" : {
-      "post" : {
-        "description" : "Sets the order of the task statuses.",
-        "operationId" : "reorderStatuses",
-        "parameters" : [ {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "type" : "array",
-                "items" : {
-                  "type" : "integer",
-                  "format" : "int64"
-                }
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Reorder task statuses",
-        "tags" : [ "ms-task-status-controller" ]
-      }
-    },
-    "/api/v1/tasks/statuses/{id}" : {
-      "delete" : {
-        "description" : "Removes a task status.",
-        "operationId" : "deleteStatus",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Delete a task status",
-        "tags" : [ "ms-task-status-controller" ]
-      },
-      "patch" : {
-        "description" : "Changes a task status; names the revision it was read at.",
-        "operationId" : "updateStatus",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }, {
-          "in" : "header",
-          "name" : "If-Match",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UpdateStatusRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "204" : {
-            "description" : "No Content",
-            "headers" : {
-              "ETag" : {
-                "description" : "The revision of the record, the value a following change sends in If-Match",
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The record changed since the revision named in If-Match"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The change names no revision: send If-Match"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Update a task status",
-        "tags" : [ "ms-task-status-controller" ]
-      }
-    },
-    "/api/v1/tasks/types" : {
-      "get" : {
-        "description" : "The task types in their order.",
-        "operationId" : "listTypes",
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/TaskTypeView"
-                  }
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "List task types",
-        "tags" : [ "ms-task-status-controller" ]
-      },
-      "post" : {
-        "description" : "Adds a task type.",
-        "operationId" : "createType",
-        "parameters" : [ {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/CreateTypeRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "201" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TaskTypeView"
-                }
-              }
-            },
-            "description" : "Created",
-            "headers" : {
-              "ETag" : {
-                "description" : "The revision of the record, the value a following change sends in If-Match",
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Location" : {
-                "description" : "Path of the created resource, when it has one",
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Create a task type",
-        "tags" : [ "ms-task-status-controller" ]
-      }
-    },
-    "/api/v1/tasks/types/reorder" : {
-      "post" : {
-        "description" : "Sets the order of the task types.",
-        "operationId" : "reorderTypes",
-        "parameters" : [ {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "type" : "array",
-                "items" : {
-                  "type" : "integer",
-                  "format" : "int64"
-                }
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Reorder task types",
-        "tags" : [ "ms-task-status-controller" ]
-      }
-    },
-    "/api/v1/tasks/types/{id}" : {
-      "delete" : {
-        "description" : "Removes a task type.",
-        "operationId" : "deleteType",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Delete a task type",
-        "tags" : [ "ms-task-status-controller" ]
-      },
-      "patch" : {
-        "description" : "Changes a task type; names the revision it was read at.",
-        "operationId" : "updateType",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }, {
-          "in" : "header",
-          "name" : "If-Match",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/UpdateTypeRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "204" : {
-            "description" : "No Content",
-            "headers" : {
-              "ETag" : {
-                "description" : "The revision of the record, the value a following change sends in If-Match",
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The record changed since the revision named in If-Match"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The change names no revision: send If-Match"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
-          }
-        },
-        "summary" : "Update a task type",
-        "tags" : [ "ms-task-status-controller" ]
-      }
-    },
     "/api/v1/tasks/{id}" : {
       "get" : {
         "description" : "The task card; reading it changes nothing.",
@@ -10872,29 +11366,6 @@
         },
         "required" : [ "name" ]
       },
-      "CreateStatusRequest" : {
-        "type" : "object",
-        "properties" : {
-          "color" : {
-            "type" : "string"
-          },
-          "isTerminal" : {
-            "type" : "boolean"
-          },
-          "name" : {
-            "type" : "string",
-            "minLength" : 1
-          },
-          "orderNo" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "pcode" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "name" ]
-      },
       "CreateSubscriptionDto" : {
         "type" : "object",
         "properties" : {
@@ -10983,30 +11454,6 @@
           }
         },
         "required" : [ "name" ]
-      },
-      "CreateTypeRequest" : {
-        "type" : "object",
-        "properties" : {
-          "code" : {
-            "type" : "string",
-            "minLength" : 1
-          },
-          "color" : {
-            "type" : "string"
-          },
-          "icon" : {
-            "type" : "string"
-          },
-          "name" : {
-            "type" : "string",
-            "minLength" : 1
-          },
-          "orderNo" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        },
-        "required" : [ "code", "name" ]
       },
       "CreateUserDto" : {
         "type" : "object",
@@ -12935,6 +13382,358 @@
         },
         "required" : [ "id", "revision" ]
       },
+      "MsTaskStatusesCreate" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "A new record of ms.task_statuses; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "sortOrder" : {
+            "type" : "number",
+            "maximum" : 1000000,
+            "minimum" : 0
+          },
+          "system" : {
+            "type" : "boolean"
+          },
+          "terminal" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "name" ]
+      },
+      "MsTaskStatusesPage" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MsTaskStatusesRecord"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "MsTaskStatusesPatch" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "The fields to change of a record of ms.task_statuses; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "sortOrder" : {
+            "type" : "number",
+            "maximum" : 1000000,
+            "minimum" : 0
+          },
+          "system" : {
+            "type" : "boolean"
+          },
+          "terminal" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "MsTaskStatusesRecord" : {
+        "type" : "object",
+        "description" : "A record of ms.task_statuses as the viewer may read it",
+        "properties" : {
+          "actions" : {
+            "type" : "array",
+            "description" : "What the viewer may do with this record",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "archived" : {
+            "type" : "boolean"
+          },
+          "archivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1,
+            "readOnly" : true
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "modifiedBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "sortOrder" : {
+            "type" : "number",
+            "maximum" : 1000000,
+            "minimum" : 0
+          },
+          "system" : {
+            "type" : "boolean",
+            "readOnly" : true
+          },
+          "terminal" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "revision" ]
+      },
+      "MsTaskTypesCreate" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "A new record of ms.task_types; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "icon" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "sortOrder" : {
+            "type" : "number",
+            "maximum" : 1000000,
+            "minimum" : 0
+          },
+          "system" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "code", "name" ]
+      },
+      "MsTaskTypesPage" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MsTaskTypesRecord"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "MsTaskTypesPatch" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "The fields to change of a record of ms.task_types; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "icon" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "sortOrder" : {
+            "type" : "number",
+            "maximum" : 1000000,
+            "minimum" : 0
+          },
+          "system" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "MsTaskTypesRecord" : {
+        "type" : "object",
+        "description" : "A record of ms.task_types as the viewer may read it",
+        "properties" : {
+          "actions" : {
+            "type" : "array",
+            "description" : "What the viewer may do with this record",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "archived" : {
+            "type" : "boolean"
+          },
+          "archivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1,
+            "readOnly" : true
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "icon" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "modifiedBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "sortOrder" : {
+            "type" : "number",
+            "maximum" : 1000000,
+            "minimum" : 0
+          },
+          "system" : {
+            "type" : "boolean",
+            "readOnly" : true
+          }
+        },
+        "required" : [ "id", "revision" ]
+      },
       "NavigationItemView" : {
         "type" : "object",
         "properties" : {
@@ -14356,71 +15155,6 @@
           }
         }
       },
-      "TaskStatusView" : {
-        "type" : "object",
-        "properties" : {
-          "color" : {
-            "type" : "string"
-          },
-          "id" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "isTerminal" : {
-            "type" : "boolean"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "orderNo" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "pcode" : {
-            "type" : "string"
-          },
-          "revision" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }
-      },
-      "TaskTypeView" : {
-        "type" : "object",
-        "properties" : {
-          "code" : {
-            "type" : "string"
-          },
-          "color" : {
-            "type" : "string"
-          },
-          "createdAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "icon" : {
-            "type" : "string"
-          },
-          "id" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "isSystem" : {
-            "type" : "boolean"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "orderNo" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "revision" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }
-      },
       "TaskView" : {
         "type" : "object",
         "properties" : {
@@ -14720,24 +15454,6 @@
           }
         }
       },
-      "UpdateStatusRequest" : {
-        "type" : "object",
-        "properties" : {
-          "color" : {
-            "type" : "string"
-          },
-          "isTerminal" : {
-            "type" : "boolean"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "orderNo" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }
-      },
       "UpdateSubscriptionDto" : {
         "type" : "object",
         "properties" : {
@@ -14842,24 +15558,6 @@
           }
         },
         "required" : [ "translations" ]
-      },
-      "UpdateTypeRequest" : {
-        "type" : "object",
-        "properties" : {
-          "color" : {
-            "type" : "string"
-          },
-          "icon" : {
-            "type" : "string"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "orderNo" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }
       },
       "UpdateUserDto" : {
         "type" : "object",

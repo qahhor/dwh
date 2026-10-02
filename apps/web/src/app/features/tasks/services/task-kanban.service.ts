@@ -196,7 +196,7 @@ export class TaskKanbanService {
   ): void {
     const targetStatus = statuses.find((status) => status.id === statusId);
     const leavesCurrentFilter =
-      (statusFilterMode === 'active' && targetStatus?.isTerminal === true) ||
+      (statusFilterMode === 'active' && targetStatus?.terminal === true) ||
       (typeof statusFilterMode === 'number' && statusFilterMode !== statusId);
     tasks.update((list) =>
       leavesCurrentFilter

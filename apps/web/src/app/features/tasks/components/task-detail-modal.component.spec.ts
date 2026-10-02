@@ -25,8 +25,8 @@ const TASK = task(7, 'Отчёт за январь', {
 });
 
 const STATUSES = [
-  { id: 1, name: 'Новая', isTerminal: false, orderNo: 1 },
-  { id: 3, name: 'Готово', isTerminal: true, orderNo: 2 },
+  { id: 1, code: 's1', name: 'Новая', terminal: false, sortOrder: 1 },
+  { id: 3, code: 's3', name: 'Готово', terminal: true, sortOrder: 2 },
 ] as TaskStatus[];
 
 const MEMBERS = [

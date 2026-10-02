@@ -291,15 +291,15 @@ class SearchRevisionIntegrationTest {
     }
 
     private void statusMembershipRace(boolean create, boolean renameFirst) throws Exception {
-        long status = jdbc.sql("select id from ms_task_statuses where pcode='new'")
+        long status = jdbc.sql("select id from ms_task_statuses where code='new'")
                 .query(Long.class)
                 .single();
         var id = new AtomicLong(create ? 0 : create("moving task"));
         if (!create) {
-            long other = taskServices
-                    .statusViews()
-                    .createStatus(null, "Other", "#000000", 99, false)
-                    .id();
+            long other = jdbc.sql("insert into ms_task_statuses (code, name, color, sort_order) values" + " ('other_"
+                            + System.nanoTime() + "', 'Other', '#000000', 99) returning id")
+                    .query(Long.class)
+                    .single();
             taskServices.workflow().changeStatus(id.get(), other, reporter);
         }
         Runnable membership = () -> {
@@ -307,9 +307,7 @@ class SearchRevisionIntegrationTest {
             else taskServices.workflow().changeStatus(id.get(), status, reporter);
         };
         String renamed = "Renamed " + System.nanoTime();
-        Runnable rename = () -> taskServices
-                .statusViews()
-                .updateStatusRecord(status, renamed, null, null, null, revision("ms_task_statuses", status));
+        Runnable rename = () -> renameStatus(status, renamed);
         runSerialized(renameFirst ? rename : membership, renameFirst ? membership : rename);
         assertThat(jdbc.sql(
                                 "select revision from search_projection_versions where entity_type='TASK' and entity_id=:id")
@@ -406,11 +404,21 @@ class SearchRevisionIntegrationTest {
         }
     }
 
-    /** The current revision of a row, the one a change of it names (plan item 3.6). */
-    private static long revision(String table, long id) {
-        return jdbc.sql("select revision from " + table + " where id = :id")
-                .param("id", id)
-                .query(Long.class)
-                .single();
+    /**
+     * A status renamed the way the entity runtime renames it (ADR-0032, 6.3): the row read for update in the
+     * transaction, written with its revision, then the status hook re-indexes the tasks in it.
+     */
+    private static void renameStatus(long status, String name) {
+        tx.executeWithoutResult(transaction -> {
+            jdbc.sql("select id from ms_task_statuses where id = :id for update")
+                    .param("id", status)
+                    .query(Long.class)
+                    .single();
+            jdbc.sql("update ms_task_statuses set name = :name, revision = revision + 1 where id = :id")
+                    .param("name", name)
+                    .param("id", status)
+                    .update();
+            publisher.statusChanged(status);
+        });
     }
 }

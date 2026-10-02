@@ -9,8 +9,8 @@ import { TaskListStore } from './task-list.store';
 import { TaskPresenter } from './task-presenter';
 
 const STATUSES: TaskStatus[] = [
-  { id: 1, name: 'В работе', orderNo: 1, isTerminal: false },
-  { id: 2, name: 'Готово', orderNo: 2, isTerminal: true },
+  { id: 1, code: 's1', name: 'В работе', sortOrder: 1, terminal: false },
+  { id: 2, code: 's2', name: 'Готово', sortOrder: 2, terminal: true },
 ];
 
 function setup() {

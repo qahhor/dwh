@@ -16,7 +16,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * In-memory caching configuration using Caffeine for frequently queried reference data
- * (task statuses/types, installed modules, navigation items, custom field definitions, the items of reference
+ * (installed modules, navigation items, custom field definitions, the items of reference
  * entities, ADR-0032, 4.5). Each node keeps its own
  * entries; a change clears the cache on every node of the cluster through {@link CacheInvalidations}.
  */
@@ -24,8 +24,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 @EnableCaching
 public class CacheConfig {
 
-    public static final String TASK_STATUSES_CACHE = "taskStatuses";
-    public static final String TASK_TYPES_CACHE = "taskTypes";
     public static final String ACTIVE_MODULES_CACHE = "activeModules";
     public static final String ALL_MODULES_CACHE = "allModules";
     public static final String MODULE_ACTIVE_CACHE = "moduleActive";
@@ -53,8 +51,6 @@ public class CacheConfig {
                 .expireAfterWrite(Duration.ofMinutes(10))
                 .recordStats());
         cacheManager.setCacheNames(List.of(
-                TASK_STATUSES_CACHE,
-                TASK_TYPES_CACHE,
                 ACTIVE_MODULES_CACHE,
                 ALL_MODULES_CACHE,
                 MODULE_ACTIVE_CACHE,

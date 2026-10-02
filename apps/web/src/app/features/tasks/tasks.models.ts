@@ -162,7 +162,7 @@ export function getPriorityLabel(priority: string, uiI18n: I18nService): string 
 export function isOverdue(endTime: string | null | undefined, statusId: number, statuses: TaskStatus[]): boolean {
   if (!endTime) return false;
   const s = statuses.find((x) => x.id === statusId);
-  if (s && s.isTerminal) return false;
+  if (s && s.terminal) return false;
   return new Date(endTime).getTime() < Date.now();
 }
 
@@ -174,7 +174,7 @@ export function getDeadlineInfo(
 ): TaskDeadlineInfo {
   if (!endTime) return { state: 'none', label: '—' };
   const s = statuses.find((x) => x.id === statusId);
-  if (s && s.isTerminal) {
+  if (s && s.terminal) {
     const d = new Date(endTime);
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');

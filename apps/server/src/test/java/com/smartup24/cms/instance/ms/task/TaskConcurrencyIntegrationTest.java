@@ -196,8 +196,8 @@ class TaskConcurrencyIntegrationTest {
 
     @Test
     void a03_taskRevisionOptimisticConcurrencyControl_repository() {
-        statusRepository.initDefaultStatusesIfEmpty();
-        var defaultStatus = statusRepository.findByPcode(MsTaskPref.STATUS_NEW).orElseThrow();
+
+        var defaultStatus = statusRepository.findByCode(MsTaskPref.STATUS_NEW).orElseThrow();
 
         // 1. Create task has monotonic revision = 1
         var task = taskRepository.create(
@@ -285,10 +285,10 @@ class TaskConcurrencyIntegrationTest {
 
     @Test
     void a03_taskRevisionOptimisticConcurrencyControl_httpApi() throws Exception {
-        statusRepository.initDefaultStatusesIfEmpty();
-        var defaultStatus = statusRepository.findByPcode(MsTaskPref.STATUS_NEW).orElseThrow();
+
+        var defaultStatus = statusRepository.findByCode(MsTaskPref.STATUS_NEW).orElseThrow();
         var inProgressStatus =
-                statusRepository.findByPcode(MsTaskPref.STATUS_IN_PROGRESS).orElseThrow();
+                statusRepository.findByCode(MsTaskPref.STATUS_IN_PROGRESS).orElseThrow();
 
         var task = taskRepository.create(
                 new MsTaskRepository.TaskCreateData(

@@ -26,7 +26,7 @@ interface NewTypeForm {
 interface NewStatusForm {
   name: string;
   color: string;
-  isTerminal: boolean;
+  terminal: boolean;
 }
 
 function emptyTypeForm(): NewTypeForm {
@@ -34,7 +34,7 @@ function emptyTypeForm(): NewTypeForm {
 }
 
 function emptyStatusForm(): NewStatusForm {
-  return { name: '', color: '#0284c7', isTerminal: false };
+  return { name: '', color: '#0284c7', terminal: false };
 }
 
 @Component({
@@ -75,7 +75,7 @@ export class TaskDictionariesModalComponent {
   readonly createStatus = output<{
     name: string;
     color: string;
-    isTerminal: boolean;
+    terminal: boolean;
   }>();
   readonly deleteItem = output<{
     kind: 'type' | 'status';
@@ -129,7 +129,7 @@ export class TaskDictionariesModalComponent {
     this.createStatus.emit({
       name: form.name.trim(),
       color: form.color,
-      isTerminal: form.isTerminal,
+      terminal: form.terminal,
     });
     this.newStatusForm.set(emptyStatusForm());
   }

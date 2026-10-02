@@ -145,40 +145,6 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
                 object(ok(send(s, get("/api/v1/tasks?projectId=" + projectId + "&limit=1&sort=title"), null)));
         assertKeys(page, Set.of("items", "nextCursor", "hasMore", "totalEstimated", "totalExact"));
         assertKeys(first(page.get("items")), TASK);
-
-        Set<String> status = Set.of("id", "pcode", "name", "color", "orderNo", "isTerminal", "revision");
-        assertKeys(
-                created(send(
-                        s,
-                        post("/api/v1/tasks/statuses"),
-                        Map.of("pcode", "c" + suffix(), "name", "TEST status", "color", "#123456", "orderNo", 90))),
-                status);
-        assertKeys(first(array(ok(send(s, get("/api/v1/tasks/statuses"), null)))), status);
-
-        Set<String> type =
-                Set.of("id", "code", "name", "icon", "color", "orderNo", "isSystem", "createdAt", "revision");
-        assertKeys(
-                created(send(
-                        s,
-                        post("/api/v1/tasks/types"),
-                        Map.of(
-                                "code",
-                                "t" + suffix(),
-                                "name",
-                                "TEST type",
-                                "icon",
-                                "bug",
-                                "color",
-                                "#654321",
-                                "orderNo",
-                                90))),
-                type);
-        assertKeys(
-                array(ok(send(s, get("/api/v1/tasks/types"), null))).stream()
-                        .filter(item -> item.get("icon") != null && item.get("color") != null)
-                        .findFirst()
-                        .orElseThrow(),
-                type);
     }
 
     @Test

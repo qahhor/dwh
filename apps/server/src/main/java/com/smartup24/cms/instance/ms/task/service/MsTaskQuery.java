@@ -54,7 +54,7 @@ public class MsTaskQuery {
                                             MsTaskPref.PRIORITY_CRITICAL),
                                     "tasks.priority."),
                             QueryField.of("statusId", "tasks.col.status", QueryFieldType.NUMBER, "t.status_id")
-                                    .refersTo(QueryRef.whole("/tasks/statuses", "name")),
+                                    .refersTo(QueryRef.paged(QueryRef.entityPath(MsTaskStatusEntity.CODE), "name")),
                             QueryField.of("endTime", "tasks.col.due", QueryFieldType.INSTANT, "t.end_time")
                                     .asNullable(),
                             QueryField.of("beginTime", "tasks.col.begin", QueryFieldType.INSTANT, "t.begin_time")

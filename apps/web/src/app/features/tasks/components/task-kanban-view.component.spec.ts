@@ -4,9 +4,9 @@ import { Task, TaskStatus } from '@core/models/task.models';
 import { TaskKanbanViewComponent } from './task-kanban-view.component';
 
 const STATUSES = [
-  { id: 1, name: 'Новая', color: '#0284c7', isTerminal: false, orderNo: 1 },
-  { id: 2, name: 'В работе', color: '#f59e0b', isTerminal: false, orderNo: 2 },
-  { id: 3, name: 'Готово', color: '#16a34a', isTerminal: true, orderNo: 3 },
+  { id: 1, code: 's1', name: 'Новая', color: '#0284c7', terminal: false, sortOrder: 1 },
+  { id: 2, code: 's2', name: 'В работе', color: '#f59e0b', terminal: false, sortOrder: 2 },
+  { id: 3, code: 's3', name: 'Готово', color: '#16a34a', terminal: true, sortOrder: 3 },
 ] as TaskStatus[];
 
 const task = (id: number, title: string, statusId: number, extra: Partial<Task> = {}): Task =>

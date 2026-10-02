@@ -584,6 +584,190 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entities/ms.task_statuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List records of ms.task_statuses
+         * @description List records of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["listMsTaskStatuses"];
+        put?: never;
+        /**
+         * Create a record of ms.task_statuses
+         * @description Create a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["createMsTaskStatuses"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.task_statuses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a record of ms.task_statuses
+         * @description Get a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["getMsTaskStatuses"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a record of ms.task_statuses
+         * @description Delete a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        delete: operations["deleteMsTaskStatuses"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a record of ms.task_statuses
+         * @description Change a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        patch: operations["patchMsTaskStatuses"];
+        trace?: never;
+    };
+    "/api/v1/entities/ms.task_statuses/{id}/actions/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run move on a record
+         * @description Run move on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["moveMsTaskStatuses"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.task_statuses/{id}/archived": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Archive or restore a record of ms.task_statuses
+         * @description Archive or restore a record of ms.task_statuses through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        put: operations["archiveMsTaskStatuses"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.task_types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List records of ms.task_types
+         * @description List records of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["listMsTaskTypes"];
+        put?: never;
+        /**
+         * Create a record of ms.task_types
+         * @description Create a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["createMsTaskTypes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.task_types/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a record of ms.task_types
+         * @description Get a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["getMsTaskTypes"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a record of ms.task_types
+         * @description Delete a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        delete: operations["deleteMsTaskTypes"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a record of ms.task_types
+         * @description Change a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        patch: operations["patchMsTaskTypes"];
+        trace?: never;
+    };
+    "/api/v1/entities/ms.task_types/{id}/actions/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run move on a record
+         * @description Run move on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["moveMsTaskTypes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/ms.task_types/{id}/archived": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Archive or restore a record of ms.task_types
+         * @description Archive or restore a record of ms.task_types through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        put: operations["archiveMsTaskTypes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/entities/{code}/bulk": {
         parameters: {
             query?: never;
@@ -2472,142 +2656,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/tasks/statuses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List task statuses
-         * @description The task statuses in their order.
-         */
-        get: operations["listStatuses"];
-        put?: never;
-        /**
-         * Create a task status
-         * @description Adds a task status.
-         */
-        post: operations["createStatus"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/statuses/reorder": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reorder task statuses
-         * @description Sets the order of the task statuses.
-         */
-        post: operations["reorderStatuses"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/statuses/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a task status
-         * @description Removes a task status.
-         */
-        delete: operations["deleteStatus"];
-        options?: never;
-        head?: never;
-        /**
-         * Update a task status
-         * @description Changes a task status; names the revision it was read at.
-         */
-        patch: operations["updateStatus"];
-        trace?: never;
-    };
-    "/api/v1/tasks/types": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List task types
-         * @description The task types in their order.
-         */
-        get: operations["listTypes"];
-        put?: never;
-        /**
-         * Create a task type
-         * @description Adds a task type.
-         */
-        post: operations["createType"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/types/reorder": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reorder task types
-         * @description Sets the order of the task types.
-         */
-        post: operations["reorderTypes"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/types/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a task type
-         * @description Removes a task type.
-         */
-        delete: operations["deleteType"];
-        options?: never;
-        head?: never;
-        /**
-         * Update a task type
-         * @description Changes a task type; names the revision it was read at.
-         */
-        patch: operations["updateType"];
-        trace?: never;
-    };
     "/api/v1/tasks/{id}": {
         parameters: {
             query?: never;
@@ -3419,14 +3467,6 @@ export interface components {
             /** Format: int32 */
             orderNo?: number;
         };
-        CreateStatusRequest: {
-            color?: string;
-            isTerminal?: boolean;
-            name: string;
-            /** Format: int32 */
-            orderNo?: number;
-            pcode?: string;
-        };
         CreateSubscriptionDto: {
             name: string;
             subscribedEvents: string[];
@@ -3456,14 +3496,6 @@ export interface components {
             /** Format: date-time */
             expiresAt?: string;
             name: string;
-        };
-        CreateTypeRequest: {
-            code: string;
-            color?: string;
-            icon?: string;
-            name: string;
-            /** Format: int32 */
-            orderNo?: number;
         };
         CreateUserDto: {
             attributes?: {
@@ -4187,6 +4219,134 @@ export interface components {
             revision: number;
             title?: string;
         };
+        /** @description A new record of ms.task_statuses; any other property is refused (unknown_field) */
+        MsTaskStatusesCreate: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            code?: string;
+            color?: string;
+            name: string;
+            sortOrder?: number;
+            system?: boolean;
+            terminal?: boolean;
+        };
+        MsTaskStatusesPage: {
+            hasMore?: boolean;
+            items?: components["schemas"]["MsTaskStatusesRecord"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        /** @description The fields to change of a record of ms.task_statuses; any other property is refused (unknown_field) */
+        MsTaskStatusesPatch: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            code?: string;
+            color?: string;
+            name?: string;
+            sortOrder?: number;
+            system?: boolean;
+            terminal?: boolean;
+        };
+        /** @description A record of ms.task_statuses as the viewer may read it */
+        MsTaskStatusesRecord: {
+            /** @description What the viewer may do with this record */
+            actions?: string[];
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            readonly code?: string;
+            color?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            modifiedAt?: string;
+            /** Format: int64 */
+            modifiedBy?: number;
+            name?: string;
+            /** Format: int64 */
+            revision: number;
+            sortOrder?: number;
+            readonly system?: boolean;
+            terminal?: boolean;
+        };
+        /** @description A new record of ms.task_types; any other property is refused (unknown_field) */
+        MsTaskTypesCreate: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            code: string;
+            color?: string;
+            icon?: string;
+            name: string;
+            sortOrder?: number;
+            system?: boolean;
+        };
+        MsTaskTypesPage: {
+            hasMore?: boolean;
+            items?: components["schemas"]["MsTaskTypesRecord"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        /** @description The fields to change of a record of ms.task_types; any other property is refused (unknown_field) */
+        MsTaskTypesPatch: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            code?: string;
+            color?: string;
+            icon?: string;
+            name?: string;
+            sortOrder?: number;
+            system?: boolean;
+        };
+        /** @description A record of ms.task_types as the viewer may read it */
+        MsTaskTypesRecord: {
+            /** @description What the viewer may do with this record */
+            actions?: string[];
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            readonly code?: string;
+            color?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            icon?: string;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            modifiedAt?: string;
+            /** Format: int64 */
+            modifiedBy?: number;
+            name?: string;
+            /** Format: int64 */
+            revision: number;
+            sortOrder?: number;
+            readonly system?: boolean;
+        };
         NavigationItemView: {
             code?: string;
             /** Format: date-time */
@@ -4745,33 +4905,6 @@ export interface components {
             userLogin?: string;
             userName?: string;
         };
-        TaskStatusView: {
-            color?: string;
-            /** Format: int64 */
-            id?: number;
-            isTerminal?: boolean;
-            name?: string;
-            /** Format: int32 */
-            orderNo?: number;
-            pcode?: string;
-            /** Format: int64 */
-            revision?: number;
-        };
-        TaskTypeView: {
-            code?: string;
-            color?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            icon?: string;
-            /** Format: int64 */
-            id?: number;
-            isSystem?: boolean;
-            name?: string;
-            /** Format: int32 */
-            orderNo?: number;
-            /** Format: int64 */
-            revision?: number;
-        };
         TaskView: {
             attributes?: {
                 [key: string]: unknown;
@@ -4895,13 +5028,6 @@ export interface components {
             orderNo?: number;
             state?: string;
         };
-        UpdateStatusRequest: {
-            color?: string;
-            isTerminal?: boolean;
-            name?: string;
-            /** Format: int32 */
-            orderNo?: number;
-        };
         UpdateSubscriptionDto: {
             name?: string;
             state?: string;
@@ -4936,13 +5062,6 @@ export interface components {
             translations: {
                 [key: string]: string;
             };
-        };
-        UpdateTypeRequest: {
-            color?: string;
-            icon?: string;
-            name?: string;
-            /** Format: int32 */
-            orderNo?: number;
         };
         UpdateUserDto: {
             attributes?: {
@@ -6242,6 +6361,678 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MsNotesRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    listMsTaskStatuses: {
+        parameters: {
+            query?: {
+                q?: string;
+                filter?: string;
+                sort?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the list (ADR-0016) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskStatusesPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createMsTaskStatuses: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsTaskStatusesCreate"];
+            };
+        };
+        responses: {
+            /** @description The created record */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskStatusesRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    getMsTaskStatuses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskStatusesRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    deleteMsTaskStatuses: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    patchMsTaskStatuses: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsTaskStatusesPatch"];
+            };
+        };
+        responses: {
+            /** @description The changed record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskStatusesRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    moveMsTaskStatuses: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskStatusesRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    archiveMsTaskStatuses: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityArchivedRequest"];
+            };
+        };
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskStatusesRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    listMsTaskTypes: {
+        parameters: {
+            query?: {
+                q?: string;
+                filter?: string;
+                sort?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the list (ADR-0016) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskTypesPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createMsTaskTypes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsTaskTypesCreate"];
+            };
+        };
+        responses: {
+            /** @description The created record */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskTypesRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    getMsTaskTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskTypesRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    deleteMsTaskTypes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    patchMsTaskTypes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MsTaskTypesPatch"];
+            };
+        };
+        responses: {
+            /** @description The changed record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskTypesRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    moveMsTaskTypes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskTypesRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    archiveMsTaskTypes: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityArchivedRequest"];
+            };
+        };
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MsTaskTypesRecord"];
                 };
             };
             /** @description The record changed since the revision named in If-Match */
@@ -10535,390 +11326,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    listStatuses: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskStatusView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    createStatus: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateStatusRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskStatusView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    reorderStatuses: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": number[];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    deleteStatus: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateStatus: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateStatusRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    listTypes: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskTypeView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    createType: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTypeRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskTypeView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    reorderTypes: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": number[];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    deleteType: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateType: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTypeRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {

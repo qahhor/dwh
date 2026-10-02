@@ -30,27 +30,33 @@ export interface ProjectMember {
   createdAt: string;
 }
 
+/** A task status: a record of the reference entity `ms.task_statuses` on the general runtime (ADR-0032 8). */
 export interface TaskStatus {
   id: number;
-  pcode?: string | null;
+  /** What a task's status keeps; given once and kept. */
+  code: string;
   name: string;
   color?: string;
-  colorHex?: string;
-  isTerminal: boolean;
-  orderNo: number;
-  /** What a change of the record names in If-Match (plan item 3.6). */
+  /** A terminal status closes the task. */
+  terminal: boolean;
+  sortOrder: number;
+  /** One of the statuses the product ships with: never archived or deleted. */
+  system?: boolean;
+  /** What a change of the record names in If-Match (ADR-0024). */
   revision?: number;
 }
 
+/** A task type: a record of the reference entity `ms.task_types` on the general runtime (ADR-0032 8). */
 export interface TaskType {
   id: number;
   code: string;
   name: string;
   icon: string;
   color: string;
-  orderNo: number;
-  isSystem: boolean;
-  /** What a change of the record names in If-Match (plan item 3.6). */
+  sortOrder: number;
+  /** One of the types the product ships with: never archived or deleted. */
+  system?: boolean;
+  /** What a change of the record names in If-Match (ADR-0024). */
   revision?: number;
 }
 
