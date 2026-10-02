@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.analytics;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.analytics.repository.AnalyticsRepository;
+import com.smartup24.cms.instance.analytics.repository.AnalyticsRepository.Scope;
+import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -40,26 +42,57 @@ class AnalyticsRepositoryIntegrationTest {
     @Test
     @DisplayName("ADR-0026: summary, trends, projects and workload come from the published views")
     void dashboardQueriesReadThePublishedViews() {
-        var summary = analytics.getSummary();
+        var summary = analytics.getSummary(Scope.unrestricted());
         assertThat(summary.totalTasks()).isEqualTo(2);
         assertThat(summary.completedTasks()).isEqualTo(1);
         assertThat(summary.activeProjectsCount()).isGreaterThanOrEqualTo(1);
         assertThat(summary.activeUsersCount()).isGreaterThanOrEqualTo(1);
 
-        assertThat(analytics.getTrends(7))
+        assertThat(analytics.getTrends(7, Scope.unrestricted()))
                 .hasSize(7)
                 .last()
                 .satisfies(day -> assertThat(day.createdCount()).isEqualTo(2));
-        assertThat(analytics.getProjectDistribution()).anySatisfy(row -> {
+        assertThat(analytics.getProjectDistribution(Scope.unrestricted())).anySatisfy(row -> {
             assertThat(row.projectId()).isEqualTo(project);
             assertThat(row.totalTasks()).isEqualTo(2);
             assertThat(row.progressPercent()).isEqualTo(50.0);
         });
-        assertThat(analytics.getUserWorkload()).anySatisfy(row -> {
+        assertThat(analytics.getUserWorkload(Scope.unrestricted())).anySatisfy(row -> {
             assertThat(row.userId()).isEqualTo(user);
             assertThat(row.userLogin()).isEqualTo("analyst");
             assertThat(row.assignedTasks()).isEqualTo(1);
         });
+    }
+
+    @Test
+    @DisplayName("ADR-0013: under the SELF predicates a stranger to every task sees no task, project or other user")
+    void selfPredicatesRestrictEveryFigure() {
+        long stranger = id("""
+                insert into md_users (name, login, email) values ('Stranger', 'stranger', 's@example.test')
+                returning id""");
+        var scope = new Scope(
+                ScopeFilter.taskSelf(stranger),
+                ScopeFilter.projectSelf(stranger),
+                ScopeFilter.byOwner("u.id", stranger));
+
+        var summary = analytics.getSummary(scope);
+        assertThat(summary.totalTasks()).isZero();
+        assertThat(summary.activeProjectsCount()).isZero();
+        assertThat(summary.activeUsersCount()).isEqualTo(1);
+        assertThat(analytics.getTrends(7, scope))
+                .allSatisfy(day -> assertThat(day.createdCount()).isZero());
+        assertThat(analytics.getProjectDistribution(scope)).isEmpty();
+        assertThat(analytics.getUserWorkload(scope)).singleElement().satisfies(row -> {
+            assertThat(row.userId()).isEqualTo(stranger);
+            assertThat(row.assignedTasks()).isZero();
+        });
+
+        var reporter =
+                new Scope(ScopeFilter.taskSelf(user), ScopeFilter.projectSelf(user), ScopeFilter.byOwner("u.id", user));
+        assertThat(analytics.getSummary(reporter).totalTasks()).isEqualTo(2);
+        assertThat(analytics.getProjectDistribution(reporter))
+                .singleElement()
+                .satisfies(row -> assertThat(row.projectId()).isEqualTo(project));
     }
 
     private static long task(String title, String status) {
