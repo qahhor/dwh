@@ -84,6 +84,10 @@ Write-Host "   User Verified: $($meResponse.user.login)" -ForegroundColor Green
 Write-Host "   Effective Permissions Count: $($meResponse.permissions.Count)" -ForegroundColor Green
 
 function Get-CsrfHeaders {
+    # Invoke-RestMethod -WebSession keeps every -Headers entry in the session and sends it with each later call, so
+    # the If-Match of an earlier change would turn a later create (PUT /api/v1/modules/{code}) into a replace of a
+    # module that does not exist (404). A change names its revision itself (Get-RevisionHeaders).
+    if ($session -and $session.Headers) { [void]$session.Headers.Remove("If-Match") }
     $token = ""
     try {
         foreach ($c in $session.Cookies.GetCookies([System.Uri]$BaseUrl)) {
@@ -489,7 +493,12 @@ $updateWhBody = @{
     subscribedEvents = @("task.created", "task.status_changed")
     state = "A"
 } | ConvertTo-Json
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions/$($newSub.id)" -Method Patch -Body $updateWhBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+# The change names the revision the list shows (ADR-0024); the create answer carries none.
+$listedSub = @($subsList) | Where-Object { $_.id -eq $newSub.id } | Select-Object -First 1
+if (-not $listedSub) { throw "Webhook subscription $($newSub.id) is missing from the list." }
+$whHeaders = Get-CsrfHeaders
+$whHeaders["If-Match"] = "`"$($listedSub.revision)`""
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions/$($newSub.id)" -Method Patch -Body $updateWhBody -ContentType "application/json" -WebSession $session -Headers $whHeaders
 Write-Host "   Webhook Subscription $($newSub.id) updated successfully" -ForegroundColor Green
 
 # 20.4 Delete Subscription
