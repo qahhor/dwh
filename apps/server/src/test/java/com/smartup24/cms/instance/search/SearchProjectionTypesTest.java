@@ -4,82 +4,88 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.instance.common.entity.EntityCapability;
+import com.smartup24.cms.instance.common.query.QueryPlan;
+import com.smartup24.cms.instance.search.repository.SearchDocumentSql;
+import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
+import com.smartup24.cms.instance.search.service.SearchEntities;
+import com.smartup24.cms.instance.search.service.SearchEntity;
 import com.smartup24.cms.instance.support.TestDatabases;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import tools.jackson.databind.ObjectMapper;
 
 /**
- * The entity types the code publishes to the search index, read from the source: every call of
- * {@code SearchChangePublisher.changed("TYPE", id)} and every type the publisher's own fan-out statements write.
- * Each of them must pass the {@code search_projection_versions.entity_type} check (V026) and have a projection
- * source: a publish of an unknown type would roll back the business transaction that made it, and a revision
- * with no projection would never be delivered, so a rebuild could not finish.
- *
- * <p>Notes are not published: they have no collection in a search generation, and the global search finds them
- * through PostgreSQL ({@code SearchFallbackRepository}, the owner's notes only).
+ * The indexed types are the codes of the entities with the SEARCH capability (ADR-0032, 10.3; plan 10/10, item 5.8):
+ * each passes the {@code search_projection_versions.entity_type} check, and the SQL the search builds from its
+ * declaration — its document, the discovery of its records, their count, the database check of hits, the PostgreSQL
+ * search and the exact lookup — runs on the migrated schema. A fixed name of before ({@code TASK}) is refused.
  */
 class SearchProjectionTypesTest {
 
-    private static final Path SOURCES = Path.of("src/main/java/com/smartup24/cms/instance");
-    private static final Path PUBLISHER = SOURCES.resolve("search/service/SearchChangePublisher.java");
-    private static final Pattern CHANGED_CALL = Pattern.compile("\\.changed\\(\\s*\"([A-Z_]+)\"");
-    private static final Pattern FAN_OUT_TYPE = Pattern.compile("'([A-Z_]+)'");
+    private static final QueryPlan.SqlFragment NO_SCOPE = new QueryPlan.SqlFragment("", Map.of());
+
+    static JdbcClient jdbc;
+    static SearchEntities entities;
+
+    @BeforeAll
+    static void setUp() {
+        jdbc = JdbcClient.create(TestDatabases.migratedCopy("search_projection_types"));
+        entities = SearchTestEntities.unscoped();
+    }
 
     @Test
-    @DisplayName("Every published entity type passes the projection check and has a projection source")
-    void everyPublishedTypeIsAcceptedAndProjected() throws IOException {
-        Set<String> published = publishedTypes();
-        assertThat(published).as("types read from the source").contains("TASK", "PROJECT", "USER");
+    @DisplayName("ADR-0032, 10.3: the entities with the SEARCH capability are the indexed types")
+    void theIndexedTypesAreTheEntitiesThatDeclareTheSearch() {
+        assertThat(entities.codes())
+                .containsExactly("example.orders", "md.users", "ms.notes", "ms.projects", "ms.tasks");
+        assertThat(entities.all())
+                .allSatisfy(
+                        entity -> assertThat(entity.definition().capabilities()).contains(EntityCapability.SEARCH));
+    }
 
-        JdbcClient jdbc = JdbcClient.create(TestDatabases.migratedCopy("search_projection_types"));
+    @Test
+    @DisplayName("Every indexed type passes the projection check and every query of it runs")
+    void everyIndexedTypeIsAcceptedAndItsQueriesRun() {
+        var reader = new SearchProjectionReader(jdbc, new ObjectMapper(), entities);
+        var repository = new SearchFallbackRepository(jdbc);
         long id = 1;
-        for (String type : published) {
+        for (SearchEntity entity : entities.all()) {
             long entityId = id++;
             assertThatCode(() -> jdbc.sql("""
                                     insert into search_projection_versions (entity_type, entity_id, revision)
                                     values (:type, :id, 1)
                                     """)
-                            .param("type", type)
+                            .param("type", entity.code())
                             .param("id", entityId)
                             .update())
-                    .as("search_projection_versions accepts %s", type)
+                    .as("search_projection_versions accepts %s", entity.code())
                     .doesNotThrowAnyException();
-            assertThatCode(() -> SearchProjectionReader.sourceTable(type))
-                    .as("a projection source for %s", type)
-                    .doesNotThrowAnyException();
+            assertThat(reader.read(entity.code(), entityId))
+                    .as("the document of a missing %s is a tombstone", entity.code())
+                    .hasValueSatisfying(
+                            projection -> assertThat(projection.document()).isNull());
+            assertThat(reader.reconciliationIds(entity.code(), 0, 10)).contains(entityId);
+            assertThat(jdbc.sql(SearchDocumentSql.count(entity))
+                            .query(Long.class)
+                            .single())
+                    .isNotNegative();
+            assertThat(repository.search(entity, "probe", List.of("probe"), 5, NO_SCOPE))
+                    .isEmpty();
+            assertThat(repository.exact(entity, entityId, NO_SCOPE)).isEmpty();
+            assertThat(repository.visible(entity, List.of(entityId), NO_SCOPE)).isEmpty();
         }
+        assertThatCode(reader::estimateSerializedBytes).doesNotThrowAnyException();
         assertThatThrownBy(() -> jdbc.sql("""
                                 insert into search_projection_versions (entity_type, entity_id, revision)
-                                values ('NOTE', 1, 1)
+                                values ('TASK', 1, 1)
                                 """).update())
-                .as("a type without a projection stays out of the index")
-                .hasMessageContaining("search_projection_versions_entity_type_check");
-    }
-
-    private static Set<String> publishedTypes() throws IOException {
-        Set<String> types = new TreeSet<>();
-        try (Stream<Path> files = Files.walk(SOURCES)) {
-            for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
-                Matcher call = CHANGED_CALL.matcher(Files.readString(file));
-                while (call.find()) {
-                    types.add(call.group(1));
-                }
-            }
-        }
-        Matcher fanOut = FAN_OUT_TYPE.matcher(Files.readString(PUBLISHER));
-        while (fanOut.find()) {
-            types.add(fanOut.group(1));
-        }
-        return types;
+                .as("a fixed type name of before is no entity code")
+                .hasMessageContaining("search_projection_versions_ck_entity_type");
     }
 }

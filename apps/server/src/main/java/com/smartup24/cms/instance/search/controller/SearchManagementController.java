@@ -52,7 +52,7 @@ public class SearchManagementController {
     @PostMapping(value = "/preview", consumes = "application/json")
     @RequiresPermission(form = "search", action = "view")
     public PreviewResult preview(@RequestBody String json) {
-        access.requireSearchAccess();
+        access.requireAdministrator();
         return search.preview(SearchManagementDtos.decodePreview(json));
     }
 

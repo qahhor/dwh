@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityScope;
 import com.smartup24.cms.instance.common.entity.EntityTab;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import java.util.Map;
@@ -38,6 +39,18 @@ public class MsProjectEntity {
 
     public static final String ADD_MEMBER = "add_member";
     public static final String REMOVE_MEMBER = "remove_member";
+
+    /**
+     * The people of a project — its author, its members and the participants of its tasks — whose own rule
+     * ({@code SELF}) sees it and whose org units open it to {@code SUBTREE}/{@code UNITS}: the scope keys of its search
+     * document, the same people {@link MdScopeService#filterForProjects} reads.
+     */
+    static final String PARTICIPANTS = "array(select p.created_by"
+            + " union select pm.user_id from ms_task_project_members pm where pm.project_id = p.id"
+            + " union select pt.created_by from ms_tasks pt where pt.project_id = p.id"
+            + " union select pt.reporter_id from ms_tasks pt where pt.project_id = p.id"
+            + " union select ptm.user_id from ms_task_members ptm join ms_tasks pt on pt.id = ptm.task_id"
+            + " where pt.project_id = p.id)";
 
     /** The declaration with the rule that says which projects a viewer sees. */
     public static EntityDefinition definition(EntityScope.ScopeProvider visible) {
@@ -75,6 +88,12 @@ public class MsProjectEntity {
                 .tab(EntityTab.sections("main", "ui.entity_page.tab_fields", "main"))
                 .tab(EntityTab.related("tasks", "nav.tasks", MsTaskEntity.CODE, "projectId"))
                 .tab(EntityTab.history("history", "ui.entity_page.tab_history"))
+                // Found by the global search in the viewer's scope of projects (ADR-0013, 2.5; ADR-0032, 10.3); a hit
+                // opens the project's own card. An archived project is not found.
+                .search(EntitySearchSpec.title("name")
+                        .body("description")
+                        .route("/tasks/projects/{id}")
+                        .scopeUsers(PARTICIPANTS))
                 .actions("create", "update")
                 .action(ADD_MEMBER, "update")
                 .action(REMOVE_MEMBER, "update")

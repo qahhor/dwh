@@ -9411,7 +9411,7 @@
     },
     "/api/v1/search" : {
       "get" : {
-        "description" : "Full-text search over the records the caller may see.",
+        "description" : "Full-text search over the records the caller may see: the entities with the SEARCH capability, in the caller's scope; entity is ALL or the code of one entity.",
         "operationId" : "search",
         "parameters" : [ {
           "in" : "query",
@@ -9459,6 +9459,39 @@
           }
         },
         "summary" : "Search",
+        "tags" : [ "search-controller" ]
+      }
+    },
+    "/api/v1/search/entities" : {
+      "get" : {
+        "description" : "The entities the caller may search, each with the dictionary key of its name and its icon.",
+        "operationId" : "searchCategories",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SearchCategory"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List search categories",
         "tags" : [ "search-controller" ]
       }
     },
@@ -12850,23 +12883,6 @@
         },
         "required" : [ "archived" ]
       },
-      "EntityDocumentCounts" : {
-        "type" : "object",
-        "properties" : {
-          "PROJECT" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "TASK" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "USER" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }
-      },
       "EntityFile" : {
         "type" : "object",
         "description" : "A stored file of a file or image field; a save sends its id",
@@ -13878,7 +13894,11 @@
             "format" : "int64"
           },
           "entityDocumentCounts" : {
-            "$ref" : "#/components/schemas/EntityDocumentCounts"
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
           },
           "errorCode" : {
             "type" : "string"
@@ -16671,6 +16691,37 @@
           }
         },
         "required" : [ "rule" ]
+      },
+      "SearchCategory" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SearchCategoryField"
+            }
+          },
+          "icon" : {
+            "type" : "string"
+          },
+          "labelKey" : {
+            "type" : "string"
+          }
+        }
+      },
+      "SearchCategoryField" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "labelKey" : {
+            "type" : "string"
+          }
+        }
       },
       "SearchHit" : {
         "type" : "object",

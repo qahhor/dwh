@@ -1,36 +1,51 @@
 package com.smartup24.cms.instance.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos.SearchExecutionSnapshot;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
+import com.smartup24.cms.instance.search.service.SearchEntities;
 import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
-import com.smartup24.cms.instance.search.service.SearchResultBudget;
+import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
 import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionQuery;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * ADR-0013: a note is its owner's alone. Notes have no Typesense collection; the global search finds them through
- * PostgreSQL, so a note is found by its owner as soon as it is saved, and never by anyone else,
- * an administrator included.
+ * ADR-0013, 2.5: a note is its owner's alone, in the global search too (ADR-0032, 10.3). Its documents carry its owner,
+ * the index query asks only for the caller's own notes, and every hit is checked again in the database with the
+ * owner's predicate — so even an index that answered another person's note (stale, or wrong) shows nothing of it; an
+ * administrator is no exception. Without Typesense the database finds them with the same predicate.
  */
 class SearchNoteOwnershipIntegrationTest {
 
     static JdbcClient jdbc;
-    static SearchFallbackRepository fallback;
+    static SearchEntities entities;
     static SearchService search;
     static long owner;
     static long administrator;
@@ -38,28 +53,15 @@ class SearchNoteOwnershipIntegrationTest {
     @BeforeAll
     static void setUp() {
         jdbc = JdbcClient.create(TestDatabases.migratedCopy("search_note_owner"));
-        fallback = new SearchFallbackRepository(jdbc);
+        entities = SearchTestEntities.unscoped();
         TypesenseSearch typesense = mock(TypesenseSearch.class);
         when(typesense.isEnabled()).thenReturn(false);
-        search = new SearchService(
+        search = SearchAccessFixtures.service(
                 typesense,
-                fallback,
-                SearchAccessFixtures.policy(),
-                new SearchResultBudget(),
-                new SearchPolicyProvider(
-                        new SearchOwnerRateLimits() {
-                            @Override
-                            public int userPerMinute() {
-                                return 600;
-                            }
-
-                            @Override
-                            public int tokenPerMinute() {
-                                return 300;
-                            }
-                        },
-                        new SearchSettingsRepository(jdbc)),
-                new SearchExecutionSnapshotReader(new SearchIndexStateRepository(jdbc)));
+                jdbc,
+                policies(),
+                new SearchExecutionSnapshotReader(new SearchIndexStateRepository(jdbc, entities)),
+                entities);
         owner = user("note-owner");
         administrator = user("note-admin");
     }
@@ -76,34 +78,92 @@ class SearchNoteOwnershipIntegrationTest {
         long theirs = note("Zephyrine of another person", administrator);
 
         signIn(owner);
-        assertThat(noteIds(search.search("zephyrine", "NOTE", 10).hits())).containsExactly(Long.toString(mine));
+        assertThat(noteIds(search.search("zephyrine", "ms.notes", 10).hits())).containsExactly(Long.toString(mine));
         assertThat(noteIds(search.search("zephyrine", "ALL", 10).hits())).containsExactly(Long.toString(mine));
-        assertThat(fallback.searchExact(theirs, "NOTE").groups().getFirst().hits())
+        assertThat(search.search("#" + theirs, "ms.notes", 10).hits())
                 .as("another person's note by its id")
                 .isEmpty();
 
         signIn(administrator);
-        assertThat(noteIds(search.search("zephyrine", "NOTE", 10).hits())).containsExactly(Long.toString(theirs));
-        assertThat(fallback.searchExact(mine, "NOTE").groups().getFirst().hits())
-                .isEmpty();
+        assertThat(noteIds(search.search("zephyrine", "ms.notes", 10).hits())).containsExactly(Long.toString(theirs));
+        assertThat(search.search("#" + mine, "ms.notes", 10).hits()).isEmpty();
     }
 
     @Test
-    @DisplayName("ADR-0013: without a signed-in person the note search finds nothing")
-    void withoutAPersonNoNoteIsFound() {
-        note("Orphaned quokka", owner);
-        assertThat(fallback.search("quokka", "NOTE", 10).groups().getFirst().hits())
-                .isEmpty();
+    @DisplayName("ADR-0032, 10.3: the index asks for the caller's notes, and a hit of another's is dropped")
+    void anIndexHitOfAnotherPersonsNoteIsNeverAnswered() {
+        long mine = note("Stale index quokka", owner);
+        long theirs = note("Stale index quokka too", administrator);
+        TypesenseSearch typesense = mock(TypesenseSearch.class);
+        when(typesense.isEnabled()).thenReturn(true);
+        // An index that answers both notes, as a stale or a wrong one would.
+        when(typesense.multiSearch(anyString(), anyList()))
+                .thenReturn(
+                        List.of(new CollectionSearch(SearchTestEntities.NOTES, List.of(hit(theirs), hit(mine)), 2, 1)));
+        SearchExecutionSnapshotReader snapshots = mock(SearchExecutionSnapshotReader.class);
+        when(snapshots.read())
+                .thenReturn(new SearchExecutionSnapshot(
+                        new SearchIndexStateRepository.IndexSnapshot(
+                                UUID.randomUUID(),
+                                1,
+                                Map.of(SearchTestEntities.NOTES, "fixture_notes"),
+                                "MIXED",
+                                true,
+                                false),
+                        new SettingsSnapshot(1, SearchQueryPolicy.defaults())));
+        SearchService indexed = SearchAccessFixtures.service(typesense, jdbc, policies(), snapshots, entities);
+
+        signIn(owner);
+        var result = indexed.search("quokka", SearchTestEntities.NOTES, 10);
+
+        assertThat(result.source()).isEqualTo("TYPESENSE");
+        assertThat(noteIds(result.hits())).containsExactly(Long.toString(mine));
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<CollectionQuery>> queries = ArgumentCaptor.forClass(List.class);
+        verify(typesense).multiSearch(org.mockito.ArgumentMatchers.eq("quokka"), queries.capture());
+        assertThat(queries.getValue())
+                .singleElement()
+                .satisfies(query -> assertThat(query.filterBy()).isEqualTo("scope_users:=" + owner));
     }
 
-    private static java.util.List<String> noteIds(java.util.List<SearchHit> hits) {
+    @Test
+    @DisplayName("ADR-0013: without a signed-in person the search refuses")
+    void withoutAPersonTheSearchRefuses() {
+        note("Orphaned quokka", owner);
+        assertThatThrownBy(() -> search.search("quokka", SearchTestEntities.NOTES, 10))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        failure -> assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
+
+    private static SearchHit hit(long id) {
+        return new SearchHit(SearchTestEntities.NOTES, Long.toString(id), "Note", "", "/e/ms.notes/" + id);
+    }
+
+    private static SearchPolicyProvider policies() {
+        return new SearchPolicyProvider(
+                new SearchOwnerRateLimits() {
+                    @Override
+                    public int userPerMinute() {
+                        return 600;
+                    }
+
+                    @Override
+                    public int tokenPerMinute() {
+                        return 300;
+                    }
+                },
+                new SearchSettingsRepository(jdbc));
+    }
+
+    private static List<String> noteIds(List<SearchHit> hits) {
         return hits.stream()
-                .filter(hit -> hit.entityType().equals("NOTE"))
+                .filter(hit -> hit.entityType().equals(SearchTestEntities.NOTES))
                 .map(SearchHit::id)
                 .toList();
     }
 
-    /** The legacy wildcard opens the global search without a role lookup (ADR-0013 §2.5). */
+    /** A person with every right: the note is still the owner's alone (ADR-0013, 2.5). */
     private static void signIn(long userId) {
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 userId, "admin", "admin@example.invalid", 1L, false, Set.of("*.*"), 1, false, 0, null));

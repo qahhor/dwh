@@ -203,12 +203,20 @@ public record EntityDefinition(
             throw new IllegalArgumentException("Entity " + code + ": bulk actions need an action on a record");
         }
         requireArchive(code, capabilities, actions, model);
+        requireSearch(code, capabilities, model);
         requireTabs(code, capabilities, layout, model);
         if (rights != null) {
             Set<String> named = rights.actionKeys().keySet();
             if (!named.contains("view") || actions.stream().anyMatch(action -> !named.contains(action.permission()))) {
                 throw new IllegalArgumentException("Entity " + code + ": name view and every action's right");
             }
+        }
+    }
+
+    /** The SEARCH capability goes with the search spec of the model (ADR-0032, 10.3). */
+    private static void requireSearch(String code, Set<EntityCapability> capabilities, @Nullable EntityModel model) {
+        if (capabilities.contains(EntityCapability.SEARCH) != (model != null && model.search() != null)) {
+            throw new IllegalArgumentException("Entity " + code + ": the search capability goes with its search spec");
         }
     }
 

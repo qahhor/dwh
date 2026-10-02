@@ -59,7 +59,9 @@ public class SearchReconciliationService {
 
     /** Session-owned TEMP objects are dropped before returning this dedicated connection to its pool. */
     public static final class Proof implements AutoCloseable {
-        private static final List<String> TYPES = List.of("TASK", "PROJECT", "USER");
+        /** The entity types of the generation, in the order of their codes (ADR-0032, 10.3). */
+        private final List<String> types;
+
         private final Connection connection;
         private final JdbcClient jdbc;
         private final SearchReconcileRepository sql;
@@ -86,6 +88,7 @@ public class SearchReconciliationService {
             this.collections = collections;
             this.documents = documents;
             this.generation = generation;
+            this.types = List.copyOf(generation.collections().keySet());
             Connection acquired = null;
             try {
                 acquired = source.getConnection();
@@ -117,23 +120,29 @@ public class SearchReconciliationService {
         public boolean advance() {
             if (closed) throw new IllegalStateException("RECONCILIATION_CLOSED");
             if (summary != null) return true;
-            if (schemaStep < TYPES.size()) {
-                String type = TYPES.get(schemaStep++);
+            if (schemaStep < types.size()) {
+                String type = types.get(schemaStep++);
+                var entity = reader.entity(type);
+                if (entity.isEmpty()) {
+                    // A collection of an entity that no longer declares the search: the generation needs a rebuild.
+                    schemasMatch = false;
+                    return false;
+                }
                 var observed = collections.observeCollection(
-                        generation.collections().get(type), type, generation.schemaProfile());
+                        generation.collections().get(type), entity.get(), generation.schemaProfile());
                 if ("COLLECTION_MISSING".equals(observed.errorCode())) absent.add(type);
                 else if (observed.schemaMatches() == null) throw TypesenseException.unavailable();
                 schemasMatch &= Boolean.TRUE.equals(observed.schemaMatches());
                 return false;
             }
-            if (exportStep < TYPES.size()) {
-                String type = TYPES.get(exportStep);
+            if (exportStep < types.size()) {
+                String type = types.get(exportStep);
                 if (absent.contains(type)) exportStep++;
                 else exportPage(type);
                 return false;
             }
-            if (sourceStep < TYPES.size()) {
-                sourcePage(TYPES.get(sourceStep));
+            if (sourceStep < types.size()) {
+                sourcePage(types.get(sourceStep));
                 return false;
             }
             summary = sql.summary(jdbc, schemasMatch);
@@ -193,7 +202,7 @@ public class SearchReconciliationService {
 
         public boolean revisionsUnchanged() {
             if (summary == null || closed) return false;
-            return sql.revisionsUnchanged(jdbc);
+            return sql.revisionsUnchanged(jdbc, types);
         }
 
         /** Caller performs only PostgreSQL barrier/CAS/audit work here; never transport or source discovery. */

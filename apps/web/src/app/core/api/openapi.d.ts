@@ -2681,9 +2681,29 @@ export interface paths {
         };
         /**
          * Search
-         * @description Full-text search over the records the caller may see.
+         * @description Full-text search over the records the caller may see: the entities with the SEARCH capability, in the caller's scope; entity is ALL or the code of one entity.
          */
         get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List search categories
+         * @description The entities the caller may search, each with the dictionary key of its name and its icon.
+         */
+        get: operations["searchCategories"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3833,14 +3853,6 @@ export interface components {
         EntityArchivedRequest: {
             archived: boolean;
         };
-        EntityDocumentCounts: {
-            /** Format: int64 */
-            PROJECT?: number;
-            /** Format: int64 */
-            TASK?: number;
-            /** Format: int64 */
-            USER?: number;
-        };
         /** @description A stored file of a file or image field; a save sends its id */
         EntityFile: {
             contentType?: string;
@@ -4204,7 +4216,9 @@ export interface components {
             createdAt?: string;
             /** Format: int64 */
             documentCount?: number;
-            entityDocumentCounts?: components["schemas"]["EntityDocumentCounts"];
+            entityDocumentCounts?: {
+                [key: string]: number;
+            };
             errorCode?: string;
             /** Format: int64 */
             failedDeliveries?: number;
@@ -5279,6 +5293,16 @@ export interface components {
         };
         ScopeRuleDto: {
             rule: string;
+        };
+        SearchCategory: {
+            code?: string;
+            fields?: components["schemas"]["SearchCategoryField"][];
+            icon?: string;
+            labelKey?: string;
+        };
+        SearchCategoryField: {
+            key?: string;
+            labelKey?: string;
         };
         SearchHit: {
             description?: string;
@@ -12268,6 +12292,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    searchCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchCategory"][];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */

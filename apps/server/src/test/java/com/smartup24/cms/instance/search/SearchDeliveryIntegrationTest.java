@@ -28,7 +28,7 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         var otherOwner = UUID.randomUUID();
         jdbc.sql("""
                 insert into search_generation_delivery(generation_id,entity_type,entity_id,attempted_revision,owner_token)
-                values (:generation,'USER',:id,1,:owner)
+                values (:generation,'md.users',:id,1,:owner)
                 """)
                 .param("generation", generation)
                 .param("id", otherId)
@@ -41,26 +41,28 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         worker = new SearchDeliveryWorker(client.documents(), reader, delivery, state, clock, () -> 0.5);
         worker.startLifecycle(owner);
         // Restore the foreign claim after lifecycle recovery; no next-cycle cleanup may release it.
-        jdbc.sql("update search_generation_delivery set owner_token=:owner where entity_id=:id and entity_type='USER'")
+        jdbc.sql(
+                        "update search_generation_delivery set owner_token=:owner where entity_id=:id and entity_type='md.users'")
                 .param("owner", otherOwner)
                 .param("id", otherId)
                 .update();
         beforeWrite = exchange -> failedDatabase.fail.set(true);
         assertThatThrownBy(worker::runOnce).isInstanceOf(DataAccessException.class);
         assertThat(failedDatabase.rejected.get()).isEqualTo(3);
-        assertThat(documents).containsKey("users/" + id);
-        assertThat(delivered("USER", id)).isZero();
+        assertThat(documents).containsKey(collection(SearchTestEntities.USERS) + "/" + id);
+        assertThat(delivered(SearchTestEntities.USERS, id)).isZero();
         failedDatabase.fail.set(false);
         beforeWrite = exchange -> {};
         worker.runOnce();
-        assertThat(delivered("USER", id)).isOne();
-        assertThat(documents.get("users/" + id)).containsEntry("name", "Checkpoint retry");
+        assertThat(delivered(SearchTestEntities.USERS, id)).isOne();
+        assertThat(documents.get(collection(SearchTestEntities.USERS) + "/" + id))
+                .containsEntry("name", "Checkpoint retry");
         assertThat(jdbc.sql("select worker_owner from search_index_state where id=1")
                         .query(UUID.class)
                         .single())
                 .isEqualTo(owner);
         assertThat(jdbc.sql(
-                                "select owner_token from search_generation_delivery where entity_type='USER' and entity_id=:id")
+                                "select owner_token from search_generation_delivery where entity_type='md.users' and entity_id=:id")
                         .param("id", otherId)
                         .query(UUID.class)
                         .single())
@@ -114,16 +116,16 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         var current = delivery.claim(generation, owner, clock.instant(), 100).getFirst();
         assertThat(delivery.acknowledge(oldClaim, "old-fingerprint")).isFalse();
         oldWorker.runOnce();
-        assertThat(delivered("USER", id)).isZero();
+        assertThat(delivered(SearchTestEntities.USERS, id)).isZero();
         assertThat(documents).isEmpty();
         delivery.release(current);
         renameUser(id, "Next revision");
         var next = delivery.claim(generation, owner, clock.instant(), 100).getFirst();
         assertThat(delivery.acknowledge(current, "old-attempt")).isFalse();
-        assertThat(delivered("USER", id)).isZero();
+        assertThat(delivered(SearchTestEntities.USERS, id)).isZero();
         delivery.release(next);
         worker.runOnce();
-        assertThat(delivered("USER", id)).isEqualTo(2);
+        assertThat(delivered(SearchTestEntities.USERS, id)).isEqualTo(2);
     }
 
     @Test
@@ -149,25 +151,25 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
                     jdbc.sql("delete from ms_tasks where id=:id")
                             .param("id", id)
                             .update();
-                    publisher.changed("TASK", id);
+                    publisher.changed(SearchTestEntities.TASKS, id);
                 });
             } finally {
                 respond.countDown();
             }
             future.get(10, TimeUnit.SECONDS);
         }
-        assertThat(documents).containsKey("tasks/" + id);
-        assertThat(delivered("TASK", id)).isOne();
+        assertThat(documents).containsKey(collection(SearchTestEntities.TASKS) + "/" + id);
+        assertThat(delivered(SearchTestEntities.TASKS, id)).isOne();
         beforeWrite = exchange -> {};
         recreateWorker();
         failures.set(1);
         worker.runOnce();
-        assertThat(delivered("TASK", id)).isOne();
+        assertThat(delivered(SearchTestEntities.TASKS, id)).isOne();
         clock.advance(Duration.ofSeconds(1));
         recreateWorker();
         worker.runOnce();
-        assertThat(documents).doesNotContainKey("tasks/" + id);
-        assertThat(delivered("TASK", id)).isEqualTo(2);
+        assertThat(documents).doesNotContainKey(collection(SearchTestEntities.TASKS) + "/" + id);
+        assertThat(delivered(SearchTestEntities.TASKS, id)).isEqualTo(2);
     }
 
     @Test
@@ -187,16 +189,16 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
             try {
                 assertThat(created.await(10, TimeUnit.SECONDS)).isTrue();
                 worker.runOnce();
-                assertThat(documents).doesNotContainKey("tasks/" + id.get());
-                assertThat(delivered("TASK", id.get())).isZero();
+                assertThat(documents).doesNotContainKey(collection(SearchTestEntities.TASKS) + "/" + id.get());
+                assertThat(delivered(SearchTestEntities.TASKS, id.get())).isZero();
             } finally {
                 commit.countDown();
             }
             future.get(10, TimeUnit.SECONDS);
         }
         worker.runOnce();
-        assertThat(documents).containsKey("tasks/" + id.get());
-        assertThat(delivered("TASK", id.get())).isOne();
+        assertThat(documents).containsKey(collection(SearchTestEntities.TASKS) + "/" + id.get());
+        assertThat(delivered(SearchTestEntities.TASKS, id.get())).isOne();
     }
 
     @Test
@@ -224,12 +226,14 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
             }
             future.get(10, TimeUnit.SECONDS);
         }
-        assertThat(delivered("USER", id)).isOne();
-        assertThat(documents.get("users/" + id)).containsEntry("name", "Revision one");
+        assertThat(delivered(SearchTestEntities.USERS, id)).isOne();
+        assertThat(documents.get(collection(SearchTestEntities.USERS) + "/" + id))
+                .containsEntry("name", "Revision one");
         beforeWrite = exchange -> {};
         worker.runOnce();
-        assertThat(delivered("USER", id)).isEqualTo(2);
-        assertThat(documents.get("users/" + id)).containsEntry("name", "Revision two");
+        assertThat(delivered(SearchTestEntities.USERS, id)).isEqualTo(2);
+        assertThat(documents.get(collection(SearchTestEntities.USERS) + "/" + id))
+                .containsEntry("name", "Revision two");
     }
 
     @ParameterizedTest
@@ -239,13 +243,13 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         long id = user("Will disappear");
         failures.set(1);
         worker.runOnce();
-        assertThat(delivered("USER", id)).isZero();
+        assertThat(delivered(SearchTestEntities.USERS, id)).isZero();
         blockUser(id, anonymize);
         recreateWorker();
         worker.runOnce();
-        assertThat(delivered("USER", id)).isEqualTo(2);
-        assertThat(documents).doesNotContainKey("users/" + id);
-        assertThat(writes).contains("DELETE /collections/users/documents/" + id);
+        assertThat(delivered(SearchTestEntities.USERS, id)).isEqualTo(2);
+        assertThat(documents).doesNotContainKey(collection(SearchTestEntities.USERS) + "/" + id);
+        assertThat(writes).contains("DELETE /collections/" + collection(SearchTestEntities.USERS) + "/documents/" + id);
         assertThat(jdbc.sql("select auth_version from md_users where id=:id")
                         .param("id", id)
                         .query(Long.class)
@@ -262,7 +266,7 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
             int previous = requests.get();
             worker.runOnce();
             assertThat(requests.get()).isEqualTo(previous + 1);
-            assertThat(delivered("USER", id)).isZero();
+            assertThat(delivered(SearchTestEntities.USERS, id)).isZero();
             worker.runOnce();
             assertThat(requests.get()).isEqualTo(previous + 1);
             clock.advance(Duration.ofSeconds(1L << (attempt - 1)));
@@ -275,8 +279,9 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         failures.set(0);
         renameUser(id, "Recovered");
         worker.runOnce();
-        assertThat(delivered("USER", id)).isEqualTo(2);
-        assertThat(documents.get("users/" + id)).containsEntry("name", "Recovered");
+        assertThat(delivered(SearchTestEntities.USERS, id)).isEqualTo(2);
+        assertThat(documents.get(collection(SearchTestEntities.USERS) + "/" + id))
+                .containsEntry("name", "Recovered");
     }
 
     @Test

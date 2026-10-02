@@ -1,42 +1,42 @@
 package com.smartup24.cms.instance.search.service;
 
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.common.security.DataScopeRules;
 import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.search.pref.SearchPref;
 import org.springframework.stereotype.Component;
 
 /**
- * Who may use global search (ADR-0013, 2.5). The index has no row scope yet, so the results are fail-closed: only an
- * unrestricted administrator reads them, that is an administrator (the active role {@code admin}, or the legacy
- * {@code *.*} grant) whose effective data-scope rule is {@code ALL}. An administrator with a narrower rule would see
- * rows their own lists hide, and a non-administrator with {@code ALL} would see entities their permissions hide (the
- * index does not check per-entity view permissions), so both are refused. Managing the index (status, jobs,
- * settings) reveals no rows and stays with any administrator. Notes in the results are their owner's alone.
+ * Who may use global search (ADR-0013, 2.5; ADR-0032, 10.3 and 19, question 8). The search answers the records of the
+ * entities with the SEARCH capability to anyone with the search permission: the documents carry the scope keys of their
+ * records, the index query filters them by the caller's scope, and every hit is checked again in the database with the
+ * entity's own scope and its {@code view} right — so nobody, administrator or not, finds a record their own lists
+ * hide; a personal record (a note) is its owner's alone. Managing the index (status, jobs, settings, the preview of
+ * settings) reveals no rows outside the caller's scope and stays with an administrator.
  */
 @Component
 public class SearchAccessPolicy {
     private static final String ADMINISTRATOR_ROLE = "admin";
     private final RoleMembershipAuthorizer roleMembershipAuthorizer;
-    private final DataScopeRules dataScopeRules;
 
-    public SearchAccessPolicy(RoleMembershipAuthorizer roleMembershipAuthorizer, DataScopeRules dataScopeRules) {
+    public SearchAccessPolicy(RoleMembershipAuthorizer roleMembershipAuthorizer) {
         this.roleMembershipAuthorizer = roleMembershipAuthorizer;
-        this.dataScopeRules = dataScopeRules;
     }
 
-    /** The search results and the preview: an administrator whose data scope is unrestricted. */
-    public void requireSearchAccess() {
-        Long userId = requireAdministrator();
-        if (!dataScopeRules.isUnrestricted(userId)) {
-            throw ApiException.forbidden("error.search.scope_restricted");
+    /** The search results: a signed-in caller with the search permission. Returns the caller's id. */
+    public Long requireSearchAccess() {
+        var principal = SecurityContext.getPrincipal();
+        if (principal == null) throw ApiException.unauthorized("error.search.auth_required");
+        if (!SecurityContext.hasPermission(SearchPref.FORM_SEARCH, "view")) {
+            throw ApiException.permissionDenied(SearchPref.FORM_SEARCH, "view");
         }
+        return principal.userId();
     }
 
     /**
-     * The index itself (status, jobs, settings): an administrator with the search permission, whatever their data
-     * scope; it answers counts and configuration, never rows. Returns the caller's id.
+     * The index itself (status, jobs, settings, preview): an administrator with the search permission, whatever their
+     * data scope; it answers counts and configuration, and a preview only the rows of the administrator's own scope.
+     * Returns the caller's id.
      */
     public Long requireAdministrator() {
         var principal = SecurityContext.getPrincipal();

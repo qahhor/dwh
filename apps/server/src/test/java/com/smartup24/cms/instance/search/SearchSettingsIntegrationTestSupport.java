@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.*;
+import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
 import com.smartup24.cms.instance.common.security.DataScopeRules;
 import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
@@ -19,6 +20,8 @@ import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
 import com.smartup24.cms.instance.kauth.service.*;
 import com.smartup24.cms.instance.md.api.MdUserIdentity;
+import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
+import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.*;
 import com.smartup24.cms.instance.search.controller.SearchController;
@@ -81,6 +84,9 @@ import tools.jackson.databind.ObjectMapper;
     IdempotencyFilter.class
 })
 abstract class SearchSettingsIntegrationTestSupport {
+    /** The entities the search indexes, as the application declares them (ADR-0032, 10.3). */
+    static final SearchEntities ENTITIES = SearchTestEntities.unscoped();
+
     static final ObjectMapper mapper = new ObjectMapper();
     static final List<String> requests = new CopyOnWriteArrayList<>();
     static final List<String> paths = new CopyOnWriteArrayList<>();
@@ -112,7 +118,8 @@ abstract class SearchSettingsIntegrationTestSupport {
                     for (var search : searches) {
                         var hits = new ArrayList<Map<String, Object>>();
                         for (int i = 1; i <= search.path("per_page").asInt(); i++)
-                            hits.add(Map.of("document", Map.of("id", "" + i, "title", "Delivery " + i, "task_id", i)));
+                            hits.add(
+                                    Map.of("document", Map.of("id", "" + i, "title", "Delivery " + i, "record_id", i)));
                         results.add(Map.of("hits", hits, "found", 30, "search_time_ms", 1));
                     }
                     output = mapper.writeValueAsString(Map.of("results", results));
@@ -187,14 +194,9 @@ abstract class SearchSettingsIntegrationTestSupport {
         responses.put("/debug", "{\"version\":\"27.1\",\"state\":1}");
         responses.put(
                 "/metrics.json", "{\"system_disk_used_bytes\":\"123456\",\"system_disk_total_bytes\":\"999999\"}");
-        for (var type : List.of("TASK", "PROJECT", "USER")) {
-            String collection = "fixture_"
-                    + switch (type) {
-                        case "TASK" -> "tasks";
-                        case "PROJECT" -> "projects";
-                        default -> "users";
-                    };
-            var schema = new LinkedHashMap<>(SearchCollectionSchema.mixed(collection, type));
+        for (var entity : ENTITIES.all()) {
+            String collection = entity.collection("fixture_");
+            var schema = new LinkedHashMap<>(SearchCollectionSchema.mixed(collection, entity));
             schema.put("num_documents", 23);
             responses.put("/collections/" + collection, mapper.writeValueAsString(schema));
         }
@@ -209,12 +211,27 @@ abstract class SearchSettingsIntegrationTestSupport {
         jdbc.sql("delete from search_generations").update();
         var id = UUID.randomUUID();
         jdbc.sql(
-                        "insert into search_generations(id,state,task_collection,project_collection,user_collection,schema_version,schema_profile,settings_version) values(:id,'ACTIVE','fixture_tasks','fixture_projects','fixture_users',1,'MIXED',1)")
+                        "insert into search_generations(id,state,schema_version,schema_profile,settings_version) values(:id,'ACTIVE',1,'MIXED',1)")
                 .param("id", id)
                 .update();
+        for (var entity : ENTITIES.all()) {
+            jdbc.sql("insert into search_generation_collections(generation_id,entity_type,collection)"
+                            + " values(:id,:type,:collection)")
+                    .param("id", id)
+                    .param("type", entity.code())
+                    .param("collection", entity.collection("fixture_"))
+                    .update();
+        }
         jdbc.sql("update search_index_state set active_generation_id=:id,initialized=true where id=1")
                 .param("id", id)
                 .update();
+        // The engine's hits are checked again in the database (ADR-0032, 10.3): the tasks it answers exist.
+        jdbc.sql("""
+                        insert into ms_tasks (id, title, priority, reporter_id, created_by, modified_by)
+                        overriding system value
+                        select n, 'Delivery ' || n, 'medium', :actor, :actor, :actor from generate_series(1, 120) n
+                        on conflict (id) do nothing
+                        """).param("actor", actorId).update();
         provider.refresh();
     }
 
@@ -275,6 +292,11 @@ abstract class SearchSettingsIntegrationTestSupport {
                 .getContentAsString());
     }
 
+    /** The default policy with the default weights of every entity the search indexes, as the settings read it. */
+    static SearchQueryPolicy defaults() {
+        return new SearchFieldPolicies(ENTITIES).effective(SearchQueryPolicy.defaults());
+    }
+
     static String saveJson(long version, Object policy) {
         return mapper.writeValueAsString(Map.of("version", version, "policy", policy));
     }
@@ -288,7 +310,7 @@ abstract class SearchSettingsIntegrationTestSupport {
                     @ComponentScan.Filter(
                             type = FilterType.REGEX,
                             pattern =
-                                    ".*(SearchGenerationService|SearchGenerationRepository|SearchJobAudit|SearchStoragePreflight|SearchProjectionReader|SearchJobService|SearchJobRepository|SearchController|SearchManagementController|SearchSettingsService|SearchStatusService|SearchExecutionSnapshotReader|SearchSettingsRepository|SearchPolicyProvider|SearchService|SearchAccessPolicy|SearchResultBudget|SearchIndexStateRepository|SearchFallbackRepository|TypesenseClient|TypesenseCollections|TypesenseHealth|TypesenseSearch)$"))
+                                    ".*(SearchFieldPolicies|SearchScopes|SearchGenerationService|SearchGenerationRepository|SearchJobAudit|SearchStoragePreflight|SearchProjectionReader|SearchJobService|SearchJobRepository|SearchController|SearchManagementController|SearchSettingsService|SearchStatusService|SearchExecutionSnapshotReader|SearchSettingsRepository|SearchPolicyProvider|SearchService|SearchAccessPolicy|SearchResultBudget|SearchIndexStateRepository|SearchFallbackRepository|TypesenseClient|TypesenseCollections|TypesenseHealth|TypesenseSearch)$"))
     @Import({
         AuditLogService.class,
         AuditLogRepository.class,
@@ -317,6 +339,24 @@ abstract class SearchSettingsIntegrationTestSupport {
         @Bean
         DataSourceTransactionManager transactionManager(DataSource source) {
             return new DataSourceTransactionManager(source);
+        }
+
+        /**
+         * The data scope of ADR-0013 as the md module answers it: the search checks every hit with it. Not a bean: the
+         * slice's transaction proxies would hide its class behind its interface.
+         */
+        private static MdScopeService scopes(JdbcClient jdbc, MdPermissionService permissions, AuditLogService audit) {
+            return new MdScopeService(new MdScopeRepository(jdbc), new MdOrgUnitRepository(jdbc), permissions, audit);
+        }
+
+        @Bean
+        SearchEntities searchEntities(JdbcClient jdbc, MdPermissionService permissions, AuditLogService audit) {
+            return SearchTestEntities.of(scopes(jdbc, permissions, audit));
+        }
+
+        @Bean
+        EntityScopes entityScopes(JdbcClient jdbc, MdPermissionService permissions, AuditLogService audit) {
+            return new EntityScopes(scopes(jdbc, permissions, audit));
         }
 
         @Bean

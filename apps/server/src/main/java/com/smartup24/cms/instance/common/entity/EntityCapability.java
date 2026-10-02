@@ -24,7 +24,12 @@ public enum EntityCapability {
      * every row without writing, and an upsert by the declared key ({@link Entity#importKey}) in the background, every
      * row through the same steps as a save of the runtime.
      */
-    IMPORT;
+    IMPORT,
+    /**
+     * Its records are found by the global search (ADR-0032, 10.3): declared with {@code Entity.search(...)}, which
+     * names the fields of its search documents.
+     */
+    SEARCH;
 
     public String wire() {
         return name().toLowerCase(Locale.ROOT);

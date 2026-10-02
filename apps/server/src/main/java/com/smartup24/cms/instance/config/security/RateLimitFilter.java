@@ -115,7 +115,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 limit = searchBudget.perMinute();
             }
         } else {
-            String expensivePathFamily = findExpensivePathFamily(request.getRequestURI());
+            String expensivePathFamily =
+                    isSearchCategoryRead(request) ? null : findExpensivePathFamily(request.getRequestURI());
             if (expensivePathFamily != null) {
                 key = key + ":exp:" + expensivePathFamily;
                 limit = Math.min(limit, props.expensivePerMinute());
@@ -189,6 +190,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         return ("GET".equalsIgnoreCase(request.getMethod()) && "/api/v1/search".equals(uri))
                 || ("POST".equalsIgnoreCase(request.getMethod()) && "/api/v1/search/preview".equals(uri));
+    }
+
+    /** The searchable entities are read from the registry on every palette open: the user budget (ADR-0032, 10.3). */
+    private static boolean isSearchCategoryRead(HttpServletRequest request) {
+        return "GET".equalsIgnoreCase(request.getMethod()) && "/api/v1/search/entities".equals(request.getRequestURI());
     }
 
     private boolean isPublicI18nRead(HttpServletRequest request) {

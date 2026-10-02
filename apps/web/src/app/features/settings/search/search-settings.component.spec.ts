@@ -38,25 +38,43 @@ const canonicalBackendSettings = {
     burst: 20,
     schemaProfile: 'MIXED',
     fields: {
-      TASK: [
+      'ms.tasks': [
         { field: 'title', weight: 10, numTypos: 2, prefix: true },
-        { field: 'description_markdown', weight: 3, numTypos: 2, prefix: true },
-        { field: 'status_name', weight: 2, numTypos: 2, prefix: true },
-        { field: 'project_name', weight: 2, numTypos: 2, prefix: true },
+        { field: 'descriptionMarkdown', weight: 3, numTypos: 2, prefix: true },
       ],
-      PROJECT: [
+      'ms.projects': [
         { field: 'name', weight: 10, numTypos: 2, prefix: true },
         { field: 'description', weight: 3, numTypos: 2, prefix: true },
       ],
-      USER: [
+      'md.users': [
         { field: 'name', weight: 10, numTypos: 2, prefix: true },
-        { field: 'login', weight: 8, numTypos: 0, prefix: true },
-        { field: 'email', weight: 6, numTypos: 0, prefix: true },
-        { field: 'phone', weight: 6, numTypos: 0, prefix: true },
+        { field: 'login', weight: 3, numTypos: 2, prefix: true },
+        { field: 'email', weight: 3, numTypos: 0, prefix: true },
+        { field: 'phone', weight: 3, numTypos: 0, prefix: true },
       ],
     },
   },
 } as unknown as SearchSettingsSnapshot;
+
+// The entities the administrator may search, with the dictionary keys of their names (ADR-0032, 10.3).
+const categories = [
+  {
+    code: 'ms.tasks',
+    labelKey: 'tasks.rights.form',
+    icon: null,
+    fields: [
+      { key: 'title', labelKey: 'tasks.col.title' },
+      { key: 'descriptionMarkdown', labelKey: 'tasks.col.description' },
+    ],
+  },
+  {
+    code: 'ms.projects',
+    labelKey: 'projects.rights.form',
+    icon: null,
+    fields: [{ key: 'name', labelKey: 'projects.col.name' }],
+  },
+  { code: 'md.users', labelKey: 'nav.users', icon: 'people', fields: [] },
+];
 
 const policy: SearchQueryPolicy = canonicalBackendSettings.policy;
 
@@ -81,7 +99,7 @@ const status: SearchManagementStatus = {
       active: true,
       registeredProfile: 'MIXED',
       documentCount: 14,
-      entityDocumentCounts: { TASK: 8, PROJECT: 4, USER: 2 },
+      entityDocumentCounts: { 'ms.tasks': 8, 'ms.projects': 4, 'md.users': 2 },
       storageBytes: 1024,
       schemaMatches: true,
       pendingDeliveries: 0,
@@ -118,6 +136,7 @@ function previewAnswer(query = '', hits: object[] = []) {
 async function createFixture(permissions: string[], overrides: Overrides = {}) {
   const management = {
     status: vi.fn(() => of(structuredClone(status))),
+    categories: vi.fn(() => of(structuredClone(categories))),
     settings: vi.fn(() => of({ version: 7, policy: structuredClone(policy) } satisfies SearchSettingsSnapshot)),
     save: vi.fn(() => of({ version: 8, policy: structuredClone(policy) } satisfies SearchSettingsSnapshot)),
     preview: vi.fn(() => of(previewAnswer())),
@@ -211,11 +230,11 @@ describe('SearchSettingsComponent', () => {
     type(fixture, '#search-preview-query', 'report');
     expect(find(fixture, 'label[for="search-preview-entity"]')).not.toBeNull();
     const entity = picker(fixture, 'search-preview-entity');
-    expect(entity.options().map((option) => option.id)).toEqual(['TASK', 'PROJECT', 'USER']);
-    entity.pick(entity.options().find((option) => option.id === 'PROJECT')!);
+    expect(entity.options().map((option) => option.id)).toEqual(['ms.tasks', 'ms.projects', 'md.users']);
+    entity.pick(entity.options().find((option) => option.id === 'ms.projects')!);
     fixture.detectChanges();
     button(fixture, 'preview-search-settings')!.click();
-    expect(management['preview']).toHaveBeenLastCalledWith({ q: 'report', entity: 'PROJECT' });
+    expect(management['preview']).toHaveBeenLastCalledWith({ q: 'report', entity: 'ms.projects' });
 
     entity.pickNone();
     fixture.detectChanges();
@@ -333,7 +352,7 @@ describe('SearchSettingsComponent', () => {
 
   it('cancels a replaced preview and renders snippet text as escaped text', async () => {
     const cancelled: string[] = [];
-    const hit = { entityType: 'TASK', id: '1', title: 'Safe', description: '<img src=x onerror=alert(1)>' };
+    const hit = { entityType: 'ms.tasks', id: '1', title: 'Safe', description: '<img src=x onerror=alert(1)>' };
     const answer = previewAnswer('second', [{ ...hit, targetUrl: '/tasks/items/1' }]);
     const previewCall = vi.fn(
       (request: { q: string }) =>
@@ -392,8 +411,8 @@ describe('SearchSettingsComponent', () => {
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(management['preview']).toHaveBeenCalledTimes(1);
-    const savedField = save.mock.calls[0][0].policy.fields.TASK[0] as unknown as Record<string, unknown>;
-    const previewField = management['preview'].mock.calls[0][0].policy.fields.TASK[0] as Record<string, unknown>;
+    const savedField = save.mock.calls[0][0].policy.fields['ms.tasks'][0] as unknown as Record<string, unknown>;
+    const previewField = management['preview'].mock.calls[0][0].policy.fields['ms.tasks'][0] as Record<string, unknown>;
     for (const field of [savedField, previewField]) {
       expect(field).toMatchObject({ field: 'title', weight: 10, numTypos: 1, prefix: true });
       expect(field).not.toHaveProperty('typos');

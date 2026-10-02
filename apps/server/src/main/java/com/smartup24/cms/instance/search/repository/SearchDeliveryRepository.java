@@ -40,6 +40,7 @@ public class SearchDeliveryRepository {
                     from search_projection_versions v left join search_generation_delivery d
                     on d.generation_id=:generation and d.entity_type=v.entity_type and d.entity_id=v.entity_id
                     where v.revision>coalesce(d.delivered_revision,0) and d.owner_token is null
+                      and exists(select 1 from search_generation_collections gc where gc.generation_id=:generation and gc.entity_type=v.entity_type)
                       and (v.revision>coalesce(d.attempted_revision,0) or (d.attempts<8 and d.next_attempt_at<=:now))
                     order by v.entity_type,v.entity_id limit :limit
                 )
@@ -119,6 +120,7 @@ public class SearchDeliveryRepository {
                 from search_projection_versions v left join search_generation_delivery d
                 on d.generation_id=:generation and d.entity_type=v.entity_type and d.entity_id=v.entity_id
                 where v.revision>coalesce(d.delivered_revision,0)
+                  and exists(select 1 from search_generation_collections gc where gc.generation_id=:generation and gc.entity_type=v.entity_type)
                 """)
                 .param("generation", generation)
                 .query((rs, row) -> new QueueObservation(rs.getLong("pending"), rs.getLong("lag")))

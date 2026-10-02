@@ -58,6 +58,7 @@ class CollectionsArePagedTest {
             Map.entry("NavigationItemController#getPermissionChoices", "the rights of the catalog"),
             Map.entry("OAuth2AuthController#getProviders", "the configured identity providers"),
             Map.entry("RecordHistoryController#kinds", "the declared record kinds"),
+            Map.entry("SearchController#searchCategories", "the declared entities with the SEARCH capability"),
             Map.entry("ReportExportController#journal", "the viewer's last exports (JOURNAL_SIZE)"),
             Map.entry("UplSourceController#versions", "the format versions of one source, published by hand"),
             Map.entry("UplUnitController#list", "the units of measure"));

@@ -41,16 +41,17 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     void savedLimitAboveTenReachesTheRealControllerAndEngineConsumer() throws Exception {
         authenticate(Set.of("*.*"), false);
         var current = readSettings();
-        var policy = mapper.valueToTree(SearchQueryPolicy.defaults()).deepCopy();
+        var policy = mapper.valueToTree(defaults()).deepCopy();
         ((ObjectNode) policy).put("globalLimit", 14);
         mvc.perform(auth(put("/api/v1/search/settings"))
                         .content(saveJson(current.path("version").asLong(), policy)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.policy.globalLimit").value(14));
-        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "TASK"))
+        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "ms.tasks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalHits").value(14));
-        assertThat(requests.getLast()).contains("\"per_page\":14");
+        // The index is asked for twice the hits: the database check may drop candidates (ADR-0032, 10.3).
+        assertThat(requests.getLast()).contains("\"per_page\":28");
         mvc.perform(auth(put("/api/v1/search/settings"))
                         .content(saveJson(current.path("version").asLong(), policy)))
                 .andExpect(status().isConflict());
@@ -72,8 +73,7 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
                 "\"globalLimit\":null",
                 "\"globalLimit\":1.5",
                 "\"globalLimit\":\"12\"")) {
-            String policy =
-                    mapper.writeValueAsString(SearchQueryPolicy.defaults()).replace("\"globalLimit\":10", mutation);
+            String policy = mapper.writeValueAsString(defaults()).replace("\"globalLimit\":10", mutation);
             mvc.perform(auth(put("/api/v1/search/settings"))
                             .content(
                                     "{\"version\":" + current.path("version").asLong() + ",\"policy\":" + policy + "}"))
@@ -88,19 +88,19 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     void brokenPolicyRuleNamesItselfInTheProblem() throws Exception {
         authenticate(Set.of("*.*"), false);
         long version = readSettings().path("version").asLong();
-        var limit = (ObjectNode) mapper.valueToTree(SearchQueryPolicy.defaults());
+        var limit = (ObjectNode) mapper.valueToTree(defaults());
         limit.put("globalLimit", 51);
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(version, limit)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("bad_request"))
                 .andExpect(jsonPath("$.messageKey").value("error.search.global_limit_range"))
                 .andExpect(jsonPath("$.detail").value("Лимит глобального поиска должен быть от 1 до 50"));
-        var weight = (ObjectNode) mapper.valueToTree(SearchQueryPolicy.defaults());
-        ((ObjectNode) weight.path("fields").path("TASK").get(0)).put("weight", 200);
+        var weight = (ObjectNode) mapper.valueToTree(defaults());
+        ((ObjectNode) weight.path("fields").path("ms.tasks").get(0)).put("weight", 200);
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(version, weight)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.messageKey").value("error.search.field_weight_range"));
-        var profile = (ObjectNode) mapper.valueToTree(SearchQueryPolicy.defaults());
+        var profile = (ObjectNode) mapper.valueToTree(defaults());
         profile.put("schemaProfile", "EN");
         mvc.perform(auth(post("/api/v1/search/preview"))
                         .content(mapper.writeValueAsString(Map.of("q", "delivery", "policy", profile))))
@@ -117,20 +117,21 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     void zeroWeightsAreOmittedWhileLiveWeightTypoAndPrefixChangesReachTheEngine() throws Exception {
         authenticate(Set.of("*.*"), false);
         var current = readSettings();
-        var policy = (ObjectNode) mapper.valueToTree(SearchQueryPolicy.defaults());
-        var fields = policy.path("fields").path("TASK");
+        var policy = (ObjectNode) mapper.valueToTree(defaults());
+        var fields = policy.path("fields").path("ms.tasks");
         ((ObjectNode) fields.get(0)).put("weight", 5).put("numTypos", 1).put("prefix", false);
         ((ObjectNode) fields.get(1)).put("weight", 0);
         mvc.perform(auth(put("/api/v1/search/settings"))
                         .content(saveJson(current.path("version").asLong(), policy)))
                 .andExpect(status().isOk());
-        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "TASK"))
+        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "ms.tasks"))
                 .andExpect(status().isOk());
         var emitted = mapper.readTree(requests.getLast()).path("searches").get(0);
-        assertThat(emitted.path("query_by").asString()).isEqualTo("title,status_name,project_name");
-        assertThat(emitted.path("query_by_weights").asString()).isEqualTo("5,2,2");
-        assertThat(emitted.path("num_typos").asString()).isEqualTo("1,2,2");
-        assertThat(emitted.path("prefix").asString()).isEqualTo("false,true,true");
+        // The fields of the tasks' search spec (ADR-0032, 10.3): the title and the text; the text weighs nothing here.
+        assertThat(emitted.path("query_by").asString()).isEqualTo("title");
+        assertThat(emitted.path("query_by_weights").asString()).isEqualTo("5");
+        assertThat(emitted.path("num_typos").asString()).isEqualTo("1");
+        assertThat(emitted.path("prefix").asString()).isEqualTo("false");
     }
 
     @Test
@@ -189,7 +190,7 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     }
 
     static Stream<String> invalidPolicies() {
-        String policy = mapper.writeValueAsString(SearchQueryPolicy.defaults());
+        String policy = mapper.writeValueAsString(defaults());
         var invalid = new ArrayList<String>();
         for (String replacement : List.of("\"requestsPerMinute\":29", "\"requestsPerMinute\":601"))
             invalid.add(policy.replace("\"requestsPerMinute\":120", replacement));
@@ -210,8 +211,8 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
         invalid.add(policy.replaceFirst("\"prefix\":true", "\"prefix\":\"true\""));
         invalid.add(policy.replaceFirst("\"prefix\":true", "\"prefix\":true,\"unused\":true"));
         invalid.add(policy.replaceFirst("\"field\":\"title\"", "\"field\":\"private_notes\""));
-        invalid.add(policy.replaceFirst("\"field\":\"title\"", "\"field\":\"status_name\""));
-        invalid.add(policy.replaceFirst("\"TASK\":", "\"OTHER\":"));
+        invalid.add(policy.replaceFirst("\"field\":\"title\"", "\"field\":\"contentMd\""));
+        invalid.add(policy.replaceFirst("\"ms.tasks\":", "\"other.entity\":"));
         invalid.add(policy.replaceFirst("\"globalLimit\":10,", ""));
         invalid.add(policy.replaceFirst("\"globalLimit\":10", "\"globalLimit\":10,\"arbitraryOption\":true"));
         invalid.add(policy.replaceAll("\"weight\":[0-9]+", "\"weight\":0"));
@@ -221,7 +222,7 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     @Test
     void strictSaveEnvelopeRejectsMissingNullFractionalAndDuplicateVersion() throws Exception {
         authenticate(Set.of("*.*"), false);
-        String policy = mapper.writeValueAsString(SearchQueryPolicy.defaults());
+        String policy = mapper.writeValueAsString(defaults());
         long before = readSettings().path("version").asLong();
         for (String body : List.of(
                 "null",
@@ -243,14 +244,13 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     void savedRateAndBurstApplyToInteractivePreviewBeforeEngineWork() throws Exception {
         authenticate(Set.of("*.*"), false);
         long version = readSettings().path("version").asLong();
-        var policy = new SearchQueryPolicy(
-                10, 30, 10, "MIXED", SearchQueryPolicy.defaults().fields());
+        var policy = new SearchQueryPolicy(10, 30, 10, "MIXED", defaults().fields());
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(version, policy)))
                 .andExpect(status().isOk());
         for (int i = 0; i < 10; i++)
-            mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"delivery\",\"entity\":\"TASK\"}"))
+            mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"delivery\",\"entity\":\"ms.tasks\"}"))
                     .andExpect(status().isOk());
-        mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"delivery\",\"entity\":\"TASK\"}"))
+        mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"delivery\",\"entity\":\"ms.tasks\"}"))
                 .andExpect(status().isTooManyRequests());
         assertThat(paths).hasSize(10);
         mvc.perform(auth(get("/api/v1/search/settings"))).andExpect(status().isOk());
@@ -262,8 +262,7 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     void corruptStoredSettingsStayExplicitAndFailedRefreshRetainsTheLastValidRate() throws Exception {
         authenticate(Set.of("*.*"), false);
         long version = readSettings().path("version").asLong();
-        var policy = new SearchQueryPolicy(
-                4, 30, 10, "MIXED", SearchQueryPolicy.defaults().fields());
+        var policy = new SearchQueryPolicy(4, 30, 10, "MIXED", defaults().fields());
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(version, policy)))
                 .andExpect(status().isOk());
         jdbc.sql("update search_settings set configuration='{\"globalLimit\":50}' where id=1")
@@ -337,23 +336,24 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
                                     "update search_settings set version=version+1,configuration=cast(:policy as jsonb) where id=1")
                             .param("policy", mapper.writeValueAsString(withLimit(5)))
                             .update();
-                    jdbc.sql("update search_generations set task_collection='next_tasks'")
+                    jdbc.sql("update search_generation_collections set collection='next_entity_ms_tasks'"
+                                    + " where entity_type='ms.tasks'")
                             .update();
                 }));
         try {
-            mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "TASK"))
+            mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "ms.tasks"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalHits").value(14));
             var emitted = mapper.readTree(requests.getLast()).path("searches").get(0);
-            assertThat(emitted.path("collection").asString()).isEqualTo("fixture_tasks");
-            assertThat(emitted.path("per_page").asInt()).isEqualTo(14);
+            assertThat(emitted.path("collection").asString()).isEqualTo("fixture_entity_ms_tasks");
+            assertThat(emitted.path("per_page").asInt()).isEqualTo(28);
             assertThat(source.snapshotReads.get()).isEqualTo(1);
             assertThat(networkConnections).hasValue(0);
         } finally {
             source.stopObserving();
             beforeEngine = () -> {};
         }
-        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "TASK"))
+        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "ms.tasks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalHits").value(5));
         assertThat(mapper.readTree(requests.getLast())
@@ -361,7 +361,7 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
                         .get(0)
                         .path("collection")
                         .asString())
-                .isEqualTo("next_tasks");
+                .isEqualTo("next_entity_ms_tasks");
     }
 
     @Test
@@ -380,7 +380,7 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
                 .update();
         actorId = user;
         authenticate(Set.of("*.*"), false);
-        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "TASK"))
+        mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "ms.tasks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalHits").value(10));
         assertThat(readSettings().path("policy").path("globalLimit").asInt()).isEqualTo(10);
@@ -417,7 +417,6 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     }
 
     private static SearchQueryPolicy withLimit(int limit) {
-        return new SearchQueryPolicy(
-                limit, 120, 20, "MIXED", SearchQueryPolicy.defaults().fields());
+        return new SearchQueryPolicy(limit, 120, 20, "MIXED", defaults().fields());
     }
 }

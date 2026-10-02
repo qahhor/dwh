@@ -76,8 +76,8 @@ class SearchIndexManagementMigrationTest {
                 select count(*) from information_schema.tables
                 where table_schema='public' and table_name in
                 ('search_projection_versions','search_generations','search_generation_delivery',
-                 'search_index_state','search_jobs','search_settings')
-                """).query(Long.class).single()).isEqualTo(6L);
+                 'search_index_state','search_jobs','search_settings','search_generation_collections')
+                """).query(Long.class).single()).isEqualTo(7L);
         assertThat(businessTables.stream().map(table -> snapshot(jdbc, table)).toList())
                 .isEqualTo(before);
         assertThat(jdbc.sql("select initialized from search_index_state where id=1")
@@ -99,16 +99,16 @@ class SearchIndexManagementMigrationTest {
                 """).update()).isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> jdbc.sql("""
                 insert into search_projection_versions(entity_type,entity_id,revision)
-                values ('TASK',0,1)
+                values ('ms.tasks',0,1)
                 """).update()).isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> jdbc.sql("""
                 insert into search_projection_versions(entity_type,entity_id,revision)
-                values ('TASK',1,0)
+                values ('ms.tasks',1,0)
                 """).update()).isInstanceOf(DataIntegrityViolationException.class);
 
         jdbc.sql("""
                 insert into search_projection_versions(entity_type,entity_id,revision)
-                values ('TASK',:taskId,1),('PROJECT',:projectId,1),('USER',:userId,1)
+                values ('ms.tasks',:taskId,1),('ms.projects',:projectId,1),('md.users',:userId,1)
                 """)
                 .param("taskId", taskId)
                 .param("projectId", projectId)
@@ -116,14 +116,27 @@ class SearchIndexManagementMigrationTest {
                 .update();
         UUID generationId = UUID.randomUUID();
         jdbc.sql("""
-                insert into search_generations(
-                  id,state,task_collection,project_collection,user_collection,
-                  schema_version,schema_profile,settings_version)
-                values (:id,'BUILDING','tasks_v1','projects_v1','users_v1',0,'MIXED',1)
+                insert into search_generations(id,state,schema_version,schema_profile,settings_version)
+                values (:id,'BUILDING',0,'MIXED',1)
                 """).param("id", generationId).update();
+        // A collection per entity of a generation, each name once (ADR-0032, 10.3).
+        jdbc.sql("""
+                insert into search_generation_collections(generation_id,entity_type,collection)
+                values (:id,'ms.tasks','tasks_v1'),(:id,'md.users','users_v1')
+                """).param("id", generationId).update();
+        assertThatThrownBy(() -> jdbc.sql("""
+                insert into search_generation_collections(generation_id,entity_type,collection)
+                values (:id,'ms.projects','tasks_v1')
+                """).param("id", generationId).update())
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.sql("""
+                insert into search_generation_collections(generation_id,entity_type,collection)
+                values (:id,'TASK','projects_v1')
+                """).param("id", generationId).update())
+                .isInstanceOf(DataIntegrityViolationException.class);
         jdbc.sql("""
                 insert into search_generation_delivery(generation_id,entity_type,entity_id)
-                values (:generationId,'TASK',:taskId)
+                values (:generationId,'ms.tasks',:taskId)
                 """)
                 .param("generationId", generationId)
                 .param("taskId", taskId)

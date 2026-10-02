@@ -16,33 +16,51 @@ describe('Reliable search through the real HTTP adapter and template', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: Router, useValue: { navigate: vi.fn().mockResolvedValue(true) } },
+        { provide: Router, useValue: { navigateByUrl: vi.fn().mockResolvedValue(true) } },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(CommandPaletteComponent);
     TestBed.inject(CommandPaletteService).open();
     fixture.detectChanges();
-    return { fixture, component: fixture.componentInstance, http: TestBed.inject(HttpTestingController) };
+    const http = TestBed.inject(HttpTestingController);
+    // The categories are the entities the person may search, read each time the palette opens (ADR-0032, 10.3).
+    http
+      .expectOne((req) => req.url === '/api/v1/search/entities')
+      .flush([
+        { code: 'ms.tasks', labelKey: 'nav.tasks', icon: null, fields: [] },
+        { code: 'ms.projects', labelKey: 'nav.projects', icon: 'folder', fields: [] },
+        { code: 'md.users', labelKey: 'nav.users', icon: 'people', fields: [] },
+      ]);
+    fixture.detectChanges();
+    return { fixture, component: fixture.componentInstance, http };
   }
 
-  it('opens the exact typed bigint ID instead of a dependency supplied URL', async () => {
+  it('opens the internal record path the server names, never a dependency supplied URL', async () => {
     const { component } = await setup();
     component.navigateTo({
-      entityType: 'TASK',
+      entityType: 'ms.tasks',
       id: '9223372036854775807',
       title: 'x',
       description: '',
       targetUrl: 'https://invalid.test',
     });
-    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/tasks/items', '9223372036854775807']);
+    expect(TestBed.inject(Router).navigateByUrl).not.toHaveBeenCalled();
+    component.navigateTo({
+      entityType: 'ms.tasks',
+      id: '9223372036854775807',
+      title: 'x',
+      description: '',
+      targetUrl: '/tasks/items/9223372036854775807',
+    });
+    expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/tasks/items/9223372036854775807');
   });
 
   it.each(['../1', '0', '01', '-1', '9223372036854775808', '1?x', '1.0'])(
     'rejects invalid record ID %s',
     async (id) => {
       const { component } = await setup();
-      component.navigateTo({ entityType: 'USER', id, title: 'x', description: '', targetUrl: '/iam/users/1' });
-      expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
+      component.navigateTo({ entityType: 'md.users', id, title: 'x', description: '', targetUrl: `/e/md.users/${id}` });
+      expect(TestBed.inject(Router).navigateByUrl).not.toHaveBeenCalled();
     },
   );
 
@@ -144,16 +162,21 @@ describe('Reliable search through the real HTTP adapter and template', () => {
       fixture.nativeElement.querySelectorAll('.category-pills [role="tab"]'),
     ) as HTMLButtonElement[];
     expect(fixture.nativeElement.querySelector('.category-pills').getAttribute('aria-label')).toBeTruthy();
-    expect(pills.map((pill) => pill.getAttribute('data-category'))).toEqual(['ALL', 'TASK', 'PROJECT', 'USER', 'NOTE']);
-    pills.find((pill) => pill.getAttribute('data-category') === 'PROJECT')!.click();
+    expect(pills.map((pill) => pill.getAttribute('data-category'))).toEqual([
+      'ALL',
+      'ms.tasks',
+      'ms.projects',
+      'md.users',
+    ]);
+    pills.find((pill) => pill.getAttribute('data-category') === 'ms.projects')!.click();
     fixture.detectChanges();
-    expect(pills.find((pill) => pill.getAttribute('data-category') === 'PROJECT')!.getAttribute('aria-selected')).toBe(
-      'true',
-    );
+    expect(
+      pills.find((pill) => pill.getAttribute('data-category') === 'ms.projects')!.getAttribute('aria-selected'),
+    ).toBe('true');
     expect(old.cancelled).toBe(true);
     await vi.advanceTimersByTimeAsync(120);
     const request = http.expectOne((req) => req.url === '/api/v1/search');
-    expect(request.request.params.get('entity')).toBe('PROJECT');
+    expect(request.request.params.get('entity')).toBe('ms.projects');
     request.flush({
       query: 'report',
       totalHits: 1,
@@ -163,7 +186,7 @@ describe('Reliable search through the real HTTP adapter and template', () => {
       degraded: false,
       hits: [
         {
-          entityType: 'PROJECT',
+          entityType: 'ms.projects',
           id: '42',
           title: 'Report',
           description: '<img src=x onerror=alert(1)>plain snippet',
@@ -228,6 +251,8 @@ describe('Reliable search through the real HTTP adapter and template', () => {
     fixture.detectChanges();
     component.paletteService.open();
     fixture.detectChanges();
+    // Reopened, the palette reads the categories again.
+    http.expectOne((req) => req.url === '/api/v1/search/entities').flush([]);
     component.searchQuery.set('new');
     component.onSearchChange('new');
     await vi.advanceTimersByTimeAsync(120);

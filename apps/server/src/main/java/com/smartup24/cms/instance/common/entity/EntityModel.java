@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.entity.field.FieldSource;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.entity.hook.EntityRule;
 import com.smartup24.cms.instance.common.entity.importing.EntityImportSpec;
+import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
 import com.smartup24.cms.instance.common.entity.workflow.EntityWorkflow;
 import com.smartup24.cms.instance.common.query.QueryField;
 import java.util.Collections;
@@ -26,7 +27,8 @@ import org.jspecify.annotations.Nullable;
  * ({@link #formFields()}) and its list ({@link EntityLists#queryList}) are derived from it. Its scope says which rows a
  * viewer sees (ADR-0032, 5.1; plan 10/10, item 5.3); its rules check fields against each other (ADR-0032, 6.6; plan
  * 10/10, item 5.4). A document has collections of rows, a process and the tabs of its card (ADR-0032, 9; plan 10/10,
- * item 5.7). Its records are imported by the key of its import (ADR-0032, 10.1; plan 10/10, item 5.8).
+ * item 5.7). Its records are imported by the key of its import (ADR-0032, 10.1; plan 10/10, item 5.8). Its
+ * search spec says what the global search finds of it (ADR-0032, 10.3; plan 10/10, item 5.8).
  *
  * @param table             the entity's table ({@code ms_notes})
  * @param alias             its alias in the list's SQL ({@code n})
@@ -40,6 +42,7 @@ import org.jspecify.annotations.Nullable;
  * @param workflow          its process (ADR-0032, 9.2), or null
  * @param tabs              the tabs of its card, in order (ADR-0032, 9.3); empty for the platform's own tabs
  * @param importing         how its records are imported (ADR-0032, 10.1), or null when they are not
+ * @param search            the fields of its search documents (ADR-0032, 10.3), or null when the search does not find it
  */
 public record EntityModel(
         String table,
@@ -53,7 +56,8 @@ public record EntityModel(
         List<EntityCollection> collections,
         @Nullable EntityWorkflow workflow,
         List<EntityTab> tabs,
-        @Nullable EntityImportSpec importing) {
+        @Nullable EntityImportSpec importing,
+        @Nullable EntitySearchSpec search) {
 
     /** The record property of the custom field values. */
     public static final String ATTRIBUTES = "attributes";
@@ -98,6 +102,9 @@ public record EntityModel(
         }
         EntityModelRules.checkDocument(table, fields, collections, workflow, tabs);
         if (importing != null) importing.check(table, fields);
+        if (search != null) {
+            search.check(table, fields, scope);
+        }
     }
 
     /** A model of an entity without collections, process or tabs of its own. */
@@ -122,6 +129,7 @@ public record EntityModel(
                 List.of(),
                 null,
                 List.of(),
+                null,
                 null);
     }
 

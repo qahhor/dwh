@@ -217,17 +217,12 @@ public class SearchJobService {
     }
 
     /** Startup is a system-owned request, not a fabricated request principal. */
-    public void initialize(UUID owner, boolean legacy) {
+    public void initialize(UUID owner) {
         if (state.snapshot().initialized()) return;
-        if (!legacy) storage.requireSpace();
+        storage.requireSpace();
         transaction.executeWithoutResult(tx -> {
             jobs.lockState();
             if (!state.owns(owner) || state.snapshot().initialized() || jobs.anyJobExists()) return;
-            if (legacy) {
-                generations.requireCapacity();
-                state.registerLegacy(owner);
-                return;
-            }
             UUID generation = jobs.initialBuilding().orElseGet(generations::allocate);
             insert(new StartJobRequest(UUID.randomUUID(), "REBUILD", null), generation, null, null);
             metricAfterCommit("REBUILD", "QUEUED", null);

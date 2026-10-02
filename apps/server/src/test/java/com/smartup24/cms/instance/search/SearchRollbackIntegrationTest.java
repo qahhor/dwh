@@ -53,11 +53,11 @@ class SearchRollbackIntegrationTest extends SearchDeliveryTestSupport {
                     .param("id", deleted)
                     .update();
             jdbc.sql("delete from ms_tasks where id=:id").param("id", deleted).update();
-            publisher.changed("TASK", deleted);
+            publisher.changed(SearchTestEntities.TASKS, deleted);
             jdbc.sql("update md_users set state='P' where id=:id")
                     .param("id", excluded)
                     .update();
-            publisher.changed("USER", excluded);
+            publisher.changed(SearchTestEntities.USERS, excluded);
         });
         worker.runOnce();
         UUID rollback = jobService
@@ -67,15 +67,17 @@ class SearchRollbackIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(state.snapshot().generationId()).isEqualTo(original);
         var rows = new ArrayList<TypesenseDocumentStream.DocumentMetadata>();
         client.documents()
-                .forEachDocumentMetadata(state.snapshot().collections().get("TASK"), rows::add);
+                .forEachDocumentMetadata(state.snapshot().collections().get(SearchTestEntities.TASKS), rows::add);
         assertThat(rows).isEmpty();
         client.documents()
-                .forEachDocumentMetadata(state.snapshot().collections().get("USER"), rows::add);
+                .forEachDocumentMetadata(state.snapshot().collections().get(SearchTestEntities.USERS), rows::add);
         assertThat(rows)
                 .extracting(TypesenseDocumentStream.DocumentMetadata::id)
                 .containsExactly(Long.toString(reporter));
         assertThat(rows.getFirst().contentFingerprint())
-                .isEqualTo(reader.read("USER", reporter).orElseThrow().fingerprint());
+                .isEqualTo(reader.read(SearchTestEntities.USERS, reporter)
+                        .orElseThrow()
+                        .fingerprint());
     }
 
     private void complete(UUID job) {

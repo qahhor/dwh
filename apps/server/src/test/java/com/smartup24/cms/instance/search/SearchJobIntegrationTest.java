@@ -77,11 +77,19 @@ class SearchJobIntegrationTest extends SearchSettingsIntegrationTestSupport {
                         .query(UUID.class)
                         .single())
                 .isEqualTo(active);
-        assertThat(jdbc.sql("select task_collection from search_generations where id=:id")
+        // One collection per entity with the SEARCH capability, named after its code (ADR-0032, 10.3).
+        assertThat(jdbc.sql("select collection from search_generation_collections where generation_id=:id"
+                                + " and entity_type='ms.tasks'")
                         .param("id", candidate)
                         .query(String.class)
                         .single())
-                .isEqualTo("cms_" + candidate.toString().replace("-", "") + "_tasks");
+                .isEqualTo("cms_" + candidate.toString().replace("-", "") + "_entity_ms_tasks");
+        assertThat(jdbc.sql("select entity_type from search_generation_collections where generation_id=:id"
+                                + " order by entity_type")
+                        .param("id", candidate)
+                        .query(String.class)
+                        .list())
+                .containsExactly("example.orders", "md.users", "ms.notes", "ms.projects", "ms.tasks");
         mvc.perform(auth(put("/api/v1/search/settings"))
                         .content(saveJson(readSettings().path("version").asLong(), SearchQueryPolicy.defaults())))
                 .andExpect(status().isOk());

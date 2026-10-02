@@ -15,6 +15,7 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
 import com.smartup24.cms.instance.common.entity.EntityScope;
 import com.smartup24.cms.instance.common.entity.field.FieldDefault;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
 import java.util.List;
 import java.util.Map;
 import org.springframework.context.annotation.Bean;
@@ -86,6 +87,8 @@ public class MsNoteEntity {
             .actions("create", "update")
             .archivable()
             .actions("delete")
+            // Found by the global search, its owner's alone like every read of a note (ADR-0013, 2.5; ADR-0032, 10.3).
+            .search(EntitySearchSpec.title("title").body("contentMd"))
             .defaultSort("rank", Entity.Sort.DESC)
             .customFields("NOTE")
             .capabilities(

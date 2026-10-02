@@ -3,7 +3,6 @@ package com.smartup24.cms.instance.ms.task.service;
 import com.smartup24.cms.instance.common.entity.hook.EntityActionCall;
 import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
-import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
@@ -16,7 +15,7 @@ import org.springframework.stereotype.Component;
  * /api/v1/entities/ms.tasks/{id}/actions/set_status {"status": "done"}} with If-Match. The status is a status in use of
  * {@code ms.task_statuses}; a terminal one resolves the task now, another one reopens it. The kanban moves a card with
  * it, and a bulk action runs it over many tasks. The runtime writes, audits and publishes the change; the task's hooks
- * tell the participants and index the task again ({@link MsTaskHooks}).
+ * tell the participants ({@link MsTaskHooks}), the search indexes the task from the change event.
  */
 @Component
 public class MsTaskStatusAction implements EntityActionHandler {
@@ -25,17 +24,15 @@ public class MsTaskStatusAction implements EntityActionHandler {
     public static final String STATUS = "status";
 
     private final MsTaskStatusRepository statuses;
-    private final SearchChangePublisher search;
     private final Clock clock;
 
     @Autowired
-    public MsTaskStatusAction(MsTaskStatusRepository statuses, SearchChangePublisher search) {
-        this(statuses, search, Clock.systemUTC());
+    public MsTaskStatusAction(MsTaskStatusRepository statuses) {
+        this(statuses, Clock.systemUTC());
     }
 
-    public MsTaskStatusAction(MsTaskStatusRepository statuses, SearchChangePublisher search, Clock clock) {
+    public MsTaskStatusAction(MsTaskStatusRepository statuses, Clock clock) {
         this.statuses = statuses;
-        this.search = search;
         this.clock = clock;
     }
 
@@ -60,8 +57,6 @@ public class MsTaskStatusAction implements EntityActionHandler {
         }
         String next = status.get().code();
         if (next.equals(call.values().text("statusCode"))) return;
-        // A concurrent rename of the status re-indexes its tasks: the membership is taken before it moves.
-        search.lockStatusMembership(next);
         call.values().set("statusCode", next);
         call.values()
                 .set(

@@ -22,6 +22,7 @@ import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
 import com.smartup24.cms.instance.common.entity.field.FieldDefault;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.entity.hook.Rules;
+import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
 import com.smartup24.cms.instance.common.entity.workflow.EntityWorkflow;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import java.math.BigDecimal;
@@ -159,6 +160,8 @@ public class ExampleOrderEntity {
             .tab(EntityTab.collection(LINES, "example.orders.lines", LINES))
             .tab(EntityTab.history("history", "ui.entity_page.tab_history"))
             .importKey("number")
+            // Found by the global search in the org units of the viewer's scope (ADR-0013; ADR-0032, 10.3).
+            .search(EntitySearchSpec.title("number").body("customer", "comment"))
             .defaultSort("number", Entity.Sort.DESC)
             .capabilities(
                     EntityCapability.SAVED_VIEWS,

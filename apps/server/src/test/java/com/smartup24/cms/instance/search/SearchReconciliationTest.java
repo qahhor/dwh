@@ -56,11 +56,13 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
         activeGeneration();
         long missing = user("Missing"), tampered = user("Original");
         worker.runOnce();
-        documents.remove("users/" + missing);
-        var changed = new HashMap<String, Object>(documents.get("users/" + tampered));
+        documents.remove(collection(SearchTestEntities.USERS) + "/" + missing);
+        var changed = new HashMap<String, Object>(documents.get(collection(SearchTestEntities.USERS) + "/" + tampered));
         changed.put("name", "Tampered");
-        documents.put("users/" + tampered, changed);
-        documents.put("users/999999", Map.of("id", "999999", "user_id", 999999, "name", "Extra"));
+        documents.put(collection(SearchTestEntities.USERS) + "/" + tampered, changed);
+        documents.put(
+                collection(SearchTestEntities.USERS) + "/999999",
+                Map.of("id", "999999", "record_id", 999999, "name", "Extra"));
         var before = List.copyOf(writes);
         var reconciliation =
                 new SearchReconciliationService(database, reader, client.collections(), client.documents());
@@ -88,7 +90,7 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
             assertThat(proof.revisionsUnchanged()).isTrue();
             renameUser(id, "After");
             worker.runOnce();
-            assertThat(delivered("USER", id)).isEqualTo(2);
+            assertThat(delivered(SearchTestEntities.USERS, id)).isEqualTo(2);
             assertThat(proof.revisionsUnchanged()).isFalse();
         }
     }
@@ -99,10 +101,10 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
         long id = user("Before");
         worker.runOnce();
         renameUser(id, "After");
-        var changed = new HashMap<String, Object>(documents.get("users/" + id));
+        var changed = new HashMap<String, Object>(documents.get(collection(SearchTestEntities.USERS) + "/" + id));
         changed.remove("_projection_revision");
         changed.remove("_projection_fingerprint");
-        documents.put("users/" + id, changed);
+        documents.put(collection(SearchTestEntities.USERS) + "/" + id, changed);
         try (var proof = new SearchReconciliationService(database, reader, client.collections(), client.documents())
                 .begin(state.deliveryGeneration(owner).orElseThrow())) {
             finish(proof);

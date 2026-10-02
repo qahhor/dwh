@@ -41,7 +41,6 @@ export function validateSearchPolicy(
   for (const entity of entities) {
     const fields = policy.fields[entity] ?? [];
     if (fields.length === 0) {
-      if (entity === 'NOTE') continue;
       errors.push('settings.search.validation.searchable_field');
       continue;
     }
