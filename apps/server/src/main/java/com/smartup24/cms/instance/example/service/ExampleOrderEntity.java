@@ -38,7 +38,9 @@ import org.springframework.context.annotation.Configuration;
  * actions with a right each ({@code post}, {@code unpost}, {@code cancel}); a posted order keeps its customer, date,
  * currency, unit and lines, a cancelled one is only read. The general screen {@code /e/example.orders} draws the form
  * with the lines, the card with its tabs and the buttons of the transitions from {@code form-meta} and the record's
- * {@code actions}.
+ * {@code actions}. Orders are imported from an xlsx file by their number ({@code IMPORT}, ADR-0032, 10.1): a row with
+ * the number of an order in the importer's scope changes its header, any other row creates a draft; the lines are not
+ * columns of the template.
  *
  * <p>No accumulation registers: posting moves the status, and a module that keeps balances does it in a hook of the
  * transition (ADR-0032, 19, question 2). An order is in the org unit of its author by default (ADR-0013).
@@ -74,7 +76,8 @@ public class ExampleOrderEntity {
                             "update", "example.orders.rights.update",
                             "post", "example.orders.rights.post",
                             "unpost", "example.orders.rights.unpost",
-                            "cancel", "example.orders.rights.cancel"))
+                            "cancel", "example.orders.rights.cancel",
+                            "import", "example.orders.rights.import"))
             .menu(new EntityMenu("nav.example_orders", "receipt_long", "workspace", 90, "example"))
             .field(text("number", "example.orders.col.number")
                     .column("number")
@@ -155,6 +158,7 @@ public class ExampleOrderEntity {
             .tab(EntityTab.sections("main", "ui.entity_page.tab_fields", "main", "settings"))
             .tab(EntityTab.collection(LINES, "example.orders.lines", LINES))
             .tab(EntityTab.history("history", "ui.entity_page.tab_history"))
+            .importKey("number")
             .defaultSort("number", Entity.Sort.DESC)
             .capabilities(
                     EntityCapability.SAVED_VIEWS,

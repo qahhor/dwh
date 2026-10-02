@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.field.EntityField;
@@ -81,6 +82,9 @@ public class MdFormCatalogSynchronizer {
         for (EntityDefinition entity : entities) {
             pairs.add(entity.form() + ".view");
             entity.actions().forEach(action -> pairs.add(entity.form() + "." + action.permission()));
+            if (entity.capabilities().contains(EntityCapability.IMPORT)) {
+                pairs.add(entity.form() + "." + EntityDefinition.IMPORT);
+            }
             EntityModel model = entity.model();
             if (model == null) continue;
             for (EntityField field : model.fields()) {

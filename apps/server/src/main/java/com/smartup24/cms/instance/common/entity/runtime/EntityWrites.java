@@ -37,6 +37,9 @@ import tools.jackson.databind.JsonNode;
 @Component
 public class EntityWrites {
 
+    /** The action the audit row of an imported save names (ADR-0032, 19, question 7: the source of the change). */
+    public static final String IMPORT_SOURCE = "import";
+
     private final EntityReads reads;
     private final EntityStoreRepository store;
     private final EntityFieldValues fieldValues;
@@ -73,9 +76,18 @@ public class EntityWrites {
             EntityLines.Prepared rows) {}
 
     Map<String, Object> create(EntityDefinition entity, @Nullable JsonNode body) {
+        return create(entity, body, false);
+    }
+
+    /**
+     * Creates a record; a row of an import (ADR-0032, 10.1) runs the same steps, its hooks see {@code imported()} and
+     * its audit row names the import as its source.
+     */
+    Map<String, Object> create(EntityDefinition entity, @Nullable JsonNode body, boolean imported) {
         long user = EntityReads.userId();
         Prepared prepared = prepare(entity, EntityRequestReader.read(entity, body), null, null, user);
         RuntimeSave save = save(entity, EntityOperation.CREATE, null, null, prepared.record(), null, Map.of());
+        if (imported) save.asImported();
         changes.beforeSave(save);
         EntityWrite write = EntityWrite.of(entity, written(entity, prepared, save), store.json(entity));
         long id = store.insert(entity, write, prepared.attributes(), user);
@@ -83,18 +95,34 @@ public class EntityWrites {
         lines.write(entity, id, prepared.rows());
         save.written(id);
         Map<String, Object> after = reads.visible(entity, id, false);
-        List<String> changed = changes.audit(entity, id, "I", null, after, null);
+        List<String> changed = changes.audit(entity, id, "I", null, after, source(imported));
         changes.afterSave(save);
         events.changed(entity, id, EntityReads.revision(after), EntityEventType.CREATED, null, changed, user);
         return reads.visible(entity, id, false);
     }
 
     Map<String, Object> update(EntityDefinition entity, long id, long expected, @Nullable JsonNode body) {
-        long user = EntityReads.userId();
         Map<String, Object> before = reads.visible(entity, id, true);
         requireRevision(before, expected);
+        return update(entity, id, before, body, false);
+    }
+
+    /**
+     * Changes a record from the revision it has now, as a row of an import (ADR-0032, 10.1): without If-Match — the
+     * last write wins (ADR-0032, 19, question 7: the proposed default, taken as an assumption) — and audited with the
+     * import as its source.
+     */
+    Map<String, Object> importUpdate(EntityDefinition entity, long id, @Nullable JsonNode body) {
+        return update(entity, id, reads.visible(entity, id, true), body, true);
+    }
+
+    private Map<String, Object> update(
+            EntityDefinition entity, long id, Map<String, Object> before, @Nullable JsonNode body, boolean imported) {
+        long user = EntityReads.userId();
+        long expected = EntityReads.revision(before);
         Prepared prepared = prepare(entity, EntityRequestReader.read(entity, body), before, id, user);
         RuntimeSave save = save(entity, EntityOperation.UPDATE, id, before, prepared.record(), null, Map.of());
+        if (imported) save.asImported();
         changes.beforeSave(save);
         EntityWrite write = EntityWrite.of(entity, written(entity, prepared, save), store.json(entity));
         if (store.update(entity, id, expected, write, prepared.attributes(), user)
@@ -104,10 +132,15 @@ public class EntityWrites {
         changes.writeExtras(entity, id, write);
         lines.write(entity, id, prepared.rows());
         Map<String, Object> after = reads.visible(entity, id, false);
-        List<String> changed = changes.audit(entity, id, "U", before, after, null);
+        List<String> changed = changes.audit(entity, id, "U", before, after, source(imported));
         changes.afterSave(save);
         events.changed(entity, id, EntityReads.revision(after), EntityEventType.UPDATED, null, changed, user);
         return reads.visible(entity, id, false);
+    }
+
+    /** What the audit row of a save names as its action: the import for a row of one, nothing otherwise. */
+    private static @Nullable String source(boolean imported) {
+        return imported ? IMPORT_SOURCE : null;
     }
 
     /** Deletes the record; with a revision only from it (ADR-0032, 5.3), without one from whatever it is. */

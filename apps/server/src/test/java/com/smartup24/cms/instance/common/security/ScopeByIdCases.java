@@ -249,6 +249,12 @@ final class ScopeByIdCases {
             Map.entry(
                     "MsNotificationController#markAsRead", "the caller's own notification; another id changes nothing"),
             Map.entry("ReportExportController#file", "the caller's own export; another id answers 404"),
+            Map.entry("ReportImportController#template", "an entity code: the template holds no record"),
+            Map.entry(
+                    "ReportImportController#start",
+                    "an entity code: each row is a save in the importer's scope (the kit's import group)"),
+            Map.entry("ReportImportController#get", "the caller's own import; another id answers 404"),
+            Map.entry("ReportImportController#report", "the caller's own import; another id answers 404"),
             Map.entry("SearchManagementController#job", "a search index job, administrator only, instance-wide"),
             Map.entry("SearchManagementController#cancel", "a search index job, administrator only, instance-wide"),
             Map.entry("SearchManagementController#retry", "a search index job, administrator only, instance-wide"),

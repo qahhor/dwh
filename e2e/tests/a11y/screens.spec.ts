@@ -176,6 +176,17 @@ const screens: Screen[] = [
       await expect(page.getByRole('link', { name: 'ORD-000006', exact: true })).toBeVisible();
     },
   },
+  // ADR-0032 10.1: the import dialog of the general list.
+  {
+    name: 'document import dialog',
+    path: '/e/example.orders',
+    open: async page => {
+      await page.getByTestId('entity-import').click();
+      const dialog = page.getByRole('dialog', { name: 'Импорт из файла' });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('button', { name: 'Проверить' })).toBeDisabled();
+    },
+  },
   {
     name: 'document form with its lines',
     path: '/e/example.orders/1/edit',

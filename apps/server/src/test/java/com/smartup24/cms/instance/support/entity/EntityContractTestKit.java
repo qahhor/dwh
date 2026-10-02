@@ -37,6 +37,8 @@ import org.springframework.web.context.WebApplicationContext;
  *   <li>validation: every rule of every written field refuses its invalid value with 422 on the field;
  *   <li>audit: every declared field reaches the history with its label;
  *   <li>export: the export holds the rows of the viewer's list and only the columns the viewer may see;
+ *   <li>import: the template follows the importer's rights, a dry run writes nothing, a row creates a record or changes
+ *       the one its key names in the importer's scope, an invalid row is reported at {@code rows[n].field};
  *   <li>collections and process: a document reads back its rows, a row's mistake is addressed {@code lines[i].field},
  *       a row of another record and too many rows are refused, a change of the rows raises the revision once; a
  *       transition from a state it does not leave is 422 {@code entity_transition_not_allowed}, without its right
@@ -106,6 +108,7 @@ public abstract class EntityContractTestKit extends EmbeddedPostgresTest {
                         group("audit (ADR-0017)", data::audit),
                         group("export (ADR-0018)", new KitExportChecks(world)::export),
                         group("events (ADR-0032, 6.9)", new KitEventChecks(world)::events),
+                        group("import (ADR-0032, 10.1)", new KitImportChecks(world)::imports),
                         group("collections and process (ADR-0032, 9)", () -> document(world, collections)))
                 .flatMap(Stream::ofNullable);
     }

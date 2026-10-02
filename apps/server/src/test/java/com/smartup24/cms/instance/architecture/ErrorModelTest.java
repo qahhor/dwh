@@ -37,7 +37,11 @@ class ErrorModelTest {
             "com.smartup24.cms.instance.warehouse.raw.JdbcRawWriter$CopyFailed",
             "carries a server refusal out of the COPY callback and is unwrapped by the writer itself",
             "com.smartup24.cms.instance.jobs.api.JobNotRetryableException",
-            "ends a queued job, never a request: the job runner records it and marks the job failed at once");
+            "ends a queued job, never a request: the job runner records it and marks the job failed at once",
+            "com.smartup24.cms.instance.report.imports.ImportFailure",
+            "ends an import job, never a request: the job records its code in the import's journal row",
+            "com.smartup24.cms.instance.report.imports.ImportFile$Unreadable",
+            "a file the import job cannot read, caught by the job and recorded as IMPORT_UNREADABLE");
 
     /**
      * Exceptions of modules not yet moved to the model. Empty since the fnd hierarchy joined it; kept so a temporary

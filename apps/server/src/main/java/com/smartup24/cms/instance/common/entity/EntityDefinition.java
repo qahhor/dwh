@@ -145,6 +145,12 @@ public record EntityDefinition(
     /** The action that archives and restores a record (ADR-0032, 5.4). */
     public static final String ARCHIVE = "archive";
 
+    /**
+     * The right's action an import needs (ADR-0032, 10.1 and 6.10): not an action on a record, so it is in no record's
+     * {@code actions}; {@code form-meta} names it when the entity declares IMPORT and the viewer holds it.
+     */
+    public static final String IMPORT = "import";
+
     public EntityDefinition {
         Objects.requireNonNull(code, "code");
         Objects.requireNonNull(form, "form");
