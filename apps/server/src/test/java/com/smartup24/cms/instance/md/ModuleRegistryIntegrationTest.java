@@ -104,6 +104,43 @@ class ModuleRegistryIntegrationTest {
     }
 
     @Test
+    @DisplayName("3.6: a new code of the API smoke registers without a revision; with one it is a replace, 404")
+    void newSmokeCodeRegistersWithoutRevision() {
+        String code = "smoke_module_123";
+        Map<String, Object> noAttributes = Map.of();
+        assertThatThrownBy(() -> moduleService.putModule(
+                        code,
+                        "Smoke Test Module",
+                        null,
+                        "1.0.0",
+                        "extension",
+                        "/custom/" + code,
+                        900,
+                        noAttributes,
+                        1L))
+                .as("a revision left over from another record makes it a replace of a module that does not exist")
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+
+        var registered = moduleService.putModule(
+                code,
+                "Smoke Test Module",
+                "Registered by the nightly API smoke",
+                "1.0.0",
+                "extension",
+                "/custom/" + code,
+                900,
+                noAttributes,
+                null);
+
+        assertThat(registered.code()).isEqualTo(code);
+        assertThat(registered.revision()).isEqualTo(1L);
+        assertThat(registered.route()).isEqualTo("/custom/" + code);
+        assertThat(moduleService.getModule(code))
+                .hasValueSatisfying(found -> assertThat(found.attributes()).isEmpty());
+    }
+
+    @Test
     @DisplayName("3.6: PUT registers a new module; a replace names its revision: 428 without, 409 from an older one")
     void putModuleReplacesFromItsRevision() {
         var created = moduleService.putModule(
