@@ -80,7 +80,7 @@ test('a report of the orders is built, saved as a widget and shown on the dashbo
     expect(report.rows.some(row => row.groups[0] === 'draft' && row.groups[1] === 'UZS')).toBe(true);
 
     await expect(page.getByTestId('report-chart')).toBeVisible();
-    const table = page.getByRole('table', { name: 'Отчёт: Заказы (эталон)' });
+    const table = page.getByRole('table', { name: 'Отчёт: Заказы (эталон)', exact: true });
     await expect(table.getByRole('columnheader', { name: 'Статус' })).toBeVisible();
     await expect(table.getByRole('columnheader', { name: 'Валюта' })).toBeVisible();
     await expect(table.getByRole('rowheader', { name: 'Черновик' }).first()).toBeVisible();

@@ -47,7 +47,7 @@ interface ReportColumn {
             data-testid="report-chart"
             [series]="series()"
             [points]="points()"
-            [caption]="caption()"
+            [caption]="chartCaption()"
             [axisLabel]="axisLabel()"
           />
         }
@@ -161,6 +161,9 @@ export class SMTEntityReportComponent {
 
   /** The groups the person chose, without the currency the platform adds to money. */
   readonly groupCount = computed(() => (this.result()?.groups ?? []).length);
+
+  /** The chart's own name, apart from the table's: a screen reader meets two tables with the same figures. */
+  readonly chartCaption = computed(() => `${this.caption()} — ${this.i18n.translate('ui.report.chart_bar')}`);
 
   readonly showKpi = computed(() => this.chart() === 'kpi' || this.chosenGroups().length === 0);
 

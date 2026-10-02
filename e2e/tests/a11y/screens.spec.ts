@@ -207,7 +207,7 @@ const screens: Screen[] = [
       await page.getByTestId('entity-mode').getByRole('radio', { name: 'Отчёт' }).click();
       await chooseOption(page.getByLabel('Группировать по'), 'status');
       await expect(page.getByTestId('report-chart')).toBeVisible();
-      await expect(page.getByRole('table', { name: 'Отчёт: Заказы (эталон)' })).toBeVisible();
+      await expect(page.getByRole('table', { name: 'Отчёт: Заказы (эталон)', exact: true })).toBeVisible();
     },
   },
   {
