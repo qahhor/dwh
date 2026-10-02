@@ -11,6 +11,7 @@ import {
   SearchSettingsSnapshot,
   SearchStartJobRequest,
 } from '../models/search-management.models';
+import { SearchCategory } from '../models/search.models';
 import { ApiService } from './api.service';
 
 @Injectable({ providedIn: 'root' })
@@ -20,6 +21,11 @@ export class SearchManagementService {
 
   status(): Observable<SearchManagementStatus> {
     return this.api.get('/search/status', undefined, this.localErrors);
+  }
+
+  /** The entities the administrator may search, with the names of their searched fields (ADR-0032, 10.3). */
+  categories(): Observable<SearchCategory[]> {
+    return this.api.get('/search/entities', undefined, this.localErrors);
   }
 
   settings(): Observable<SearchSettingsSnapshot> {

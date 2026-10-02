@@ -45,7 +45,7 @@ public class SearchController {
             description = "The entities the caller may search, each with the dictionary key of its name and its icon.")
     @GetMapping("/entities")
     @RequiresPermission(form = SearchPref.FORM_SEARCH, action = "view")
-    public List<SearchService.SearchCategory> categories() {
+    public List<SearchService.SearchCategory> searchCategories() {
         return searchService.categories();
     }
 }

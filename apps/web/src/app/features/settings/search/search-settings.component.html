@@ -179,12 +179,12 @@
           <div class="field-groups">
             @for (entity of displayedEntities; track entity) {
               <div class="field-group">
-                <h4>{{ 'settings.search.entity.' + entity.toLowerCase() | t }}</h4>
+                <h4>{{ entityLabel(entity) }}</h4>
                 <div
                   class="field-grid-scroll"
                   role="region"
                   tabindex="0"
-                  [attr.aria-label]="'settings.search.fields.scroll_label' | t: { entity: entity }"
+                  [attr.aria-label]="'settings.search.fields.scroll_label' | t: { entity: entityLabel(entity) }"
                 >
                   <div class="field-grid field-grid-head" aria-hidden="true">
                     <span>{{ 'settings.search.fields.field' | t }}</span
@@ -195,7 +195,7 @@
                   @for (field of store.fields(entity); track trackField(i, field); let i = $index) {
                     <div class="field-grid">
                       <span class="field-name" [id]="'search-field-' + entity + '-' + i">{{
-                        'settings.search.field.' + field.field | t
+                        fieldLabel(entity, field.field)
                       }}</span>
                       <label
                         ><span class="sr-only">{{ 'settings.search.fields.weight' | t }}</span
@@ -225,9 +225,7 @@
                         <div
                           smt-checkbox
                           smtHideLabel
-                          [smtAriaLabel]="
-                            ('settings.search.fields.prefix' | t) + ': ' + ('settings.search.field.' + field.field | t)
-                          "
+                          [smtAriaLabel]="('settings.search.fields.prefix' | t) + ': ' + fieldLabel(entity, field.field)"
                           [checked]="field.prefix"
                           (checkedChange)="store.updateFieldPrefix(entity, i, $event)"
                         ></div>
@@ -669,11 +667,7 @@
 <ng-template #generationDocumentsCell let-generation>
   <span class="cell-stack"
     >{{ displayNumber(generation.documentCount)
-    }}<small
-      >TASK {{ displayNumber(generation.entityDocumentCounts.TASK) }} · PROJECT
-      {{ displayNumber(generation.entityDocumentCounts.PROJECT) }} · USER
-      {{ displayNumber(generation.entityDocumentCounts.USER) }}</small
-    ></span
+    }}<small>{{ documentCounts(generation) }}</small></span
   >
 </ng-template>
 <ng-template #generationQueueCell let-generation

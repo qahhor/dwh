@@ -23,9 +23,9 @@ const policy: SearchQueryPolicy = {
   burst: 20,
   schemaProfile: 'MIXED',
   fields: {
-    TASK: [{ field: 'title', weight: 10, numTypos: 2, prefix: true }],
-    PROJECT: [{ field: 'name', weight: 10, numTypos: 2, prefix: true }],
-    USER: [{ field: 'name', weight: 10, numTypos: 2, prefix: true }],
+    'ms.tasks': [{ field: 'title', weight: 10, numTypos: 2, prefix: true }],
+    'ms.projects': [{ field: 'name', weight: 10, numTypos: 2, prefix: true }],
+    'md.users': [{ field: 'name', weight: 10, numTypos: 2, prefix: true }],
   },
 };
 
@@ -67,6 +67,7 @@ function problem(detail: string, status = 503): ProblemDetail {
 function setup(overrides: Partial<Record<keyof SearchManagementService, unknown>> = {}) {
   const management = {
     status: vi.fn(() => of(structuredClone(status))),
+    categories: vi.fn(() => of([])),
     settings: vi.fn(() => of({ version: 7, policy: structuredClone(policy) } satisfies SearchSettingsSnapshot)),
     save: vi.fn(() => new Subject<SearchSettingsSnapshot>()),
     startJob: vi.fn(() => of({ id: 'job-1', state: 'QUEUED' })),

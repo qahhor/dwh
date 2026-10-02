@@ -18,7 +18,8 @@ test.beforeEach(async ({ baseURL }) => {
   }
 });
 
-type Category = 'TASK' | 'PROJECT' | 'USER';
+// An indexed entity, named by its code (ADR-0032 10.3).
+type Category = 'ms.tasks' | 'ms.projects' | 'md.users' | 'ms.notes';
 type SearchResponse = {
   source: 'TYPESENSE' | 'POSTGRES'; degraded: boolean;
   hits: Array<{ id: string; entityType: Category; title: string }>;
@@ -127,10 +128,14 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
   // The user is an entity of the general runtime (ADR-0032 8): created without a password, invited by mail.
   const user = await api<{ id: number }>(page, 'POST', '/entities/md.users', 201,
     { name: `${marker} user`, login, email: `${login}@example.invalid`, language: 'ru', timezone: 'Asia/Tashkent' });
+  // A note is found by its owner only (ADR-0013 2.5): the signed-in person writes it here.
+  const note = await api<{ id: number }>(page, 'POST', '/entities/ms.notes', 201,
+    { title: `${marker} note`, contentMd: 'Synthetic search note' });
   const records = [
-    { category: 'TASK' as const, id: String(task.id), endpoint: `/entities/ms.tasks/${task.id}`, route: `/tasks/items/${task.id}`, name: 'task', field: 'title' },
-    { category: 'PROJECT' as const, id: String(project.id), endpoint: `/entities/ms.projects/${project.id}`, route: `/tasks/projects/${project.id}`, name: 'project', field: 'name' },
-    { category: 'USER' as const, id: String(user.id), endpoint: `/entities/md.users/${user.id}`, route: `/e/md.users/${user.id}`, name: 'user', field: 'name' },
+    { category: 'ms.tasks' as const, id: String(task.id), endpoint: `/entities/ms.tasks/${task.id}`, route: `/tasks/items/${task.id}`, name: 'task', field: 'title' },
+    { category: 'ms.projects' as const, id: String(project.id), endpoint: `/entities/ms.projects/${project.id}`, route: `/tasks/projects/${project.id}`, name: 'project', field: 'name' },
+    { category: 'md.users' as const, id: String(user.id), endpoint: `/entities/md.users/${user.id}`, route: `/e/md.users/${user.id}`, name: 'user', field: 'name' },
+    { category: 'ms.notes' as const, id: String(note.id), endpoint: `/entities/ms.notes/${note.id}`, route: `/e/ms.notes/${note.id}`, name: 'note', field: 'title' },
   ];
 
   for (const record of records) {
@@ -150,12 +155,12 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
     await hit.click();
     expect((await detailResponse).status()).toBe(200);
     await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));
-    // The user's record is the general entity screen: its heading names the record.
-    const detail = record.category === 'USER'
+    // A user and a note open on the general entity screen: its heading names the record.
+    const detail = record.category === 'md.users' || record.category === 'ms.notes'
       ? page.getByRole('heading', { level: 1 })
       : page.locator(`[data-record-id="${record.id}"]`);
     await expect(detail).toContainText(freshName);
-    if (record.category === 'PROJECT') await expect(page.locator('.project-edit-form')).toHaveCount(0);
+    if (record.category === 'ms.projects') await expect(page.locator('.project-edit-form')).toHaveCount(0);
     await page.reload();
     await expect(page).toHaveURL(new RegExp(`${record.route}$`, 'u'));
     await expect(detail).toContainText(freshName);
@@ -178,8 +183,8 @@ test('real indexed task/project/user hits open fresh exact records, survive relo
 
   await api(page, 'PUT', `/entities/ms.projects/${project.id}/archived`, 200, { archived: true });
   await api(page, 'POST', `/entities/md.users/${user.id}/actions/block`, 200, {});
-  await indexed(page, marker, 'PROJECT', String(project.id), false);
-  await indexed(page, marker, 'USER', String(user.id), false);
+  await indexed(page, marker, 'ms.projects', String(project.id), false);
+  await indexed(page, marker, 'md.users', String(user.id), false);
   // Passive search exclusion does not redefine the existing detail policy.
   expect((await api<{ archived: boolean }>(page, 'GET', `/entities/ms.projects/${project.id}`, 200)).archived).toBe(true);
   expect((await api<{ state: string }>(page, 'GET', `/entities/md.users/${user.id}`, 200)).state).toBe('P');

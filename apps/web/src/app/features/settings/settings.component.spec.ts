@@ -24,6 +24,7 @@ describe('SettingsComponent UI contracts', () => {
       status: vi.fn(() => of({})),
       settings: vi.fn(() => of({})),
       jobs: vi.fn(() => of({ items: [], hasMore: false })),
+      categories: vi.fn(() => of([])),
     },
   ) {
     await TestBed.configureTestingModule({
@@ -141,6 +142,7 @@ describe('SettingsComponent UI contracts', () => {
     const searchManagement = {
       status: vi.fn(() => new Observable(() => () => statusUnsubscribed++)),
       jobs: vi.fn(() => of({ items: [], hasMore: false })),
+      categories: vi.fn(() => of([])),
       settings: vi.fn(() => of({})),
     };
     const fixture = await createFixture(

@@ -16,13 +16,17 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Router } from '@angular/router';
 import { CommandPaletteService } from '@core/services/command-palette.service';
-import { ModuleService } from '@core/services/module.service';
-import { SearchHit, SearchResult } from '@core/models/search.models';
+import { SearchCategory, SearchHit, SearchResult } from '@core/models/search.models';
 import { searchTarget } from '@core/services/search-target';
 import { EMPTY, Subject, catchError, of, switchMap, timer } from 'rxjs';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
-import { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, CategoryItem } from './command-palette.models';
+import {
+  RECENT_SEARCHES_STORAGE_KEY,
+  MAX_RECENT_SEARCHES,
+  CategoryItem,
+  categoryItem,
+} from './command-palette.models';
 import { CommandPaletteResultsComponent } from './components/command-palette-results.component';
 import { CommandPaletteFooterComponent } from './components/command-palette-footer.component';
 
@@ -37,7 +41,6 @@ export { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, type CategoryItem };
 })
 export class CommandPaletteComponent implements OnDestroy {
   readonly paletteService = inject(CommandPaletteService);
-  public readonly moduleService = inject(ModuleService);
   private readonly router = inject(Router);
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
@@ -83,6 +86,7 @@ export class CommandPaletteComponent implements OnDestroy {
       if (isOpen && !this.wasOpen) {
         this.resetSearch();
         this.loadRecentSearches();
+        this.loadCategories();
         this.previouslyFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         document.body.classList.add('palette-open');
         queueMicrotask(() => {
@@ -121,13 +125,8 @@ export class CommandPaletteComponent implements OnDestroy {
       )
       .subscribe((res) => {
         if (!res || !this.paletteService.isOpen()) return;
-        const hits = (res.hits || []).filter((h) => {
-          if (h.entityType === 'NOTE' && !this.moduleService.isModuleActive('notes')) {
-            return false;
-          }
-          return true;
-        });
-        this.results.set(hits);
+        // The server answers only the entities the person may search, each in the person's scope (ADR-0032, 10.3).
+        this.results.set(res.hits || []);
         this.metadata.set(res);
         this.selectedIndex.set(0);
         this.isLoading.set(false);
@@ -231,7 +230,7 @@ export class CommandPaletteComponent implements OnDestroy {
       this.saveRecentSearch(this.searchQuery().trim());
     }
     this.paletteService.close();
-    this.router.navigate(target);
+    this.router.navigateByUrl(target);
   }
 
   selectRecent(query: string) {
@@ -262,6 +261,22 @@ export class CommandPaletteComponent implements OnDestroy {
     if ((event.target as HTMLElement).classList.contains('palette-backdrop')) {
       this.paletteService.close();
     }
+  }
+
+  /** Reads the categories again each time the palette opens: rights and modules may have changed meanwhile. */
+  private loadCategories(): void {
+    this.paletteService
+      .categories()
+      .pipe(
+        catchError(() => of([] as SearchCategory[])),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((categories) => {
+        this.searchCategories.set(categories);
+        if (this.entityType !== 'ALL' && !categories.some((category) => category.code === this.entityType)) {
+          this.entityType = 'ALL';
+        }
+      });
   }
 
   private resetSearch(): void {
