@@ -2,7 +2,9 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { EntityReportsApi } from '@shared/entity/report/entity-reports';
 import {
   AnalyticsComponent,
   AnalyticsSummary,
@@ -52,7 +54,13 @@ describe('AnalyticsComponent request and rendering contracts', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AnalyticsComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        // The widgets section has its own spec (ADR-0032 10.2); here the viewer has none.
+        { provide: EntityReportsApi, useValue: { widgets: () => of([]) } },
+      ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AnalyticsComponent);

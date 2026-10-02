@@ -1240,6 +1240,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entities/{code}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run a report over a list
+         * @description Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups.
+         */
+        get: operations["report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/{code}/reports/{viewId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run a saved report
+         * @description Runs a report or widget the viewer saved as a view of the entity's list.
+         */
+        get: operations["saved"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/entities/{code}/{id}/files/{fileId}": {
         parameters: {
             query?: never;
@@ -2133,7 +2173,7 @@ export interface paths {
         };
         /**
          * List saved views
-         * @description The saved views (filters, columns, sort) of a list.
+         * @description The saved views of a list of the given kinds: table views (filters, columns, sort) when no kind is named, reports and widgets (grouping, measures, chart) when asked for.
          */
         get: operations["list_2"];
         put?: never;
@@ -2504,6 +2544,26 @@ export interface paths {
          * @description The fields, filters, sorts and defaults of a registry list, including custom fields; the list's own right is checked.
          */
         get: operations["get_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-widgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my widgets
+         * @description The viewer's widgets for the dashboard, at most 12, over the entities the viewer may see.
+         */
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3311,6 +3371,19 @@ export interface components {
             commentMarkdown?: string;
             fileIds?: string[];
             textMarkdown?: string;
+        };
+        AggregateGroup: {
+            field?: string;
+            implicit?: boolean;
+            trunc?: string;
+        };
+        AggregateMeasure: {
+            field?: string;
+            op?: string;
+        };
+        AggregateRow: {
+            groups?: (string | number | boolean | null)[];
+            values?: (number | null)[];
         };
         AnalyticsSummaryDto: {
             /** Format: int64 */
@@ -5018,6 +5091,12 @@ export interface components {
             /** Format: date */
             validFrom: string;
         };
+        QueryAggregateResult: {
+            groups?: components["schemas"]["AggregateGroup"][];
+            measures?: components["schemas"]["AggregateMeasure"][];
+            rows?: components["schemas"]["AggregateRow"][];
+            truncated?: boolean;
+        };
         QueryRef: {
             keyField?: string;
             labelField?: string;
@@ -5497,6 +5576,8 @@ export interface components {
         };
         ViewRequest: {
             isDefault?: boolean;
+            /** @enum {string} */
+            kind?: "table" | "report" | "widget";
             /** Format: int32 */
             lockVersion?: number;
             name?: string;
@@ -5506,6 +5587,20 @@ export interface components {
             /** Format: int64 */
             id?: number;
             isDefault?: boolean;
+            /** @enum {string} */
+            kind?: "table" | "report" | "widget";
+            /** Format: int32 */
+            lockVersion?: number;
+            /** Format: date-time */
+            modifiedAt?: string;
+            name?: string;
+            state?: components["schemas"]["JsonNode"];
+        };
+        WidgetResponse: {
+            entity?: string;
+            /** Format: int64 */
+            id?: number;
+            listCode?: string;
             /** Format: int32 */
             lockVersion?: number;
             /** Format: date-time */
@@ -8860,6 +8955,76 @@ export interface operations {
             };
         };
     };
+    report: {
+        parameters: {
+            query?: {
+                /** @description JSON array: [{"field":"status"},{"field":"createdAt","trunc":"month"}] */
+                groupBy?: string;
+                /** @description JSON array: [{"op":"count"},{"op":"sum","field":"total"}] */
+                measures?: string;
+                /** @description The list's filter DSL (JSON array) */
+                filter?: string;
+            };
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryAggregateResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    saved: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+                viewId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryAggregateResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
     download: {
         parameters: {
             query?: never;
@@ -10878,7 +11043,10 @@ export interface operations {
     };
     list_2: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description table, report or widget; repeat for several */
+                kind?: string[];
+            };
             header?: never;
             path: {
                 listCode: string;
@@ -11757,6 +11925,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListMeta"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WidgetResponse"][];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */

@@ -25,9 +25,11 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTRadioGroupComponent, type SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import type { ColumnContentType, OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
 import { EntitiesApi, EntityRecord } from '../entities.api';
+import { SMTEntityReportBuilderComponent } from '../report/smt-entity-report-builder.component';
 import { SMTEntityToolbarComponent } from '../smt-entity-toolbar.component';
 import { SMTEntityPageStateComponent } from './smt-entity-page-state.component';
 import { EntityPageContext } from './smt-entity-page.component';
@@ -36,7 +38,8 @@ import { EntityPageContext } from './smt-entity-page.component';
  * The list of a declared entity, `/e/:code` (ADR-0032 7.1), drawn from its metadata alone: the columns, their order,
  * sorting, the filter and the export from `query-meta`; saved views, the archive switch, bulk archive and delete, and
  * the "Create" button from `form-meta` — each only when the entity declares it and the viewer holds its right. The
- * first column opens the record; a cell of the entity's own comes from `provideEntityOverrides`.
+ * first column opens the record; a cell of the entity's own comes from `provideEntityOverrides`. The "Report" tab
+ * groups and totals the same list without code (ADR-0032 10.2): `smt-entity-report-builder` under the same filter.
  */
 @Component({
   selector: 'smt-entity-list-page',
@@ -45,8 +48,10 @@ import { EntityPageContext } from './smt-entity-page.component';
     RouterLink,
     SMTButtonComponent,
     SMTEntityPageStateComponent,
+    SMTEntityReportBuilderComponent,
     SMTEntityToolbarComponent,
     SMTInputComponent,
+    SMTRadioGroupComponent,
     TranslatePipe,
     UiPageHeaderComponent,
     UiServerTableComponent,
@@ -54,7 +59,18 @@ import { EntityPageContext } from './smt-entity-page.component';
   host: { class: 'smt-entity-list-page' },
   template: `
     <ui-page-header [title]="context.title()" [count]="pager.total()" countTestId="entity-count">
-      @if (searchable()) {
+      @if (listMeta()) {
+        <smt-radio-group
+          smtAppearance="segmented"
+          smtOrientation="horizontal"
+          data-testid="entity-mode"
+          [options]="modeOptions()"
+          [value]="mode()"
+          [smtAriaLabel]="'ui.report.mode' | t"
+          (valueChange)="mode.set($event ?? 'list')"
+        />
+      }
+      @if (searchable() && mode() === 'list') {
         <smt-input
           class="entity-search"
           type="search"
@@ -77,6 +93,14 @@ import { EntityPageContext } from './smt-entity-page.component';
 
     @if (listFailed()) {
       <smt-entity-page-state kind="failed" (retry)="load()" />
+    } @else if (mode() === 'report' && listMeta(); as meta) {
+      <smt-entity-report-builder
+        [code]="context.code()"
+        [meta]="meta"
+        [views]="views"
+        [title]="context.title()"
+        [canSave]="savedViews()"
+      />
     } @else if (config(); as config) {
       <ui-server-table
         [pager]="pager"
@@ -171,6 +195,8 @@ export class SMTEntityListPageComponent {
   readonly listMeta = signal<QueryListMeta | null>(null);
   readonly listFailed = signal(false);
   readonly search = signal('');
+  /** The list itself, or its report (ADR-0032 10.2). */
+  readonly mode = signal<'list' | 'report'>('list');
   readonly selectedRows = signal<EntityRecord[]>([]);
   /** The default view has been applied: the list may be asked for. */
   private readonly viewsReady = signal(false);
@@ -187,6 +213,13 @@ export class SMTEntityListPageComponent {
       hasCapability(this.meta(), 'bulk') &&
       (canDo(this.meta(), 'delete') || (hasCapability(this.meta(), 'archive') && canDo(this.meta(), 'archive'))),
   );
+  readonly modeOptions = computed<SMTRadioOption<'list' | 'report'>[]>(() => {
+    this.i18n.currentLang();
+    return [
+      { value: 'list', label: this.i18n.translate('ui.report.mode_list'), icon: 'list' },
+      { value: 'report', label: this.i18n.translate('ui.report.mode_report'), icon: 'bar_chart' },
+    ];
+  });
   readonly searchable = computed(() => (this.listMeta()?.fields ?? []).some((field) => field.searchable));
 
   readonly lockedColumns = computed(() => {
