@@ -84,7 +84,7 @@ public class MdUserEntity {
 
     /** The user entity with the users' data scope of ADR-0013, built by the md module's scope service. */
     public static EntityDefinition definition(EntityScope.ScopeProvider users) {
-        return Entity.define(CODE, MdPref.FORM_USERS)
+        Entity entity = Entity.define(CODE, MdPref.FORM_USERS)
                 .table("md_users", "u")
                 .scope(EntityScope.custom("users", users))
                 .rights(
@@ -103,8 +103,28 @@ public class MdUserEntity {
                                 "iam.users.rights.unblock",
                                 "delete",
                                 "iam.users.rights.delete"))
-                .menu(new EntityMenu("nav.users", "people", "iam", 10, null))
-                .field(text(NAME, "iam.users.col.name")
+                .menu(new EntityMenu("nav.users", "people", "iam", 10, null));
+        profile(entity);
+        work(entity);
+        security(entity);
+        return entity.section("profile", "iam.users.section.profile", NAME, LOGIN, EMAIL, PHONE)
+                .section("work", "iam.users.section.work", ORG_UNIT, MANAGER, "language", TIMEZONE)
+                .section("security", "iam.users.section.security", STATE, TWO_FACTOR, FORCE_CHANGE)
+                .actions("create", "update", BLOCK, UNBLOCK)
+                .action(RESET_2FA, "update")
+                .action(ENABLE_2FA, "update")
+                .action(FORCE_PASSWORD_CHANGE, "update")
+                // Anonymisation takes the place of a delete and needs its right (ADR-0032, 8).
+                .action(ANONYMIZE, "delete")
+                .defaultSort(NAME, Entity.Sort.ASC)
+                .customFields("USER")
+                .capabilities(EntityCapability.SAVED_VIEWS, EntityCapability.EXPORT, EntityCapability.HISTORY)
+                .build();
+    }
+
+    /** Who the user is: the name, the login, the e-mail, the phone and the state. */
+    private static void profile(Entity entity) {
+        entity.field(text(NAME, "iam.users.col.name")
                         .column("name")
                         .required()
                         .length(1, 255)
@@ -130,8 +150,12 @@ public class MdUserEntity {
                                 List.of(MdPref.STATE_ACTIVE, MdPref.STATE_PASSIVE),
                                 "iam.users.state.")
                         .column("state")
-                        .readonly())
-                .field(ref(ORG_UNIT, "iam.users.col.org_unit", QueryRef.whole("/iam/org-units", "name"))
+                        .readonly());
+    }
+
+    /** Where the user works: the home unit, the manager, the language and the time zone. */
+    private static void work(Entity entity) {
+        entity.field(ref(ORG_UNIT, "iam.users.col.org_unit", QueryRef.whole("/iam/org-units", "name"))
                         .column("org_unit_id")
                         .defaultValue(FieldDefault.currentOrgUnit())
                         .readonlyUnless(MdPref.FORM_ORG_UNITS, "assign")
@@ -151,8 +175,12 @@ public class MdUserEntity {
                         .length(3, 64)
                         .matching(ZONE_PATTERN)
                         .defaultValue(FieldDefault.fixed("UTC"))
-                        .list(hidden()))
-                .field(bool(TWO_FACTOR, "iam.users.col.two_factor")
+                        .list(hidden()));
+    }
+
+    /** The security flags the actions set, the roles and the system times. */
+    private static void security(Entity entity) {
+        entity.field(bool(TWO_FACTOR, "iam.users.col.two_factor")
                         .column("is_2fa_enabled")
                         .readonly())
                 .field(bool(FORCE_CHANGE, "iam.common.force_password_change")
@@ -168,20 +196,7 @@ public class MdUserEntity {
                         .list(sortable()))
                 .field(instant("modifiedAt", "iam.users.col.modified_at")
                         .system(SystemColumn.MODIFIED_AT)
-                        .list(sortable().hidden()))
-                .section("profile", "iam.users.section.profile", NAME, LOGIN, EMAIL, PHONE)
-                .section("work", "iam.users.section.work", ORG_UNIT, MANAGER, "language", TIMEZONE)
-                .section("security", "iam.users.section.security", STATE, TWO_FACTOR, FORCE_CHANGE)
-                .actions("create", "update", BLOCK, UNBLOCK)
-                .action(RESET_2FA, "update")
-                .action(ENABLE_2FA, "update")
-                .action(FORCE_PASSWORD_CHANGE, "update")
-                // Anonymisation takes the place of a delete and needs its right (ADR-0032, 8).
-                .action(ANONYMIZE, "delete")
-                .defaultSort(NAME, Entity.Sort.ASC)
-                .customFields("USER")
-                .capabilities(EntityCapability.SAVED_VIEWS, EntityCapability.EXPORT, EntityCapability.HISTORY)
-                .build();
+                        .list(sortable().hidden()));
     }
 
     @Bean
