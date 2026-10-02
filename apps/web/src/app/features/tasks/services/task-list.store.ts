@@ -13,6 +13,7 @@ import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-stat
 import { sortFromHeader } from '@shared/ui/registry-table-config';
 import { TasksApi } from '../tasks.api';
 import { TaskStatusFilter } from '../tasks.models';
+import { TaskDictionariesService } from './task-dictionaries.service';
 import { TaskFilterService, TaskPresetKey } from './task-filter.service';
 
 /**
@@ -24,6 +25,7 @@ import { TaskFilterService, TaskPresetKey } from './task-filter.service';
 export class TaskListStore {
   readonly filters = inject(TaskFilterService);
   private readonly tasksApi = inject(TasksApi);
+  private readonly dictionaries = inject(TaskDictionariesService);
   private readonly customFieldsApi = inject(CustomFieldsApi);
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
@@ -91,6 +93,7 @@ export class TaskListStore {
         .subscribe({
           next: (meta) => {
             this.meta.set(meta);
+            this.dictionaries.adoptListMeta(meta);
             this.views.load().subscribe(() => this.taskPager.first());
           },
           error: () => this.metaError.set(true),

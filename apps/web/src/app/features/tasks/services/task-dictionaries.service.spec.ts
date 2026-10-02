@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueryListMeta } from '@core/models/query-meta.models';
 import { TaskStatus, TaskType } from '@core/models/task.models';
+import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { EntitiesApi } from '@shared/entity/entities.api';
 import { SMTModalConfirmConfig, SMTModalService } from '@shared/ui-kit/components/modal';
+import { metaField } from '@testing/registry-meta';
 import { TASK_STATUSES, TASK_TYPES, TaskDictionariesService, movedItem } from './task-dictionaries.service';
 
 const status = (id: number, name = `Status ${id}`): TaskStatus => ({
@@ -54,6 +57,7 @@ describe('TaskDictionariesService', () => {
       providers: [
         { provide: EntitiesApi, useValue: entities },
         { provide: ToastService, useValue: toast },
+        { provide: PermissionService, useValue: { hasPermission: () => true } },
         {
           provide: SMTModalService,
           useValue: {
@@ -142,5 +146,40 @@ describe('TaskDictionariesService', () => {
 
     dictionaries.handleDeleteDictionaryItem({ kind: 'type', id: 5, name: 'Bug' });
     expect(confirmed!.actionError!({})).toBe('Ошибка удаления типа');
+  });
+});
+
+describe('TaskDictionariesService without the right to the reference lists', () => {
+  it('reads no list and names the statuses and types from the task list metadata, in its order', () => {
+    const all = vi.fn(() => of([]));
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: EntitiesApi, useValue: { all } },
+        { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } },
+        { provide: SMTModalService, useValue: { confirm: () => of(true) } },
+        { provide: PermissionService, useValue: { hasPermission: () => false } },
+      ],
+    });
+    const dictionaries = TestBed.inject(TaskDictionariesService);
+    TestBed.tick();
+    const meta = {
+      code: 'ms.tasks',
+      fields: [
+        metaField('statusCode', 'tasks.col.status', 'enum', {
+          enumValues: ['new', 'done'],
+          enumLabels: { new: 'Новая', done: 'Готово' },
+        }),
+        metaField('typeCode', 'tasks.col.type', 'enum', { enumValues: ['task'], enumLabels: { task: 'Задача' } }),
+      ],
+    } as QueryListMeta;
+
+    dictionaries.adoptListMeta(meta);
+
+    expect(all).not.toHaveBeenCalled();
+    expect(dictionaries.statuses().map((status) => [status.code, status.name, status.sortOrder])).toEqual([
+      ['new', 'Новая', 1],
+      ['done', 'Готово', 2],
+    ]);
+    expect(dictionaries.taskTypes().map((type) => type.name)).toEqual(['Задача']);
   });
 });
