@@ -2782,5 +2782,21 @@
   "ui.entity_page.related_failed": "Bogʻliq yozuvlarni yuklab boʻlmadi",
   "ui.history.action": "Amal",
   "ui.history.rows_count": "qatorlar: {count}",
-  "ui.history.rows_changed": "qatorlar: {count} ({added} qoʻshildi, {changed} oʻzgardi, {removed} oʻchirildi)"
+  "ui.history.rows_changed": "qatorlar: {count} ({added} qoʻshildi, {changed} oʻzgardi, {removed} oʻchirildi)",
+  "example.orders.rights.import": "Buyurtmalarni import qilish",
+  "tasks.types.rights.import": "Vazifa turlarini import qilish",
+  "entity.action.import": "Import",
+  "report.import.code": "Kod",
+  "report.import.name": "Nomi",
+  "report.import.errors": "Xatolar",
+  "error.report.import_invalid": "Import boshlanmadi: so‘rov maydonlarini tekshiring",
+  "error.report.import_mode_invalid": "Import rejimi — dry_run (tekshiruv) yoki apply (yuklash)",
+  "error.report.import_file_not_found": "Fayl siz yuklagan fayllar orasida topilmadi",
+  "error.report.import_file_type": "Import faqat xlsx faylini qabul qiladi",
+  "error.report.import_busy": "Kutilayotgan yoki bajarilayotgan importlar: {max}. Ularning tugashini kuting",
+  "error.report.import_not_found": "Import topilmadi",
+  "error.report.import_report_not_ready": "Import hisoboti hali tayyor emas yoki uning saqlanish muddati tugagan",
+  "error.report.import_column_unknown": "«{name}» ustunini import orqali to‘ldirib bo‘lmaydi",
+  "error.report.import_column_duplicate": "«{name}» ustuni faylda ikki marta uchraydi",
+  "error.report.import_columns_missing": "Faylning ikkinchi qatorida ustun kalitlari yo‘q: shablonni yuklab oling"
 }

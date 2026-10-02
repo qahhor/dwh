@@ -2782,5 +2782,21 @@
   "ui.entity_page.related_failed": "Не удалось загрузить связанные записи",
   "ui.history.action": "Действие",
   "ui.history.rows_count": "строк: {count}",
-  "ui.history.rows_changed": "строк: {count} (добавлено {added}, изменено {changed}, удалено {removed})"
+  "ui.history.rows_changed": "строк: {count} (добавлено {added}, изменено {changed}, удалено {removed})",
+  "example.orders.rights.import": "Импорт заказов",
+  "tasks.types.rights.import": "Импорт типов задач",
+  "entity.action.import": "Импорт",
+  "report.import.code": "Код",
+  "report.import.name": "Название",
+  "report.import.errors": "Ошибки",
+  "error.report.import_invalid": "Импорт не запущен: проверьте поля запроса",
+  "error.report.import_mode_invalid": "Режим импорта — dry_run (проверка) или apply (загрузка)",
+  "error.report.import_file_not_found": "Файл не найден среди загруженных вами",
+  "error.report.import_file_type": "Импорт принимает только файл xlsx",
+  "error.report.import_busy": "Уже ожидают или выполняются импорты: {max}. Дождитесь их завершения",
+  "error.report.import_not_found": "Импорт не найден",
+  "error.report.import_report_not_ready": "Отчёт импорта ещё не готов или срок его хранения истёк",
+  "error.report.import_column_unknown": "Колонку «{name}» нельзя заполнить импортом",
+  "error.report.import_column_duplicate": "Колонка «{name}» встречается в файле дважды",
+  "error.report.import_columns_missing": "Во второй строке файла нет ключей колонок: скачайте шаблон"
 }

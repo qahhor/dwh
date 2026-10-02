@@ -2782,5 +2782,21 @@
   "ui.entity_page.related_failed": "Could not load the related records",
   "ui.history.action": "Action",
   "ui.history.rows_count": "lines: {count}",
-  "ui.history.rows_changed": "lines: {count} ({added} added, {changed} changed, {removed} removed)"
+  "ui.history.rows_changed": "lines: {count} ({added} added, {changed} changed, {removed} removed)",
+  "example.orders.rights.import": "Import orders",
+  "tasks.types.rights.import": "Import task types",
+  "entity.action.import": "Import",
+  "report.import.code": "Code",
+  "report.import.name": "Name",
+  "report.import.errors": "Errors",
+  "error.report.import_invalid": "The import was not started: check the request fields",
+  "error.report.import_mode_invalid": "The import mode is dry_run (a check) or apply (a load)",
+  "error.report.import_file_not_found": "The file is not among the files you uploaded",
+  "error.report.import_file_type": "An import takes an xlsx file only",
+  "error.report.import_busy": "Imports already waiting or running: {max}. Wait until they finish",
+  "error.report.import_not_found": "The import is not found",
+  "error.report.import_report_not_ready": "The import report is not ready yet or has expired",
+  "error.report.import_column_unknown": "The column \"{name}\" cannot be filled by an import",
+  "error.report.import_column_duplicate": "The column \"{name}\" appears twice in the file",
+  "error.report.import_columns_missing": "The second row of the file has no column keys: download the template"
 }

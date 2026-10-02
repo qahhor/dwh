@@ -32,6 +32,14 @@ public interface EntitySave {
 
     AuditActor actor();
 
+    /**
+     * Whether the save is a row of an import (ADR-0032, 10.1): a create or an update like any other — the hooks run the
+     * same — whose audit row names the import as its source.
+     */
+    default boolean imported() {
+        return false;
+    }
+
     /** Whether the save changes the field's value. */
     boolean changed(String key);
 
