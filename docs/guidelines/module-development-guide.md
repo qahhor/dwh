@@ -266,21 +266,29 @@ records, …})` рисует страницу настоящим роутеро�
 Новая сущность получает экран без кода веба: `/e/<код>` (компоненты
 `apps/web/src/app/shared/entity/page/`). Если нужна мелочь — своя ячейка
 списка, свой контрол поля, своя секция или вкладка карточки, — она задаётся
-по ключу один раз среди провайдеров приложения (`apps/web/src/main.ts`),
-а не своим экраном:
+по ключу один раз — среди провайдеров маршрута общего экрана
+(`apps/web/src/app/features/entity-screens.routes.ts`, грузится вместе с
+экраном), а не своим экраном:
 
 ```ts
 provideEntityOverrides('sales.orders', {
   cells: { status: OrderStatusCell },        // входы: row, field
   fields: { color: ColorPickerControl },     // входы: field, value, problem, disabled, set
   sections: { totals: OrderTotalsSection },  // входы: meta, record, values
-  tabs: [{ key: 'map', labelKey: 'sales.orders.tab_map', component: OrderMapTab }], // входы: meta, record
+  // входы: meta, record; requires — вкладка только у зрителя с одним из прав
+  tabs: [{ key: 'map', labelKey: 'sales.orders.tab_map', component: OrderMapTab, requires: [{ form: 'sales.orders', action: 'view' }] }],
 });
 ```
 
 Компоненты переопределений — обычные standalone-компоненты с `input()`;
 контрол поля меняет значение вызовом `set(значение)`. Сущность без
-переопределений — ноль файлов веба.
+переопределений — ноль файлов веба. Кнопку действия записи называет ключ
+`entity.action.<код>`; если в каталоге есть `entity.action_confirm.<код>`
+(текст с `{name}` записи), экран сначала спрашивает подтверждение. Другой экран
+ведёт на список с фильтром ссылкой `/e/<код>?filter=<условия DSL>`. Пример
+сущности с вкладками и действиями — пользователи (`md.users`:
+`MdUserEntity`, `MdUserHooks`, `MdUserActions` на сервере,
+`features/iam/users/users.overrides.ts` в вебе; ADR-0032 §8).
 
 ### Свой экран сущности: пример
 
