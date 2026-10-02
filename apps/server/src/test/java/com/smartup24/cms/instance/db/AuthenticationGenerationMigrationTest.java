@@ -70,11 +70,11 @@ class AuthenticationGenerationMigrationTest {
                        now() + case when n=2 then interval '-1 day' else interval '1 day' end,n=1
                 from unnest(array['login','channel_verify']) p cross join generate_series(0,2) n
                 """).param("id", user).update();
+        // The projects and tasks keep their rows too, but their columns change when they move to the general runtime
+        // (ADR-0032, 8): SearchIndexManagementMigrationTest compares the columns that outlive the move.
         var tables = List.of(
                 "md_users",
                 "md_settings",
-                "ms_task_projects",
-                "ms_tasks",
                 "audit_log",
                 "security_events",
                 "kauth_sessions",

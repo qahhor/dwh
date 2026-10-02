@@ -71,7 +71,7 @@ public class MsTaskEntity {
 
     /** The declaration with the rule that says which tasks a viewer sees. */
     public static EntityDefinition definition(EntityScope.ScopeProvider visible) {
-        return Entity.define(CODE, MsTaskPref.FORM_TASKS)
+        Entity task = Entity.define(CODE, MsTaskPref.FORM_TASKS)
                 .table("ms_tasks", ALIAS)
                 .scope(EntityScope.custom("tasks", visible))
                 .rights(
@@ -80,74 +80,11 @@ public class MsTaskEntity {
                         Map.of(
                                 "view", "tasks.rights.view",
                                 "create", "tasks.rights.create",
-                                "update", "tasks.rights.update"))
-                .field(number("id", "tasks.col.id").system(SystemColumn.ID).list(sortable()))
-                .field(text("title", "tasks.col.title")
-                        .column("title")
-                        .required()
-                        .length(1, 500)
-                        .list(sortable().searchable()))
-                .field(markdown("descriptionMarkdown", "tasks.col.description")
-                        .column("description_markdown")
-                        .length(null, MAX_DESCRIPTION)
-                        .list(searchable().hidden()))
-                .field(enumeration("typeCode", "tasks.col.type", MsTaskTypeEntity.CODE)
-                        .column("type_code")
-                        .required()
-                        .defaultValue(FieldDefault.fixed("task"))
-                        .list(hidden()))
-                .field(enumeration("statusCode", "tasks.col.status", MsTaskStatusEntity.CODE)
-                        .column("status_code")
-                        .readonly()
-                        .defaultValue(FieldDefault.fixed(MsTaskStatusEntity.INITIAL)))
-                .field(select("priority", "tasks.col.priority", PRIORITIES, "tasks.priority.")
-                        .column("priority")
-                        .required()
-                        .defaultValue(FieldDefault.fixed(MsTaskPref.PRIORITY_MEDIUM)))
-                .field(ref("projectId", "tasks.col.project")
-                        .column("project_id")
-                        .target(MsProjectEntity.CODE, "name"))
-                .field(text("projectName", "tasks.col.project_name")
-                        .expression("(select p.name from ms_task_projects p where p.id = t.project_id)")
-                        .listOnly(hidden().notFilterable()))
-                .field(ref("parentTaskId", "tasks.col.parent")
-                        .column("parent_task_id")
-                        .target(CODE, "title")
-                        .list(hidden()))
-                .field(ref("responsibleId", "tasks.col.responsible", USERS).column("responsible_id"))
-                .field(multiRef("executorIds", "tasks.col.executors", USERS)
-                        .link("ms_task_members", "task_id", "user_id", "involve_kind", MsTaskPref.INVOLVE_EXECUTOR)
-                        .list(hidden()))
-                .field(multiRef("observerIds", "tasks.col.observers", USERS)
-                        .link("ms_task_members", "task_id", "user_id", "involve_kind", MsTaskPref.INVOLVE_OBSERVER)
-                        .list(hidden()))
-                .field(ref("reporterId", "tasks.col.reporter", USERS)
-                        .column("reporter_id")
-                        .readonly()
-                        .defaultValue(FieldDefault.currentUser())
-                        .list(hidden()))
-                .field(instant("beginTime", "tasks.col.begin")
-                        .column("begin_time")
-                        .list(sortable().hidden()))
-                .field(instant("endTime", "tasks.col.due").column("end_time").list(sortable()))
-                .field(instant("resolvedTime", "tasks.col.resolved")
-                        .column("resolved_time")
-                        .readonly()
-                        .list(sortable().hidden()))
-                .field(bool("terminal", "tasks.col.terminal")
-                        .expression(TERMINAL)
-                        .listOnly(hidden()))
-                .field(bool("overdue", "tasks.col.overdue")
-                        .expression(
-                                "(t.end_time is not null and t.end_time < clock_timestamp() and not " + TERMINAL + ")")
-                        .listOnly(hidden()))
-                .field(instant("createdAt", "tasks.col.created_at")
-                        .system(SystemColumn.CREATED_AT)
-                        .list(sortable().hidden()))
-                .field(instant("modifiedAt", "tasks.col.modified_at")
-                        .system(SystemColumn.MODIFIED_AT)
-                        .list(sortable().hidden()))
-                .section("main", "entity.section.main", "title", "descriptionMarkdown", "typeCode", "priority")
+                                "update", "tasks.rights.update"));
+        content(task);
+        links(task);
+        plan(task);
+        return task.section("main", "entity.section.main", "title", "descriptionMarkdown", "typeCode", "priority")
                 .section("people", "tasks.section.people", "responsibleId", "executorIds", "observerIds", "reporterId")
                 .section(
                         "plan",
@@ -169,6 +106,82 @@ public class MsTaskEntity {
                         EntityCapability.HISTORY,
                         EntityCapability.BULK)
                 .build();
+    }
+
+    /** What a task is: its number, title, text, type, status and priority. */
+    private static void content(Entity task) {
+        task.field(number("id", "tasks.col.id").system(SystemColumn.ID).list(sortable()));
+        task.field(text("title", "tasks.col.title")
+                .column("title")
+                .required()
+                .length(1, 500)
+                .list(sortable().searchable()));
+        task.field(markdown("descriptionMarkdown", "tasks.col.description")
+                .column("description_markdown")
+                .length(null, MAX_DESCRIPTION)
+                .list(searchable().hidden()));
+        task.field(enumeration("typeCode", "tasks.col.type", MsTaskTypeEntity.CODE)
+                .column("type_code")
+                .required()
+                .defaultValue(FieldDefault.fixed("task"))
+                .list(hidden()));
+        task.field(enumeration("statusCode", "tasks.col.status", MsTaskStatusEntity.CODE)
+                .column("status_code")
+                .readonly()
+                .defaultValue(FieldDefault.fixed(MsTaskStatusEntity.INITIAL)));
+        task.field(select("priority", "tasks.col.priority", PRIORITIES, "tasks.priority.")
+                .column("priority")
+                .required()
+                .defaultValue(FieldDefault.fixed(MsTaskPref.PRIORITY_MEDIUM)));
+    }
+
+    /** Where a task belongs and who takes part: its project, parent and people. */
+    private static void links(Entity task) {
+        task.field(ref("projectId", "tasks.col.project").column("project_id").target(MsProjectEntity.CODE, "name"));
+        task.field(text("projectName", "tasks.col.project_name")
+                .expression("(select p.name from ms_task_projects p where p.id = t.project_id)")
+                .listOnly(hidden().notFilterable()));
+        task.field(ref("parentTaskId", "tasks.col.parent")
+                .column("parent_task_id")
+                .target(CODE, "title")
+                .list(hidden()));
+        // Not a default column: naming a person reads the user, which a viewer without the users' right may not do.
+        task.field(ref("responsibleId", "tasks.col.responsible", USERS)
+                .column("responsible_id")
+                .list(hidden()));
+        task.field(multiRef("executorIds", "tasks.col.executors", USERS)
+                .link("ms_task_members", "task_id", "user_id", "involve_kind", MsTaskPref.INVOLVE_EXECUTOR)
+                .list(hidden()));
+        task.field(multiRef("observerIds", "tasks.col.observers", USERS)
+                .link("ms_task_members", "task_id", "user_id", "involve_kind", MsTaskPref.INVOLVE_OBSERVER)
+                .list(hidden()));
+        task.field(ref("reporterId", "tasks.col.reporter", USERS)
+                .column("reporter_id")
+                .readonly()
+                .defaultValue(FieldDefault.currentUser())
+                .list(hidden()));
+    }
+
+    /** When a task is due and in which state: its dates and the list fields of the presets. */
+    private static void plan(Entity task) {
+        task.field(instant("beginTime", "tasks.col.begin")
+                .column("begin_time")
+                .list(sortable().hidden()));
+        task.field(instant("endTime", "tasks.col.due").column("end_time").list(sortable()));
+        task.field(instant("resolvedTime", "tasks.col.resolved")
+                .column("resolved_time")
+                .readonly()
+                .list(sortable().hidden()));
+        task.field(bool("terminal", "tasks.col.terminal").expression(TERMINAL).listOnly(hidden()));
+        task.field(bool("overdue", "tasks.col.overdue")
+                .expression("(t.end_time is not null and t.end_time < clock_timestamp() and not " + TERMINAL + ")")
+                .listOnly(hidden()));
+        task.field(instant("createdAt", "tasks.col.created_at")
+                .system(SystemColumn.CREATED_AT)
+                .list(sortable().hidden()));
+        task.field(instant("modifiedAt", "tasks.col.modified_at")
+                .system(SystemColumn.MODIFIED_AT)
+                .list(sortable().hidden()));
     }
 
     @Bean

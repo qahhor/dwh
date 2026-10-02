@@ -197,7 +197,12 @@ export class ProjectTableViewComponent {
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
     const fixed = meta.fields.some((field) => field.key === 'progress') ? 710 : 490;
-    const base = registryTableConfig<ProjectListItem>(meta, {
+    // The screen lists active and archived projects together by default, so the archive is a column of its own.
+    const shown = {
+      ...meta,
+      fields: meta.fields.map((field) => (field.key === 'archived' ? { ...field, defaultVisible: true } : field)),
+    };
+    const base = registryTableConfig<ProjectListItem>(shown, {
       translate: (key) => this.i18n.translate(key),
       trackBy: (_index, project) => project.id,
       ariaLabel: this.i18n.translate('projects.list.list'),

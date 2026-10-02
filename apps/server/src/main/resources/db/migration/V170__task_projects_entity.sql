@@ -15,8 +15,6 @@ alter table ms_task_projects
     add column modified_at timestamptz not null default clock_timestamp(),
     add column archived_at timestamptz,
     add column archived_by bigint constraint ms_task_projects_fk_archived_by references md_users (id);
-alter table ms_task_projects
-    add constraint ms_task_projects_ck_description check (char_length(description) <= 10000) not valid;
 create unique index ms_task_projects_name_uq on ms_task_projects (name) where archived_at is null;
 create index ms_task_projects_modified_by_idx on ms_task_projects (modified_by);
 create index ms_task_projects_archived_by_idx on ms_task_projects (archived_by);
