@@ -207,6 +207,12 @@ final class ScopeByIdCases {
                     "EntityFileController#download",
                     "a record's file: the runtime's read in the entity's scope decides (EntityFileControllerTest);"
                             + " no entity of the application has a file field yet"),
+            Map.entry(
+                    "EntityReportController#report",
+                    "an entity code: totals of its list in the viewer's scope (EntityReportIntegrationTest)"),
+            Map.entry(
+                    "EntityReportController#saved",
+                    "the caller's own saved report; another id answers 404 (EntityReportIntegrationTest)"),
             Map.entry("FormMetaController#get", "metadata of an entity code, no record"),
             Map.entry("QueryMetaController#get", "metadata of a list code, no record"),
             Map.entry("KauthApiTokenController#revokeToken", "the caller's own token; another id changes nothing"),
