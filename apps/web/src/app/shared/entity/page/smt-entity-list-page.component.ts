@@ -28,14 +28,15 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import type { ColumnContentType, OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
 import { EntitiesApi, EntityRecord } from '../entities.api';
+import { SMTEntityImportComponent } from '../smt-entity-import.component';
 import { SMTEntityToolbarComponent } from '../smt-entity-toolbar.component';
 import { SMTEntityPageStateComponent } from './smt-entity-page-state.component';
 import { EntityPageContext } from './smt-entity-page.component';
 
 /**
  * The list of a declared entity, `/e/:code` (ADR-0032 7.1), drawn from its metadata alone: the columns, their order,
- * sorting, the filter and the export from `query-meta`; saved views, the archive switch, bulk archive and delete, and
- * the "Create" button from `form-meta` — each only when the entity declares it and the viewer holds its right. The
+ * sorting, the filter and the export from `query-meta`; saved views, the archive switch, bulk archive and delete, the
+ * import from a file (ADR-0032 10.1) and the "Create" button from `form-meta` — each only when the entity declares it and the viewer holds its right. The
  * first column opens the record; a cell of the entity's own comes from `provideEntityOverrides`.
  */
 @Component({
@@ -44,6 +45,7 @@ import { EntityPageContext } from './smt-entity-page.component';
   imports: [
     RouterLink,
     SMTButtonComponent,
+    SMTEntityImportComponent,
     SMTEntityPageStateComponent,
     SMTEntityToolbarComponent,
     SMTInputComponent,
@@ -68,6 +70,7 @@ import { EntityPageContext } from './smt-entity-page.component';
         />
       }
       <smt-entity-toolbar [meta]="meta()" [views]="views" [listTools]="false" (bulkDone)="pager.reload()" />
+      <smt-entity-import [meta]="meta()" (imported)="pager.reload()" />
       @if (canCreate()) {
         <a smt-button smtVariant="primary" smtIcon="add" routerLink="new" data-testid="entity-create">
           {{ 'common.create' | t }}
