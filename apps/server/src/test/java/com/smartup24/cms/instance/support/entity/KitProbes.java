@@ -115,7 +115,7 @@ class KitProbes {
 
         /** The record as it is, every field included: no projection by the viewer's rights. */
         private static ResponseEntity<EntityRecordView> answer(EntityDefinition entity, Map<String, Object> record) {
-            EntityRecordView view = new EntityRecordView(record, EntityReads.actions(entity));
+            EntityRecordView view = new EntityRecordView(record, EntityReads.actions(entity, record));
             return ResponseEntity.ok().eTag(Revisions.etag(view.revision())).body(view);
         }
 

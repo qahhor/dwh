@@ -3,7 +3,11 @@ import { featureI18nProblems, serverCodeKeys, serverLiteralKeys } from '@testing
 import { QUERY_OPS } from '../core/models/query-meta.models';
 
 /** The server declarations of entities with record actions of their own (ADR-0032 6.7). */
-const ENTITY_DECLARATIONS = ['instance/md/service/MdUserEntity.java'];
+const ENTITY_DECLARATIONS = [
+  'instance/md/service/MdUserEntity.java',
+  // The transitions of the reference document are record actions too (ADR-0032 9.2).
+  'instance/example/service/ExampleOrderEntity.java',
+];
 
 describe('i18n: shared UI and kit', () => {
   it('uses only translated keys, in Russian and English, and none of its keys is dead', () => {

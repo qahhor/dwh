@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.common.entity.field.FieldSource;
 import com.smartup24.cms.instance.common.entity.field.FieldType;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * How each field of an entity is selected into a row of its list (ADR-0032, 3.4 and 4.1), under the record's key:
@@ -17,15 +18,19 @@ public final class EntitySelect {
 
     private EntitySelect() {}
 
-    /** The select columns of one field ({@code <sql> as "<key>"}), none for a system column (selected by the list). */
-    public static List<String> columns(EntityField field, String alias) {
+    /**
+     * The select columns of one field ({@code <sql> as "<key>"}), none for a system column (selected by the list).
+     *
+     * @param fieldSql the SQL of another field by its key: the currency of money that takes it from a field
+     */
+    public static List<String> columns(EntityField field, String alias, Function<String, String> fieldSql) {
         FieldSource source = field.source();
         if (source instanceof FieldSource.SystemValue) return List.of();
         String key = field.key();
-        if (source instanceof FieldSource.MoneyColumns money) {
-            String currency =
-                    money.currencySql(alias, field.options().currencies().getFirst());
-            return List.of(as(money.sql(alias), key), as(currency, key + EntityField.CURRENCY_SUFFIX));
+        if (field.type() == FieldType.MONEY) {
+            return List.of(
+                    as(field.sql(alias), key),
+                    as(field.currencySql(alias, fieldSql), key + EntityField.CURRENCY_SUFFIX));
         }
         return List.of(as(read(field, alias), key));
     }

@@ -167,4 +167,10 @@ public class ApiException extends RuntimeException {
     public static ApiException validation(String messageKey, Map<String, ?> params, List<FieldErrorItem> errors) {
         return new ApiException(ErrorCode.VALIDATION_FAILED, messageKey, params, errors);
     }
+
+    /** A 422 with a code of its own ({@code entity_transition_not_allowed}, ADR-0032, 6.12) and its field problems. */
+    public static ApiException unprocessable(
+            ErrorCode code, String messageKey, Map<String, ?> params, List<FieldErrorItem> errors) {
+        return new ApiException(code, messageKey, params, errors);
+    }
 }

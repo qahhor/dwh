@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.workflow.EntityWorkflow;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
 import com.smartup24.cms.instance.support.entity.KitWorld.Created;
@@ -143,12 +144,22 @@ final class KitAccessChecks {
                     .as("actions offered to %s", user == world.owner ? "a holder of every right" : "a viewer")
                     .isEqualTo(expected);
             if (user == world.owner && world.transport.strictBody()) {
-                // The runtime answers each record with the actions its viewer may take (ADR-0032, 6.2).
+                // The runtime answers each record with the actions its viewer may take (ADR-0032, 6.2): of a
+                // process, the transitions that leave the state a new record starts in (ADR-0032, 9.2).
                 Created record = world.create(world.owner);
+                EntityWorkflow workflow = world.model.workflow();
+                Set<String> offered = new TreeSet<>(expected);
+                if (workflow != null) {
+                    workflow.transitions().stream()
+                            .filter(transition -> !transition
+                                    .from()
+                                    .contains(workflow.initial().code()))
+                            .forEach(transition -> offered.remove(transition.code()));
+                }
                 assertThat(new TreeSet<>(
                                 (List<?>) world.readOk(world.owner, record.id()).get("actions")))
                         .as("actions of a record read by its owner")
-                        .isEqualTo(expected);
+                        .isEqualTo(offered);
             }
         }
     }

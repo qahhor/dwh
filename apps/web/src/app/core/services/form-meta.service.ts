@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import type { FieldErrorItem } from '../models/common.models';
-import type { FormFieldMeta, FormMeta, FormProblems, FormValues } from '../models/form-meta.models';
+import type { FormCollectionMeta, FormFieldMeta, FormMeta, FormProblems, FormValues } from '../models/form-meta.models';
 import { ApiService } from './api.service';
 import { FIELD_VALUE_RULES, fieldReadonly, fieldVisible, localMoment, utcMoment } from './field-values';
 import { MetaCache, MetaCacheState } from './meta-cache';
@@ -56,6 +56,10 @@ export function optionLabel(field: FormFieldMeta, option: string, translate: Tra
 export function recordValues(meta: FormMeta, row: Row | null | undefined): FormValues {
   const attributes = (row?.['attributes'] ?? {}) as Row;
   const values: FormValues = {};
+  for (const collection of meta.collections ?? []) {
+    const rows = Array.isArray(row?.[collection.key]) ? (row[collection.key] as Row[]) : [];
+    values[collection.key] = rows.map((kept) => rowValues(collection, kept));
+  }
   for (const field of meta.fields) {
     const raw = field.attribute ? attributes[field.attribute] : row?.[field.key];
     const value = raw ?? (row ? null : defaultOf(field));
@@ -112,6 +116,79 @@ export function recordPayload(meta: FormMeta, values: FormValues, row?: Row | nu
     payload[field.key] = rules.empty(raw) ? emptyOf(field, raw) : rules.payload(field, raw);
   }
   payload['attributes'] = attributes;
+  const locked = row ? lockedKeys(meta, row) : new Set<string>();
+  for (const collection of meta.collections ?? []) {
+    // Rows a state of the process locks are not sent, nor rows the form does not hold: the server keeps them.
+    if (locked.has(collection.key) || !(collection.key in values)) continue;
+    payload[collection.key] = rowsOf(values, collection.key).map((current) => rowPayload(collection, current, values));
+  }
+  return payload;
+}
+
+/**
+ * The rows of a document's collection as the form edits them (ADR-0032 9.1): each row's `id` — none for a new row —
+ * and its fields as their controls edit them.
+ */
+export function rowValues(collection: FormCollectionMeta, row: Row | null | undefined): FormValues {
+  const values: FormValues = { id: typeof row?.['id'] === 'number' ? row['id'] : null };
+  for (const field of collection.fields) {
+    const edited = FIELD_VALUE_RULES[field.type].formValue(field, row?.[field.key] ?? null);
+    values[field.key] = edited ?? (field.type === 'boolean' ? false : null);
+  }
+  return values;
+}
+
+/** The rows of a collection on the form; none when the form has not got them. */
+export function rowsOf(values: FormValues, key: string): FormValues[] {
+  const rows = values[key];
+  return Array.isArray(rows) ? (rows as FormValues[]) : [];
+}
+
+/**
+ * The fields and collections a save cannot change in the state of the record (ADR-0032 9.2): the state's locks, or
+ * every field and collection in a terminal state; none without a process.
+ */
+export function lockedKeys(meta: FormMeta, values: Row | null | undefined): Set<string> {
+  const workflow = meta.workflow;
+  if (!workflow || !values) return new Set();
+  const state = workflow.states.find((candidate) => candidate.code === values[workflow.field]);
+  if (!state) return new Set();
+  if (!state.terminal) return new Set(state.locks);
+  return new Set([...meta.fields.map((field) => field.key), ...(meta.collections ?? []).map((c) => c.key)]);
+}
+
+/** The form with the fields a state of the process locks read-only (ADR-0032 9.2). */
+export function withLocks(meta: FormMeta, values: Row | null | undefined): FormMeta {
+  const locked = lockedKeys(meta, values);
+  if (locked.size === 0) return meta;
+  return {
+    ...meta,
+    fields: meta.fields.map((field) => (locked.has(field.key) ? { ...field, readonly: true } : field)),
+  };
+}
+
+/**
+ * The money of a row in the document's currency (`currencyFrom`): the amount as typed with the currency the document
+ * has on the form now; any other value as it is.
+ */
+export function rowMoney(field: FormFieldMeta, value: unknown, values: FormValues): unknown {
+  if (field.type !== 'money' || !field.currencyFrom) return value;
+  const currency = values[field.currencyFrom];
+  const amount =
+    value && typeof value === 'object' && 'amount' in value ? (value as { amount: unknown }).amount : value;
+  return { amount: amount ?? null, currency: typeof currency === 'string' ? currency : '' };
+}
+
+/** A row as the server takes it: its id when it has one and its written fields, never a computed one. */
+function rowPayload(collection: FormCollectionMeta, row: FormValues, values: FormValues): Row {
+  const payload: Row = {};
+  if (typeof row['id'] === 'number') payload['id'] = row['id'];
+  for (const field of collection.fields) {
+    if (field.computed) continue;
+    const raw = rowMoney(field, row[field.key], values);
+    const rules = FIELD_VALUE_RULES[field.type];
+    payload[field.key] = rules.empty(raw) ? emptyOf(field, raw) : rules.payload(field, raw);
+  }
   return payload;
 }
 
@@ -134,13 +211,31 @@ function emptyOf(field: FormFieldMeta, raw: unknown): unknown {
   return typeof raw === 'string' && field.type !== 'markdown' && field.type !== 'textarea' ? raw.trim() : raw;
 }
 
-/** The problems the server would find in the declared fields, found before the request. */
+/**
+ * The problems the server would find in the declared fields, found before the request; a row's problem under
+ * `lines[3].qty`, the address the server gives it (ADR-0032 6.12).
+ */
 export function formProblems(meta: FormMeta, values: FormValues, translate: Translate, creating = false): FormProblems {
   const problems: FormProblems = {};
   for (const field of meta.fields) {
     if (!fieldVisible(field, values) || fieldReadonly(field, values, creating)) continue;
     const problem = fieldProblem(field, values[field.key]);
     if (problem) problems[field.key] = problemText(problem, field, translate);
+  }
+  const locked = creating ? new Set<string>() : lockedKeys(meta, values);
+  for (const collection of meta.collections ?? []) {
+    if (locked.has(collection.key)) continue;
+    const rows = rowsOf(values, collection.key);
+    if (rows.length > collection.maxRows) {
+      problems[collection.key] = translate('ui.entity_lines.too_many', { n: collection.maxRows });
+    }
+    rows.forEach((row, index) => {
+      for (const field of collection.fields) {
+        if (field.computed) continue;
+        const problem = fieldProblem(field, rowMoney(field, row[field.key], values));
+        if (problem) problems[`${collection.key}[${index}].${field.key}`] = problemText(problem, field, translate);
+      }
+    });
   }
   return problems;
 }
@@ -161,9 +256,36 @@ export function serverProblems(
     );
     if (field && !problems[field.key]) {
       problems[field.key] = KNOWN_CODES.has(error.code) ? problemText(error.code, field, translate) : error.message;
+      continue;
     }
+    const row = rowProblem(meta, error, translate);
+    if (row && !problems[row[0]]) problems[row[0]] = row[1];
   }
   return problems;
+}
+
+/** The address of a row's or a collection's problem: `lines[3].qty`, `lines[3]`, `lines` (ADR-0032 6.12). */
+const ROW_ADDRESS = /^([a-z][a-zA-Z0-9]*)(?:\[(\d+)\](?:\.([a-z][a-zA-Z0-9]*))?)?$/;
+
+/** A problem of a collection or of one of its rows, by the address the server gave it, with its words. */
+function rowProblem(meta: FormMeta, error: FieldErrorItem, translate: Translate): [string, string] | null {
+  const match = ROW_ADDRESS.exec(error.field);
+  const collection = match ? (meta.collections ?? []).find((candidate) => candidate.key === match[1]) : undefined;
+  if (!match || !collection) return null;
+  const field = match[3] ? collection.fields.find((candidate) => candidate.key === match[3]) : undefined;
+  if (field) {
+    return [error.field, KNOWN_CODES.has(error.code) ? problemText(error.code, field, translate) : error.message];
+  }
+  switch (error.code) {
+    case 'required':
+      return [error.field, translate('ui.entity_lines.required')];
+    case 'too_many':
+      return [error.field, translate('ui.entity_lines.too_many', { n: collection.maxRows })];
+    case 'readonly':
+      return [error.field, translate('ui.entity_form.readonly')];
+    default:
+      return [error.field, error.message];
+  }
 }
 
 const KNOWN_CODES = new Set(['required', 'too_short', 'too_long', 'out_of_range', 'invalid', 'too_many', 'readonly']);

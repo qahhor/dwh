@@ -6,12 +6,13 @@ import com.smartup24.cms.instance.common.query.QueryFieldType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
  * One field of an entity, declared once (ADR-0032, 3.1; plan 10/10, item 5.1): the form field ({@link #formField()})
- * and the list fields ({@link #queryFields(String)}) are derived from it, so the form and the list cannot disagree on
+ * and the list fields ({@link #queryFields(String, Function)}) are derived from it, so the form and the list cannot disagree on
  * the key, the label, the kind of value, the options or the reference. Built with {@link EntityFields}; what each
  * type needs is checked by {@link FieldTypeRules} (plan 10/10, item 5.2).
  *
@@ -136,18 +137,21 @@ public record EntityField(
      * The fields of the entity's list: the field itself and, for money, the hidden field that filters it by its
      * currency ({@code totalCurrency}, an enumeration of its currencies; ADR-0032, 4.1). Empty when the field is only
      * on the form.
+     *
+     * @param fieldSql the SQL of another field of the record by its key: the currency of money that takes it from a
+     *                 field ({@link FieldOptions#currencyFrom()})
      */
-    public List<QueryField> queryFields(String alias) {
+    public List<QueryField> queryFields(String alias, Function<String, String> fieldSql) {
         QueryField field = queryField(alias);
         if (field == null) return List.of();
         List<QueryField> fields = new ArrayList<>();
         fields.add(field);
-        if (source instanceof FieldSource.MoneyColumns money) {
+        if (type == FieldType.MONEY) {
             fields.add(new QueryField(
                     key + CURRENCY_SUFFIX,
                     labelKey,
                     QueryFieldType.ENUM,
-                    money.currencySql(alias, options.currencies().getFirst()),
+                    currencySql(alias, fieldSql),
                     field.filterable(),
                     false,
                     false,
@@ -164,6 +168,35 @@ public record EntityField(
                     null));
         }
         return fields;
+    }
+
+    /** The fields of the entity's list, for a field whose money keeps its currency itself. */
+    public List<QueryField> queryFields(String alias) {
+        return queryFields(alias, key -> {
+            throw new IllegalStateException("Entity field " + this.key + " takes its currency from " + key);
+        });
+    }
+
+    /**
+     * The currency of money as SQL over the table aliased {@code alias} (ADR-0032, 4.1 and 9.1): its currency column,
+     * the select field it takes the currency from ({@code fieldSql} gives that field's SQL), or its one currency as a
+     * literal.
+     */
+    public String currencySql(String alias, Function<String, String> fieldSql) {
+        if (type != FieldType.MONEY) {
+            throw new IllegalStateException("Entity field " + key + " is no money");
+        }
+        if (source instanceof FieldSource.MoneyColumns money && money.currency() != null) {
+            return money.currencySql(alias, options.currencies().getFirst());
+        }
+        if (options.currencyFrom() != null) {
+            return fieldSql.apply(options.currencyFrom());
+        }
+        String fixed = options.currencies().getFirst();
+        if (!FieldSource.CURRENCY.matcher(fixed).matches()) {
+            throw new IllegalArgumentException("Bad currency: " + fixed);
+        }
+        return "'" + fixed + "'";
     }
 
     /** The value as SQL over the table aliased {@code alias}: an attribute cast to the field's type. */

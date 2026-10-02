@@ -4,7 +4,16 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, map, of } from 'rxjs';
 import type { ProblemDetail } from '@core/models/common.models';
 import type { FormProblems } from '@core/models/form-meta.models';
-import { canDo, formProblems, recordPayload, recordValues, serverProblems } from '@core/services/form-meta.service';
+import {
+  canDo,
+  formProblems,
+  lockedKeys,
+  recordPayload,
+  recordValues,
+  rowsOf,
+  serverProblems,
+  withLocks,
+} from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
@@ -12,6 +21,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { EntitiesApi, EntityRecord } from '../entities.api';
 import { SMTEntityFormComponent } from '../smt-entity-form.component';
+import { SMTEntityLinesComponent } from '../smt-entity-lines.component';
 import { isNotFound, recordIdOf, recordName } from './entity-page';
 import { SMTEntityPageStateComponent } from './smt-entity-page-state.component';
 import { EntityPageContext } from './smt-entity-page.component';
@@ -20,7 +30,8 @@ import { EntityPageContext } from './smt-entity-page.component';
  * Creating a record, `/e/:code/new`, or changing one, `/e/:code/:id/edit` (ADR-0032 7.1): the entity's form from
  * `form-meta`, checked by its declared rules before the request; the change names the revision it was read at
  * (If-Match). A 422 puts the server's problems under the fields; a stale revision (409) or a missing one (428) is
- * the shared conflict message with a button that reads the record again.
+ * the shared conflict message with a button that reads the record again. A document's rows are edited under the form
+ * and saved with it (ADR-0032 9.1); the fields and rows the state of its process locks are read-only (ADR-0032 9.2).
  */
 @Component({
   selector: 'smt-entity-edit-page',
@@ -29,6 +40,7 @@ import { EntityPageContext } from './smt-entity-page.component';
     RouterLink,
     SMTButtonComponent,
     SMTEntityFormComponent,
+    SMTEntityLinesComponent,
     SMTEntityPageStateComponent,
     TranslatePipe,
     UiPageHeaderComponent,
@@ -56,6 +68,17 @@ import { EntityPageContext } from './smt-entity-page.component';
             [disabled]="saving()"
             [(value)]="values"
           />
+          @for (collection of meta().collections ?? []; track collection.key) {
+            <smt-entity-lines
+              [collection]="collection"
+              [values]="values()"
+              [problems]="problems()"
+              [disabled]="saving()"
+              [readonly]="locked().has(collection.key)"
+              [rows]="rowsOf(values(), collection.key)"
+              (rowsChange)="setRows(collection.key, $event)"
+            />
+          }
           <div class="entity-edit-actions">
             <a smt-button smtVariant="secondary" [routerLink]="backLink()" data-testid="entity-cancel">
               {{ 'common.cancel' | t }}
@@ -108,7 +131,10 @@ export class SMTEntityEditPageComponent {
   readonly problems = signal<FormProblems>({});
   readonly saving = signal(false);
 
-  readonly meta = computed(() => this.context.formMeta());
+  /** The form, with the fields the state of the record's process locks read-only. */
+  readonly meta = computed(() => withLocks(this.context.formMeta(), this.record()));
+  /** The fields and collections the state of the record locks; none while it is new. */
+  readonly locked = computed(() => lockedKeys(this.context.formMeta(), this.record()));
   readonly recordId = computed(() => recordIdOf(this.id()));
   readonly creating = computed(() => this.id() === undefined);
 
@@ -148,6 +174,9 @@ export class SMTEntityEditPageComponent {
       params.creating || params.id === null ? of(null) : this.entities.get(this.context.code(), params.id),
   });
 
+  /** The rows of a collection on the form, for the template. */
+  readonly rowsOf = rowsOf;
+
   /** Checked by the entity's declared rules first; the server checks them again and names the fields it rejects. */
   save(): void {
     if (this.saving()) return;
@@ -177,6 +206,11 @@ export class SMTEntityEditPageComponent {
         });
       },
     });
+  }
+
+  /** The rows of a collection as the lines edit them. */
+  setRows(key: string, rows: unknown[]): void {
+    this.values.update((values) => ({ ...values, [key]: rows }));
   }
 
   /** Reads the record again after a save was refused over a newer revision: the form shows what is saved now. */

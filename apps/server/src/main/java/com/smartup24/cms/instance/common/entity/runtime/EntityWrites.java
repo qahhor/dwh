@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.common.entity.hook.EntityOperation;
 import com.smartup24.cms.instance.common.entity.hook.EntityValues;
 import com.smartup24.cms.instance.common.entity.store.EntityStoreRepository;
 import com.smartup24.cms.instance.common.entity.store.EntityWrite;
+import com.smartup24.cms.instance.common.entity.workflow.EntityTransition;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.util.ArrayList;
@@ -29,7 +30,9 @@ import tools.jackson.databind.JsonNode;
 /**
  * Steps 4–13 of ADR-0032, 6.3, run by {@link EntityRuntime} in the transaction of the request: the record read in its
  * scope for update, its revision, the body field by field, the values prepared and checked — every problem in one 422
- * — the hooks, the write, the audit and the event. The order is fixed; a hook cannot change it.
+ * — the hooks, the write, the audit and the event. The order is fixed; a hook cannot change it. A document's rows are
+ * checked and written with the record (ADR-0032, 9.1); a state of its process locks what it names, and a transition
+ * runs the same steps as a record action (ADR-0032, 9.2).
  */
 @Component
 public class EntityWrites {
@@ -40,6 +43,7 @@ public class EntityWrites {
     private final EntitySaveChecks checks;
     private final EntityChanges changes;
     private final EntityEvents events;
+    private final EntityLines lines;
 
     public EntityWrites(
             EntityReads reads,
@@ -47,18 +51,26 @@ public class EntityWrites {
             EntityFieldValues fieldValues,
             EntitySaveChecks checks,
             EntityChanges changes,
-            EntityEvents events) {
+            EntityEvents events,
+            EntityLines lines) {
         this.reads = reads;
         this.store = store;
         this.fieldValues = fieldValues;
         this.checks = checks;
         this.changes = changes;
         this.events = events;
+        this.lines = lines;
     }
 
-    /** The values a save writes, its custom field values (null: as they are) and the record as it will be. */
+    /**
+     * The values a save writes, its custom field values (null: as they are), the record as it will be and the rows of
+     * its collections the save sends.
+     */
     private record Prepared(
-            Map<String, Object> values, @Nullable Map<String, Object> attributes, Map<String, Object> record) {}
+            Map<String, Object> values,
+            @Nullable Map<String, Object> attributes,
+            Map<String, Object> record,
+            EntityLines.Prepared rows) {}
 
     Map<String, Object> create(EntityDefinition entity, @Nullable JsonNode body) {
         long user = EntityReads.userId();
@@ -68,6 +80,7 @@ public class EntityWrites {
         EntityWrite write = EntityWrite.of(entity, written(entity, prepared, save), store.json(entity));
         long id = store.insert(entity, write, prepared.attributes(), user);
         changes.writeExtras(entity, id, write);
+        lines.write(entity, id, prepared.rows());
         save.written(id);
         Map<String, Object> after = reads.visible(entity, id, false);
         List<String> changed = changes.audit(entity, id, "I", null, after, null);
@@ -89,6 +102,7 @@ public class EntityWrites {
             throw Revisions.conflict();
         }
         changes.writeExtras(entity, id, write);
+        lines.write(entity, id, prepared.rows());
         Map<String, Object> after = reads.visible(entity, id, false);
         List<String> changed = changes.audit(entity, id, "U", before, after, null);
         changes.afterSave(save);
@@ -156,8 +170,45 @@ public class EntityWrites {
     }
 
     /**
-     * Steps 6–8: the body's problems, the values prepared by the field rules (read-only fields, defaults, conditions,
-     * enumerations, files), then the references, the unit, the rules and the custom fields — one 422 with them all.
+     * A transition of the entity's process (ADR-0032, 9.2): from the record's state only — 422
+     * {@code entity_transition_not_allowed} otherwise — the record moves to the transition's state if it meets the
+     * transition's rules; the hooks see the save with the transition's code in place of an action's handler
+     * ({@code beforeSave} and {@code afterSave} with {@link EntityOperation#ACTION}); the runtime writes, audits the
+     * change with the code and publishes it as the transition's event.
+     */
+    Map<String, Object> transition(
+            EntityDefinition entity, long id, long expected, EntityTransition transition, Map<String, Object> params) {
+        long user = EntityReads.userId();
+        Map<String, Object> before = reads.visible(entity, id, true);
+        requireRevision(before, expected);
+        EntityProcess.requireAllowed(entity, transition, before);
+        String status = Objects.requireNonNull(
+                        Objects.requireNonNull(entity.model()).workflow())
+                .field();
+        Map<String, Object> record = new LinkedHashMap<>(before);
+        record.put(status, transition.to());
+        List<FieldErrorItem> problems = EntityProcess.rules(
+                transition, EntityValues.readOnly(entity, record), EntityValues.readOnly(entity, before));
+        if (!problems.isEmpty()) {
+            throw ApiException.validation("error.common.record_fields_invalid", problems);
+        }
+        String code = transition.code();
+        RuntimeSave save = save(entity, EntityOperation.ACTION, id, before, record, code, params);
+        changes.beforeSave(save);
+        EntityWrite write = EntityWrite.of(entity, touched(entity, save.values().asMap(), before), store.json(entity));
+        if (store.update(entity, id, expected, write, null, user).isEmpty()) throw Revisions.conflict();
+        changes.writeExtras(entity, id, write);
+        Map<String, Object> after = reads.visible(entity, id, false);
+        List<String> changed = changes.audit(entity, id, "U", before, after, code);
+        changes.afterSave(save);
+        events.changed(entity, id, EntityReads.revision(after), EntityEventType.ACTION, code, changed, user);
+        return reads.visible(entity, id, false);
+    }
+
+    /**
+     * Steps 6–8: the body's problems, the fields and rows the state of the process locks, the values prepared by the
+     * field rules (read-only fields, defaults, conditions, enumerations, files), the rows of the collections, then the
+     * references, the unit, the rules and the custom fields — one 422 with them all.
      */
     private Prepared prepare(
             EntityDefinition entity,
@@ -166,6 +217,9 @@ public class EntityWrites {
             @Nullable Long id,
             long user) {
         List<FieldErrorItem> errors = new ArrayList<>(body.errors());
+        Map<String, Object> current = before == null ? Map.of() : before;
+        Set<String> locked = EntityProcess.locked(entity, before);
+        errors.addAll(EntityProcess.lockProblems(entity, body.values(), current, locked));
         Set<String> refused = new HashSet<>();
         errors.forEach(error -> refused.add(error.field()));
         Map<String, Object> sent = new LinkedHashMap<>(body.values());
@@ -174,9 +228,11 @@ public class EntityWrites {
         values.errors().stream()
                 .filter(error -> !refused.contains(error.field()))
                 .forEach(errors::add);
-        Map<String, Object> current = before == null ? Map.of() : before;
         Map<String, Object> record = new LinkedHashMap<>(current);
         record.putAll(values.values());
+        EntityLines.Prepared rows = lines.prepare(entity, body.collections(), current, record, locked);
+        errors.addAll(rows.errors());
+        record.putAll(rows.asRecord());
         if (errors.isEmpty()) {
             errors.addAll(checks.references(entity, values.values(), current, user));
             errors.addAll(checks.unit(entity, values.values(), current, user));
@@ -188,7 +244,7 @@ public class EntityWrites {
         if (!errors.isEmpty()) {
             throw ApiException.validation("error.common.record_fields_invalid", errors);
         }
-        return new Prepared(values.values(), attributes.attributes(), record);
+        return new Prepared(values.values(), attributes.attributes(), record, rows);
     }
 
     /** What the save writes: the prepared values and every value the hook changed (ADR-0032, 6.5). */

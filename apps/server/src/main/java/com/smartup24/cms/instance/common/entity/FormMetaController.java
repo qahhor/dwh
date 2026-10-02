@@ -3,6 +3,9 @@ package com.smartup24.cms.instance.common.entity;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.entity.EntityEnums.Items;
+import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormCollectionMeta;
+import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormTabMeta;
+import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormWorkflowMeta;
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.ConditionItemMeta;
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.DefaultValueMeta;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -14,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -56,7 +60,8 @@ public class FormMetaController {
      * item 5.2 (ADR-0032, 4.1–4.5) are given only when a field has them: the two conditional read-only kinds,
      * {@code computed}, {@code defaultValue}, {@code visibleWhen}, the scale, item count, file size and types,
      * currencies and JSON root; an enumeration's active items come as {@code options}, the names of all its items —
-     * archived ones too, so an old value is named — in {@code optionLabels}.
+     * archived ones too, so an old value is named — in {@code optionLabels}. Money in the currency of a select field
+     * names it in {@code currencyFrom} (ADR-0032, 9.1): a field of the record, or of the document for a row.
      */
     public record FormFieldMeta(
             String key,
@@ -85,17 +90,25 @@ public class FormMetaController {
             @Nullable Long maxBytes,
             @Nullable List<String> contentTypes,
             @Nullable List<String> currencies,
-            @Nullable String jsonRoot) {}
+            @Nullable String jsonRoot,
+            @Nullable String currencyFrom) {}
 
     public record FormSectionMeta(String key, String labelKey, List<String> fields) {}
 
+    /**
+     * An entity's form. A document also gives its collections with the fields of a row, its process and the tabs of
+     * its card (ADR-0032, 9; plan 10/10, item 5.7); an entity without them answers without these properties.
+     */
     public record FormMeta(
             String code,
             @Nullable String listCode,
             List<FormFieldMeta> fields,
             List<FormSectionMeta> layout,
             List<String> actions,
-            List<String> capabilities) {}
+            List<String> capabilities,
+            @Nullable List<FormCollectionMeta> collections,
+            @Nullable FormWorkflowMeta workflow,
+            @Nullable List<FormTabMeta> tabs) {}
 
     /** Anyone signed in may ask; the entity's own right is checked below. A string: common depends on no module. */
     @Operation(
@@ -108,7 +121,14 @@ public class FormMetaController {
         EntityDefinition entity = registry.find(code)
                 .filter(found -> SecurityContext.hasPermission(found.form(), "view"))
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.entity_not_found"));
-        return ResponseEntity.ok(of(entity, enumItems));
+        return ResponseEntity.ok(of(entity, enumItems, this::viewable));
+    }
+
+    /** Whether the viewer may see the entity {@code code}: what a related list of a card needs (ADR-0032, 9.3). */
+    private boolean viewable(String code) {
+        return registry.find(code)
+                .filter(found -> SecurityContext.hasPermission(found.form(), "view"))
+                .isPresent();
     }
 
     /** The form as the viewer may use it, for an entity without enumerations. */
@@ -121,6 +141,11 @@ public class FormMetaController {
      * section too, and a section left empty goes; a field whose {@code readonlyUnless} they lack is read-only.
      */
     static FormMeta of(EntityDefinition entity, Function<String, Items> enumItems) {
+        return of(entity, enumItems, code -> false);
+    }
+
+    /** The form as the viewer may use it; a related list of the card only of an entity {@code viewable} accepts. */
+    static FormMeta of(EntityDefinition entity, Function<String, Items> enumItems, Predicate<String> viewable) {
         Set<String> hidden = EntityFieldRights.hidden(entity);
         Set<String> readonly = EntityFieldRights.readonly(entity);
         return new FormMeta(
@@ -146,6 +171,9 @@ public class FormMetaController {
                 entity.capabilities().stream()
                         .map(EntityCapability::wire)
                         .sorted()
-                        .toList());
+                        .toList(),
+                FormDocumentMetas.collections(entity, enumItems),
+                FormDocumentMetas.workflow(entity),
+                FormDocumentMetas.tabs(entity, viewable));
     }
 }

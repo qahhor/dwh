@@ -25,6 +25,8 @@
   }, {
     "name" : "entity-menu-controller"
   }, {
+    "name" : "example.orders"
+  }, {
     "name" : "form-meta-controller"
   }, {
     "name" : "kauth-api-token-controller"
@@ -1393,6 +1395,526 @@
         },
         "summary" : "Update a custom field",
         "tags" : [ "md-custom-field-controller" ]
+      }
+    },
+    "/api/v1/entities/example.orders" : {
+      "get" : {
+        "description" : "List records of example.orders through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "listExampleOrders",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "filter",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleOrdersPage"
+                }
+              }
+            },
+            "description" : "A page of the list (ADR-0016)"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List records of example.orders",
+        "tags" : [ "example.orders" ]
+      },
+      "post" : {
+        "description" : "Create a record of example.orders through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "createExampleOrders",
+        "parameters" : [ {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExampleOrdersCreate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleOrdersRecord"
+                }
+              }
+            },
+            "description" : "The created record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a record of example.orders",
+        "tags" : [ "example.orders" ]
+      }
+    },
+    "/api/v1/entities/example.orders/{id}" : {
+      "get" : {
+        "description" : "Get a record of example.orders through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "getExampleOrders",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleOrdersRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Get a record of example.orders",
+        "tags" : [ "example.orders" ]
+      },
+      "patch" : {
+        "description" : "Change a record of example.orders through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "patchExampleOrders",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExampleOrdersPatch"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleOrdersRecord"
+                }
+              }
+            },
+            "description" : "The changed record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Change a record of example.orders",
+        "tags" : [ "example.orders" ]
+      }
+    },
+    "/api/v1/entities/example.orders/{id}/actions/cancel" : {
+      "post" : {
+        "description" : "Run cancel on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "cancelExampleOrders",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleOrdersRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run cancel on a record",
+        "tags" : [ "example.orders" ]
+      }
+    },
+    "/api/v1/entities/example.orders/{id}/actions/post" : {
+      "post" : {
+        "description" : "Run post on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "postExampleOrders",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleOrdersRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run post on a record",
+        "tags" : [ "example.orders" ]
+      }
+    },
+    "/api/v1/entities/example.orders/{id}/actions/unpost" : {
+      "post" : {
+        "description" : "Run unpost on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "unpostExampleOrders",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleOrdersRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run unpost on a record",
+        "tags" : [ "example.orders" ]
       }
     },
     "/api/v1/entities/md.users" : {
@@ -12025,6 +12547,279 @@
           }
         }
       },
+      "ExampleOrdersCreate" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "A new record of example.orders; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "comment" : {
+            "type" : "string",
+            "maxLength" : 2000
+          },
+          "currency" : {
+            "type" : "string",
+            "enum" : [ "UZS", "USD", "EUR" ]
+          },
+          "customer" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "lines" : {
+            "type" : "array",
+            "description" : "The rows of lines in their order (ADR-0032, 9.1)",
+            "items" : {
+              "type" : "object",
+              "additionalProperties" : false,
+              "properties" : {
+                "id" : {
+                  "type" : "integer",
+                  "format" : "int64"
+                },
+                "price" : {
+                  "$ref" : "#/components/schemas/EntityMoney"
+                },
+                "product" : {
+                  "type" : "string",
+                  "maxLength" : 255,
+                  "minLength" : 1
+                },
+                "qty" : {
+                  "type" : "number",
+                  "maximum" : 1000000,
+                  "minimum" : 0.001
+                }
+              }
+            },
+            "maxItems" : 500
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "orderDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "orgUnitId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "draft", "posted", "cancelled" ]
+          }
+        },
+        "required" : [ "customer" ]
+      },
+      "ExampleOrdersPage" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ExampleOrdersRecord"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ExampleOrdersPatch" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "The fields to change of a record of example.orders; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "comment" : {
+            "type" : "string",
+            "maxLength" : 2000
+          },
+          "currency" : {
+            "type" : "string",
+            "enum" : [ "UZS", "USD", "EUR" ]
+          },
+          "customer" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "lines" : {
+            "type" : "array",
+            "description" : "The rows of lines in their order (ADR-0032, 9.1)",
+            "items" : {
+              "type" : "object",
+              "additionalProperties" : false,
+              "properties" : {
+                "id" : {
+                  "type" : "integer",
+                  "format" : "int64"
+                },
+                "price" : {
+                  "$ref" : "#/components/schemas/EntityMoney"
+                },
+                "product" : {
+                  "type" : "string",
+                  "maxLength" : 255,
+                  "minLength" : 1
+                },
+                "qty" : {
+                  "type" : "number",
+                  "maximum" : 1000000,
+                  "minimum" : 0.001
+                }
+              }
+            },
+            "maxItems" : 500
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "orderDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "orgUnitId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "draft", "posted", "cancelled" ]
+          }
+        }
+      },
+      "ExampleOrdersRecord" : {
+        "type" : "object",
+        "description" : "A record of example.orders as the viewer may read it",
+        "properties" : {
+          "actions" : {
+            "type" : "array",
+            "description" : "What the viewer may do with this record",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "comment" : {
+            "type" : "string",
+            "maxLength" : 2000
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "currency" : {
+            "type" : "string",
+            "enum" : [ "UZS", "USD", "EUR" ]
+          },
+          "customer" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "lines" : {
+            "type" : "array",
+            "description" : "The rows of lines in their order (ADR-0032, 9.1)",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "amount" : {
+                  "$ref" : "#/components/schemas/EntityMoney",
+                  "readOnly" : true
+                },
+                "id" : {
+                  "type" : "integer",
+                  "format" : "int64"
+                },
+                "position" : {
+                  "type" : "integer",
+                  "format" : "int32"
+                },
+                "price" : {
+                  "$ref" : "#/components/schemas/EntityMoney"
+                },
+                "product" : {
+                  "type" : "string",
+                  "maxLength" : 255,
+                  "minLength" : 1
+                },
+                "qty" : {
+                  "type" : "number",
+                  "maximum" : 1000000,
+                  "minimum" : 0.001
+                }
+              }
+            },
+            "maxItems" : 500
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "modifiedBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "number" : {
+            "type" : "string",
+            "readOnly" : true
+          },
+          "orderDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "orgUnitId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "draft", "posted", "cancelled" ],
+            "readOnly" : true
+          },
+          "total" : {
+            "$ref" : "#/components/schemas/EntityMoney",
+            "readOnly" : true
+          }
+        },
+        "required" : [ "id", "revision" ]
+      },
       "ExportItem" : {
         "type" : "object",
         "properties" : {
@@ -12306,6 +13101,27 @@
           }
         }
       },
+      "FormCollectionMeta" : {
+        "type" : "object",
+        "properties" : {
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormFieldMeta"
+            }
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labelKey" : {
+            "type" : "string"
+          },
+          "maxRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "FormFieldMeta" : {
         "type" : "object",
         "properties" : {
@@ -12326,6 +13142,9 @@
             "items" : {
               "type" : "string"
             }
+          },
+          "currencyFrom" : {
+            "type" : "string"
           },
           "defaultValue" : {
             "$ref" : "#/components/schemas/DefaultValueMeta"
@@ -12433,6 +13252,12 @@
           "code" : {
             "type" : "string"
           },
+          "collections" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormCollectionMeta"
+            }
+          },
           "fields" : {
             "type" : "array",
             "items" : {
@@ -12447,6 +13272,15 @@
           },
           "listCode" : {
             "type" : "string"
+          },
+          "tabs" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormTabMeta"
+            }
+          },
+          "workflow" : {
+            "$ref" : "#/components/schemas/FormWorkflowMeta"
           }
         }
       },
@@ -12464,6 +13298,101 @@
           },
           "labelKey" : {
             "type" : "string"
+          }
+        }
+      },
+      "FormStateMeta" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "initial" : {
+            "type" : "boolean"
+          },
+          "labelKey" : {
+            "type" : "string"
+          },
+          "locks" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "terminal" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "FormTabMeta" : {
+        "type" : "object",
+        "properties" : {
+          "collection" : {
+            "type" : "string"
+          },
+          "entity" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "labelKey" : {
+            "type" : "string"
+          },
+          "sections" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "FormTransitionMeta" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "confirmKey" : {
+            "type" : "string"
+          },
+          "from" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "permission" : {
+            "type" : "string"
+          },
+          "to" : {
+            "type" : "string"
+          }
+        }
+      },
+      "FormWorkflowMeta" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "states" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormStateMeta"
+            }
+          },
+          "transitions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormTransitionMeta"
+            }
           }
         }
       },

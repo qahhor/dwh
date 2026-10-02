@@ -218,6 +218,39 @@ CRUD модуль **не пишет** — серверная часть сущн
 `<Код>Record`/`Create`/`Patch`/`Page`) — после нового поля перегенерируйте
 `docs/api/openapi.json` и типы веба.
 
+### Документ: строки и статусы
+
+Документ — та же сущность ([ADR-0032](../adr/ADR-0032-low-code-platform-v2.md),
+§9; план 10/10, пункт 5.7): объявление получает коллекции строк, процесс и
+вкладки карточки, своего экрана и кода веба не нужно. Образец — модуль
+`example`, заказы `example.orders` одним файлом `ExampleOrderEntity`.
+
+1. **Миграция строк:** дочерняя таблица `id bigint generated always as
+   identity`, `<родитель>_id bigint not null references <родитель> on delete
+   cascade` с индексом, `position integer not null`, колонки полей строки; без
+   своей ревизии, авторов и аудита.
+2. **Коллекция:** `.collection(EntityCollection.of("lines", подпись).table(...)
+   .parentColumn(...).positionColumn("position").field(...).maxRows(500).build())`.
+   Поле строки — колонка, деньги в валюте документа
+   (`money(...).money("price", null).currencyFrom("currency")`) или вычисляемое
+   (`computed("round(l.qty * l.price, 2)")`); итог документа — вычисляемые деньги
+   родителя с `currencyFrom`.
+3. **Процесс:** поле статуса — `select(...).column("status").readonly()
+   .defaultValue(FieldDefault.fixed("draft"))`, затем
+   `.workflow(EntityWorkflow.on("status").state(...).initial()...)`; права
+   переходов — в `EntityRights` и в миграции прав (`md_form_actions`); что
+   блокирует состояние — `.locks(...)`, правила перехода — `.rule(...)`,
+   вопрос — `.confirm(ключ)`. Проведение с записью своих данных — хук
+   `afterSave` с `save.operation() == ACTION` и `save.action()` перехода.
+4. **Вкладки карточки:** `.tab(EntityTab.sections(...))`,
+   `.tab(EntityTab.collection(...))`, `.tab(EntityTab.related(...))`,
+   `.tab(EntityTab.history(...))`; без вкладок карточка — «Поля» и «История».
+5. **Ключи:** подписи строк, состояний, кнопок переходов
+   (`entity.action.<код>`) и вопросов — в ru/uz/en.
+6. **Тест-кит:** фикстура даёт строки (`EntityFixture.valid(Map.of("lines",
+   List.of(...)))`); группа «коллекции и процесс» проверяет строки и каждый
+   переход сама.
+
 ### Контракт сущности: тест-кит
 
 Каждая сущность с таблицей проходит общий контракт

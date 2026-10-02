@@ -80,6 +80,8 @@ public enum ErrorCode {
     PASSWORD_POLICY("password_policy", 422),
     EMPTY_QUERY("empty_query", 422),
     FILE_MALWARE_DETECTED("file_malware_detected", 422),
+    /** A record action of a process that its current state does not allow (ADR-0032, 9.2). */
+    ENTITY_TRANSITION_NOT_ALLOWED("entity_transition_not_allowed", 422),
 
     // 428 Precondition Required: a change of a record names the revision it was made from (plan 10/10, item 3.6)
     PRECONDITION_REQUIRED("precondition_required", 428),

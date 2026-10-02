@@ -14,6 +14,7 @@ import com.smartup24.cms.instance.common.entity.EntityLists;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.entity.FieldTypesFixture;
+import com.smartup24.cms.instance.common.entity.store.EntityCollectionStore;
 import com.smartup24.cms.instance.common.entity.store.EntityStoreRepository;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
@@ -93,7 +94,8 @@ class EntityRuntimeFieldTypesIntegrationTest {
         EntityScopes scopes = EntityScopes.withoutOrgUnits();
         StaticListableBeanFactory beans = new StaticListableBeanFactory();
         beans.addBean("files", attachments);
-        EntityReads reads = new EntityReads(lists, scopes, store);
+        EntityLines lines = new EntityLines(new EntityCollectionStore(jdbc, JSON));
+        EntityReads reads = new EntityReads(lists, scopes, store, lines);
         writes = new EntityWrites(
                 reads,
                 store,
@@ -108,7 +110,8 @@ class EntityRuntimeFieldTypesIntegrationTest {
                         store,
                         beans.getBeanProvider(EntityAuditLog.class),
                         beans.getBeanProvider(EntityFiles.class)),
-                new EntityEvents(event -> {}, registry));
+                new EntityEvents(event -> {}, registry),
+                lines);
         entity = registry.find(FieldTypesFixture.CODE).orElseThrow();
     }
 
