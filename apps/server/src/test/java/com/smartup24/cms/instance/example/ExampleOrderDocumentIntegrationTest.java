@@ -138,6 +138,18 @@ class ExampleOrderDocumentIntegrationTest extends EmbeddedPostgresTest {
     }
 
     @Test
+    @DisplayName("5.7: a row is named once in a save: its id twice is refused on the second row")
+    void aRowIsNamedOnce() throws Exception {
+        Map<String, Object> order = created(List.of(line("Flour", "3", "10.00")));
+        Object row = lines(order).getFirst().get("id");
+        MockHttpServletResponse twice = session.send(
+                patch(ORDERS + "/" + order.get("id")).header("If-Match", "\"1\""),
+                Map.of("lines", List.of(Map.of("id", row, "qty", "1"), Map.of("id", row, "qty", "2"))));
+        assertThat(twice.getStatus()).as(twice.getContentAsString()).isEqualTo(422);
+        assertThat(twice.getContentAsString()).contains("\"field\":\"lines[1].id\"", "error.field.keys_repeated");
+    }
+
+    @Test
     @DisplayName("5.7: a bulk action takes a transition record by record, each from its own state")
     void aBulkActionTakesATransition() throws Exception {
         Map<String, Object> first = created(List.of(line("Flour", "3", "10.00")));

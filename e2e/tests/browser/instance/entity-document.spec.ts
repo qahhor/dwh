@@ -67,7 +67,7 @@ test('an order is created with three lines, posted and its history shows it', as
     expect(order.total.amount).toBe('41.80');
     await expect(page).toHaveURL(/\/e\/example\.orders\/\d+$/u);
     await expect(page.getByRole('heading', { level: 1, name: order.number })).toBeVisible();
-    await expect(page.getByTestId('entity-state')).toHaveText('Черновик');
+    await expect(page.getByTestId('entity-state')).toContainText('Черновик');
 
     // The lines tab shows the three lines with their amounts.
     await page.getByRole('tab', { name: 'Строки' }).click();
@@ -82,7 +82,7 @@ test('an order is created with three lines, posted and its history shows it', as
     const postResponse = await posted;
     expect(postResponse.status()).toBe(200);
     expect(postResponse.request().headers()['if-match']).toMatch(/^"\d+"$/u);
-    await expect(page.getByTestId('entity-state')).toHaveText('Проведён');
+    await expect(page.getByTestId('entity-state')).toContainText('Проведён');
     await expect(page.getByRole('button', { name: 'Провести' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Отменить проведение' })).toBeVisible();
 

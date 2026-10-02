@@ -14,6 +14,7 @@ import com.smartup24.cms.instance.common.entity.store.EntityCollectionStore;
 import com.smartup24.cms.instance.common.entity.store.EntityCollectionStore.Row;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -179,6 +180,7 @@ public class EntityLines {
         before.forEach(row -> byId.put(EntityReads.id(row), row));
         EntityDefinition line = collection.line(entity.code());
         List<Row> rows = new ArrayList<>();
+        Set<Long> seen = new HashSet<>();
         for (int index = 0; index < given.size(); index++) {
             String at = collection.key() + "[" + index + "]";
             Map<String, @Nullable Object> sent = given.get(index);
@@ -187,6 +189,12 @@ public class EntityLines {
             if (base == null) {
                 errors.add(
                         FieldErrorItem.keyed(at + "." + EntityCollection.ID, "not_found", "error.field.ref_not_found"));
+                continue;
+            }
+            if (id != null && !seen.add(id)) {
+                // A row is named once: a second row with its id would overwrite the first.
+                errors.add(FieldErrorItem.keyed(
+                        at + "." + EntityCollection.ID, EntityValidator.INVALID, "error.field.keys_repeated"));
                 continue;
             }
             Map<String, @Nullable Object> values = new LinkedHashMap<>();
