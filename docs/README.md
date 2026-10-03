@@ -9,6 +9,9 @@ actions, menu item and permission names.
 1. [README](../README.md) — what the platform is and what a module consists of.
 2. [Module development guide](guidelines/module-development-guide.md) — the
    checklist for a declared entity and a screen example.
+   [Cookbook](cookbook/README.md) — one recipe per task (reference list,
+   document with lines or statuses, hooks, rights, import, reports, external
+   module), each backed by a tested reference module.
 3. [Extension points](architecture/extension-points.md) — every interface and
    component a module plugs into, and the known gaps.
 4. [ADR-0019 — low-code entity model](adr/ADR-0019-low-code-entity-model.md)
@@ -155,6 +158,8 @@ Historical, fully superseded decisions are retained for traceability only:
 - [Monorepo structure](architecture/monorepo-structure.md)
 - [Database migration guidelines](guidelines/database-migrations.md)
 - [Module development guide](guidelines/module-development-guide.md)
+- [Cookbook](cookbook/README.md) — recipes on the reference modules; the docs
+  contract (`scripts/docs/test-docs-contract.mjs`) keeps their code in sync.
 - [Testing strategy](guidelines/testing-strategy.md)
 
 Engineering guidance explains how to implement the current requirements and

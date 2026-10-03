@@ -1,6 +1,6 @@
 # Разработка модулей SmartupCMS
 
-**Версия:** 2.4
+**Версия:** 2.5
 
 **Обновлено:** 2026-10-03
 
@@ -12,6 +12,11 @@
 
 - `apps/server/src/main/java` — Spring Boot modular monolith;
 - `apps/web/src/app` — Angular SPA.
+
+Короткий путь «задача → код» — [cookbook](../cookbook/README.md): рецепт на
+задачу (справочник, документ со строками и со статусами, связи, хуки, права,
+скоуп, импорт, отчёты, `If-Match`, OpenAPI, правка экрана, модуль вне монорепо)
+на проверенных эталонных модулях.
 
 Новый runtime или параллельный application root не добавляется без отдельного
 принятого ADR. Flyway SQL и runtime-конфигурация остаются ресурсами сервера, а
@@ -164,8 +169,10 @@ CLI (раздел «Быстрый старт: CLI `cms`»): `cms module new <к
 `scripts/dev/test-cms-cli.ps1` (и тот же `tools/cms-cli/scripts/smoke.mjs` в CI
 на Linux и Windows) проверяет, что результат CLI — два серверных файла,
 собирается и проходит гейты.
-Образец в коде — заметки (`ms.note`: один файл `MsNoteEntity`, хуки им не
-нужны). Образец модуля с хуками, своим скоупом и действиями записи — задачи
+Эталоны cookbook (модуль `example`, план 10/10, пункт 6.6): справочник
+`ExampleProductsEntity`, документ со строками `ExampleOrderEntity`, документ со
+статусами `ExampleRequestsEntity` с хуками `ExampleRequestsHooks`. Образец в
+коде — заметки (`ms.note`: один файл `MsNoteEntity`, хуки им не нужны). Образец модуля с хуками, своим скоупом и действиями записи — задачи
 (`ms.task`, план 10/10, пункт 5.6): справочники `MsTaskTypeEntity` и
 `MsTaskStatusEntity`, проекты `MsProjectEntity` (скоуп `custom`, участники
 действиями `add_member`/`remove_member`) и задачи `MsTaskEntity` (статус —
@@ -311,8 +318,12 @@ CLI (раздел «Быстрый старт: CLI `cms`»): `cms module new <к
 
 Документ — та же сущность ([ADR-0032](../adr/ADR-0032-low-code-platform-v2.md),
 §9; план 10/10, пункт 5.7): объявление получает коллекции строк, процесс и
-вкладки карточки, своего экрана и кода веба не нужно. Образец — модуль
-`example`, заказы `example.orders` одним файлом `ExampleOrderEntity`.
+вкладки карточки, своего экрана и кода веба не нужно. Образцы — модуль
+`example`: заказы `example.orders` одним файлом `ExampleOrderEntity` (строки и
+проведение) и заявки `example.requests` (`ExampleRequestsEntity`,
+`ExampleRequestsHooks`: процесс с отзывом и решением, право на поле); рецепты —
+[документ со строками](../cookbook/document-lines.md),
+[документ со статусами](../cookbook/document-statuses.md).
 
 1. **Миграция строк:** дочерняя таблица `id bigint generated always as
    identity`, `<родитель>_id bigint not null references <родитель> on delete
@@ -399,7 +410,7 @@ class MsNoteContractTest extends EntityContractTestKit {
 |---|---|
 | `entity()` | всегда: код сущности |
 | `transport()` | только у сущности со своим контроллером (`EntityTransport.module(путь)`); по умолчанию — runtime `/api/v1/entities/{code}` |
-| `fixture(ctx)` | значения, которые кит не придумает: ссылка, файл, элемент справочника, текст по шаблону, — `EntityFixture.valid(Map.of(...))`; своё изменение — `.update(...)`; свои недопустимые значения — `.invalid(поле, значение, код)` |
+| `fixture(ctx)` | значения, которые кит не придумает: ссылка, файл, элемент справочника, текст по шаблону, — `EntityFixture.valid(Map.of(...))`; своё изменение — `.update(...)`; свои недопустимые значения — `.invalid(поле, значение, код)`. Право `view` на сущность, которую называет ссылка, кит выдаёт своим пользователям сам |
 
 Падение случая называет группу и правило («скоуп: … read is 404»). Чинится
 код модуля, а не кит: обойти случай нельзя, а `EntityContractCoverageTest`

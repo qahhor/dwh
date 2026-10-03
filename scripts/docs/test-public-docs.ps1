@@ -46,6 +46,7 @@ $activeDocs = @(
     'docs/architecture/monorepo-structure.md',
     'docs/guidelines/database-migrations.md',
     'docs/guidelines/module-development-guide.md',
+    'docs/cookbook/README.md',
     'docs/guidelines/testing-strategy.md',
     'docs/security/threat-model.md',
     'docs/ops/architecture-overview.md',

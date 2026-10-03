@@ -76,6 +76,13 @@ export async function buildIndex(root) {
     artifacts: new Set(),
     cli: await cliTable(root),
   };
+  // The schemas of the API description (ExampleRequestsRecord) are names a client uses.
+  const openapi = path.join(root, 'docs/api/openapi.json');
+  if (fs.existsSync(openapi)) {
+    for (const name of Object.keys(JSON.parse(fs.readFileSync(openapi, 'utf8')).components?.schemas ?? {})) {
+      index.tsSymbols.add(name);
+    }
+  }
   for (const file of files) {
     const parts = file.split('/');
     for (let i = 1; i < parts.length; i++) index.dirs.add(parts.slice(0, i).join('/'));
@@ -194,6 +201,11 @@ export function checkMarkdown(file, text, index, readFile) {
       continue;
     }
     if (line.trim()) lastText = line;
+    for (const match of line.matchAll(/\]\(([^)#\s]+)(?:#[^)]*)?\)/g)) {
+      if (/^[a-z]+:/.test(match[1])) continue;
+      const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), match[1])).replace(/\/$/, '');
+      if (!index.files.has(target) && !index.dirs.has(target)) report(i + 1, match[1], 'the link leads nowhere');
+    }
     for (const match of line.matchAll(/`([^`]+)`/g)) {
       const reason = checkSpan(match[1].trim(), index, illustrations);
       if (reason) report(i + 1, match[1], reason);
@@ -225,7 +237,7 @@ function checkBlock(block, index, readFile, illustrations, report) {
   }
   const wanted = block.lines
     .map(({ text, number }) => ({ text: text.trim(), number }))
-    .filter(({ text }) => text && !/^(\/\/|#|<!--)?\s*(\.\.\.|…)\s*(-->)?$/.test(text));
+    .filter(({ text }) => text && !/^(\/\/|--|#|<!--)?\s*(\.\.\.|…)\s*(-->)?$/.test(text));
   const have = source.split(/\r?\n/).map((line) => line.trim());
   let at = 0;
   for (const { text, number } of wanted) {

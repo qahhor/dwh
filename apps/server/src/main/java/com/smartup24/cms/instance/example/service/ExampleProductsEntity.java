@@ -11,6 +11,7 @@ import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityMenu;
 import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.EntityTab;
 import com.smartup24.cms.platform.api.entity.field.FieldDefault;
 import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.platform.api.entity.search.EntitySearchSpec;
@@ -25,7 +26,8 @@ import org.springframework.context.annotation.Configuration;
  * products} and {@code cms entity add-field} and finished by hand — one declaration, no hooks, no controller and no
  * screen. Every product is seen by whoever holds the right ({@code all()}); the code is given once and kept, unique
  * among the live rows; a product is archived instead of deleted while requests name it, imported from an xlsx file by
- * its code and found by the global search. The requests ({@link ExampleRequestsEntity}) reference it.
+ * its code and found by the global search. The requests ({@link ExampleRequestsEntity}) reference it; its card lists
+ * them.
  */
 @Configuration
 public class ExampleProductsEntity {
@@ -77,6 +79,11 @@ public class ExampleProductsEntity {
                     .system(SystemColumn.MODIFIED_AT)
                     .list(sortable().hidden()))
             .section("main", "entity.section.main", "code", "name", "unit", "price")
+            // The card: the fields, the requests that name the product (read with their own rights and scope,
+            // ADR-0032, 9.3) and the history.
+            .tab(EntityTab.sections("main", "ui.entity_page.tab_fields", "main"))
+            .tab(EntityTab.related("requests", "nav.example_requests", ExampleRequestsEntity.CODE, "productId"))
+            .tab(EntityTab.history("history", "ui.entity_page.tab_history"))
             .actions("create", "update")
             .archivable()
             .actions("delete")

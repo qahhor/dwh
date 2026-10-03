@@ -130,6 +130,13 @@ describe('documents', () => {
     ]);
   });
 
+  test('a relative link leads to a file or a directory of the repository', () => {
+    assert.deepEqual(doc('[a](README.md), [b](../cookbook/), [c](https://example.com), [d](#top)'), []);
+    const problems = doc('[gone](missing.md#part)');
+    assert.equal(problems.length, 1);
+    assert.match(problems[0].reason, /leads nowhere/);
+  });
+
   test('an unclosed block is reported', () => {
     assert.match(doc('```java\nclass A {}\n')[0].reason, /not closed/);
   });
