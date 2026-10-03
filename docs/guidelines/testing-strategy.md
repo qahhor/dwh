@@ -92,9 +92,11 @@ digest; часть критериев закрывается только releas
 
 Рядом — пороги покрытия бизнес-модулей (`scripts/quality/test-coverage-floors.ps1`),
 job `api contract` (`scripts/api/test-api-contract.ps1`: Spectral, свежесть
-типов веба, openapi-diff) и в вебе `npm run api:audit`. Генератор модулей
-проверяет `scripts/dev/test-create-module.ps1`: результат генератора
-собирается, проходит эти тесты и стартует на встроенном PostgreSQL.
+типов веба, openapi-diff) и в вебе `npm run api:audit`. CLI `cms`
+проверяет `scripts/dev/test-cms-cli.ps1` (в CI — `tools/cms-cli/scripts/smoke.mjs`
+на Linux и Windows): модуль, сущность, поля и миграция `cms migration diff`
+собираются и проходят эти тесты, кит и сравнение объявлений со схемой
+(`EntitySchemaDiffTest`) на встроенном PostgreSQL.
 
 ## Контракт сущности (план 10/10, пункт 6.2)
 
@@ -163,8 +165,8 @@ severity или обновление snapshot требует review с явны�
 готовности релиза (`scripts/release/test-final-readiness.ps1`: поиск,
 конкурентный доступ к БД, ограничения нагрузки, контракты репозитория),
 обновление production Compose с резервной копией на V018, наблюдение
-no-default-egress, live API smoke на чистом стенде, проверка генератора модулей
-(`scripts/dev/test-create-module.ps1`) и Trivy по свежим advisory. `scripts/docs/test-repository-hygiene.ps1` падает, если какой-то
+no-default-egress, live API smoke на чистом стенде, проверка CLI `cms`
+на Linux и Windows (`scripts/dev/test-cms-cli.ps1`, `tools/cms-cli/scripts/smoke.mjs`) и Trivy по свежим advisory. `scripts/docs/test-repository-hygiene.ps1` падает, если какой-то
 `scripts/**/test-*` не запускает ни один workflow.
 
 `.github/workflows/ci.yml` и nightly не запускают изолированный restore drill

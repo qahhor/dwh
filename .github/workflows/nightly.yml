@@ -36,10 +36,14 @@ jobs:
         shell: pwsh
         run: ./scripts/release/test-final-readiness.ps1
 
-  module-generator:
-    name: module generator output builds and passes the architecture tests
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
+  cms-cli:
+    name: cms CLI output builds and passes the gates (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
@@ -49,11 +53,25 @@ jobs:
           java-version: '25'
           cache: maven
 
-      # Generates a module into a temporary copy, builds the server with it (Spotless, Error Prone, Checkstyle), runs
-      # the phase 3 architecture tests and starts the application on an embedded PostgreSQL.
-      - name: Generate a module and build it
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: '.node-version'
+
+      # Plan 10/10, item 6.1: the CLI creates a module, an entity with hooks and fields and a diff migration in a
+      # temporary copy, then builds the server with them (Spotless, Error Prone, Checkstyle, the architecture and
+      # migration tests, the entity contract kit, the schema comparison). Linux runs the Node runner itself, Windows
+      # the PowerShell entry point that wraps it.
+      - name: Generate with the CLI and build (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          node --test 'tools/cms-cli/test/**/*.test.mjs'
+          node tools/cms-cli/scripts/smoke.mjs
+
+      - name: Generate with the CLI and build (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
-        run: ./scripts/dev/test-create-module.ps1
+        run: ./scripts/dev/test-cms-cli.ps1
 
   upgrade:
     name: upgrade drill (production Compose, backup at V018, migrate to the newest)
@@ -113,6 +131,29 @@ jobs:
         env:
           COMPOSE_FILE: docker-compose.yml:scripts/dev/api-smoke.compose.yml:scripts/dev/e2e-mail.compose.yml
         run: docker compose down --volumes --remove-orphans
+
+  onboarding:
+    name: onboarding smoke (git clone to a working UI in 10 minutes, 3 commands)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # The prerequisites of a developer's machine, without caches: the clone downloads what a newcomer would.
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: '.node-version'
+
+      # Clones the checkout, runs scripts/dev/run-local.sh up --detach --demo, checks the UI, the API through the UI
+      # origin, readiness, a sign-in and the demo data within 600 s, and tears the stack down.
+      - name: Onboarding smoke
+        shell: pwsh
+        run: ./scripts/dev/test-onboarding-smoke.ps1
 
   advisories:
     name: advisories published since the last change (Trivy)

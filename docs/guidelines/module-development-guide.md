@@ -1,8 +1,8 @@
 # Разработка модулей SmartupCMS
 
-**Версия:** 2.3
+**Версия:** 2.4
 
-**Обновлено:** 2026-10-02
+**Обновлено:** 2026-10-03
 
 **Основание:** [каноническое ТЗ](../technical-specification.md),
 [ADR-0014](../adr/ADR-0014-unified-open-source-runtime.md) и
@@ -16,6 +16,76 @@
 Новый runtime или параллельный application root не добавляется без отдельного
 принятого ADR. Flyway SQL и runtime-конфигурация остаются ресурсами сервера, а
 не третьим приложением.
+
+## Быстрый старт: CLI `cms`
+
+Модуль и сущность создаёт CLI `cms` (`tools/cms-cli`, план 10/10, пункт 6.1):
+Node.js 22+ без внешних пакетов, одинаково на Windows, Linux и macOS. Запуск из
+корня репозитория — `node tools/cms-cli/bin/cms.mjs <команда>`; короче —
+`npm link` в `tools/cms-cli`, после чего команда называется `cms`.
+
+```bash
+cms doctor                                   # Node, JDK 25, Maven wrapper, git, Docker
+cms module new inventory --title "Склад" --title-en Inventory --title-uz Ombor
+cms entity new inventory items --title "Товары" --title-en Items --title-uz Tovarlar --icon package --hooks
+cms entity add-field inventory.items price --type money --currencies UZS,USD --label "Цена" --label-en Price
+cms entity add-field inventory.items stage --type select --options draft,ready --required
+cms migration diff                           # что схема не знает из объявлений; --write <имя> — миграцией
+```
+
+| Команда | Что пишет |
+|---|---|
+| `module new <код>` | пакет с `package-info.java`, область права в `PermissionAreas` (код из одного сегмента — сам область, `ms.probe` — именованная область `probe`; ADR-0028), модуль в `ModuleBoundariesTest.MODULES` и владельца префикса таблиц в `ownerOf`, строку в `module-map.md`, манифест `apps/server/src/main/resources/META-INF/smartupcms/modules/<область>.json` ровно с полями ADR-0033, §6.2 (`code` — код модуля в реестре, он же область; `name`, `version` и `minPlatform` — плейсхолдеры версий сборки, зависимость `iam`) |
+| `entity new <модуль> <сущность>` | объявление `<Модуль><Сущность>Entity` (поля `name`, `code`, `modifiedAt`, скоуп `all()`, архив, история, выгрузка, виды, массовые действия), при `--hooks` — хуки `…Hooks`, тест контракта `…ContractTest` (наследник кита), миграцию таблицы по ADR-0020 и §14.1 ADR-0032 (ревизия, `attributes` с проверкой, `archived_at`/`archived_by`, частичный уникальный индекс, индекс на каждый FK) и миграцию прав и реестра модулей, ключи ru/uz/en (`nav.<область>_<сущность>`, `<код>.col.*`, `<код>.rights.*`) с `i18n:sync-ru`, иконку пункта меню и модуля в реестре (`--icon`; без него — иконка уже объявленной сущности модуля, иначе `box`), таблицу в списке `SchemaOrderTest.attributesAreObjects`, строку порога покрытия и точку входа в строке модуля карты |
+| `entity add-field <код> <поле> --type <тип>` | поле в объявлении (импорт, константа вариантов, ключ в секции `main`), миграцию колонки (обязательное поле обязательно в форме, колонка допускает `null`, чтобы таблица с данными приняла миграцию), ключи подписи и вариантов. Типы: `text`, `textarea`, `markdown`, `email`, `phone`, `url`, `number`, `date`, `datetime`, `time`, `bool`, `select`, `money`, `ref` (`--target <код сущности>`; обязательную ссылку кит не придумает — значение в `fixture(...)`) |
+| `migration diff [--write <имя>]` | DDL того, чего схема не знает из объявлений: недостающая таблица — по соглашению §14.1, недостающая колонка — с типом поля и именами ADR-0020; колонку, которой нет в объявлении, не удаляет (удаление пишется руками) |
+| `doctor` | проверяет окружение |
+
+Свойства всех команд: миграция берёт следующий свободный номер (выше
+наибольшего на диске и в манифесте; `--version V<n>` — свой) и сразу
+записывается в `migration-manifest.sha256`; `--dry-run` показывает план и
+ничего не пишет; команда сначала планирует все записи и пишет всё или ничего;
+файл, который она однажды создала и который потом изменили (рукой или
+`add-field`), сохраняется («kept»), повторный запуск ничего не меняет; файл
+чужой сущности по тому же пути останавливает команду до первой записи. Шаблоны
+и пути репозитория собраны в `tools/cms-cli/lib/templates.mjs` и
+`tools/cms-cli/lib/layout.mjs`.
+
+**Как устроен `migration diff`.** Сравнивать разбором исходников ненадёжно:
+объявление может брать код и таблицу из констант, миграции — переименовывать и
+удалять колонки в блоках `DO`. Поэтому CLI запускает тест
+`EntitySchemaDiffTest` (Maven, встроенный PostgreSQL сборки): он берёт
+объявления, которые реально исполняет приложение, и схему, которую дали все
+миграции. Сравнение одно — `common.entity.EntitySchemaCheck` (ADR-0033, §7),
+та же проверка, что останавливает старт (`EntitySchemaGate`) и идёт в сборке
+(`EntitySchemaContractTest`); тест CLI добавляет только запись DDL
+(`EntitySchemaDiff`). С `-Dcms.schema.diff.out=<файл>` он пишет DDL
+недостающих таблиц и колонок в файл, а все расхождения проверки (тип колонки,
+`not null` без значения и т. п.) — в `<файл>.problems`; CLI печатает их, их
+исправляют руками. Цена — время сборки и старта контекста (около двух
+минут); без Maven команда не работает (`--no-libs` пропускает сборку `libs/*`,
+если они уже установлены).
+
+**От команды до экрана — замер** (2026-10-03, Windows 11, прогретые `~/.m2` и
+кэш Docker, сборка образа веба не повторялась — новой сущности код веба не
+нужен):
+
+| Шаг | Время |
+|---|---|
+| `cms module new`, `cms entity new --hooks`, два `cms entity add-field` (деньги, выбор) | 1 с |
+| `docker compose build server` | 1 мин 23 с |
+| `docker compose run --rm migrate` на пустой базе | 17 с |
+| `docker compose up -d --wait` (postgres, typesense, server, web) | 23 с |
+| вход, обязательная смена временного пароля, `/e/inventory.items`: список «Товары» с колонками и форма создания | ≈ 1 мин 30 с |
+| **итого до работающего экрана** | **4 мин 1 с** |
+
+Проверка перед коммитом — `scripts/dev/test-cms-cli.ps1` (модуль, сущность,
+поля, `migration diff` и сборка с 27 классами тестов, включая кит) — 3,5 мин
+на той же машине. Вместе меньше 8 минут при пороге плана 30 минут. Первая
+сборка без кэшей дольше: её измеряет пункт 6.5. В CI тот же прогон —
+`nightly.yml`, задание `cms-cli`, на ubuntu и windows: сгенерированная
+сущность проходит Spotless, Error Prone, Checkstyle, архитектурные и
+миграционные тесты, кит, сравнение схемы и описание API.
 
 ## Серверный модуль
 
@@ -40,6 +110,10 @@ Cross-module интеграция выполняется через явный �
 Контроллер не видит пакет `repository` даже своего модуля. Общие value/error contracts помещаются в `libs/core-types`, общая
 backend-инфраструктура — в `libs/platform-common`, а интерфейсы внешних
 провайдеров — в `libs/provider-spi`. Общая библиотека не зависит от сервера.
+Объявление сущности, хуки, правила, действия и события — публичный API
+платформы `libs/platform-api` (`com.smartup24.cms.platform.api..`,
+[ADR-0033](../adr/ADR-0033-platform-api-and-module-manifest.md)): объявление и
+хуки модуля импортируют их оттуда, а не из `com.smartup24.cms.instance.common`.
 
 Любой защищённый endpoint использует `@RequiresPermission`; UI-проверка лишь
 улучшает UX и не заменяет серверную авторизацию. Код формы —
@@ -52,7 +126,7 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
 
 ## Серверные правила
 
-Правила фазы 3 плана 10/10 проверяются сборкой; генератор модуля им следует.
+Правила фазы 3 плана 10/10 проверяются сборкой; CLI `cms` им следует.
 
 | Правило | Как | Основание и проверка |
 |---|---|---|
@@ -79,13 +153,15 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
 массовые действия строит платформа: общий runtime `/api/v1/entities/{код}`
 обслуживает каждую сущность с таблицей. Контроллер, сервис и репозиторий
 CRUD модуль **не пишет** — серверная часть сущности ≤ 2 файлов. Каркас даёт
-`scripts/dev/create-module.ps1 -ModuleName <код> -ModuleTitle "<Название>" [-TitleEn … -TitleUz …]`:
-две миграции (таблица и данные), объявление (`<Prefix><Name>Entity`), хуки
-(`<Prefix><Name>Hooks`), ключи меню и подписей в каталогах ru/uz/en, область
-права в `PermissionAreas` и тест контракта сущности (наследник
-`EntityContractTestKit`). В конце он печатает, что осталось сделать руками.
-`scripts/dev/test-create-module.ps1` проверяет, что результат генератора —
-два серверных файла, собирается, проходит архитектурные тесты и стартует.
+CLI (раздел «Быстрый старт: CLI `cms`»): `cms module new <код>`, затем
+`cms entity new <модуль> <сущность> [--hooks]` — две миграции (таблица и
+данные), объявление (`<Модуль><Сущность>Entity`), хуки (`…Hooks`), ключи меню,
+подписей и прав в каталогах ru/uz/en, область права в `PermissionAreas` и тест
+контракта сущности (наследник `EntityContractTestKit`); `cms entity add-field`
+добавляет поле. В конце команда печатает, что осталось сделать руками.
+`scripts/dev/test-cms-cli.ps1` (и тот же `tools/cms-cli/scripts/smoke.mjs` в CI
+на Linux и Windows) проверяет, что результат CLI — два серверных файла,
+собирается и проходит гейты.
 Образец в коде — заметки (`ms.note`: один файл `MsNoteEntity`, хуки им не
 нужны). Образец модуля с хуками, своим скоупом и действиями записи — задачи
 (`ms.task`, план 10/10, пункт 5.6): справочники `MsTaskTypeEntity` и
@@ -206,7 +282,7 @@ CRUD модуль **не пишет** — серверная часть сущн
    объявления (`view`, право каждого действия) есть название в `EntityRights`
    и она попадает в каталог прав (`MdFormCatalogSynchronizer` берёт пары
    объявлений, ADR-0032 §6.10), форма принадлежит модулю `EntityRights`
-   (генератор записывает область `<код>` → `<префикс>.<код>` в
+   (`cms module new` записывает область модуля в
    `PermissionAreas`); `PermissionCodesTest` — код формы по ADR-0028;
    `MdFormCatalogTest` — у каждой пары права есть название; объявление без
    того, что обещают его возможности, хуки и обработчики необъявленной
@@ -289,7 +365,7 @@ CRUD модуль **не пишет** — серверная часть сущн
 
 Каждая сущность с таблицей проходит общий контракт
 ([ADR-0032](../adr/ADR-0032-low-code-platform-v2.md), §11; план 10/10, пункт
-6.2). Автор пишет один класс в тестах модуля; генератор создаёт его сам
+6.2). Автор пишет один класс в тестах модуля; `cms entity new` создаёт его сам
 (`<Prefix><Name>ContractTest`):
 
 ```java
@@ -340,6 +416,44 @@ records, …})` рисует страницу настоящим роутеро�
 только из фикстур (`queryMetaFixture`, `entityRecord`, `problem`); так спека
 показывает, что сущность, о которой веб ничего не знает, получает список,
 форму и карточку (`shared/entity/page/entity-page.spec.ts`).
+
+### Модуль вне монорепо
+
+Сторонний модуль — отдельный jar, собранный против публичного API
+([ADR-0033](../adr/ADR-0033-platform-api-and-module-manifest.md)); образец —
+`examples/external-module` (модуль `library`, сущность `library.books`).
+
+1. Зависимости: `com.smartup24.cms:platform-api` (`provided`),
+   `org.springframework:spring-context` (`provided`, для `@Configuration` и
+   `@Bean`), в тестах — `com.smartup24.cms:platform-testkit` с
+   `<type>pom</type>`. Ничего из `com.smartup24.cms.instance..` модуль не
+   импортирует (`LibraryModuleBoundaryTest`).
+2. Манифест `META-INF/smartupcms/modules/<код>.json`: `code`, `name`,
+   `version`, `minPlatform` (наименьшая версия API, на которой модуль
+   работает), `dependencies`, `configuration` (класс `@Configuration` с бинами
+   `EntityDefinition`, `EntityHooks`, `EntityActionHandler`), `migrations`
+   (`db/modules/<код>`, свои номера `V`, история `flyway_module_<код>`),
+   `messages` (каталог `ru.json`, `uz.json`, `en.json` с ключами модуля).
+   Неизвестное поле, модуль для более новой или другой MAJOR-версии API и
+   отсутствующая зависимость не дают платформе стартовать — с сообщением,
+   которое называет модуль и версии.
+3. Таблицы модуля — по соглашению ADR-0032 §14.1: `id`, `revision`,
+   `attributes`, `created_*`, `modified_*`, у архива `archived_at`/`archived_by`.
+   Платформа при старте сравнивает объявление с `information_schema`
+   (`EntitySchemaGate`): расхождение — отказ старта со списком строк.
+4. Отказ хука целиком — `EntityRefusal.conflict(ключ, параметры)` (403, 409,
+   422); проблема поля — `save.reject(...)`. Ключи текстов — в `messages`
+   модуля; ключ, который уже есть у платформы, — отказ старта.
+5. Контракт: один наследник `EntityContractTestKit` на сущность, как у
+   встроенного модуля; кит стартует платформу с jar модуля на classpath.
+6. Подключение: jar на classpath сервера; строка реестра модулей появляется
+   при первом старте (включён, не системный), версия в реестре — из манифеста.
+   Доставка jar в образ Docker — открытый вопрос (ADR-0033, §11, В2).
+
+Встроенный модуль, который заводит строку реестра миграцией, кладёт манифест в
+`apps/server/src/main/resources/META-INF/smartupcms/modules/<код>.json`
+(версии подставляет сборка: `${project.version}`, `${platform-api.version}`);
+генератор пишет его сам.
 
 ### Экран сущности: общий экран и точечные правки
 
@@ -500,7 +614,7 @@ npm test
 npm run build
 ```
 
-После изменения генератора модуля — `scripts/dev/test-create-module.ps1`.
+После изменения CLI — `npm test` в `tools/cms-cli` и `scripts/dev/test-cms-cli.ps1`.
 
 End-to-end после запуска Compose из quick start:
 

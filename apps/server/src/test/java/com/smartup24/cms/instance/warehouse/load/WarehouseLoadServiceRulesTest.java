@@ -6,9 +6,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.smartup24.cms.instance.common.actor.ActorError;
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.common.error.ConstraintViolationException;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

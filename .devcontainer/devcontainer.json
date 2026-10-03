@@ -1,0 +1,49 @@
+// The development container of SmartupCMS (plan 10/10, item 6.5): JDK 25, Node.js 24 and Docker in Docker, so
+// `make dev` or scripts/dev/run-local.sh starts the infrastructure in Compose inside the container and the server and
+// ng serve from the sources. The web dev server listens on all interfaces (WEB_HOST) so the forwarded port reaches it.
+{
+  "name": "SmartupCMS",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "25",
+      "jdkDistro": "tem",
+      "installMaven": "false",
+      "installGradle": "false"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24.21.0"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false
+    },
+    "ghcr.io/devcontainers/features/powershell:1": {}
+  },
+  "containerEnv": {
+    "WEB_HOST": "0.0.0.0"
+  },
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb"
+  },
+  "forwardPorts": [4200, 8080, 9090, 8025],
+  "portsAttributes": {
+    "4200": { "label": "Web (ng serve)", "onAutoForward": "openBrowser" },
+    "8080": { "label": "Server API" },
+    "9090": { "label": "Server health" },
+    "8025": { "label": "Mailpit" }
+  },
+  "postCreateCommand": "cd apps/web && npm ci --no-audit --no-fund",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "angular.ng-template",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "editorconfig.editorconfig"
+      ]
+    }
+  }
+}

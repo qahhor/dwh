@@ -5,13 +5,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
 import com.smartup24.cms.instance.support.entity.KitWorld.Created;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

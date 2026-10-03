@@ -9,6 +9,44 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, items 6.3 and 6.4 — the platform API and the module manifest
+  (ADR-0033). `libs/platform-api` (`com.smartup24.cms.platform.api..`: the
+  entity declaration, hooks, the audit actor) and `provider-spi` are the
+  public contract; every public type carries `@PlatformApi(since,
+  stability)`, japicmp compares the build with the 1.0.0 baseline in
+  `verify`, `scripts/api/test-platform-api-compat.ps1` proves the gate in CI,
+  and `docs/api/spi-changelog.md` records the API's changes. A module
+  describes itself in `META-INF/smartupcms/modules/<code>.json` (`code`,
+  `name`, `version`, `minPlatform`, `dependencies`, and for a module outside
+  the monorepo `configuration`, `migrations`, `messages`); the manifests are
+  checked before the first bean, and a module that needs a newer platform, a
+  missing or older module, or a manifest with an unknown field stops the
+  start with a message naming it. The registry shows the manifest's version,
+  least platform and dependencies. Every entity declaration is compared with
+  `information_schema` at start (`EntitySchemaGate`) and in the build
+  (`EntitySchemaContractTest`). The entity test kit is published as the
+  `platform-testkit` artifact; `examples/external-module` is a module outside
+  the monorepo that passes it.
+
+- Plan 10/10, item 6.1 — the `cms` developer CLI (`tools/cms-cli`, Node.js
+  standard library only, Windows, Linux and macOS): `cms module new`,
+  `cms entity new`, `cms entity add-field`, `cms migration diff`,
+  `cms doctor`. It writes the declaration, hooks, the table and rights
+  migrations under the next free numbers, the ru/uz/en keys, the contract
+  test, the coverage floor and the module map entry, and the module manifest
+  of ADR-0033; a re-run changes nothing and a hand edit is kept.
+  `cms migration diff` uses the start's schema check (`EntitySchemaCheck`)
+  and writes the DDL of what is missing. Measured from the command to a
+  working screen: 4 minutes.
+
+- Plan 10/10, item 6.5 — start in ten minutes: `make dev` and the portable
+  `scripts/dev/run-local.sh` / `run-local.ps1` (Compose infrastructure,
+  Maven wrapper build, both databases migrated, server and `ng serve`, ports
+  from the environment, the first administrator's password in the ignored
+  `.local/`), `scripts/dev/local.compose.yml`, the `demo` profile (users,
+  projects, tasks, notes and orders), `.devcontainer`, `.editorconfig`, and
+  the nightly `onboarding` smoke (`scripts/dev/test-onboarding-smoke.ps1`).
+
 - Plan 10/10, item 5.8 — import, reports and search by declaration
   (ADR-0032 §10). IMPORT: an xlsx template from the declaration, a dry run
   with errors per row, upsert by a declared key, a background job; every row
@@ -899,6 +937,22 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **API-breaking (item 6.4):** a module's version comes from its manifest:
+  `md_installed_modules.version` is dropped (V196), `RegisterModuleRequest`
+  has no `version`, and `InstalledModuleView.version` is the manifest's (null
+  for a module without one), with the new `minPlatform` and `dependencies`.
+
+- **Breaking for module code (item 6.3):** the entity declaration types moved
+  from `com.smartup24.cms.instance.common.entity..` to
+  `com.smartup24.cms.platform.api.entity..`; modules import the platform API
+  only.
+
+- `scripts/dev/create-module.ps1` and `scripts/dev/test-create-module.ps1`
+  are removed in favour of the `cms` CLI (`tools/cms-cli`); its tests run in
+  `ci.yml` on Linux and Windows, and the nightly `module-generator` job is
+  replaced by `cms-cli`, which builds the generated module on both systems
+  (`scripts/dev/test-cms-cli.ps1`).
+
 - **API-breaking (item 5.8, search):** entity types in search are entity codes
   (`ms.tasks`, `ms.projects`, `md.users`, `ms.notes`, `example.orders`)
   instead of TASK/PROJECT/USER/NOTE, in the `type` parameter, a hit's
@@ -1307,6 +1361,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- On a fresh database the job queue ran its first tick before the first
+  administrator existed, so `upl.apply_recovery` failed once with an ERROR in
+  the log; the queue now starts after the startup runners
+  (`ApplicationReadyEvent`). Found by the onboarding smoke (item 6.5).
 
 - Email delivery in production: with `SMTP_HOST` (or a Telegram token) set the
   server did not start (two mail providers matched one injection point), and a

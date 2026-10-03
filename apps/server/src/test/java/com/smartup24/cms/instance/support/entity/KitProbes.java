@@ -1,24 +1,24 @@
 package com.smartup24.cms.instance.support.entity;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.markdown;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.searchable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.select;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.instant;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.markdown;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.searchable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.select;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.common.entity.Entity;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityScope;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.common.entity.runtime.EntityReads;
 import com.smartup24.cms.instance.common.entity.runtime.EntityRecordView;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.boot.test.context.TestConfiguration;

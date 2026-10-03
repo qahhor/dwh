@@ -5,7 +5,7 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
-import com.smartup24.cms.instance.common.query.QueryRef;
+import com.smartup24.cms.platform.api.entity.field.QueryRef;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

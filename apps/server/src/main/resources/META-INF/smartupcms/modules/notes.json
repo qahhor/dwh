@@ -1,0 +1,12 @@
+{
+  "code": "notes",
+  "name": "Заметки и документация",
+  "version": "${project.version}",
+  "minPlatform": "${platform-api.version}",
+  "dependencies": [
+    {
+      "code": "iam",
+      "version": "${project.version}"
+    }
+  ]
+}

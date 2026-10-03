@@ -9,8 +9,10 @@ import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormWorkflowMe
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.ConditionItemMeta;
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.DefaultValueMeta;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.field.QueryRef;
 import io.swagger.v3.oas.annotations.Operation;
 import java.math.BigDecimal;
 import java.util.ArrayList;

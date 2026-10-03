@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.common.entity.store;
 
-import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityRowMapper;
 import com.smartup24.cms.instance.common.entity.EntitySelect;
-import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.json.JsonColumns;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;

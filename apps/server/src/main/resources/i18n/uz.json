@@ -2490,7 +2490,7 @@
   "modules.empty_title": "Hech qanday modul topilmadi",
   "modules.empty_desc": "Sizning so'rovingiz uchun o'rnatilgan modullar topilmadi",
   "modules.cli_title": "Yangi modul yaratish (CLI)",
-  "modules.cli_desc": "To'liq modul kodini yaratish uchun avtomatik yaratish skriptidan foydalaning (migratsiya, ombor, xizmat, kontroller, RBAC)",
+  "modules.cli_desc": "Modul va uning obyektlarini e'lon qilish uchun cms buyruq satridan (Windows, Linux, macOS) foydalaning: migratsiyalar, e'lon, tarjima kalitlari va kontrakt testi",
   "modules.cli_example_label": "Modul yaratish buyrug'i:",
   "modules.module_disabled_redirect": "Modul administrator tomonidan o'chirilgan",
   "ui.custom_fields.select_user_option": "— Foydalanuvchini tanlash —",

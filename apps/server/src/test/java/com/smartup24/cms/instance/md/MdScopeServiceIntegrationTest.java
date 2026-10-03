@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityLists;
 import com.smartup24.cms.instance.common.entity.EntityRowMapper;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
@@ -26,6 +25,7 @@ import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileQuery;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +80,8 @@ class MdScopeServiceIntegrationTest {
 
         scopeService = new MdScopeService(scopeRepository, orgUnitRepository, permissionService, auditLogService);
         orgUnitService = new MdOrgUnitService(orgUnitRepository, scopeService, auditLogService);
-        users = MdUserEntity.definition((userId, alias) -> scopeService.filterForUsers(userId, alias + ".id"));
+        users = MdUserEntity.definition((userId, alias) ->
+                scopeService.filterForUsers(userId, alias + ".id").condition());
 
         company = orgUnitService.create(null, "HQ", "Компания", "company", 10).id();
         regionTashkent = orgUnitService

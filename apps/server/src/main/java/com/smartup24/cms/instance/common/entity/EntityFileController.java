@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.entity.EntityFiles.FileFacts;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import io.swagger.v3.oas.annotations.Operation;
 import java.net.URLEncoder;

@@ -2,12 +2,16 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.history.RecordHistorySource;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.FormSection;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -39,7 +43,7 @@ import tools.jackson.databind.JsonNode;
 public class EntityRegistry {
 
     /** The section the custom fields go to. */
-    public static final String CUSTOM_SECTION = "custom";
+    public static final String CUSTOM_SECTION = EntityDefinition.CUSTOM_SECTION;
 
     private static final Set<EntityCapability> NEED_RECORDS =
             Set.of(EntityCapability.HISTORY, EntityCapability.EXPORT, EntityCapability.BULK);

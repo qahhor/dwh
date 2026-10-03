@@ -5,11 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.smartup24.cms.instance.common.actor.ActorError;
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.error.ConstraintErrors;
 import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;

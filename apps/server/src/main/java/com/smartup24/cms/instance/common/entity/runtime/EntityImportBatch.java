@@ -1,11 +1,8 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
-import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.entity.importing.EntityImportCells;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Column;
@@ -15,6 +12,9 @@ import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Row;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.RowOutcome;
 import com.smartup24.cms.instance.common.entity.store.EntityKeyLookup;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

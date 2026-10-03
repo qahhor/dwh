@@ -4,12 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Column;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Option;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Row;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Template;
 import com.smartup24.cms.instance.report.repository.ReportImportRepository.ErrorRow;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;

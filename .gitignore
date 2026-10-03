@@ -3,6 +3,9 @@ target/
 *.class
 *.jar
 !.mvn/wrapper/maven-wrapper.jar
+# The released platform API that japicmp compares with (ADR-0033, 4.1); scripts/api/update-platform-api-baseline.ps1.
+!libs/platform-api/baseline/*.jar
+!libs/provider-spi/baseline/*.jar
 
 # --- Node / Angular ---
 node_modules/
@@ -67,3 +70,6 @@ graphify-out/
 
 # --- Local design scratch ---
 .superdesign/
+
+# --- Local run from the sources: generated admin password, logs, storage (scripts/dev/run-local.*) ---
+/.local/

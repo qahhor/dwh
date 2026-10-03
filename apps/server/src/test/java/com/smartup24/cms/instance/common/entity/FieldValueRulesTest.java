@@ -8,11 +8,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.entity.field.FieldOptions.JsonRoot;
-import com.smartup24.cms.instance.common.entity.field.FieldParams;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
-import com.smartup24.cms.instance.common.entity.field.FormFlags;
-import com.smartup24.cms.instance.common.query.QueryRef;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.FieldOptions.JsonRoot;
+import com.smartup24.cms.platform.api.entity.field.FieldParams;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
+import com.smartup24.cms.platform.api.entity.field.FormFlags;
+import com.smartup24.cms.platform.api.entity.field.QueryRef;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;

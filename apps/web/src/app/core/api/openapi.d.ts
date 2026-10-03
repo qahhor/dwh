@@ -4300,9 +4300,11 @@ export interface components {
             code?: string;
             /** Format: date-time */
             createdAt?: string;
+            dependencies?: components["schemas"]["ModuleDependencyView"][];
             description?: string;
             icon?: string;
             isSystem?: boolean;
+            minPlatform?: string;
             /** Format: date-time */
             modifiedAt?: string;
             name?: string;
@@ -4659,6 +4661,10 @@ export interface components {
             order?: number;
             route?: string;
             section?: string;
+        };
+        ModuleDependencyView: {
+            code?: string;
+            version?: string;
         };
         /** @description A new record of ms.notes; any other property is refused (unknown_field) */
         MsNotesCreate: {
@@ -5247,7 +5253,6 @@ export interface components {
             route?: string;
             /** Format: int32 */
             sortOrder?: number;
-            version?: string;
         };
         ReplacePermissionsDto: {
             grants: components["schemas"]["GrantDto"][];

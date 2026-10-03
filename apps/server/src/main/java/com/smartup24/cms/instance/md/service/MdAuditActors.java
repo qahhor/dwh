@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.md.service;
 
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.md.repository.MdSystemAccountRepository;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;

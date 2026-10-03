@@ -45,9 +45,13 @@ import { InstalledModule } from '../modules.models';
     <ng-template #codeCell let-mod
       ><code class="code-badge">{{ mod.code }}</code></ng-template
     >
-    <ng-template #versionCell let-mod
-      ><span class="version-badge">v{{ mod.version }}</span></ng-template
-    >
+    <ng-template #versionCell let-mod>
+      @if (mod.version) {
+        <span class="version-badge">v{{ mod.version }}</span>
+      } @else {
+        <span class="version-badge">—</span>
+      }
+    </ng-template>
     <ng-template #typeCell let-mod>
       <span class="badge" [class.badge-primary]="mod.isSystem" [class.badge-neutral]="!mod.isSystem">
         {{ (mod.isSystem ? 'modules.type.system' : 'modules.type.custom') | t }}
@@ -136,7 +140,7 @@ export class ModulesTableComponent {
   readonly sortValues = {
     module: (mod: InstalledModule) => mod.name,
     code: (mod: InstalledModule) => mod.code,
-    version: (mod: InstalledModule) => mod.version,
+    version: (mod: InstalledModule) => mod.version ?? '',
     type: (mod: InstalledModule) => (mod.isSystem ? 0 : 1),
     status: (mod: InstalledModule) => (mod.isActive ? 0 : 1),
   };

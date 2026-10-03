@@ -2,12 +2,12 @@ package com.smartup24.cms.instance.support.entity;
 
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.entity.FieldValueRules;
-import com.smartup24.cms.instance.common.entity.FormField;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldOptions.JsonRoot;
-import com.smartup24.cms.instance.common.entity.field.FieldReadonly;
-import com.smartup24.cms.instance.common.entity.field.FieldSource;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldOptions.JsonRoot;
+import com.smartup24.cms.platform.api.entity.field.FieldReadonly;
+import com.smartup24.cms.platform.api.entity.field.FieldSource;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;

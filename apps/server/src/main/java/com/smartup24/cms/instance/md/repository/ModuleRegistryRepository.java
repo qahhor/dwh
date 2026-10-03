@@ -29,7 +29,6 @@ public class ModuleRegistryRepository {
             String code,
             String name,
             String description,
-            String version,
             String icon,
             String route,
             boolean isSystem,
@@ -42,7 +41,7 @@ public class ModuleRegistryRepository {
 
     public List<InstalledModuleRecord> findAll() {
         return jdbcClient.sql("""
-                select code, name, description, version, icon, route, is_system, status, sort_order,
+                select code, name, description, icon, route, is_system, status, sort_order,
                        attributes::text as attributes_str, created_at, modified_at, revision
                 from md_installed_modules
                 order by sort_order asc, code asc
@@ -51,7 +50,7 @@ public class ModuleRegistryRepository {
 
     public List<InstalledModuleRecord> findActive() {
         return jdbcClient.sql("""
-                select code, name, description, version, icon, route, is_system, status, sort_order,
+                select code, name, description, icon, route, is_system, status, sort_order,
                        attributes::text as attributes_str, created_at, modified_at, revision
                 from md_installed_modules
                 where status = 'ACTIVE'
@@ -61,7 +60,7 @@ public class ModuleRegistryRepository {
 
     public Optional<InstalledModuleRecord> findByCode(String code) {
         return jdbcClient.sql("""
-                select code, name, description, version, icon, route, is_system, status, sort_order,
+                select code, name, description, icon, route, is_system, status, sort_order,
                        attributes::text as attributes_str, created_at, modified_at, revision
                 from md_installed_modules
                 where code = :code
@@ -79,8 +78,8 @@ public class ModuleRegistryRepository {
     /** Registers a new module; empty when the code is taken already (plan 10/10, item 3.6). */
     public Optional<Long> insertModule(InstalledModuleRecord module) {
         return jdbcClient.sql("""
-                insert into md_installed_modules(code, name, description, version, icon, route, is_system, status, sort_order, attributes, created_at, modified_at)
-                values(:code, :name, :description, :version, :icon, :route, :isSystem, :status, :sortOrder, cast(:attributes as jsonb), clock_timestamp(), clock_timestamp())
+                insert into md_installed_modules(code, name, description, icon, route, is_system, status, sort_order, attributes, created_at, modified_at)
+                values(:code, :name, :description, :icon, :route, :isSystem, :status, :sortOrder, cast(:attributes as jsonb), clock_timestamp(), clock_timestamp())
                 on conflict (code) do nothing
                 returning revision
                 """).params(params(module)).query(Long.class).optional();
@@ -97,7 +96,6 @@ public class ModuleRegistryRepository {
                 update md_installed_modules
                 set name = :name,
                     description = :description,
-                    version = :version,
                     icon = :icon,
                     route = :route,
                     sort_order = :sortOrder,
@@ -114,7 +112,6 @@ public class ModuleRegistryRepository {
         params.put("code", module.code());
         params.put("name", module.name());
         params.put("description", module.description());
-        params.put("version", module.version());
         params.put("icon", module.icon());
         params.put("route", module.route());
         params.put("isSystem", module.isSystem());
@@ -130,7 +127,6 @@ public class ModuleRegistryRepository {
                 rs.getString("code"),
                 rs.getString("name"),
                 rs.getString("description"),
-                rs.getString("version"),
                 rs.getString("icon"),
                 rs.getString("route"),
                 rs.getBoolean("is_system"),

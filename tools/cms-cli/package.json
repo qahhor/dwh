@@ -1,0 +1,17 @@
+{
+  "name": "smartupcms-cli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SmartupCMS developer CLI (plan 10/10, item 6.1): modules, entities, fields and migrations on the low-code runtime. Node standard library only, no dependencies.",
+  "type": "module",
+  "bin": {
+    "cms": "bin/cms.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "smoke": "node scripts/smoke.mjs"
+  }
+}

@@ -2,22 +2,22 @@ package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityAttributes;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFieldValues;
-import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
-import com.smartup24.cms.instance.common.entity.EntityScope;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.entity.FieldValueRules;
-import com.smartup24.cms.instance.common.entity.FormField;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldSource;
-import com.smartup24.cms.instance.common.entity.hook.EntityRule;
-import com.smartup24.cms.instance.common.entity.hook.EntityValues;
-import com.smartup24.cms.instance.common.entity.hook.RuleErrors;
 import com.smartup24.cms.instance.common.entity.store.EntityStoreRepository;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldSource;
+import com.smartup24.cms.platform.api.entity.hook.EntityRule;
+import com.smartup24.cms.platform.api.entity.hook.EntityValues;
+import com.smartup24.cms.platform.api.entity.hook.RuleErrors;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -133,7 +133,15 @@ public class EntitySaveChecks {
         for (EntityRule rule : model(entity).rules().values()) {
             rule.check(record, before, errors);
         }
-        return errors.items();
+        return problems(errors);
+    }
+
+    /** The problems a rule or a hook reported, as the field errors of the answer (ADR-0021, ADR-0033 3.2). */
+    public static List<FieldErrorItem> problems(RuleErrors errors) {
+        return errors.items().stream()
+                .map(problem ->
+                        FieldErrorItem.keyed(problem.field(), problem.code(), problem.messageKey(), problem.params()))
+                .toList();
     }
 
     /**

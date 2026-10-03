@@ -11,6 +11,8 @@ WORKDIR /build
 COPY pom.xml .
 COPY libs libs
 COPY apps/server apps/server
+# The reactor lists the test kit and the example module (ADR-0033, 8); the image builds the server only.
+COPY examples examples
 
 # Тесты в образе не гоняем: это делает CI (там Docker для Testcontainers).
 # Cache mount для ~/.m2: зависимости скачиваются один раз и переиспользуются
@@ -18,7 +20,7 @@ COPY apps/server apps/server
 # занимала минуты и упиралась в таймауты.
 RUN --mount=type=cache,target=/root/.m2,sharing=locked \
     mvn -B -q -pl apps/server -am -DskipTests package \
- && cp apps/server/target/server-*.jar /build/app.jar
+ && cp apps/server/target/server-*-exec.jar /build/app.jar
 
 # Распаковка fat-jar: рядом появляются lib/ (зависимости) и запускаемый jar.
 # Разделение нужно для кэша Docker: lib меняется редко, код — каждую сборку.

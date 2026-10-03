@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.ms.task.service;
 
-import com.smartup24.cms.instance.common.entity.hook.EntityActionCall;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskDictionaryRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskDictionaryRepository.Dictionary;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionCall;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

@@ -2,12 +2,15 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.FormField;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +35,17 @@ public final class EntityValidator {
     private static final Pattern TIME = Pattern.compile("^\\d{2}:\\d{2}(:\\d{2})?$");
 
     private EntityValidator() {}
+
+    /**
+     * Whether the declaration refuses {@code value} for the field {@code key}: the check a hook's
+     * {@code EntityValues.set} applies (ADR-0032, 6.5; ADR-0033, 3.2).
+     */
+    public static boolean refuses(EntityDefinition entity, String key, Object value) {
+        Map<String, Object> probe = new LinkedHashMap<>();
+        probe.put(key, value);
+        return problems(entity, probe, true).stream()
+                .anyMatch(problem -> problem.field().equals(key));
+    }
 
     /**
      * @param values  the record's values by field key; the conditions of the fields are tested over them, so an update

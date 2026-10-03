@@ -41,7 +41,11 @@ class ErrorModelTest {
             "com.smartup24.cms.instance.report.imports.ImportFailure",
             "ends an import job, never a request: the job records its code in the import's journal row",
             "com.smartup24.cms.instance.report.imports.ImportFile$Unreadable",
-            "a file the import job cannot read, caught by the job and recorded as IMPORT_UNREADABLE");
+            "a file the import job cannot read, caught by the job and recorded as IMPORT_UNREADABLE",
+            "com.smartup24.cms.instance.common.module.ModuleManifestException",
+            "stops the application at startup when a module cannot run on this platform (ADR-0033, 6.3)",
+            "com.smartup24.cms.platform.api.entity.hook.EntityRefusal",
+            "the refusal of a module's hook in the platform API; the runtime turns it into an ApiException (ADR-0033)");
 
     /**
      * Exceptions of modules not yet moved to the model. Empty since the fnd hierarchy joined it; kept so a temporary

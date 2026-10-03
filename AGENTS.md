@@ -99,13 +99,23 @@ The full list with commands is in `docs/ai-context.md` §6. In short:
 - Repository: `scripts/docs/test-repository-hygiene.ps1`,
   `scripts/docs/test-public-docs.ps1`; secrets: gitleaks over the branch's
   commits (`gitleaks git --log-opts="main..HEAD"`).
+- Developer CLI (`tools/cms-cli`): `npm test` there; after changing the CLI or
+  what it generates, `scripts/dev/test-cms-cli.ps1` (generates a module in a
+  temporary copy and builds it).
 
 ## 6. Environment notes (Windows workstation)
 
-- Local tooling, when present, lives in the ignored `.tools/` folder (JDK,
-  Maven wrapper script, e2e helper scripts). `.tools/mvn.ps1` changes directory
-  to the main checkout: in a git worktree run `mvnw.cmd` from the worktree with
-  the same `JAVA_HOME`/`TEMP`.
+- Run the product from the sources with the portable
+  `scripts/dev/run-local.ps1` (Windows) or `scripts/dev/run-local.sh`
+  (Linux/macOS, `make dev`): Compose infrastructure, Maven wrapper build,
+  migrations of both databases, server and `ng serve`; ports come from the
+  environment (`DB_PORT`, `SERVER_PORT`, `MANAGEMENT_PORT`, `WEB_PORT`,
+  `MAILPIT_HTTP_PORT`, `MAILPIT_SMTP_PORT`, `SMC_LOCAL_PROJECT`), so a parallel
+  stand takes its own. The admin password and logs stay in the ignored `.local/`.
+- Machine-local extras, when present, live in the ignored `.tools/` folder (a
+  JDK, a short `TEMP`); they are optional. Point `JAVA_HOME` at a JDK 25 before
+  running the scripts. In a git worktree run `mvnw.cmd` from the worktree, never
+  a helper that changes directory to the main checkout.
 - A worktree needs `apps/web/node_modules` (and `e2e/node_modules`) as a
   junction to the main checkout; remove a junction with `cmd /c rmdir`, never
   by deleting through it.
@@ -116,6 +126,10 @@ The full list with commands is in `docs/ai-context.md` §6. In short:
 - `-pl apps/server` alone builds against the installed `libs/*` jars; add
   `-am` after changing a library.
 - E2E shard logs written by PowerShell are UTF-16 (`iconv -f utf-16`).
+- New modules, entities, fields and their migrations come from the CLI:
+  `node tools/cms-cli/bin/cms.mjs <module new|entity new|entity add-field|migration diff|doctor>`
+  (Node standard library only, same on Windows and Linux; `cms doctor` checks
+  the JDK, Maven wrapper, git and Docker). Do not hand-copy an entity.
 
 ## 7. graphify (local knowledge graph)
 

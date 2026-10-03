@@ -12,13 +12,25 @@
     </parent>
 
     <artifactId>provider-spi</artifactId>
+    <!-- Part of the platform's public API (ADR-0033, 3): versioned with platform-api, the root pom's
+         platform-api.version. -->
+    <version>1.0.0</version>
     <name>Provider SPI</name>
     <description>Pluggable provider interfaces for SMS, Email, Messenger and Storage (ADR-0011)</description>
 
     <dependencies>
+        <!-- @PlatformApi on every public type (ADR-0033, 3). -->
         <dependency>
             <groupId>com.smartup24.cms</groupId>
-            <artifactId>core-types</artifactId>
+            <artifactId>platform-api</artifactId>
+        </dependency>
+        <!-- The rules of the platform's API (ApiPolicy, ADR-0033, 3-5). -->
+        <dependency>
+            <groupId>com.smartup24.cms</groupId>
+            <artifactId>platform-api</artifactId>
+            <version>${platform-api.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -30,5 +42,28 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <platform-api.baseline.version>${platform-api.baseline.version}</platform-api.baseline.version>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.siom79.japicmp</groupId>
+                <artifactId>japicmp-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

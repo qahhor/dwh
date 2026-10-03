@@ -51,7 +51,7 @@
 | `upl` | `com.smartup24.cms.instance.upl` | Загрузки данных: источники и форматы, пакеты, разбор, проверка, применение в хранилище | `upl_*` | `upl` (`upl.sources`, `upl.packages`) | `UplSourceController` — `/api/v1/upl/sources`, `UplPackageController` — `/api/v1/upl/packages`, `UplUnitController`, `UplOverviewController`; `UplParseJob`, `UplApplyJob` |
 | `warehouse` | `com.smartup24.cms.instance.warehouse` | Вторая база (pg-dwh): источник данных, миграции и шаг `MigrateMain`, слой raw, чтение витрин; журнал загрузок ([ADR-0030](../adr/ADR-0030-fnd-split.md)) | `fnd_load*` в базе CMS; схемы второй базы | `warehouse` (форм нет) | `warehouse.api` (`WarehouseLoads`, `RawWriter`); `warehouse.migration.MigrateMain`; `LoadCleanupJob`, `CrossDatabaseCheckJob` |
 | `webhook` | `com.smartup24.cms.instance.webhook` | Исходящие вебхуки: подписки внешних систем на события, outbox доставки с подписью HMAC-SHA256, проверка цели (`FR-COMM-03`, `NFR-SEC-06`); события сущностей на runtime — из `EntityChanged` (ADR-0032, §6.9); до пункта 4.3 — `kwh` | `kwh_*` | `webhook` (`webhook.subscriptions`) | `WebhookSubscriptionController` — `/api/v1/webhooks/subscriptions`; `WebhookService.publishEvent`; `EntityWebhookListener`; `WebhookOutboxWorker` |
-| `common` | `com.smartup24.cms.instance.common` | Платформа, не бизнес-модуль: сущность и реестр полей, общий runtime сущностей (`common.entity.runtime`, `store`, `hook`, `event`; ADR-0032, §6), коллекции строк, процесс и вкладки карточки (`common.entity.collection`, `workflow`; §9), модель ошибок, веб-соглашения, JSON-колонки, сроки хранения, версии с датой действия, актор аудита; не зависит от бизнес-модулей (аудит, доп. поля, файлы и выключатель модуля — через интерфейсы `EntityAuditLog`, `EntityAttributes`, `EntityFiles`, `InstalledModules`) | реестры `fnd_versioned_tables`, `fnd_audit_tables`; таблицы сущностей — по их объявлениям | любая форма по правилу (ADR-0028, п. 3) | `EntityController` (CRUD, архив и действия каждой сущности с таблицей), `EntityMenuController`, `EntityBulkController` и `EntityFileController` (файл поля записи, ADR-0032 §4.7) — `/api/v1/entities`, `FormMetaController` — `/api/v1/form-meta`, `QueryMetaController` — `/api/v1/query-meta` |
+| `common` | `com.smartup24.cms.instance.common` | Платформа, не бизнес-модуль: сущность и реестр полей, общий runtime сущностей (`common.entity.runtime`, `store`; ADR-0032, §6) по объявлениям публичного API `libs/platform-api` (хуки, события, строки документа, процесс — `platform.api.entity.*`, ADR-0033), проверка манифестов модулей (`common.module`, `config.module`) и схемы сущностей (`EntitySchemaCheck`), модель ошибок, веб-соглашения, JSON-колонки, сроки хранения, версии с датой действия, актор аудита; не зависит от бизнес-модулей (аудит, доп. поля, файлы и выключатель модуля — через интерфейсы `EntityAuditLog`, `EntityAttributes`, `EntityFiles`, `InstalledModules`) | реестры `fnd_versioned_tables`, `fnd_audit_tables`; таблицы сущностей — по их объявлениям | любая форма по правилу (ADR-0028, п. 3) | `EntityController` (CRUD, архив и действия каждой сущности с таблицей), `EntityMenuController`, `EntityBulkController` и `EntityFileController` (файл поля записи, ADR-0032 §4.7) — `/api/v1/entities`, `FormMetaController` — `/api/v1/form-meta`, `QueryMetaController` — `/api/v1/query-meta` |
 | `config` | `com.smartup24.cms.instance.config` | Конфигурация приложения, не бизнес-модуль: безопасность и фильтры, обработчик ошибок, кэш кластера, идемпотентность, OpenAPI, задание очистки журналов, такт очереди заданий, проверка схемы, health | `idempotency_keys` | любая форма по правилу (ADR-0028, п. 3) | `SystemInfoController` — `/api/v1/system`, `GlobalExceptionHandler`, `JobQueueWorker`, `SchemaVersionGate` |
 
 ## Переименование `kwh` → `webhook` (пункт 4.3)
@@ -83,6 +83,15 @@
 OpenAPI обработчиков сменился с `kwh-subscription-controller` на
 `webhook-subscription-controller`; схемы и пути прежние.
 
+## Публичный API и модули вне монорепо
+
+Объявление сущности, хуки, правила, действия и события — артефакт
+`libs/platform-api` (`com.smartup24.cms.platform.api..`, ADR-0033); модули
+сервера импортируют их оттуда. Модуль вне монорепо — jar с манифестом
+`META-INF/smartupcms/modules/<код>.json` на classpath сервера; строки в этой
+карте у него нет (карта описывает пакеты `apps/server`), его код и версия видны
+в реестре модулей. Образец — `examples/external-module` (модуль `library`).
+
 ## Новый модуль
 
 1. Пакет `com.smartup24.cms.instance.<код>` с `package-info.java`: абзац о
@@ -90,5 +99,7 @@ OpenAPI обработчиков сменился с `kwh-subscription-controlle
 2. Код в `ModuleBoundariesTest.MODULES`, префикс таблиц — в
    `ModuleBoundariesTest.ownerOf`, область прав — в `PermissionAreas`
    (ADR-0028), порог покрытия — в `apps/server/coverage-floors.csv`.
-3. Строка в этой карте; порядок работы — в
+3. Манифест `apps/server/src/main/resources/META-INF/smartupcms/modules/<код>.json`,
+   если модуль заводит строку реестра модулей (ADR-0033, §6.4).
+4. Строка в этой карте; порядок работы — в
    [руководстве по модулям](../guidelines/module-development-guide.md).

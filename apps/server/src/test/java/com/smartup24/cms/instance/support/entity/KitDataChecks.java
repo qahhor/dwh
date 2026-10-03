@@ -7,15 +7,16 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
+import com.smartup24.cms.instance.common.entity.EntityListFields;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.entity.EntitySamples.Sample;
 import com.smartup24.cms.instance.support.entity.KitWorld.Created;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -127,7 +128,9 @@ final class KitDataChecks {
             if (field.list() != null) {
                 assertThat(listTypes)
                         .as("query-meta")
-                        .containsEntry(field.key(), field.type().listType().wire());
+                        .containsEntry(
+                                field.key(),
+                                EntityListFields.listType(field.type()).wire());
             }
         }
     }

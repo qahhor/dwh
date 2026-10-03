@@ -1,11 +1,14 @@
 package com.smartup24.cms.instance.common.entity;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityAction;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
-import com.smartup24.cms.instance.common.entity.field.ListPart;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityAction;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.EntityTab;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
+import com.smartup24.cms.platform.api.entity.field.ListPart;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

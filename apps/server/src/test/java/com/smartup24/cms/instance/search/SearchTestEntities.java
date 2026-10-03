@@ -1,8 +1,5 @@
 package com.smartup24.cms.instance.search;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityScope;
-import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.example.service.ExampleOrderEntity;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserEntity;
@@ -11,6 +8,8 @@ import com.smartup24.cms.instance.ms.task.service.MsProjectEntity;
 import com.smartup24.cms.instance.ms.task.service.MsTaskEntity;
 import com.smartup24.cms.instance.search.service.SearchEntities;
 import com.smartup24.cms.instance.search.service.SearchEntity;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityScope;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -63,11 +62,11 @@ final class SearchTestEntities {
 
     private static EntityScope.ScopeProvider provider(@Nullable MdScopeService scopes, Kind kind) {
         return (userId, alias) -> {
-            if (scopes == null) return ScopeFilter.unrestricted();
+            if (scopes == null) return EntityScope.Condition.unrestricted();
             return switch (kind) {
-                case TASKS -> scopes.filterForTasks(userId);
-                case PROJECTS -> scopes.filterForProjects(userId);
-                case USERS -> scopes.filterForUsers(userId, alias + ".id");
+                case TASKS -> scopes.filterForTasks(userId).condition();
+                case PROJECTS -> scopes.filterForProjects(userId).condition();
+                case USERS -> scopes.filterForUsers(userId, alias + ".id").condition();
             };
         };
     }

@@ -1,17 +1,17 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
-import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.entity.FieldValueRules;
-import com.smartup24.cms.instance.common.entity.FormField;
-import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.entity.store.EntityCollectionStore;
 import com.smartup24.cms.instance.common.entity.store.EntityCollectionStore.Row;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;

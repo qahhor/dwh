@@ -2,10 +2,10 @@ package com.smartup24.cms.instance.md;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.md.pref.PermissionAreas;
 import com.smartup24.cms.instance.md.service.MdFormCatalogSynchronizer;
 import com.smartup24.cms.instance.support.TestFixtureExcludeFilter;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;

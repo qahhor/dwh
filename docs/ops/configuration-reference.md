@@ -61,6 +61,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_DB_IDLE_IN_TRANSACTION_TIMEOUT` | `smc.database.idle-in-transaction-timeout` | `60s` |
 | `SMC_DB_STATEMENT_TIMEOUT` | `smc.database.statement-timeout` | `60s` |
 | `SMC_DELIVERY_ENFORCE` | `smc.delivery.enforce` | `true` |
+| `SMC_ENTITIES_SCHEMA_GATE_ENABLED` | `smc.entities.schema-gate-enabled` | `true` |
 | `SMC_FILES_MAX_CONCURRENT_UPLOADS` | `smc.files.max-concurrent-uploads` | `10` |
 | `SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT` | `smc.files.scanner.clamav.connect-timeout` | `3s` |
 | `SMC_FILE_SCANNER_CLAMAV_ENABLED` | `smc.files.scanner.clamav.enabled` | `false` |

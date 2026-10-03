@@ -40,7 +40,7 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 |---|---|
 | Backend | Java 25, Spring Boot 4.1, модульный монолит `apps/server`, пакет `com.smartup24.cms` |
 | Web | Angular 22 SPA `apps/web`, UI kit `shared/ui-kit`, компоненты сущности `shared/entity` |
-| Общие библиотеки | `libs/core-types`, `libs/platform-common`, `libs/provider-spi` |
+| Общие библиотеки | `libs/core-types`, `libs/platform-common`; публичный API — `libs/platform-api` и `libs/provider-spi` (ADR-0033), тест-кит — `libs/platform-testkit` |
 | Данные | PostgreSQL 18, неизменяемые Flyway-миграции (`V###`, манифест контрольных сумм), вторая база для загруженных данных |
 | Поиск | Typesense 27.1 — производный индекс, не источник авторизации |
 | Файлы | `local_disk` или S3-совместимое хранилище через SPI |
@@ -66,11 +66,16 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   `EntityMenu` — названия прав и `GET /api/v1/entities/menu`.
 - **Web:** `smt-entity-form`, `smt-entity-card`, `smt-entity-toolbar`,
   `ui-server-table` + `registryTableConfig`.
-- **Генератор:** `scripts/dev/create-module.ps1` — две миграции (таблица с
-  `revision` и данные), пакет `api`, репозиторий, список, объявление, сервис,
-  контроллер и ключи ru/uz/en по правилам фазы 3; что осталось руками, он
-  печатает. Его результат проверяет `scripts/dev/test-create-module.ps1`
-  (nightly).
+- **CLI `cms`** (`tools/cms-cli`, Node.js без пакетов, план 10/10, пункт 6.1):
+  `cms module new`, `cms entity new` (объявление, хуки, тест кита, миграции
+  таблицы и прав со следующими свободными номерами в манифесте, ключи ru/uz/en,
+  порог покрытия, строка карты модулей), `cms entity add-field`,
+  `cms migration diff` (через `EntitySchemaDiffTest`; сравнение — то же
+  `EntitySchemaCheck`, что и при старте), `cms doctor`; манифест модуля —
+  `META-INF/smartupcms/modules/<область>.json` по ADR-0033; повторный
+  запуск ничего не меняет, правки рукой не перезаписываются. Результат проверяет
+  `scripts/dev/test-cms-cli.ps1` / `tools/cms-cli/scripts/smoke.mjs` (nightly на
+  ubuntu и windows), тесты CLI — `npm test` в `tools/cms-cli` (ci).
 - **Эталон:** модуль заметок (`ms/note`, `features/notes`).
 
 ## 5. Инварианты
@@ -131,16 +136,51 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 - Документация и репозиторий: `scripts/docs/test-public-docs.ps1` (каждый ADR
   в индексе, ссылки), `scripts/docs/test-repository-hygiene.ps1`,
   `scripts/architecture/test-unified-boundaries.ps1`.
-- Генератор модулей: `scripts/dev/test-create-module.ps1`.
+- CLI `cms`: `npm test` в `tools/cms-cli`; сгенерированный модуль целиком —
+  `scripts/dev/test-cms-cli.ps1` (`-SkipBuild` — без сборки Maven).
+- Локальный запуск из исходников (план 10/10, пункт 6.5):
+  `scripts/dev/run-local.sh` / `scripts/dev/run-local.ps1` (`up`, `migrate`,
+  `down`, `status`; `--demo`, `--detach`, `--devtools`, `--search`; порты из
+  окружения `DB_PORT`, `SERVER_PORT`, `MANAGEMENT_PORT`, `WEB_PORT`,
+  `MAILPIT_*_PORT`, проект Compose `SMC_LOCAL_PROJECT`). Пароль первого
+  администратора — в игнорируемом `.local/admin-password`, логи там же; `make`
+  вызывает те же скрипты. Проверка «от `git clone` до UI ≤ 10 минут» —
+  `scripts/dev/test-onboarding-smoke.ps1` (ночной job `onboarding`), локально
+  на своих портах со сносом стенда.
 - Коммиты подписываются `git commit -s`; CI (`ci.yml`, `dco.yml`) запускается
   на push в main и на pull request, `nightly.yml` — по расписанию.
 
-## 7. Точка продолжения — 2026-10-01
+## 7. Точка продолжения — 2026-10-03
 
-Фазы 0–4 [плана 10/10](plan-10-10.md) выполнены и влиты в main (2026-10-01);
-следующая — фаза 5 «Low-code платформа v2», порядок задач задаёт пользователь.
+Фазы 0–5 [плана 10/10](plan-10-10.md) выполнены и влиты в main; из фазы 6
+выполнены 6.1–6.5 (ветка интеграции `claude/p6-int2` поверх main `01794bf7`,
+2026-10-03). **Следующее — 6.6** (cookbook и три эталонных модуля), затем фаза 7.
 Правила для всех AI-ассистентов — в [`AGENTS.md`](../AGENTS.md), карта модулей —
 в [module-map.md](architecture/module-map.md).
+
+- **Фаза 5** (2026-10-03, ADR-0032): общий runtime сущностей
+  `/api/v1/entities/<код>` — объявление `EntityDefinition` и хуки вместо
+  контроллера, сервиса и репозитория; типы полей, документы со строками и
+  статусами, импорт, отчёты, поиск и вебхуки по возможностям; 7 сущностей на
+  модели; тест-кит `EntityContractTestKit` (пункт 6.2) у каждой сущности.
+- **Фаза 6, 6.3 и 6.4** (ADR-0033): публичный API — `libs/platform-api`
+  (`com.smartup24.cms.platform.api..`, `@PlatformApi`, japicmp против 1.0.0,
+  `scripts/api/test-platform-api-compat.ps1`); манифест модуля
+  `META-INF/smartupcms/modules/<код>.json` (поля `code`, `name`, `version`,
+  `minPlatform`, `dependencies`, `configuration`, `migrations`, `messages`;
+  неизвестное поле останавливает старт); версия модуля — из манифеста, колонки
+  `md_installed_modules.version` нет (V196); сравнение объявлений со схемой —
+  `common.entity.EntitySchemaCheck` (`EntitySchemaGate` при старте,
+  `EntitySchemaContractTest` в сборке); кит — артефакт `platform-testkit`;
+  пример модуля вне монорепо — `examples/external-module`.
+- **Фаза 6, 6.1:** CLI `cms` (`tools/cms-cli`) заменил `create-module.ps1`;
+  генерирует под контракт 6.3/6.4. Проверки — `node --test` в `tools/cms-cli`,
+  `scripts/dev/test-cms-cli.ps1`.
+- **Фаза 6, 6.5:** `make dev`, `scripts/dev/run-local.{sh,ps1}`, профиль
+  `demo`, `.devcontainer`, `.editorconfig`, ночной job `onboarding`. Очередь
+  заданий тикает только после `ApplicationReadyEvent` (гонка с созданием
+  первого администратора). Профиль `devtools` не проверен: зависимость
+  `spring-boot-devtools` ждёт одобрения.
 
 - **Фаза 3** прошла ревью качества; её долги закрыты: `NOT_YET_LOCKED` и
   `NOT_YET_PAGED` удалены, хранилище замороженных нарушений ArchUnit пусто,
@@ -159,5 +199,4 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 Известные пробелы платформы перечислены в
 [extension-points.md](architecture/extension-points.md#7-известные-пробелы):
-поиск и вебхуки не подключаются декларативно, модель сущности пока только на
-заметках, маршрут экрана добавляется вручную.
+сверяйте их с фазой 5: часть пробелов закрыта общим runtime (ADR-0032).

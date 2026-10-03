@@ -2490,7 +2490,7 @@
   "modules.empty_title": "No modules found",
   "modules.empty_desc": "No installed modules match your query",
   "modules.cli_title": "Create New Module (CLI)",
-  "modules.cli_desc": "Use the automated scaffolding script to generate full-stack module code (migration, repository, service, controller, RBAC)",
+  "modules.cli_desc": "Use the cms command line (Windows, Linux, macOS) to declare a module and its entities: migrations, declaration, translation keys and contract test",
   "modules.cli_example_label": "Module generation command:",
   "modules.module_disabled_redirect": "Module is disabled by administrator",
   "ui.custom_fields.select_user_option": "— Select user —",

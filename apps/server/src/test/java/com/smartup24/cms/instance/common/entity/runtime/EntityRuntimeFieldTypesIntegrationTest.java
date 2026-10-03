@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityEnumResolver;
 import com.smartup24.cms.instance.common.entity.EntityEnums;
 import com.smartup24.cms.instance.common.entity.EntityFieldValues;
@@ -24,6 +23,7 @@ import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.repository.MfRecordFileRepository;
 import com.smartup24.cms.instance.mf.service.MfAttachments;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import com.zaxxer.hikari.HikariDataSource;
 import java.util.List;

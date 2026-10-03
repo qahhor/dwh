@@ -7,7 +7,6 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityLists;
 import com.smartup24.cms.instance.common.entity.EntityRowMapper;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -17,12 +16,13 @@ import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
-import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldQueryFields;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityScope;
 import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -39,7 +39,8 @@ import tools.jackson.databind.ObjectMapper;
 class MdCustomFieldQueryFieldsIntegrationTest {
 
     /** The user entity, every row visible: the data scope is not what this test is about. */
-    static final EntityDefinition USERS = MdUserEntity.definition((userId, alias) -> ScopeFilter.unrestricted());
+    static final EntityDefinition USERS =
+            MdUserEntity.definition((userId, alias) -> EntityScope.Condition.unrestricted());
 
     static final QueryList LIST = EntityLists.queryList(USERS);
 

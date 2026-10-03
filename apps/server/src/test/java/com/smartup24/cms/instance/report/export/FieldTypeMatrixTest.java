@@ -3,13 +3,14 @@ package com.smartup24.cms.instance.report.export;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityListFields;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.entity.FieldTypesFixture;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -68,11 +69,11 @@ class FieldTypeMatrixTest {
     @EnumSource(FieldType.class)
     void everyTypeHasAListFieldWithAFilter(FieldType type) {
         EntityField field = field(type);
-        List<QueryField> listed = field.queryFields("t");
+        List<QueryField> listed = EntityListFields.queryFields(field, "t");
 
         assertThat(listed).as("list field of " + type).isNotEmpty();
         QueryField list = listed.getFirst();
-        assertThat(list.type()).isEqualTo(type.listType());
+        assertThat(list.type()).isEqualTo(EntityListFields.listType(type));
         assertThat(list.ops()).as("filter of " + type).isNotEmpty();
         if (list.type() == QueryFieldType.OBJECT) {
             assertThat(list.ops()).extracting(op -> op.wire()).containsExactlyInAnyOrder("empty", "not_empty");
@@ -84,7 +85,7 @@ class FieldTypeMatrixTest {
     @EnumSource(FieldType.class)
     void everyTypeIsExported(FieldType type) throws IOException {
         assertThat(EXPORTED).as("export sample of " + type).containsKey(type);
-        QueryField list = field(type).queryFields("t").getFirst();
+        QueryField list = EntityListFields.queryFields(field(type), "t").getFirst();
         if (type == FieldType.ENUM) {
             list = list.withEnumeration(Map.of("kg", "Kilogram"));
         }
@@ -107,7 +108,8 @@ class FieldTypeMatrixTest {
 
     @Test
     void theCurrencyOfMoneyIsExportedFromItsMoney() throws IOException {
-        QueryField currency = field(FieldType.MONEY).queryFields("t").get(1);
+        QueryField currency =
+                EntityListFields.queryFields(field(FieldType.MONEY), "t").get(1);
         assertThat(currency.key()).isEqualTo("totalCurrency");
         assertThat(currency.defaultVisible()).isFalse();
         assertThat(currency.enumValues()).containsExactly("UZS", "USD");

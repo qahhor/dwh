@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionCall;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionCall;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
 import java.util.Map;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
