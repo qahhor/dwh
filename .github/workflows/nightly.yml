@@ -114,6 +114,29 @@ jobs:
           COMPOSE_FILE: docker-compose.yml:scripts/dev/api-smoke.compose.yml:scripts/dev/e2e-mail.compose.yml
         run: docker compose down --volumes --remove-orphans
 
+  onboarding:
+    name: onboarding smoke (git clone to a working UI in 10 minutes, 3 commands)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      # The prerequisites of a developer's machine, without caches: the clone downloads what a newcomer would.
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: '.node-version'
+
+      # Clones the checkout, runs scripts/dev/run-local.sh up --detach --demo, checks the UI, the API through the UI
+      # origin, readiness, a sign-in and the demo data within 600 s, and tears the stack down.
+      - name: Onboarding smoke
+        shell: pwsh
+        run: ./scripts/dev/test-onboarding-smoke.ps1
+
   advisories:
     name: advisories published since the last change (Trivy)
     runs-on: ubuntu-24.04
