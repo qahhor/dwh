@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.support.entity;
 
+import com.smartup24.cms.platform.api.PlatformApi;
+import com.smartup24.cms.platform.api.Stability;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,6 +19,7 @@ import org.jspecify.annotations.Nullable;
  *         .invalid("currency", "usd", "invalid");
  * }</pre>
  */
+@PlatformApi(since = "1.0", stability = Stability.EXPERIMENTAL)
 public final class EntityFixture {
 
     /** An invalid value of a field and the code of the problem the server answers with. */

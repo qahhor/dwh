@@ -111,13 +111,11 @@ public final class EntitySchemaCheck {
         }
         require(problems, entity, table, columns, "modified_at", MOMENT, "written by the runtime");
         written.add("modified_at");
+        require(problems, entity, table, columns, "created_at", MOMENT, "read by the runtime");
+        require(problems, entity, table, columns, EntityModel.ATTRIBUTES, Set.of("jsonb"), "read by the runtime");
         if (entity.capabilities().contains(EntityCapability.ARCHIVE)) {
             require(problems, entity, table, columns, "archived_at", MOMENT, "the archive (ADR-0032, 5.4)");
             require(problems, entity, table, columns, "archived_by", KEY, "the archive (ADR-0032, 5.4)");
-        }
-        if (entity.capabilities().contains(EntityCapability.CUSTOM_FIELDS)
-                || model.fields().stream().anyMatch(field -> field.source() instanceof FieldSource.Attribute)) {
-            require(problems, entity, table, columns, EntityModel.ATTRIBUTES, Set.of("jsonb"), "the attributes");
         }
         scope(problems, entity, model, columns, written);
         for (EntityField field : model.fields()) {

@@ -2,6 +2,8 @@ package com.smartup24.cms.instance.support.entity;
 
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.platform.api.PlatformApi;
+import com.smartup24.cms.platform.api.Stability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +58,7 @@ import org.springframework.web.context.WebApplicationContext;
  *
  * <p>{@code EntityContractCoverageTest} fails the build while an entity with a table has no subclass.
  */
+@PlatformApi(since = "1.0", stability = Stability.EXPERIMENTAL)
 public abstract class EntityContractTestKit extends EmbeddedPostgresTest {
 
     @Autowired

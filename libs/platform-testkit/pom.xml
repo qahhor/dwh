@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.smartup24.cms</groupId>
+        <artifactId>smartupcms-platform</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>platform-testkit</artifactId>
+    <packaging>pom</packaging>
+    <name>SmartupCMS Platform Test Kit</name>
+    <description>What a module outside the monorepo adds to its tests to pass EntityContractTestKit: the platform, its test
+        helpers and the libraries they need (ADR-0033, 3.4)</description>
+
+    <dependencies>
+        <!-- The platform the kit starts with the module on its classpath: the plain jar of the server's classes. -->
+        <dependency>
+            <groupId>com.smartup24.cms</groupId>
+            <artifactId>server</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- The kit itself: EntityContractTestKit, EntityFixture, EntityTransport, TestUsers, TestSession and the
+             embedded PostgreSQL the platform's own tests run on. -->
+        <dependency>
+            <groupId>com.smartup24.cms</groupId>
+            <artifactId>server</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <classifier>testkit</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-test</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc-test</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <version>${embedded-postgres.version}</version>
+        </dependency>
+    </dependencies>
+</project>

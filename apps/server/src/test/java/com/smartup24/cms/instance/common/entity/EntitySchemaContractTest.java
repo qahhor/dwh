@@ -72,6 +72,8 @@ class EntitySchemaContractTest extends EmbeddedPostgresTest {
         assertThat(problems)
                 .contains(
                         "drift.books: drift_books.revision may be null",
+                        "drift.books: drift_books.created_at is missing (read by the runtime)",
+                        "drift.books: drift_books.attributes is missing (read by the runtime)",
                         "drift.books: drift_books.archived_at is missing (the archive (ADR-0032, 5.4))",
                         "drift.books: drift_books.archived_by is missing (the archive (ADR-0032, 5.4))",
                         "drift.books: drift_books.org_unit_id references no md_org_units (the org-unit scope)",

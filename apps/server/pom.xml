@@ -181,7 +181,7 @@
         <dependency>
             <groupId>io.zonky.test</groupId>
             <artifactId>embedded-postgres</artifactId>
-            <version>2.2.2</version>
+            <version>${embedded-postgres.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -225,9 +225,40 @@
                     <argLine>@{argLine} -XX:+EnableDynamicAgentLoading -Dnet.bytebuddy.experimental=true ${test.heap}</argLine>
                 </configuration>
             </plugin>
+            <!-- The test kit of module authors (ADR-0033, 3.4): the helpers of support/, published as the testkit jar of
+                 this artifact; libs/platform-testkit brings it to a module outside the monorepo. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>testkit</id>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>testkit</classifier>
+                            <includes>
+                                <include>com/smartup24/cms/instance/support/**</include>
+                            </includes>
+                            <!-- The kit's own tests stay with the server. -->
+                            <excludes>
+                                <exclude>**/EntityContractCoverageTest*.class</exclude>
+                                <exclude>**/EntityContractTestKitSelfTest*.class</exclude>
+                                <exclude>**/EntitySamplesTest*.class</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <!-- The runnable jar is server-<version>-exec.jar (the image takes it); the plain jar of the classes
+                     stays the main artifact, which the test kit of modules outside the monorepo needs (ADR-0033, 3.4). -->
+                <configuration>
+                    <classifier>exec</classifier>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

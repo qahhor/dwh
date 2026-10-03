@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.support.entity;
 
+import com.smartup24.cms.platform.api.PlatformApi;
+import com.smartup24.cms.platform.api.Stability;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
@@ -9,4 +11,5 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * @param anyUserId an existing user, for a reference to a user
  * @param tag       a token unique to this run of the kit
  */
+@PlatformApi(since = "1.0", stability = Stability.EXPERIMENTAL)
 public record FixtureContext(JdbcClient jdbc, long anyUserId, String tag) {}

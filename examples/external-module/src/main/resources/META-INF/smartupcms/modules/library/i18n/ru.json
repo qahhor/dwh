@@ -1,0 +1,15 @@
+{
+  "nav.library_books": "Книги",
+  "library.books.rights.form": "Книги библиотеки",
+  "library.books.rights.view": "Просмотр книг",
+  "library.books.rights.create": "Добавление книги",
+  "library.books.rights.update": "Изменение книги",
+  "library.books.rights.archive": "Архив книг",
+  "library.books.rights.delete": "Удаление книги",
+  "library.books.col.title": "Название",
+  "library.books.col.isbn": "ISBN",
+  "library.books.col.pages": "Страниц",
+  "library.books.col.lent": "Выдана",
+  "library.books.col.modified_at": "Изменена",
+  "error.library.book_lent": "Книга выдана читателю, её нельзя удалить"
+}

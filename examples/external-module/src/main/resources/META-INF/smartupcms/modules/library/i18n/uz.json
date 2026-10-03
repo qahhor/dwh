@@ -1,0 +1,15 @@
+{
+  "nav.library_books": "Kitoblar",
+  "library.books.rights.form": "Kutubxona kitoblari",
+  "library.books.rights.view": "Kitoblarni ko'rish",
+  "library.books.rights.create": "Kitob qo'shish",
+  "library.books.rights.update": "Kitobni o'zgartirish",
+  "library.books.rights.archive": "Kitoblar arxivi",
+  "library.books.rights.delete": "Kitobni o'chirish",
+  "library.books.col.title": "Nomi",
+  "library.books.col.isbn": "ISBN",
+  "library.books.col.pages": "Sahifalar",
+  "library.books.col.lent": "Berilgan",
+  "library.books.col.modified_at": "O'zgartirilgan",
+  "error.library.book_lent": "Kitob o'quvchiga berilgan, uni o'chirib bo'lmaydi"
+}

@@ -50,6 +50,8 @@
         <platform-api.version>1.0.0</platform-api.version>
         <platform-api.baseline.version>1.0.0</platform-api.baseline.version>
         <japicmp.version>0.26.2</japicmp.version>
+        <!-- The embedded PostgreSQL of the tests and of the test kit (ADR-0032, 11.3). -->
+        <embedded-postgres.version>2.2.2</embedded-postgres.version>
 
         <!-- Coverage floors (plan 10/10, item 1.4): each module starts at what it has and the floor only rises,
              towards 80 %. A module sets its own values; 0 here means "not measured yet". -->
@@ -65,6 +67,8 @@
         <module>libs/platform-api</module>
         <module>libs/provider-spi</module>
         <module>apps/server</module>
+        <module>libs/platform-testkit</module>
+        <module>examples/external-module</module>
     </modules>
 
     <dependencyManagement>
@@ -125,11 +129,6 @@
                 <groupId>com.smartup24.cms</groupId>
                 <artifactId>provider-spi</artifactId>
                 <version>${platform-api.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.smartup24.cms</groupId>
-                <artifactId>platform-testkit</artifactId>
-                <version>${project.version}</version>
             </dependency>
 
             <!-- Security: Argon2 Password Hashing -->
