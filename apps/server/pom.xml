@@ -197,6 +197,24 @@
     </dependencies>
 
     <build>
+        <resources>
+            <!-- The manifests of the built-in modules carry the application's and the API's versions (ADR-0033, 6.4);
+                 nothing else is filtered, so application.yml keeps its own ${...} placeholders. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>META-INF/smartupcms/modules/*.json</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>META-INF/smartupcms/modules/*.json</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

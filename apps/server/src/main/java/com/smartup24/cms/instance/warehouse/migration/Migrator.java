@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.warehouse.migration;
 
+import com.smartup24.cms.instance.common.module.ModuleMigrations;
 import com.smartup24.cms.instance.warehouse.WarehousePref;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -21,10 +22,12 @@ public final class Migrator {
 
     /**
      * Migrates OLTP from the framework's {@code db/migration} directory (the framework's migrations plus our V1xx
-     * ones); returns the number of files applied.
+     * ones), then the migrations of the modules on the classpath; returns the number of files applied.
      */
     public static int migrateOltp(DataSource oltp) {
-        return migrate(oltp, WarehousePref.OLTP_MIGRATIONS, "oltp");
+        int platform = migrate(oltp, WarehousePref.OLTP_MIGRATIONS, "oltp");
+        // The modules that bring migrations of their own follow the platform's (ADR-0033, 6.5).
+        return platform + ModuleMigrations.migrate(oltp, Migrator.class.getClassLoader());
     }
 
     /** Migrates pg-dwh from {@code db/dwh}; returns the number of files applied. */

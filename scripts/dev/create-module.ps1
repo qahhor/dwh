@@ -173,12 +173,32 @@ cross join md_form_actions fa
 where r.pcode in ('user', 'auditor') and fa.form_code = '$cleanCode' and fa.action = 'view'
 on conflict do nothing;
 
-insert into md_installed_modules (code, name, description, version, icon, route, is_system, status, sort_order) values
-('$cleanCode', '$titleSql', '$descriptionSql', '1.0.0', '$Icon', '/e/${prefixLower}.$cleanCode', false, 'ACTIVE', 100)
+insert into md_installed_modules (code, name, description, icon, route, is_system, status, sort_order) values
+('$cleanCode', '$titleSql', '$descriptionSql', '$Icon', '/e/${prefixLower}.$cleanCode', false, 'ACTIVE', 100)
 on conflict (code) do nothing;
 "@
 
 Write-Host "-> Migrations: $tableMigration, $seedMigration" -ForegroundColor Yellow
+
+# The manifest of the module (ADR-0033, 6.4): the registry shows its version, the start checks its platform and
+# dependencies. The build writes the application's and the API's versions in place of the placeholders.
+$manifestFile = Join-Path $Root "apps\server\src\main\resources\META-INF\smartupcms\modules\${cleanCode}.json"
+$titleJson = Get-JsonText $ModuleTitle
+Write-Utf8 $manifestFile @"
+{
+  "code": "$cleanCode",
+  "name": "$titleJson",
+  "version": "`${project.version}",
+  "minPlatform": "`${platform-api.version}",
+  "dependencies": [
+    {
+      "code": "iam",
+      "version": "`${project.version}"
+    }
+  ]
+}
+"@
+Write-Host "-> Manifest: $manifestFile" -ForegroundColor Yellow
 
 # 2. Java: the declaration and the hooks, the whole server side of an entity on the runtime (ADR-0032, 6; plan 10/10,
 # item 5.4): /api/v1/entities/<code> serves the records; there is no controller, service or repository to write.

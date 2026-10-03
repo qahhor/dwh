@@ -8,10 +8,16 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.module.ModuleCatalog;
+import com.smartup24.cms.instance.common.module.ModuleManifest;
+import com.smartup24.cms.instance.common.module.ModuleManifests;
 import com.smartup24.cms.instance.md.repository.ModuleRegistryRepository;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.platform.api.PlatformVersion;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,8 +26,15 @@ import tools.jackson.databind.ObjectMapper;
 
 class ModuleRegistryIntegrationTest {
 
+    /** The modules V028, V113 and V182 register. */
+    private static final List<String> MIGRATED =
+            List.of("iam", "tasks", "files", "audit", "search", "notes", "upl", "example");
+
     static JdbcClient jdbc;
     static ModuleRegistryService moduleService;
+    static ModuleCatalog catalog;
+    static ModuleManifest newModule;
+    static ModuleRegistryService withNewModule;
 
     @BeforeAll
     static void setup() {
@@ -31,7 +44,67 @@ class ModuleRegistryIntegrationTest {
         var repo = new ModuleRegistryRepository(jdbc, mapper);
         var auditRepo = new AuditLogRepository(jdbc, mapper);
         var auditService = new AuditLogService(auditRepo, null, new AuditDataRedactor());
-        moduleService = new ModuleRegistryService(repo, auditService);
+        catalog = new ModuleCatalog(
+                PlatformVersion.current(), ModuleManifests.read(ModuleRegistryIntegrationTest.class.getClassLoader()));
+        moduleService = new ModuleRegistryService(repo, auditService, catalog);
+        newModule = new ModuleManifest(
+                "library",
+                "Library",
+                PlatformVersion.parse("1.2.0"),
+                PlatformVersion.parse("1.0.0"),
+                List.of(new ModuleManifest.Dependency("iam", PlatformVersion.parse("1.0.0"))),
+                "com.acme.library.LibraryModule",
+                null,
+                null,
+                "test");
+        withNewModule = new ModuleRegistryService(
+                repo,
+                auditService,
+                new ModuleCatalog(
+                        PlatformVersion.current(),
+                        ModuleManifests.inDependencyOrder(
+                                Stream.concat(catalog.manifests().stream(), Stream.of(newModule))
+                                        .toList())));
+    }
+
+    @Test
+    @DisplayName("ADR-0033, 6.4: the registry shows the version, minPlatform and dependencies of the manifest")
+    void builtInModulesShowTheirManifests() {
+        var tasks = moduleService.getModule("tasks").orElseThrow();
+        var manifest = catalog.find("tasks").orElseThrow();
+        assertThat(tasks.version()).isEqualTo(manifest.version().toString()).isNotEqualTo("${project.version}");
+        assertThat(tasks.minPlatform()).isEqualTo(PlatformVersion.current().toString());
+        assertThat(tasks.dependencies())
+                .extracting(ModuleRegistryService.ModuleDependencyView::code)
+                .contains("iam");
+        assertThat(moduleService.getAllModules())
+                .as("every module the migrations register has a manifest")
+                .filteredOn(module -> MIGRATED.contains(module.code()))
+                .hasSize(MIGRATED.size())
+                .allSatisfy(
+                        module -> assertThat(module.version()).as(module.code()).isNotNull());
+    }
+
+    @Test
+    @DisplayName("ADR-0033, 6.4: a manifest without a row gets one, switched on, once")
+    void aNewModuleIsRegisteredFromItsManifest() {
+        assertThat(withNewModule.registerManifests()).containsExactly("library");
+        assertThat(withNewModule.registerManifests())
+                .as("the second start registers nothing")
+                .isEmpty();
+        var library = withNewModule.getModule("library").orElseThrow();
+        assertThat(library.status()).isEqualTo("ACTIVE");
+        assertThat(library.isSystem()).isFalse();
+        assertThat(library.name()).isEqualTo("Library");
+        assertThat(library.version()).isEqualTo("1.2.0");
+        assertThat(library.minPlatform()).isEqualTo("1.0.0");
+        assertThat(library.dependencies())
+                .containsExactly(new ModuleRegistryService.ModuleDependencyView("iam", "1.0.0"));
+        assertThat(withNewModule.toggleModuleStatus("library", false).status()).isEqualTo("DISABLED");
+        assertThat(withNewModule.registerManifests()).isEmpty();
+        assertThat(withNewModule.getModule("library").orElseThrow().status())
+                .as("the administrator's switch stays")
+                .isEqualTo("DISABLED");
     }
 
     @Test
@@ -87,7 +160,6 @@ class ModuleRegistryIntegrationTest {
                 "inventory",
                 "Управление складом",
                 "Учет товаров и остатков",
-                "1.0.0",
                 "package",
                 "/inventory",
                 150,
@@ -96,6 +168,9 @@ class ModuleRegistryIntegrationTest {
 
         assertThat(registered.code()).isEqualTo("inventory");
         assertThat(registered.status()).isEqualTo("ACTIVE");
+        assertThat(registered.version())
+                .as("a module without a manifest has no version")
+                .isNull();
         assertThat(registered.name()).isEqualTo("Управление складом");
 
         var found = moduleService.getModule("inventory");
@@ -109,15 +184,7 @@ class ModuleRegistryIntegrationTest {
         String code = "smoke_module_123";
         Map<String, Object> noAttributes = Map.of();
         assertThatThrownBy(() -> moduleService.putModule(
-                        code,
-                        "Smoke Test Module",
-                        null,
-                        "1.0.0",
-                        "extension",
-                        "/custom/" + code,
-                        900,
-                        noAttributes,
-                        1L))
+                        code, "Smoke Test Module", null, "extension", "/custom/" + code, 900, noAttributes, 1L))
                 .as("a revision left over from another record makes it a replace of a module that does not exist")
                 .isInstanceOfSatisfying(
                         ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
@@ -126,7 +193,6 @@ class ModuleRegistryIntegrationTest {
                 code,
                 "Smoke Test Module",
                 "Registered by the nightly API smoke",
-                "1.0.0",
                 "extension",
                 "/custom/" + code,
                 900,
@@ -143,28 +209,27 @@ class ModuleRegistryIntegrationTest {
     @Test
     @DisplayName("3.6: PUT registers a new module; a replace names its revision: 428 without, 409 from an older one")
     void putModuleReplacesFromItsRevision() {
-        var created = moduleService.putModule(
-                "warehouse", "Склад", null, "1.0.0", "package", "/warehouse", 160, Map.of(), null);
+        var created = moduleService.putModule("warehouse", "Склад", null, "package", "/warehouse", 160, Map.of(), null);
         assertThat(created.revision()).isEqualTo(1L);
         assertThat(created.status()).isEqualTo("ACTIVE");
 
         assertThatThrownBy(() -> moduleService.putModule(
-                        "warehouse", "Без ревизии", null, "1.0.1", "package", "/warehouse", 160, Map.of(), null))
+                        "warehouse", "Без ревизии", null, "package", "/warehouse", 160, Map.of(), null))
                 .isInstanceOfSatisfying(
                         ApiException.class,
                         e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PRECONDITION_REQUIRED));
 
-        var replaced = moduleService.putModule(
-                "warehouse", "Склад 2", null, "1.1.0", "package", "/warehouse", 160, Map.of(), 1L);
+        var replaced =
+                moduleService.putModule("warehouse", "Склад 2", null, "package", "/warehouse", 160, Map.of(), 1L);
         assertThat(replaced.revision()).isEqualTo(2L);
         assertThat(replaced.name()).isEqualTo("Склад 2");
 
         assertThatThrownBy(() -> moduleService.putModule(
-                        "warehouse", "Устаревшая", null, "1.0.2", "package", "/warehouse", 160, Map.of(), 1L))
+                        "warehouse", "Устаревшая", null, "package", "/warehouse", 160, Map.of(), 1L))
                 .isInstanceOfSatisfying(
                         ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.REVISION_CONFLICT));
-        assertThatThrownBy(() -> moduleService.putModule(
-                        "nowhere", "Нет такого", null, "1.0.0", "box", "/nowhere", 1, Map.of(), 1L))
+        assertThatThrownBy(() ->
+                        moduleService.putModule("nowhere", "Нет такого", null, "box", "/nowhere", 1, Map.of(), 1L))
                 .isInstanceOfSatisfying(
                         ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
 
@@ -173,7 +238,7 @@ class ModuleRegistryIntegrationTest {
         assertThat(moduleService.getModule("warehouse").orElseThrow().revision())
                 .isEqualTo(3L);
         assertThatThrownBy(() -> moduleService.putModule(
-                        "warehouse", "Поверх", null, "1.2.0", "package", "/warehouse", 160, Map.of(), 2L))
+                        "warehouse", "Поверх", null, "package", "/warehouse", 160, Map.of(), 2L))
                 .isInstanceOf(ApiException.class);
         assertThat(moduleService.getModule("warehouse").orElseThrow().status())
                 .as("a replace keeps the status")
