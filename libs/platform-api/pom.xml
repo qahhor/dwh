@@ -22,8 +22,8 @@
     <properties>
         <!-- Coverage floor of this module (plan 10/10, item 1.4): raised, never lowered, towards 0.80. Its own tests
              only; the server's tests exercise the rest. -->
-        <coverage.line.minimum>0.00</coverage.line.minimum>
-        <coverage.branch.minimum>0.00</coverage.branch.minimum>
+        <coverage.line.minimum>0.73</coverage.line.minimum>
+        <coverage.branch.minimum>0.50</coverage.branch.minimum>
     </properties>
 
     <dependencies>
