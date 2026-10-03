@@ -67,8 +67,6 @@ volume, запускает зависимости, применяет мигра
    (`apps/server/src/test/resources/migration-manifest.sha256`) и валит сборку
    при любой правке или удалении. Новый файл добавляется в манифест командой
    `mvn test -pl apps/server -Dtest=MigrationManifestTest -Dmigrations.manifest.append=true`.
-   Стенды, применившие изменённый V100 и удалённый V101, чинятся по
-   [runbook](../ops/migration-repair.md).
 3. Имена и типы новых таблиц, колонок, индексов и ограничений — по
    [ADR-0020](../adr/ADR-0020-database-naming.md): `identity`, `text`,
    `timestamptz`, `modified_at`, `<таблица>_…_idx` и `_uq`,

@@ -10,8 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Development stub of the messenger channel: writes the message to the log
- * so that the developer sees the OTP code, and sends it nowhere.
+ * Development stub of the messenger channel: writes that a message was not delivered — the masked chat and the
+ * length, never the text with its code — and sends it nowhere. A developer reads codes from a real channel (the
+ * local mail catcher of the development stack), not from the log.
  *
  * This class used to be called TelegramMessengerProvider and declared the code
  * "telegram", which made the system look as if the channel worked.
@@ -30,10 +31,11 @@ public class ConsoleMessengerProvider implements MessengerProvider {
 
     @Override
     public MessengerSendResult send(MessengerMessage message) {
+        // Never the text: it carries one-time codes and links (StubRecipients).
         log.warn(
-                "[ЗАГЛУШКА МЕССЕНДЖЕРА — НЕ ДОСТАВЛЕНО] chat={}, текст: {}",
-                message.recipientChatId(),
-                message.textMarkdown());
+                "messenger_stub_not_delivered chat={} length={}",
+                StubRecipients.mask(message.recipientChatId()),
+                StubRecipients.length(message.textMarkdown()));
 
         return MessengerSendResult.success(UUID.randomUUID().toString(), 1);
     }

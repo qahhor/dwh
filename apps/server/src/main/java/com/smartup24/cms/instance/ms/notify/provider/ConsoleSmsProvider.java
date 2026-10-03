@@ -10,8 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Development stub of the SMS channel: writes the message to the log and sends it nowhere.
- * The phone number is personal data and is not written to the log (CODE_STYLE).
+ * Development stub of the SMS channel: writes that a message was not delivered — the last two digits of the number
+ * and the length, never the text with its code — and sends it nowhere. The number itself is personal data and is not
+ * written to the log (CODE_STYLE).
  */
 @Component
 public class ConsoleSmsProvider implements SmsProvider {
@@ -25,7 +26,11 @@ public class ConsoleSmsProvider implements SmsProvider {
 
     @Override
     public SmsSendResult send(SmsMessage message) {
-        log.warn("[ЗАГЛУШКА SMS — НЕ ДОСТАВЛЕНО] текст: {}", message.text());
+        // Never the text: it carries one-time codes (StubRecipients).
+        log.warn(
+                "sms_stub_not_delivered to={} length={}",
+                StubRecipients.mask(message.recipientPhone()),
+                StubRecipients.length(message.text()));
 
         return SmsSendResult.success(UUID.randomUUID().toString(), 3);
     }

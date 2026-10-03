@@ -14,6 +14,7 @@ param(
     [int]$HttpPort = 8080,
     [string]$HttpBind = '127.0.0.1',
     [string]$PublicUrl = '',
+    [string]$SmtpHost = '',
     [switch]$Force,
     [switch]$Validate
 )
@@ -26,6 +27,11 @@ $targetSecretsDir = if ([System.IO.Path]::IsPathRooted($SecretsDirectory)) { $Se
 $targetAgeIdentity = if ([System.IO.Path]::IsPathRooted($AgeIdentityFile)) { $AgeIdentityFile } else { Join-Path $repoRoot $AgeIdentityFile }
 
 Write-Host "=== SmartupCMS Production Environment Initializer ===" -ForegroundColor Cyan
+
+if ([string]::IsNullOrWhiteSpace($PublicUrl)) {
+    throw "-PublicUrl is required (e.g. https://cms.example.com): invitation and reset links are built from it."
+}
+$mailProvider = if ([string]::IsNullOrWhiteSpace($SmtpHost)) { 'console_mail' } else { 'smtp' }
 
 if ((Test-Path -LiteralPath $targetEnvPath) -and (-not $Force)) {
     throw "Target environment file '$targetEnvPath' already exists. Use -Force to overwrite."
@@ -160,7 +166,8 @@ ORGANIZATION_NAME=$OrganizationName
 RESOURCE_PROFILE=$ResourceProfile
 
 # Public address of the web application, e.g. https://cms.example.com.
-# Password reset links are built from it; empty means no link is sent.
+# Required: invitation and password reset links are built from it, and the
+# server refuses to start without it.
 SMC_PUBLIC_URL=$PublicUrl
 
 # Database credentials (I-02 Least Privilege role separation)
@@ -214,18 +221,19 @@ SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false
 SMC_WEBHOOKS_CONNECT_TIMEOUT=3s
 SMC_WEBHOOKS_READ_TIMEOUT=10s
 
-# Delivery channels: password reset links and two-factor codes. console_* only
-# writes to the log; the server refuses to start while two-factor users depend
-# on it (SMC_DELIVERY_ENFORCE). Mail: SMTP_HOST + SMC_PROVIDER_MAIL=smtp.
+# Delivery channels: invitations, password reset links and two-factor codes.
+# console_* delivers nothing. While SMC_DELIVERY_ENFORCE=true the server
+# refuses to start on console_mail and while two-factor users depend on a
+# console channel. Mail: SMTP_HOST + SMC_PROVIDER_MAIL=smtp.
 # Telegram: TELEGRAM_BOT_TOKEN + SMC_PROVIDER_MESSENGER=telegram.
-SMTP_HOST=
+SMTP_HOST=$SmtpHost
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASSWORD=
 SMTP_STARTTLS=true
 SMC_MAIL_FROM=no-reply@localhost
 SMC_MAIL_FROM_NAME=SmartupCMS
-SMC_PROVIDER_MAIL=console_mail
+SMC_PROVIDER_MAIL=$mailProvider
 TELEGRAM_BOT_TOKEN=
 SMC_PROVIDER_MESSENGER=console_messenger
 SMC_PROVIDER_SMS=console_sms
@@ -276,4 +284,8 @@ Write-Host "Admin pass   : $resolvedAdminPassword"
 Write-Host "Environment  : $targetEnvPath"
 Write-Host "Secrets dir  : $targetSecretsDir"
 Write-Host "Age public   : $ageRecipient"
+if ($mailProvider -eq 'console_mail') {
+    Write-Host "Mail         : not configured. The server refuses to start until SMTP_HOST and" -ForegroundColor Yellow
+    Write-Host "               SMC_PROVIDER_MAIL=smtp are set in $EnvFile, or SMC_DELIVERY_ENFORCE=false knowingly." -ForegroundColor Yellow
+}
 Write-Host "Next step    : Run .\scripts\prod\deploy.ps1 -EnvFile $EnvFile" -ForegroundColor Yellow

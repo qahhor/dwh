@@ -28,6 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
  *       up by one atomic update; a new invitation voids the previous one, and so does a reset link.
  *   <li>The address is not a confirmed channel yet: it is the one the administrator typed, so the message names only
  *       the login and the link, nothing else of the account.
+ *   <li>While delivery is enforced ({@code SMC_DELIVERY_ENFORCE}, the production default) a stub mail provider refuses
+ *       the invitation, and with it the creation of the user, with 409 {@code channel_not_deliverable}
+ *       ({@link KauthOtpSender#requireDeliverable}): a link that sets the first password must reach its recipient,
+ *       not the server log.
  * </ul>
  */
 @Service
@@ -40,17 +44,20 @@ public class KauthInvitationService implements UserInvitations {
     private final KauthPasswordResetRepository links;
     private final AuditLogService audit;
     private final ApplicationEventPublisher events;
+    private final KauthOtpSender delivery;
     private final SecureRandom random = new SecureRandom();
 
     public KauthInvitationService(
             MdUserService users,
             KauthPasswordResetRepository links,
             AuditLogService audit,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events,
+            KauthOtpSender delivery) {
         this.users = users;
         this.links = links;
         this.audit = audit;
         this.events = events;
+        this.delivery = delivery;
     }
 
     @Override
@@ -61,6 +68,7 @@ public class KauthInvitationService implements UserInvitations {
         if (user.isEmpty()) {
             return;
         }
+        delivery.requireDeliverable(KauthPref.CHANNEL_EMAIL);
         links.lockUser(userId);
         links.revokeActive(userId);
         String token = token();
