@@ -91,7 +91,8 @@ export type { InstalledModule, ModuleFilterTab };
           <p class="cli-command-label">{{ 'modules.cli_example_label' | t }}</p>
           <pre
             class="cli-command-box"
-          ><code>powershell -ExecutionPolicy Bypass -File scripts/dev/create-module.ps1 -ModuleName crm -ModuleTitle "CRM" -TitleEn "CRM & Deals" -ModuleDescription "Customer relationships and deal pipeline"</code></pre>
+          ><code>node tools/cms-cli/bin/cms.mjs module new crm --title "CRM" --title-en "CRM and deals"
+node tools/cms-cli/bin/cms.mjs entity new crm deals --title "Deals" --title-en "Deals"</code></pre>
         </div>
       </div>
     </section>

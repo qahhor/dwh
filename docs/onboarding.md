@@ -79,8 +79,9 @@ error (`NoSwallowedErrorsTest`), comments are in English
 (`CommentLanguageTest`), and every business module keeps its coverage floor
 (`scripts/quality/test-coverage-floors.ps1`). The short version is the
 [server rules](guidelines/module-development-guide.md#серверные-правила) table;
-the client view is [how the API behaves](api/README.md). The module generator
-`scripts/dev/create-module.ps1` produces code that already passes them.
+the client view is [how the API behaves](api/README.md). The developer CLI
+`cms` (`tools/cms-cli`, `node tools/cms-cli/bin/cms.mjs entity new ...`) produces code that
+already passes them.
 
 ## 4. Verify the workspace
 

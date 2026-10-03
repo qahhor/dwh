@@ -66,11 +66,16 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   `EntityMenu` — названия прав и `GET /api/v1/entities/menu`.
 - **Web:** `smt-entity-form`, `smt-entity-card`, `smt-entity-toolbar`,
   `ui-server-table` + `registryTableConfig`.
-- **Генератор:** `scripts/dev/create-module.ps1` — две миграции (таблица с
-  `revision` и данные), пакет `api`, репозиторий, список, объявление, сервис,
-  контроллер и ключи ru/uz/en по правилам фазы 3; что осталось руками, он
-  печатает. Его результат проверяет `scripts/dev/test-create-module.ps1`
-  (nightly).
+- **CLI `cms`** (`tools/cms-cli`, Node.js без пакетов, план 10/10, пункт 6.1):
+  `cms module new`, `cms entity new` (объявление, хуки, тест кита, миграции
+  таблицы и прав со следующими свободными номерами в манифесте, ключи ru/uz/en,
+  порог покрытия, строка карты модулей), `cms entity add-field`,
+  `cms migration diff` (через `EntitySchemaDiffTest`; сравнение — то же
+  `EntitySchemaCheck`, что и при старте), `cms doctor`; манифест модуля —
+  `META-INF/smartupcms/modules/<область>.json` по ADR-0033; повторный
+  запуск ничего не меняет, правки рукой не перезаписываются. Результат проверяет
+  `scripts/dev/test-cms-cli.ps1` / `tools/cms-cli/scripts/smoke.mjs` (nightly на
+  ubuntu и windows), тесты CLI — `npm test` в `tools/cms-cli` (ci).
 - **Эталон:** модуль заметок (`ms/note`, `features/notes`).
 
 ## 5. Инварианты
@@ -131,7 +136,8 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 - Документация и репозиторий: `scripts/docs/test-public-docs.ps1` (каждый ADR
   в индексе, ссылки), `scripts/docs/test-repository-hygiene.ps1`,
   `scripts/architecture/test-unified-boundaries.ps1`.
-- Генератор модулей: `scripts/dev/test-create-module.ps1`.
+- CLI `cms`: `npm test` в `tools/cms-cli`; сгенерированный модуль целиком —
+  `scripts/dev/test-cms-cli.ps1` (`-SkipBuild` — без сборки Maven).
 - Коммиты подписываются `git commit -s`; CI (`ci.yml`, `dco.yml`) запускается
   на push в main и на pull request, `nightly.yml` — по расписанию.
 

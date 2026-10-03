@@ -314,7 +314,7 @@ EntityContractTestKit` проходит кит. Пакет модуля — `com
 
 ## 9. Генератор и документация
 
-- Генератор (`create-module.ps1`, CLI пункта 6.1) пишет импорты из
+- Генератор (CLI `cms` пункта 6.1, `tools/cms-cli`) пишет импорты из
   `com.smartup24.cms.platform.api..` и не пишет импорты реализации в
   объявление и хуки; встроенному модулю манифест не нужен, если он не заводит
   строку реестра.
@@ -388,4 +388,8 @@ EntityContractTestKit` проходит кит. Пакет модуля — `com
 `apps/server/src/main/resources/META-INF/smartupcms/modules/<код>.json` с
 полями §6.2 (`${project.version}` и `${platform-api.version}` подставляет
 сборка); строка `md_installed_modules` больше не имеет колонки `version`.
-`create-module.ps1` уже следует этому.
+CLI `cms` следует этому (2026-10-03): `cms module new` пишет манифест
+`<область>.json` (код в реестре — область права модуля) ровно с полями §6.2,
+без собственных полей CLI; область, префикс таблиц и иконку CLI читает из
+`PermissionAreas`, `ModuleBoundariesTest` и объявлений модуля.
+`create-module.ps1` удалён.
