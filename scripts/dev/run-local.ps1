@@ -53,6 +53,16 @@ $DbPassword = Get-Setting 'DB_PASSWORD' 'smartupcms_local_dev'
 $env:DB_PORT = $DbPort; $env:MAILPIT_HTTP_PORT = $MailpitHttpPort; $env:MAILPIT_SMTP_PORT = $MailpitSmtpPort
 $env:TYPESENSE_PORT = $TypesensePort; $env:PROJECT_NAME = $Project
 
+# The JDK on Windows opens its selector over a Unix domain socket in TEMP, whose path must stay under 108 characters:
+# a long TEMP fails the server with "Unable to establish loopback connection". The processes get .local\tmp then.
+function Set-ShortTemp {
+    $short = Join-Path $State 'tmp'
+    if ($IsWin -and $env:TEMP -and $env:TEMP.Length -gt 40 -and $short.Length -lt $env:TEMP.Length) {
+        New-Item -ItemType Directory -Force $short | Out-Null
+        $env:TEMP = $short; $env:TMP = $short
+    }
+}
+
 function Write-Step([string]$Text) { Write-Host "`n==> $Text" -ForegroundColor Cyan }
 
 # Windows PowerShell 5.1 turns a native command's stderr into an error record when the output is redirected, which
@@ -315,11 +325,13 @@ switch ($Command) {
     'migrate' {
         Assert-Tools
         New-Item -ItemType Directory -Force $State | Out-Null
+        Set-ShortTemp
         Start-Infra; Build-Server; Invoke-Migrations
     }
     'up' {
         Assert-Tools
         New-AdminPassword
+        Set-ShortTemp
         Stop-Apps
         Start-Infra
         Build-Server
