@@ -276,7 +276,7 @@ class WarehouseLoadServiceTest extends EmbeddedPostgresTest {
 
     @ParameterizedTest(name = "конфигурация {0}")
     @MethodSource("departments")
-    @DisplayName("AC-29 (M-4): две строки журнала в одной транзакции получают разное время at")
+    @DisplayName("AC-29: две строки журнала в одной транзакции получают разное время at")
     void journalTimeIsPerRowNotPerTransaction(DepartmentFixture fixture) {
         use(fixture);
         UUID packageRef = UUID.randomUUID();

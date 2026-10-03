@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>A value is cast only when it has the field's shape, so an old value written before validation existed
  * reads as empty instead of failing the whole page. Custom fields never sort: that needs an expression index,
- * and the application role cannot create indexes (least privilege, I-02).
+ * and the application role cannot create indexes (least privilege, NFR-SEC-02).
  */
 @Component
 public class MdCustomFieldQueryFields implements QueryListExtender {

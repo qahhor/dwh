@@ -113,7 +113,7 @@ class CorePurityTest {
     }
 
     @Test
-    @DisplayName("AC-24/M-9: в ядре и наших миграциях нет числовых констант пересчёта вне allowed-numbers.txt")
+    @DisplayName("AC-24: в ядре и наших миграциях нет числовых констант пересчёта вне allowed-numbers.txt")
     void coreHasNoUnlistedNumbers() throws IOException {
         Set<String> allowed = allowedNumbers();
         for (String entry : allowed) {
@@ -126,7 +126,7 @@ class CorePurityTest {
     }
 
     @Test
-    @DisplayName("AC-24/M-9: нарушитель — красный с файл:строка и числом; комментарии, версии и IP не считаются")
+    @DisplayName("AC-24: нарушитель — красный с файл:строка и числом; комментарии, версии и IP не считаются")
     void numberViolatorIsReported(@TempDir Path root) throws IOException {
         Path violator = root.resolve("UplUnits.java");
         Files.writeString(

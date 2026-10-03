@@ -72,17 +72,23 @@ foreach ($script in $checkScripts) {
 # Plan 10/10, item 3.14: a comment points a newcomer to an ADR or a requirement (FR/NFR), never to an item of a
 # working brief ("prompt 02 item 18", "(02, item 18)", "extra 12", "extra No 3") that the reader has never seen. The
 # words are escaped so this script does not match itself (and stays ASCII: Windows PowerShell 5.1 reads a file without
-# a BOM in the ANSI code page).
+# a BOM in the ANSI code page). The Latin forms are the ids of work items of old briefs and audits, case-sensitive:
+# a capital D, I, P or F with a dash and two digits; M with a dash and one or two digits; M with two digits. An SVG
+# path (M, a number, then a space or a dot and a digit) and the ids of the specification (ADR-0025, FR-IAM-05,
+# NFR-PERF-02, AC-31) do not match.
 $briefReference = [regex]::new(
-    '\u043f\u0440\u043e\u043c\u043f\u0442|\u0434\u043e\u043f\.\s?\u2116?\s?\d|\b\d{2} \u043f\.\s?\d|\(\d{2},\s?\u043f\.\s?\d',
+    '\u043f\u0440\u043e\u043c\u043f\u0442|\u0434\u043e\u043f\.\s?\u2116?\s?\d|\b\d{2} \u043f\.\s?\d|\(\d{2},\s?\u043f\.\s?\d' +
+    '|(?-i:\b[DIPF]-\d{2}\b|\bM-\d{1,2}\b|\bM\d{2}\b(?![.,]?\s?\d))',
     [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 # The pattern itself is checked: the forms above match, a plan item or a date does not.
-foreach ($sample in @('\u043f\u0440\u043e\u043c\u043f\u0442 02 \u043f.18', '(02, \u043f.18)', '(02, \u043f. 18)', '\u0434\u043e\u043f.12', '\u0434\u043e\u043f. 12', '\u0434\u043e\u043f.\u21163', '\u0434\u043e\u043f. \u2116 3', 'see 02 \u043f. 18')) {
+foreach ($sample in @('\u043f\u0440\u043e\u043c\u043f\u0442 02 \u043f.18', '(02, \u043f.18)', '(02, \u043f. 18)', '\u0434\u043e\u043f.12', '\u0434\u043e\u043f. 12', '\u0434\u043e\u043f.\u21163', '\u0434\u043e\u043f. \u2116 3', 'see 02 \u043f. 18',
+        '(least privilege, \u0049-02)', 'Drill (\u0049-10)', '(\u0044-04)', '\u0050-03: export', '\u0046-04: role', '\u004d-4: log', 'AC-31 / \u004d-14:', '(\u004d17)', '(\u004d10 API)', '(\u004d18, module webhook)')) {
     if (-not $briefReference.IsMatch([regex]::Unescape($sample))) {
         $errors.Add("Brief-reference pattern misses a known form: $sample")
     }
 }
-foreach ($sample in @('\u043f\u043b\u0430\u043d 10/10, \u043f. 3.9', '(2026-09-26, \u043f. 53)', '\u0434\u043e\u043f. \u043f\u043e\u043b\u044f', 'ADR-0025 \u00a74')) {
+foreach ($sample in @('\u043f\u043b\u0430\u043d 10/10, \u043f. 3.9', '(2026-09-26, \u043f. 53)', '\u0434\u043e\u043f. \u043f\u043e\u043b\u044f', 'ADR-0025 \u00a74',
+        'FR-IAM-05', 'NFR-PERF-02', 'FR-COMM-03', 'AC-31', 'd="M43.5 19.5C40.1', 'd="M12 4L8 8"', 'UTF-8', 'code A-1', 'i-02', 'm10')) {
     if ($briefReference.IsMatch([regex]::Unescape($sample))) {
         $errors.Add("Brief-reference pattern matches a legitimate reference: $sample")
     }
@@ -92,10 +98,14 @@ foreach ($sample in @('\u043f\u043b\u0430\u043d 10/10, \u043f. 3.9', '(2026-09-2
 $frozenBriefReferences = [System.Collections.Generic.HashSet[string]]::new([string[]]@(
     'apps/server/src/main/resources/db/dwh/V001__dwh_schemas.sql',
     'apps/server/src/main/resources/db/dwh/V002__raw_source_file_uuid.sql',
+    'apps/server/src/main/resources/db/dwh/V003__raw_rows_source_file_idx.sql',
+    'apps/server/src/main/resources/db/migration/V033__audit_partition_maintenance_functions.sql',
+    'apps/server/src/main/resources/db/migration/V034__task_revision_and_drop_duplicate_indexes.sql',
     'apps/server/src/main/resources/db/migration/V100__fnd_core.sql',
     'apps/server/src/main/resources/db/migration/V102__fnd_versioning.sql',
     'apps/server/src/main/resources/db/migration/V103__fnd_units.sql',
     'apps/server/src/main/resources/db/migration/V104__fnd_loads.sql',
+    'apps/server/src/main/resources/db/migration/V108__fnd_log_time_and_version_index.sql',
     'apps/server/src/main/resources/db/migration/V109__fnd_draft_unique.sql'
 ))
 foreach ($relativePath in $frozenBriefReferences) {
@@ -113,8 +123,8 @@ $oldNameFiles = @(
     # health component.
     [pscustomobject]@{ Path = '^apps/server/src/(main|test)/java/com/smartup24/cms/instance/warehouse/'; Reason = 'the warehouse module' },
     [pscustomobject]@{ Path = '^docs/adr/ADR-0030-fnd-split\.md$'; Reason = 'names the warehouse identifiers kept by the split' },
-    [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/support/TestDatabases\.java$'; Reason = 'test databases of OLTP and the warehouse, shared with the fnd tests until item 4.2' },
-    [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/support/fixtures/DwhQualifierViolator\.java$'; Reason = 'fixture of the fnd architecture test: the warehouse qualifier outside fnd' },
+    [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/support/TestDatabases\.java$'; Reason = 'test databases of OLTP and the warehouse, shared by the warehouse and units tests' },
+    [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/support/fixtures/DwhQualifierViolator\.java$'; Reason = 'fixture of the warehouse architecture test: the warehouse qualifier outside the warehouse module' },
     # Warehouse migrations and the scripts of the warehouse database and its archive.
     [pscustomobject]@{ Path = '^apps/server/src/main/resources/db/dwh/'; Reason = 'warehouse migrations' },
     [pscustomobject]@{ Path = '^deploy/images/postgres/init-dwh\.sh$'; Reason = 'creates the warehouse database' },
@@ -138,11 +148,11 @@ $oldNameFiles = @(
 $oldNameTokens = @(
     # The warehouse.
     [pscustomobject]@{ Path = '.'; Token = 'pg-dwh|smartupcms_dwh|db/dwh|V001__dwh_schemas|init-dwh'; Reason = 'the warehouse database, its migrations and its init script' },
-    [pscustomobject]@{ Path = '^(docs|deploy|scripts/prod)/|^\.env\.example$|(^|/)docker-compose[^/]*\.yml$'; Token = '\bDWH\b|DwhBackupFile|dwh-backup'; Reason = 'the warehouse in operations documents and scripts' },
+    [pscustomobject]@{ Path = '^(docs|deploy|scripts/prod)/|^\.env\.example$|(^|/)docker-compose[^/]*\.yml$'; Token = '\bDWH\b|DwhBackupFile'; Reason = 'the warehouse in operations documents and scripts' },
     [pscustomobject]@{ Path = '^docs/adr/ADR-00(0[1-9]|1[0-9])-'; Token = '\bDWH\b|smartup5x_dwh'; Reason = 'the warehouse stage in early ADRs and its Biruni node' },
-    # fnd identifiers used outside fnd until item 4.2.
-    [pscustomobject]@{ Path = '^apps/server/src/|^docs/|^deploy/|(^|/)docker-compose[^/]*\.yml$'; Token = 'FndDwhConfig|FndDwhMaintenance|DwhSchemaVersionGate|DwhDataSourceProperties|DwhUnavailableException|DwhQualifierViolator|FndPref\.DWH\w*|fnd\.dwh|migrateDwh|TestDatabases\.(DWH_DB|dwh\(\))|dwh\.maintenance|`dwh`'; Reason = 'fnd identifiers, the warehouse session setting and the repository slug until item 4.2' },
-    [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/config/system/ReadinessGroupIntegrationTest\.java$'; Token = '"dwh"'; Reason = 'health component of the warehouse, declared in fnd' },
+    # Warehouse identifiers used outside the warehouse module (item 4.2 moved them there; their users stay elsewhere).
+    [pscustomobject]@{ Path = '^apps/server/src/|^docs/|^deploy/|(^|/)docker-compose[^/]*\.yml$'; Token = 'fnd\.dwh|TestDatabases\.(DWH_DB|dwh\(\))|dwh\.maintenance|`dwh`'; Reason = 'warehouse identifiers, the warehouse session setting and the database name used outside the warehouse module' },
+    [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/config/system/ReadinessGroupIntegrationTest\.java$'; Token = '"dwh"'; Reason = 'health component of the warehouse database' },
     [pscustomobject]@{ Path = '^apps/server/src/'; Token = 'WarehouseError\.DWH_(READ_FORBIDDEN|UNAVAILABLE)'; Reason = 'error codes of the warehouse module' },
     # i18n keys and texts about the warehouse.
     [pscustomobject]@{ Path = '^apps/server/src/main/resources/i18n/|^apps/web/src/app/core/i18n/|^apps/web/src/app/features/(iam/roles|tasks/projects)/'; Token = 'error\.fnd\.dwh_(read_forbidden|unavailable)|\bDWH\b'; Reason = 'the warehouse (and a sample project name) in UI texts' },
@@ -157,6 +167,31 @@ foreach ($entry in $oldNameFiles) {
         $errors.Add("Old-name exemption matches no tracked file: $($entry.Path)")
     }
 }
+# A token is dead when no checked line needs it: each top-level alternative of each entry is checked on its own, so a
+# renamed identifier leaves the list together with the code (the same rule as the file list above).
+function Split-TopLevelAlternatives([string]$pattern) {
+    $parts = [System.Collections.Generic.List[string]]::new()
+    $depth = 0
+    $start = 0
+    for ($i = 0; $i -lt $pattern.Length; $i++) {
+        $c = $pattern[$i]
+        if ($c -eq '\') { $i++; continue }
+        if ($c -eq '(') { $depth++ }
+        elseif ($c -eq ')') { $depth-- }
+        elseif ($c -eq '|' -and $depth -eq 0) {
+            $parts.Add($pattern.Substring($start, $i - $start))
+            $start = $i + 1
+        }
+    }
+    $parts.Add($pattern.Substring($start))
+    return $parts
+}
+$tokenAlternatives = [System.Collections.Generic.List[object]]::new()
+foreach ($entry in $oldNameTokens) {
+    foreach ($alternative in (Split-TopLevelAlternatives $entry.Token)) {
+        $tokenAlternatives.Add([pscustomobject]@{ Path = $entry.Path; Regex = [regex]::new($alternative); Text = $alternative; Used = $false })
+    }
+}
 # The check itself is checked on a main source file: product forms and old names fail, warehouse forms pass.
 $sampleTokens = @($oldNameTokens | Where-Object { 'apps/server/src/main/java/X.java' -match $_.Path })
 function Test-OldNameRemains([string]$text) {
@@ -167,7 +202,7 @@ function Test-OldNameRemains([string]$text) {
 foreach ($sample in @('DWH Platform', 'Bearer dwh_xyz', 'DwhInfoContributor', 'dwh.search.query.duration', 'DWH_TYPESENSE_URL', 'DWH_SESSION', 'dwh_theme')) {
     if (-not (Test-OldNameRemains $sample)) { $errors.Add("Old-name check misses a product form: $sample") }
 }
-foreach ($sample in @('pg-dwh is away', 'goodWhen', 'FndDwhConfig')) {
+foreach ($sample in @('pg-dwh is away', 'goodWhen', 'WarehouseError.DWH_UNAVAILABLE')) {
     if (Test-OldNameRemains $sample) { $errors.Add("Old-name check flags a warehouse form: $sample") }
 }
 # Every tracked text file is read. Binaries are skipped by extension and by a NUL byte in their first 8 KB.
@@ -197,6 +232,7 @@ foreach ($relativePath in $tracked) {
         continue
     }
     $tokens = @($oldNameTokens | Where-Object { $relativePath -match $_.Path })
+    $alternatives = @($tokenAlternatives | Where-Object { $relativePath -match $_.Path })
     $lineNumber = 0
     foreach ($line in [System.IO.File]::ReadLines($fullPath)) {
         $lineNumber++
@@ -204,12 +240,20 @@ foreach ($relativePath in $tracked) {
             $errors.Add("Reference to a working brief instead of an ADR or FR: ${relativePath}:$lineNumber")
         }
         if ($checkOldName -and $oldName.IsMatch($line)) {
+            foreach ($alternative in $alternatives) {
+                if (-not $alternative.Used -and $alternative.Regex.IsMatch($line)) { $alternative.Used = $true }
+            }
             $rest = $line
             foreach ($token in $tokens) { $rest = [regex]::Replace($rest, $token.Token, '') }
             if ($oldName.IsMatch($rest)) {
                 $errors.Add("Old product name 'dwh' (the warehouse only, plan 10/10, item 4.7): ${relativePath}:$lineNumber")
             }
         }
+    }
+}
+foreach ($alternative in $tokenAlternatives) {
+    if (-not $alternative.Used) {
+        $errors.Add("Old-name token matches no checked line: $($alternative.Text) (files $($alternative.Path))")
     }
 }
 

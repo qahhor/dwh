@@ -179,7 +179,7 @@ class MdAssignmentServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("F-04: роль admin нельзя снять с последнего администратора")
+    @DisplayName("роль admin нельзя снять с последнего администратора")
     void lastAdminIsProtected() {
         Long onlyAdmin = createUser("the_only_admin");
         assignRoles(onlyAdmin, List.of(roleId("admin")));

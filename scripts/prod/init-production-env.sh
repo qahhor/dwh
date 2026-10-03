@@ -131,7 +131,7 @@ RESOURCE_PROFILE=$RESOURCE_PROFILE
 # Password reset links are built from it; empty means no link is sent.
 SMC_PUBLIC_URL=$SMC_PUBLIC_URL
 
-# Database credentials (I-02 Least Privilege role separation)
+# Database credentials (least-privilege role separation, NFR-SEC-02)
 DB_NAME=smartupcms
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=$DB_PASSWORD

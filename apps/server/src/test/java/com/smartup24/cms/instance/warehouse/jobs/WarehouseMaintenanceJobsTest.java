@@ -159,7 +159,7 @@ class WarehouseMaintenanceJobsTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("AC-31 / M-14: за один вызов — 3 сироты найдены, 2 чистые загрузки не помечены")
+    @DisplayName("AC-31: за один вызов — 3 сироты найдены, 2 чистые загрузки не помечены")
     void xdbCheckBatchFindsOnlyOrphans() {
         long first = loads.begin(
                 SOURCE, UUID.randomUUID(), LocalDate.parse("2026-04-01"), LocalDate.parse("2026-04-30"), "v1", actor);

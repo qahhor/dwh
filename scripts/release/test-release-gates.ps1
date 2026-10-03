@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host " Running Package 6 (I-06) Release Artifact Gates Drill" -ForegroundColor Cyan
+Write-Host " Running Release Artifact Gates Drill (NFR-SEC-07)" -ForegroundColor Cyan
 Write-Host "====================================================" -ForegroundColor Cyan
 
 # Test 1: Verify release supply chain contract
@@ -106,4 +106,4 @@ finally {
     }
 }
 
-Write-Host "`nAll Package 6 (I-06) Release Artifact Gates drills PASSED." -ForegroundColor Green
+Write-Host "`nAll Release Artifact Gates drills PASSED." -ForegroundColor Green

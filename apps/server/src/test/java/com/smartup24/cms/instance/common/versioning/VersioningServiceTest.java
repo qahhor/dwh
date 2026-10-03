@@ -418,7 +418,7 @@ class VersioningServiceTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("M-3: updateDraft не даёт обойти publish через служебные колонки")
+    @DisplayName("updateDraft не даёт обойти publish через служебные колонки")
     void updateDraftRejectsReservedColumns() {
         int version = versioning.createDraft(VERSIONS, thing, actor);
         for (String column :
@@ -438,7 +438,7 @@ class VersioningServiceTest extends EmbeddedPostgresTest {
 
     @Test
     @DisplayName(
-            "M-13: дубль (заголовок, версия) через транслятор версий — fnd_version_conflict, а не DuplicateKeyException")
+            "дубль (заголовок, версия) через транслятор версий — fnd_version_conflict, а не DuplicateKeyException")
     void duplicateVersionNumberIsTranslatedToConflictCode() {
         insertVersionDirectly(thing, 1, "2026-01-01", null, "published");
 
