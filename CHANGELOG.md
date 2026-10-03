@@ -9,6 +9,19 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 6.6 — cookbook and reference modules. `docs/cookbook`
+  holds 17 recipes: reference list, list filters and search, document with
+  lines, document with statuses, workflow transitions, relations, hooks,
+  rights, field rights, data scope, import, reports and widgets, If-Match,
+  OpenAPI per entity, generic screen overrides, `cms migration diff`,
+  external module. Each recipe is backed by a tested reference:
+  `example.products` and `example.requests` (new, V197 and V198, generated
+  with `cms`), `example.orders` and `examples/external-module`.
+  `scripts/docs/test-docs-contract.mjs` (CI) fails when the cookbook, the
+  module guide, `CODE_STYLE.md` or ADR-0012 names a missing type, member,
+  file, link, `cms` command or flag, selector, Checkstyle module, artifact or
+  entity code, or when a snippet marked `from` no longer matches its file.
+
 - Plan 10/10, items 6.3 and 6.4 — the platform API and the module manifest
   (ADR-0033). `libs/platform-api` (`com.smartup24.cms.platform.api..`: the
   entity declaration, hooks, the audit actor) and `provider-spi` are the
@@ -936,6 +949,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Apache-2.0 community, governance, security, and contribution policies.
 
 ### Changed
+
+- Plan 10/10, item 6.6: the entity contract kit grants its users `view` on
+  the entities a reference names, and its user without field rights no
+  longer holds an entity action that a field right names, so such field
+  rights are now checked. `cms entity new` indexes `code` itself instead of
+  `lower(code)`, so the index works as an import key; the CLI tests derive
+  migration numbers from the manifest. `CODE_STYLE.md` (1.2) and ADR-0012
+  (§6) describe the code as it is: low-code entity names, module boundary
+  and published views, Argon2id parameters, structured logs and tracing as
+  targets of items 7.1–7.2, design tokens and component prefixes instead of
+  the planned Material wrappers and `/ui-kit` page.
 
 - **API-breaking (item 6.4):** a module's version comes from its manifest:
   `md_installed_modules.version` is dropped (V196), `RegisterModuleRequest`

@@ -1,6 +1,7 @@
-// The documentation contract (plan 10/10, item 6.6): what the cookbook and the module guide name in code spans and
-// code blocks exists in the repository - Java and TypeScript types and their members, builder methods, files, cms
-// commands and their options, Angular selectors and entity codes - and every block marked
+// The documentation contract (plan 10/10, item 6.6): what the cookbook, the module guide, CODE_STYLE and ADR-0012
+// name in code spans and code blocks exists in the repository - Java and TypeScript types and their members, builder
+// methods, files, cms commands and their options, Angular selectors, Checkstyle modules and entity codes - and every
+// block marked
 // `<!-- from: <file> -->` is taken from that file, line by line in order. A name a document uses only as an
 // illustration is declared in the document: `<!-- docs-contract: hypothetical inventory.items, InventoryApi -->`.
 // Node standard library only.
@@ -9,7 +10,12 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 /** The documents under contract, relative to the repository root: a directory means its *.md files. */
-export const DOCUMENTS = ['docs/cookbook', 'docs/guidelines/module-development-guide.md'];
+export const DOCUMENTS = [
+  'docs/cookbook',
+  'docs/guidelines/module-development-guide.md',
+  'CODE_STYLE.md',
+  'docs/adr/ADR-0012-ui-foundation.md',
+];
 
 /** Where the index reads sources; generated and installed trees are skipped. */
 const SOURCE_ROOTS = ['apps/server', 'apps/web', 'libs', 'examples', 'tools', 'e2e', 'scripts'];
@@ -76,6 +82,13 @@ export async function buildIndex(root) {
     artifacts: new Set(),
     cli: await cliTable(root),
   };
+  // The modules of the Checkstyle configuration (FileLength) are rules a document names.
+  const checkstyle = path.join(root, 'config/checkstyle/checkstyle.xml');
+  if (fs.existsSync(checkstyle)) {
+    for (const match of fs.readFileSync(checkstyle, 'utf8').matchAll(/<module name="(\w+)"/g)) {
+      index.tsSymbols.add(match[1]);
+    }
+  }
   // The schemas of the API description (ExampleRequestsRecord) are names a client uses.
   const openapi = path.join(root, 'docs/api/openapi.json');
   if (fs.existsSync(openapi)) {

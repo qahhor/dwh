@@ -161,8 +161,10 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 Фазы 0–5 [плана 10/10](plan-10-10.md) выполнены и влиты в main; из фазы 6
 выполнены 6.1–6.5 (ветка интеграции `claude/p6-int2` поверх main `01794bf7`,
-2026-10-03); 6.6 (cookbook и эталонные модули) — в ветке `claude/p6-cookbook`.
-**Следующее — фаза 7.**
+2026-10-03); 6.6 (cookbook, эталонные модули, CODE_STYLE и ADR-0012 по коду) —
+в ветке `claude/p6-cookbook`. Фаза 6 выполнена. **Следующее — фаза 7**
+(эксплуатация и безопасность production: структурные логи, трейсинг, метрики и
+SLO, заголовки nginx, сессии, threat model, DAST, хранилище pg-dwh).
 Правила для всех AI-ассистентов — в [`AGENTS.md`](../AGENTS.md), карта модулей —
 в [module-map.md](architecture/module-map.md).
 

@@ -243,7 +243,7 @@ jobs:
           node --test 'tools/cms-cli/test/**/*.test.mjs'
           node tools/cms-cli/scripts/smoke.mjs --skip-build
 
-      # Plan 10/10, item 6.6: what the cookbook and the module guide name exists (types, files, cms commands and their
+      # Plan 10/10, item 6.6: what the cookbook, the module guide, CODE_STYLE and ADR-0012 name exists (types, files, cms commands and their
       # options, selectors, entity codes) and their marked blocks match the reference modules.
       - name: Documentation contract
         shell: bash
