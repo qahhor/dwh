@@ -14103,6 +14103,12 @@
             "type" : "string",
             "format" : "date-time"
           },
+          "dependencies" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ModuleDependencyView"
+            }
+          },
           "description" : {
             "type" : "string"
           },
@@ -14111,6 +14117,9 @@
           },
           "isSystem" : {
             "type" : "boolean"
+          },
+          "minPlatform" : {
+            "type" : "string"
           },
           "modifiedAt" : {
             "type" : "string",
@@ -15063,6 +15072,17 @@
             "type" : "string"
           },
           "section" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ModuleDependencyView" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "version" : {
             "type" : "string"
           }
         }
@@ -16562,9 +16582,6 @@
           "sortOrder" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "version" : {
-            "type" : "string"
           }
         }
       },

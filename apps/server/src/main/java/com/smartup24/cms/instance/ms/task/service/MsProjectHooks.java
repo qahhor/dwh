@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.ms.task.service;
 
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
-import com.smartup24.cms.instance.common.entity.hook.EntitySave;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.hook.EntitySave;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 

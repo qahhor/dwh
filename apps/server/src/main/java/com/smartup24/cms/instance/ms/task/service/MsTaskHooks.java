@@ -1,12 +1,12 @@
 package com.smartup24.cms.instance.ms.task.service;
 
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
-import com.smartup24.cms.instance.common.entity.hook.EntityOperation;
-import com.smartup24.cms.instance.common.entity.hook.EntitySave;
-import com.smartup24.cms.instance.common.entity.hook.EntityValues;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTreeRepository;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.hook.EntityOperation;
+import com.smartup24.cms.platform.api.entity.hook.EntitySave;
+import com.smartup24.cms.platform.api.entity.hook.EntityValues;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;

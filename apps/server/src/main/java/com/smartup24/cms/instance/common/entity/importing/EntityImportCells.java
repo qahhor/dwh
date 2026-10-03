@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.common.entity.importing;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
-import com.smartup24.cms.instance.common.entity.field.FieldOptions;
+import com.smartup24.cms.platform.api.entity.field.FieldOptions;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;

@@ -3,10 +3,10 @@ package com.smartup24.cms.instance.md.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.instance.warehouse.migration.Migrator;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

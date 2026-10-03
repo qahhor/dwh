@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
-import com.smartup24.cms.instance.common.entity.event.EntityChanged;
-import com.smartup24.cms.instance.common.entity.event.EntityEventType;
-import com.smartup24.cms.instance.common.entity.hook.EntityCommitted;
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.event.EntityChanged;
+import com.smartup24.cms.platform.api.entity.event.EntityEventType;
+import com.smartup24.cms.platform.api.entity.hook.EntityCommitted;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;

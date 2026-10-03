@@ -117,6 +117,14 @@ override the current ADRs above until accepted):
   lines and workflows, import, reports and search by declaration, and the
   mandatory `EntityContractTestKit`; the design for plan 10/10, items 5.1–5.8
   and 6.2.
+- [ADR-0033 — platform API, its version and the module manifest](adr/ADR-0033-platform-api-and-module-manifest.md)
+  — the entity declaration API and the provider SPI as artifacts of their own
+  (`platform-api`, `provider-spi`) with a SemVer version apart from the
+  application, `@PlatformApi(since, stability)` on every public type, japicmp
+  against the last released API, a deprecation period of one minor version,
+  the module manifest checked before any bean starts, the entity schema checked
+  against `information_schema`, and the test kit published for modules outside
+  the monorepo; plan 10/10, items 6.3 and 6.4.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

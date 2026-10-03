@@ -1,3 +1,6 @@
 # Configuration names (ADR-0027): the refusal to start with published secrets.
 org.springframework.boot.EnvironmentPostProcessor=\
 com.smartup24.cms.instance.config.env.DefaultSecretsGuard
+# Module manifests (ADR-0033, 6.3): why the modules cannot start, as the cause of the failed start.
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+com.smartup24.cms.instance.config.module.ModuleManifestFailureAnalyzer

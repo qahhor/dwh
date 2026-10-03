@@ -5,9 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
-import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.FormCatalogItem;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository.FormTreeItem;
@@ -16,6 +14,8 @@ import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
 import com.smartup24.cms.instance.support.entity.EntityRegistries;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityScope;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +43,8 @@ class MdPermissionEntityNamesTest {
     /** Notes and users: both name their rights by dictionary keys (ADR-0031, ADR-0032, 8). */
     private static EntityRegistry notesAndUsers() {
         return EntityRegistries.declarations(List.of(
-                MsNoteEntity.DEFINITION, MdUserEntity.definition((userId, alias) -> ScopeFilter.unrestricted())));
+                MsNoteEntity.DEFINITION,
+                MdUserEntity.definition((userId, alias) -> EntityScope.Condition.unrestricted())));
     }
 
     @Test

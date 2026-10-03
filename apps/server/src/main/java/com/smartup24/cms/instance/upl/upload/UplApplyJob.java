@@ -1,6 +1,5 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.jobs.api.JobAttempt;
 import com.smartup24.cms.instance.jobs.api.JobFailures;
@@ -17,6 +16,7 @@ import com.smartup24.cms.instance.warehouse.api.RawRow;
 import com.smartup24.cms.instance.warehouse.api.RawWriter;
 import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
 import com.smartup24.cms.instance.warehouse.api.WarehouseLoads;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;

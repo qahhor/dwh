@@ -3,10 +3,10 @@ package com.smartup24.cms.instance.config.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.entity.EntityEnums;
-import com.smartup24.cms.instance.common.entity.event.EntityChanged;
-import com.smartup24.cms.instance.common.entity.event.EntityEventType;
 import com.smartup24.cms.instance.ms.task.service.MsTaskStatusEntity;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.platform.api.entity.event.EntityChanged;
+import com.smartup24.cms.platform.api.entity.event.EntityEventType;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;

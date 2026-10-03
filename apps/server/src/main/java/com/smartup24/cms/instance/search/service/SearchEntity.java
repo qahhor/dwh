@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.search.service;
 
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityModel;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
-import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
+import com.smartup24.cms.platform.api.entity.search.EntitySearchSpec;
 import java.util.List;
 import java.util.Objects;
 

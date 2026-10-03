@@ -69,6 +69,13 @@ describe('ModulesTableComponent', () => {
     expect(rows()[2].textContent).toContain('Отключен');
   });
 
+  it('shows the version of the manifest, and none for a module registered without code (ADR-0033, 6.4)', () => {
+    const { rows } = render({ modules: [{ ...REPORTS, version: null }] });
+
+    expect(rows()[0].textContent).toContain('—');
+    expect(rows()[0].textContent).not.toContain('vnull');
+  });
+
   it('offers the on/off column only to someone who may manage modules', () => {
     const managed = render();
     expect(managed.headers()).toContain('Действие');

@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.warehouse.load;
 
 import com.smartup24.cms.instance.common.actor.ActorError;
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.common.error.ConstraintCode;
 import com.smartup24.cms.instance.common.error.ConstraintErrors;
@@ -10,6 +9,7 @@ import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
 import com.smartup24.cms.instance.warehouse.api.WarehouseLoads;
 import com.smartup24.cms.instance.warehouse.repository.LoadRepository;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;

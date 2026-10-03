@@ -38,8 +38,14 @@ jobs:
       - name: Format and style (Spotless, Checkstyle)
         run: mvn -B -T1C spotless:check checkstyle:check
 
+      # Plan 10/10, item 6.3 (ADR-0033, 4.1): verify runs japicmp on platform-api and provider-spi against the
+      # released API; the next step proves the gate fails an incompatible change without a new major version.
       - name: Build & test
         run: mvn -B -T1C verify
+
+      - name: Platform API compatibility gate bites
+        shell: pwsh
+        run: ./scripts/api/test-platform-api-compat.ps1
 
       - name: Report frozen architecture violations
         if: always()

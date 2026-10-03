@@ -1,0 +1,16 @@
+{
+  "code": "tasks",
+  "name": "Задачи и проекты",
+  "version": "${project.version}",
+  "minPlatform": "${platform-api.version}",
+  "dependencies": [
+    {
+      "code": "iam",
+      "version": "${project.version}"
+    },
+    {
+      "code": "files",
+      "version": "${project.version}"
+    }
+  ]
+}

@@ -2,8 +2,8 @@ package com.smartup24.cms.instance.support.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collection;

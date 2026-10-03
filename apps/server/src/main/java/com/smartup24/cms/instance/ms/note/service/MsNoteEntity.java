@@ -1,21 +1,21 @@
 package com.smartup24.cms.instance.ms.note.service;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.bool;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.markdown;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.searchable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.select;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.bool;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.instant;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.markdown;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.searchable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.select;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 
-import com.smartup24.cms.instance.common.entity.Entity;
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
-import com.smartup24.cms.instance.common.entity.EntityScope;
-import com.smartup24.cms.instance.common.entity.field.FieldDefault;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
-import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityMenu;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.field.FieldDefault;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.platform.api.entity.search.EntitySearchSpec;
 import java.util.List;
 import java.util.Map;
 import org.springframework.context.annotation.Bean;

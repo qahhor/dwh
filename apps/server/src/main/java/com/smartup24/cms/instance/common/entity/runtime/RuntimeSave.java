@@ -1,13 +1,13 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.actor.AuditActor;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.FieldValueRules;
-import com.smartup24.cms.instance.common.entity.FormField;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionCall;
-import com.smartup24.cms.instance.common.entity.hook.EntityOperation;
-import com.smartup24.cms.instance.common.entity.hook.EntityValues;
+import com.smartup24.cms.platform.api.actor.AuditActor;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionCall;
+import com.smartup24.cms.platform.api.entity.hook.EntityOperation;
+import com.smartup24.cms.platform.api.entity.hook.EntityValues;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;

@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import tools.jackson.databind.JsonNode;
 
 /**

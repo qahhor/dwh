@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.units.api;
 
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.units.api.UnitConversion.CoefficientRef;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;

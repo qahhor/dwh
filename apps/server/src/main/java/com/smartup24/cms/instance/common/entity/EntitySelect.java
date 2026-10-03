@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.common.entity;
 
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldSource;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldSource;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;

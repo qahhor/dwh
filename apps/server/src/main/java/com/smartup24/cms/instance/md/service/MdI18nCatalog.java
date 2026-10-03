@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.md.service;
 
+import com.smartup24.cms.instance.common.module.ModuleCatalog;
+import com.smartup24.cms.instance.common.module.ModuleManifest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -8,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.StreamReadFeature;
@@ -23,14 +26,34 @@ public class MdI18nCatalog {
     private final Map<String, Map<String, String>> dictionaries;
     private final Set<String> russianKeys;
 
+    /** The catalogs of the build alone, without the messages of modules outside the monorepo. */
     public MdI18nCatalog(ObjectMapper objectMapper) {
+        this(objectMapper, List.of(), MdI18nCatalog.class.getClassLoader());
+    }
+
+    /**
+     * The catalogs of the build with the messages of every module that brings its own (ADR-0033, 6.5): a module's key
+     * that the platform or another module has already refuses the start.
+     */
+    @Autowired
+    public MdI18nCatalog(ObjectMapper objectMapper, ModuleCatalog modules) {
+        this(objectMapper, modules.manifests(), modules.classLoader());
+    }
+
+    private MdI18nCatalog(ObjectMapper objectMapper, List<ModuleManifest> modules, ClassLoader loader) {
         ObjectMapper strictMapper = objectMapper
                 .rebuild()
                 .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
                 .build();
         Map<String, Map<String, String>> loaded = new LinkedHashMap<>();
         for (String code : BUNDLED_CODES) {
-            loaded.put(code, load(strictMapper, code));
+            Map<String, String> dictionary = new LinkedHashMap<>(load(
+                    strictMapper,
+                    new ClassPathResource("i18n/" + code + ".json", MdI18nCatalog.class.getClassLoader())));
+            for (ModuleManifest module : modules) {
+                addModule(strictMapper, dictionary, module, code, loader);
+            }
+            loaded.put(code, Collections.unmodifiableMap(dictionary));
         }
 
         Map<String, String> russian = loaded.get("ru");
@@ -66,15 +89,33 @@ public class MdI18nCatalog {
         return dictionaries.keySet();
     }
 
-    private Map<String, String> load(ObjectMapper objectMapper, String code) {
-        var resource = new ClassPathResource("i18n/" + code + ".json");
+    private static Map<String, String> load(ObjectMapper objectMapper, ClassPathResource resource) {
         try (InputStream input = resource.getInputStream()) {
             Map<String, String> values =
                     objectMapper.readValue(input, new TypeReference<LinkedHashMap<String, String>>() {});
             return Collections.unmodifiableMap(new LinkedHashMap<>(values));
         } catch (IOException exception) {
-            throw new IllegalStateException("Не удалось загрузить каталог i18n/" + code + ".json", exception);
+            throw new IllegalStateException("The catalog " + resource.getPath() + " is unreadable", exception);
         }
+    }
+
+    /** The module's keys in one language, when it brings that language; a key taken already refuses. */
+    private static void addModule(
+            ObjectMapper mapper,
+            Map<String, String> dictionary,
+            ModuleManifest module,
+            String language,
+            ClassLoader loader) {
+        String folder = module.messages();
+        if (folder == null) return;
+        ClassPathResource resource = new ClassPathResource(folder + "/" + language + ".json", loader);
+        if (!resource.exists()) return;
+        load(mapper, resource).forEach((key, value) -> {
+            if (dictionary.putIfAbsent(key, value) != null) {
+                throw new IllegalStateException(
+                        "Module " + module.code() + " brings the key " + key + " the catalog " + language + " has");
+            }
+        });
     }
 
     private void validate(String code, Map<String, String> dictionary, Set<String> canonicalKeys) {

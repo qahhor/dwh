@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.security;
 
+import com.smartup24.cms.platform.api.entity.EntityScope;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -290,5 +291,15 @@ public record ScopeFilter(
 
     public boolean isUnrestricted() {
         return sql.isEmpty();
+    }
+
+    /** The filter as the row rule of a module's entity scope (ADR-0033, 3.2). */
+    public EntityScope.Condition condition() {
+        return new EntityScope.Condition(sql, bindsUserId, userId);
+    }
+
+    /** The row rule of a module's entity scope as a filter. */
+    public static ScopeFilter of(EntityScope.Condition condition) {
+        return new ScopeFilter(condition.sql(), condition.bindsUserId(), condition.userId());
     }
 }

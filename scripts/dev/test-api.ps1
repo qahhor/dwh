@@ -700,7 +700,6 @@ $modCode = "smoke_module_$(Get-Random -Minimum 100 -Maximum 999)"
 $registerModPayload = @{
     name = "Smoke Test Module"
     description = "Registered by the nightly API smoke"
-    version = "1.0.0"
     icon = "extension"
     route = "/custom/$modCode"
     sortOrder = 900

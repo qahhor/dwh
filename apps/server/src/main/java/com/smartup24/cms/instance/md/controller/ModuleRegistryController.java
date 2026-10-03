@@ -28,7 +28,6 @@ public class ModuleRegistryController {
     public record RegisterModuleRequest(
             String name,
             String description,
-            String version,
             String icon,
             String route,
             int sortOrder,
@@ -88,7 +87,6 @@ public class ModuleRegistryController {
                 code,
                 body.name(),
                 body.description(),
-                body.version(),
                 body.icon(),
                 body.route(),
                 body.sortOrder(),

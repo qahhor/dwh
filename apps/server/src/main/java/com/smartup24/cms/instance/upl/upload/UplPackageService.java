@@ -2,7 +2,6 @@ package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
@@ -13,6 +12,7 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorsView;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

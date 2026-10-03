@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.md.service;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.FormField;
 import com.smartup24.cms.instance.common.entity.FormFieldExtender;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
-import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository.CustomFieldRecord;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
+import com.smartup24.cms.platform.api.entity.field.QueryRef;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;

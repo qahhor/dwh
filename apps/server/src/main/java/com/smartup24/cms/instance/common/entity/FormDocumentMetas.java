@@ -2,10 +2,13 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.instance.common.entity.EntityEnums.Items;
 import com.smartup24.cms.instance.common.entity.FormMetaController.FormFieldMeta;
-import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
-import com.smartup24.cms.instance.common.entity.workflow.EntityState;
-import com.smartup24.cms.instance.common.entity.workflow.EntityTransition;
-import com.smartup24.cms.instance.common.entity.workflow.EntityWorkflow;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.EntityTab;
+import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
+import com.smartup24.cms.platform.api.entity.workflow.EntityState;
+import com.smartup24.cms.platform.api.entity.workflow.EntityTransition;
+import com.smartup24.cms.platform.api.entity.workflow.EntityWorkflow;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;

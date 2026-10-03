@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.support;
 
+import com.smartup24.cms.instance.InstanceApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
 import org.springframework.test.context.ActiveProfiles;
@@ -15,7 +16,8 @@ import org.springframework.test.context.DynamicPropertySource;
  * PostgreSQL, started as a process. The test contract does not change; once Docker is available, switching back
  * takes an edit to one class.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+// The application is named: a module outside the monorepo runs the kit from its own package (ADR-0033, 3.4).
+@SpringBootTest(classes = InstanceApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 // The development secrets of application.yml are refused outside the dev and test profiles (ADR-0027).
 @ActiveProfiles("test")
 @TypeExcludeFilters(TestFixtureExcludeFilter.class)

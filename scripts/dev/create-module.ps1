@@ -173,12 +173,32 @@ cross join md_form_actions fa
 where r.pcode in ('user', 'auditor') and fa.form_code = '$cleanCode' and fa.action = 'view'
 on conflict do nothing;
 
-insert into md_installed_modules (code, name, description, version, icon, route, is_system, status, sort_order) values
-('$cleanCode', '$titleSql', '$descriptionSql', '1.0.0', '$Icon', '/e/${prefixLower}.$cleanCode', false, 'ACTIVE', 100)
+insert into md_installed_modules (code, name, description, icon, route, is_system, status, sort_order) values
+('$cleanCode', '$titleSql', '$descriptionSql', '$Icon', '/e/${prefixLower}.$cleanCode', false, 'ACTIVE', 100)
 on conflict (code) do nothing;
 "@
 
 Write-Host "-> Migrations: $tableMigration, $seedMigration" -ForegroundColor Yellow
+
+# The manifest of the module (ADR-0033, 6.4): the registry shows its version, the start checks its platform and
+# dependencies. The build writes the application's and the API's versions in place of the placeholders.
+$manifestFile = Join-Path $Root "apps\server\src\main\resources\META-INF\smartupcms\modules\${cleanCode}.json"
+$titleJson = Get-JsonText $ModuleTitle
+Write-Utf8 $manifestFile @"
+{
+  "code": "$cleanCode",
+  "name": "$titleJson",
+  "version": "`${project.version}",
+  "minPlatform": "`${platform-api.version}",
+  "dependencies": [
+    {
+      "code": "iam",
+      "version": "`${project.version}"
+    }
+  ]
+}
+"@
+Write-Host "-> Manifest: $manifestFile" -ForegroundColor Yellow
 
 # 2. Java: the declaration and the hooks, the whole server side of an entity on the runtime (ADR-0032, 6; plan 10/10,
 # item 5.4): /api/v1/entities/<code> serves the records; there is no controller, service or repository to write.
@@ -205,18 +225,18 @@ $listCode = "${prefixLower}.${cleanCode}"
 Write-Utf8 (Join-Path $serviceDir "${entityClass}.java") @"
 package ${pkg}.service;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.select;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.instant;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.select;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 
-import com.smartup24.cms.instance.common.entity.Entity;
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
-import com.smartup24.cms.instance.common.entity.EntityScope;
-import com.smartup24.cms.instance.common.entity.field.FieldDefault;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityMenu;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.field.FieldDefault;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import java.util.List;
 import java.util.Map;
 import org.springframework.context.annotation.Bean;
@@ -288,8 +308,8 @@ public class ${entityClass} {
 Write-Utf8 (Join-Path $serviceDir "${hooksClass}.java") @"
 package ${pkg}.service;
 
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
-import com.smartup24.cms.instance.common.entity.hook.EntitySave;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.hook.EntitySave;
 import java.util.Locale;
 import org.springframework.stereotype.Component;
 

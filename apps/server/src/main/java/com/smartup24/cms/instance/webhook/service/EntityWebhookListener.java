@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.webhook.service;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
-import com.smartup24.cms.instance.common.entity.event.EntityChanged;
-import com.smartup24.cms.instance.common.entity.event.EntityEventType;
 import com.smartup24.cms.instance.common.entity.runtime.EntityReads;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.event.EntityChanged;
+import com.smartup24.cms.platform.api.entity.event.EntityEventType;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;

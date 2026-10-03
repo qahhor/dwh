@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.support.entity;
 
+import com.smartup24.cms.platform.api.PlatformApi;
+import com.smartup24.cms.platform.api.Stability;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -13,6 +15,7 @@ import org.springframework.http.HttpMethod;
  * serves it ({@link #runtime}). The checks are the same over both; only the paths and the differences of the two
  * written down here change.
  */
+@PlatformApi(since = "1.0", stability = Stability.EXPERIMENTAL)
 public interface EntityTransport {
 
     /** The collection: {@code GET} lists, {@code POST} creates. */

@@ -1,31 +1,32 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.bool;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.date;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.ref;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.bool;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.date;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.instant;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.ref;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 
-import com.smartup24.cms.instance.common.entity.Entity;
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityScope;
-import com.smartup24.cms.instance.common.entity.event.EntityChanged;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionCall;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
-import com.smartup24.cms.instance.common.entity.hook.EntityCommitted;
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
-import com.smartup24.cms.instance.common.entity.hook.EntitySave;
-import com.smartup24.cms.instance.common.entity.hook.Rules;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.event.EntityChanged;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionCall;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
+import com.smartup24.cms.platform.api.entity.hook.EntityCommitted;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.hook.EntitySave;
+import com.smartup24.cms.platform.api.entity.hook.Rules;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
@@ -94,8 +95,12 @@ class EntityRuntimeFixture {
             .capabilities(EntityCapability.HISTORY)
             .build();
 
+    /** The table exists before the start compares the declaration with it (ADR-0033, 7). */
     @Bean
-    EntityDefinition testRuntimeItems() {
+    EntityDefinition testRuntimeItems(JdbcClient jdbc) {
+        for (String statement : DDL.split(";")) {
+            jdbc.sql(statement).update();
+        }
         return DEFINITION;
     }
 

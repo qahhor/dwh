@@ -44,6 +44,15 @@
         <errorprone.version>2.50.0</errorprone.version>
         <nullaway.version>0.14.2</nullaway.version>
 
+        <!-- The platform's public API (ADR-0033, 4): its own SemVer version, apart from the application's. The
+             platform-api and provider-spi poms state the same value as their version; the baseline is the jar of the
+             last released API version that japicmp compares them with (libs/<artifact>/baseline). -->
+        <platform-api.version>1.0.0</platform-api.version>
+        <platform-api.baseline.version>1.0.0</platform-api.baseline.version>
+        <japicmp.version>0.26.2</japicmp.version>
+        <!-- The embedded PostgreSQL of the tests and of the test kit (ADR-0032, 11.3). -->
+        <embedded-postgres.version>2.2.2</embedded-postgres.version>
+
         <!-- Coverage floors (plan 10/10, item 1.4): each module starts at what it has and the floor only rises,
              towards 80 %. A module sets its own values; 0 here means "not measured yet". -->
         <coverage.line.minimum>0.00</coverage.line.minimum>
@@ -55,8 +64,11 @@
     <modules>
         <module>libs/core-types</module>
         <module>libs/platform-common</module>
+        <module>libs/platform-api</module>
         <module>libs/provider-spi</module>
         <module>apps/server</module>
+        <module>libs/platform-testkit</module>
+        <module>examples/external-module</module>
     </modules>
 
     <dependencyManagement>
@@ -110,8 +122,13 @@
             </dependency>
             <dependency>
                 <groupId>com.smartup24.cms</groupId>
+                <artifactId>platform-api</artifactId>
+                <version>${platform-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.smartup24.cms</groupId>
                 <artifactId>provider-spi</artifactId>
-                <version>${project.version}</version>
+                <version>${platform-api.version}</version>
             </dependency>
 
             <!-- Security: Argon2 Password Hashing -->
@@ -240,9 +257,50 @@
                     <version>${jacoco.version}</version>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.5.0</version>
+                </plugin>
+                <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
+                </plugin>
+                <!-- The compatibility gate of the platform's API (ADR-0033, 4.1): an artifact of the API compares
+                     itself with the jar of the last released API version in its baseline folder. An incompatible
+                     change without a new major version, a compatible one without a new minor version and any change
+                     without a new version fail verify. -->
+                <plugin>
+                    <groupId>com.github.siom79.japicmp</groupId>
+                    <artifactId>japicmp-maven-plugin</artifactId>
+                    <version>${japicmp.version}</version>
+                    <configuration>
+                        <oldVersion>
+                            <file>
+                                <path>${project.basedir}/baseline/${project.artifactId}-${platform-api.baseline.version}.jar</path>
+                            </file>
+                        </oldVersion>
+                        <newVersion>
+                            <file>
+                                <path>${project.build.directory}/${project.artifactId}-${project.version}.jar</path>
+                            </file>
+                        </newVersion>
+                        <parameter>
+                            <onlyModified>true</onlyModified>
+                            <breakBuildBasedOnSemanticVersioning>true</breakBuildBasedOnSemanticVersioning>
+                            <skipXmlReport>true</skipXmlReport>
+                            <skipDiffReport>true</skipDiffReport>
+                        </parameter>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>platform-api-compatibility</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>cmp</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

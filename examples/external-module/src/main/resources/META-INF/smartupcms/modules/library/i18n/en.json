@@ -1,0 +1,15 @@
+{
+  "nav.library_books": "Books",
+  "library.books.rights.form": "Library books",
+  "library.books.rights.view": "View books",
+  "library.books.rights.create": "Add a book",
+  "library.books.rights.update": "Edit a book",
+  "library.books.rights.archive": "Archive books",
+  "library.books.rights.delete": "Delete a book",
+  "library.books.col.title": "Title",
+  "library.books.col.isbn": "ISBN",
+  "library.books.col.pages": "Pages",
+  "library.books.col.lent": "Lent",
+  "library.books.col.modified_at": "Modified",
+  "error.library.book_lent": "The book is lent to a reader and cannot be deleted"
+}

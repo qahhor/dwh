@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.web.Revisioned;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;

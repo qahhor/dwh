@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.common.actor;
 
+import com.smartup24.cms.platform.api.actor.AuditActor;
+
 /**
  * Who performs a change of an audited table, and setting that actor on the database session. The audit trigger
  * {@code fnd_audit_trigger} (V100) requires a numeric {@code app.user_id} on every change of a table it guards (the

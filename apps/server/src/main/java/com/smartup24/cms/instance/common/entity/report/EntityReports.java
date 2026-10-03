@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.common.entity.report;
 
 import com.smartup24.cms.core.error.ErrorCode;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.entity.report.EntityReportViews.SavedReport;
@@ -13,6 +12,7 @@ import com.smartup24.cms.instance.common.query.QueryAggregateRepository;
 import com.smartup24.cms.instance.common.query.QueryAggregateResult;
 import com.smartup24.cms.instance.common.query.QueryAggregates;
 import com.smartup24.cms.instance.common.query.QueryList;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;

@@ -2,7 +2,6 @@ package com.smartup24.cms.instance.warehouse.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.jobs.config.JobProperties;
 import com.smartup24.cms.instance.jobs.runner.JobRunner;
@@ -13,6 +12,7 @@ import com.smartup24.cms.instance.warehouse.WarehousePref;
 import com.smartup24.cms.instance.warehouse.api.RawRow;
 import com.smartup24.cms.instance.warehouse.api.RawWriter;
 import com.smartup24.cms.instance.warehouse.load.WarehouseLoadService;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;

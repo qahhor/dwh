@@ -1,10 +1,10 @@
 package com.smartup24.cms.instance.md.service;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityRights;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.FormCatalogItem;
 import com.smartup24.cms.instance.md.pref.MdFormCatalog;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityRights;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;

@@ -1,0 +1,12 @@
+{
+  "code": "upl",
+  "name": "Источники и форматы",
+  "version": "${project.version}",
+  "minPlatform": "${platform-api.version}",
+  "dependencies": [
+    {
+      "code": "iam",
+      "version": "${project.version}"
+    }
+  ]
+}

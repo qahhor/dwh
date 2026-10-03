@@ -2,19 +2,20 @@ package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityAuditRow;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFiles;
-import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
-import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
-import com.smartup24.cms.instance.common.entity.field.FieldSource;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
-import com.smartup24.cms.instance.common.entity.hook.EntityArchive;
-import com.smartup24.cms.instance.common.entity.hook.EntityDelete;
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
 import com.smartup24.cms.instance.common.entity.store.EntityStoreRepository;
 import com.smartup24.cms.instance.common.entity.store.EntityWrite;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
+import com.smartup24.cms.platform.api.entity.field.FieldSource;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
+import com.smartup24.cms.platform.api.entity.hook.EntityArchive;
+import com.smartup24.cms.platform.api.entity.hook.EntityDelete;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.hook.EntityRefusal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,25 +56,37 @@ public class EntityChanges {
 
     /** {@code beforeSave} of the entity's hooks; the problems it adds answer one 422 (ADR-0032, 6.5). */
     void beforeSave(RuntimeSave save) {
-        hooks(save.entity()).ifPresent(hook -> hook.beforeSave(save));
+        hooks(save.entity()).ifPresent(hook -> refusing(() -> hook.beforeSave(save)));
         refuseRejected(save);
     }
 
     void afterSave(RuntimeSave save) {
-        hooks(save.entity()).ifPresent(hook -> hook.afterSave(save));
+        hooks(save.entity()).ifPresent(hook -> refusing(() -> hook.afterSave(save)));
         refuseRejected(save);
     }
 
     void beforeDelete(EntityDelete delete) {
-        hooks(delete.entity()).ifPresent(hook -> hook.beforeDelete(delete));
+        hooks(delete.entity()).ifPresent(hook -> refusing(() -> hook.beforeDelete(delete)));
     }
 
     void afterDelete(EntityDelete delete) {
-        hooks(delete.entity()).ifPresent(hook -> hook.afterDelete(delete));
+        hooks(delete.entity()).ifPresent(hook -> refusing(() -> hook.afterDelete(delete)));
     }
 
     void beforeArchive(EntityArchive archive) {
-        hooks(archive.entity()).ifPresent(hook -> hook.beforeArchive(archive));
+        hooks(archive.entity()).ifPresent(hook -> refusing(() -> hook.beforeArchive(archive)));
+    }
+
+    /**
+     * Runs a hook or an action's handler: the refusal of a module outside the monorepo (ADR-0033, 3.2) answers as the
+     * error of the request, like an {@code ApiException} of a built-in module.
+     */
+    static void refusing(Runnable hook) {
+        try {
+            hook.run();
+        } catch (EntityRefusal refusal) {
+            throw ApiException.refused(refusal);
+        }
     }
 
     /** The problems a hook or an action's handler added: one 422, which rolls the save back. */

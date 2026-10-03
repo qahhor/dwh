@@ -40,7 +40,7 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 |---|---|
 | Backend | Java 25, Spring Boot 4.1, модульный монолит `apps/server`, пакет `com.smartup24.cms` |
 | Web | Angular 22 SPA `apps/web`, UI kit `shared/ui-kit`, компоненты сущности `shared/entity` |
-| Общие библиотеки | `libs/core-types`, `libs/platform-common`, `libs/provider-spi` |
+| Общие библиотеки | `libs/core-types`, `libs/platform-common`; публичный API — `libs/platform-api` и `libs/provider-spi` (ADR-0033), тест-кит — `libs/platform-testkit` |
 | Данные | PostgreSQL 18, неизменяемые Flyway-миграции (`V###`, манифест контрольных сумм), вторая база для загруженных данных |
 | Поиск | Typesense 27.1 — производный индекс, не источник авторизации |
 | Файлы | `local_disk` или S3-совместимое хранилище через SPI |

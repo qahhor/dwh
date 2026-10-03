@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.search.typesense;
 
-import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.search.repository.SearchDocumentSql;
 import com.smartup24.cms.instance.search.service.SearchEntity;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

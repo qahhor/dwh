@@ -2,20 +2,20 @@ package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityAction;
-import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.entity.FieldValueRules;
-import com.smartup24.cms.instance.common.entity.FormField;
-import com.smartup24.cms.instance.common.entity.collection.EntityCollection;
-import com.smartup24.cms.instance.common.entity.hook.EntityRule;
-import com.smartup24.cms.instance.common.entity.hook.EntityValues;
-import com.smartup24.cms.instance.common.entity.hook.RuleErrors;
-import com.smartup24.cms.instance.common.entity.workflow.EntityTransition;
-import com.smartup24.cms.instance.common.entity.workflow.EntityWorkflow;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityAction;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
+import com.smartup24.cms.platform.api.entity.hook.EntityRule;
+import com.smartup24.cms.platform.api.entity.hook.EntityValues;
+import com.smartup24.cms.platform.api.entity.hook.RuleErrors;
+import com.smartup24.cms.platform.api.entity.workflow.EntityTransition;
+import com.smartup24.cms.platform.api.entity.workflow.EntityWorkflow;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -112,7 +112,7 @@ public final class EntityProcess {
         for (EntityRule rule : transition.rules()) {
             rule.check(record, before, errors);
         }
-        return errors.items();
+        return EntitySaveChecks.problems(errors);
     }
 
     /** The collections of the entity, in declaration order; none without a table. */

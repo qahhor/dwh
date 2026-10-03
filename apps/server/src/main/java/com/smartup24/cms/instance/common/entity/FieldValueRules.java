@@ -1,8 +1,9 @@
 package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.entity.field.FieldOptions.JsonRoot;
-import com.smartup24.cms.instance.common.entity.field.FieldParams;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.FieldOptions.JsonRoot;
+import com.smartup24.cms.platform.api.entity.field.FieldParams;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;

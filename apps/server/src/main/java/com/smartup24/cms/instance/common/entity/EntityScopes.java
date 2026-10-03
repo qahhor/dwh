@@ -5,6 +5,10 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.DataScopes;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.EntityScope;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -64,7 +68,7 @@ public class EntityScopes {
             case EntityScope.OrgUnit unit ->
                 dataScopes.filterFor(userId, alias + "." + unit.orgUnitColumn(), alias + "." + unit.ownerColumn());
             case EntityScope.All _ -> ScopeFilter.unrestricted();
-            case EntityScope.Custom custom -> custom.provider().filter(userId, alias);
+            case EntityScope.Custom custom -> ScopeFilter.of(custom.provider().filter(userId, alias));
         };
     }
 

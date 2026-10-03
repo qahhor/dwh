@@ -2,13 +2,13 @@ package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityRecordStore;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
-import com.smartup24.cms.instance.common.entity.workflow.EntityTransition;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.web.Revisions;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
+import com.smartup24.cms.platform.api.entity.workflow.EntityTransition;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
