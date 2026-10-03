@@ -54,6 +54,34 @@ class PhaseZeroDatabaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("V199: a monthly audit partition and its archive are not readable by PUBLIC")
+    void auditPartitionsAreNotPublic() {
+        jdbc.sql("select audit_log_create_partition(2021, 3)")
+                .query(String.class)
+                .single();
+        assertThat(publicPrivileges("audit_log_2021_03")).as("attached").isZero();
+
+        String archived = jdbc.sql("select audit_log_detach_partition(2021, 3)")
+                .query(String.class)
+                .single();
+
+        assertThat(archived).isEqualTo("audit_log_archived_2021_03");
+        assertThat(publicPrivileges(archived)).as("archived").isZero();
+        Long open = jdbc.sql("""
+                select count(*) from information_schema.table_privileges
+                where grantee = 'PUBLIC' and table_name ~ '^audit_log_(archived_)?[0-9]{4}_[0-9]{2}'
+                """).query(Long.class).single();
+        assertThat(open).as("no audit partition is open to PUBLIC").isZero();
+    }
+
+    private static long publicPrivileges(String table) {
+        return jdbc.sql("""
+                        select count(*) from information_schema.table_privileges
+                        where grantee = 'PUBLIC' and table_name = :table
+                        """).param("table", table).query(Long.class).single();
+    }
+
+    @Test
     @DisplayName("0.3: the current and the previous month of audit_log cannot be detached")
     void recentAuditMonthsCannotBeDetached() {
         YearMonth now = YearMonth.now(ZoneOffset.UTC);
