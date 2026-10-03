@@ -1653,7 +1653,6 @@
   "iam.data_scope.change_warning": "Change the rule from \"{previous}\" to \"{next}\"? The change will affect users with this role.",
   "iam.data_scope.discard_title": "Unsaved Data Region Rule",
   "iam.data_scope.discard_warning": "Discard unsaved data scope rule change?",
-  "error.audit.history_source_not_found": "No history for records of kind \"{key}\"",
   "error.auth.account_blocked": "The account is blocked",
   "error.auth.account_temporarily_locked": "The account is temporarily locked after repeated wrong passwords",
   "error.auth.attempts_exceeded": "Too many attempts",

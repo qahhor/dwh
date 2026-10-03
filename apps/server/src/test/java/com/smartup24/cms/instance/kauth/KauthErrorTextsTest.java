@@ -77,10 +77,8 @@ class KauthErrorTextsTest {
     }
 
     @Test
-    @DisplayName("Audit and webhook texts read as before in Russian")
-    void auditAndWebhookTextsAreUnchanged() {
-        assertThat(russian("error.audit.history_source_not_found", Map.of("key", "md_user")))
-                .isEqualTo("Нет истории для записей вида «md_user»");
+    @DisplayName("Webhook texts read as before in Russian")
+    void webhookTextsAreUnchanged() {
         assertThat(russian("error.webhook.url_scheme", Map.of()))
                 .isEqualTo("URL вебхука должен начинаться с http:// или https://");
     }

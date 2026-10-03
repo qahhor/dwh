@@ -1655,7 +1655,6 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "iam.data_scope.change_warning": "Изменить правило с «{previous}» на «{next}»? Изменение повлияет на пользователей с этой ролью.",
   "iam.data_scope.discard_title": "Несохранённое правило области данных",
   "iam.data_scope.discard_warning": "Отбросить несохранённое изменение правила области данных?",
-  "error.audit.history_source_not_found": "Нет истории для записей вида «{key}»",
   "error.auth.account_blocked": "Учётная запись заблокирована",
   "error.auth.account_temporarily_locked": "Учётная запись временно заблокирована из-за частых ошибок ввода пароля",
   "error.auth.attempts_exceeded": "Превышено количество попыток",
