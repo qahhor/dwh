@@ -263,12 +263,17 @@ public class ReportExportService {
         return removed;
     }
 
-    private void write(ExportRow row) {
-        StoredRequest request = readRequest(row.request());
-        QueryList list = registry.find(row.listCode())
+    /** The list of a queued export, read again with the requester's rights at the moment the job runs. */
+    private QueryList stillOpen(String listCode) {
+        return registry.find(listCode)
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))
                 .filter(found -> gate.listOpen(found.code()))
-                .orElseThrow(() -> ApiException.permissionDenied(row.listCode(), "view"));
+                .orElseThrow(() -> ApiException.permissionDenied(listCode, "view"));
+    }
+
+    private void write(ExportRow row) {
+        StoredRequest request = readRequest(row.request());
+        QueryList list = stillOpen(row.listCode());
         QueryListExporter exporter = Optional.ofNullable(exporters.get(list.code()))
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_list_unknown"));
         List<QueryField> fields = columns(list, request.columns());
