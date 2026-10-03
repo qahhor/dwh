@@ -108,7 +108,7 @@ class EntitySchemaDiffTest extends EmbeddedPostgresTest {
                 .contains("create index probe_orders_owner_id_idx on probe_orders (owner_id);")
                 .contains("alter table probe_owners add column since date;")
                 .doesNotContain("add column name");
-        assertThat(schema.problems(List.of(owners))).contains("probe.owners: probe_owners.since is missing (field since"
-                + " (date))");
+        assertThat(schema.problems(List.of(owners)))
+                .contains("probe.owners: probe_owners.since is missing (field since (date))");
     }
 }
