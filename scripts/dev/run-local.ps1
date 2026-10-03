@@ -55,16 +55,15 @@ $env:TYPESENSE_PORT = $TypesensePort; $env:PROJECT_NAME = $Project
 
 # The JDK on Windows opens its selector over a Unix domain socket in TEMP, whose path must stay under 108 characters
 # together with the socket's own name: a long TEMP fails the server with "Unable to establish loopback connection".
-# The processes get the first short candidate: .local\tmp of a checkout near the drive root, else %LOCALAPPDATA%\smc-tmp.
+# The processes get the first short candidate: .local\tmp of the checkout, else %LOCALAPPDATA%\smc-tmp.
 function Set-ShortTemp {
     if (-not $IsWin) { return }
-    $limit = 48
-    if ($env:TEMP -and $env:TEMP.Length -le $limit) { return }
+    $limit = 72
     $candidates = @((Join-Path $State 'tmp'))
     if ($env:LOCALAPPDATA) { $candidates += (Join-Path $env:LOCALAPPDATA 'smc-tmp') }
     $short = $candidates | Where-Object { $_.Length -le $limit } | Select-Object -First 1
     if (-not $short) {
-        Write-Warning "TEMP is longer than $limit characters; if the server fails with 'Unable to establish loopback connection', set TEMP to a short directory."
+        Write-Warning "The checkout path is long; if the server fails with 'Unable to establish loopback connection', set TEMP to a short directory."
         return
     }
     New-Item -ItemType Directory -Force $short | Out-Null
