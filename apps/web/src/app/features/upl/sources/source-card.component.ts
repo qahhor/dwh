@@ -19,7 +19,7 @@ import {
   UplStrictness,
   UplVersionItem,
   UplVersionStatus,
-} from '../upl-api';
+} from '../upl.api';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';

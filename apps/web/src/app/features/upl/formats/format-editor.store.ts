@@ -6,7 +6,7 @@ import { ProblemDetail } from '@core/models/common.models';
 import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
-import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource, UplUnit, UplVersionItem } from '../upl-api';
+import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource, UplUnit, UplVersionItem } from '../upl.api';
 import { UPL_ERROR, UPL_VERSION_STATUS_KEY, uplErrorKey, uplProblemText } from '../upl-labels';
 import { UplFieldError, localFormatErrors, parseUplProblem } from './upl-format-errors';
 import { UplFormatStep, buildDraftRequest, emptyModel, uplErrorStep } from './upl-format-model';

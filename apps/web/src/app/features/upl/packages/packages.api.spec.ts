@@ -3,8 +3,8 @@ import { Observable, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { KeysetPage } from '@core/models/common.models';
 import { ApiService } from '@core/services/api.service';
-import { UplApiService, UplSourceItem } from '../upl-api';
-import { UplPackageErrors, UplPackageItem, UplPackagesApiService } from './packages-api';
+import { UplApiService, UplSourceItem } from '../upl.api';
+import { UplPackageErrors, UplPackageItem, UplPackagesApiService } from './packages.api';
 
 function sourcePage(items: UplSourceItem[], hasMore: boolean, nextCursor: string | null): KeysetPage<UplSourceItem> {
   return { items, nextCursor, hasMore, totalReturned: items.length };

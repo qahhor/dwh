@@ -10,7 +10,7 @@ import {
   UplPackageItem,
   UplPackageStatus,
   UplPackagesApiService,
-} from './packages-api';
+} from './packages.api';
 import { PackageCardComponent } from './package-card.component';
 
 function item(patch: Partial<UplPackageItem> = {}): UplPackageItem {

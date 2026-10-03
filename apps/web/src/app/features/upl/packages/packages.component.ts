@@ -33,9 +33,9 @@ import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.type
 import { QueryListMeta } from '@core/models/query-meta.models';
 import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
 import { UPL_PERIODICITY_KEY } from '../upl-labels';
-import { UplSource, UplSourceItem } from '../upl-api';
+import { UplSource, UplSourceItem } from '../upl.api';
 import { PackageCardComponent } from './package-card.component';
-import { UplPackageItem, UplPackagesApiService } from './packages-api';
+import { UplPackageItem, UplPackagesApiService } from './packages.api';
 import { UplPackageFormErrors, UplTranslate, mapUplUploadProblem } from './packages-errors';
 import {
   UPL_PACKAGE_STATUS_KEY,

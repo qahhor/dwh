@@ -32,7 +32,7 @@ import {
   UplOverviewApi,
   UplOverviewPeriod,
   UplSourceFreshness,
-} from './overview-api';
+} from './overview.api';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 

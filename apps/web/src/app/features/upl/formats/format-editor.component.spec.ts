@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
-import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource } from '../upl-api';
+import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource } from '../upl.api';
 import { FormatEditorComponent } from './format-editor.component';
 import { emptyColumn } from './upl-format-model';
 import { inScreen } from '@testing/in-screen';

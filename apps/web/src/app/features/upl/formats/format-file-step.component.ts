@@ -8,7 +8,7 @@ import {
   UplFileKind,
   UplFormatDraftRequest,
   UplMatchBy,
-} from '../upl-api';
+} from '../upl.api';
 import { UPL_ENCODING_KEY, UPL_FILE_KIND_KEY, UPL_MATCH_BY_KEY } from '../upl-labels';
 import { isFilled } from './upl-format-model';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';

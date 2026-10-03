@@ -22,7 +22,7 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { UPL_ERROR, uplProblemText } from '../upl-labels';
-import { UplPackageErrorItem, UplPackageErrors, UplPackageItem, UplPackagesApiService } from './packages-api';
+import { UplPackageErrorItem, UplPackageErrors, UplPackageItem, UplPackagesApiService } from './packages.api';
 import { UplTranslate, uplPackageCodeText } from './packages-errors';
 import {
   UPL_PACKAGE_STATUS_KEY,

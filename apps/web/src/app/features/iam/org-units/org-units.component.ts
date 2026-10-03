@@ -20,7 +20,7 @@ import { SaveErrorNotifier, isRevisionConflict } from '@shared/ui/save-errors';
 import { ProblemDetail } from '@core/models/common.models';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
-import { OrgUnitsApiService } from './org-units-api.service';
+import { OrgUnitsApiService } from './org-units.api';
 import { OrgUnitTreeRows, orgUnitKindKeys, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
 import { SMTTreeTableComponent } from '@shared/ui-kit/components/tree-table/tree-table.component';
 import { TreeRow } from '@shared/ui-kit/components/tree-table/tree.utils';

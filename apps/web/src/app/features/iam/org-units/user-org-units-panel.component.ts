@@ -35,7 +35,7 @@ import {
   scopeRuleKey,
   unsafeIdProblem,
 } from './org-unit-assignments';
-import { OrgUnitsApiService } from './org-units-api.service';
+import { OrgUnitsApiService } from './org-units.api';
 import { OrgUnit, UserScope } from './org-units.models';
 
 @Component({

@@ -8,10 +8,10 @@ import { QueryListMeta } from '@core/models/query-meta.models';
 import { PermissionService } from '@core/services/permission.service';
 import { QueryMetaService } from '@core/services/query-meta.service';
 import { ToastService } from '@core/services/toast.service';
-import { UplSource, UplSourceItem } from '@features/upl/upl-api';
+import { UplSource, UplSourceItem } from '@features/upl/upl.api';
 import { PackageCardComponent } from '@features/upl/packages/package-card.component';
 import { PackagesComponent } from '@features/upl/packages/packages.component';
-import { UplPackageItem, UplPackageUpload, UplPackagesApiService } from '@features/upl/packages/packages-api';
+import { UplPackageItem, UplPackageUpload, UplPackagesApiService } from '@features/upl/packages/packages.api';
 import { metaField, registryProviders } from '@testing/registry-meta';
 
 /** An upload as the list answers it; tests override only what they check. */

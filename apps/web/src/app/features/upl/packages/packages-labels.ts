@@ -1,4 +1,4 @@
-import { UplPackageItem, UplPackageStatus } from './packages-api';
+import { UplPackageItem, UplPackageStatus } from './packages.api';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
 /** Load status to dictionary key: the labels live in `ru.json`, not in code. */

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { UplOverview, UplOverviewApi } from './overview-api';
+import { UplOverview, UplOverviewApi } from './overview.api';
 import { UplOverviewComponent } from './upl-overview.component';
 
 const overview = (days: number, uploads = 12): UplOverview => ({

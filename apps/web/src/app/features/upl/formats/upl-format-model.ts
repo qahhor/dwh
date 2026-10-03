@@ -1,4 +1,4 @@
-import { UplColumn, UplFileKind, UplFormatDraftRequest, UplSheet } from '../upl-api';
+import { UplColumn, UplFileKind, UplFormatDraftRequest, UplSheet } from '../upl.api';
 import { UplFieldError } from './upl-format-errors';
 
 /** The steps of the file format. */
