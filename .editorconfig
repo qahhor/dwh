@@ -1,0 +1,25 @@
+# Editor settings that match the formatters (plan 10/10, item 6.5): Java follows Spotless with palantir-java-format
+# (4 spaces, 120 columns), the web sources follow Prettier (apps/web/.prettierrc: 2 spaces, 120 columns). Line endings
+# are left to Git (.gitattributes) and Prettier's "auto", except the shell scripts, which must stay LF.
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 120
+
+[*.{ts,js,mjs,cjs,json,html,css,scss,yml,yaml}]
+indent_size = 2
+
+[*.sh]
+end_of_line = lf
+
+[{Makefile,*.mk}]
+indent_style = tab
+
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off

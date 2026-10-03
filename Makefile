@@ -1,40 +1,83 @@
 # ==============================================================================
-# SmartupCMS Makefile (Automation Commands)
+# SmartupCMS developer commands (GNU make on Linux, macOS, WSL and the dev container)
 # ==============================================================================
+# The targets call the Maven wrapper (./mvnw), npm and scripts/dev/run-local.sh; nothing else needs installing besides
+# JDK 25, Node.js of .node-version and Docker with Compose v2. On Windows without make, the same steps are
+# scripts\dev\run-local.ps1 (up, migrate, down, status) and the commands of docs/onboarding.md.
 
-.PHONY: help install build test test-m1 clean docker-up docker-down run-server
+MVNW := ./mvnw -B
+RUN_LOCAL := scripts/dev/run-local.sh
+E2E_COMPOSE := docker compose -f docker-compose.yml -f scripts/dev/e2e-mail.compose.yml
+
+.DEFAULT_GOAL := help
+.PHONY: help install dev start demo stop status infra migrate build test verify e2e clean reset
 
 help:
-	@echo "SmartupCMS Commands:"
-	@echo "  make build          - Compile all Java modules and Angular apps"
-	@echo "  make test           - Run the full PostgreSQL-backed test suite"
-	@echo "  make test-m1        - Run M1 Instance & Bootstrap tests"
-	@echo "  make docker-up      - Start Docker infrastructure (PostgreSQL 18)"
-	@echo "  make docker-down    - Stop Docker infrastructure"
-	@echo "  make migrate        - Run Flyway schema migrations on instance"
-	@echo "  make run-server     - Start SmartupCMS backend (:8080)"
+	@echo "SmartupCMS commands:"
+	@echo "  make dev       infrastructure in Compose, server with DevTools, ng serve; Ctrl+C stops"
+	@echo "  make start     the same from the built jar, in the background (make stop ends it)"
+	@echo "  make demo      start with the demo profile: users, projects, tasks, notes, orders"
+	@echo "  make stop      stop the server, the web dev server and the infrastructure"
+	@echo "  make status    what runs"
+	@echo "  make infra     only PostgreSQL (both databases) and Mailpit"
+	@echo "  make migrate   migrate both databases: the main one and pg-dwh"
+	@echo "  make install   install the web dependencies (npm ci)"
+	@echo "  make build     server jar and web bundle"
+	@echo "  make test      server and web unit tests"
+	@echo "  make verify    the server and web checks of CI (format, lint, audits, tests, build)"
+	@echo "  make e2e       browser E2E suite on a fresh Compose stack with the mail stub"
+	@echo "  make clean     build output of the server and the web application"
+	@echo "  make reset     stop everything and delete the local databases and .local/"
+
+install:
+	cd apps/web && npm ci
+
+dev:
+	$(RUN_LOCAL) up --devtools
+
+start:
+	$(RUN_LOCAL) up --detach
+
+demo:
+	$(RUN_LOCAL) up --detach --demo
+
+stop:
+	$(RUN_LOCAL) down
+
+status:
+	$(RUN_LOCAL) status
+
+infra:
+	$(RUN_LOCAL) infra
+
+migrate:
+	$(RUN_LOCAL) migrate
 
 build:
-	mvn clean package -DskipTests
+	$(MVNW) -DskipTests package
 	cd apps/web && npm run build
 
 test:
-	mvn test
+	$(MVNW) test
+	cd apps/web && npm test
 
-test-m1:
-	mvn test -Dtest=MigrationGateAndBootstrapTest,FlywayMigrationScriptIntegrityTest -Dsurefire.failIfNoSpecifiedTests=false
+verify:
+	$(MVNW) clean spotless:check verify
+	cd apps/web && npm run -s typecheck && npm run -s lint && npm run -s i18n:audit && npm run -s aria:audit \
+		&& npm run -s contrast:audit && npm run -s signals:audit && npm run -s api:audit && npm run -s comments:audit \
+		&& npm test && npm run -s build
+
+# The suite needs the first administrator's password in ADMIN_PASSWORD (e2e/README.md); the stack is the quick
+# start's one with the mail stub.
+e2e:
+	$(E2E_COMPOSE) build
+	$(E2E_COMPOSE) run --rm migrate
+	$(E2E_COMPOSE) up -d --wait
+	cd e2e && npm ci && npx playwright install chromium && npm test
 
 clean:
-	mvn clean
+	$(MVNW) clean
+	rm -rf apps/web/dist apps/web/.angular
 
-docker-up:
-	docker compose up -d postgres
-
-docker-down:
-	docker compose down
-
-migrate:
-	mvn -pl apps/server -Dspring.profiles.active=migrate spring-boot:run
-
-run-server:
-	mvn -pl apps/server spring-boot:run
+reset:
+	$(RUN_LOCAL) down --volumes

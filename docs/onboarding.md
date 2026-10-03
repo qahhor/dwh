@@ -83,12 +83,70 @@ the client view is [how the API behaves](api/README.md). The developer CLI
 `cms` (`tools/cms-cli`, `node tools/cms-cli/bin/cms.mjs entity new ...`) produces code that
 already passes them.
 
-## 4. Verify the workspace
+## 4. Run the product from the sources
 
-From the repository root:
+Prerequisites: JDK 25 (on `PATH` or in `JAVA_HOME`), Node.js from
+`.node-version` with npm, Docker with Compose v2. The Maven wrapper replaces a
+Maven installation. The dev container (`.devcontainer/devcontainer.json`)
+provides all three.
+
+| Step | Linux, macOS, WSL, dev container | Windows (PowerShell) |
+|---|---|---|
+| Start everything, wait, print the address | `scripts/dev/run-local.sh` or `make dev` | `scripts\dev\run-local.ps1` |
+| Same, prompt back at once | `scripts/dev/run-local.sh up --detach` (`make start`) | `scripts\dev\run-local.ps1 up -Detach` |
+| With demo data | `--demo` (`make demo`) | `-Demo` |
+| Only migrate both databases | `scripts/dev/run-local.sh migrate` (`make migrate`) | `scripts\dev\run-local.ps1 migrate` |
+| Stop (data kept) | `scripts/dev/run-local.sh down` (`make stop`) | `scripts\dev\run-local.ps1 down` |
+| Stop and delete the data | `down --volumes` (`make reset`) | `down -Volumes` |
+
+On Windows run the script with `powershell -ExecutionPolicy Bypass -File …`
+when the execution policy blocks local scripts.
+
+What `up` does:
+
+1. PostgreSQL 18 with both databases (the main one and pg-dwh) and the mail
+   stub Mailpit start in Docker Compose (project `smartupcms-local`);
+   `--search` also starts Typesense.
+2. The server is built with `./mvnw` (tests skipped); `npm ci` runs meanwhile
+   when `apps/web/node_modules` is missing.
+3. Migrations: pg-dwh first, then the main database, as the migrator role,
+   the same steps as the `migrate` service of `docker-compose.yml`.
+4. The server starts with the `dev` profile (`dev,demo` with `--demo`;
+   `mvn spring-boot:run -Pdevtools` with `--devtools`, which `make dev` uses),
+   mail goes to Mailpit.
+5. `ng serve` starts with the API proxied to the server.
+
+Then open <http://localhost:4200> and sign in as `admin`; the password is
+generated once into `.local/admin-password` and never printed; the first
+sign-in asks for a new one. New users receive their invitation in Mailpit at
+<http://localhost:8025>. Logs are in `.local/` (`server.log`, `web.log`,
+`migrate.log`).
+
+Ports come from the environment, so a second stand does not collide with the
+first: `DB_PORT` (5432), `SERVER_PORT` (8080), `MANAGEMENT_PORT` (9090),
+`WEB_PORT` (4200), `WEB_HOST` (localhost), `MAILPIT_HTTP_PORT` (8025),
+`MAILPIT_SMTP_PORT` (1025), `TYPESENSE_PORT` (8108), and the Compose project
+`SMC_LOCAL_PROJECT`.
+
+The demo profile adds three fictional users (`demo.anna`, `demo.bobur`,
+`demo.dilnoza`), two projects with six tasks, three notes and two orders,
+switching the orders module on. Records go through the entity runtime as the
+administrator and are looked up by their demo key first, so a restart adds
+nothing. The profile is off by default and is never part of a deployment.
+
+The nightly job `onboarding` runs `scripts/dev/test-onboarding-smoke.ps1`: it
+clones the repository, runs these three commands (`git clone`, `cd`,
+`run-local.sh up --detach --demo`) and fails when the UI, the API through the
+UI origin, readiness, the administrator's sign-in or the demo data are not
+there within 10 minutes. The same script runs on Windows on ports of its own
+and tears its stand down.
+
+## 5. Verify the workspace
+
+From the repository root (or `make verify`):
 
 ```bash
-mvn -B verify
+./mvnw -B verify
 ```
 
 ```bash
@@ -105,7 +163,7 @@ Before changing deployment behavior, read the
 [deployment guide](ops/deployment-guide.md) and
 [rollback procedure](ops/rollback.md).
 
-## 5. First contribution checklist
+## 6. First contribution checklist
 
 - Read [CONTRIBUTING](../CONTRIBUTING.md) and sign every commit with `-s`.
 - Confirm the issue states the user problem, acceptance criterion, and non-goals.

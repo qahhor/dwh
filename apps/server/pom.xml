@@ -308,5 +308,20 @@
                 <test.excludedGroups></test.excludedGroups>
             </properties>
         </profile>
+        <!--
+          Plan 10/10, item 6.5: `make dev` starts the server from the sources with Spring Boot DevTools, which restarts the
+          context when a class is recompiled. Never active by default: the jar, the image and the tests stay without it.
+          mvn -pl apps/server -Pdevtools spring-boot:run
+        -->
+        <profile>
+            <id>devtools</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-devtools</artifactId>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
+        </profile>
     </profiles>
 </project>

@@ -105,10 +105,17 @@ The full list with commands is in `docs/ai-context.md` §6. In short:
 
 ## 6. Environment notes (Windows workstation)
 
-- Local tooling, when present, lives in the ignored `.tools/` folder (JDK,
-  Maven wrapper script, e2e helper scripts). `.tools/mvn.ps1` changes directory
-  to the main checkout: in a git worktree run `mvnw.cmd` from the worktree with
-  the same `JAVA_HOME`/`TEMP`.
+- Run the product from the sources with the portable
+  `scripts/dev/run-local.ps1` (Windows) or `scripts/dev/run-local.sh`
+  (Linux/macOS, `make dev`): Compose infrastructure, Maven wrapper build,
+  migrations of both databases, server and `ng serve`; ports come from the
+  environment (`DB_PORT`, `SERVER_PORT`, `MANAGEMENT_PORT`, `WEB_PORT`,
+  `MAILPIT_HTTP_PORT`, `MAILPIT_SMTP_PORT`, `SMC_LOCAL_PROJECT`), so a parallel
+  stand takes its own. The admin password and logs stay in the ignored `.local/`.
+- Machine-local extras, when present, live in the ignored `.tools/` folder (a
+  JDK, a short `TEMP`); they are optional. Point `JAVA_HOME` at a JDK 25 before
+  running the scripts. In a git worktree run `mvnw.cmd` from the worktree, never
+  a helper that changes directory to the main checkout.
 - A worktree needs `apps/web/node_modules` (and `e2e/node_modules`) as a
   junction to the main checkout; remove a junction with `cmd /c rmdir`, never
   by deleting through it.

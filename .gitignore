@@ -70,3 +70,6 @@ graphify-out/
 
 # --- Local design scratch ---
 .superdesign/
+
+# --- Local run from the sources: generated admin password, logs, storage (scripts/dev/run-local.*) ---
+/.local/

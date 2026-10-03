@@ -108,7 +108,30 @@ Database migrations are a separate, fail-closed step. See the
 
 ## Quick start
 
-Prerequisites: Docker Engine 26+ with Docker Compose v2.
+Prerequisites: JDK 25, Node.js from [`.node-version`](.node-version) with npm,
+Docker with Docker Compose v2. Maven is not needed (the wrapper `./mvnw` is
+used). Three commands from a clone to a working UI:
+
+```bash
+git clone <repository-url> smartupcms
+cd smartupcms
+scripts/dev/run-local.sh            # Windows: powershell -ExecutionPolicy Bypass -File scripts\dev\run-local.ps1
+```
+
+The script starts PostgreSQL (the main database and pg-dwh) and the mail stub
+Mailpit in Docker Compose, builds the server, migrates both databases, starts
+the server and `ng serve`, and prints the address. Open
+<http://localhost:4200> and sign in as `admin` with the password the script
+generated into `.local/admin-password` (ignored by git); the first sign-in asks
+for a new one. Add `--demo` (`-Demo`) for demo users, projects, tasks, notes and
+orders, `--detach` (`-Detach`) to get the prompt back, and stop everything with
+`scripts/dev/run-local.sh down`. With GNU make: `make dev` (DevTools restarts
+the server on recompile), `make demo`, `make stop`, `make help`. The dev
+container in `.devcontainer/` brings the same tools.
+
+### Run the containers
+
+The images as they are deployed, with Docker Engine 26+ and Compose v2 only:
 
 ```bash
 cp .env.example .env
