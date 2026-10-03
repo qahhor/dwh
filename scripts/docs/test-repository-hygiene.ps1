@@ -44,7 +44,7 @@ foreach ($relativePath in $tracked) {
 # is called by a workflow, directly or through another script a workflow calls.
 $workflowText = (Get-ChildItem -LiteralPath (Join-Path $repoRoot '.github/workflows') -Filter '*.yml' |
     ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
-$checkScripts = @($tracked | Where-Object { $_ -match '^scripts/.+/test-[^/]+\.(ps1|sh)$' })
+$checkScripts = @($tracked | Where-Object { $_ -match '^scripts/.+/test-[^/]+\.(ps1|sh|mjs)$' })
 $reached = [System.Collections.Generic.HashSet[string]]::new()
 $frontier = [System.Collections.Generic.List[string]]::new()
 foreach ($script in $checkScripts) {

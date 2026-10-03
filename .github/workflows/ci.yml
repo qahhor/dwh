@@ -243,6 +243,14 @@ jobs:
           node --test 'tools/cms-cli/test/**/*.test.mjs'
           node tools/cms-cli/scripts/smoke.mjs --skip-build
 
+      # Plan 10/10, item 6.6: what the cookbook and the module guide name exists (types, files, cms commands and their
+      # options, selectors, entity codes) and their marked blocks match the reference modules.
+      - name: Documentation contract
+        shell: bash
+        run: |
+          node --test scripts/docs/docs-contract.test.mjs
+          node scripts/docs/test-docs-contract.mjs
+
   release-config:
     name: release config (Compose + NGINX + fail-closed deploy)
     runs-on: ubuntu-24.04

@@ -19,6 +19,8 @@
 
 ## Быстрый старт: CLI `cms`
 
+<!-- docs-contract: hypothetical ms.probe -->
+
 Модуль и сущность создаёт CLI `cms` (`tools/cms-cli`, план 10/10, пункт 6.1):
 Node.js 22+ без внешних пакетов, одинаково на Windows, Linux и macOS. Запуск из
 корня репозитория — `node tools/cms-cli/bin/cms.mjs <команда>`; короче —
