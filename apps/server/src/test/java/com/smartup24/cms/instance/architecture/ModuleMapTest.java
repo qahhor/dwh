@@ -29,6 +29,8 @@ class ModuleMapTest {
 
     private static final Path SOURCES = Path.of("src/main/java/com/smartup24/cms/instance");
     private static final Path MODULE_MAP = Path.of("../../docs/architecture/module-map.md");
+    private static final Path LIBS = Path.of("../../libs");
+    private static final String PUBLIC_API_SECTION = "## \u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0439 API";
     /** Infrastructure packages: described like modules, but not business modules. */
     private static final List<String> INFRASTRUCTURE = List.of("common", "config");
     /** Packages under the root that are neither: {@code ms} groups three modules under one Biruni prefix. */
@@ -124,6 +126,36 @@ class ModuleMapTest {
                 .hasValue("upl: the Javadoc is empty");
         assertThat(problemOf("upl", "/** Uploads. */\npackage com.smartup24.cms.instance.upl;\n"))
                 .isEmpty();
+    }
+
+    /**
+     * ADR-0033, 4.1: the public API section of the map names every artifact of the public API — each library whose
+     * build runs the japicmp compatibility gate ({@code libs/platform-api}, {@code libs/provider-spi}).
+     */
+    @Test
+    @DisplayName("ADR-0033: the public API section names every artifact of the public API")
+    void publicApiSectionNamesEveryApiArtifact() throws IOException {
+        String map = Files.readString(MODULE_MAP, StandardCharsets.UTF_8);
+        int start = map.indexOf(PUBLIC_API_SECTION);
+        assertThat(start)
+                .as("the section %s of the module map", PUBLIC_API_SECTION)
+                .isNotNegative();
+        int end = map.indexOf("\n## ", start + PUBLIC_API_SECTION.length());
+        String section = map.substring(start, end < 0 ? map.length() : end);
+        List<String> artifacts = new ArrayList<>();
+        try (Stream<Path> libs = Files.list(LIBS)) {
+            for (Path lib : libs.sorted().toList()) {
+                Path pom = lib.resolve("pom.xml");
+                if (Files.isRegularFile(pom)
+                        && Files.readString(pom, StandardCharsets.UTF_8).contains("japicmp-maven-plugin")) {
+                    artifacts.add("libs/" + lib.getFileName());
+                }
+            }
+        }
+        assertThat(artifacts).as("artifacts with the compatibility gate").contains("libs/platform-api");
+        assertThat(artifacts)
+                .as("named in the section %s", PUBLIC_API_SECTION)
+                .allMatch(artifact -> section.contains("`" + artifact + "`"));
     }
 
     /** What is wrong with a package-info source, or empty when its Javadoc describes the module. */

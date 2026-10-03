@@ -15,6 +15,7 @@ jobs:
   gate:
     name: Release tag gate
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -54,6 +55,8 @@ jobs:
     name: Build, scan, sign, and tag ${{ matrix.image }}
     needs: [gate, ci]
     runs-on: ubuntu-24.04
+    # Two platforms, arm64 under emulation, then scan, attest and sign: the longest job of a release.
+    timeout-minutes: 120
     permissions:
       contents: read
       packages: write
@@ -211,6 +214,7 @@ jobs:
     name: Publish GitHub Release
     needs: build
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       actions: read
       contents: write

@@ -2,19 +2,25 @@ package com.smartup24.cms.instance.architecture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -72,7 +78,7 @@ class CollectionsArePagedTest {
         for (BeanDefinition candidate : scanner.findCandidateComponents(ROOT)) {
             Class<?> controller = Class.forName(candidate.getBeanClassName());
             for (Method method : controller.getDeclaredMethods()) {
-                if (method.isAnnotationPresent(GetMapping.class) && answersWholeList(method.getGenericReturnType())) {
+                if (answersGet(method) && answersWholeList(method.getGenericReturnType())) {
                     whole.add(controller.getSimpleName() + "#" + method.getName());
                 }
             }
@@ -87,6 +93,15 @@ class CollectionsArePagedTest {
                 .isSubsetOf(whole);
     }
 
+    /** A GET handler: {@code @GetMapping}, or {@code @RequestMapping} with GET or with no method (it answers all). */
+    private static boolean answersGet(Method method) {
+        RequestMapping mapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
+        return mapping != null
+                && (mapping.method().length == 0
+                        || Arrays.asList(mapping.method()).contains(RequestMethod.GET));
+    }
+
+    /** A collection or an array of objects (bytes of a download are not a list), directly or in a ResponseEntity. */
     private static boolean answersWholeList(Type type) {
         if (type instanceof ParameterizedType parameterized) {
             Type raw = parameterized.getRawType();
@@ -95,6 +110,50 @@ class CollectionsArePagedTest {
             }
             return raw instanceof Class<?> rawClass && Collection.class.isAssignableFrom(rawClass);
         }
-        return type instanceof Class<?> plain && Collection.class.isAssignableFrom(plain);
+        if (type instanceof GenericArrayType) {
+            return true;
+        }
+        return type instanceof Class<?> plain
+                && (Collection.class.isAssignableFrom(plain)
+                        || (plain.isArray() && !plain.getComponentType().isPrimitive()));
+    }
+
+    @Test
+    @DisplayName("3.5: arrays and @RequestMapping(method = GET) handlers are lists too")
+    void arraysAndRequestMappingsAreSeen() throws NoSuchMethodException {
+        Method array = Probe.class.getDeclaredMethod("array");
+        Method mapped = Probe.class.getDeclaredMethod("mapped");
+        Method bytes = Probe.class.getDeclaredMethod("bytes");
+        Method post = Probe.class.getDeclaredMethod("post");
+        assertThat(answersGet(array) && answersWholeList(array.getGenericReturnType()))
+                .isTrue();
+        assertThat(answersGet(mapped) && answersWholeList(mapped.getGenericReturnType()))
+                .isTrue();
+        assertThat(answersWholeList(bytes.getGenericReturnType())).isFalse();
+        assertThat(answersGet(post)).isFalse();
+    }
+
+    /** Handlers of each kind the scan must tell apart. */
+    @SuppressWarnings("unused")
+    private static final class Probe {
+        @GetMapping("/a")
+        String[] array() {
+            return new String[0];
+        }
+
+        @RequestMapping(path = "/m", method = RequestMethod.GET)
+        ResponseEntity<List<String>> mapped() {
+            return ResponseEntity.ok(List.of());
+        }
+
+        @GetMapping("/b")
+        byte[] bytes() {
+            return new byte[0];
+        }
+
+        @RequestMapping(path = "/p", method = RequestMethod.POST)
+        List<String> post() {
+            return List.of();
+        }
     }
 }

@@ -47,14 +47,6 @@ jobs:
         shell: pwsh
         run: ./scripts/api/test-platform-api-compat.ps1
 
-      - name: Report frozen architecture violations
-        if: always()
-        shell: bash
-        run: |
-          if [ -f apps/server/target/architecture/frozen-violations.md ]; then
-            cat apps/server/target/architecture/frozen-violations.md >> "$GITHUB_STEP_SUMMARY"
-          fi
-
       # Plan 10/10, item 1.4: every test runs, every business module keeps its coverage floor,
       # and the lines a pull request changes are covered at 80 % at least.
       - name: Every test ran

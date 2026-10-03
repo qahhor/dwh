@@ -26,11 +26,13 @@ import tools.jackson.databind.ObjectMapper;
  * constructors and factories) is a key of the i18n catalogs, present in Russian, English and Uzbek. So is the text of
  * a field error: {@code FieldErrorItem.keyed} takes a key, and {@code new FieldErrorItem} never gets a literal text
  * (its written form is for bean validation's own message). A text passed through a variable or a constant is not
- * visible to this scan and is checked in review; a key literal anywhere in the code must be in the catalogs.
+ * visible to this scan and is checked in review; a key literal anywhere in the code must be in the catalogs. The scan
+ * reads the server and the libraries in {@code libs/*}.
  */
 class ErrorTextsTest {
 
     private static final Path MAIN = Path.of("src/main/java");
+    private static final Path LIBS = Path.of("../../libs");
     private static final Path CATALOGS = Path.of("src/main/resources/i18n");
     private static final List<String> LANGUAGES = List.of("ru", "en", "uz");
 
@@ -96,14 +98,35 @@ class ErrorTextsTest {
         assertThat(keys.get("Fixture.java")).containsExactly("error.field.required");
     }
 
+    /** The server's sources and those of the libraries beside it (libs/*), which throw the same exceptions. */
+    static List<Path> sourceRoots() throws IOException {
+        List<Path> roots = new ArrayList<>(List.of(MAIN));
+        try (Stream<Path> libs = Files.list(LIBS)) {
+            libs.map(lib -> lib.resolve("src/main/java"))
+                    .filter(Files::isDirectory)
+                    .sorted()
+                    .forEach(roots::add);
+        }
+        assertThat(roots).as("the server and at least one library").hasSizeGreaterThan(1);
+        return roots;
+    }
+
     static Scan scan() throws IOException {
         Map<String, List<String>> sentences = new TreeMap<>();
         Map<String, Set<String>> keys = new TreeMap<>();
-        try (Stream<Path> files = Files.walk(MAIN)) {
+        for (Path root : sourceRoots()) {
+            scanRoot(root, sentences, keys);
+        }
+        return new Scan(sentences, keys);
+    }
+
+    private static void scanRoot(Path root, Map<String, List<String>> sentences, Map<String, Set<String>> keys)
+            throws IOException {
+        try (Stream<Path> files = Files.walk(root)) {
             for (Path file :
                     files.filter(path -> path.toString().endsWith(".java")).toList()) {
                 String source = Files.readString(file, StandardCharsets.UTF_8);
-                String name = MAIN.relativize(file).toString().replace('\\', '/');
+                String name = root.relativize(file).toString().replace('\\', '/');
                 Matcher call = CALL.matcher(source);
                 while (call.find()) {
                     for (String argument : topLevelArguments(source, call.end())) {
@@ -134,7 +157,6 @@ class ErrorTextsTest {
                 }
             }
         }
-        return new Scan(sentences, keys);
     }
 
     /** Field errors: a keyed one names a catalog key, a written one never gets a literal text. */

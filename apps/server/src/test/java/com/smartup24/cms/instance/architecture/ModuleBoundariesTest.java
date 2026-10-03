@@ -14,7 +14,6 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
-import com.tngtech.archunit.library.freeze.FreezingArchRule;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +21,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -36,10 +34,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Plan 10/10, item 1.3: module boundaries as the documents draw them, checked on every build.
  *
- * <p>The violations that exist today are frozen ({@link FreezingArchRule}, store in
- * {@code src/test/resources/archunit_store}): a new one fails the build, a fixed one leaves the store, so the number
- * only goes down. Phases 2–4 remove them; the store's diff shows the progress in review. Foreign SQL is strict, not
- * frozen: another module's data is read through its published views (ADR-0026).
+ * <p>Every rule is strict: phases 2–4 removed the violations that were once frozen, so a violation fails the build and
+ * no store of accepted ones exists. Foreign SQL is strict as well: another module's data is read through its published
+ * views (ADR-0026).
  */
 class ModuleBoundariesTest {
 
@@ -92,7 +89,7 @@ class ModuleBoundariesTest {
                 .dependOnClassesThat()
                 .resideInAnyPackage(business)
                 .as("common depends on no business module");
-        FreezingArchRule.freeze(rule).check(classes);
+        rule.check(classes);
     }
 
     @Test
@@ -167,7 +164,7 @@ class ModuleBoundariesTest {
         ArchRule rule = classes()
                 .should(onlyReachOtherModulesThroughServiceOrApi())
                 .as("modules meet only through each other's service or api package");
-        FreezingArchRule.freeze(rule).check(classes);
+        rule.check(classes);
     }
 
     private static ArchCondition<JavaClass> onlyReachOtherModulesThroughServiceOrApi() {
@@ -196,8 +193,8 @@ class ModuleBoundariesTest {
     }
 
     @Test
-    @DisplayName("1.3: the frozen rules still catch what they forbid")
-    void frozenRulesCatchViolations() {
+    @DisplayName("1.3: the rules still catch what they forbid")
+    void rulesCatchViolations() {
         var probe = new ClassFileImporter().importClasses(ProbeController.class);
         ArchRule rule = noClasses()
                 .that()
@@ -211,41 +208,6 @@ class ModuleBoundariesTest {
     /** A controller that reads a repository record: the kind of dependency the second rule forbids. */
     static final class ProbeController {
         KauthChannelRepository.ChannelRecord channel;
-    }
-
-    private static final Path STORE = Path.of("src/test/resources/archunit_store");
-    private static final Path REPORT = Path.of("target/architecture/frozen-violations.md");
-
-    @Test
-    @DisplayName("1.3: the number of frozen violations is reported for CI")
-    void frozenViolationsAreReported() throws IOException {
-        Properties rules = new Properties();
-        try (var in = Files.newBufferedReader(STORE.resolve("stored.rules"), StandardCharsets.UTF_8)) {
-            rules.load(in);
-        }
-        StringBuilder report = new StringBuilder(
-                "### Frozen architecture violations (plan 10/10, 1.3)\n\n" + "| Rule | Frozen |\n|---|---|\n");
-        long total = 0;
-        for (String rule : new TreeSet<>(rules.stringPropertyNames())) {
-            long count = countLines(STORE.resolve(rules.getProperty(rule)));
-            total += count;
-            report.append("| ").append(rule).append(" | ").append(count).append(" |\n");
-        }
-        report.append("| **total** | **").append(total).append("** |\n");
-        Files.createDirectories(REPORT.getParent());
-        Files.writeString(REPORT, report.toString(), StandardCharsets.UTF_8);
-        assertThat(rules.stringPropertyNames())
-                .as("every frozen rule has its store (controllers see no repository is strict since 3.2)")
-                .hasSize(2);
-    }
-
-    /** Violations in a store file; comments and blank lines do not count. */
-    private static long countLines(Path file) throws IOException {
-        try (Stream<String> lines = Files.lines(file, StandardCharsets.UTF_8)) {
-            return lines.map(String::trim)
-                    .filter(line -> !line.isEmpty() && !line.startsWith("#"))
-                    .count();
-        }
     }
 
     // ------------------------------------------------------------------
