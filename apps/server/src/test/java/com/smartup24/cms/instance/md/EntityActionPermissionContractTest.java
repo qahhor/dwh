@@ -6,14 +6,13 @@ import com.smartup24.cms.instance.md.pref.PermissionAreas;
 import com.smartup24.cms.instance.md.service.MdFormCatalogSynchronizer;
 import com.smartup24.cms.instance.support.TestFixtureExcludeFilter;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Configuration;
@@ -70,7 +69,31 @@ class EntityActionPermissionContractTest {
         assertThat(wrong).isEmpty();
     }
 
-    /** The entities the application declares: the {@code @Bean EntityDefinition} methods of its configurations. */
+    /** The entities the application declares today: a new one is added here on purpose, not found by chance. */
+    static final Set<String> DECLARED_CODES = Set.of(
+            "ms.notes",
+            "ms.task_types",
+            "ms.task_statuses",
+            "ms.projects",
+            "ms.tasks",
+            "md.users",
+            "example.orders",
+            "example.products",
+            "example.requests");
+
+    @Test
+    void discoveryFindsEveryDeclaredEntity() throws Exception {
+        assertThat(declaredEntities())
+                .extracting(EntityDefinition::code)
+                .containsExactlyInAnyOrderElementsOf(DECLARED_CODES);
+    }
+
+    /**
+     * The entities the application declares: every {@code @Bean EntityDefinition} method of its configurations,
+     * whatever it takes. A declaration may take the beans its custom scope reads (the users', tasks' and projects'
+     * scope): they are asked only when a viewer's rows are read, never while the entity is declared, so the
+     * declaration is built here with {@code null} in their place.
+     */
     static List<EntityDefinition> declaredEntities() throws Exception {
         var scanner = new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(Configuration.class));
@@ -80,19 +103,22 @@ class EntityActionPermissionContractTest {
         for (var definition : scanner.findCandidateComponents("com.smartup24.cms.instance")) {
             Class<?> type = Class.forName(definition.getBeanClassName());
             for (Method method : type.getDeclaredMethods()) {
-                // A declaration may take the providers of the beans its custom scope reads (the users' scope): they
-                // are asked only when a viewer's rows are read, never while the entity is declared.
-                if (method.isAnnotationPresent(Bean.class)
-                        && method.getReturnType() == EntityDefinition.class
-                        && Arrays.stream(method.getParameterTypes()).allMatch(ObjectProvider.class::equals)) {
-                    var ctor = type.getDeclaredConstructor();
-                    ctor.setAccessible(true);
+                if (method.isAnnotationPresent(Bean.class) && method.getReturnType() == EntityDefinition.class) {
+                    assertThat(method.getParameterTypes())
+                            .as("%s.%s takes only beans", type.getSimpleName(), method.getName())
+                            .noneMatch(Class::isPrimitive);
                     method.setAccessible(true);
-                    entities.add((EntityDefinition)
-                            method.invoke(ctor.newInstance(), new Object[method.getParameterCount()]));
+                    entities.add(
+                            (EntityDefinition) method.invoke(instance(type), new Object[method.getParameterCount()]));
                 }
             }
         }
         return entities;
+    }
+
+    private static Object instance(Class<?> type) throws Exception {
+        Constructor<?> ctor = type.getDeclaredConstructors()[0];
+        ctor.setAccessible(true);
+        return ctor.newInstance(new Object[ctor.getParameterCount()]);
     }
 }
