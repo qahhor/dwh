@@ -72,7 +72,8 @@ Current ADRs that are not superseded:
   and the breaking-change check read it.
 - [ADR-0023 — uniform REST](adr/ADR-0023-uniform-rest.md)
   — one path per operation, camelCase parameters, statuses that say what
-  happened, switches that take their state; old forms answer for one release.
+  happened, switches that take their state; before the final release old forms
+  are removed at once, after it a deprecated form answers for one more release.
 - [ADR-0024 — mandatory optimistic locking](adr/ADR-0024-optimistic-locking.md)
   — a change names the revision it was made from (If-Match); none is 428, a
   stale one 409; switches write only when the state changes.
