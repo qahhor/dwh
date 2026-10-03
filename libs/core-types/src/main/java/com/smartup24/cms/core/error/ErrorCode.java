@@ -7,9 +7,6 @@ public enum ErrorCode {
     // 400 Bad Request
     BAD_REQUEST("bad_request", 400),
     RESET_CODE_INVALID("reset_code_invalid", 400),
-    RESET_CODE_EXPIRED("reset_code_expired", 400),
-    INVITE_INVALID("invite_invalid", 400),
-    INVITE_EXPIRED("invite_expired", 400),
     FILE_CORRUPTED("file_corrupted", 400),
     CODE_ALREADY_EXISTS("code_already_exists", 400),
     INVALID_URL("invalid_url", 400),
@@ -24,9 +21,6 @@ public enum ErrorCode {
     INVALID_CREDENTIALS("invalid_credentials", 401),
     OTP_INVALID("otp_invalid", 401),
     OTP_EXPIRED("otp_expired", 401),
-    SESSION_EXPIRED("session_expired", 401),
-    SESSION_REVOKED("session_revoked", 401),
-    TOKEN_REVOKED("token_revoked", 401),
 
     // 403 Forbidden
     FORBIDDEN("forbidden", 403),
@@ -36,13 +30,11 @@ public enum ErrorCode {
     USER_BLOCKED("user_blocked", 403),
     SUPERADMIN_IMMUTABLE("superadmin_immutable", 403),
     LAST_ADMIN("last_admin", 409),
-    LICENSE_READ_ONLY("license_read_only", 403),
 
     // 404 Not Found
     NOT_FOUND("not_found", 404),
     USER_NOT_FOUND("user_not_found", 404),
     ROLE_NOT_FOUND("role_not_found", 404),
-    PROJECT_NOT_FOUND("project_not_found", 404),
     TASK_NOT_FOUND("task_not_found", 404),
     FILE_NOT_FOUND("file_not_found", 404),
     I18N_LANGUAGE_NOT_FOUND("i18n_language_not_found", 404),
@@ -56,14 +48,10 @@ public enum ErrorCode {
     OTP_CHANNEL_MISSING("otp_channel_missing", 409),
     DELIVERY_CHANNEL_NOT_CONFIGURED("delivery_channel_not_configured", 409),
     STATUS_TRANSITION_FORBIDDEN("status_transition_forbidden", 409),
-    TASK_PARENT_CYCLE("task_parent_cycle", 409),
-    SINGLE_RESPONSIBLE_VIOLATION("single_responsible_violation", 409),
-    FIELD_IN_USE("field_in_use", 409),
     IDEMPOTENCY_KEY_PAYLOAD_MISMATCH("idempotency_key_payload_mismatch", 409),
     IDEMPOTENCY_REQUEST_IN_PROGRESS("idempotency_request_in_progress", 409),
     I18N_LANGUAGE_EXISTS("i18n_language_exists", 409),
     I18N_REVISION_CONFLICT("i18n_revision_conflict", 409),
-    TASK_REVISION_CONFLICT("task_revision_conflict", 409),
     /** The record changed since the client read it (plan 10/10, item 3.6). */
     REVISION_CONFLICT("revision_conflict", 409),
 
@@ -92,7 +80,6 @@ public enum ErrorCode {
 
     // 429 Too Many Requests
     RATE_LIMITED("rate_limited", 429),
-    OTP_RATE_LIMITED("otp_rate_limited", 429),
 
     // 500 Internal Error
     INTERNAL_ERROR("internal_error", 500),

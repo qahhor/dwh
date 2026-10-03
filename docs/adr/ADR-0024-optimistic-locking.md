@@ -33,8 +33,8 @@ UPL. Заметки, проекты, пользователи, роли и их 
    или `expectedRevision` в теле там, где API её уже принимал (задачи).
    Без неё — **428** `precondition_required`; неверный формат — 422;
    ревизия, которая уже не у записи, — **409** `revision_conflict`
-   (`error.common.revision_conflict`; у задач — прежний
-   `task_revision_conflict`). Проверка и запись — одно выражение
+   (`error.common.revision_conflict`, у задач тоже; отдельный код
+   `task_revision_conflict` удалён 2026-10-03). Проверка и запись — одно выражение
    `update … where id = :id and revision = :expected returning revision`:
    гонки между чтением и записью нет.
 3. **Права роли — часть роли.** `PUT /iam/roles/{id}/permissions` сохраняется
