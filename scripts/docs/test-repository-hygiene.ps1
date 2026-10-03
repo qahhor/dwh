@@ -39,8 +39,11 @@ finally {
 # A shell entry point checked out on Linux or macOS runs only with the executable bit stored in git (a Windows
 # checkout cannot set it): mvnw and every *.sh are 100755.
 foreach ($entry in $staged) {
-    if ($entry -match '^(\d{6}) [0-9a-f]+ \d\t(.+)$' -and ($Matches[2] -eq 'mvnw' -or $Matches[2] -match '\.sh$') -and $Matches[1] -ne '100755') {
-        $errors.Add("Shell script is not executable in git: $($Matches[2]) (git update-index --chmod=+x)")
+    if ($entry -notmatch '^(\d{6}) [0-9a-f]+ \d\t(.+)$') { continue }
+    $mode = $Matches[1]
+    $path = $Matches[2]
+    if (($path -eq 'mvnw' -or $path.EndsWith('.sh')) -and $mode -ne '100755') {
+        $errors.Add("Shell script is not executable in git: $path (git update-index --chmod=+x)")
     }
 }
 
