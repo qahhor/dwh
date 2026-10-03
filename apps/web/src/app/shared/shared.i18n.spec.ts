@@ -8,6 +8,7 @@ const ENTITY_DECLARATIONS = [
   'instance/md/service/MdUserEntity.java',
   // The transitions of the reference document are record actions too (ADR-0032 9.2).
   'instance/example/service/ExampleOrderEntity.java',
+  'instance/example/service/ExampleRequestsEntity.java',
 ];
 
 describe('i18n: shared UI and kit', () => {
