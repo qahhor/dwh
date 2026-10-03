@@ -53,14 +53,22 @@ $DbPassword = Get-Setting 'DB_PASSWORD' 'smartupcms_local_dev'
 $env:DB_PORT = $DbPort; $env:MAILPIT_HTTP_PORT = $MailpitHttpPort; $env:MAILPIT_SMTP_PORT = $MailpitSmtpPort
 $env:TYPESENSE_PORT = $TypesensePort; $env:PROJECT_NAME = $Project
 
-# The JDK on Windows opens its selector over a Unix domain socket in TEMP, whose path must stay under 108 characters:
-# a long TEMP fails the server with "Unable to establish loopback connection". The processes get .local\tmp then.
+# The JDK on Windows opens its selector over a Unix domain socket in TEMP, whose path must stay under 108 characters
+# together with the socket's own name: a long TEMP fails the server with "Unable to establish loopback connection".
+# The processes get the first short candidate: .local\tmp of a checkout near the drive root, else %LOCALAPPDATA%\smc-tmp.
 function Set-ShortTemp {
-    $short = Join-Path $State 'tmp'
-    if ($IsWin -and $env:TEMP -and $env:TEMP.Length -gt 40 -and $short.Length -lt $env:TEMP.Length) {
-        New-Item -ItemType Directory -Force $short | Out-Null
-        $env:TEMP = $short; $env:TMP = $short
+    if (-not $IsWin) { return }
+    $limit = 48
+    if ($env:TEMP -and $env:TEMP.Length -le $limit) { return }
+    $candidates = @((Join-Path $State 'tmp'))
+    if ($env:LOCALAPPDATA) { $candidates += (Join-Path $env:LOCALAPPDATA 'smc-tmp') }
+    $short = $candidates | Where-Object { $_.Length -le $limit } | Select-Object -First 1
+    if (-not $short) {
+        Write-Warning "TEMP is longer than $limit characters; if the server fails with 'Unable to establish loopback connection', set TEMP to a short directory."
+        return
     }
+    New-Item -ItemType Directory -Force $short | Out-Null
+    $env:TEMP = $short; $env:TMP = $short
 }
 
 function Write-Step([string]$Text) { Write-Host "`n==> $Text" -ForegroundColor Cyan }
