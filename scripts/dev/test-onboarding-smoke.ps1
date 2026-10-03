@@ -65,7 +65,8 @@ function Assert-Status([string]$Name, [string]$Url, [string]$Method = 'GET', [st
     if ($Body) { $request.Body = $Body; $request.ContentType = 'application/json' }
     $response = Invoke-WebRequest @request
     if ($response.StatusCode -ne 200) { throw "$Name answered $($response.StatusCode) at $Url" }
-    if ($Expect -and -not ([string]$response.Content).Contains($Expect)) { throw "$Name at $Url does not contain '$Expect'" }
+    # Content is a byte array for media types PowerShell does not know as text (the actuator's): read the raw answer.
+    if ($Expect -and -not ([string]$response.RawContent).Contains($Expect)) { throw "$Name at $Url does not contain '$Expect'" }
     Write-Host "  [OK] $Name" -ForegroundColor Green
 }
 
