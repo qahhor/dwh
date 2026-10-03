@@ -150,12 +150,37 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 - Коммиты подписываются `git commit -s`; CI (`ci.yml`, `dco.yml`) запускается
   на push в main и на pull request, `nightly.yml` — по расписанию.
 
-## 7. Точка продолжения — 2026-10-01
+## 7. Точка продолжения — 2026-10-03
 
-Фазы 0–4 [плана 10/10](plan-10-10.md) выполнены и влиты в main (2026-10-01);
-следующая — фаза 5 «Low-code платформа v2», порядок задач задаёт пользователь.
+Фазы 0–5 [плана 10/10](plan-10-10.md) выполнены и влиты в main; из фазы 6
+выполнены 6.1–6.5 (ветка интеграции `claude/p6-int2` поверх main `01794bf7`,
+2026-10-03). **Следующее — 6.6** (cookbook и три эталонных модуля), затем фаза 7.
 Правила для всех AI-ассистентов — в [`AGENTS.md`](../AGENTS.md), карта модулей —
 в [module-map.md](architecture/module-map.md).
+
+- **Фаза 5** (2026-10-03, ADR-0032): общий runtime сущностей
+  `/api/v1/entities/<код>` — объявление `EntityDefinition` и хуки вместо
+  контроллера, сервиса и репозитория; типы полей, документы со строками и
+  статусами, импорт, отчёты, поиск и вебхуки по возможностям; 7 сущностей на
+  модели; тест-кит `EntityContractTestKit` (пункт 6.2) у каждой сущности.
+- **Фаза 6, 6.3 и 6.4** (ADR-0033): публичный API — `libs/platform-api`
+  (`com.smartup24.cms.platform.api..`, `@PlatformApi`, japicmp против 1.0.0,
+  `scripts/api/test-platform-api-compat.ps1`); манифест модуля
+  `META-INF/smartupcms/modules/<код>.json` (поля `code`, `name`, `version`,
+  `minPlatform`, `dependencies`, `configuration`, `migrations`, `messages`;
+  неизвестное поле останавливает старт); версия модуля — из манифеста, колонки
+  `md_installed_modules.version` нет (V196); сравнение объявлений со схемой —
+  `common.entity.EntitySchemaCheck` (`EntitySchemaGate` при старте,
+  `EntitySchemaContractTest` в сборке); кит — артефакт `platform-testkit`;
+  пример модуля вне монорепо — `examples/external-module`.
+- **Фаза 6, 6.1:** CLI `cms` (`tools/cms-cli`) заменил `create-module.ps1`;
+  генерирует под контракт 6.3/6.4. Проверки — `node --test` в `tools/cms-cli`,
+  `scripts/dev/test-cms-cli.ps1`.
+- **Фаза 6, 6.5:** `make dev`, `scripts/dev/run-local.{sh,ps1}`, профиль
+  `demo`, `.devcontainer`, `.editorconfig`, ночной job `onboarding`. Очередь
+  заданий тикает только после `ApplicationReadyEvent` (гонка с созданием
+  первого администратора). Профиль `devtools` не проверен: зависимость
+  `spring-boot-devtools` ждёт одобрения.
 
 - **Фаза 3** прошла ревью качества; её долги закрыты: `NOT_YET_LOCKED` и
   `NOT_YET_PAGED` удалены, хранилище замороженных нарушений ArchUnit пусто,
@@ -174,5 +199,4 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 Известные пробелы платформы перечислены в
 [extension-points.md](architecture/extension-points.md#7-известные-пробелы):
-поиск и вебхуки не подключаются декларативно, модель сущности пока только на
-заметках, маршрут экрана добавляется вручную.
+сверяйте их с фазой 5: часть пробелов закрыта общим runtime (ADR-0032).
