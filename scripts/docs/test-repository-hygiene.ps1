@@ -27,9 +27,21 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw 'git ls-files failed'
     }
+    $staged = @(git ls-files -s)
+    if ($LASTEXITCODE -ne 0) {
+        throw 'git ls-files -s failed'
+    }
 }
 finally {
     Pop-Location
+}
+
+# A shell entry point checked out on Linux or macOS runs only with the executable bit stored in git (a Windows
+# checkout cannot set it): mvnw and every *.sh are 100755.
+foreach ($entry in $staged) {
+    if ($entry -match '^(\d{6}) [0-9a-f]+ \d\t(.+)$' -and ($Matches[2] -eq 'mvnw' -or $Matches[2] -match '\.sh$') -and $Matches[1] -ne '100755') {
+        $errors.Add("Shell script is not executable in git: $($Matches[2]) (git update-index --chmod=+x)")
+    }
 }
 
 foreach ($relativePath in $tracked) {
