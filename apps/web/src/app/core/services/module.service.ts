@@ -6,7 +6,12 @@ export interface InstalledModule {
   code: string;
   name: string;
   description?: string | null;
-  version: string;
+  /** The module's version from its manifest (ADR-0033, 6.4); null for a module registered without code. */
+  version: string | null;
+  /** The least platform API version the module runs on, from its manifest. */
+  minPlatform?: string | null;
+  /** The modules it needs and their least versions, from its manifest. */
+  dependencies?: { code: string; version: string }[];
   icon?: string | null;
   route?: string | null;
   isSystem: boolean;
@@ -136,7 +141,7 @@ export class ModuleService {
     const isActive = m?.status ? m.status === 'ACTIVE' : (m?.isActive ?? fallbackActive);
     return {
       name: '',
-      version: '',
+      version: null,
       isSystem: false,
       ...m,
       code,
