@@ -72,7 +72,8 @@ class EntityCustomFieldsIndexTest {
 
     private static Pattern ginIndex(String table) {
         return Pattern.compile("(?is)create\\s+index\\s+(?:concurrently\\s+)?(?:if\\s+not\\s+exists\\s+)?\\w+"
-                + "\\s+on\\s+(?:only\\s+)?" + Pattern.quote(table) + "\\s+using\\s+gin\\s*\\(\\s*" + EntityModel.ATTRIBUTES
+                + "\\s+on\\s+(?:only\\s+)?" + Pattern.quote(table) + "\\s+using\\s+gin\\s*\\(\\s*"
+                + EntityModel.ATTRIBUTES
                 + "\\b");
     }
 
