@@ -28,7 +28,9 @@ Historical ADRs remain in the repository as decision records. An ADR marked
 | `apps/web` | Angular application, UI kit and the entity components in `shared/entity` |
 | `libs/core-types` | Shared domain primitives |
 | `libs/platform-common` | Cross-module technical support |
+| `libs/platform-api` | Public platform API a module builds against (ADR-0033) |
 | `libs/provider-spi` | Storage and delivery provider contracts |
+| `libs/platform-testkit`, `examples/external-module` | Test kit for modules outside the monorepo and an example module |
 | `deploy/compose` | Production Compose and environment template |
 | `deploy/images` | Hardened PostgreSQL, Typesense, proxy, and backup images |
 | `scripts/prod` | Deploy, backup, restore, and release-contract checks |

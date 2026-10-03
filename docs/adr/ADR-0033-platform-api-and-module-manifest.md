@@ -107,11 +107,12 @@ ADR-0020 (миграции), ADR-0032 (low-code платформа v2: объя�
 
 ### 3.4. Тест-кит
 
-`com.smartup24.cms:platform-testkit` — артефакт для тестов модуля:
-зависимости от сервера (обычный jar классов, классификатор основного
-артефакта не меняется), от jar тестовых помощников сервера (классификатор
-`testkit`: пакет `com.smartup24.cms.instance.support..`) и от тестовых
-библиотек, которые им нужны. Точки входа автора —
+`com.smartup24.cms:platform-testkit` (`<type>pom</type>`) — артефакт для тестов
+модуля: зависимости от сервера (основной артефакт `server` — обычный jar
+классов; запускаемый jar Spring Boot получил классификатор `exec`, его берёт
+образ), от jar тестовых помощников сервера (классификатор `testkit`: пакет
+`com.smartup24.cms.instance.support..` без собственных тестов кита) и от
+тестовых библиотек, которые им нужны. Точки входа автора —
 `EntityContractTestKit`, `EntityFixture`, `FixtureContext`,
 `EntityTransport` — помечены `@PlatformApi(stability = EXPERIMENTAL)`: кит
 версионируется вместе с платформой, japicmp его не сравнивает (это тестовый
@@ -165,7 +166,9 @@ ADR-0020 (миграции), ADR-0032 (low-code платформа v2: объя�
 | `STABLE` | меняется несовместимо только в MAJOR-версии и только после того, как элемент был `@Deprecated(since = "X.Y")` хотя бы в одной выпущенной MINOR-версии (≥ 1 минорная версия) |
 | `EXPERIMENTAL` | бинарную совместимость тоже проверяет japicmp (несовместимое изменение — только MAJOR), но депрекация не обязательна: элемент можно убрать в следующей MAJOR-версии сразу |
 
-- Депрекацию проверяет `PlatformApiDeprecationTest` (`platform-api`): каждый
+- Депрекацию проверяет `PlatformApiContractTest` (правило `ApiPolicy`, его
+  срабатывание доказывает `ApiPolicySelfTest`; для `provider-spi` —
+  `ProviderSpiContractTest`): каждый
   публичный STABLE-тип, конструктор, метод или поле базовой линии, которого
   нет в текущем API, в базовой линии был помечен `@Deprecated`.
 - Отношение к правилу «установок у клиентов нет» (AGENTS.md, решение
@@ -228,7 +231,6 @@ META-INF/smartupcms/modules/library/i18n/{ru,uz,en}.json   ключи модул
   (major 1); this platform provides 1.0.0»;
 - каждая зависимость есть, её MAJOR совпадает и версия не ниже требуемой;
   иначе — отказ, называющий модуль и зависимость;
-- `EntityMenu.module` каждой сущности называет модуль с манифестом.
 
 Отказ — исключение `ModuleManifestException`; `FailureAnalyzer` печатает его
 как причину и действие, приложение не стартует. Версия с суффиксом
@@ -302,12 +304,13 @@ META-INF/smartupcms/modules/library/i18n/{ru,uz,en}.json   ключи модул
 
 `examples/external-module` — модуль реактора Maven, который **не**
 наследует ничего от сервера, кроме общих плагинов сборки: зависимости —
-`platform-api` (compile) и `platform-testkit` (test). Модуль `library`
+`platform-api` (`provided`), `spring-context` (`provided`: `@Configuration` и
+`@Bean` конфигурации, которую называет манифест) и `platform-testkit` (test). Модуль `library`
 объявляет сущность `library.books` (таблица, скоуп владельца, поля, архив),
 миграцию, ключи и манифест; `LibraryBooksContractTest extends
-EntityContractTestKit` проходит кит. Пакет модуля — `com.acme.library`,
-поэтому `PlatformApiUsageTest` проверяет, что модуль импортирует только
-`com.smartup24.cms.platform.api..` (и кит в тестах).
+EntityContractTestKit` проходит кит. Пакет модуля — `com.acme.library`;
+`LibraryModuleBoundaryTest` проверяет, что исходники модуля импортируют из
+платформы только `com.smartup24.cms.platform.api..` (кит — только в тестах).
 
 ## 9. Генератор и документация
 
@@ -353,3 +356,36 @@ EntityContractTestKit` проходит кит. Пакет модуля — `com
 | C. Изоляция процессом (модуль — сервис по HTTP/gRPC, ADR-0011 §2.3) | недоверенные поставщики | общий runtime сущности, транзакции хуков и скоуп в одном SQL не переносятся через процесс |
 | D. OSGi / загрузчики классов | горячая установка | сложность и отладка; горячая установка не нужна |
 | E. Аннотация `@ModuleManifest` вместо файла | — | манифест нужно прочитать до загрузки классов модуля; файл читается без них |
+
+## 13. Реализация и отступления (2026-10-03)
+
+Сделано в ветке `claude/p6-spi` (план 10/10, пункты 6.3 и 6.4):
+
+| Что | Где | Проверка |
+|---|---|---|
+| Артефакт `platform-api` 1.0.0 и `provider-spi` 1.0.0, `@PlatformApi` у каждого публичного типа (вложенные включительно) | `libs/platform-api`, `libs/provider-spi` | `PlatformApiContractTest`, `ProviderSpiContractTest` |
+| japicmp 0.26.2, семантическое версионирование, базовые линии 1.0.0 | корневой `pom.xml` (`pluginManagement`), `libs/*/baseline` | `mvn verify`; `scripts/api/test-platform-api-compat.ps1` (CI, задание backend) |
+| Журнал SPI | `docs/api/spi-changelog.md` | — |
+| Манифест, проверка до бинов, отказ с понятной причиной | `common.module` (`ModuleManifest`, `ModuleManifests`, `ModuleCatalog`, `ModuleMigrations`), `config.module` (`ModuleManifestSelector`, `ModuleManifestFailureAnalyzer`) | `ModuleManifestsTest`, `ModuleManifestStartupTest` |
+| Манифесты встроенных модулей, версии в реестре, V196 | `apps/server/src/main/resources/META-INF/smartupcms/modules`, `ModuleRegistryService`, `ModuleRegistrySynchronizer` | `ModuleRegistryIntegrationTest` |
+| Ключи модуля в каталогах | `MdI18nCatalog` | пример `library` (409 с текстом модуля) |
+| Проверка схемы при старте и в CI | `EntitySchemaCheck`, `EntitySchemaGate` | `EntitySchemaContractTest` |
+| Тест-кит артефактом и пример модуля | `apps/server` (`testkit`, `exec`), `libs/platform-testkit`, `examples/external-module` | `LibraryBooksContractTest` (49 случаев кита), `LibraryModuleBoundaryTest`, `LibraryBookHooksTest` |
+
+Отступления от разделов 2–9 (решение не меняется, уточняется исполнение):
+
+| № | В дизайне | Сделано | Почему |
+|---|---|---|---|
+| Р1 | §6.3: `EntityMenu.module` каждой сущности называет модуль с манифестом | не проверяется при старте; `ModuleRegistryIntegrationTest` требует манифест у каждой строки реестра, которую создают миграции | реестр — данные базы, а проверка манифестов идёт до создания бинов, без базы |
+| Р2 | §7: правила схемы | добавлены колонки, которые runtime читает всегда (`attributes`, `created_at`); поле `readonly()` над `not null` без умолчания не считается ошибкой (его пишет хук или сервер); колонка `not null` без умолчания, которую не пишет ни поле формы, ни runtime, — ошибка | первый прогон примера модуля упал 500 на отсутствующей `attributes` — проверка должна была отказать старту |
+| Р3 | §8: зависимости примера — только API и кит | ещё `spring-context` (`provided`) | конфигурация модуля — `@Configuration`/`@Bean`; свой реестр модуля без Spring в API не вводился |
+| Р4 | §6.2: версия jar модуля | у примера jar версии реактора, версия модуля `1.2.0` — в манифесте | родительский `pom.xml` версионирует библиотеки платформы `${project.version}`, своя версия примера ломала разрешение зависимостей |
+| Р5 | §3.1: перенос `AuditActor` | перенесён в `platform.api.actor`; внутренние модули импортируют его оттуда | хук получает актора, иначе API зависел бы от `common.actor` |
+| Р6 | §11 В2 | доставка jar в образ не сделана; `Dockerfile` копирует `examples` (реактор) и берёт `server-*-exec.jar` | вопрос эксплуатации, открыт |
+
+Для CLI пункта 6.1 (шаблоны генератора): импорты объявления и хуков — из
+`com.smartup24.cms.platform.api.entity..`; манифест встроенного модуля —
+`apps/server/src/main/resources/META-INF/smartupcms/modules/<код>.json` с
+полями §6.2 (`${project.version}` и `${platform-api.version}` подставляет
+сборка); строка `md_installed_modules` больше не имеет колонки `version`.
+`create-module.ps1` уже следует этому.

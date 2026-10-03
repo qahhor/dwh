@@ -1,8 +1,8 @@
 # Разработка модулей SmartupCMS
 
-**Версия:** 2.3
+**Версия:** 2.4
 
-**Обновлено:** 2026-10-02
+**Обновлено:** 2026-10-03
 
 **Основание:** [каноническое ТЗ](../technical-specification.md),
 [ADR-0014](../adr/ADR-0014-unified-open-source-runtime.md) и
@@ -40,6 +40,10 @@ Cross-module интеграция выполняется через явный �
 Контроллер не видит пакет `repository` даже своего модуля. Общие value/error contracts помещаются в `libs/core-types`, общая
 backend-инфраструктура — в `libs/platform-common`, а интерфейсы внешних
 провайдеров — в `libs/provider-spi`. Общая библиотека не зависит от сервера.
+Объявление сущности, хуки, правила, действия и события — публичный API
+платформы `libs/platform-api` (`com.smartup24.cms.platform.api..`,
+[ADR-0033](../adr/ADR-0033-platform-api-and-module-manifest.md)): объявление и
+хуки модуля импортируют их оттуда, а не из `com.smartup24.cms.instance.common`.
 
 Любой защищённый endpoint использует `@RequiresPermission`; UI-проверка лишь
 улучшает UX и не заменяет серверную авторизацию. Код формы —
@@ -340,6 +344,44 @@ records, …})` рисует страницу настоящим роутеро�
 только из фикстур (`queryMetaFixture`, `entityRecord`, `problem`); так спека
 показывает, что сущность, о которой веб ничего не знает, получает список,
 форму и карточку (`shared/entity/page/entity-page.spec.ts`).
+
+### Модуль вне монорепо
+
+Сторонний модуль — отдельный jar, собранный против публичного API
+([ADR-0033](../adr/ADR-0033-platform-api-and-module-manifest.md)); образец —
+`examples/external-module` (модуль `library`, сущность `library.books`).
+
+1. Зависимости: `com.smartup24.cms:platform-api` (`provided`),
+   `org.springframework:spring-context` (`provided`, для `@Configuration` и
+   `@Bean`), в тестах — `com.smartup24.cms:platform-testkit` с
+   `<type>pom</type>`. Ничего из `com.smartup24.cms.instance..` модуль не
+   импортирует (`LibraryModuleBoundaryTest`).
+2. Манифест `META-INF/smartupcms/modules/<код>.json`: `code`, `name`,
+   `version`, `minPlatform` (наименьшая версия API, на которой модуль
+   работает), `dependencies`, `configuration` (класс `@Configuration` с бинами
+   `EntityDefinition`, `EntityHooks`, `EntityActionHandler`), `migrations`
+   (`db/modules/<код>`, свои номера `V`, история `flyway_module_<код>`),
+   `messages` (каталог `ru.json`, `uz.json`, `en.json` с ключами модуля).
+   Неизвестное поле, модуль для более новой или другой MAJOR-версии API и
+   отсутствующая зависимость не дают платформе стартовать — с сообщением,
+   которое называет модуль и версии.
+3. Таблицы модуля — по соглашению ADR-0032 §14.1: `id`, `revision`,
+   `attributes`, `created_*`, `modified_*`, у архива `archived_at`/`archived_by`.
+   Платформа при старте сравнивает объявление с `information_schema`
+   (`EntitySchemaGate`): расхождение — отказ старта со списком строк.
+4. Отказ хука целиком — `EntityRefusal.conflict(ключ, параметры)` (403, 409,
+   422); проблема поля — `save.reject(...)`. Ключи текстов — в `messages`
+   модуля; ключ, который уже есть у платформы, — отказ старта.
+5. Контракт: один наследник `EntityContractTestKit` на сущность, как у
+   встроенного модуля; кит стартует платформу с jar модуля на classpath.
+6. Подключение: jar на classpath сервера; строка реестра модулей появляется
+   при первом старте (включён, не системный), версия в реестре — из манифеста.
+   Доставка jar в образ Docker — открытый вопрос (ADR-0033, §11, В2).
+
+Встроенный модуль, который заводит строку реестра миграцией, кладёт манифест в
+`apps/server/src/main/resources/META-INF/smartupcms/modules/<код>.json`
+(версии подставляет сборка: `${project.version}`, `${platform-api.version}`);
+генератор пишет его сам.
 
 ### Экран сущности: общий экран и точечные правки
 

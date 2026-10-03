@@ -19,7 +19,10 @@ apps/server/              Spring Boot modular monolith
 apps/web/                 Angular SPA and NGINX image
 libs/core-types/          shared value/error contracts
 libs/platform-common/     shared backend infrastructure
-libs/provider-spi/        storage/mail/SMS/messenger interfaces
+libs/platform-api/        public platform API: entity declaration, hooks, events (ADR-0033)
+libs/provider-spi/        storage/mail/SMS/messenger interfaces (public API too)
+libs/platform-testkit/    test kit artifact for modules outside the monorepo
+examples/external-module/ example module built against the API alone
 deploy/compose/           production Compose bundle
 deploy/images/            hardened image extensions
 deploy/nginx/             production reverse proxy
@@ -29,7 +32,10 @@ docs/                     requirements, ADRs, engineering and operations docs
 ```
 
 Корневой Maven reactor собирает `libs/core-types`, `libs/platform-common`,
-`libs/provider-spi` и `apps/server`. Angular-приложение собирается из
+`libs/platform-api`, `libs/provider-spi`, `apps/server`, `libs/platform-testkit`
+и `examples/external-module`. `platform-api` и `provider-spi` — публичный API
+платформы со своей SemVer-версией (ADR-0033): japicmp сравнивает их с
+выпущенной версией. Angular-приложение собирается из
 `apps/web`. Граф знаний `graphify-out/` строится локально (`graphify update .`)
 и в репозиторий не коммитится; датированные аудиты и планы агентов из дерева
 удалены, история — в git.
@@ -37,7 +43,9 @@ docs/                     requirements, ADRs, engineering and operations docs
 ## Границы и направление зависимостей
 
 1. Функциональные модули сервера могут зависеть от общего ядра,
-   `platform-common` и контрактов `provider-spi`.
+   `platform-common`, публичного API `platform-api` и контрактов `provider-spi`.
+   `platform-api` не зависит ни от чего, кроме JDK и `org.jspecify`
+   (`PlatformApiContractTest`); модуль вне монорепо зависит только от него.
 2. Общие библиотеки не могут зависеть от модулей приложения. В частности,
    контракты провайдеров не импортируют реализации из сервера.
 3. Связь между функциональными модулями проходит через явные публичные
