@@ -13,13 +13,16 @@
 # stand already running; it is torn down at the end, data included. Only committed work is cloned.
 [CmdletBinding()]
 param(
-    [string]$Source = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..')),
+    # The repository to clone; the checkout this script belongs to by default.
+    [string]$Source,
     [int]$BudgetSeconds = 600,
     # Leaves the clone and its stack running for a look after the run.
     [switch]$Keep
 )
 
 $ErrorActionPreference = 'Stop'
+# Windows PowerShell 5.1 has no $PSScriptRoot in parameter defaults.
+if ([string]::IsNullOrWhiteSpace($Source)) { $Source = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..')) }
 $IsWin = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
 
 # Ports of its own unless the caller set them.

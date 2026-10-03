@@ -132,6 +132,15 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   в индексе, ссылки), `scripts/docs/test-repository-hygiene.ps1`,
   `scripts/architecture/test-unified-boundaries.ps1`.
 - Генератор модулей: `scripts/dev/test-create-module.ps1`.
+- Локальный запуск из исходников (план 10/10, пункт 6.5):
+  `scripts/dev/run-local.sh` / `scripts/dev/run-local.ps1` (`up`, `migrate`,
+  `down`, `status`; `--demo`, `--detach`, `--devtools`, `--search`; порты из
+  окружения `DB_PORT`, `SERVER_PORT`, `MANAGEMENT_PORT`, `WEB_PORT`,
+  `MAILPIT_*_PORT`, проект Compose `SMC_LOCAL_PROJECT`). Пароль первого
+  администратора — в игнорируемом `.local/admin-password`, логи там же; `make`
+  вызывает те же скрипты. Проверка «от `git clone` до UI ≤ 10 минут» —
+  `scripts/dev/test-onboarding-smoke.ps1` (ночной job `onboarding`), локально
+  на своих портах со сносом стенда.
 - Коммиты подписываются `git commit -s`; CI (`ci.yml`, `dco.yml`) запускается
   на push в main и на pull request, `nightly.yml` — по расписанию.
 
