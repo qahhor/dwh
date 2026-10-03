@@ -7,7 +7,7 @@ import com.smartup24.cms.platform.api.entity.EntityDefinition;
 
 /**
  * A delete of an entity record as its hooks see it (ADR-0032, 6.5): the record as it was. A hook that refuses the
- * delete throws an {@code ApiException}; the transaction rolls back.
+ * delete throws an {@link EntityRefusal}; the transaction rolls back.
  *
  * @param entity the entity
  * @param id     the record

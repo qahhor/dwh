@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $source = Join-Path $repoRoot 'libs/platform-api/src/main/java/com/smartup24/cms/platform/api/PlatformVersion.java'
 $modulePom = Join-Path $repoRoot 'libs/platform-api/pom.xml'
-$maven = if ($IsWindows -or $env:OS -eq 'Windows_NT') { Join-Path $repoRoot 'mvnw.cmd' } else { Join-Path $repoRoot 'mvnw' }
+$maven = if (Get-Command mvn -ErrorAction SilentlyContinue) { 'mvn' } elseif ($IsWindows -or $env:OS -eq 'Windows_NT') { Join-Path $repoRoot 'mvnw.cmd' } else { Join-Path $repoRoot 'mvnw' }
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
 $originalSource = [System.IO.File]::ReadAllText($source)

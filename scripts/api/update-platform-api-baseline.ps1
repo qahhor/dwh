@@ -15,7 +15,7 @@ if (-not $version) { throw 'pom.xml has no platform-api.version property.' }
 $artifacts = @('platform-api', 'provider-spi')
 
 if (-not $SkipBuild) {
-    $maven = if ($IsWindows -or $env:OS -eq 'Windows_NT') { Join-Path $repoRoot 'mvnw.cmd' } else { Join-Path $repoRoot 'mvnw' }
+    $maven = if (Get-Command mvn -ErrorAction SilentlyContinue) { 'mvn' } elseif ($IsWindows -or $env:OS -eq 'Windows_NT') { Join-Path $repoRoot 'mvnw.cmd' } else { Join-Path $repoRoot 'mvnw' }
     & $maven -B -q -f $pomPath -pl 'libs/platform-api,libs/provider-spi' -am -DskipTests '-Djapicmp.skip=true' package
     if ($LASTEXITCODE -ne 0) { throw "The API jars did not build (exit $LASTEXITCODE)." }
 }
