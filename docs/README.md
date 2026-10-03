@@ -110,9 +110,6 @@ Current ADRs that are not superseded:
   and a script, V156 moved administrators' overrides, and `npm run i18n:audit`
   refuses such keys from now on.
 
-Proposed decisions (not yet accepted; they guide planned work and do not
-override the current ADRs above until accepted):
-
 - [ADR-0032 — low-code platform v2](adr/ADR-0032-low-code-platform-v2.md)
   — one `EntityField` per field, a mandatory `EntityScope`, field rights, the
   runtime endpoint `/api/v1/entities/{code}` with fixed-order hooks, rules,
