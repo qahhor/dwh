@@ -125,9 +125,10 @@ the server and `ng serve`, and prints the address. Open
 generated into `.local/admin-password` (ignored by git); the first sign-in asks
 for a new one. Add `--demo` (`-Demo`) for demo users, projects, tasks, notes and
 orders, `--detach` (`-Detach`) to get the prompt back, and stop everything with
-`scripts/dev/run-local.sh down`. With GNU make: `make dev` (DevTools restarts
-the server on recompile), `make demo`, `make stop`, `make help`. The dev
-container in `.devcontainer/` brings the same tools.
+`scripts/dev/run-local.sh down`. With GNU make: `make dev` (the same in the
+foreground; after a server change run it again to rebuild), `make demo`,
+`make stop`, `make help`. The dev container in `.devcontainer/` brings the
+same tools.
 
 ### Run the containers
 
@@ -155,13 +156,14 @@ enabling it with development credentials.
 
 ## Development
 
-Prerequisites: JDK 25, Maven 3.9+, Node.js from [`.node-version`](.node-version),
-npm, and Docker for integration tests.
+Prerequisites: JDK 25, Node.js from [`.node-version`](.node-version), npm,
+and Docker for integration tests. Maven is not needed: the wrapper `./mvnw`
+(`mvnw.cmd` on Windows) downloads the pinned version.
 
 Backend verification:
 
 ```bash
-mvn -B verify
+./mvnw -B clean spotless:check verify
 ```
 
 Web verification:
@@ -176,14 +178,14 @@ npm run typecheck
 npm run build
 ```
 
-End-to-end verification runs against the Compose deployment started in the
-quick start:
+End-to-end verification runs on a fresh Compose stack with the mail stub
+(`scripts/dev/e2e-mail.compose.yml`) and needs the first administrator's
+password in `ADMIN_PASSWORD`; [`e2e/README.md`](e2e/README.md) describes it.
+`make e2e` (Linux, macOS) or `scripts\dev\test-e2e.ps1` (Windows) builds,
+migrates and starts that stack, then runs the suite:
 
 ```bash
-cd e2e
-npm ci
-npx playwright install chromium
-npm test
+make e2e
 ```
 
 Read [onboarding](docs/onboarding.md) for the code map and

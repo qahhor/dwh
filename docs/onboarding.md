@@ -111,9 +111,9 @@ What `up` does:
    when `apps/web/node_modules` is missing.
 3. Migrations: pg-dwh first, then the main database, as the migrator role,
    the same steps as the `migrate` service of `docker-compose.yml`.
-4. The server starts with the `dev` profile (`dev,demo` with `--demo`;
-   `mvn spring-boot:run -Pdevtools` with `--devtools`, which `make dev` uses),
-   mail goes to Mailpit.
+4. The server starts from the built jar with the `dev` profile (`dev,demo`
+   with `--demo`), mail goes to Mailpit. After a server change run `up`
+   again: it rebuilds the jar and restarts the server.
 5. `ng serve` starts with the API proxied to the server.
 
 Then open <http://localhost:4200> and sign in as `admin`; the password is

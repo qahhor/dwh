@@ -14,8 +14,8 @@ E2E_COMPOSE := docker compose -f docker-compose.yml -f scripts/dev/e2e-mail.comp
 
 help:
 	@echo "SmartupCMS commands:"
-	@echo "  make dev       infrastructure in Compose, server with DevTools, ng serve; Ctrl+C stops"
-	@echo "  make start     the same from the built jar, in the background (make stop ends it)"
+	@echo "  make dev       infrastructure in Compose, server from the built jar, ng serve; Ctrl+C stops"
+	@echo "  make start     the same in the background (make stop ends it)"
 	@echo "  make demo      start with the demo profile: users, projects, tasks, notes, orders"
 	@echo "  make stop      stop the server, the web dev server and the infrastructure"
 	@echo "  make status    what runs"
@@ -33,7 +33,7 @@ install:
 	cd apps/web && npm ci
 
 dev:
-	$(RUN_LOCAL) up --devtools
+	$(RUN_LOCAL) up
 
 start:
 	$(RUN_LOCAL) up --detach

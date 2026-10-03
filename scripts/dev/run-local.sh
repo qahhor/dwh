@@ -19,9 +19,8 @@
 # Options:
 #   --detach      up returns once everything answers; stop it later with down
 #   --demo        the server starts with the demo profile: users, projects, tasks, notes and orders (idempotent)
-#   --devtools    the server runs with mvn spring-boot:run -Pdevtools (restarts on recompile) instead of the jar
 #   --search      also starts Typesense and turns the search index on
-#   --skip-build  reuses apps/server/target/server-*.jar
+#   --skip-build  reuses apps/server/target/server-*-exec.jar
 #   --volumes     with down: also deletes the database volumes and the local state in .local/
 #
 # Ports and names come from the environment (defaults in brackets): DB_PORT [5432], SERVER_PORT [8080],
@@ -35,18 +34,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STATE="$ROOT/.local"
 COMMAND="up"
-DETACH=0 DEMO=0 DEVTOOLS=0 SEARCH=0 SKIP_BUILD=0 VOLUMES=0
+DETACH=0 DEMO=0 SEARCH=0 SKIP_BUILD=0 VOLUMES=0
 
 for arg in "$@"; do
     case "$arg" in
         up|infra|migrate|down|status) COMMAND="$arg" ;;
         --detach) DETACH=1 ;;
         --demo) DEMO=1 ;;
-        --devtools) DEVTOOLS=1 ;;
         --search) SEARCH=1 ;;
         --skip-build) SKIP_BUILD=1 ;;
         --volumes) VOLUMES=1 ;;
-        -h|--help) sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "Unknown argument: $arg (see --help)" >&2; exit 2 ;;
     esac
 done
@@ -110,13 +108,14 @@ start_infra() {
     compose up -d --wait --wait-timeout 300 "${services[@]}"
 }
 
-server_jar() { ls "$ROOT"/apps/server/target/server-*.jar 2>/dev/null | head -n 1 || true; }
+# The runnable jar has the exec classifier; the plain and testkit jars next to it are libraries.
+server_jar() { ls "$ROOT"/apps/server/target/server-*-exec.jar 2>/dev/null | head -n 1 || true; }
 
 build_server() {
     if [ "$SKIP_BUILD" = 1 ] && [ -n "$(server_jar)" ]; then return; fi
     say "Building the server (Maven wrapper, tests skipped)"
     (cd "$ROOT" && ./mvnw -B -q -DskipTests -Djacoco.skip=true -pl apps/server -am package)
-    [ -n "$(server_jar)" ] || fail "The build produced no apps/server/target/server-*.jar."
+    [ -n "$(server_jar)" ] || fail "The build produced no apps/server/target/server-*-exec.jar."
 }
 
 # The environment the server reads (ADR-0027 names), for the host processes.
@@ -174,17 +173,10 @@ start_server() {
     export SMC_INSTANCE_ADMIN_PASSWORD
     SMC_INSTANCE_ADMIN_PASSWORD="$(cat "$STATE/admin-password")"
     local args="--server.port=$SERVER_PORT --management.server.port=$MANAGEMENT_PORT"
-    if [ "$DEVTOOLS" = 1 ]; then
-        (cd "$ROOT" && ./mvnw -B -q -DskipTests -pl apps/server -am install)
-        (cd "$ROOT" && nohup ./mvnw -B -pl apps/server -Pdevtools spring-boot:run \
-            "-Dspring-boot.run.profiles=$profiles" "-Dspring-boot.run.arguments=$args" \
-            > "$STATE/server.log" 2>&1 & echo $! > "$STATE/server.pid")
-    else
-        # shellcheck disable=SC2086 # the arguments are two words on purpose
-        nohup "$JAVA" -jar "$(server_jar)" --spring.profiles.active="$profiles" $args \
-            > "$STATE/server.log" 2>&1 &
-        echo $! > "$STATE/server.pid"
-    fi
+    # shellcheck disable=SC2086 # the arguments are two words on purpose
+    nohup "$JAVA" -jar "$(server_jar)" --spring.profiles.active="$profiles" $args \
+        > "$STATE/server.log" 2>&1 &
+    echo $! > "$STATE/server.pid"
     unset SMC_INSTANCE_ADMIN_PASSWORD
     wait_http "The server" "http://127.0.0.1:$MANAGEMENT_PORT/actuator/health/readiness" "$STATE/server.pid" 300 \
         "$STATE/server.log"
