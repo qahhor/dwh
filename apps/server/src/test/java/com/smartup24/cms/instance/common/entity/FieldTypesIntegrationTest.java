@@ -16,6 +16,8 @@ import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.repository.MfRecordFileRepository;
 import com.smartup24.cms.instance.mf.service.MfAttachments;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import com.zaxxer.hikari.HikariDataSource;
 import java.time.LocalDate;

@@ -4,11 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityLists;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
-import com.smartup24.cms.instance.common.entity.FormField;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
@@ -17,6 +14,9 @@ import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository.CustomFi
 import com.smartup24.cms.instance.md.service.MdCustomFieldFormFields;
 import com.smartup24.cms.instance.md.service.MdCustomFieldQueryFields;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.ArrayList;

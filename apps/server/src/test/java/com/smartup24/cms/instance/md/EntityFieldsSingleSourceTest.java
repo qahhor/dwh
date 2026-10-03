@@ -4,16 +4,17 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.smartup24.cms.instance.common.entity.Entity;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityListFields;
 import com.smartup24.cms.instance.common.entity.EntityLists;
-import com.smartup24.cms.instance.common.entity.EntityModel;
-import com.smartup24.cms.instance.common.entity.FormField;
-import com.smartup24.cms.instance.common.entity.field.EntityFields;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.md.service.MdCustomFieldFormFields;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.EntityFields;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -71,7 +72,7 @@ class EntityFieldsSingleSourceTest {
             }
             QueryList list = EntityLists.queryList(entity);
             // After the declared fields only what the platform adds: the archived flag (ADR-0032, 5.4).
-            List<QueryField> derived = new ArrayList<>(model.listFields());
+            List<QueryField> derived = new ArrayList<>(EntityListFields.listFields(model));
             derived.addAll(EntityLists.platformFields(entity));
             if (!list.fields().equals(derived)) {
                 problems.add(entity.code() + ": list fields other than its model's");

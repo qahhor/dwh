@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.search.repository.SearchDocumentSql;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
@@ -12,6 +11,7 @@ import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
 import com.smartup24.cms.instance.search.service.SearchEntities;
 import com.smartup24.cms.instance.search.service.SearchEntity;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;

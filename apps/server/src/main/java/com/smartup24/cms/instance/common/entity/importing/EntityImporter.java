@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.common.entity.importing;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.entity.field.FieldType;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;

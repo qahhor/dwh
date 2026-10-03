@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityModel;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldAccess;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldAccess;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;

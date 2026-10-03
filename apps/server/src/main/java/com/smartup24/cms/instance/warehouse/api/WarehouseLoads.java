@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.warehouse.api;
 
-import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;

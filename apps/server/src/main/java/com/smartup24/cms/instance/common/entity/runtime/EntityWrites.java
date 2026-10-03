@@ -1,21 +1,22 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.actor.AuditActor;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityFieldValues;
-import com.smartup24.cms.instance.common.entity.EntityModel;
-import com.smartup24.cms.instance.common.entity.event.EntityEventType;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
-import com.smartup24.cms.instance.common.entity.hook.EntityArchive;
-import com.smartup24.cms.instance.common.entity.hook.EntityDelete;
-import com.smartup24.cms.instance.common.entity.hook.EntityOperation;
-import com.smartup24.cms.instance.common.entity.hook.EntityValues;
+import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.entity.store.EntityStoreRepository;
 import com.smartup24.cms.instance.common.entity.store.EntityWrite;
-import com.smartup24.cms.instance.common.entity.workflow.EntityTransition;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.web.Revisions;
+import com.smartup24.cms.platform.api.actor.AuditActor;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.event.EntityEventType;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
+import com.smartup24.cms.platform.api.entity.hook.EntityArchive;
+import com.smartup24.cms.platform.api.entity.hook.EntityDelete;
+import com.smartup24.cms.platform.api.entity.hook.EntityOperation;
+import com.smartup24.cms.platform.api.entity.hook.EntityValues;
+import com.smartup24.cms.platform.api.entity.workflow.EntityTransition;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -189,7 +190,7 @@ public class EntityWrites {
         requireRevision(before, expected);
         String code = handler.action();
         RuntimeSave call = save(entity, EntityOperation.ACTION, id, before, before, code, params);
-        handler.run(call);
+        EntityChanges.refusing(() -> handler.run(call));
         EntityChanges.refuseRejected(call);
         Map<String, Object> touched = touched(entity, call.values().asMap(), before);
         EntityWrite write = EntityWrite.of(entity, touched, store.json(entity));
@@ -327,7 +328,7 @@ public class EntityWrites {
                 operation,
                 id,
                 before == null ? null : EntityValues.readOnly(entity, before),
-                EntityValues.writable(entity, record),
+                EntityValues.writable(entity, record, EntityValidator::refuses),
                 action,
                 params,
                 AuditActor.user(EntityReads.userId()));

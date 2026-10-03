@@ -45,6 +45,10 @@
         </dependency>
         <dependency>
             <groupId>com.smartup24.cms</groupId>
+            <artifactId>platform-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.smartup24.cms</groupId>
             <artifactId>provider-spi</artifactId>
         </dependency>
 

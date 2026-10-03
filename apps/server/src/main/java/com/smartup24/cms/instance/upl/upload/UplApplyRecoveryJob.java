@@ -1,6 +1,5 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.jobs.service.JobQueries;
@@ -8,6 +7,7 @@ import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
 import com.smartup24.cms.instance.warehouse.api.WarehouseLoads;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

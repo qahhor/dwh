@@ -1,15 +1,15 @@
 package com.smartup24.cms.instance.common.entity.store;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityModel;
 import com.smartup24.cms.instance.common.entity.EntityRowMapper;
-import com.smartup24.cms.instance.common.entity.field.FieldSource;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.common.query.QueryPlan;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.field.FieldSource;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

@@ -2,13 +2,13 @@ package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
-import com.smartup24.cms.instance.common.entity.hook.EntityOperation;
-import com.smartup24.cms.instance.common.entity.hook.EntitySave;
-import com.smartup24.cms.instance.common.entity.hook.EntityValues;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.hook.EntityOperation;
+import com.smartup24.cms.platform.api.entity.hook.EntitySave;
+import com.smartup24.cms.platform.api.entity.hook.EntityValues;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;

@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.error.ConstraintCode;
 import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
@@ -17,6 +16,7 @@ import com.smartup24.cms.instance.warehouse.api.WarehouseUnavailableException;
 import com.smartup24.cms.instance.warehouse.load.WarehouseLoadService;
 import com.smartup24.cms.instance.warehouse.mart.MartReader;
 import com.smartup24.cms.instance.warehouse.raw.JdbcRawWriter;
+import com.smartup24.cms.platform.api.actor.AuditActor;
 import com.zaxxer.hikari.HikariDataSource;
 import java.time.Duration;
 import java.time.Instant;

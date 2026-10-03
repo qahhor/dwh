@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.support.entity;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionCall;
-import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionCall;
+import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;

@@ -8,6 +8,8 @@ import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import java.util.function.LongConsumer;

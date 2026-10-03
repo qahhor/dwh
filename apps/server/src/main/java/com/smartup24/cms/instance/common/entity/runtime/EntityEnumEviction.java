@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.instance.common.entity.EntityEnums;
-import com.smartup24.cms.instance.common.entity.event.EntityChanged;
+import com.smartup24.cms.platform.api.entity.event.EntityChanged;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;

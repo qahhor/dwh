@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.search.service;
 
-import com.smartup24.cms.instance.common.entity.event.EntityChanged;
+import com.smartup24.cms.platform.api.entity.event.EntityChanged;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 

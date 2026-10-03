@@ -7,7 +7,6 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.RolePermission;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
@@ -18,6 +17,7 @@ import com.smartup24.cms.instance.md.service.MdRoleService;
 import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.instance.support.entity.EntityRegistries;
+import com.smartup24.cms.platform.api.entity.EntityScope;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,7 +54,7 @@ class MdFormCatalogIntegrationTest {
         permissionService = new MdPermissionService(
                 new MdPermissionRepository(jdbc),
                 EntityRegistries.declarations(
-                        List.of(MdUserEntity.definition((userId, alias) -> ScopeFilter.unrestricted()))),
+                        List.of(MdUserEntity.definition((userId, alias) -> EntityScope.Condition.unrestricted()))),
                 new MdI18nCatalog(JsonMapper.shared()));
         roleRepository = new MdRoleRepository(jdbc);
         roleService = new MdRoleService(

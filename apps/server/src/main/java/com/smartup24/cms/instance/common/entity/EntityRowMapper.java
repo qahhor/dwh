@@ -1,9 +1,12 @@
 package com.smartup24.cms.instance.common.entity;
 
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldSource;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.json.JsonColumns;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldSource;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Date;

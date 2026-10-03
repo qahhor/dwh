@@ -1,5 +1,9 @@
 package com.smartup24.cms.spi.messenger;
 
+import com.smartup24.cms.platform.api.PlatformApi;
+import com.smartup24.cms.platform.api.Stability;
+
+@PlatformApi(since = "1.0", stability = Stability.STABLE)
 public record MessengerSendResult(
         boolean isSuccess, String externalMessageId, String errorCode, String errorMessage, long durationMs) {
     public static MessengerSendResult success(String externalMessageId, long durationMs) {

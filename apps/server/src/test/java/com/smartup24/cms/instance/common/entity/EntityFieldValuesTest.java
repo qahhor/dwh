@@ -1,24 +1,27 @@
 package com.smartup24.cms.instance.common.entity;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.bool;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.enumeration;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.file;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.number;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.select;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.bool;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.enumeration;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.file;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.instant;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.number;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.select;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.smartup24.cms.instance.common.entity.field.FieldCondition;
-import com.smartup24.cms.instance.common.entity.field.FieldDefault;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.DataScopes;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.field.FieldCondition;
+import com.smartup24.cms.platform.api.entity.field.FieldDefault;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;

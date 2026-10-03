@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.FormField;
 import java.util.List;
 
 /**

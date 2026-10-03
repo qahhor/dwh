@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.search.service;
 
-import com.smartup24.cms.instance.common.entity.EntityScope;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.DataScopeRules;
 import com.smartup24.cms.instance.common.security.DataScopeRules.Viewer;
 import com.smartup24.cms.instance.search.repository.SearchDocumentSql;
+import com.smartup24.cms.platform.api.entity.EntityScope;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;

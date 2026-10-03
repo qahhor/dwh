@@ -1,11 +1,14 @@
 package com.smartup24.cms.spi.storage;
 
+import com.smartup24.cms.platform.api.PlatformApi;
+import com.smartup24.cms.platform.api.Stability;
 import com.smartup24.cms.spi.common.ProviderHealth;
 import java.io.InputStream;
 
 /**
  * Service Provider Interface for File Storage (Garage S3, AWS S3, MinIO, Local Disk).
  */
+@PlatformApi(since = "1.0", stability = Stability.STABLE)
 public interface StorageProvider {
 
     String getProviderCode();

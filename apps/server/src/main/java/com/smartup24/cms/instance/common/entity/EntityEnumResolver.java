@@ -1,9 +1,11 @@
 package com.smartup24.cms.instance.common.entity;
 
-import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldResolver;
 import com.smartup24.cms.instance.common.query.QueryList;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

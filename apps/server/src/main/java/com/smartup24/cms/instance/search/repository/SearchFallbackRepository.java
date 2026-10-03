@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.search.repository;
 
-import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.search.service.SearchEntity;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;

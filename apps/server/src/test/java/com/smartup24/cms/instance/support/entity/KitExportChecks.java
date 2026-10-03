@@ -5,10 +5,10 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;

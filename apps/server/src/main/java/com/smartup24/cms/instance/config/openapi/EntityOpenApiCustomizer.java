@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.config.openapi;
 
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityAction;
 import com.smartup24.cms.instance.common.web.Revisions;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityAction;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;

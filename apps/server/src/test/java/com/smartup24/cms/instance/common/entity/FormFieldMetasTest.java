@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.common.entity;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.select;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.select;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.entity.EntityEnums.Items;
@@ -10,8 +10,11 @@ import com.smartup24.cms.instance.common.entity.FormFieldMetas.ConditionClauseMe
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.ConditionItemMeta;
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.DefaultValueMeta;
 import com.smartup24.cms.instance.common.entity.FormMetaController.FormFieldMeta;
-import com.smartup24.cms.instance.common.entity.field.FieldCondition;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.field.FieldCondition;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

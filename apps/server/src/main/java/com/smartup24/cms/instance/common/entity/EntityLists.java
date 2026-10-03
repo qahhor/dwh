@@ -1,11 +1,14 @@
 package com.smartup24.cms.instance.common.entity;
 
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListSource;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -57,7 +60,7 @@ public class EntityLists implements QueryListSource {
         EntityModel model = Objects.requireNonNull(entity.model(), entity.code());
         String alias = model.alias();
         @Nullable String attributes = entity.customEntity() == null ? null : alias + "." + ATTRIBUTES;
-        List<QueryField> fields = new ArrayList<>(model.listFields());
+        List<QueryField> fields = new ArrayList<>(EntityListFields.listFields(model));
         fields.addAll(platformFields(entity));
         return new QueryList(
                 Objects.requireNonNull(entity.listCode(), entity.code()),

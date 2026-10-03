@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.error;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
+import com.smartup24.cms.platform.api.entity.hook.EntityRefusal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -172,5 +173,15 @@ public class ApiException extends RuntimeException {
     public static ApiException unprocessable(
             ErrorCode code, String messageKey, Map<String, ?> params, List<FieldErrorItem> errors) {
         return new ApiException(code, messageKey, params, errors);
+    }
+
+    /** The refusal of a module's hook (ADR-0033, 3.2) as the error of the request. */
+    public static ApiException refused(EntityRefusal refusal) {
+        ErrorCode code = switch (refusal.kind()) {
+            case FORBIDDEN -> ErrorCode.FORBIDDEN;
+            case CONFLICT -> ErrorCode.CONFLICT;
+            case UNPROCESSABLE -> ErrorCode.VALIDATION_FAILED;
+        };
+        return new ApiException(code, refusal.messageKey(), refusal.params());
     }
 }

@@ -4,12 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.field.EntityField;
-import com.smartup24.cms.instance.common.entity.field.FieldReadonly;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
 import com.smartup24.cms.instance.support.entity.EntitySamples.Sample;
 import com.smartup24.cms.instance.support.entity.KitWorld.Created;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldReadonly;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;

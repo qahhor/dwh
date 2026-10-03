@@ -6,12 +6,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
-import com.smartup24.cms.instance.common.entity.event.EntityEventType;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.TestUsers;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
+import com.smartup24.cms.platform.api.entity.event.EntityEventType;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -247,7 +247,7 @@ class EntityRuntimeIntegrationTest extends EmbeddedPostgresTest {
         assertThat(ownerSession.send(get(NOTES)).getStatus()).isEqualTo(200);
     }
 
-    private List<com.smartup24.cms.instance.common.entity.event.EntityChanged> events(long id) {
+    private List<com.smartup24.cms.platform.api.entity.event.EntityChanged> events(long id) {
         return EntityRuntimeFixture.EVENTS.stream()
                 .filter(event -> event.id() == id)
                 .toList();

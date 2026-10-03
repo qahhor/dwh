@@ -1,14 +1,14 @@
 package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
-import com.smartup24.cms.instance.common.entity.hook.EntityArchive;
-import com.smartup24.cms.instance.common.entity.hook.EntityDelete;
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
-import com.smartup24.cms.instance.common.entity.hook.EntityOperation;
-import com.smartup24.cms.instance.common.entity.hook.EntitySave;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskDictionaryRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskDictionaryRepository.Dictionary;
+import com.smartup24.cms.platform.api.entity.hook.EntityArchive;
+import com.smartup24.cms.platform.api.entity.hook.EntityDelete;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.hook.EntityOperation;
+import com.smartup24.cms.platform.api.entity.hook.EntitySave;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 

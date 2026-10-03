@@ -205,18 +205,18 @@ $listCode = "${prefixLower}.${cleanCode}"
 Write-Utf8 (Join-Path $serviceDir "${entityClass}.java") @"
 package ${pkg}.service;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.select;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.instant;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.select;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 
-import com.smartup24.cms.instance.common.entity.Entity;
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
-import com.smartup24.cms.instance.common.entity.EntityScope;
-import com.smartup24.cms.instance.common.entity.field.FieldDefault;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityMenu;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.field.FieldDefault;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import java.util.List;
 import java.util.Map;
 import org.springframework.context.annotation.Bean;
@@ -288,8 +288,8 @@ public class ${entityClass} {
 Write-Utf8 (Join-Path $serviceDir "${hooksClass}.java") @"
 package ${pkg}.service;
 
-import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
-import com.smartup24.cms.instance.common.entity.hook.EntitySave;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
+import com.smartup24.cms.platform.api.entity.hook.EntitySave;
 import java.util.Locale;
 import org.springframework.stereotype.Component;
 

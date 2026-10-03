@@ -1,21 +1,21 @@
 package com.smartup24.cms.instance.ms.task.service;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.number;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.searchable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.textarea;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.instant;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.number;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.searchable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.textarea;
 
-import com.smartup24.cms.instance.common.entity.Entity;
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityScope;
-import com.smartup24.cms.instance.common.entity.EntityTab;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
-import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.EntityTab;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.platform.api.entity.search.EntitySearchSpec;
 import java.util.Map;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -111,7 +111,7 @@ public class MsProjectEntity {
             if (!ALIAS.equals(alias)) {
                 throw new IllegalStateException("The project predicate is written for the alias " + ALIAS);
             }
-            return scopes.filterForProjects(userId);
+            return scopes.filterForProjects(userId).condition();
         });
     }
 }

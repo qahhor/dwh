@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.query;
 
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.platform.api.entity.field.QueryRef;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;

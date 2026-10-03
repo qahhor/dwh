@@ -1,28 +1,28 @@
 package com.smartup24.cms.instance.md.service;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.bool;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.email;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.hidden;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.listed;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.multiRef;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.phone;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.ref;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.searchable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.select;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.bool;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.email;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.hidden;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.instant;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.listed;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.multiRef;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.phone;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.ref;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.searchable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.select;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 
-import com.smartup24.cms.instance.common.entity.Entity;
-import com.smartup24.cms.instance.common.entity.EntityCapability;
-import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
-import com.smartup24.cms.instance.common.entity.EntityScope;
-import com.smartup24.cms.instance.common.entity.field.FieldDefault;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
-import com.smartup24.cms.instance.common.entity.search.EntitySearchSpec;
-import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityMenu;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.field.FieldDefault;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.platform.api.entity.field.QueryRef;
+import com.smartup24.cms.platform.api.entity.search.EntitySearchSpec;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
@@ -208,6 +208,7 @@ public class MdUserEntity {
 
     @Bean
     public EntityDefinition mdUsersEntity(ObjectProvider<MdScopeService> scopes) {
-        return definition((userId, alias) -> scopes.getObject().filterForUsers(userId, alias + ".id"));
+        return definition((userId, alias) ->
+                scopes.getObject().filterForUsers(userId, alias + ".id").condition());
     }
 }

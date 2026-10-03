@@ -1,18 +1,23 @@
 package com.smartup24.cms.instance.common.entity;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.select;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.instant;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.select;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
-import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityDefinition.FormSection;
+import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;

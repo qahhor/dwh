@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
-import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -12,6 +12,11 @@ import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.DataScopes;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
+import com.smartup24.cms.platform.api.entity.Entity;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.EntityModel;
+import com.smartup24.cms.platform.api.entity.EntityScope;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +81,7 @@ class EntityScopeTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> EntityScope.orgUnit("org_unit_id", "Owner"))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> EntityScope.custom("Bad name", (user, alias) -> ScopeFilter.unrestricted()))
+        assertThatThrownBy(() -> EntityScope.custom("Bad name", (user, alias) -> EntityScope.Condition.unrestricted()))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(EntityScope.orgUnit("org_unit_id", "created_by").columns())
                 .containsExactly("org_unit_id", "created_by");
@@ -127,7 +132,9 @@ class EntityScopeTest {
         new EntityScopes(new UnitsRule()).requireUnit(all, "orgUnitId", 7L, 9L);
 
         EntityDefinition custom = items().scope(EntityScope.custom(
-                        "participation", (user, alias) -> ScopeFilter.byOwner(alias + ".reporter_id", user)))
+                        "participation",
+                        (user, alias) -> ScopeFilter.byOwner(alias + ".reporter_id", user)
+                                .condition()))
                 .build();
         QueryPlan.SqlFragment rows = EntityScopes.withoutOrgUnits().rows(custom, 5L);
         assertThat(rows.sql()).isEqualTo(" and i.reporter_id = :scopeUserId");
