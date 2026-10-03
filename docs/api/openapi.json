@@ -13398,7 +13398,8 @@
             }
           },
           "params" : {
-            "$ref" : "#/components/schemas/JsonNode"
+            "type" : "object",
+            "additionalProperties" : true
           }
         }
       },
@@ -15661,85 +15662,6 @@
           },
           "verification" : {
             "$ref" : "#/components/schemas/VerificationSummary"
-          }
-        }
-      },
-      "JsonNode" : {
-        "type" : "object",
-        "properties" : {
-          "array" : {
-            "type" : "boolean"
-          },
-          "bigDecimal" : {
-            "type" : "boolean"
-          },
-          "bigInteger" : {
-            "type" : "boolean"
-          },
-          "binary" : {
-            "type" : "boolean"
-          },
-          "boolean" : {
-            "type" : "boolean"
-          },
-          "container" : {
-            "type" : "boolean"
-          },
-          "double" : {
-            "type" : "boolean"
-          },
-          "embeddedValue" : {
-            "type" : "boolean"
-          },
-          "empty" : {
-            "type" : "boolean"
-          },
-          "float" : {
-            "type" : "boolean"
-          },
-          "floatingPointNumber" : {
-            "type" : "boolean"
-          },
-          "int" : {
-            "type" : "boolean"
-          },
-          "integralNumber" : {
-            "type" : "boolean"
-          },
-          "long" : {
-            "type" : "boolean"
-          },
-          "missingNode" : {
-            "type" : "boolean"
-          },
-          "nodeType" : {
-            "type" : "string",
-            "enum" : [ "ARRAY", "BINARY", "BOOLEAN", "MISSING", "NULL", "NUMBER", "OBJECT", "POJO", "STRING" ]
-          },
-          "null" : {
-            "type" : "boolean"
-          },
-          "number" : {
-            "type" : "boolean"
-          },
-          "object" : {
-            "type" : "boolean"
-          },
-          "pojo" : {
-            "type" : "boolean"
-          },
-          "short" : {
-            "type" : "boolean"
-          },
-          "string" : {
-            "type" : "boolean"
-          },
-          "textual" : {
-            "type" : "boolean",
-            "deprecated" : true
-          },
-          "valueNode" : {
-            "type" : "boolean"
           }
         }
       },
@@ -19262,7 +19184,8 @@
             "type" : "string"
           },
           "state" : {
-            "$ref" : "#/components/schemas/JsonNode"
+            "type" : "object",
+            "additionalProperties" : true
           }
         }
       },
@@ -19292,7 +19215,8 @@
             "type" : "string"
           },
           "state" : {
-            "$ref" : "#/components/schemas/JsonNode"
+            "type" : "object",
+            "additionalProperties" : true
           }
         }
       },
@@ -19321,7 +19245,8 @@
             "type" : "string"
           },
           "state" : {
-            "$ref" : "#/components/schemas/JsonNode"
+            "type" : "object",
+            "additionalProperties" : true
           }
         }
       }

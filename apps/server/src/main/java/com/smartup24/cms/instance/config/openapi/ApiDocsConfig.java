@@ -11,6 +11,7 @@ import io.swagger.v3.oas.models.headers.Header;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
@@ -26,8 +27,11 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * The API description is generated from the controllers (plan 10/10, item 3.3; springdoc): this class adds what code
@@ -42,6 +46,21 @@ public class ApiDocsConfig {
     static final String SESSION = "SessionCookie";
     static final String PROBLEM = "ProblemDetail";
     static final String PROBLEM_JSON = "application/problem+json";
+
+    static {
+        // A JSON value a DTO carries as is (bulk parameters, a list view's state) is a free-form object in the
+        // description, not the getters of Jackson's tree node (nodeType, pojo, missingNode...).
+        SpringDocUtils.getConfig()
+                .replaceWithSchema(JsonNode.class, freeFormObject())
+                .replaceWithSchema(ObjectNode.class, freeFormObject());
+    }
+
+    /** A JSON object with any members. */
+    static ObjectSchema freeFormObject() {
+        ObjectSchema schema = new ObjectSchema();
+        schema.setAdditionalProperties(Boolean.TRUE);
+        return schema;
+    }
 
     @Bean
     OpenAPI smartupCmsApi() {
