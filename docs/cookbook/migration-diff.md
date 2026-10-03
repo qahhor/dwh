@@ -62,6 +62,9 @@ create table ex_requests (
   одиннадцать файлов CLI в `V197` и `V198`), затем перезакрепить в манифесте:
   `mvnw -B -pl apps/server test -Dtest=MigrationManifestTest -Dmigrations.manifest.append=true`.
 - DDL и данные — разные файлы (`V197` — таблицы, `V198` — права).
+- Число в миграции (предел длины `<= 2000`) должно быть строкой
+  `apps/server/src/test/resources/allowed-numbers.txt` с причиной: так
+  `CorePurityTest` отличает предел от коэффициента пересчёта.
 - Колонку, которой нет в объявлении, `migration diff` не удаляет: удаление
   пишется руками.
 - Без Maven команда не работает; цена — около двух минут сборки и старта
