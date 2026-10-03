@@ -10,7 +10,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import type { ListQuery, QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
@@ -196,14 +196,18 @@ export class SMTEntityListPageComponent {
 
   private readonly openCell = viewChild.required<TemplateRef<unknown>>('openCell');
 
-  readonly listMeta = signal<QueryListMeta | null>(null);
-  readonly listFailed = signal(false);
   readonly search = signal('');
   /** The list itself, or its report (ADR-0032 10.2). */
   readonly mode = signal<'list' | 'report'>('list');
   readonly selectedRows = signal<EntityRecord[]>([]);
+
+  /** Raised by a retry: the list's metadata is asked for again. */
+  private readonly metaRevision = signal(0);
   /** The default view has been applied: the list may be asked for. */
   private readonly viewsReady = signal(false);
+
+  readonly listMeta = computed<QueryListMeta | null>(() => (this.metaRead.hasValue() ? this.metaRead.value() : null));
+  readonly listFailed = computed(() => this.metaRead.status() === 'error');
 
   readonly meta = computed(() => this.context.formMeta());
   readonly selectedIds = computed(() => this.selectedRows().map((row) => row.id));
@@ -279,6 +283,11 @@ export class SMTEntityListPageComponent {
     match: this.views.match(),
   }));
 
+  private readonly metaRead = rxResource({
+    params: () => ({ code: this.meta().listCode ?? this.context.code(), revision: this.metaRevision() }),
+    stream: ({ params }) => this.queryMeta.get(params.code),
+  });
+
   /**
    * The saved views of the list. What the list asks for follows their sort and filter by itself (`query`), whoever
    * changes them — a view, the filter bar, the archive switch, a header click — so applying a view asks for nothing.
@@ -303,7 +312,11 @@ export class SMTEntityListPageComponent {
   );
 
   constructor() {
-    this.load();
+    // Once the list's metadata is read: the person's default view, then the first page.
+    effect(() => {
+      const meta = this.listMeta();
+      if (meta) untracked(() => this.applyViews(meta));
+    });
     // A new query starts from the first page, once the default view is applied.
     effect(() => {
       this.query();
@@ -311,23 +324,9 @@ export class SMTEntityListPageComponent {
     });
   }
 
-  /** The list's metadata, then the person's default view, then the first page. */
+  /** Reads the list's metadata again after a failure; the views and the first page follow it. */
   load(): void {
-    this.listFailed.set(false);
-    this.queryMeta
-      .get(this.meta().listCode ?? this.context.code())
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (meta) => {
-          this.listMeta.set(meta);
-          this.views.load().subscribe(() => {
-            this.applyLinkedFilter(meta);
-            if (this.viewsReady()) this.pager.first();
-            this.viewsReady.set(true);
-          });
-        },
-        error: () => this.listFailed.set(true),
-      });
+    this.metaRevision.update((revision) => revision + 1);
   }
 
   /** A header click sorts the whole list on the server. */
@@ -347,6 +346,17 @@ export class SMTEntityListPageComponent {
     return text === null || text === undefined || text === '' || text === '—'
       ? this.i18n.translate('ui.entity_page.record', { id: row.id })
       : String(text);
+  }
+
+  private applyViews(meta: QueryListMeta): void {
+    this.views
+      .load()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.applyLinkedFilter(meta);
+        if (this.viewsReady()) this.pager.first();
+        this.viewsReady.set(true);
+      });
   }
 
   /**

@@ -62,6 +62,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly userId = input.required<number>();
+
   /** The user's revision as the host screen holds it: the units are saved from it (plan item 3.6). */
   readonly revision = input<number | undefined>(undefined);
 
@@ -77,6 +78,17 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   readonly legacyOrgUnitId = signal<number | null>(null);
   readonly effectiveScope = signal<UserScope | null>(null);
   readonly pending = signal(false);
+  readonly saveError = signal<ProblemDetail | null>(null);
+  readonly savedRefreshFailed = signal(false);
+  private readonly originalOrgUnitIds = signal<readonly number[]>([]);
+  private readonly loadedRevision = signal<number | undefined>(undefined);
+
+  /** The tree table identifies rows by string id. */
+  readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
+  readonly treeColumns = computed(() => orgUnitTreeColumns((key) => this.i18n.translate(key)));
+  readonly scopeRuleKey = computed(() => scopeRuleKey(this.effectiveScope()));
+  readonly emptyScopeKey = computed(() => emptyScopeKey(this.effectiveScope()));
+
   private readonly treeRead = new OrgUnitRead(() => this.changeDetector.markForCheck());
   private readonly assignmentsRead = new OrgUnitRead(() => this.changeDetector.markForCheck());
   private readonly scopeRead = new OrgUnitRead(() => this.changeDetector.markForCheck());
@@ -89,16 +101,6 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   readonly scopeLoading = this.scopeRead.loading;
   readonly scopeLoaded = this.scopeRead.loaded;
   readonly scopeError = this.scopeRead.error;
-  readonly saveError = signal<ProblemDetail | null>(null);
-  readonly savedRefreshFailed = signal(false);
-  private readonly originalOrgUnitIds = signal<readonly number[]>([]);
-  private readonly loadedRevision = signal<number | undefined>(undefined);
-
-  /** The tree table identifies rows by string id. */
-  readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
-  readonly treeColumns = computed(() => orgUnitTreeColumns((key) => this.i18n.translate(key)));
-  readonly scopeRuleKey = computed(() => scopeRuleKey(this.effectiveScope()));
-  readonly emptyScopeKey = computed(() => emptyScopeKey(this.effectiveScope()));
 
   private readonly writes = new Subscription();
   private activeTarget: number | null = null;
