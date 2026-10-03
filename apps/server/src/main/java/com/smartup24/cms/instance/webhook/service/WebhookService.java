@@ -21,26 +21,40 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Webhook subscriptions and the outbox of their events (ADR-0032, 6.9). A delivery is signed with the subscription's
+ * key over {@code <timestamp>.<body>} ({@link #signature}): {@value #SIGNATURE_HEADER} carries the hex HMAC-SHA256,
+ * {@value #TIMESTAMP_HEADER} the Unix seconds it covers, so a receiver that checks both refuses a replayed delivery.
+ */
 @Service
 public class WebhookService {
 
     private static final Logger log = LoggerFactory.getLogger(WebhookService.class);
+
+    /** The header of the signature: hex HMAC-SHA256 of {@code <timestamp>.<body>} with the subscription's key. */
+    public static final String SIGNATURE_HEADER = "X-Signature-SHA256";
+
+    /** The header of the moment the signature covers, Unix seconds. */
+    public static final String TIMESTAMP_HEADER = "X-Signature-Timestamp";
 
     private final WebhookSubscriptionRepository subscriptionRepository;
     private final WebhookOutboxRepository outboxRepository;
     private final SecureRandom secureRandom = new SecureRandom();
     private final AuditLogService auditLogService;
     private final WebhookTargetPolicy targetPolicy;
+    private final WebhookEventCatalog events;
 
     public WebhookService(
             WebhookSubscriptionRepository subscriptionRepository,
             WebhookOutboxRepository outboxRepository,
             AuditLogService auditLogService,
-            WebhookTargetPolicy targetPolicy) {
+            WebhookTargetPolicy targetPolicy,
+            WebhookEventCatalog events) {
         this.subscriptionRepository = subscriptionRepository;
         this.outboxRepository = outboxRepository;
         this.auditLogService = auditLogService;
         this.targetPolicy = targetPolicy;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -54,6 +68,8 @@ public class WebhookService {
     public CreatedSubscription createSubscription(
             String name, String targetUrl, List<String> subscribedEvents, Long createdBy) {
 
+        // The events first: a list naming an unknown one is refused before the target is resolved.
+        events.requireKnown(subscribedEvents);
         var validatedTarget = targetPolicy.validate(targetUrl);
 
         byte[] secretBytes = new byte[32];
@@ -99,6 +115,7 @@ public class WebhookService {
             List<String> subscribedEvents,
             String state,
             long expectedRevision) {
+        events.requireKnown(subscribedEvents);
         if (targetUrl != null) {
             targetPolicy.validate(targetUrl);
         }
@@ -159,6 +176,15 @@ public class WebhookService {
         for (var sub : active) {
             outboxRepository.enqueue(sub.id(), eventType, body);
         }
+    }
+
+    /**
+     * The signature of a delivery: hex HMAC-SHA256 of {@code <timestamp>.<body>} with the subscription's key, the
+     * timestamp in Unix seconds as sent in {@value #TIMESTAMP_HEADER}. A receiver recomputes it over the raw body and
+     * refuses a timestamp older than it tolerates.
+     */
+    public static String signature(long timestamp, String body, String secretKey) {
+        return computeHmacSha256(timestamp + "." + body, secretKey);
     }
 
     /**

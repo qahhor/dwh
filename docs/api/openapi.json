@@ -125,6 +125,8 @@
   }, {
     "name" : "upl-unit-controller"
   }, {
+    "name" : "webhook-event-controller"
+  }, {
     "name" : "webhook-subscription-controller"
   } ],
   "paths" : {
@@ -12692,6 +12694,39 @@
         "tags" : [ "upl-unit-controller" ]
       }
     },
+    "/api/v1/webhooks/events" : {
+      "get" : {
+        "description" : "The events a webhook subscription may name, from the declared entities; any other is 422.",
+        "operationId" : "listEvents",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WebhookEventItem"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List webhook events",
+        "tags" : [ "webhook-event-controller" ]
+      }
+    },
     "/api/v1/webhooks/subscriptions" : {
       "get" : {
         "description" : "The webhook subscriptions of the installation.",
@@ -17410,7 +17445,8 @@
           },
           "projectName" : {
             "type" : "string",
-            "readOnly" : true
+            "readOnly" : true,
+            "x-requires" : "tasks.projects.view"
           },
           "reporterId" : {
             "type" : "integer",
@@ -19293,6 +19329,20 @@
           },
           "state" : {
             "$ref" : "#/components/schemas/JsonNode"
+          }
+        }
+      },
+      "WebhookEventItem" : {
+        "type" : "object",
+        "properties" : {
+          "entity" : {
+            "type" : "string"
+          },
+          "form" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
           }
         }
       },

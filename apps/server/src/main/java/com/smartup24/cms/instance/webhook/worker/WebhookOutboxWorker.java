@@ -47,18 +47,21 @@ public class WebhookOutboxWorker {
         this.restClient = RestClient.builder().requestFactory(requestFactory).build();
     }
 
-    /** One signed delivery to the subscription's checked address. */
+    /**
+     * One signed delivery to the subscription's checked address: the signature covers the timestamp and the body
+     * ({@link WebhookService#signature}), so a captured delivery cannot be replayed later under a new timestamp.
+     */
     private org.springframework.http.ResponseEntity<Void> post(WebhookOutboxRepository.OutboxRecord item) {
         var target = targetPolicy.validate(item.targetUrl());
         String payloadJson = objectMapper.writeValueAsString(item.payload());
-        String signature = WebhookService.computeHmacSha256(payloadJson, item.secretToken());
         long timestamp = Instant.now().getEpochSecond();
+        String signature = WebhookService.signature(timestamp, payloadJson, item.secretToken());
         return restClient
                 .post()
                 .uri(target)
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Signature-SHA256", signature)
-                .header("X-Signature-Timestamp", String.valueOf(timestamp))
+                .header(WebhookService.SIGNATURE_HEADER, signature)
+                .header(WebhookService.TIMESTAMP_HEADER, String.valueOf(timestamp))
                 .header("X-Event-Type", item.eventType())
                 .header("X-Delivery-Id", String.valueOf(item.id()))
                 .body(payloadJson)

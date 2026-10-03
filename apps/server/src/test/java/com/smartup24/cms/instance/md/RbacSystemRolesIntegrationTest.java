@@ -54,7 +54,7 @@ class RbacSystemRolesIntegrationTest {
             "KauthAuthController", // the public and session sign-in boundary
             "KauthPasswordController", // changing one's own password, the authentication boundary
             "KauthPasswordResetController", // password reset by a one-time link, the user is not signed in yet
-            "OpenApiController", // the API description, permitAll in SecurityConfig
+            "OpenApiController", // the API description, any signed-in user (SecurityConfig: authenticated)
             "MdI18nController", // public UI dictionaries, no instance or user data
             "ProblemErrorController" // renders the container's own errors as problem+json; carries no data
             );

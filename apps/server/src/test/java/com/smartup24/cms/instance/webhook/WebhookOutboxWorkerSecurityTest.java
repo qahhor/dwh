@@ -1,19 +1,23 @@
 package com.smartup24.cms.instance.webhook;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
 import com.smartup24.cms.instance.webhook.service.WebhookProperties;
+import com.smartup24.cms.instance.webhook.service.WebhookService;
 import com.smartup24.cms.instance.webhook.service.WebhookTargetPolicy;
 import com.smartup24.cms.instance.webhook.worker.WebhookOutboxWorker;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tools.jackson.databind.ObjectMapper;
@@ -143,6 +147,60 @@ class WebhookOutboxWorkerSecurityTest {
                             Mockito.eq("webhook_delivery_failed"),
                             Mockito.eq(false));
             assertThat(elapsedMillis).isLessThan(1_500);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    /** ADR-0032, 6.9: the signature covers the timestamp it is sent with and the body, so a replay is detectable. */
+    @Test
+    void theDeliverySignsTheTimestampAndTheBody() throws Exception {
+        var received = new AtomicReference<String[]>();
+        var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/hook", exchange -> {
+            try (exchange) {
+                String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                received.set(new String[] {
+                    exchange.getRequestHeaders().getFirst(WebhookService.TIMESTAMP_HEADER),
+                    exchange.getRequestHeaders().getFirst(WebhookService.SIGNATURE_HEADER),
+                    body
+                });
+                exchange.sendResponseHeaders(204, -1);
+            }
+        });
+        server.start();
+        try {
+            var repository = Mockito.mock(WebhookOutboxRepository.class);
+            var properties = properties(true, Set.of("127.0.0.1"), true);
+            var item = new WebhookOutboxRepository.OutboxRecord(
+                    21L,
+                    22L,
+                    "notes.updated",
+                    Map.of("id", 42),
+                    "PROCESSING",
+                    0,
+                    5,
+                    Instant.now(),
+                    null,
+                    null,
+                    Instant.now(),
+                    null,
+                    UUID.randomUUID(),
+                    Instant.now(),
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/hook",
+                    "signing-secret");
+            Mockito.when(repository.fetchPending(20)).thenReturn(List.of(item));
+
+            new WebhookOutboxWorker(repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties))
+                    .processWebhooks();
+
+            String[] delivery = received.get();
+            assertThat(delivery).as("the delivery arrived").isNotNull();
+            long timestamp = Long.parseLong(delivery[0]);
+            assertThat(timestamp).isCloseTo(Instant.now().getEpochSecond(), within(60L));
+            assertThat(delivery[1])
+                    .isEqualTo(WebhookService.computeHmacSha256(timestamp + "." + delivery[2], "signing-secret"))
+                    .isNotEqualTo(WebhookService.computeHmacSha256(delivery[2], "signing-secret"));
         } finally {
             server.stop(0);
         }
