@@ -1,6 +1,7 @@
 # Lint of the API description (plan 10/10, items 3.3 and 3.4): docs/api/openapi.json, generated from the controllers.
 # Run: docker run --rm -v "$PWD:/work" -w /work stoplight/spectral:6 lint docs/api/openapi.json
-# The style rules (ADR-0023) hold for current operations; a deprecated one keeps its old form until its x-sunset.
+# The style rules (ADR-0023) hold for current operations. Before the final release no deprecated form exists (old forms
+# are removed at once, ADR-0023 section 5); after it a deprecated one keeps its old form until its x-sunset.
 extends:
   - spectral:oas
 
@@ -30,7 +31,9 @@ rules:
         match: '^(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))*(/entities/[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+)?(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))*(/actions/[a-z][a-z0-9_]*)?$'
 
   smc-query-camel-case:
-    description: A query parameter is camelCase; its snake_case name stays only as a deprecated alias.
+    description: >-
+      A query parameter is camelCase. A deprecated parameter is exempt: after the final release a renamed one may keep
+      its old name until its x-sunset (ADR-0023 section 5; none exists now).
     severity: error
     given: $.paths[*][*].parameters[?(@.in == 'query' && @.deprecated != true)]
     then:
