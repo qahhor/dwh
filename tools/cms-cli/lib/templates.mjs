@@ -432,13 +432,14 @@ export function tableMigration(entity, fields) {
 ${sqlComment(
   `The table of the entity ${entity.code} (tools/cms-cli): names and types by ADR-0020 and ADR-0032, 14.1; a revision ` +
     'every change raises and If-Match names (ADR-0024); custom field values in attributes; the archive keeps who ' +
-    'archived a row and when, and the unique code ignores archived rows (ADR-0032, 5.4). Every foreign key has its index.',
+    'archived a row and when, and the unique code ignores archived rows (ADR-0032, 5.4); the code is lower case by ' +
+    'its check, so the index is on the column itself and also serves importKey("code"). Every foreign key has its index.',
 )}
 create table ${t} (
     ${columns.join(',\n    ')}
 );
 
-create unique index ${t}_code_uq on ${t} (lower(code)) where archived_at is null;
+create unique index ${t}_code_uq on ${t} (code) where archived_at is null;
 ${[...after, `create index ${t}_archived_by_idx on ${t} (archived_by);`, `create index ${t}_created_by_idx on ${t} (created_by);`, `create index ${t}_modified_by_idx on ${t} (modified_by);`].join('\n')}
 `;
 }

@@ -29,6 +29,10 @@
   }, {
     "name" : "example.orders"
   }, {
+    "name" : "example.products"
+  }, {
+    "name" : "example.requests"
+  }, {
     "name" : "form-meta-controller"
   }, {
     "name" : "kauth-api-token-controller"
@@ -1921,6 +1925,1106 @@
         },
         "summary" : "Run unpost on a record",
         "tags" : [ "example.orders" ]
+      }
+    },
+    "/api/v1/entities/example.products" : {
+      "get" : {
+        "description" : "List records of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "listExampleProducts",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "filter",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleProductsPage"
+                }
+              }
+            },
+            "description" : "A page of the list (ADR-0016)"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List records of example.products",
+        "tags" : [ "example.products" ]
+      },
+      "post" : {
+        "description" : "Create a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "createExampleProducts",
+        "parameters" : [ {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExampleProductsCreate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleProductsRecord"
+                }
+              }
+            },
+            "description" : "The created record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a record of example.products",
+        "tags" : [ "example.products" ]
+      }
+    },
+    "/api/v1/entities/example.products/{id}" : {
+      "delete" : {
+        "description" : "Delete a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "deleteExampleProducts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Deleted"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Delete a record of example.products",
+        "tags" : [ "example.products" ]
+      },
+      "get" : {
+        "description" : "Get a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "getExampleProducts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleProductsRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Get a record of example.products",
+        "tags" : [ "example.products" ]
+      },
+      "patch" : {
+        "description" : "Change a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "patchExampleProducts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExampleProductsPatch"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleProductsRecord"
+                }
+              }
+            },
+            "description" : "The changed record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Change a record of example.products",
+        "tags" : [ "example.products" ]
+      }
+    },
+    "/api/v1/entities/example.products/{id}/archived" : {
+      "put" : {
+        "description" : "Archive or restore a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "archiveExampleProducts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EntityArchivedRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleProductsRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Archive or restore a record of example.products",
+        "tags" : [ "example.products" ]
+      }
+    },
+    "/api/v1/entities/example.requests" : {
+      "get" : {
+        "description" : "List records of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "listExampleRequests",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "filter",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleRequestsPage"
+                }
+              }
+            },
+            "description" : "A page of the list (ADR-0016)"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List records of example.requests",
+        "tags" : [ "example.requests" ]
+      },
+      "post" : {
+        "description" : "Create a record of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "createExampleRequests",
+        "parameters" : [ {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExampleRequestsCreate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleRequestsRecord"
+                }
+              }
+            },
+            "description" : "The created record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a record of example.requests",
+        "tags" : [ "example.requests" ]
+      }
+    },
+    "/api/v1/entities/example.requests/{id}" : {
+      "delete" : {
+        "description" : "Delete a record of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "deleteExampleRequests",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Deleted"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Delete a record of example.requests",
+        "tags" : [ "example.requests" ]
+      },
+      "get" : {
+        "description" : "Get a record of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "getExampleRequests",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleRequestsRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Get a record of example.requests",
+        "tags" : [ "example.requests" ]
+      },
+      "patch" : {
+        "description" : "Change a record of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "patchExampleRequests",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExampleRequestsPatch"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleRequestsRecord"
+                }
+              }
+            },
+            "description" : "The changed record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Change a record of example.requests",
+        "tags" : [ "example.requests" ]
+      }
+    },
+    "/api/v1/entities/example.requests/{id}/actions/approve" : {
+      "post" : {
+        "description" : "Run approve on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "approveExampleRequests",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleRequestsRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run approve on a record",
+        "tags" : [ "example.requests" ]
+      }
+    },
+    "/api/v1/entities/example.requests/{id}/actions/recall" : {
+      "post" : {
+        "description" : "Run recall on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "recallExampleRequests",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleRequestsRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run recall on a record",
+        "tags" : [ "example.requests" ]
+      }
+    },
+    "/api/v1/entities/example.requests/{id}/actions/reject" : {
+      "post" : {
+        "description" : "Run reject on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "rejectExampleRequests",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleRequestsRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run reject on a record",
+        "tags" : [ "example.requests" ]
+      }
+    },
+    "/api/v1/entities/example.requests/{id}/actions/submit" : {
+      "post" : {
+        "description" : "Run submit on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.",
+        "operationId" : "submitExampleRequests",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "description" : "The revision the change is made from, as the ETag of the record read",
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExampleRequestsRecord"
+                }
+              }
+            },
+            "description" : "The record",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run submit on a record",
+        "tags" : [ "example.requests" ]
       }
     },
     "/api/v1/entities/md.users" : {
@@ -13212,6 +14316,341 @@
           "total" : {
             "$ref" : "#/components/schemas/EntityMoney",
             "readOnly" : true
+          }
+        },
+        "required" : [ "id", "revision" ]
+      },
+      "ExampleProductsCreate" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "A new record of example.products; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "price" : {
+            "$ref" : "#/components/schemas/EntityMoney"
+          },
+          "unit" : {
+            "type" : "string",
+            "enum" : [ "pcs", "kg", "l" ]
+          }
+        },
+        "required" : [ "code", "name" ]
+      },
+      "ExampleProductsPage" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ExampleProductsRecord"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ExampleProductsPatch" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "The fields to change of a record of example.products; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "price" : {
+            "$ref" : "#/components/schemas/EntityMoney"
+          },
+          "unit" : {
+            "type" : "string",
+            "enum" : [ "pcs", "kg", "l" ]
+          }
+        }
+      },
+      "ExampleProductsRecord" : {
+        "type" : "object",
+        "description" : "A record of example.products as the viewer may read it",
+        "properties" : {
+          "actions" : {
+            "type" : "array",
+            "description" : "What the viewer may do with this record",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "archived" : {
+            "type" : "boolean"
+          },
+          "archivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 1,
+            "readOnly" : true
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "modifiedBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          },
+          "price" : {
+            "$ref" : "#/components/schemas/EntityMoney"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "unit" : {
+            "type" : "string",
+            "enum" : [ "pcs", "kg", "l" ]
+          }
+        },
+        "required" : [ "id", "revision" ]
+      },
+      "ExampleRequestsCreate" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "A new record of example.requests; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "orgUnitId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "productId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "qty" : {
+            "type" : "number",
+            "maximum" : 1000000,
+            "minimum" : 0.001
+          },
+          "resolution" : {
+            "type" : "string",
+            "maxLength" : 2000
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "draft", "submitted", "approved", "rejected" ]
+          },
+          "subject" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          }
+        },
+        "required" : [ "productId", "qty", "subject" ]
+      },
+      "ExampleRequestsPage" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ExampleRequestsRecord"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ExampleRequestsPatch" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "description" : "The fields to change of a record of example.requests; any other property is refused (unknown_field)",
+        "properties" : {
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "orgUnitId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "productId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "qty" : {
+            "type" : "number",
+            "maximum" : 1000000,
+            "minimum" : 0.001
+          },
+          "resolution" : {
+            "type" : "string",
+            "maxLength" : 2000
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "draft", "submitted", "approved", "rejected" ]
+          },
+          "subject" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
+          }
+        }
+      },
+      "ExampleRequestsRecord" : {
+        "type" : "object",
+        "description" : "A record of example.requests as the viewer may read it",
+        "properties" : {
+          "actions" : {
+            "type" : "array",
+            "description" : "What the viewer may do with this record",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "The administrator's custom field values by code"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "readOnly" : true
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "modifiedBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "orgUnitId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "productId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "qty" : {
+            "type" : "number",
+            "maximum" : 1000000,
+            "minimum" : 0.001
+          },
+          "resolution" : {
+            "type" : "string",
+            "maxLength" : 2000
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "draft", "submitted", "approved", "rejected" ],
+            "readOnly" : true
+          },
+          "subject" : {
+            "type" : "string",
+            "maxLength" : 255,
+            "minLength" : 1
           }
         },
         "required" : [ "id", "revision" ]

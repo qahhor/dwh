@@ -30,7 +30,8 @@ Examples:
   cms migration diff --write inventory_items_sync
 `;
 
-const OPTIONS = {
+/** Each command and its options; the docs contract checks the commands the docs name (plan 10/10, item 6.6). */
+export const OPTIONS = {
   'module new': {
     title: { type: 'string' },
     'title-en': { type: 'string' },

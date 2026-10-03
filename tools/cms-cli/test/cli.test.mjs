@@ -10,7 +10,7 @@ import { entityAddField, entityNew, moduleNew } from '../lib/commands.mjs';
 import { addCatalogKeys, addImports, addToSection } from '../lib/edits.mjs';
 import { PATHS, resolve } from '../lib/layout.mjs';
 import { main } from '../lib/main.mjs';
-import { createsTable, hasColumn, manifestHash } from '../lib/migrations.mjs';
+import { createsTable, hasColumn, highestVersion, manifestHash, versionName } from '../lib/migrations.mjs';
 import { entityNames, moduleNames } from '../lib/names.mjs';
 import { Plan } from '../lib/plan.mjs';
 import { diffMigration, sectionLine } from '../lib/templates.mjs';
@@ -32,7 +32,12 @@ const COPIED = [
 ];
 
 let root;
+// The highest migration of the copied manifest: the expected numbers follow it, so a new migration in the repository
+// does not change what these tests expect.
+let base;
 const quiet = () => {};
+/** The version the n-th migration a test writes takes: V<base + n>. */
+const v = (n) => versionName(base + n);
 
 function run(command) {
   const plan = new Plan(root, { eol: '\n' });
@@ -71,6 +76,7 @@ beforeEach(() => {
     fs.mkdirSync(path.dirname(resolve(root, file)), { recursive: true });
     fs.copyFileSync(resolve(repo, file), resolve(root, file));
   }
+  base = Number(highestVersion(root, new Plan(root)));
 });
 
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -134,7 +140,7 @@ describe('cms module new', () => {
     const parts = read(`${PATHS.serverJava}/ms/probe/service/MsProbePartsEntity.java`);
     assert.match(parts, /\.table\("prb_parts", "t"\)/);
     assert.match(parts, /new EntityMenu\("nav\.probe_parts", "package", "workspace", 100, "probe"\)/);
-    const rights = read(`${PATHS.migrations}/V198__prb_items_rights.sql`);
+    const rights = read(`${PATHS.migrations}/${v(2)}__prb_items_rights.sql`);
     assert.match(rights, /insert into md_installed_modules \(code, name, description, icon, route,/);
     assert.match(rights, /\('probe', 'Склад', 'Склад', 'package', '\/e\/probe\.items'/);
   });
@@ -159,18 +165,18 @@ describe('cms entity new', () => {
     assert.match(read(`${PATHS.serverJava}/inventory/service/InventoryItemsHooks.java`), /implements EntityHooks/);
     assert.match(read(`${PATHS.serverTest}/inventory/InventoryItemsContractTest.java`), /extends EntityContractTestKit/);
 
-    const table = read(`${PATHS.migrations}/V197__inventory_items_table.sql`);
+    const table = read(`${PATHS.migrations}/${v(1)}__inventory_items_table.sql`);
     assert.match(table, /^set lock_timeout = '2s';\nset statement_timeout = '60s';\n/);
     assert.match(table, /revision bigint not null default 1/);
     assert.match(table, /archived_by bigint constraint inventory_items_fk_archived_by references md_users \(id\)/);
-    assert.match(table, /inventory_items_code_uq on inventory_items \(lower\(code\)\) where archived_at is null/);
-    const rights = read(`${PATHS.migrations}/V198__inventory_items_rights.sql`);
+    assert.match(table, /inventory_items_code_uq on inventory_items \(code\) where archived_at is null/);
+    const rights = read(`${PATHS.migrations}/${v(2)}__inventory_items_rights.sql`);
     assert.match(rights, /\('inventory\.items', 'inventory', 'Товары'\)/);
     assert.match(rights, /'\/e\/inventory\.items'/);
 
     const manifest = read(PATHS.manifest);
-    assert.ok(manifest.includes(`${manifestHash(table)}  db/migration/V197__inventory_items_table.sql`));
-    assert.ok(manifest.includes(`${manifestHash(rights)}  db/migration/V198__inventory_items_rights.sql`));
+    assert.ok(manifest.includes(`${manifestHash(table)}  db/migration/${v(1)}__inventory_items_table.sql`));
+    assert.ok(manifest.includes(`${manifestHash(rights)}  db/migration/${v(2)}__inventory_items_rights.sql`));
     for (const language of ['ru', 'uz', 'en']) {
       const catalog = JSON.parse(read(`${PATHS.catalogs}/${language}.json`));
       assert.ok(catalog['nav.inventory_items'] && catalog['inventory.items.rights.delete'], language);
@@ -211,10 +217,19 @@ describe('cms entity new', () => {
   });
 
   test('an explicit version is used, and one at or below the highest is refused', () => {
-    run((plan) => entityNew(plan, 'inventory', 'items', { ...ENTITY, version: 'V210' }));
-    assert.ok(exists(`${PATHS.migrations}/V210__inventory_items_table.sql`));
-    assert.ok(exists(`${PATHS.migrations}/V211__inventory_items_rights.sql`));
-    assert.throws(() => run((plan) => entityNew(plan, 'inventory', 'parts', { ...ENTITY, version: 'V200' })), /not above/);
+    run((plan) => entityNew(plan, 'inventory', 'items', { ...ENTITY, version: v(14) }));
+    assert.ok(exists(`${PATHS.migrations}/${v(14)}__inventory_items_table.sql`));
+    assert.ok(exists(`${PATHS.migrations}/${v(15)}__inventory_items_rights.sql`));
+    assert.throws(() => run((plan) => entityNew(plan, 'inventory', 'parts', { ...ENTITY, version: v(4) })), /not above/);
+  });
+
+  test('the next number follows the highest pinned in the manifest, released or not on disk', () => {
+    const manifest = resolve(root, PATHS.manifest);
+    fs.appendFileSync(manifest, `${'0'.repeat(64)}  db/migration/${v(40)}__released_elsewhere.sql
+`);
+    run((plan) => entityNew(plan, 'inventory', 'items', ENTITY));
+    assert.ok(exists(`${PATHS.migrations}/${v(41)}__inventory_items_table.sql`));
+    assert.ok(exists(`${PATHS.migrations}/${v(42)}__inventory_items_rights.sql`));
   });
 
   test('an unknown module is refused', () => {
@@ -237,7 +252,7 @@ describe('cms entity add-field', () => {
     // At most 98 characters: one line, as palantir keeps it.
     assert.match(text, /\n {12}\.field\(date\("dueOn", "inventory\.items\.col\.due_on"\)\.column\("due_on"\)\.list\(sortable\(\)\)\)\n/);
     assert.match(text, /\.section\("main", "entity\.section\.main", "name", "code", "dueOn"\)/);
-    assert.match(read(`${PATHS.migrations}/V199__inventory_items_due_on.sql`), /alter table inventory_items\n {4}add column due_on date;/);
+    assert.match(read(`${PATHS.migrations}/${v(3)}__inventory_items_due_on.sql`), /alter table inventory_items\n {4}add column due_on date;/);
     assert.equal(JSON.parse(read(`${PATHS.catalogs}/ru.json`))['inventory.items.col.due_on'], 'Срок');
     assert.equal(JSON.parse(read(`${PATHS.catalogs}/en.json`))['inventory.items.col.due_on'], 'Due on');
   });
@@ -251,9 +266,9 @@ describe('cms entity add-field', () => {
     assert.match(text, /\nimport java\.util\.List;\nimport java\.util\.Map;\n/);
     assert.match(text, /\.money\("price_amount", "price_currency"\)/);
     assert.match(text, /\.target\("inventory\.items", "name"\)/);
-    assert.match(read(`${PATHS.migrations}/V199__inventory_items_stage.sql`), /check \(stage in \('draft', 'ready'\)\)/);
-    assert.match(read(`${PATHS.migrations}/V200__inventory_items_price.sql`), /price_currency text constraint/);
-    const ref = read(`${PATHS.migrations}/V201__inventory_items_parent.sql`);
+    assert.match(read(`${PATHS.migrations}/${v(3)}__inventory_items_stage.sql`), /check \(stage in \('draft', 'ready'\)\)/);
+    assert.match(read(`${PATHS.migrations}/${v(4)}__inventory_items_price.sql`), /price_currency text constraint/);
+    const ref = read(`${PATHS.migrations}/${v(5)}__inventory_items_parent.sql`);
     assert.match(ref, /parent_id bigint constraint inventory_items_fk_parent references inventory_items \(id\)/);
     assert.match(ref, /create index inventory_items_parent_id_idx on inventory_items \(parent_id\);/);
     assert.ok(JSON.parse(read(`${PATHS.catalogs}/uz.json`))['inventory.items.stage.ready']);
@@ -262,7 +277,7 @@ describe('cms entity add-field', () => {
   test('a required field is required on the form and nullable in the added column', () => {
     run((plan) => entityAddField(plan, 'inventory.items', 'amount', { type: 'number', required: true, 'no-sync': true }));
     assert.match(read(declarationFile()), /\.column\("amount"\)\n\s+\.required\(\)\n\s+\.scale\(2\)/);
-    const sql = read(`${PATHS.migrations}/V199__inventory_items_amount.sql`);
+    const sql = read(`${PATHS.migrations}/${v(3)}__inventory_items_amount.sql`);
     assert.match(sql, /add column amount numeric\(19, 2\);/);
     assert.match(sql, /-- amount is required on the form/);
   });

@@ -76,7 +76,12 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   запуск ничего не меняет, правки рукой не перезаписываются. Результат проверяет
   `scripts/dev/test-cms-cli.ps1` / `tools/cms-cli/scripts/smoke.mjs` (nightly на
   ubuntu и windows), тесты CLI — `npm test` в `tools/cms-cli` (ci).
-- **Эталон:** модуль заметок (`ms/note`, `features/notes`).
+- **Эталоны и cookbook** (план 10/10, пункт 6.6): [docs/cookbook](cookbook/README.md)
+  — рецепт на задачу; эталоны модуля `example` (выключен в поставке):
+  справочник `example.products`, документ со строками `example.orders`,
+  документ со статусами `example.requests` (хуки, право на поле); модуль вне
+  монорепо — `examples/external-module`; свой экран — заметки (`features/notes`).
+  Контракт документации — `node scripts/docs/test-docs-contract.mjs` (ci).
 
 ## 5. Инварианты
 
@@ -138,6 +143,8 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   `scripts/architecture/test-unified-boundaries.ps1`.
 - CLI `cms`: `npm test` в `tools/cms-cli`; сгенерированный модуль целиком —
   `scripts/dev/test-cms-cli.ps1` (`-SkipBuild` — без сборки Maven).
+- Контракт документации (cookbook и руководство по модулям): `node --test
+  scripts/docs/docs-contract.test.mjs` и `node scripts/docs/test-docs-contract.mjs`.
 - Локальный запуск из исходников (план 10/10, пункт 6.5):
   `scripts/dev/run-local.sh` / `scripts/dev/run-local.ps1` (`up`, `migrate`,
   `down`, `status`; `--demo`, `--detach`, `--devtools`, `--search`; порты из
@@ -154,7 +161,10 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 Фазы 0–5 [плана 10/10](plan-10-10.md) выполнены и влиты в main; из фазы 6
 выполнены 6.1–6.5 (ветка интеграции `claude/p6-int2` поверх main `01794bf7`,
-2026-10-03). **Следующее — 6.6** (cookbook и три эталонных модуля), затем фаза 7.
+2026-10-03); 6.6 (cookbook, эталонные модули, CODE_STYLE и ADR-0012 по коду) —
+в ветке `claude/p6-cookbook`. Фаза 6 выполнена. **Следующее — фаза 7**
+(эксплуатация и безопасность production: структурные логи, трейсинг, метрики и
+SLO, заголовки nginx, сессии, threat model, DAST, хранилище pg-dwh).
 Правила для всех AI-ассистентов — в [`AGENTS.md`](../AGENTS.md), карта модулей —
 в [module-map.md](architecture/module-map.md).
 
@@ -176,6 +186,12 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 - **Фаза 6, 6.1:** CLI `cms` (`tools/cms-cli`) заменил `create-module.ps1`;
   генерирует под контракт 6.3/6.4. Проверки — `node --test` в `tools/cms-cli`,
   `scripts/dev/test-cms-cli.ps1`.
+- **Фаза 6, 6.6:** [cookbook](cookbook/README.md) — 17 рецептов на эталонах
+  `example.products`, `example.orders`, `example.requests` (V197, V198) и
+  `examples/external-module`; фрагменты кода сверяет с файлами
+  `scripts/docs/test-docs-contract.mjs`. Кит выдаёт `view` на цели ссылок и
+  снимает с «пользователя без прав полей» права полей, даже если это действия
+  формы. Тесты CLI считают номер миграции от манифеста.
 - **Фаза 6, 6.5:** `make dev`, `scripts/dev/run-local.{sh,ps1}`, профиль
   `demo`, `.devcontainer`, `.editorconfig`, ночной job `onboarding`. Очередь
   заданий тикает только после `ApplicationReadyEvent` (гонка с созданием

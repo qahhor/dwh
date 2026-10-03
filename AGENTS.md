@@ -15,7 +15,10 @@ anything every assistant must know belongs in this file or in `docs/`.
 2. [`docs/plan-10-10.md`](docs/plan-10-10.md) — the quality roadmap: phases,
    items, acceptance criteria, what is done and what is next.
 3. [`docs/README.md`](docs/README.md) — the documentation index and its
-   authority order; [`CODE_STYLE.md`](CODE_STYLE.md) — the code rules.
+   authority order; [`CODE_STYLE.md`](CODE_STYLE.md) — the code rules;
+   [`docs/cookbook`](docs/cookbook/README.md) — recipes for module tasks on
+   tested reference modules (change a reference module, then its recipe:
+   `node scripts/docs/test-docs-contract.mjs`).
 4. `git status --short --branch` — preserve unrelated dirty work.
 
 The handoff never overrides the canonical technical specification
@@ -97,7 +100,9 @@ The full list with commands is in `docs/ai-context.md` §6. In short:
   on a fresh Compose stack, both shards (`-Shard 1/2`, `-Shard 2/2`).
 - API contract: `scripts/api/test-api-contract.ps1 -BaseRef main`.
 - Repository: `scripts/docs/test-repository-hygiene.ps1`,
-  `scripts/docs/test-public-docs.ps1`; secrets: gitleaks over the branch's
+  `scripts/docs/test-public-docs.ps1`, the docs contract
+  (`node --test scripts/docs/docs-contract.test.mjs`,
+  `node scripts/docs/test-docs-contract.mjs`); secrets: gitleaks over the branch's
   commits (`gitleaks git --log-opts="main..HEAD"`).
 - Developer CLI (`tools/cms-cli`): `npm test` there; after changing the CLI or
   what it generates, `scripts/dev/test-cms-cli.ps1` (generates a module in a
