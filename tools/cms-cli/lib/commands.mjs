@@ -90,7 +90,7 @@ export function entityNew(plan, moduleCode, entityName, values) {
       '-Dsurefire.failIfNoSpecifiedTests=false',
   );
   plan.note(`API description: mvnw -B -pl apps/server test -Dtest=OpenApiContractTest -Dopenapi.update=true; then npm run api:types in apps/web`);
-  plan.note(`open ${entity.route} after the migration (scripts/dev/run-local or the Compose stack); the screen is generic`);
+  plan.note(`open ${entity.route} once the server runs the migration (Compose: docker compose build server, docker compose run --rm migrate, docker compose up -d); the screen is generic`);
   plan.note(`after the first mvn verify set the floor of ${module.code} in ${PATHS.coverageFloors} to the measured value`);
   return entity;
 }
