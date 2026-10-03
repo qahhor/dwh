@@ -93,10 +93,7 @@ final class KitSearchChecks {
 
     private Searchers searchers() {
         TestUsers users = TestUsers.of(world.wac);
-        Map<String, Set<String>> rights = new TreeMap<>(world.entityRights());
-        world.fieldRights()
-                .forEach((form, actions) ->
-                        rights.computeIfAbsent(form, ignored -> new TreeSet<>()).addAll(actions));
+        Map<String, Set<String>> rights = new TreeMap<>(world.fullRights());
         rights.computeIfAbsent(SEARCH, ignored -> new TreeSet<>()).add("view");
         TestUser owner = users.withRights(rights, users.unit("kit-search-a"));
         TestUser outsider = users.withRights(rights, users.unit("kit-search-b"));

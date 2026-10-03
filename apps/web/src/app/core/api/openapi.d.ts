@@ -600,6 +600,210 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entities/example.products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List records of example.products
+         * @description List records of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["listExampleProducts"];
+        put?: never;
+        /**
+         * Create a record of example.products
+         * @description Create a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["createExampleProducts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/example.products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a record of example.products
+         * @description Get a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["getExampleProducts"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a record of example.products
+         * @description Delete a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        delete: operations["deleteExampleProducts"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a record of example.products
+         * @description Change a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        patch: operations["patchExampleProducts"];
+        trace?: never;
+    };
+    "/api/v1/entities/example.products/{id}/archived": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Archive or restore a record of example.products
+         * @description Archive or restore a record of example.products through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        put: operations["archiveExampleProducts"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/example.requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List records of example.requests
+         * @description List records of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["listExampleRequests"];
+        put?: never;
+        /**
+         * Create a record of example.requests
+         * @description Create a record of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["createExampleRequests"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/example.requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a record of example.requests
+         * @description Get a record of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        get: operations["getExampleRequests"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a record of example.requests
+         * @description Delete a record of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        delete: operations["deleteExampleRequests"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a record of example.requests
+         * @description Change a record of example.requests through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        patch: operations["patchExampleRequests"];
+        trace?: never;
+    };
+    "/api/v1/entities/example.requests/{id}/actions/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run approve on a record
+         * @description Run approve on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["approveExampleRequests"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/example.requests/{id}/actions/recall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run recall on a record
+         * @description Run recall on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["recallExampleRequests"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/example.requests/{id}/actions/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run reject on a record
+         * @description Run reject on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["rejectExampleRequests"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/example.requests/{id}/actions/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run submit on a record
+         * @description Run submit on a record through the general entity runtime (ADR-0032); the entity's rights and its data scope are checked, a record outside the scope answers 404.
+         */
+        post: operations["submitExampleRequests"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/entities/md.users": {
         parameters: {
             query?: never;
@@ -3983,6 +4187,143 @@ export interface components {
             readonly status?: "draft" | "posted" | "cancelled";
             readonly total?: components["schemas"]["EntityMoney"];
         };
+        /** @description A new record of example.products; any other property is refused (unknown_field) */
+        ExampleProductsCreate: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            code: string;
+            name: string;
+            price?: components["schemas"]["EntityMoney"];
+            /** @enum {string} */
+            unit?: "pcs" | "kg" | "l";
+        };
+        ExampleProductsPage: {
+            hasMore?: boolean;
+            items?: components["schemas"]["ExampleProductsRecord"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        /** @description The fields to change of a record of example.products; any other property is refused (unknown_field) */
+        ExampleProductsPatch: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            code?: string;
+            name?: string;
+            price?: components["schemas"]["EntityMoney"];
+            /** @enum {string} */
+            unit?: "pcs" | "kg" | "l";
+        };
+        /** @description A record of example.products as the viewer may read it */
+        ExampleProductsRecord: {
+            /** @description What the viewer may do with this record */
+            actions?: string[];
+            archived?: boolean;
+            /** Format: date-time */
+            archivedAt?: string;
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            readonly code?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            modifiedAt?: string;
+            /** Format: int64 */
+            modifiedBy?: number;
+            name?: string;
+            price?: components["schemas"]["EntityMoney"];
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            unit?: "pcs" | "kg" | "l";
+        };
+        /** @description A new record of example.requests; any other property is refused (unknown_field) */
+        ExampleRequestsCreate: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            decidedAt?: string;
+            /** Format: int64 */
+            orgUnitId?: number;
+            /** Format: int64 */
+            productId: number;
+            qty: number;
+            resolution?: string;
+            /** @enum {string} */
+            status?: "draft" | "submitted" | "approved" | "rejected";
+            subject: string;
+        };
+        ExampleRequestsPage: {
+            hasMore?: boolean;
+            items?: components["schemas"]["ExampleRequestsRecord"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        /** @description The fields to change of a record of example.requests; any other property is refused (unknown_field) */
+        ExampleRequestsPatch: {
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            decidedAt?: string;
+            /** Format: int64 */
+            orgUnitId?: number;
+            /** Format: int64 */
+            productId?: number;
+            qty?: number;
+            resolution?: string;
+            /** @enum {string} */
+            status?: "draft" | "submitted" | "approved" | "rejected";
+            subject?: string;
+        };
+        /** @description A record of example.requests as the viewer may read it */
+        ExampleRequestsRecord: {
+            /** @description What the viewer may do with this record */
+            actions?: string[];
+            /** @description The administrator's custom field values by code */
+            attributes?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            /** Format: date-time */
+            readonly decidedAt?: string;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            modifiedAt?: string;
+            /** Format: int64 */
+            modifiedBy?: number;
+            /** Format: int64 */
+            orgUnitId?: number;
+            /** Format: int64 */
+            productId?: number;
+            qty?: number;
+            resolution?: string;
+            /** Format: int64 */
+            revision: number;
+            /** @enum {string} */
+            readonly status?: "draft" | "submitted" | "approved" | "rejected";
+            subject?: string;
+        };
         ExportItem: {
             /** Format: date-time */
             createdAt?: string;
@@ -6985,6 +7326,730 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExampleOrdersRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    listExampleProducts: {
+        parameters: {
+            query?: {
+                q?: string;
+                filter?: string;
+                sort?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the list (ADR-0016) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleProductsPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createExampleProducts: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExampleProductsCreate"];
+            };
+        };
+        responses: {
+            /** @description The created record */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleProductsRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    getExampleProducts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleProductsRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    deleteExampleProducts: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    patchExampleProducts: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExampleProductsPatch"];
+            };
+        };
+        responses: {
+            /** @description The changed record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleProductsRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    archiveExampleProducts: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityArchivedRequest"];
+            };
+        };
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleProductsRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    listExampleRequests: {
+        parameters: {
+            query?: {
+                q?: string;
+                filter?: string;
+                sort?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the list (ADR-0016) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleRequestsPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createExampleRequests: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExampleRequestsCreate"];
+            };
+        };
+        responses: {
+            /** @description The created record */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleRequestsRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    getExampleRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleRequestsRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    deleteExampleRequests: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    patchExampleRequests: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExampleRequestsPatch"];
+            };
+        };
+        responses: {
+            /** @description The changed record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleRequestsRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    approveExampleRequests: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleRequestsRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    recallExampleRequests: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleRequestsRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    rejectExampleRequests: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleRequestsRecord"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    submitExampleRequests: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The revision the change is made from, as the ETag of the record read */
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExampleRequestsRecord"];
                 };
             };
             /** @description The record changed since the revision named in If-Match */

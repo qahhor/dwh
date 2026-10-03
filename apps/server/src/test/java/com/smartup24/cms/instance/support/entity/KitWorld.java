@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
+import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.TestUsers;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
@@ -92,12 +93,44 @@ final class KitWorld {
         TestUsers users = TestUsers.of(wac);
         long unitA = users.unit("kit-a");
         long unitB = users.unit("kit-b");
-        Map<String, Set<String>> full = merge(entityRights(), fieldRights());
+        Map<String, Set<String>> full = fullRights();
         owner = users.withRights(full, unitA);
         outsider = users.withRights(full, unitB);
         viewer = users.withRights(Map.of(entity.form(), Set.of("view")), unitA);
         stranger = users.withRights(Map.of(), unitA);
-        plain = fieldRights().isEmpty() ? null : users.withRights(entityRights(), unitA);
+        plain = fieldRights().isEmpty() ? null : users.withRights(plainRights(), unitA);
+    }
+
+    /** The rights of a user without the field rights: a field may need an action of the entity itself. */
+    private Map<String, Set<String>> plainRights() {
+        Map<String, Set<String>> rights = merge(entityRights(), referenceRights());
+        fieldRights().forEach((form, actions) -> {
+            Set<String> held = rights.get(form);
+            if (held == null) return;
+            held.removeAll(actions);
+            held.add("view");
+        });
+        return rights;
+    }
+
+    /** The rights of the kit's owner: the entity's, its fields' and its references'. */
+    Map<String, Set<String>> fullRights() {
+        return merge(merge(entityRights(), fieldRights()), referenceRights());
+    }
+
+    /**
+     * {@code view} of each other entity a reference names (ADR-0032, 4.6): a new value must be a row its author sees, so
+     * the record of a fixture that names one is written by users who see the target.
+     */
+    Map<String, Set<String>> referenceRights() {
+        EntityRegistry registry = wac.getBean(EntityRegistry.class);
+        Map<String, Set<String>> rights = new TreeMap<>();
+        for (EntityField field : model.fields()) {
+            String target = field.options().target();
+            if (target == null || target.equals(entity.code())) continue;
+            registry.find(target).ifPresent(other -> rights.put(other.form(), Set.of("view")));
+        }
+        return rights;
     }
 
     /** The entity's right: {@code view}, the right of every declared action and {@code import} of an importable one. */
