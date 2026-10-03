@@ -151,7 +151,7 @@ class ConstraintErrorModelTest {
         mvc.perform(get("/fnd/warehouse"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("service_unavailable"))
-                .andExpect(jsonPath("$.messageKey").value("error.warehouse.dwh_unavailable"));
+                .andExpect(jsonPath("$.messageKey").value(WarehouseError.DWH_UNAVAILABLE.messageKey()));
     }
 
     @Test

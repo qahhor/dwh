@@ -145,7 +145,7 @@ $oldNameTokens = @(
     [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/config/system/ReadinessGroupIntegrationTest\.java$'; Token = '"dwh"'; Reason = 'health component of the warehouse, declared in fnd' },
     [pscustomobject]@{ Path = '^apps/server/src/'; Token = 'WarehouseError\.DWH_(READ_FORBIDDEN|UNAVAILABLE)'; Reason = 'error codes of the warehouse module' },
     # i18n keys and texts about the warehouse.
-    [pscustomobject]@{ Path = '^apps/server/src/main/resources/i18n/|^apps/web/src/app/core/i18n/|^apps/web/src/app/features/(iam/roles|tasks/projects)/'; Token = 'error\.fnd\.dwh_(read_forbidden|unavailable)|\bDWH\b'; Reason = 'the warehouse (and a sample project name) in UI texts' },
+    [pscustomobject]@{ Path = '^apps/server/src/main/resources/i18n/|^apps/web/src/app/core/i18n/|^apps/web/src/app/features/(iam/roles|tasks/projects)/'; Token = 'error\.warehouse\.dwh_(read_forbidden|unavailable)|\bDWH\b'; Reason = 'the warehouse (and a sample project name) in UI texts' },
     [pscustomobject]@{ Path = '^apps/web/scripts/i18n-key-renames\.json$|^apps/server/src/main/resources/db/migration/V156__[a-z0-9_]+\.sql$'; Token = '\b[a-z]+\.[a-z_]*dwh[a-z_]*\b'; Reason = 'old translation keys renamed by item 4.5: the mapping and its migration' },
     # Documents that describe the history of a renamed property or problem type.
     [pscustomobject]@{ Path = '^docs/'; Token = '\b(app\.)?dwh\.[a-z][a-z.-]*|api\.dwh\.internal'; Reason = 'old property names and problem type in documents about their history' },
