@@ -23,6 +23,11 @@ public enum JobError implements ConstraintCode {
     }
 
     @Override
+    public String module() {
+        return "jobs";
+    }
+
+    @Override
     public Optional<String> constraintName() {
         return Optional.of(constraintName);
     }

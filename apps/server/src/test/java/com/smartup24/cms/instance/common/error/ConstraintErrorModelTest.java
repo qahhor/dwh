@@ -38,8 +38,8 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Plan 10/10, item 3.1: the foundation exceptions are part of the single error model. Every
- * {@link ConstraintCode} carries a response code and the key {@code error.fnd.<code>} whose text exists in
- * ru, en and uz; the handler answers with problem+json, not 500.
+ * {@link ConstraintCode} carries a response code and the key {@code error.<module>.<code>} of the module that
+ * declares it (ADR-0030), whose text exists in ru, en and uz; the handler answers with problem+json, not 500.
  */
 class ConstraintErrorModelTest {
 
@@ -51,17 +51,23 @@ class ConstraintErrorModelTest {
             .build();
 
     @Test
-    @DisplayName("3.1: каждый код основы — ключ error.fnd.<код>, текст есть в ru, en, uz")
+    @DisplayName("3.1: каждый код — ключ error.<модуль-владелец>.<код>, текст есть в ru, en, uz")
     void everyCodeHasItsTextInEveryCatalog() {
         List<String> keys = new ArrayList<>();
         for (ConstraintCode code : ConstraintCodeCatalog.all()) {
-            assertThat(code.messageKey()).isEqualTo("error.fnd." + code.code());
+            String owner = ((Enum<?>) code).getDeclaringClass().getPackageName();
+            assertThat(owner)
+                    .as("the key names the module of the enum: " + code.messageKey())
+                    .isIn(
+                            "com.smartup24.cms.instance." + code.module() + ".api",
+                            "com.smartup24.cms.instance.common." + code.module());
+            assertThat(code.messageKey()).isEqualTo("error." + code.module() + "." + code.code());
             assertThat(ApiException.MESSAGE_KEY.matcher(code.messageKey()).matches())
                     .as(code.messageKey())
                     .isTrue();
             keys.add(code.messageKey());
         }
-        keys.add("error.fnd.coefficient_missing");
+        keys.add("error.units.coefficient_missing");
 
         Map<String, Map<String, String>> catalogs =
                 Map.of("ru", catalog("ru"), "en", catalog("en"), "uz", catalog("uz"));
@@ -72,6 +78,11 @@ class ConstraintErrorModelTest {
                 assertThat(text).as(catalog.getKey() + ": " + key).isNotBlank();
                 assertThat(placeholders(text)).as(catalog.getKey() + ": " + key).isEqualTo(russian);
             }
+        }
+        for (var catalog : catalogs.entrySet()) {
+            assertThat(catalog.getValue().keySet())
+                    .as(catalog.getKey() + ": the former foundation family is gone (ADR-0030)")
+                    .noneMatch(key -> key.startsWith("error.fnd."));
         }
     }
 
@@ -106,7 +117,7 @@ class ConstraintErrorModelTest {
         assertThat(e).isInstanceOf(ApiException.class);
         assertThat(e.code()).isEqualTo(UnitError.FND_UNITS_UK_CODE);
         assertThat(e.getErrorCode()).isEqualTo(ErrorCode.CODE_ALREADY_EXISTS);
-        assertThat(e.getMessageKey()).isEqualTo("error.fnd.fnd_units_uk_code");
+        assertThat(e.getMessageKey()).isEqualTo("error.units.fnd_units_uk_code");
         assertThat(e.getCause()).isSameAs(sql);
         assertThat(new StaleVersionException().code()).isEqualTo(VersionError.STALE_VERSION);
     }
@@ -118,7 +129,7 @@ class ConstraintErrorModelTest {
                 .andExpect(status().isConflict())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("conflict"))
-                .andExpect(jsonPath("$.messageKey").value("error.fnd.stale_version"))
+                .andExpect(jsonPath("$.messageKey").value("error.versioning.stale_version"))
                 .andExpect(jsonPath("$.detail")
                         .value("Запись уже изменена другим пользователем. Обновите данные и повторите"));
     }
@@ -129,7 +140,7 @@ class ConstraintErrorModelTest {
         mvc.perform(get("/fnd/constraint"))
                 .andExpect(status().is(422))
                 .andExpect(jsonPath("$.code").value("validation_failed"))
-                .andExpect(jsonPath("$.messageKey").value("error.fnd.fnd_loads_ck_period"))
+                .andExpect(jsonPath("$.messageKey").value("error.warehouse.fnd_loads_ck_period"))
                 .andExpect(jsonPath("$.detail").value("Начало периода загрузки позже его конца"))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("SQL"))));
     }
@@ -140,7 +151,7 @@ class ConstraintErrorModelTest {
         mvc.perform(get("/fnd/warehouse"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("service_unavailable"))
-                .andExpect(jsonPath("$.messageKey").value("error.fnd.dwh_unavailable"));
+                .andExpect(jsonPath("$.messageKey").value("error.warehouse.dwh_unavailable"));
     }
 
     @Test
@@ -148,7 +159,7 @@ class ConstraintErrorModelTest {
     void coefficientMissingIs409WithParams() throws Exception {
         mvc.perform(get("/fnd/coefficient"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.messageKey").value("error.fnd.coefficient_missing"))
+                .andExpect(jsonPath("$.messageKey").value("error.units.coefficient_missing"))
                 .andExpect(jsonPath("$.params.from").value("kg"))
                 .andExpect(jsonPath("$.params.to").value("t"))
                 .andExpect(jsonPath("$.params.date").value("2026-01-01"))

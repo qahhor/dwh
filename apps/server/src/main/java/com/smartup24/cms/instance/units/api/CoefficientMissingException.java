@@ -9,7 +9,7 @@ import java.util.Map;
  * There is no coefficient for the date: the conversion is not performed and no value is returned in any form,
  * because a value "from memory" (a guessed or stale factor) is forbidden. An inverse coefficient or a chain of
  * coefficients is never derived instead. The API answers with a conflict against the unit reference data, with the
- * text {@code error.fnd.coefficient_missing}.
+ * text {@code error.units.coefficient_missing}.
  */
 public class CoefficientMissingException extends ApiException {
 
@@ -20,7 +20,7 @@ public class CoefficientMissingException extends ApiException {
     public CoefficientMissingException(String fromUnit, String toUnit, LocalDate date) {
         super(
                 ErrorCode.CONFLICT,
-                "error.fnd.coefficient_missing",
+                "error.units.coefficient_missing",
                 Map.of("from", String.valueOf(fromUnit), "to", String.valueOf(toUnit), "date", String.valueOf(date)));
         this.fromUnit = fromUnit;
         this.toUnit = toUnit;

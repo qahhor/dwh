@@ -55,7 +55,7 @@ const HASH_SUFFIX = /_(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{6,}$/;
 export const WORD_ALLOWLIST = new Map([
   ['ne', 'the "not equal" filter operator (ui.filter.op.ne)'],
   ['stat', 'short for statistic (modules.stat.*, nav.settings.stat_*)'],
-  ['sha', 'the hash algorithm in a constraint name (error.fnd.fnd_load_log_ck_file_sha)'],
+  ['sha', 'the hash algorithm in a constraint name (error.warehouse.fnd_load_log_ck_file_sha)'],
   ['uz', 'a language code'],
   ['ru', 'a language code'],
   ['en', 'a language code'],
