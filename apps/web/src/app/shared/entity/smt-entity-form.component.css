@@ -1,0 +1,31 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.entity-section {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.entity-section-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 8px;
+  padding: 0;
+}
+.entity-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.entity-field {
+  min-width: 0;
+}
+.entity-field--wide {
+  grid-column: 1 / -1;
+}
+.entity-json {
+  font-family: var(--font-mono, monospace);
+}

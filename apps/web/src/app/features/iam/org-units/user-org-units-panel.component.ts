@@ -35,6 +35,7 @@ import {
   scopeRuleKey,
   unsafeIdProblem,
 } from './org-unit-assignments';
+import { OrgUnitRead } from './org-unit-read';
 import { OrgUnitsApiService } from './org-units.api';
 import { OrgUnit, UserScope } from './org-units.models';
 
@@ -76,15 +77,18 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   readonly legacyOrgUnitId = signal<number | null>(null);
   readonly effectiveScope = signal<UserScope | null>(null);
   readonly pending = signal(false);
-  readonly treeLoading = signal(false);
-  readonly treeLoaded = signal(false);
-  readonly treeError = signal<ProblemDetail | null>(null);
-  readonly assignmentsLoading = signal(false);
-  readonly assignmentsLoaded = signal(false);
-  readonly assignmentsError = signal<ProblemDetail | null>(null);
-  readonly scopeLoading = signal(false);
-  readonly scopeLoaded = signal(false);
-  readonly scopeError = signal<ProblemDetail | null>(null);
+  private readonly treeRead = new OrgUnitRead(() => this.changeDetector.markForCheck());
+  private readonly assignmentsRead = new OrgUnitRead(() => this.changeDetector.markForCheck());
+  private readonly scopeRead = new OrgUnitRead(() => this.changeDetector.markForCheck());
+  readonly treeLoading = this.treeRead.loading;
+  readonly treeLoaded = this.treeRead.loaded;
+  readonly treeError = this.treeRead.error;
+  readonly assignmentsLoading = this.assignmentsRead.loading;
+  readonly assignmentsLoaded = this.assignmentsRead.loaded;
+  readonly assignmentsError = this.assignmentsRead.error;
+  readonly scopeLoading = this.scopeRead.loading;
+  readonly scopeLoaded = this.scopeRead.loaded;
+  readonly scopeError = this.scopeRead.error;
   readonly saveError = signal<ProblemDetail | null>(null);
   readonly savedRefreshFailed = signal(false);
   private readonly originalOrgUnitIds = signal<readonly number[]>([]);
@@ -97,9 +101,6 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   readonly emptyScopeKey = computed(() => emptyScopeKey(this.effectiveScope()));
 
   private readonly writes = new Subscription();
-  private treeRequest?: Subscription;
-  private assignmentsRequest?: Subscription;
-  private scopeRequest?: Subscription;
   private activeTarget: number | null = null;
   private deferredTarget: number | null = null;
   private viewEpoch = 0;
@@ -224,45 +225,26 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     const target = this.activeTarget;
     if (!this.can('view') || this.pending() || target === null || !safeNumericRecordId(target)) return;
     const epoch = this.viewEpoch;
-    this.treeRequest?.unsubscribe();
-    this.treeLoading.set(true);
-    this.treeLoaded.set(false);
-    this.treeError.set(null);
-    this.treeRequest = this.api.list().subscribe({
-      next: (units) => {
-        if (!this.currentView(epoch, target)) return;
+    this.treeRead.start(
+      this.api.list(),
+      () => this.currentView(epoch, target),
+      (units) => {
         this.units.set(units);
-        this.treeLoading.set(false);
         this.treeLoaded.set(true);
-        this.changeDetector.markForCheck();
       },
-      error: (error) => {
-        if (this.currentView(epoch, target)) {
-          this.treeLoading.set(false);
-          this.treeLoaded.set(false);
-          this.treeError.set(error);
-          this.changeDetector.markForCheck();
-        }
-      },
-    });
+    );
   }
   reloadAssignments(): void {
     const target = this.activeTarget;
     if (!this.can('view') || this.pending() || this.dirty || target === null || !safeNumericRecordId(target)) return;
     const epoch = this.viewEpoch;
-    this.assignmentsRequest?.unsubscribe();
-    this.assignmentsLoading.set(true);
-    this.assignmentsLoaded.set(false);
-    this.assignmentsError.set(null);
     this.saveError.set(null);
-    this.assignmentsRequest = this.api.assignments(target).subscribe({
-      next: (snapshot) => {
-        if (!this.currentView(epoch, target)) return;
-        this.assignmentsLoading.set(false);
+    this.assignmentsRead.start(
+      this.api.assignments(target),
+      () => this.currentView(epoch, target),
+      (snapshot) => {
         if (snapshot.userId !== target || !snapshot.orgUnitIds.every(safeNumericRecordId)) {
           this.assignmentsError.set(this.unavailable());
-          this.assignmentsLoaded.set(false);
-          this.changeDetector.markForCheck();
           return;
         }
         const ids = normalizedIds(snapshot.orgUnitIds);
@@ -271,45 +253,23 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
         this.legacyOrgUnitId.set(snapshot.legacyOrgUnitId ?? null);
         this.loadedRevision.set(snapshot.revision);
         this.assignmentsLoaded.set(true);
-        this.changeDetector.markForCheck();
       },
-      error: (error) => {
-        if (this.currentView(epoch, target)) {
-          this.assignmentsLoading.set(false);
-          this.assignmentsLoaded.set(false);
-          this.assignmentsError.set(error);
-          this.changeDetector.markForCheck();
-        }
-      },
-    });
+    );
   }
   reloadScope(afterSave = false): void {
     const target = this.activeTarget;
     if (!this.can('view') || this.pending() || target === null || !safeNumericRecordId(target)) return;
     const epoch = this.viewEpoch;
-    this.scopeRequest?.unsubscribe();
-    this.scopeLoading.set(true);
-    this.scopeLoaded.set(false);
-    this.scopeError.set(null);
-    this.scopeRequest = this.api.scope(target).subscribe({
-      next: (scope) => {
-        if (!this.currentView(epoch, target)) return;
+    this.scopeRead.start(
+      this.api.scope(target),
+      () => this.currentView(epoch, target),
+      (scope) => {
         this.effectiveScope.set(scope);
-        this.scopeLoading.set(false);
         this.scopeLoaded.set(true);
         this.savedRefreshFailed.set(false);
-        this.changeDetector.markForCheck();
       },
-      error: (error) => {
-        if (this.currentView(epoch, target)) {
-          this.scopeLoading.set(false);
-          this.scopeLoaded.set(false);
-          this.scopeError.set(error);
-          this.savedRefreshFailed.set(afterSave || this.savedRefreshFailed());
-          this.changeDetector.markForCheck();
-        }
-      },
-    });
+      () => this.savedRefreshFailed.set(afterSave || this.savedRefreshFailed()),
+    );
   }
 
   unitLabel(id: number): string {
@@ -370,20 +330,14 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   }
   private resetProtectedState(): void {
     this.units.set([]);
-    this.treeLoading.set(false);
-    this.treeLoaded.set(false);
-    this.treeError.set(null);
+    this.treeRead.reset();
     this.originalOrgUnitIds.set([]);
     this.selectedOrgUnitIds.set([]);
     this.legacyOrgUnitId.set(null);
     this.loadedRevision.set(undefined);
-    this.assignmentsLoading.set(false);
-    this.assignmentsLoaded.set(false);
-    this.assignmentsError.set(null);
+    this.assignmentsRead.reset();
     this.effectiveScope.set(null);
-    this.scopeLoading.set(false);
-    this.scopeLoaded.set(false);
-    this.scopeError.set(null);
+    this.scopeRead.reset();
     this.saveError.set(null);
     this.savedRefreshFailed.set(false);
   }
@@ -393,12 +347,9 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.changeDetector.markForCheck();
   }
   private cancelReads(): void {
-    this.treeRequest?.unsubscribe();
-    this.assignmentsRequest?.unsubscribe();
-    this.scopeRequest?.unsubscribe();
-    this.treeRequest = undefined;
-    this.assignmentsRequest = undefined;
-    this.scopeRequest = undefined;
+    this.treeRead.cancel();
+    this.assignmentsRead.cancel();
+    this.scopeRead.cancel();
   }
   private currentView(epoch: number, target: number): boolean {
     return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget && target === this.userId();

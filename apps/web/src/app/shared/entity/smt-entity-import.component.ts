@@ -182,68 +182,7 @@ const MAX_BYTES = 50 * 1024 * 1024;
       </smt-dialog>
     }
   `,
-  styles: [
-    `
-      :host {
-        display: contents;
-      }
-      .entity-import {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        min-width: 0;
-      }
-      .entity-import-hint,
-      .entity-import-file,
-      .entity-import-result p {
-        margin: 0;
-      }
-      .entity-import-problem {
-        margin: 0;
-        color: var(--danger-text);
-      }
-      .entity-import-progress {
-        height: 8px;
-        border-radius: 4px;
-        background: var(--primary-subtle);
-        overflow: hidden;
-      }
-      .entity-import-progress-fill {
-        height: 100%;
-        background: var(--primary);
-      }
-      .entity-import-result {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .entity-import-scroll {
-        max-height: 280px;
-        overflow: auto;
-      }
-      .entity-import-errors {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.8125rem;
-      }
-      .entity-import-errors caption {
-        text-align: left;
-        font-weight: 600;
-        padding-bottom: 4px;
-      }
-      th,
-      td {
-        text-align: left;
-        padding: 4px 8px;
-        border-bottom: 1px solid var(--border-color);
-      }
-      .entity-import-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-      }
-    `,
-  ],
+  styleUrl: './smt-entity-import.component.css',
 })
 export class SMTEntityImportComponent {
   private readonly imports = inject(EntityImportsApi);
