@@ -258,6 +258,11 @@
                     <version>${jacoco.version}</version>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.5.0</version>
+                </plugin>
+                <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
@@ -284,8 +289,6 @@
                         <parameter>
                             <onlyModified>true</onlyModified>
                             <breakBuildBasedOnSemanticVersioning>true</breakBuildBasedOnSemanticVersioning>
-                            <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
-                            <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
                             <skipXmlReport>true</skipXmlReport>
                             <skipDiffReport>true</skipDiffReport>
                         </parameter>

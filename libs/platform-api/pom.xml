@@ -60,6 +60,28 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <platform-api.version>${project.version}</platform-api.version>
+                        <platform-api.baseline.version>${platform-api.baseline.version}</platform-api.baseline.version>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <!-- The rules of the API (ApiPolicy) for provider-spi, which is part of the same API. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
             </plugin>

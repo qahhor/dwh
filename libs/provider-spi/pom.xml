@@ -24,6 +24,14 @@
             <groupId>com.smartup24.cms</groupId>
             <artifactId>platform-api</artifactId>
         </dependency>
+        <!-- The rules of the platform's API (ApiPolicy, ADR-0033, 3-5). -->
+        <dependency>
+            <groupId>com.smartup24.cms</groupId>
+            <artifactId>platform-api</artifactId>
+            <version>${platform-api.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -43,6 +51,15 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <platform-api.baseline.version>${platform-api.baseline.version}</platform-api.baseline.version>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
