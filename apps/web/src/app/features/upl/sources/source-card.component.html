@@ -23,16 +23,15 @@
     <span class="upl-crumb-current">{{ s.name }}</span>
   </nav>
 
-  <header class="upl-head">
-    <h1 class="upl-title">{{ s.name }}</h1>
-    <code class="upl-code">{{ s.code }}</code>
+  <ui-page-header class="upl-head" [title]="s.name">
+    <code pageHeaderAside class="upl-code">{{ s.code }}</code>
     @if (s.lastPublishedVersion !== null) {
-      <smt-badge smtSize="SM" smtVariant="success">{{ activeVersionLabel(s) }}</smt-badge>
+      <smt-badge pageHeaderAside smtSize="SM" smtVariant="success">{{ activeVersionLabel(s) }}</smt-badge>
     }
     @if (s.hasDraft) {
-      <smt-badge smtSize="SM" smtVariant="blue">{{ 'upl.list.has_draft' | t }}</smt-badge>
+      <smt-badge pageHeaderAside smtSize="SM" smtVariant="blue">{{ 'upl.list.has_draft' | t }}</smt-badge>
     }
-  </header>
+  </ui-page-header>
 
   <section class="upl-block">
     <h2 class="upl-block-title">{{ 'upl.card.requisites' | t }}</h2>

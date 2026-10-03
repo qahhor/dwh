@@ -26,11 +26,13 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { DraftMode, SourceCardStore } from './source-card.store';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-upl-source-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTInputComponent,
     SMTSelectComponent,
     SMTAlertComponent,

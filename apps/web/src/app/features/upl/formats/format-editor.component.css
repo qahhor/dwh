@@ -19,14 +19,7 @@
   text-decoration: none;
 }
 .upl-head {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.upl-title {
-  margin: 0;
-  color: var(--text-main);
-  font-size: 1.25rem;
+  margin-bottom: 0;
 }
 .upl-note {
   display: flex;

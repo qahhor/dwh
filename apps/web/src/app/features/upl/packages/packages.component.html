@@ -8,8 +8,7 @@
   ></app-upl-package-card>
 } @else {
   <div class="upl-page">
-    <div class="toolbar upl-toolbar">
-      <h1 class="upl-title">{{ 'upl.pkg.title' | t }}</h1>
+    <ui-page-header [title]="'upl.pkg.title' | t">
       <button
         smt-button
         type="button"
@@ -20,7 +19,7 @@
       >
         {{ 'upl.pkg.refresh' | t }}
       </button>
-    </div>
+    </ui-page-header>
 
     @if (canUpload()) {
       <form class="upl-pkg-form" data-testid="upl-pkg-form" (ngSubmit)="submit()" novalidate>

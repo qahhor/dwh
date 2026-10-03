@@ -35,6 +35,7 @@ import {
 } from './overview.api';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 /**
  * What a load leaves on screen. A failure is a value, so it never throws out of the resource, and it
@@ -75,6 +76,7 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
   selector: 'app-upl-overview',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTRadioGroupComponent,
     DatePipe,
     RouterLink,

@@ -46,6 +46,7 @@ import {
 } from './packages-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 /** Fields of the "new upload" form; the form signal holds them and is replaced on every change. */
 interface PackageUploadForm {
@@ -69,6 +70,7 @@ function emptyFormErrors(): UplPackageFormErrors {
   selector: 'app-upl-packages',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTAlertComponent,
     SMTControlComponent,
     TranslatePipe,

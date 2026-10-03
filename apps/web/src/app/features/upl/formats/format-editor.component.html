@@ -22,12 +22,14 @@
       <span>{{ text('upl.format.crumb_version', { version: store.versionNumber() }) }}</span>
     </nav>
 
-    <div class="upl-head">
-      <h1 class="upl-title">
-        {{ text('upl.format.title', { name: store.source()?.name ?? '', version: store.versionNumber() }) }}
-      </h1>
-      <smt-badge smtSize="SM" [smtVariant]="store.statusVariant()">{{ store.statusKey() | t }}</smt-badge>
-    </div>
+    <ui-page-header
+      class="upl-head"
+      [title]="text('upl.format.title', { name: store.source()?.name ?? '', version: store.versionNumber() })"
+    >
+      <smt-badge pageHeaderAside smtSize="SM" [smtVariant]="store.statusVariant()">{{
+        store.statusKey() | t
+      }}</smt-badge>
+    </ui-page-header>
 
     @if (store.version()?.status !== 'draft') {
       <p class="upl-note" data-testid="upl-readonly-note">

@@ -52,6 +52,7 @@ import {
   uplSourceLengthLimits,
   uplSourceRequisiteRules,
 } from './source-form-rules';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 /** The model of the "new source" window, bound to its fields through Signal Forms. */
 interface SourceCreateForm {
@@ -84,6 +85,7 @@ function emptyForm(): SourceCreateForm {
   selector: 'app-upl-sources-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTInputComponent,
     SMTSelectComponent,
     SMTAlertComponent,
