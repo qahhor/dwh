@@ -1,6 +1,5 @@
 package com.smartup24.cms.instance.common.entity;
 
-import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.entity.EntityEnums.Items;
 import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormCollectionMeta;
@@ -8,7 +7,7 @@ import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormTabMeta;
 import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormWorkflowMeta;
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.ConditionItemMeta;
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.DefaultValueMeta;
-import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
@@ -38,18 +37,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/form-meta")
 public class FormMetaController {
 
-    private final EntityRegistry registry;
+    private final EntityGate gate;
     private final Function<String, Items> enumItems;
 
+    /** The entity opens through {@link EntityGate}: its module switched on and its {@code view} right held. */
     @Autowired
-    public FormMetaController(EntityRegistry registry, EntityEnums enums) {
-        this.registry = registry;
+    public FormMetaController(EntityGate gate, EntityEnums enums) {
+        this.gate = gate;
         this.enumItems = enums::all;
     }
 
-    /** A controller without reference entities: an enumeration offers no items. */
+    /** A controller of the declarations alone, without reference entities: an enumeration offers no items. */
     public FormMetaController(EntityRegistry registry) {
-        this.registry = registry;
+        this.gate = EntityGate.of(registry);
         this.enumItems = code -> Items.NONE;
     }
 
@@ -121,17 +121,9 @@ public class FormMetaController {
     @GetMapping("/{code}")
     @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<FormMeta> get(@PathVariable String code) {
-        EntityDefinition entity = registry.find(code)
-                .filter(found -> SecurityContext.hasPermission(found.form(), "view"))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.entity_not_found"));
-        return ResponseEntity.ok(of(entity, enumItems, this::viewable));
-    }
-
-    /** Whether the viewer may see the entity {@code code}: what a related list of a card needs (ADR-0032, 9.3). */
-    private boolean viewable(String code) {
-        return registry.find(code)
-                .filter(found -> SecurityContext.hasPermission(found.form(), "view"))
-                .isPresent();
+        EntityDefinition entity = gate.findVisible(code).orElseThrow(EntityGate::unknownEntity);
+        // A related list of the card only of an entity the viewer may see (ADR-0032, 9.3).
+        return ResponseEntity.ok(of(entity, enumItems, gate::visible));
     }
 
     /** The form as the viewer may use it, for an entity without enumerations. */

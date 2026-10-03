@@ -84,15 +84,20 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("без права на записи — 403; неизвестный вид, несуществующая или кривая запись — 404")
+    @DisplayName("без права на записи — 404, как неизвестный вид; несуществующая или кривая запись — 404")
     void historyNeedsTheRecordsRightAndAVisibleRecord() throws Exception {
         Session admin = login(user("chief_admin"));
         long task = createTask(admin, "TEST history rights");
         Session analyst = login(user("analyst"));
 
-        assertThat(send(analyst, get(TASK_HISTORY + task), null).getStatus()).isEqualTo(403);
-        assertThat(send(admin, get("/api/v1/history/invoices/" + task), null).getStatus())
-                .isEqualTo(404);
+        var hidden = send(analyst, get(TASK_HISTORY + task), null);
+        var unknown = send(admin, get("/api/v1/history/invoices/" + task), null);
+        assertThat(hidden.getStatus()).as("no right: the entity is not named").isEqualTo(404);
+        assertThat(unknown.getStatus()).isEqualTo(404);
+        assertThat(hidden.getContentAsString())
+                .as("the same answer as an unknown kind")
+                .contains("error.common.entity_not_found");
+        assertThat(unknown.getContentAsString()).contains("error.common.entity_not_found");
         assertThat(send(admin, get(TASK_HISTORY + "999999999"), null).getStatus())
                 .isEqualTo(404);
         assertThat(send(admin, get(TASK_HISTORY + "abc"), null).getStatus()).isEqualTo(404);

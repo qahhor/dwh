@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.common.entity;
 
-import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.bulk.BulkItemScope;
 import com.smartup24.cms.instance.common.bulk.BulkRunner;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
+import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
@@ -30,7 +30,8 @@ import tools.jackson.databind.node.NullNode;
  * of an archivable entity, {@code update} with the fields of {@code params} and any declared record action with
  * {@code params} as its parameters (ADR-0032, 6.1 and 6.7), each run as the record's single operation, so every record
  * keeps its checks, hooks and audit. The right is the one the entity's action declares; an entity without bulk
- * actions, or one the viewer may not see, answers the same 404 as {@code form-meta}.
+ * actions, one the viewer may not see or one of a switched-off module answers the same 404 as {@code form-meta}
+ * ({@link EntityGate}).
  */
 @RestController
 @RequestMapping("/api/v1/entities")
@@ -40,15 +41,18 @@ public class EntityBulkController {
     private static final String CREATE = "create";
 
     private final EntityRegistry registry;
+    private final EntityGate gate;
     private final @Nullable BulkItemScope bulkItems;
 
+    /** Over the declarations alone: every module switched on, no item scope. */
     public EntityBulkController(EntityRegistry registry) {
-        this(registry, null);
+        this(registry, EntityGate.of(registry), null);
     }
 
     @Autowired
-    public EntityBulkController(EntityRegistry registry, @Nullable BulkItemScope bulkItems) {
+    public EntityBulkController(EntityRegistry registry, EntityGate gate, @Nullable BulkItemScope bulkItems) {
         this.registry = registry;
+        this.gate = gate;
         this.bulkItems = bulkItems;
     }
 
@@ -60,10 +64,9 @@ public class EntityBulkController {
     @PostMapping("/{code}/bulk")
     @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<BulkResult> bulk(@PathVariable String code, @RequestBody BulkRequest body) {
-        EntityDefinition entity = registry.find(code)
+        EntityDefinition entity = gate.findVisible(code)
                 .filter(found -> found.capabilities().contains(EntityCapability.BULK))
-                .filter(found -> SecurityContext.hasPermission(found.form(), "view"))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.entity_not_found"));
+                .orElseThrow(EntityGate::unknownEntity);
         List<Long> ids = BulkRunner.checkedIds(body);
         String action = body.action() == null ? "" : body.action();
         if (CREATE.equals(action)) {

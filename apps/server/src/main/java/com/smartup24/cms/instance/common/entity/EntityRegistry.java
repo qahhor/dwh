@@ -125,6 +125,14 @@ public class EntityRegistry {
         return List.copyOf(entities.values());
     }
 
+    /** The entity whose registry list has this code, if an entity declares it. */
+    public Optional<EntityDefinition> findByList(String listCode) {
+        return entities.values().stream()
+                .filter(entity -> listCode.equals(entity.listCode()))
+                .findFirst()
+                .map(this::resolve);
+    }
+
     /** How the permission matrix names a form, when an entity with that right declares it (roadmap item 57). */
     public Optional<EntityDefinition.EntityRights> rights(String form) {
         return entities.values().stream()

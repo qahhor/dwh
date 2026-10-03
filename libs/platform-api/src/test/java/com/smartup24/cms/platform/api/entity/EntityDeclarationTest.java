@@ -189,6 +189,32 @@ class EntityDeclarationTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    /** ADR-0032, 4.5: the items of a reference are read whole for every viewer, so its rows are every viewer's. */
+    @Test
+    void aReferenceIsSeenWhole() {
+        assertThatThrownBy(() -> Entity.define("acme.kinds", "acme.kinds")
+                        .table("acme_kinds", "k")
+                        .scope(EntityScope.owner("created_by"))
+                        .field(text("code", "x").column("code").list(sortable()))
+                        .field(text("name", "y").column("name"))
+                        .section("main", "entity.section.main", "code", "name")
+                        .reference("code", "name")
+                        .defaultSort("code", Entity.Sort.ASC)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("EntityScope.all()");
+        EntityDefinition all = Entity.define("acme.kinds", "acme.kinds")
+                .table("acme_kinds", "k")
+                .scope(EntityScope.all())
+                .field(text("code", "x").column("code").list(sortable()))
+                .field(text("name", "y").column("name"))
+                .section("main", "entity.section.main", "code", "name")
+                .reference("code", "name")
+                .defaultSort("code", Entity.Sort.ASC)
+                .build();
+        assertThat(all.model().reference()).isNotNull();
+    }
+
     @Test
     void fieldsKnowTheirSourceAndTheirSql() {
         EntityField title =

@@ -3,5 +3,6 @@
   "name": "Пользователи и безопасность",
   "version": "${project.version}",
   "minPlatform": "${platform-api.version}",
-  "dependencies": []
+  "dependencies": [],
+  "areas": ["md"]
 }

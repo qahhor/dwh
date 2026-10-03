@@ -5,6 +5,7 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
+import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
@@ -82,6 +83,7 @@ public class ReportExportService {
     private final QueryListRegistry registry;
     private final Map<String, QueryListExporter> exporters;
     private final ExportPrincipals principals;
+    private final EntityGate gate;
     private final MdI18nService i18n;
     private final StorageProvider storage;
     private final JobQueue jobs;
@@ -95,6 +97,7 @@ public class ReportExportService {
             QueryListRegistry registry,
             List<QueryListExporter> exporters,
             EntityRegistry entities,
+            EntityGate gate,
             ExportPrincipals principals,
             MdI18nService i18n,
             StorageProvider storage,
@@ -109,6 +112,7 @@ public class ReportExportService {
         this.exporters = Stream.concat(exporters.stream(), entities.exporters().stream())
                 .collect(Collectors.toUnmodifiableMap(QueryListExporter::code, Function.identity()));
         this.principals = principals;
+        this.gate = gate;
         this.i18n = i18n;
         this.storage = storage;
         this.jobs = jobs;
@@ -121,8 +125,10 @@ public class ReportExportService {
     @Transactional
     public ExportItem request(ExportRequest request) {
         long userId = SecurityContext.getCurrentUserId();
+        // The list of an entity opens through EntityGate: its module switched on, its view right held.
         QueryList list = registry.find(request.list())
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))
+                .filter(found -> gate.listOpen(found.code()))
                 .filter(found -> exporters.containsKey(found.code()))
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_list_unknown"));
         QueryListExporter exporter = exporters.get(list.code());
@@ -261,6 +267,7 @@ public class ReportExportService {
         StoredRequest request = readRequest(row.request());
         QueryList list = registry.find(row.listCode())
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))
+                .filter(found -> gate.listOpen(found.code()))
                 .orElseThrow(() -> ApiException.permissionDenied(row.listCode(), "view"));
         QueryListExporter exporter = Optional.ofNullable(exporters.get(list.code()))
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_list_unknown"));

@@ -17,6 +17,8 @@ import org.jspecify.annotations.Nullable;
  * @param version       its version
  * @param minPlatform   the least version of the platform's API it runs on
  * @param dependencies  the modules it needs, with their least versions
+ * @param areas         the permission areas (ADR-0028) it holds besides its own code ({@code iam} holds {@code md}):
+ *                      an entity whose form lies in one of them belongs to this module (ADR-0032, 6.3, step 1)
  * @param configuration the {@code @Configuration} class the platform imports, or null for a built-in module
  * @param migrations    the classpath location of its Flyway migrations, or null
  * @param messages      the classpath folder of its {@code ru.json}, {@code uz.json} and {@code en.json}, or null
@@ -28,6 +30,7 @@ public record ModuleManifest(
         PlatformVersion version,
         PlatformVersion minPlatform,
         List<Dependency> dependencies,
+        List<String> areas,
         @Nullable String configuration,
         @Nullable String migrations,
         @Nullable String messages,
@@ -35,6 +38,9 @@ public record ModuleManifest(
 
     /** The rule of a module code: what the registry and the Flyway history table of the module accept. */
     public static final Pattern CODE = Pattern.compile("^[a-z][a-z0-9_]{1,31}$");
+
+    /** A permission area: one lower-case segment (ADR-0028). */
+    private static final Pattern AREA = Pattern.compile("^[a-z][a-z0-9_]*$");
 
     private static final Pattern CLASS_NAME = Pattern.compile("^[a-zA-Z_$][\\w$]*(\\.[a-zA-Z_$][\\w$]*)+$");
     private static final Pattern LOCATION = Pattern.compile("^[a-zA-Z0-9_.-]+(/[a-zA-Z0-9_.-]+)*$");
@@ -61,12 +67,26 @@ public record ModuleManifest(
         if (dependencies.stream().map(Dependency::code).distinct().count() != dependencies.size()) {
             throw new IllegalArgumentException("Module " + code + " names a dependency twice");
         }
+        areas = List.copyOf(areas);
+        for (String area : areas) {
+            if (area == null || !AREA.matcher(area).matches() || area.equals(code)) {
+                throw new IllegalArgumentException("Module " + code + ": bad permission area " + area);
+            }
+        }
+        if (areas.stream().distinct().count() != areas.size()) {
+            throw new IllegalArgumentException("Module " + code + " names a permission area twice");
+        }
         if (configuration != null && !CLASS_NAME.matcher(configuration).matches()) {
             throw new IllegalArgumentException("Module " + code + ": bad configuration class " + configuration);
         }
         requireLocation(code, "migrations", migrations);
         requireLocation(code, "messages", messages);
         Objects.requireNonNull(source, "source");
+    }
+
+    /** Whether an entity whose form lies in the permission area belongs to this module: its code or a listed area. */
+    public boolean holds(String area) {
+        return code.equals(area) || areas.contains(area);
     }
 
     /** The table of the module's own Flyway history (ADR-0033, 6.5). */

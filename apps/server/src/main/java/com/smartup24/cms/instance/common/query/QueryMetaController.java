@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.query;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.platform.api.entity.field.QueryRef;
@@ -17,17 +18,20 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * List metadata for the client: fields, their types and filter operations, sorting and page size.
- * Served to whoever may view the list itself; an unknown code and a forbidden list look the same (404),
- * so responses cannot be used to enumerate which lists exist.
+ * Served to whoever may view the list itself and, for the list of an entity, the entity ({@code EntityGate}: its
+ * module switched on); an unknown code and a forbidden list look the same (404), so responses cannot be used to
+ * enumerate which lists exist.
  */
 @RestController
 @RequestMapping("/api/v1/query-meta")
 public class QueryMetaController {
 
     private final QueryListRegistry registry;
+    private final EntityGate gate;
 
-    public QueryMetaController(QueryListRegistry registry) {
+    public QueryMetaController(QueryListRegistry registry, EntityGate gate) {
         this.registry = registry;
+        this.gate = gate;
     }
 
     /**
@@ -95,6 +99,7 @@ public class QueryMetaController {
     public ResponseEntity<ListMeta> get(@PathVariable String code) {
         QueryList list = registry.find(code)
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))
+                .filter(found -> gate.listOpen(found.code()))
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.query_list_not_found"));
         return ResponseEntity.ok(new ListMeta(
                 list.code(),

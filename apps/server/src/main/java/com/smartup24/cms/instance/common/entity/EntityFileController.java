@@ -3,8 +3,8 @@ package com.smartup24.cms.instance.common.entity;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.entity.EntityFiles.FileFacts;
+import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,7 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * {@code GET /api/v1/entities/{code}/{id}/files/{fileId}} (ADR-0032, 4.7): the file of a file or image field, read
- * through its record. The viewer must see the entity and the record (its module's scope, {@link EntityRecords}), and
+ * through its record. The viewer must see the entity ({@link EntityGate}: its module switched on, its {@code view}
+ * right) and the record (its module's scope, {@link EntityRecords}), and
  * the file must be attached to that record; anything else answers the same 404, so the answer tells neither which
  * records nor which files exist. The files list of the files module keeps its own rule (the owner's files); it is not
  * widened to the records of every entity.
@@ -38,11 +39,18 @@ public class EntityFileController {
     private static final List<String> INLINE = List.of("image/png", "image/jpeg", "image/webp");
 
     private final EntityRegistry registry;
+    private final EntityGate gate;
     private final @Nullable EntityFiles files;
 
-    @Autowired
+    /** Over the declarations alone: every module switched on. */
     public EntityFileController(EntityRegistry registry, @Nullable EntityFiles files) {
+        this(registry, EntityGate.of(registry), files);
+    }
+
+    @Autowired
+    public EntityFileController(EntityRegistry registry, EntityGate gate, @Nullable EntityFiles files) {
         this.registry = registry;
+        this.gate = gate;
         this.files = files;
     }
 
@@ -54,9 +62,7 @@ public class EntityFileController {
     @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<InputStreamResource> download(
             @PathVariable String code, @PathVariable long id, @PathVariable UUID fileId) {
-        EntityDefinition entity = registry.find(code)
-                .filter(found -> SecurityContext.hasPermission(found.form(), "view"))
-                .orElseThrow(EntityFileController::notFound);
+        EntityDefinition entity = gate.findVisible(code).orElseThrow(EntityFileController::notFound);
         EntityRecords records = registry.records(code).orElseThrow(EntityFileController::notFound);
         records.requireVisible(id);
         if (files == null) throw notFound();

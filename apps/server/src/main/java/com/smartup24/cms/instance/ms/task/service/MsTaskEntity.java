@@ -158,9 +158,11 @@ public class MsTaskEntity {
     /** Where a task belongs and who takes part: its project, parent and people. */
     private static void links(Entity task) {
         task.field(ref("projectId", "tasks.col.project").column("project_id").target(MsProjectEntity.CODE, "name"));
+        // Reads the project's table around its scope: only for a viewer who holds the projects' right (ADR-0032, 5.2).
         task.field(text("projectName", "tasks.col.project_name")
                 .expression("(select p.name from ms_task_projects p where p.id = t.project_id)")
-                .listOnly(hidden().notFilterable()));
+                .listOnly(hidden().notFilterable())
+                .requires(MsTaskPref.FORM_PROJECTS, "view"));
         task.field(ref("parentTaskId", "tasks.col.parent")
                 .column("parent_task_id")
                 .target(CODE, "title")
