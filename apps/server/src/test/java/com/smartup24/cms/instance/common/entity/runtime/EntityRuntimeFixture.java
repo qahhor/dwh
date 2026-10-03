@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
@@ -94,8 +95,12 @@ class EntityRuntimeFixture {
             .capabilities(EntityCapability.HISTORY)
             .build();
 
+    /** The table exists before the start compares the declaration with it (ADR-0033, 7). */
     @Bean
-    EntityDefinition testRuntimeItems() {
+    EntityDefinition testRuntimeItems(JdbcClient jdbc) {
+        for (String statement : DDL.split(";")) {
+            jdbc.sql(statement).update();
+        }
         return DEFINITION;
     }
 

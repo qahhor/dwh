@@ -17,13 +17,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class ModuleCatalog {
 
+    private final ClassLoader classLoader;
     private final PlatformVersion platform;
     private final List<ModuleManifest> manifests;
     private final Map<String, ModuleManifest> byCode;
 
     @Autowired
     public ModuleCatalog(ResourceLoader resources) {
-        this(PlatformVersion.current(), ModuleManifests.checked(loader(resources), PlatformVersion.current()));
+        this(
+                PlatformVersion.current(),
+                ModuleManifests.checked(loader(resources), PlatformVersion.current()),
+                loader(resources));
     }
 
     /** The class loader of the application's resources: the one the module jars are on. */
@@ -33,6 +37,11 @@ public class ModuleCatalog {
     }
 
     public ModuleCatalog(PlatformVersion platform, List<ModuleManifest> manifests) {
+        this(platform, manifests, ModuleCatalog.class.getClassLoader());
+    }
+
+    public ModuleCatalog(PlatformVersion platform, List<ModuleManifest> manifests, ClassLoader classLoader) {
+        this.classLoader = classLoader;
         this.platform = platform;
         this.manifests = List.copyOf(manifests);
         Map<String, ModuleManifest> codes = new LinkedHashMap<>();
@@ -48,6 +57,11 @@ public class ModuleCatalog {
     /** Every module, each after the modules it needs. */
     public List<ModuleManifest> manifests() {
         return manifests;
+    }
+
+    /** The class loader the modules' jars are on: where their migrations and messages are read. */
+    public ClassLoader classLoader() {
+        return classLoader;
     }
 
     public Optional<ModuleManifest> find(String code) {
