@@ -1,8 +1,8 @@
 # Настройки репозитория GitHub
 
-**Обновлено:** 2026-09-28
+**Обновлено:** 2026-10-03
 
-**Основание:** план 10/10, фаза 1 (пункты 1.5, 1.6, 1.9).
+**Основание:** план 10/10, фаза 1 (пункты 1.5, 1.6, 1.8, 1.9).
 
 Часть правил CI живёт не в файлах, а в настройках репозитория: их меняет только
 администратор. Этот документ перечисляет каждую такую настройку, файл, который
@@ -94,12 +94,20 @@ gh auth login
 
 **Обязательные проверки** — имена джобов: `backend (mvn verify + ArchUnit + SBOM)`,
 `frontend (unit + typecheck + build)`,
+`api contract (Spectral + openapi-diff + web types)`,
+`cms CLI (node:test, ubuntu-24.04)` и `cms CLI (node:test, windows-2025)`
+(тесты генератора `cms` и контракт документации),
 `release config (Compose + NGINX + fail-closed deploy)`,
 `e2e (clean deploy + Playwright Chromium, shard 1/2)` и `… shard 2/2`,
 `security (gitleaks + trivy)`, `Verify commit sign-offs`,
 `codeql (java-kotlin)`, `codeql (javascript-typescript)`, `codeql (actions)`.
-`test-rulesets.ps1` в CI падает, если обязательной проверке не соответствует ни
-один джоб: переименование джоба без правки `main.json` не пройдёт. Прежняя
+`test-rulesets.ps1` в CI сверяет список в обе стороны: падает, если
+обязательной проверке не соответствует ни один джоб (переименование джоба без
+правки `main.json` не пройдёт), и если джоб, который запускается на PR, не
+обязателен и не записан в список необязательных с причиной. Необязателен
+только `arm auto-merge for a patch update`: он работает лишь на PR Dependabot и
+сам ничего не вливает. После добавления проверки в `main.json` администратор
+применяет rulesets заново (`apply-rulesets.ps1 -Apply`). Прежняя
 проверка `e2e (clean deploy + Playwright Chromium)` после разбиения на шарды
 больше не существует: если она указана в старой защите ветки, её нужно
 заменить применением rulesets.
@@ -132,3 +140,25 @@ PR без одобрения или с красной проверкой не в
 6. **Publish:** GitHub Release с бандлом Compose и контрольными суммами.
 
 Порядок закреплён контрактом [`scripts/release/verify-release.ps1`](../../scripts/release/verify-release.ps1).
+
+## 5. Ночные проверки (пункт 1.8)
+
+Файл: [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml).
+
+Ночной workflow запускается по расписанию (`cron`, 03:30 по Ташкенту) и
+вручную (`workflow_dispatch`). В нём учения готовности релиза, генератор `cms`
+на Linux и Windows, учения обновления и исходящего трафика, живой API smoke,
+onboarding smoke, свежие advisories (Trivy) и нагрузочные критерии
+(`-Pupl-large`, `-Paudit-large`, `-Pimport-large`). Эти джобы не входят в
+обязательные проверки PR: красный ночной джоб разбирается на следующее утро.
+[`scripts/docs/test-repository-hygiene.ps1`](../../scripts/docs/test-repository-hygiene.ps1)
+падает, если скрипт `scripts/**/test-*` не вызывает ни один workflow.
+
+| Настройка | Где | Зачем |
+|---|---|---|
+| Actions разрешены для репозитория | Settings → Actions → General | Без этого расписание не запускается. |
+| Расписание не отключено | Actions → nightly | GitHub отключает запуски по расписанию в публичном репозитории после 60 дней без активности; включить снова — кнопкой Enable workflow. |
+| Уведомления о падении | профиль владельца → Settings → Notifications → Actions | Письмо о неуспешном запуске по расписанию получает тот, кто последним менял `cron` в workflow. |
+
+**Проверка.** Actions → nightly показывает запуск прошедшей ночи; при
+необходимости `gh workflow run nightly.yml` запускает его вручную.

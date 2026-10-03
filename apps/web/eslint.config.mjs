@@ -1,7 +1,7 @@
 // @ts-check
-// Lint of the web application (plan 10/10, item 1.1). The violations of 2026-09-28 are suppressed in
-// eslint-suppressions.json (ESLint bulk suppressions): a new one fails, a fixed one must be pruned
-// (npm run lint:prune), so the count only goes down. Phase 2 removes them.
+// Lint of the web application (plan 10/10, item 1.1). The bulk-suppression file eslint-suppressions.json is
+// empty since phase 2 fixed the violations of 2026-09-28: a new violation fails and is fixed, never suppressed
+// (npm run lint:prune keeps the file empty).
 import eslint from '@eslint/js';
 import angular from 'angular-eslint';
 import tseslint from 'typescript-eslint';
