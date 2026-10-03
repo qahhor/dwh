@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors, uniqueRunName } from '../../../support/diagnostics.js';
+import { openEntity } from '../../../support/entity-page.js';
 
 /*
  * The general entity screen /e/:code (ADR-0032 7.1, 7.3; plan 10/10, item 5.5) on the notes: the list, the form and
@@ -15,20 +16,17 @@ test('a record is created, changed, archived and deleted on the general entity s
   await loginToInstance(page);
   const assertNoPageErrors = collectPageErrors(page);
 
-  await page.goto('/e/ms.notes');
-  await expect(page.getByRole('heading', { level: 1, name: 'Заметки' })).toBeVisible();
+  const notes = await openEntity(page, 'ms.notes', 'Заметки');
   await expect(page.getByRole('table', { name: 'Заметки' })).toBeVisible();
 
   // Create: the form of the notes from form-meta.
   await page.getByRole('link', { name: 'Создать' }).click();
   await expect(page).toHaveURL(/\/e\/ms\.notes\/new$/u);
-  await page.getByRole('textbox', { name: 'Заголовок' }).fill(title);
-  await page.getByRole('textbox', { name: 'Текст' }).fill('Created on the **general** entity screen.');
-  const created = page.waitForResponse(response =>
-    response.request().method() === 'POST' && /\/api\/v1\/entities\/ms\.notes$/u.test(response.url())
-  );
-  await page.getByRole('button', { name: 'Сохранить' }).click();
-  expect((await created).status()).toBe(201);
+  await notes.fillField('title', title);
+  await notes.fillField('contentMd', 'Created on the **general** entity screen.');
+  const created = await notes.save();
+  expect(created.request().method()).toBe('POST');
+  expect(created.status()).toBe(201);
   await expect(page).toHaveURL(/\/e\/ms\.notes\/\d+$/u);
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
   const recordUrl = new URL(page.url()).pathname;
@@ -46,12 +44,9 @@ test('a record is created, changed, archived and deleted on the general entity s
   await expect(page).toHaveURL(/\/edit$/u);
   const titleBox = page.getByRole('textbox', { name: 'Заголовок' });
   await expect(titleBox).toHaveValue(title);
-  await titleBox.fill(changedTitle);
-  const changed = page.waitForResponse(response =>
-    response.request().method() === 'PATCH' && /\/api\/v1\/entities\/ms\.notes\/\d+$/u.test(response.url())
-  );
-  await page.getByRole('button', { name: 'Сохранить' }).click();
-  const changeResponse = await changed;
+  await notes.fillField('title', changedTitle);
+  const changeResponse = await notes.save();
+  expect(changeResponse.request().method()).toBe('PATCH');
   expect(changeResponse.status()).toBe(200);
   expect(changeResponse.request().headers()['if-match']).toMatch(/^"\d+"$/u);
   await expect(page.getByRole('heading', { level: 1, name: changedTitle })).toBeVisible();
