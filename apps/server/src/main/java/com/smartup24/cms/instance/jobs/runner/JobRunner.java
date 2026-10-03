@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.jobs.runner;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.jobs.api.JobAttempt;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.jobs.api.JobNotRetryableException;
@@ -55,7 +56,9 @@ public class JobRunner implements JobQueue {
     private static final String NODE = ManagementFactory.getRuntimeMXBean().getName();
 
     private final JobQueueRepository queue;
-    private final ObjectMapper json;
+    /** The arguments column of the queue (plan 10/10, item 3.11). */
+    private final JsonColumns columns;
+
     private final TransactionTemplate tx;
     private final JobProperties settings;
     private final JobSwitch jobSwitch;
@@ -71,7 +74,7 @@ public class JobRunner implements JobQueue {
             JobProperties settings,
             JobSwitch jobSwitch) {
         this.queue = queue;
-        this.json = json;
+        this.columns = new JsonColumns(json, "fnd_job_queue");
         this.tx = new TransactionTemplate(transactions);
         this.settings = settings;
         this.jobSwitch = jobSwitch;
@@ -274,7 +277,7 @@ public class JobRunner implements JobQueue {
     @Override
     public void enqueueOnce(String handlerCode, Map<String, Object> args) {
         handler(handlerCode);
-        queue.enqueueOnce(handlerCode, json.writeValueAsString(args));
+        queue.enqueueOnce(handlerCode, columns.object(args));
     }
 
     /** Error text for {@code fnd_job_runs.error}: the exception and its cause chain, keeping an SQLException's text. */
@@ -286,11 +289,7 @@ public class JobRunner implements JobQueue {
         return text.toString();
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> args(String rawArgs) {
-        if (rawArgs == null) {
-            return Map.of();
-        }
-        return json.readValue(rawArgs, Map.class);
+        return columns.readObject(rawArgs);
     }
 }

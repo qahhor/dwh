@@ -61,7 +61,7 @@ class KauthChannelTextsTest {
         var users = new MdUserService(
                 userRepository,
                 new MdRoleRepository(jdbc),
-                new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit),
+                new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit, mapper),
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
                 Mockito.mock(SearchChangePublisher.class),

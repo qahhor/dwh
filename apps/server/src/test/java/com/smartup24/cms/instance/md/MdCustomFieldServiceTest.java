@@ -15,12 +15,13 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import tools.jackson.databind.ObjectMapper;
 
 class MdCustomFieldServiceTest {
 
     private final MdCustomFieldRepository customFieldRepository = Mockito.mock(MdCustomFieldRepository.class);
     private final MdCustomFieldService service =
-            new MdCustomFieldService(customFieldRepository, Mockito.mock(AuditLogService.class));
+            new MdCustomFieldService(customFieldRepository, Mockito.mock(AuditLogService.class), new ObjectMapper());
 
     @Test
     @DisplayName("Валидация динамических полей должна отклонять отсутствующие обязательные поля")

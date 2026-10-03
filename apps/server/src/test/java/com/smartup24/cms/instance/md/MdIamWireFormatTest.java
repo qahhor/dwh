@@ -230,7 +230,7 @@ class MdIamWireFormatTest {
                         any(),
                         anyInt()))
                 .thenReturn(record);
-        MockMvc mvc = mvc(new MdCustomFieldController(new MdCustomFieldService(repository, audit)));
+        MockMvc mvc = mvc(new MdCustomFieldController(new MdCustomFieldService(repository, audit, JSON)));
 
         JsonNode list = json(mvc, get("/api/v1/custom-fields").param("entityType", "USER"), 200);
         assertThat(keys(list.get(0))).isEqualTo(CUSTOM_FIELD);

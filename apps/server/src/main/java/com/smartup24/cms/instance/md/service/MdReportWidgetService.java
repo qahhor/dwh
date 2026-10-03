@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.entity.report.EntityReportViews;
 import com.smartup24.cms.instance.common.entity.report.EntityReports;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.md.api.MdListViewDtos;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.WidgetResponse;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository;
@@ -24,13 +25,13 @@ public class MdReportWidgetService implements EntityReportViews {
 
     private final MdListViewRepository repo;
     private final EntityReports reports;
-    /** Reads the stored state text (plan 10/10, item 3.11: the application's mapper). */
-    private final ObjectMapper json;
+    /** Reads the stored state column (plan 10/10, item 3.11: the application's mapper). */
+    private final JsonColumns stored;
 
     public MdReportWidgetService(MdListViewRepository repo, EntityReports reports, ObjectMapper json) {
         this.repo = repo;
         this.reports = reports;
-        this.json = json;
+        this.stored = new JsonColumns(json, "md_list_views");
     }
 
     /**
@@ -46,7 +47,7 @@ public class MdReportWidgetService implements EntityReportViews {
                                 view.listCode(),
                                 entity,
                                 view.name(),
-                                json.readTree(view.stateJson()),
+                                stored.tree(view.stateJson()),
                                 view.lockVersion(),
                                 view.modifiedAt())))
                 .toList();
@@ -60,7 +61,7 @@ public class MdReportWidgetService implements EntityReportViews {
     }
 
     private SavedReport saved(ListView view) {
-        JsonNode state = json.readTree(view.stateJson());
+        JsonNode state = stored.tree(view.stateJson());
         JsonNode filter = state.get("filter");
         return new SavedReport(
                 state.get("groupBy"),

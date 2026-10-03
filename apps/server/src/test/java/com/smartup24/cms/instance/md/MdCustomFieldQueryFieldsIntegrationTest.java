@@ -57,7 +57,7 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         mapper = new ObjectMapper();
         var audit = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());
         var repository = new MdCustomFieldRepository(jdbc, mapper);
-        fields = new MdCustomFieldService(repository, audit);
+        fields = new MdCustomFieldService(repository, audit, mapper);
         registry = new QueryListRegistry(List.of(LIST), List.of(), List.of(new MdCustomFieldQueryFields(fields)));
 
         fields.createField("USER", "cfr_region", "Регион", "string", false, null, null, 1);
