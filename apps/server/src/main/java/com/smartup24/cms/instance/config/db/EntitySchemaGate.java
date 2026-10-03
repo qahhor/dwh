@@ -6,6 +6,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
@@ -15,10 +16,12 @@ import org.springframework.stereotype.Component;
  * 6.4): a missing table or column, a column of a type the field does not accept, a missing revision or archive column, a
  * column that must be filled and nobody writes. Such a difference would fail the runtime's statements later, on a
  * request; the start names every one of them instead. Not in the migrate profile: it runs before the migrations of the
- * modules.
+ * modules. {@code smc.entities.schema-gate-enabled=false} switches it off only for {@code cms migration diff}
+ * (plan 10/10, item 6.1), which starts the declarations on a schema that lacks them in order to write their DDL.
  */
 @Component
 @Profile("!migrate")
+@ConditionalOnProperty(name = "smc.entities.schema-gate-enabled", matchIfMissing = true)
 public class EntitySchemaGate implements SmartInitializingSingleton {
 
     private static final Logger log = LoggerFactory.getLogger(EntitySchemaGate.class);

@@ -57,6 +57,8 @@ export function migrationDiff(plan, values, log = console.log) {
     '-Dsurefire.failIfNoSpecifiedTests=false',
     '-Djacoco.skip=true',
     `-Dcms.schema.diff.out=${out}`,
+    // The start refuses a schema that lacks a declaration (EntitySchemaGate); the diff needs that very schema.
+    '-Dsmc.entities.schema-gate-enabled=false',
   ];
   log(`Comparing the entity declarations with the migrated schema (${SCHEMA_DIFF_TEST}, embedded PostgreSQL)...`);
   const status = runMaven(plan.root, args, logFile);
