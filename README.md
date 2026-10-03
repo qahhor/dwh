@@ -20,23 +20,30 @@ production rollout.
 
 ## What a developer writes
 
-```text
-scripts/dev/create-module.ps1 -ModuleName inventory -ModuleTitle "Склад"
+An entity is a declaration on the general runtime, and the `cms` command line
+(`tools/cms-cli`, Node.js 22+, no packages to install; Windows, Linux and macOS)
+writes it:
 
-V1xx__inventory_module.sql     table, module switch, role grants
-MsInventoryQuery.java          the list: fields, filters, sort, search
-MsInventoryEntity.java         the declaration: form, rules, actions, rights,
-                               menu item, capabilities, and the records bean
-MsInventoryService.java        saves checked by the declaration, audit
-MsInventoryRepository.java     SQL
-MsInventoryController.java     REST endpoints with @RequiresPermission
+```text
+node tools/cms-cli/bin/cms.mjs doctor
+node tools/cms-cli/bin/cms.mjs module new inventory --title "Склад" --title-en Inventory
+node tools/cms-cli/bin/cms.mjs entity new inventory items --title "Товары" --title-en Items --hooks
+node tools/cms-cli/bin/cms.mjs entity add-field inventory.items price --type money --currencies UZS,USD
+
+V196__inventory_items_table.sql    the table: revision, archive, attributes, indexes
+V197__inventory_items_rights.sql   the right, role grants, the module registry
+InventoryItemsEntity.java          the declaration: fields, rules, scope, rights, menu, capabilities
+InventoryItemsHooks.java           what the declaration cannot say (optional)
+InventoryItemsContractTest.java    the entity contract kit, one subclass
+ru.json, uz.json, en.json          labels, menu item, names of the rights
 ```
 
-From the declaration the platform serves `GET /api/v1/form-meta/{code}`,
-`GET /api/v1/query-meta/{code}` and `GET /api/v1/entities/menu`, and builds the
-record history, the export and `POST /api/v1/entities/{code}/bulk`. The web
-screen draws itself with `smt-entity-form`, `smt-entity-card`,
-`smt-entity-toolbar` and `ui-server-table`.
+The general runtime serves the records at `/api/v1/entities/{code}` with
+their scope, revision, audit, history, export, import and bulk actions, and
+the general screen `/e/{code}` draws the list, the form and the card from
+`GET /api/v1/form-meta/{code}` and `GET /api/v1/query-meta/{code}`: no
+controller, service, repository or web code. `cms migration diff` prints the
+DDL the declarations still need.
 
 Start with the [module development guide](docs/guidelines/module-development-guide.md)
 and the [extension points](docs/architecture/extension-points.md). The notes

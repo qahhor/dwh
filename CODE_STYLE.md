@@ -81,7 +81,7 @@
     (план 10/10, пункт 3.11).
 
 ### 2.3. Контракт API, данные и размеры (фаза 3 плана 10/10)
-Подробно — [руководство по модулям](docs/guidelines/module-development-guide.md#серверные-правила) и [как ведёт себя API](docs/api/README.md); генератор `scripts/dev/create-module.ps1` уже следует этим правилам.
+Подробно — [руководство по модулям](docs/guidelines/module-development-guide.md#серверные-правила) и [как ведёт себя API](docs/api/README.md); CLI `cms` (`tools/cms-cli`) уже следует этим правилам.
 - **Ошибки** ([ADR-0021](docs/adr/ADR-0021-error-model.md)): только `ApiException` с `ErrorCode`, ключом `error.<модуль>.<имя>` и параметрами; ключ — в каталогах ru, uz и en; предложений в коде нет. Ответ — `application/problem+json` с `code`, `messageKey`, `params`. Проверки: `ErrorModelTest`, `ErrorTextsTest`.
 - **API** ([ADR-0022](docs/adr/ADR-0022-openapi-from-code.md), [ADR-0023](docs/adr/ADR-0023-uniform-rest.md)): DTO — records в пакете `api` модуля; описание API генерирует springdoc, копия `docs/api/openapi.json` обновляется `-Dopenapi.update=true`, типы веба — `npm run api:types`. Один путь на операцию, параметры в camelCase, 201 + `Location` / 202 / 204 объявлены `@ResponseStatus`, переключатель принимает состояние. Ломающее изменение — метка `api-breaking` или трейлер `Api-Breaking:` и запись в `CHANGELOG.md`. Проверки: `OpenApiContractTest`, `ResponseStatusDeclaredTest`, `scripts/api/test-api-contract.ps1`, `npm run api:audit`.
 - **Страницы** (план 10/10, пункт 3.5): растущая коллекция отдаётся `KeysetPage` — через реестр полей (`QueryList`) или `TimePage`; `limit` выше максимума — 422; таблица без предела — `QueryList.withEstimatedTotal()`. Целиком — только ограниченные справочники из `CollectionsArePagedTest`.

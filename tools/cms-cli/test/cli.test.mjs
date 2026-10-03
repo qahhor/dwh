@@ -211,7 +211,8 @@ describe('cms entity add-field', () => {
     run((plan) => entityAddField(plan, 'inventory.items', 'dueOn', { type: 'date', label: 'Срок', 'no-sync': true }));
     const text = read(declarationFile());
     assert.match(text, /import static com\.smartup24\.cms\.instance\.common\.entity\.field\.EntityFields\.date;/);
-    assert.match(text, /\.field\(date\("dueOn", "inventory\.items\.col\.due_on"\)\n\s+\.column\("due_on"\)\n\s+\.list\(sortable\(\)\)\)/);
+    // At most 98 characters: one line, as palantir keeps it.
+    assert.match(text, /\n {12}\.field\(date\("dueOn", "inventory\.items\.col\.due_on"\)\.column\("due_on"\)\.list\(sortable\(\)\)\)\n/);
     assert.match(text, /\.section\("main", "entity\.section\.main", "name", "code", "dueOn"\)/);
     assert.match(read(`${PATHS.migrations}/V198__inventory_items_due_on.sql`), /alter table inventory_items\n {4}add column due_on date;/);
     assert.equal(JSON.parse(read(`${PATHS.catalogs}/ru.json`))['inventory.items.col.due_on'], 'Срок');

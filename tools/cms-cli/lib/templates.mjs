@@ -5,6 +5,7 @@ import { PLATFORM } from './layout.mjs';
 import { humanize, labelKey, snake } from './names.mjs';
 
 const MAX_LINE = 120;
+const MAX_CHAIN_LINE = 98;
 const FIELD_INDENT = ' '.repeat(12);
 const CHAIN_INDENT = ' '.repeat(20);
 
@@ -344,11 +345,13 @@ export function fieldDeclaration(entity, field) {
   return { lines: chain(head, calls), staticImports, imports, constants };
 }
 
+/**
+ * A `.field(...)` call as palantir lays it out: on one line while the line is at most 98 characters (measured on
+ * palantir-java-format 2.99: a field chain of 99 characters or more is broken), else one call per line.
+ */
 function chain(head, calls) {
-  if (calls.length <= 1) {
-    const line = `${FIELD_INDENT}.field(${head}${calls.map((call) => `.${call}`).join('')})`;
-    if (line.length <= MAX_LINE) return [line];
-  }
+  const line = `${FIELD_INDENT}.field(${head}${calls.map((call) => `.${call}`).join('')})`;
+  if (line.length <= MAX_CHAIN_LINE) return [line];
   const lines = [`${FIELD_INDENT}.field(${head}`];
   calls.forEach((call, index) => lines.push(`${CHAIN_INDENT}.${call}${index === calls.length - 1 ? ')' : ''}`));
   return lines;

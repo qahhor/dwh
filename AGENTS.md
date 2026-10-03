@@ -99,6 +99,9 @@ The full list with commands is in `docs/ai-context.md` §6. In short:
 - Repository: `scripts/docs/test-repository-hygiene.ps1`,
   `scripts/docs/test-public-docs.ps1`; secrets: gitleaks over the branch's
   commits (`gitleaks git --log-opts="main..HEAD"`).
+- Developer CLI (`tools/cms-cli`): `npm test` there; after changing the CLI or
+  what it generates, `scripts/dev/test-cms-cli.ps1` (generates a module in a
+  temporary copy and builds it).
 
 ## 6. Environment notes (Windows workstation)
 
@@ -116,6 +119,11 @@ The full list with commands is in `docs/ai-context.md` §6. In short:
 - `-pl apps/server` alone builds against the installed `libs/*` jars; add
   `-am` after changing a library.
 - E2E shard logs written by PowerShell are UTF-16 (`iconv -f utf-16`).
+
+- New modules, entities, fields and their migrations come from the CLI:
+  `node tools/cms-cli/bin/cms.mjs <module new|entity new|entity add-field|migration diff|doctor>`
+  (Node standard library only, same on Windows and Linux; `cms doctor` checks
+  the JDK, Maven wrapper, git and Docker). Do not hand-copy an entity.
 
 ## 7. graphify (local knowledge graph)
 

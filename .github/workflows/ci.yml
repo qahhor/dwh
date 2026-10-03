@@ -214,6 +214,29 @@ jobs:
           ALLOW_BREAKING: ${{ contains(github.event.pull_request.labels.*.name, 'api-breaking') }}
         run: ./scripts/api/test-api-contract.ps1 -BaseRef $env:BASE_REF -AllowBreaking:($env:ALLOW_BREAKING -eq 'true')
 
+  # Plan 10/10, item 6.1: the developer CLI's own tests on both platforms it promises, in seconds. The generated
+  # module's full build runs nightly (nightly.yml, cms-cli).
+  cms-cli:
+    name: cms CLI (node:test, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: '.node-version'
+
+      - name: CLI tests and the generator without the build
+        shell: bash
+        run: |
+          node --test 'tools/cms-cli/test/**/*.test.mjs'
+          node tools/cms-cli/scripts/smoke.mjs --skip-build
+
   release-config:
     name: release config (Compose + NGINX + fail-closed deploy)
     runs-on: ubuntu-24.04
