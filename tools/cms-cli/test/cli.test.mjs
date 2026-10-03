@@ -23,6 +23,7 @@ const COPIED = [
   PATHS.moduleBoundaries,
   PATHS.moduleMap,
   PATHS.coverageFloors,
+  PATHS.schemaOrderTest,
   `${PATHS.catalogs}/ru.json`,
   `${PATHS.catalogs}/uz.json`,
   `${PATHS.catalogs}/en.json`,

@@ -1,5 +1,6 @@
 // The generating commands: cms module new, cms entity new, cms entity add-field (plan 10/10, item 6.1).
 import {
+  addAttributesTable,
   addBoundaryModule,
   addConstants,
   addCoverageFloor,
@@ -79,6 +80,7 @@ export function entityNew(plan, moduleCode, entityName, values) {
     }
   }
   planKeys(plan, entityKeys(entity, title), { sync: !values['no-sync'] });
+  plan.patch(PATHS.schemaOrderTest, (text) => addAttributesTable(text, entity.table), `attributes ${entity.table}`);
   plan.patch(PATHS.coverageFloors, (text) => addCoverageFloor(text, module, NEW_MODULE_FLOOR), `floor ${module.code}`);
   plan.patch(PATHS.moduleMap, (text) => addModuleMapEntity(text, module, entity), `entry ${entity.code}`);
 

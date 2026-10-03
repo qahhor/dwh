@@ -20,6 +20,8 @@ export const PATHS = {
   permissionAreas: 'apps/server/src/main/java/com/smartup24/cms/instance/md/pref/PermissionAreas.java',
   moduleBoundaries: 'apps/server/src/test/java/com/smartup24/cms/instance/architecture/ModuleBoundariesTest.java',
   moduleMap: 'docs/architecture/module-map.md',
+  // Lists every table with an attributes column (plan 10/10, item 4.6): a new entity table joins it.
+  schemaOrderTest: 'apps/server/src/test/java/com/smartup24/cms/instance/db/SchemaOrderTest.java',
   coverageFloors: 'apps/server/coverage-floors.csv',
   // The module manifest placeholder: code, version, platform and dependencies (plan 10/10, item 6.4 owns the format).
   moduleManifests: 'apps/server/src/main/resources/modules',

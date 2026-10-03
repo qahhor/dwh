@@ -84,6 +84,22 @@ export function addBoundaryModule(text, module) {
   return result;
 }
 
+/** Adds a table to the tables SchemaOrderTest expects an `attributes` object check on. */
+export function addAttributesTable(text, table) {
+  const anchor = text.indexOf('void attributesAreObjects()');
+  if (anchor < 0) throw new CliError('SchemaOrderTest.attributesAreObjects not found');
+  const start = text.indexOf('.containsOnlyKeys(', anchor);
+  const end = text.indexOf(')', start + '.containsOnlyKeys('.length);
+  if (start < 0 || end < 0) throw new CliError('SchemaOrderTest: the list of attributes tables not found');
+  const block = text.slice(start, end);
+  const tables = [...block.matchAll(/"([a-z0-9_]+)"/g)].map((m) => m[1]);
+  if (tables.includes(table)) return text;
+  tables.push(table);
+  tables.sort();
+  const indent = ' '.repeat(24);
+  return `${text.slice(0, start)}.containsOnlyKeys(\n${tables.map((t) => `${indent}"${t}"`).join(',\n')}${text.slice(end)}`;
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // The module map (docs/architecture/module-map.md, ModuleMapTest) and the coverage floors.
 
