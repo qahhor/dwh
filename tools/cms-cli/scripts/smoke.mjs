@@ -177,7 +177,9 @@ function checkGenerated() {
 function build() {
   const log = path.join(work, 'smoke-maven.log');
   const args = ['-B', '-ntp', '-pl', 'apps/server', '-am', 'spotless:check', 'test', 'checkstyle:check'];
+  // The generated entity joins the exact list of declared entities of EntityActionPermissionContractTest.
   args.push(`-Dtest=${TESTS.join(',')}`, '-Dsurefire.failIfNoSpecifiedTests=false', '-Dopenapi.update=true');
+  args.push('-Dcms.smoke.entities=probe.items');
   console.log(`Building the server with the generated module (${TESTS.length} test classes); log ${log}`);
   const status = runMaven(work, args, log);
   if (status !== 0) {

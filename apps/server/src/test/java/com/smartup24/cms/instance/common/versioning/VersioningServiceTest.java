@@ -437,8 +437,7 @@ class VersioningServiceTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName(
-            "дубль (заголовок, версия) через транслятор версий — fnd_version_conflict, а не DuplicateKeyException")
+    @DisplayName("дубль (заголовок, версия) через транслятор версий — fnd_version_conflict, а не DuplicateKeyException")
     void duplicateVersionNumberIsTranslatedToConflictCode() {
         insertVersionDirectly(thing, 1, "2026-01-01", null, "published");
 
