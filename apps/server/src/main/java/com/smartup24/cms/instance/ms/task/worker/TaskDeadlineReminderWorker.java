@@ -1,26 +1,41 @@
 package com.smartup24.cms.instance.ms.task.worker;
 
+import com.smartup24.cms.instance.md.service.MdUserTexts;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/**
+ * Reminds the people of a task whose deadline comes within a day, once per task and person, in the person's language
+ * ({@link MdUserTexts}: the catalog strings {@value #TITLE} and {@value #BODY}).
+ */
 @Component
 public class TaskDeadlineReminderWorker {
+
+    /** The catalog key of the reminder's title; {@code {id}} is the task's number. */
+    static final String TITLE = "notify.task_deadline.title";
+
+    /** The catalog key of the reminder's text; {@code {title}} is the task's title, {@code {hours}} the window. */
+    static final String BODY = "notify.task_deadline.body";
 
     private static final Logger log = LoggerFactory.getLogger(TaskDeadlineReminderWorker.class);
     private static final Duration DEADLINE_WINDOW = Duration.ofHours(24);
 
     private final MsTaskStatsRepository taskRepository;
     private final MsNotificationService notificationService;
+    private final MdUserTexts texts;
 
-    public TaskDeadlineReminderWorker(MsTaskStatsRepository taskRepository, MsNotificationService notificationService) {
+    public TaskDeadlineReminderWorker(
+            MsTaskStatsRepository taskRepository, MsNotificationService notificationService, MdUserTexts texts) {
         this.taskRepository = taskRepository;
         this.notificationService = notificationService;
+        this.texts = texts;
     }
 
     /**
@@ -57,11 +72,15 @@ public class TaskDeadlineReminderWorker {
         if (notificationService.hasRecentNotification(row.userId(), reminderKey, DEADLINE_WINDOW)) {
             return;
         }
+        Map<String, String> params = Map.of(
+                "id", String.valueOf(row.taskId()),
+                "title", String.valueOf(row.title()),
+                "hours", String.valueOf(DEADLINE_WINDOW.toHours()));
         notificationService.sendInAppNotification(
                 row.userId(),
                 REMINDER_TYPE,
-                "Приближается дедлайн по задаче #" + row.taskId(),
-                "Срок выполнения задачи '" + row.title() + "' истекает в ближайшие 24 часа.",
+                texts.text(row.userId(), TITLE, params),
+                texts.text(row.userId(), BODY, params),
                 "/tasks",
                 reminderKey);
         log.info("deadline_reminder_sent task={} user={}", row.taskId(), row.userId());
