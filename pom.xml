@@ -23,12 +23,12 @@
              security-constraint and authentication vulnerabilities. -->
         <tomcat.version>11.0.26</tomcat.version>
         <postgresql.version>42.7.5</postgresql.version>
-        <archunit.version>1.5.0</archunit.version>
+        <archunit.version>1.5.1</archunit.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <argon2.version>2.12</argon2.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <typesense.version>0.6.0</typesense.version>
-        <aws.sdk.version>2.55.5</aws.sdk.version>
+        <aws.sdk.version>2.55.10</aws.sdk.version>
         <!-- OpenAPI generated from the controllers (plan 10/10, item 3.3); 3.1.x is built on Spring Boot 4.1. -->
         <springdoc.version>3.1.1</springdoc.version>
 
@@ -259,7 +259,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.5.0</version>
+                    <version>3.5.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
