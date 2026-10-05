@@ -12,9 +12,13 @@
 
 ## Команда
 
-Своей команды пока нет: флага `--external` у `cms module new` нет (план 10/10,
-пункт 6.1, заметка). Начните с копии `examples/external-module` и замените код
-модуля, пакет и сущность.
+```bash
+cms module new library --external --title "Библиотека" --title-en Library --title-uz Kutubxona
+```
+
+Команда создаёт структуру внешнего модуля (`modules/<код>` по умолчанию или `--dir <путь>`):
+свой `pom.xml`, манифест с `configuration`, `migrations` и `messages`, стартовую сущность,
+миграцию и тесты (`EntityContractTestKit` и проверка границы API).
 
 ## Объявление
 
@@ -65,4 +69,7 @@ class LibraryBooksContractTest extends EntityContractTestKit {
   старта: держите префикс своего модуля.
 - Таблицы — по соглашению ADR-0032 §14.1 (`attributes`, `revision`, авторы);
   расхождение с объявлением — отказ старта (`EntitySchemaGate`).
-- Доставка jar в образ Docker — открытый вопрос (ADR-0033 §11, В2).
+- Доставка jar в образ Docker: каталог `modules/` монтируется в контейнер как `/app/modules:ro`,
+  платформа загружает его через `PropertiesLauncher` (`LOADER_PATH="lib,/app/modules"`).
+
+<!-- docs-contract: hypothetical PropertiesLauncher -->

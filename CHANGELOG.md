@@ -50,7 +50,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   of ADR-0033; a re-run changes nothing and a hand edit is kept.
   `cms migration diff` uses the start's schema check (`EntitySchemaCheck`)
   and writes the DDL of what is missing. Measured from the command to a
-  working screen: 4 minutes.
+  working screen: 4 minutes. `cms module new <code> --external` creates a
+  standalone module project outside the monorepo (`pom.xml`, manifest, starter
+  entity, migration, translations, contract and boundary tests); `Dockerfile`
+  and Compose load external module JARs from `/app/modules` via
+  `PropertiesLauncher` and `LOADER_PATH`.
 
 - Plan 10/10, item 6.5 — start in ten minutes: `make dev` and the portable
   `scripts/dev/run-local.sh` / `run-local.ps1` (Compose infrastructure,

@@ -150,6 +150,56 @@ describe('cms module new', () => {
     assert.throws(() => run((plan) => moduleNew(plan, 'ms.tasks', { area: 'tasks' })), /belongs to ms\.task/);
     assert.deepEqual(snapshot(), before);
   });
+
+  test('creates an external module with pom, manifest, translations, migration, and tests', () => {
+    run((plan) => moduleNew(plan, 'library', { ...MODULE, external: true }));
+    assert.ok(exists('modules/library/pom.xml'));
+    assert.match(read('modules/library/pom.xml'), /<artifactId>library-module<\/artifactId>/);
+    assert.match(read('modules/library/pom.xml'), /<groupId>com\.example\.library<\/groupId>/);
+
+    const manifest = JSON.parse(read('modules/library/src/main/resources/META-INF/smartupcms/modules/library.json'));
+    assert.equal(manifest.code, 'library');
+    assert.equal(manifest.configuration, 'com.example.library.LibraryModule');
+    assert.equal(manifest.migrations, 'db/modules/library');
+    assert.equal(manifest.messages, 'META-INF/smartupcms/modules/library/i18n');
+
+    for (const lang of ['ru', 'uz', 'en']) {
+      const i18n = JSON.parse(read(`modules/library/src/main/resources/META-INF/smartupcms/modules/library/i18n/${lang}.json`));
+      assert.ok(i18n['nav.library_items']);
+      assert.ok(i18n['library.items.col.name']);
+    }
+
+    assert.match(
+      read('modules/library/src/main/resources/db/modules/library/V1__library_items.sql'),
+      /create table library_items \(/,
+    );
+    assert.match(
+      read('modules/library/src/main/java/com/example/library/LibraryModule.java'),
+      /public class LibraryModule/,
+    );
+    assert.match(
+      read('modules/library/src/test/java/com/example/library/LibraryItemsContractTest.java'),
+      /class LibraryItemsContractTest extends EntityContractTestKit/,
+    );
+    assert.match(
+      read('modules/library/src/test/java/com/example/library/LibraryModuleBoundaryTest.java'),
+      /class LibraryModuleBoundaryTest/,
+    );
+
+    // Re-run produces no changes
+    const before = snapshot();
+    const plan = run((p) => moduleNew(p, 'library', { ...MODULE, external: true }));
+    assert.equal(plan.changes, 0);
+    assert.deepEqual(snapshot(), before);
+  });
+
+  test('creates an external module in custom directory', () => {
+    run((plan) => moduleNew(plan, 'billing', { ...MODULE, external: true, dir: 'custom/billing', package: 'com.acme.billing' }));
+    assert.ok(exists('custom/billing/pom.xml'));
+    assert.ok(exists('custom/billing/src/main/java/com/acme/billing/BillingModule.java'));
+    const manifest = JSON.parse(read('custom/billing/src/main/resources/META-INF/smartupcms/modules/billing.json'));
+    assert.equal(manifest.configuration, 'com.acme.billing.BillingModule');
+  });
 });
 
 describe('cms entity new', () => {

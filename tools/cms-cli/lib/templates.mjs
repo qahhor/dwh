@@ -2,7 +2,7 @@
 // migrations, its catalog keys and its rows in the repository's registries. The generated code follows the server
 // rules of phase 3 (docs/guidelines/module-development-guide.md) and the formatting Spotless (palantir) expects.
 import { PLATFORM } from './layout.mjs';
-import { humanize, labelKey, snake } from './names.mjs';
+import { camel, humanize, labelKey, snake } from './names.mjs';
 
 const MAX_LINE = 120;
 const MAX_CHAIN_LINE = 98;
@@ -534,4 +534,316 @@ export function fieldKeys(entity, field) {
   }
   return keys;
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// External Module (ADR-0033)
+
+export function externalPom(module, { hasParent = true, relPom = '../../pom.xml' } = {}) {
+  const parentBlock = hasParent
+    ? `    <parent>
+        <groupId>com.smartup24.cms</groupId>
+        <artifactId>smartupcms-platform</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>${relPom}</relativePath>
+    </parent>\n\n`
+    : '';
+
+  const versionBlock = hasParent ? '' : '    <version>1.0.0-SNAPSHOT</version>\n';
+  const propertiesBlock = hasParent
+    ? `        <!-- Coverage floor of this module: raised, never lowered, towards 0.80. -->
+        <coverage.line.minimum>0.80</coverage.line.minimum>
+        <coverage.branch.minimum>0.50</coverage.branch.minimum>\n`
+    : `        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <smartupcms.version>1.0.0-SNAPSHOT</smartupcms.version>\n`;
+
+  const kitVersion = hasParent ? '${project.version}' : '${smartupcms.version}';
+  const apiVersion = hasParent ? '' : '            <version>${smartupcms.version}</version>\n';
+  const springVersion = hasParent ? '' : '            <version>6.2.2</version>\n';
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+${parentBlock}    <groupId>${module.group}</groupId>
+    <artifactId>${module.code}-module</artifactId>
+${versionBlock}    <name>External module: ${module.code}</name>
+    <description>${doc(module.title.en)} module for SmartupCMS</description>
+
+    <properties>
+${propertiesBlock}    </properties>
+
+    <dependencies>
+        <!-- The contract the module builds against; the platform brings it at run time. -->
+        <dependency>
+            <groupId>com.smartup24.cms</groupId>
+            <artifactId>platform-api</artifactId>
+${apiVersion}            <scope>provided</scope>
+        </dependency>
+        <!-- @Configuration and @Bean of the configuration the manifest names; the platform brings Spring at run time. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+${springVersion}            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.smartup24.cms</groupId>
+            <artifactId>platform-testkit</artifactId>
+            <version>${kitVersion}</version>
+            <type>pom</type>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
+`;
+}
+
+export function externalModuleManifest(module) {
+  return `${JSON.stringify(
+    {
+      code: module.code,
+      name: module.title.ru,
+      version: '1.0.0',
+      minPlatform: '1.0.0',
+      dependencies: [{ code: 'iam', version: '1.0.0' }],
+      configuration: `${module.package}.${module.pascal}Module`,
+      migrations: `db/modules/${module.code}`,
+      messages: `META-INF/smartupcms/modules/${module.code}/i18n`,
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+export function externalPackageInfo(module) {
+  return `/**
+ * Module {@code ${module.code}}: ${doc(module.title.en)}.
+ *
+ * <p>External module for SmartupCMS.
+ */
+package ${module.package};
+`;
+}
+
+export function externalModuleDeclaration(module) {
+  const code = module.code;
+  const p = module.pascal;
+  const beanMethod = `${camel(code)}Items`;
+  return `package ${module.package};
+
+import static ${PLATFORM.field}.EntityFields.instant;
+import static ${PLATFORM.field}.EntityFields.sortable;
+import static ${PLATFORM.field}.EntityFields.text;
+
+import ${PLATFORM.entity}.Entity;
+import ${PLATFORM.entity}.EntityCapability;
+import ${PLATFORM.entity}.EntityDefinition;
+import ${PLATFORM.entity}.EntityDefinition.EntityMenu;
+import ${PLATFORM.entity}.EntityScope;
+import ${PLATFORM.field}.FieldSource.SystemColumn;
+import java.util.Map;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Module {@code ${code}}: ${doc(module.title.en)}.
+ *
+ * <p>An external module built against the platform API alone (ADR-0033).
+ */
+@Configuration(proxyBeanMethods = false)
+public class ${p}Module {
+
+    public static final String MODULE = "${code}";
+    public static final String ITEMS = "${code}.items";
+
+    public static final EntityDefinition DEFINITION = Entity.define(ITEMS, ITEMS)
+            .table("${module.tablePrefix}_items", "t")
+            .scope(EntityScope.all())
+            .rights(
+                    MODULE,
+                    "${code}.items.rights.form",
+                    Map.of(
+                            "view", "${code}.items.rights.view",
+                            "create", "${code}.items.rights.create",
+                            "update", "${code}.items.rights.update",
+                            "delete", "${code}.items.rights.delete"))
+            .menu(new EntityMenu("nav.${code}_items", "package", "workspace", 100, MODULE))
+            .field(text("name", "${code}.items.col.name")
+                    .column("name")
+                    .required()
+                    .length(1, 255)
+                    .list(sortable().searchable()))
+            .field(text("code", "${code}.items.col.code")
+                    .column("code")
+                    .required()
+                    .length(1, 64)
+                    .matching("[a-z0-9_-]+")
+                    .list(sortable().searchable()))
+            .field(instant("modifiedAt", "${code}.items.col.modified_at")
+                    .system(SystemColumn.MODIFIED_AT)
+                    .list(sortable()))
+            .section("main", "entity.section.main", "name", "code")
+            .actions("create", "update")
+            .archivable()
+            .actions("delete")
+            .defaultSort("modifiedAt", Entity.Sort.DESC)
+            .capabilities(
+                    EntityCapability.ARCHIVE,
+                    EntityCapability.HISTORY,
+                    EntityCapability.EXPORT,
+                    EntityCapability.SAVED_VIEWS,
+                    EntityCapability.BULK)
+            .build();
+
+    @Bean
+    public EntityDefinition ${beanMethod}() {
+        return DEFINITION;
+    }
+}
+`;
+}
+
+export function externalContractTest(module) {
+  return `package ${module.package};
+
+import ${PLATFORM.kit}.EntityContractTestKit;
+
+/**
+ * The ${module.code}.items entity passes the entity contract on the general runtime.
+ */
+class ${module.pascal}ItemsContractTest extends EntityContractTestKit {
+
+    @Override
+    protected String entity() {
+        return ${module.pascal}Module.ITEMS;
+    }
+}
+`;
+}
+
+export function externalBoundaryTest(module) {
+  return `package ${module.package};
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Checks that the external module uses only the platform API (ADR-0033).
+ */
+class ${module.pascal}ModuleBoundaryTest {
+
+    private static final Pattern IMPORT =
+            Pattern.compile("^import (?:static )?(com\\.smartup24\\.[\\w.]+);", Pattern.MULTILINE);
+
+    @Test
+    void theModuleImportsThePlatformApiOnly() throws IOException {
+        List<String> foreign;
+        try (Stream<Path> sources = Files.walk(Path.of("src", "main", "java"))) {
+            foreign = sources.filter(path -> path.toString().endsWith(".java"))
+                    .flatMap(${module.pascal}ModuleBoundaryTest::platformImports)
+                    .filter(name -> !name.startsWith("com.smartup24.cms.platform.api."))
+                    .toList();
+        }
+        assertThat(foreign).isEmpty();
+    }
+
+    @Test
+    void theManifestNamesThisConfiguration() throws IOException {
+        String manifest = Files.readString(
+                Path.of("src", "main", "resources", "META-INF", "smartupcms", "modules", "${module.code}.json"));
+        assertThat(manifest)
+                .contains("\"configuration\": \"" + ${module.pascal}Module.class.getName() + "\"")
+                .contains("\"code\": \"" + ${module.pascal}Module.MODULE + "\"");
+    }
+
+    private static Stream<String> platformImports(Path source) {
+        try {
+            Matcher matcher = IMPORT.matcher(Files.readString(source));
+            Stream.Builder<String> names = Stream.builder();
+            while (matcher.find()) names.add(matcher.group(1));
+            return names.build();
+        } catch (IOException e) {
+            throw new IllegalStateException("Unreadable source " + source, e);
+        }
+    }
+}
+`;
+}
+
+export function externalTableMigration(module) {
+  const t = `${module.tablePrefix}_items`;
+  return `${MIGRATION_HEADER}
+${sqlComment(`The table of the entity ${module.code}.items in external module ${module.code} (ADR-0033).`)}
+create table ${t} (
+    id bigint generated always as identity constraint ${t}_pkey primary key,
+    name text not null,
+    code text not null constraint ${t}_ck_code check (code ~ '^[a-z0-9_-]{1,64}$'),
+    attributes jsonb not null default '{}'::jsonb
+        constraint ${t}_ck_attributes check (jsonb_typeof(attributes) = 'object'),
+    archived_at timestamptz,
+    archived_by bigint constraint ${t}_fk_archived_by references md_users (id),
+    created_by bigint not null constraint ${t}_fk_created_by references md_users (id),
+    modified_by bigint not null constraint ${t}_fk_modified_by references md_users (id),
+    created_at timestamptz not null default clock_timestamp(),
+    modified_at timestamptz not null default clock_timestamp(),
+    revision bigint not null default 1
+);
+
+create unique index ${t}_code_uq on ${t} (code) where archived_at is null;
+create index ${t}_archived_by_idx on ${t} (archived_by);
+create index ${t}_created_by_idx on ${t} (created_by);
+create index ${t}_modified_by_idx on ${t} (modified_by);
+`;
+}
+
+export function externalKeys(module, title) {
+  const code = module.code;
+  return {
+    ru: {
+      [`nav.${code}_items`]: title.ru,
+      [`${code}.items.rights.form`]: title.ru,
+      [`${code}.items.rights.view`]: 'Просмотр',
+      [`${code}.items.rights.create`]: 'Создание',
+      [`${code}.items.rights.update`]: 'Редактирование',
+      [`${code}.items.rights.delete`]: 'Удаление',
+      [`${code}.items.col.name`]: 'Название',
+      [`${code}.items.col.code`]: 'Код',
+      [`${code}.items.col.modified_at`]: 'Изменено',
+    },
+    uz: {
+      [`nav.${code}_items`]: title.uz,
+      [`${code}.items.rights.form`]: title.uz,
+      [`${code}.items.rights.view`]: 'Koʻrish',
+      [`${code}.items.rights.create`]: 'Yaratish',
+      [`${code}.items.rights.update`]: 'Tahrirlash',
+      [`${code}.items.rights.delete`]: 'Oʻchirish',
+      [`${code}.items.col.name`]: 'Nomi',
+      [`${code}.items.col.code`]: 'Kod',
+      [`${code}.items.col.modified_at`]: 'Oʻzgartirilgan',
+    },
+    en: {
+      [`nav.${code}_items`]: title.en,
+      [`${code}.items.rights.form`]: title.en,
+      [`${code}.items.rights.view`]: 'View',
+      [`${code}.items.rights.create`]: 'Create',
+      [`${code}.items.rights.update`]: 'Edit',
+      [`${code}.items.rights.delete`]: 'Delete',
+      [`${code}.items.col.name`]: 'Name',
+      [`${code}.items.col.code`]: 'Code',
+      [`${code}.items.col.modified_at`]: 'Modified',
+    },
+  };
+}
+
 

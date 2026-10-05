@@ -9,7 +9,7 @@ const HELP = `cms - SmartupCMS developer CLI
 
 Usage:
   cms module new <code> [--title <ru>] [--title-en <en>] [--title-uz <uz>] [--area <area>]
-                        [--table-prefix <prefix>]
+                        [--table-prefix <prefix>] [--external] [--dir <dir>] [--package <pkg>]
   cms entity new <module> <entity> [--title <ru>] [--title-en <en>] [--title-uz <uz>] [--hooks]
                                    [--icon <name>] [--version V<n>] [--no-sync]
   cms entity add-field <entity code> <field> --type <type> [--required] [--label <ru>] [--label-en <en>]
@@ -25,6 +25,7 @@ first and writes nothing when a file it would create exists with other content; 
 
 Examples:
   cms module new inventory --title "Склад" --title-en Inventory --title-uz Ombor
+  cms module new library --external --title "Библиотека" --title-en Library --title-uz Kutubxona
   cms entity new inventory items --title "Товары" --title-en Items --title-uz Tovarlar --icon package --hooks
   cms entity add-field inventory.items price --type money --currencies UZS,USD --label "Цена" --label-en Price
   cms migration diff --write inventory_items_sync
@@ -38,6 +39,10 @@ export const OPTIONS = {
     'title-uz': { type: 'string' },
     area: { type: 'string' },
     'table-prefix': { type: 'string' },
+    external: { type: 'boolean' },
+    dir: { type: 'string' },
+    package: { type: 'string' },
+    group: { type: 'string' },
   },
   'entity new': {
     title: { type: 'string' },

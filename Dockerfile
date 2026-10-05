@@ -43,10 +43,12 @@ WORKDIR /app
 
 # Каталог local_disk provider под non-root. В production этот путь обязан быть
 # томом; S3-compatible provider хранит bytes вне контейнера.
-RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup /var/lib/smartupcms/logs /var/lib/smartupcms/audit-archive /opt/smartupcms/jna \
- && chown -R smartupcms:smartupcms /var/lib/smartupcms /opt/smartupcms/jna
+# /app/modules — сторонние модули платформы (ADR-0033).
+RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup /var/lib/smartupcms/logs /var/lib/smartupcms/audit-archive /opt/smartupcms/jna /app/modules \
+ && chown -R smartupcms:smartupcms /var/lib/smartupcms /opt/smartupcms/jna /app/modules
 ENV SMC_STORAGE_LOCAL_PATH=/var/lib/smartupcms/storage \
-    SMC_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json
+    SMC_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json \
+    LOADER_PATH="lib,/app/modules"
 VOLUME ["/var/lib/smartupcms"]
 
 # Порядок COPY = порядок изменчивости (реже меняется — раньше): зависимости,
@@ -73,4 +75,6 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=45s --retries=4 \
 # Exec-форма обязательна: при ENTRYPOINT ["sh","-c","..."] аргументы из
 # command (например --spring.profiles.active=migrate) НЕ доходят до Java —
 # из-за этого шаг миграций молча запускался с профилем приложения.
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# PropertiesLauncher загружает зависимости из lib/ и внешние модули из /app/modules (LOADER_PATH).
+ENTRYPOINT ["java", "-cp", "app.jar", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+

@@ -14,6 +14,12 @@ export function pascal(text) {
     .join('');
 }
 
+/** `inventory` -> `inventory`, `task_types` -> `taskTypes`. */
+export function camel(text) {
+  const p = pascal(text);
+  return p ? p[0].toLowerCase() + p.slice(1) : '';
+}
+
 /** `dueOn` -> `due_on`. */
 export function snake(key) {
   return key.replace(/([A-Z])/g, '_$1').toLowerCase();

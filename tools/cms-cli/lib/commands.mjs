@@ -1,4 +1,5 @@
-// The generating commands: cms module new, cms entity new, cms entity add-field (plan 10/10, item 6.1).
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   addAttributesTable,
   addBoundaryModule,
@@ -13,7 +14,7 @@ import {
   declaresField,
 } from './edits.mjs';
 import { list } from './args.mjs';
-import { CliError, NEW_MODULE_FLOOR, PATHS } from './layout.mjs';
+import { CliError, NEW_MODULE_FLOOR, PATHS, resolve } from './layout.mjs';
 import { createsTable, hasColumn, planMigration, seedsForm } from './migrations.mjs';
 import { entityNames, fieldKey, humanize, labelKey, moduleNames, pascal, snake } from './names.mjs';
 import { findDeclaration, loadModule, planKeys, titles } from './repo.mjs';
@@ -24,6 +25,14 @@ import {
   entityDeclaration,
   entityHooks,
   entityKeys,
+  externalBoundaryTest,
+  externalContractTest,
+  externalKeys,
+  externalModuleDeclaration,
+  externalModuleManifest,
+  externalPackageInfo,
+  externalPom,
+  externalTableMigration,
   fieldDeclaration,
   fieldKeys,
   fieldMigration,
@@ -41,6 +50,9 @@ const ICON = /^[a-z][a-z0-9_-]{0,40}$/;
 /** `cms module new <code>`: the package with its purpose, the permission area, the module lists and the manifest. */
 export function moduleNew(plan, code, values) {
   if (!code) throw new CliError('Usage: cms module new <code> [--title <ru>] [--title-en <en>] [--title-uz <uz>]');
+  if (values.external) {
+    return externalModuleNew(plan, code, values);
+  }
   const names = moduleNames(code, { area: values.area, tablePrefix: values['table-prefix'] });
   const module = { ...names, title: titles(values, pascal(code)) };
 
@@ -51,6 +63,77 @@ export function moduleNew(plan, code, values) {
   plan.patch(PATHS.moduleMap, (text) => addModuleMapRow(text, module, moduleMapRow(module)), `row ${module.code}`);
   plan.note(`describe the module in ${module.javaDir}/package-info.java and its row in ${PATHS.moduleMap}`);
   plan.note(`add an entity: cms entity new ${module.code} <entity> --title "<Название>" --title-en "<Title>"`);
+  return module;
+}
+
+/** `cms module new <code> --external`: a standalone module outside the monorepo (ADR-0033). */
+export function externalModuleNew(plan, code, values) {
+  if (!/^[a-z][a-z0-9_]*$/.test(code ?? '')) {
+    throw new CliError(`Module code: lower-case letters, digits and underscores: ${code}`);
+  }
+  const title = titles(values, pascal(code));
+  const dir = (values.dir ?? `modules/${code}`).replace(/\\/g, '/');
+  const pkg = values.package ?? `com.example.${code}`;
+  const group = values.group ?? `com.example.${code}`;
+  const tablePrefix = values['table-prefix'] ?? snake(code);
+  const pkgPath = pkg.split('.').join('/');
+
+  const module = {
+    code,
+    title,
+    dir,
+    package: pkg,
+    group,
+    tablePrefix,
+    pascal: pascal(code),
+  };
+
+  const relPom = path.posix.relative(dir, '.').replace(/\\/g, '/') + '/pom.xml';
+  const hasParent = fs.existsSync(resolve(plan.root, relPom));
+
+  plan.create(`${dir}/pom.xml`, externalPom(module, { hasParent, relPom }), 'external module pom.xml');
+  plan.create(
+    `${dir}/src/main/resources/META-INF/smartupcms/modules/${code}.json`,
+    externalModuleManifest(module),
+    'module manifest',
+  );
+  const keys = externalKeys(module, title);
+  for (const lang of ['ru', 'uz', 'en']) {
+    plan.create(
+      `${dir}/src/main/resources/META-INF/smartupcms/modules/${code}/i18n/${lang}.json`,
+      JSON.stringify(keys[lang], null, 2) + '\n',
+      `${lang} translations`,
+    );
+  }
+  plan.create(
+    `${dir}/src/main/resources/db/modules/${code}/V1__${code}_items.sql`,
+    externalTableMigration(module),
+    'starter migration',
+  );
+  plan.create(
+    `${dir}/src/main/java/${pkgPath}/package-info.java`,
+    externalPackageInfo(module),
+    'package info',
+  );
+  plan.create(
+    `${dir}/src/main/java/${pkgPath}/${module.pascal}Module.java`,
+    externalModuleDeclaration(module),
+    'module declaration',
+  );
+  plan.create(
+    `${dir}/src/test/java/${pkgPath}/${module.pascal}ItemsContractTest.java`,
+    externalContractTest(module),
+    'contract test',
+  );
+  plan.create(
+    `${dir}/src/test/java/${pkgPath}/${module.pascal}ModuleBoundaryTest.java`,
+    externalBoundaryTest(module),
+    'module boundary test',
+  );
+
+  plan.note(`external module created in ${dir}`);
+  plan.note(`build: cd ${dir} && mvn package`);
+  plan.note(`deploy: copy ${dir}/target/${code}-module-*.jar to modules/ directory for Docker`);
   return module;
 }
 

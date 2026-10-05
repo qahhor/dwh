@@ -129,13 +129,15 @@ services:
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        java -cp app.jar com.smartup24.cms.instance.warehouse.migration.MigrateMain
-        && exec java -jar app.jar --spring.profiles.active=migrate
+        java -cp "app.jar:lib/*:/app/modules/*" com.smartup24.cms.instance.warehouse.migration.MigrateMain
+        && exec java -cp app.jar org.springframework.boot.loader.launch.PropertiesLauncher --spring.profiles.active=migrate
     environment:
       <<: *server-environment
       DB_USER: ${MIGRATE_DB_USER:-smartupcms_migrator}
       DB_PASSWORD: ${MIGRATE_DB_PASSWORD:-${DB_PASSWORD:-smartupcms_local_dev}}
       SMC_MIGRATE_SCOPE: warehouse
+    volumes:
+      - ./modules:/app/modules:ro
     depends_on:
       postgres: {condition: service_healthy}
 
@@ -148,6 +150,7 @@ services:
     volumes:
       - server-data:/var/lib/smartupcms
       - backup-status:/var/lib/smartupcms/backup:ro
+      - ./modules:/app/modules:ro
     depends_on:
       postgres: {condition: service_healthy}
       typesense: {condition: service_healthy}
