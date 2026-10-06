@@ -77,4 +77,36 @@ describe('RefLookups', () => {
     const page = await firstValueFrom(refs.source(UNITS).page('фил', null, 20));
     expect(page?.items?.map((row) => row['code'])).toEqual(['br']);
   });
+
+  it('seeds referenced row names from runtime labels without triggering HTTP reads', async () => {
+    const get = vi.fn();
+    const { refs } = setup(get);
+
+    refs.seedRecord(
+      {
+        id: 1,
+        title: 'Item 1',
+        projectId: 42,
+        userIds: [101, 102],
+        lines: [{ unitCode: 'hq' }],
+        labels: {
+          projectId: 'Alpha Project',
+          userIds: ['User 101', 'User 102'],
+          lines: [{ unitCode: 'Headquarters' }],
+        },
+      },
+      [
+        { key: 'projectId', ref: PROJECTS },
+        { key: 'userIds', ref: USERS },
+      ],
+      [{ key: 'lines', fields: [{ key: 'unitCode', ref: UNITS }] }],
+    );
+
+    expect(refs.name(PROJECTS, 42)).toBe('Alpha Project');
+    expect(refs.name(USERS, 101)).toBe('User 101');
+    expect(refs.name(USERS, 102)).toBe('User 102');
+    expect(refs.name(UNITS, 'hq')).toBe('Headquarters');
+    await Promise.resolve();
+    expect(get).not.toHaveBeenCalled();
+  });
 });

@@ -21,6 +21,8 @@ export interface EntityRecord {
   attributes?: Record<string, unknown>;
   /** What this viewer may do with this record: `update`, `archive`, `delete`, an action's code. */
   actions?: string[];
+  /** Resolved relation labels (ADR-0032 4.6; plan 10/10, item 5.4). */
+  labels?: Record<string, unknown>;
   [key: string]: unknown;
 }
 

@@ -78,7 +78,11 @@ function defaultCell<T>(
       type: 'primitive',
       value: (row) => {
         const raw = value(row);
-        return raw == null || raw === '' ? '—' : (refName(ref, raw) ?? String(raw));
+        if (raw == null || raw === '') return '—';
+        const labels = (row as Record<string, unknown> | null)?.['labels'] as Record<string, unknown> | undefined;
+        const seeded = labels?.[field.key];
+        if (typeof seeded === 'string' && seeded) return seeded;
+        return refName(ref, raw) ?? String(raw);
       },
     };
   }
@@ -132,11 +136,21 @@ function formatCell<T>(
     case 'money':
       return shown((raw) => moneyText(raw));
     case 'multi_ref':
-      return shown((raw) =>
-        (Array.isArray(raw) ? raw : [raw])
-          .map((key) => (field.ref && refName ? refName(field.ref, key) : null) ?? String(key))
-          .join(', '),
-      );
+      return {
+        type: 'primitive',
+        value: (row) => {
+          const raw = value(row);
+          if (raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0)) return '—';
+          const labels = (row as Record<string, unknown> | null)?.['labels'] as Record<string, unknown> | undefined;
+          const seeded = labels?.[field.key];
+          if (Array.isArray(seeded) && seeded.length > 0) {
+            return seeded.join(', ');
+          }
+          return (Array.isArray(raw) ? raw : [raw])
+            .map((key) => (field.ref && refName ? refName(field.ref, key) : null) ?? String(key))
+            .join(', ');
+        },
+      };
     case 'file':
     case 'image':
       return shown((raw) => fileName(raw));

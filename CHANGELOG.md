@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.4 (ADR-0032 §4.6) — batch resolution of relation labels
+  (`labels`) for `ref` and `multi_ref` fields in the low-code runtime.
+  `EntityLabelResolver` batch-resolves referenced records across model fields,
+  collections, and custom attributes in a single SQL query per target entity
+  respecting viewer data scopes, eliminating client-side N+1 lookups in `RefLookups`
+  and UI registry tables.
+
 - Plan 10/10, item 6.6 — cookbook and reference modules. `docs/cookbook`
   holds 17 recipes: reference list, list filters and search, document with
   lines, document with statuses, workflow transitions, relations, hooks,

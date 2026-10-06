@@ -1,5 +1,5 @@
 import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, finalize, map, of, tap } from 'rxjs';
@@ -8,6 +8,7 @@ import { hasCapability, recordValues } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
+import { RefLookups } from '@shared/lookups/ref-lookup';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import { UiRecordHistoryComponent } from '@shared/ui/ui-record-history.component';
@@ -255,6 +256,7 @@ export class SMTEntityRecordPageComponent {
   private readonly modal = inject(SMTModalService);
   private readonly saveErrors = inject(SaveErrorNotifier);
   private readonly permissions = inject(PermissionService);
+  private readonly refLookups = inject(RefLookups);
 
   /** The record as last read: loaded, or as an archive switch or an action returned it. */
   readonly record = linkedSignal<EntityRecord | null>(() => (this.loaded.hasValue() ? this.loaded.value() : null));
@@ -347,6 +349,15 @@ export class SMTEntityRecordPageComponent {
     params: () => this.recordId(),
     stream: ({ params: id }) => (id === null ? of(null) : this.entities.get(this.context.code(), id)),
   });
+
+  constructor() {
+    effect(() => {
+      const rec = this.record();
+      if (rec) {
+        this.refLookups.seedRecord(rec, this.context.formMeta().fields, this.context.formMeta().collections);
+      }
+    });
+  }
 
   /** The sections a declared tab shows, in the order of the form; a section the viewer has no field in is gone. */
   sectionsOf(tab: FormTabMeta): FormSectionMeta[] {

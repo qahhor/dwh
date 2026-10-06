@@ -9,12 +9,26 @@ import { LookupSources, USERS_PATH } from './lookup-sources';
 
 type Row = Record<string, unknown>;
 
+export interface RefFieldHolder {
+  key: string;
+  ref?: QueryRefMeta | null;
+}
+
+export interface RefCollectionHolder {
+  key: string;
+  fields: readonly RefFieldHolder[];
+}
+
 /**
  * The rows a reference field is picked from (ADR-0019 2.4, roadmap item 53): the endpoint the server names
  * in `query-meta`, whose own rights and data scope decide what is offered. A paged endpoint is searched on
  * the server; a whole (short) list is loaded once and searched here. Failures stay inside the field.
  */
-export function refLookup(api: ApiService, ref: QueryRefMeta): SMTLookupSource<Row, SMTLookupKey> {
+export function refLookup(
+  api: ApiService,
+  ref: QueryRefMeta,
+  getCached?: (key: SMTLookupKey) => RefName | undefined,
+): SMTLookupSource<Row, SMTLookupKey> {
   const quiet = { notifyError: false };
   const key = (row: Row) => row[ref.keyField] as SMTLookupKey;
   const option = (row: Row) => ({ label: String(row[ref.labelField] ?? row[ref.keyField] ?? '') });
@@ -36,11 +50,15 @@ export function refLookup(api: ApiService, ref: QueryRefMeta): SMTLookupSource<R
       // under `/page` names where that read lives.
       resolve: (keys) =>
         forkJoin(
-          keys.map((one) =>
-            api
+          keys.map((one) => {
+            const cached = getCached?.(one);
+            if (cached) {
+              return of({ [ref.keyField]: one, [ref.labelField]: cached.label, archived: cached.archived });
+            }
+            return api
               .get<Row>(`${ref.readPath ?? ref.path}/${encodeURIComponent(String(one))}`, undefined, quiet)
-              .pipe(catchError(() => of(null))),
-          ),
+              .pipe(catchError(() => of(null)));
+          }),
         ).pipe(map((found) => found.filter((row): row is Row => row != null))),
     };
   }
@@ -88,7 +106,7 @@ export class RefLookups {
     const id = targetOf(ref);
     let source = this.sources.get(id);
     if (!source) {
-      source = this.known(ref) ?? refLookup(this.api, ref);
+      source = this.known(ref) ?? refLookup(this.api, ref, (k) => this.names().get(`${id}#${String(k)}`));
       this.sources.set(id, source);
     }
     return source;
@@ -111,6 +129,80 @@ export class RefLookups {
       queueMicrotask(() => this.read(ref, key as SMTLookupKey, id));
     }
     return null;
+  }
+
+  /**
+   * Seeds a referenced row's name directly into cache (ADR-0032 4.6; plan 10/10, item 5.4),
+   * preventing N+1 HTTP lookups.
+   */
+  seed(ref: QueryRefMeta, key: unknown, label: string, archived = false): void {
+    if (key === null || key === undefined || key === '' || !label) return;
+    const id = `${targetOf(ref)}#${String(key)}`;
+    if (this.names().has(id)) return;
+    this.names.update((names) => new Map(names).set(id, { label, archived }));
+  }
+
+  /**
+   * Seeds reference labels for an entity record and its collections from the record's `labels` map.
+   */
+  seedRecord(
+    record: unknown,
+    fields?: readonly RefFieldHolder[] | null,
+    collections?: readonly RefCollectionHolder[] | null,
+  ): void {
+    if (!record || typeof record !== 'object') return;
+    const rec = record as Record<string, unknown>;
+    const labels = (rec['labels'] && typeof rec['labels'] === 'object' ? rec['labels'] : null) as Record<
+      string,
+      unknown
+    > | null;
+    if (!labels) return;
+
+    if (fields) {
+      for (const field of fields) {
+        if (!field.ref) continue;
+        const val = rec[field.key];
+        const lbl = labels[field.key];
+        if (lbl === undefined || lbl === null) continue;
+        if (Array.isArray(val) && Array.isArray(lbl)) {
+          for (let i = 0; i < Math.min(val.length, lbl.length); i++) {
+            if (val[i] != null && lbl[i] != null) {
+              this.seed(field.ref, val[i], String(lbl[i]));
+            }
+          }
+        } else if (!Array.isArray(val) && typeof lbl === 'string') {
+          this.seed(field.ref, val, lbl);
+        }
+      }
+    }
+
+    if (collections) {
+      for (const col of collections) {
+        const colLines = rec[col.key];
+        const colLabels = labels[col.key];
+        if (!Array.isArray(colLines) || !Array.isArray(colLabels)) continue;
+        for (let i = 0; i < Math.min(colLines.length, colLabels.length); i++) {
+          const line = colLines[i];
+          const lineLabels = colLabels[i];
+          if (!line || typeof line !== 'object' || !lineLabels || typeof lineLabels !== 'object') continue;
+          for (const field of col.fields) {
+            if (!field.ref) continue;
+            const val = (line as Record<string, unknown>)[field.key];
+            const lbl = (lineLabels as Record<string, unknown>)[field.key];
+            if (lbl === undefined || lbl === null) continue;
+            if (Array.isArray(val) && Array.isArray(lbl)) {
+              for (let j = 0; j < Math.min(val.length, lbl.length); j++) {
+                if (val[j] != null && lbl[j] != null) {
+                  this.seed(field.ref, val[j], String(lbl[j]));
+                }
+              }
+            } else if (!Array.isArray(val) && typeof lbl === 'string') {
+              this.seed(field.ref, val, lbl);
+            }
+          }
+        }
+      }
+    }
   }
 
   private read(ref: QueryRefMeta, key: SMTLookupKey, id: string): void {

@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { debounceTime, distinctUntilChanged, tap } from 'rxjs';
 import type { ListQuery, QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
 import { canDo, hasCapability } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -298,7 +298,17 @@ export class SMTEntityListPageComponent {
   });
 
   readonly pager = new KeysetPager<EntityRecord>(
-    (cursor, limit) => this.entities.page(this.context.code(), this.query(), cursor, limit),
+    (cursor, limit) =>
+      this.entities.page(this.context.code(), this.query(), cursor, limit).pipe(
+        tap((page) => {
+          const meta = this.listMeta();
+          if (meta) {
+            for (const item of page.items) {
+              this.refLookups.seedRecord(item, meta.fields);
+            }
+          }
+        }),
+      ),
     { pageSize: 25, destroyRef: this.destroyRef },
   );
 

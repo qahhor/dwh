@@ -149,6 +149,12 @@ class EntityRuntimeIntegrationTest extends EmbeddedPostgresTest {
         MockHttpServletResponse linked = ownerSession.send(post(ITEMS), Map.of("title", "linked", "noteId", mine));
         assertThat(linked.getStatus()).as(linked.getContentAsString()).isEqualTo(201);
         long id = number(TestSession.object(linked).get("id"));
+        assertThat(TestSession.object(linked).get("labels")).isEqualTo(Map.of("noteId", "linked note"));
+
+        MockHttpServletResponse read = ownerSession.send(get(ITEMS + "/" + id));
+        assertThat(read.getStatus()).isEqualTo(200);
+        assertThat(TestSession.object(read).get("labels")).isEqualTo(Map.of("noteId", "linked note"));
+
         // The note is archived after it was linked: the unchanged old value is kept on a save of something else.
         assertThat(ownerSession
                         .send(

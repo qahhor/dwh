@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.common.entity.runtime;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
+import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.entity.store.EntityStoreRepository;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -14,11 +15,13 @@ import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -35,12 +38,25 @@ public class EntityReads {
     private final EntityScopes scopes;
     private final EntityStoreRepository store;
     private final EntityLines lines;
+    private final EntityLabelResolver resolver;
 
-    public EntityReads(QueryListRegistry lists, EntityScopes scopes, EntityStoreRepository store, EntityLines lines) {
+    @Autowired
+    public EntityReads(
+            QueryListRegistry lists,
+            EntityScopes scopes,
+            EntityStoreRepository store,
+            EntityLines lines,
+            EntityLabelResolver resolver) {
         this.lists = lists;
         this.scopes = scopes;
         this.store = store;
         this.lines = lines;
+        this.resolver = resolver;
+    }
+
+    /** Constructor without an external label resolver, for tests. */
+    public EntityReads(QueryListRegistry lists, EntityScopes scopes, EntityStoreRepository store, EntityLines lines) {
+        this(lists, scopes, store, lines, new EntityLabelResolver(new EntityRegistry(List.of()), scopes, null));
     }
 
     /** The entity's list with its custom fields: its select is the projection of every record read. */
@@ -82,8 +98,36 @@ public class EntityReads {
                 .map(record -> EntityFieldRights.project(entity, record));
     }
 
-    /** The answer of a record: the fields the viewer may see and the actions they may take. */
-    public static EntityRecordView view(EntityDefinition entity, Map<String, Object> record) {
+    /**
+     * The answer of a record: the fields the viewer may see, relation labels resolved in batch and the actions they
+     * may take (ADR-0032, 4.6 and 6.2).
+     */
+    public EntityRecordView view(EntityDefinition entity, Map<String, Object> record) {
+        Map<String, Object> projected = EntityFieldRights.project(entity, record);
+        Map<String, Object> labels = resolver.resolve(entity, projected, userId());
+        return new EntityRecordView(projected, actions(entity, record), labels);
+    }
+
+    /**
+     * The answers for a page of records: fields projected, relation labels resolved in batch (ADR-0032, 4.6).
+     */
+    public KeysetPage<EntityRecordView> views(EntityDefinition entity, KeysetPage<Map<String, Object>> page) {
+        if (page.items().isEmpty()) {
+            return new KeysetPage<>(
+                    List.of(), page.nextCursor(), page.hasMore(), page.totalEstimated(), page.totalExact());
+        }
+        List<Map<String, Object>> items = page.items();
+        List<Map<String, Object>> labels = resolver.resolveBatch(entity, items, userId());
+        List<EntityRecordView> views = new ArrayList<>(items.size());
+        for (int i = 0; i < items.size(); i++) {
+            Map<String, Object> record = items.get(i);
+            views.add(new EntityRecordView(record, actions(entity, record), labels.get(i)));
+        }
+        return new KeysetPage<>(views, page.nextCursor(), page.hasMore(), page.totalEstimated(), page.totalExact());
+    }
+
+    /** A record view without resolving relation labels. */
+    public static EntityRecordView plainView(EntityDefinition entity, Map<String, Object> record) {
         return new EntityRecordView(EntityFieldRights.project(entity, record), actions(entity, record));
     }
 

@@ -20,10 +20,20 @@ public final class EntityRecordView implements Revisioned {
     /** The property of the actions the viewer may take on the record. */
     public static final String ACTIONS = "actions";
 
+    /** The property of the resolved relation labels (ADR-0032, 4.6). */
+    public static final String LABELS = "labels";
+
     private final Map<String, Object> properties;
 
     public EntityRecordView(Map<String, Object> record, List<String> actions) {
+        this(record, actions, Map.of());
+    }
+
+    public EntityRecordView(Map<String, Object> record, List<String> actions, Map<String, Object> labels) {
         Map<String, Object> properties = new LinkedHashMap<>(record);
+        if (labels != null && !labels.isEmpty()) {
+            properties.put(LABELS, Collections.unmodifiableMap(new LinkedHashMap<>(labels)));
+        }
         properties.put(ACTIONS, List.copyOf(actions));
         this.properties = Collections.unmodifiableMap(properties);
     }
@@ -41,5 +51,19 @@ public final class EntityRecordView implements Revisioned {
     @JsonAnyGetter
     public Map<String, Object> properties() {
         return properties;
+    }
+
+    /** The relation labels resolved for this record, or an empty map. */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> labels() {
+        Object val = properties.get(LABELS);
+        return val instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
+    }
+
+    /** The actions the viewer may take on the record. */
+    @SuppressWarnings("unchecked")
+    public List<String> actions() {
+        Object val = properties.get(ACTIONS);
+        return val instanceof List<?> list ? (List<String>) list : List.of();
     }
 }

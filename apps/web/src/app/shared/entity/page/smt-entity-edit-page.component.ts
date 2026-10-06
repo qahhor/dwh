@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, map, of } from 'rxjs';
@@ -16,6 +16,7 @@ import {
 } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
+import { RefLookups } from '@shared/lookups/ref-lookup';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -123,6 +124,7 @@ export class SMTEntityEditPageComponent {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
+  private readonly refLookups = inject(RefLookups);
 
   /** The record as last read: the loaded one, or the one read again after a save was refused over a newer revision. */
   readonly record = linkedSignal<EntityRecord | null>(() => (this.loaded.hasValue() ? this.loaded.value() : null));
@@ -176,6 +178,15 @@ export class SMTEntityEditPageComponent {
 
   /** The rows of a collection on the form, for the template. */
   readonly rowsOf = rowsOf;
+
+  constructor() {
+    effect(() => {
+      const rec = this.record();
+      if (rec) {
+        this.refLookups.seedRecord(rec, this.meta().fields, this.meta().collections);
+      }
+    });
+  }
 
   /** Checked by the entity's declared rules first; the server checks them again and names the fields it rejects. */
   save(): void {

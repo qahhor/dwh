@@ -64,20 +64,22 @@ public class EntityRuntime implements EntityRecordStore {
             @Nullable String sort,
             @Nullable String search) {
         EntityDefinition entity = gate.viewable(code);
-        KeysetPage<Map<String, Object>> page = read(() -> reads.page(entity, limit, cursor, filter, sort, search));
-        return page.map(record -> new EntityRecordView(record, EntityReads.actions(entity, record)));
+        return read(() -> {
+            KeysetPage<Map<String, Object>> page = reads.page(entity, limit, cursor, filter, sort, search);
+            return reads.views(entity, page);
+        });
     }
 
     /** {@code GET /api/v1/entities/{code}/{id}}: the record in the viewer's scope, an archived one too. */
     public EntityRecordView get(String code, long id) {
         EntityDefinition entity = gate.viewable(code);
-        return EntityReads.view(entity, read(() -> reads.visible(entity, id, false)));
+        return read(() -> reads.view(entity, reads.visible(entity, id, false)));
     }
 
     /** {@code POST /api/v1/entities/{code}}: creates a record. */
     public EntityRecordView create(String code, @Nullable JsonNode body) {
         EntityDefinition entity = gate.allowed(code, "create");
-        return EntityReads.view(entity, change(() -> writes.create(entity, body)));
+        return change(() -> reads.view(entity, writes.create(entity, body)));
     }
 
     /**
@@ -87,7 +89,7 @@ public class EntityRuntime implements EntityRecordStore {
     public EntityRecordView update(String code, long id, @Nullable String ifMatch, @Nullable JsonNode body) {
         EntityDefinition entity = gate.allowed(code, "update");
         long revision = Revisions.required(ifMatch);
-        return EntityReads.view(entity, change(() -> writes.update(entity, id, revision, body)));
+        return change(() -> reads.view(entity, writes.update(entity, id, revision, body)));
     }
 
     /** {@code DELETE /api/v1/entities/{code}/{id}}: with {@code If-Match}, only from its revision (ADR-0032, 5.3). */
@@ -104,7 +106,7 @@ public class EntityRuntime implements EntityRecordStore {
     public EntityRecordView archive(String code, long id, @Nullable String ifMatch, boolean archived) {
         EntityDefinition entity = gate.allowed(code, EntityDefinition.ARCHIVE);
         long revision = Revisions.required(ifMatch);
-        return EntityReads.view(entity, change(() -> writes.archive(entity, id, revision, archived)));
+        return change(() -> reads.view(entity, writes.archive(entity, id, revision, archived)));
     }
 
     /**
@@ -118,13 +120,12 @@ public class EntityRuntime implements EntityRecordStore {
         if (transition.isPresent()) {
             long revision = Revisions.required(ifMatch);
             Map<String, Object> params = EntityRequestReader.params(body);
-            return EntityReads.view(
-                    entity, change(() -> writes.transition(entity, id, revision, transition.get(), params)));
+            return change(() -> reads.view(entity, writes.transition(entity, id, revision, transition.get(), params)));
         }
         EntityActionHandler handler = handler(entity, action);
         long revision = Revisions.required(ifMatch);
         Map<String, Object> params = EntityRequestReader.params(body);
-        return EntityReads.view(entity, change(() -> writes.action(entity, id, revision, handler, params)));
+        return change(() -> reads.view(entity, writes.action(entity, id, revision, handler, params)));
     }
 
     @Override
@@ -180,7 +181,7 @@ public class EntityRuntime implements EntityRecordStore {
                         ErrorCode.NOT_FOUND, "error.common.entity_action_not_found", Map.of("action", action)));
     }
 
-    private Map<String, Object> change(Supplier<Map<String, Object>> work) {
+    private <T> T change(Supplier<T> work) {
         return Objects.requireNonNull(changes.execute(status -> work.get()));
     }
 
