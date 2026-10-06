@@ -29,8 +29,12 @@ export interface UpdateWebhookSubscriptionDto {
 
 export interface WebhookEventOption {
   code: string;
-  nameKey: string;
-  descKey: string;
+  event?: string;
+  entity?: string | null;
+  form?: string | null;
+  action?: string | null;
+  nameKey?: string | null;
+  descKey?: string | null;
 }
 
 export const AVAILABLE_WEBHOOK_EVENTS: WebhookEventOption[] = [

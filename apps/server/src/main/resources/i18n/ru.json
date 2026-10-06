@@ -2090,6 +2090,7 @@
   "error.user_storage_quota_exceeded": "Ваша квота хранилища исчерпана",
   "error.validation_failed": "Ошибка валидации входных данных",
   "error.webhook.disabled": "Исходящие вебхуки отключены оператором",
+  "error.webhook.event_unknown": "Неизвестное событие вебхука: {event}",
   "error.webhook.host_not_allowed": "Host вебхука не входит в список разрешённых оператором",
   "error.webhook.host_private": "Host вебхука разрешается во внутренний или специальный адрес",
   "error.webhook.host_unresolved": "Host вебхука не разрешается через DNS",

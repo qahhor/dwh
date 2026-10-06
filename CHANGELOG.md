@@ -9,6 +9,21 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.4 (ADR-0032 §6.9, §6.16) — webhook events catalog and replay
+  protection. Endpoint `GET /api/v1/webhooks/events` exposes the available
+  event codes derived dynamically from `EntityRegistry` (standard CRUD/archive/restore
+  lifecycle, custom actions and transitions, plus wildcard `*`). Subscription
+  creation and PATCH validate `subscribedEvents` against the catalog, rejecting
+  unknown event codes with 422 `error.webhook.event_unknown`. The web settings UI
+  dynamically retrieves and displays the catalog for subscription event selection.
+
+### Changed
+
+- Plan 10/10, item 5.4 (ADR-0032 question B9) — webhook outbox deliveries now
+  compute HMAC-SHA256 signature over `${timestamp}.${payload}` sent in headers
+  `X-Signature-SHA256` and `X-Signature-Timestamp` to protect against replay
+  attacks.
+
 - Plan 10/10, item 5.4 (ADR-0032 §4.6) — batch resolution of relation labels
   (`labels`) for `ref` and `multi_ref` fields in the low-code runtime.
   `EntityLabelResolver` batch-resolves referenced records across model fields,

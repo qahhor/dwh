@@ -172,12 +172,12 @@
             </button>
           </div>
           <div class="events-grid" role="group" aria-labelledby="webhook-events-label">
-            @for (opt of availableEvents; track opt) {
+            @for (opt of availableEvents(); track opt.code) {
               <div
                 smt-checkbox
                 class="event-checkbox-label"
                 [checked]="selectedEvents.has(opt.code)"
-                [smtHint]="opt.descKey | t"
+                [smtHint]="opt.descKey ? (opt.descKey | t) : opt.nameKey ? (opt.nameKey | t) : ''"
                 (smtCheckedChange)="onEventCheck(opt.code, $event)"
               >
                 <span class="event-opt-code font-mono">{{ opt.code }}</span>
@@ -245,8 +245,8 @@
 
           <div class="hmac-info-box">
             <span class="text-xs text-muted">
-              {{ 'settings.webhooks.request_headers' | t }}: <code>X-Hub-Signature-256: sha256=&lt;hmac-hex&gt;</code>,
-              <code>X-Webhook-Event: &lt;event_type&gt;</code>.
+              {{ 'settings.webhooks.request_headers' | t }}: <code>X-Signature-SHA256</code>,
+              <code>X-Signature-Timestamp</code>.
             </span>
           </div>
         </div>

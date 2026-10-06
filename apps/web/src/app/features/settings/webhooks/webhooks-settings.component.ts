@@ -9,7 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormField, form, maxLength, required } from '@angular/forms/signals';
 import { WebhooksApi } from './webhooks.api';
 import { ToastService } from '@core/services/toast.service';
@@ -81,6 +81,7 @@ export class WebhooksSettingsComponent {
   readonly recentlyCreatedSubscription = signal<CreatedWebhookSubscription | null>(null);
 
   readonly createModel = signal<WebhookCreateModel>({ ...EMPTY_CREATE });
+  readonly availableEvents = signal<WebhookEventOption[]>(AVAILABLE_WEBHOOK_EVENTS);
 
   readonly tableConfig = computed<TableConfig<WebhookSubscription>>(() => {
     const i18n = this.uiI18n;
@@ -146,7 +147,19 @@ export class WebhooksSettingsComponent {
 
   selectedEvents = new Set<string>(['*']);
 
-  readonly availableEvents: WebhookEventOption[] = AVAILABLE_WEBHOOK_EVENTS;
+  constructor() {
+    this.webhooks
+      .events()
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (events) => {
+          if (Array.isArray(events) && events.length > 0) {
+            this.availableEvents.set(events);
+          }
+        },
+        error: () => {},
+      });
+  }
 
   loadSubscriptions(): void {
     this.subscriptionsResource.reload();
@@ -172,14 +185,14 @@ export class WebhooksSettingsComponent {
   }
 
   isAllEventsSelected(): boolean {
-    return this.selectedEvents.size === this.availableEvents.length;
+    return this.selectedEvents.size === this.availableEvents().length;
   }
 
   toggleAllEvents(): void {
     if (this.isAllEventsSelected()) {
       this.selectedEvents.clear();
     } else {
-      for (const ev of this.availableEvents) {
+      for (const ev of this.availableEvents()) {
         this.selectedEvents.add(ev.code);
       }
     }

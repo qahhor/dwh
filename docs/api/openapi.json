@@ -125,6 +125,8 @@
   }, {
     "name" : "upl-unit-controller"
   }, {
+    "name" : "webhook-event-controller"
+  }, {
     "name" : "webhook-subscription-controller"
   } ],
   "paths" : {
@@ -12692,6 +12694,39 @@
         "tags" : [ "upl-unit-controller" ]
       }
     },
+    "/api/v1/webhooks/events" : {
+      "get" : {
+        "description" : "The available events that can be subscribed to, derived from the registered entities.",
+        "operationId" : "listEvents",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WebhookEventView"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List webhook event catalog",
+        "tags" : [ "webhook-event-controller" ]
+      }
+    },
     "/api/v1/webhooks/subscriptions" : {
       "get" : {
         "description" : "The webhook subscriptions of the installation.",
@@ -19293,6 +19328,32 @@
           },
           "state" : {
             "$ref" : "#/components/schemas/JsonNode"
+          }
+        }
+      },
+      "WebhookEventView" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "descKey" : {
+            "type" : "string"
+          },
+          "entity" : {
+            "type" : "string"
+          },
+          "event" : {
+            "type" : "string"
+          },
+          "form" : {
+            "type" : "string"
+          },
+          "nameKey" : {
+            "type" : "string"
           }
         }
       },

@@ -3600,6 +3600,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/webhooks/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List webhook event catalog
+         * @description The available events that can be subscribed to, derived from the registered entities.
+         */
+        get: operations["listEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/webhooks/subscriptions": {
         parameters: {
             query?: never;
@@ -6084,6 +6104,15 @@ export interface components {
             modifiedAt?: string;
             name?: string;
             state?: components["schemas"]["JsonNode"];
+        };
+        WebhookEventView: {
+            action?: string;
+            code?: string;
+            descKey?: string;
+            entity?: string;
+            event?: string;
+            form?: string;
+            nameKey?: string;
         };
         WidgetResponse: {
             entity?: string;
@@ -14888,6 +14917,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnitItem"][];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    listEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookEventView"][];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */

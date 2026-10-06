@@ -50,9 +50,9 @@ public class WebhookOutboxWorker {
     /** One signed delivery to the subscription's checked address. */
     private org.springframework.http.ResponseEntity<Void> post(WebhookOutboxRepository.OutboxRecord item) {
         var target = targetPolicy.validate(item.targetUrl());
-        String payloadJson = objectMapper.writeValueAsString(item.payload());
-        String signature = WebhookService.computeHmacSha256(payloadJson, item.secretToken());
         long timestamp = Instant.now().getEpochSecond();
+        String payloadJson = objectMapper.writeValueAsString(item.payload());
+        String signature = WebhookService.computeHmacSha256(timestamp, payloadJson, item.secretToken());
         return restClient
                 .post()
                 .uri(target)

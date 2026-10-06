@@ -2090,6 +2090,7 @@
   "error.user_storage_quota_exceeded": "Your storage quota is used up",
   "error.validation_failed": "The input is not valid",
   "error.webhook.disabled": "Outgoing webhooks are disabled by the operator",
+  "error.webhook.event_unknown": "Unknown webhook event: {event}",
   "error.webhook.host_not_allowed": "The webhook host is not on the operator's allowed list",
   "error.webhook.host_private": "The webhook host resolves to an internal or special address",
   "error.webhook.host_unresolved": "The webhook host does not resolve in DNS",

@@ -2,22 +2,30 @@ package com.smartup24.cms.instance.webhook.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.web.Revisioned;
 import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
 import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,16 +39,28 @@ public class WebhookService {
     private final SecureRandom secureRandom = new SecureRandom();
     private final AuditLogService auditLogService;
     private final WebhookTargetPolicy targetPolicy;
+    private final EntityRegistry entityRegistry;
+
+    @Autowired
+    public WebhookService(
+            WebhookSubscriptionRepository subscriptionRepository,
+            WebhookOutboxRepository outboxRepository,
+            AuditLogService auditLogService,
+            WebhookTargetPolicy targetPolicy,
+            EntityRegistry entityRegistry) {
+        this.subscriptionRepository = subscriptionRepository;
+        this.outboxRepository = outboxRepository;
+        this.auditLogService = auditLogService;
+        this.targetPolicy = targetPolicy;
+        this.entityRegistry = entityRegistry;
+    }
 
     public WebhookService(
             WebhookSubscriptionRepository subscriptionRepository,
             WebhookOutboxRepository outboxRepository,
             AuditLogService auditLogService,
             WebhookTargetPolicy targetPolicy) {
-        this.subscriptionRepository = subscriptionRepository;
-        this.outboxRepository = outboxRepository;
-        this.auditLogService = auditLogService;
-        this.targetPolicy = targetPolicy;
+        this(subscriptionRepository, outboxRepository, auditLogService, targetPolicy, new EntityRegistry(List.of()));
     }
 
     @Transactional(readOnly = true)
@@ -54,6 +74,7 @@ public class WebhookService {
     public CreatedSubscription createSubscription(
             String name, String targetUrl, List<String> subscribedEvents, Long createdBy) {
 
+        validateSubscribedEvents(subscribedEvents);
         var validatedTarget = targetPolicy.validate(targetUrl);
 
         byte[] secretBytes = new byte[32];
@@ -101,6 +122,9 @@ public class WebhookService {
             long expectedRevision) {
         if (targetUrl != null) {
             targetPolicy.validate(targetUrl);
+        }
+        if (subscribedEvents != null) {
+            validateSubscribedEvents(subscribedEvents);
         }
         var before = requireSubscription(id);
         long revision = subscriptionRepository.update(id, name, targetUrl, subscribedEvents, state, expectedRevision);
@@ -176,6 +200,87 @@ public class WebhookService {
         }
     }
 
+    /**
+     * Compute HMAC-SHA256 signature for webhook timestamp and payload (timestamp.body) for replay protection
+     * (ADR-0032, question B9; plan 10/10, item 5.4).
+     */
+    public static String computeHmacSha256(long timestamp, String payload, String secretKey) {
+        return computeHmacSha256(timestamp + "." + payload, secretKey);
+    }
+
+    /**
+     * The catalog of available webhook events derived from registered entities (ADR-0032, 6.9).
+     */
+    public List<WebhookEventView> listEvents() {
+        Map<String, WebhookEventView> events = new LinkedHashMap<>();
+        events.put(
+                "*",
+                new WebhookEventView(
+                        "*", null, null, null, "settings.webhooks.event_all", "settings.webhooks.event_all_desc"));
+
+        for (EntityDefinition entity : entityRegistry.all()) {
+            String form = entity.form();
+            String entityCode = entity.code();
+
+            registerEvent(events, form + ".created", entityCode, form, "created", null);
+            registerEvent(events, form + ".updated", entityCode, form, "updated", null);
+            registerEvent(events, form + ".deleted", entityCode, form, "deleted", null);
+
+            if (entity.capabilities().contains(EntityCapability.ARCHIVE)) {
+                registerEvent(events, form + ".archived", entityCode, form, "archived", null);
+                registerEvent(events, form + ".restored", entityCode, form, "restored", null);
+            }
+
+            for (EntityDefinition.EntityAction action : entity.actions()) {
+                String actionCode = action.code();
+                if (isStandardAction(actionCode)) {
+                    continue;
+                }
+                String nameKey = null;
+                if (entity.rights() != null && entity.rights().actionKeys() != null) {
+                    nameKey = entity.rights().actionKeys().get(action.permission());
+                }
+                registerEvent(events, form + "." + actionCode, entityCode, form, actionCode, nameKey);
+            }
+        }
+        return List.copyOf(events.values());
+    }
+
+    public Set<String> knownEventCodes() {
+        Set<String> codes = new HashSet<>();
+        for (WebhookEventView view : listEvents()) {
+            codes.add(view.code());
+        }
+        return codes;
+    }
+
+    private void validateSubscribedEvents(List<String> subscribedEvents) {
+        if (subscribedEvents == null || subscribedEvents.isEmpty()) {
+            return;
+        }
+        Set<String> known = knownEventCodes();
+        for (String event : subscribedEvents) {
+            if (!known.contains(event)) {
+                throw new ApiException(
+                        ErrorCode.VALIDATION_FAILED, "error.webhook.event_unknown", Map.of("event", event));
+            }
+        }
+    }
+
+    private static boolean isStandardAction(String code) {
+        return "create".equals(code) || "update".equals(code) || "delete".equals(code) || "archive".equals(code);
+    }
+
+    private static void registerEvent(
+            Map<String, WebhookEventView> events,
+            String code,
+            String entity,
+            String form,
+            String action,
+            @Nullable String nameKey) {
+        events.putIfAbsent(code, new WebhookEventView(code, entity, form, action, nameKey, null));
+    }
+
     private String redact(String url) {
         if (url == null) {
             return "invalid-webhook-target";
@@ -198,6 +303,25 @@ public class WebhookService {
                 subscription.createdAt(),
                 subscription.createdBy(),
                 subscription.revision());
+    }
+
+    public record WebhookEventView(
+            String code,
+            String event,
+            @Nullable String entity,
+            @Nullable String form,
+            @Nullable String action,
+            @Nullable String nameKey,
+            @Nullable String descKey) {
+        public WebhookEventView(
+                String code,
+                @Nullable String entity,
+                @Nullable String form,
+                @Nullable String action,
+                @Nullable String nameKey,
+                @Nullable String descKey) {
+            this(code, code, entity, form, action, nameKey, descKey);
+        }
     }
 
     public record SubscriptionView(

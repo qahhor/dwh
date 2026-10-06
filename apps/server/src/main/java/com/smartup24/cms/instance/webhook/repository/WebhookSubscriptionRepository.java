@@ -61,7 +61,7 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
                 .sql("""
                 select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by, revision
                 from kwh_subscriptions
-                where state = 'A' and :eventType = any(subscribed_events)
+                where state = 'A' and (:eventType = any(subscribed_events) or '*' = any(subscribed_events))
                 """)
                 .param("eventType", eventType)
                 .query(this::mapRecord)

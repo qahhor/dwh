@@ -2090,6 +2090,7 @@
   "error.user_storage_quota_exceeded": "Sizning xotira kvotangiz tugagan",
   "error.validation_failed": "Kiritilgan ma'lumotlar noto'g'ri",
   "error.webhook.disabled": "Chiquvchi vebhuklar operator tomonidan o'chirilgan",
+  "error.webhook.event_unknown": "Noma'lum vebhuk hodisasi: {event}",
   "error.webhook.host_not_allowed": "Vebhuk hosti operator ruxsat bergan ro'yxatda yo'q",
   "error.webhook.host_private": "Vebhuk hosti ichki yoki maxsus manzilga ishora qiladi",
   "error.webhook.host_unresolved": "Vebhuk hosti DNS orqali aniqlanmadi",

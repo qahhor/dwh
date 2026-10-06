@@ -4,6 +4,7 @@ import { ApiService } from '@core/services/api.service';
 import {
   CreatedWebhookSubscription,
   CreateWebhookSubscriptionDto,
+  WebhookEventOption,
   WebhookSubscription,
 } from './webhooks-settings.models';
 
@@ -14,6 +15,10 @@ export class WebhooksApi {
 
   list(): Observable<WebhookSubscription[]> {
     return this.api.get<WebhookSubscription[]>('/webhooks/subscriptions');
+  }
+
+  events(): Observable<WebhookEventOption[]> {
+    return this.api.get<WebhookEventOption[]>('/webhooks/events');
   }
 
   create(body: CreateWebhookSubscriptionDto): Observable<CreatedWebhookSubscription> {
