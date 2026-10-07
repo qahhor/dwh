@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { UplFormatDraftRequest, UplFormatVersion } from '../upl-api';
+import { UplFormatDraftRequest, UplFormatVersion } from '../upl.api';
 import { UPL_FILE_KIND_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
 
 /**

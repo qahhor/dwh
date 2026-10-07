@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
-import { UplSource } from '../upl-api';
-import { UplPackageItem } from './packages-api';
+import { UplSource } from '../upl.api';
+import { UplPackageItem } from './packages.api';
 import {
   UPL_PACKAGES_META,
   UPL_RECEIVED,

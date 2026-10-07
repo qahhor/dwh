@@ -1,0 +1,140 @@
+<div class="upl-pkg-card">
+  <div class="upl-pkg-card-head">
+    <button smt-button type="button" smtVariant="ghost" data-testid="upl-pkg-back" (click)="back.emit()">
+      {{ 'upl.pkg.card.back' | t }}
+    </button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="refresh"
+      data-testid="upl-pkg-card-refresh"
+      (click)="refresh.emit()"
+    >
+      {{ 'upl.pkg.refresh' | t }}
+    </button>
+    @if (item().status === 'verified' && canApply() && (item().rowsAccepted ?? 0) > 0) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="primary"
+        data-testid="upl-pkg-apply"
+        [disabled]="applying()"
+        (click)="apply()"
+      >
+        {{ 'upl.pkg.card.apply' | t }}
+      </button>
+    }
+  </div>
+
+  <div class="upl-pkg-card-title">
+    <span class="upl-pkg-file">{{ item().fileName }}</span>
+    <smt-badge smtSize="SM" [smtVariant]="statusVariant[item().status]">{{ statusKey[item().status] | t }}</smt-badge>
+  </div>
+  <div class="upl-pkg-card-meta" data-testid="upl-pkg-card-meta">{{ metaText() }}</div>
+  @if (item().status === 'applying') {
+    <smt-alert smtTone="info" class="upl-pkg-alert" role="status" data-testid="upl-pkg-applying">{{
+      'upl.pkg.card.applying' | t
+    }}</smt-alert>
+  }
+  @if (applyLost()) {
+    <smt-alert smtTone="warning" class="upl-pkg-alert" data-testid="upl-pkg-applying-lost">{{
+      'upl.pkg.card.applying_lost' | t
+    }}</smt-alert>
+  }
+  @if (applyError(); as message) {
+    <smt-alert smtTone="danger" class="upl-pkg-alert" data-testid="upl-pkg-apply-error">{{ message }}</smt-alert>
+  }
+
+  @if (item().status === 'received') {
+    <p class="upl-pkg-checking" data-testid="upl-pkg-checking">{{ 'upl.pkg.card.checking' | t }}</p>
+  } @else {
+    @if (item().status === 'rejected') {
+      <smt-alert smtTone="danger" class="upl-pkg-rejected" data-testid="upl-pkg-rejected">
+        <strong>{{ 'upl.pkg.card.rejected' | t }}</strong>
+        <span class="upl-pkg-reject-reason">{{ rejectText() }}</span>
+        @for (row of structRows(); track $index) {
+          <span class="upl-pkg-struct-row" data-testid="upl-pkg-struct-row">{{ codeText(row) }}</span>
+        }
+        <span class="upl-pkg-hint">{{ 'upl.pkg.card.rejected_hint' | t }}</span>
+        @if (structRows().length > 0) {
+          <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download
+            ><span class="material-symbols-outlined" aria-hidden="true">download</span
+            >{{ 'upl.errfile.download' | t }}</a
+          >
+        }
+      </smt-alert>
+    } @else {
+      <div class="upl-pkg-counters" data-testid="upl-pkg-counters">
+        <span class="upl-pkg-counter">
+          <span class="upl-pkg-counter-label">{{ 'upl.pkg.card.rows_total' | t }}</span>
+          <span class="upl-pkg-counter-value">{{ item().rowsTotal ?? '—' }}</span>
+        </span>
+        <span class="upl-pkg-counter">
+          <span class="upl-pkg-counter-label">{{ 'upl.pkg.card.rows_accepted' | t }}</span>
+          <span class="upl-pkg-counter-value">{{ item().rowsAccepted ?? '—' }}</span>
+        </span>
+        <span class="upl-pkg-counter">
+          <span class="upl-pkg-counter-label">{{ 'upl.pkg.card.rows_rejected' | t }}</span>
+          <span class="upl-pkg-counter-value">{{ item().rowsRejected ?? '—' }}</span>
+        </span>
+      </div>
+      @if (reconciliationText(); as line) {
+        <smt-alert
+          smtTone="success"
+          smtLive="off"
+          class="upl-pkg-reconciliation"
+          data-testid="upl-pkg-reconciliation"
+          >{{ line }}</smt-alert
+        >
+      }
+    }
+
+    @if (loadError()) {
+      <smt-alert smtTone="danger" class="upl-pkg-alert" data-testid="upl-pkg-errors-load-error">
+        <span>{{ loadError() }}</span>
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          data-testid="upl-pkg-errors-retry"
+          (click)="reloadErrors()"
+        >
+          {{ 'upl.common.retry' | t }}
+        </button>
+      </smt-alert>
+    } @else if (isLoading()) {
+      <div class="table-card" data-testid="upl-pkg-errors-loading">
+        <ui-local-table [rows]="[]" [config]="errorsConfig()" [loading]="true" />
+      </div>
+    } @else if (item().status !== 'rejected') {
+      @if (errors(); as loaded) {
+        @if (loaded.total === 0) {
+          <p class="upl-pkg-no-errors" data-testid="upl-pkg-no-errors">{{ 'upl.pkg.card.no_errors' | t }}</p>
+        } @else {
+          @if (loaded.total > loaded.shown) {
+            <p class="upl-pkg-shown" data-testid="upl-pkg-errors-shown">
+              {{ 'upl.pkg.errors.shown_first' | t: { shown: loaded.shown, n: loaded.total } }}
+            </p>
+          }
+          <a class="upl-pkg-errors-file" data-testid="upl-pkg-errors-file" [href]="errorsFileUrl()" download
+            ><span class="material-symbols-outlined" aria-hidden="true">download</span
+            >{{ 'upl.errfile.download' | t }}</a
+          >
+          <div class="table-card">
+            <div class="table-scroll">
+              <div data-testid="upl-pkg-errors-table">
+                <ui-local-table [rows]="cellRows()" [config]="errorsConfig()" [sortValues]="errorSortValues" />
+              </div>
+            </div>
+          </div>
+        }
+      }
+    }
+  }
+</div>
+
+<ng-template #errorValueCell let-row
+  ><code class="upl-pkg-value" [title]="row.value ?? ''">{{ row.value ?? '—' }}</code></ng-template
+>
+<ng-template #errorWhatCell let-row>{{ codeText(row) }}</ng-template>

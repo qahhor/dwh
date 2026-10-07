@@ -1,32 +1,31 @@
 <section class="overview" aria-labelledby="overview-title">
-  <header class="overview__head">
-    <div>
-      <h1 id="overview-title" class="overview__title">{{ 'upl.overview.title' | t }}</h1>
-      <p class="overview__subtitle">{{ 'upl.overview.subtitle' | t }}</p>
-    </div>
-    <div class="overview__controls">
-      <smt-radio-group
-        smtAppearance="segmented"
-        class="overview__period-picker"
-        data-testid="overview-periods"
-        [options]="periodOptions()"
-        [value]="days()"
-        [smtAriaLabel]="'upl.overview.period' | t"
-        (valueChange)="choose($event ?? days())"
-      />
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="sm"
-        smtIcon="refresh"
-        data-testid="overview-refresh"
-        (click)="load()"
-      >
-        {{ 'common.refresh' | t }}
-      </button>
-    </div>
-  </header>
+  <ui-page-header
+    class="overview__head"
+    titleId="overview-title"
+    [title]="'upl.overview.title' | t"
+    [subtitle]="'upl.overview.subtitle' | t"
+  >
+    <smt-radio-group
+      smtAppearance="segmented"
+      class="overview__period-picker"
+      data-testid="overview-periods"
+      [options]="periodOptions()"
+      [value]="days()"
+      [smtAriaLabel]="'upl.overview.period' | t"
+      (valueChange)="choose($event ?? days())"
+    />
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtSize="sm"
+      smtIcon="refresh"
+      data-testid="overview-refresh"
+      (click)="load()"
+    >
+      {{ 'common.refresh' | t }}
+    </button>
+  </ui-page-header>
   @if (data(); as current) {
     <p class="overview__stamp" data-testid="overview-stamp">
       {{ 'upl.overview.taken_at' | t: { time: (current.generatedAt | date: 'dd.MM.yyyy HH:mm') ?? '' } }}

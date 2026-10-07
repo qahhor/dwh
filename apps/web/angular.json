@@ -80,7 +80,9 @@
             "runner": "vitest",
             "tsConfig": "tsconfig.spec.json",
             "watch": false,
-            "setupFiles": ["src/testing/setup.ts"]
+            "setupFiles": ["src/testing/setup.ts"],
+            "coverageInclude": ["src/app/**/*.ts"],
+            "coverageExclude": ["src/**/*.spec.ts", "src/**/*.d.ts", "src/app/**/testing/**"]
           }
         }
       }

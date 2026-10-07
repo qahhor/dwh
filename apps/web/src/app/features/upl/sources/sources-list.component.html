@@ -1,11 +1,9 @@
 <div class="upl-page">
-  <div class="toolbar upl-toolbar">
-    <h1 class="upl-title">
-      {{ 'upl.list.title' | t }}
-      @if (meta() && !isLoading() && !loadError()) {
-        <span class="upl-count" data-testid="upl-count">{{ pager.total() }}</span>
-      }
-    </h1>
+  <ui-page-header
+    countTestId="upl-count"
+    [title]="'upl.list.title' | t"
+    [count]="meta() && !isLoading() && !loadError() ? pager.total() : null"
+  >
     @if (canCreate()) {
       <button
         smt-button
@@ -18,7 +16,7 @@
         {{ 'upl.list.new' | t }}
       </button>
     }
-  </div>
+  </ui-page-header>
 
   @if (metaError()) {
     <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-load-error">

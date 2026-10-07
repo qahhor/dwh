@@ -18,11 +18,13 @@ import { FormatSheetsStepComponent } from './format-sheets-step.component';
 import { UplFieldError, uplErrorAddress, uplFieldErrorText } from './upl-format-errors';
 import { uplErrorStep } from './upl-format-model';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-upl-format-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTAlertComponent,
     RouterLink,
     TranslatePipe,

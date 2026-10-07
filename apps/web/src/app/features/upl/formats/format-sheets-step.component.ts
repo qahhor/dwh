@@ -3,7 +3,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
-import { UPL_DATA_TYPES, UplColumn, UplDataType, UplFormatDraftRequest, UplSheet, UplUnit } from '../upl-api';
+import { UPL_DATA_TYPES, UplColumn, UplDataType, UplFormatDraftRequest, UplSheet, UplUnit } from '../upl.api';
 import { UPL_DATA_TYPE_KEY } from '../upl-labels';
 import { UplFieldError, uplCellError, uplFieldErrorText, uplSheetError, uplSheetHasErrors } from './upl-format-errors';
 import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './upl-format-model';

@@ -1,7 +1,5 @@
 // @ts-check
-// Lint of the web application (plan 10/10, item 1.1). The bulk-suppression file eslint-suppressions.json is
-// empty since phase 2 fixed the violations of 2026-09-28: a new violation fails and is fixed, never suppressed
-// (npm run lint:prune keeps the file empty).
+// Lint of the web application (plan 10/10, item 1.1). eslint-suppressions.json stays empty: any violation fails.
 import eslint from '@eslint/js';
 import angular from 'angular-eslint';
 import tseslint from 'typescript-eslint';
@@ -87,6 +85,10 @@ export default tseslint.config(
             {
               group: ['@core/services/api.service', '**/core/services/api.service'],
               message: 'Call the feature data service (<feature>.api.ts); only data services use ApiService.',
+            },
+            {
+              group: ['@angular/common/http', '@angular/common/http/*'],
+              message: 'Send requests from the feature data service (<feature>.api.ts), never from a component.',
             },
           ],
         },

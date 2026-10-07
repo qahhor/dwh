@@ -1,5 +1,5 @@
 import { FieldErrorItem, ProblemDetail } from '@core/models/common.models';
-import { UplFormatDraftRequest } from '../upl-api';
+import { UplFormatDraftRequest } from '../upl.api';
 import { uplErrorKey } from '../upl-labels';
 
 /**

@@ -141,75 +141,7 @@ let nextLinesId = 0;
       }
     </section>
   `,
-  styles: [
-    `
-      :host {
-        display: block;
-        min-width: 0;
-      }
-      .entity-lines {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      .entity-lines-title {
-        margin: 0;
-        font-size: 0.875rem;
-        font-weight: 600;
-      }
-      .entity-lines-empty {
-        margin: 0;
-        color: var(--text-secondary, inherit);
-      }
-      .entity-lines-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .entity-line-fieldset {
-        border: 1px solid var(--border-color, currentColor);
-        border-radius: 8px;
-        margin: 0;
-        padding: 8px 12px 12px;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .entity-line-title {
-        font-size: 0.8125rem;
-        font-weight: 600;
-        padding: 0 4px;
-      }
-      .entity-line-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 12px;
-      }
-      .entity-line-field {
-        min-width: 0;
-      }
-      .entity-line-computed {
-        display: block;
-        padding: 6px 0;
-        font-variant-numeric: tabular-nums;
-      }
-      .entity-line-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 4px;
-      }
-      .entity-line-problem,
-      .entity-lines-problem {
-        margin: 0;
-        color: var(--danger-text, inherit);
-        font-size: 0.8125rem;
-      }
-    `,
-  ],
+  styleUrl: './smt-entity-lines.component.css',
 })
 export class SMTEntityLinesComponent {
   private readonly i18n = inject(I18nService);

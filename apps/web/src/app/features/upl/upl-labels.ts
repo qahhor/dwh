@@ -7,7 +7,7 @@ import {
   UplPeriodicity,
   UplStrictness,
   UplVersionStatus,
-} from './upl-api';
+} from './upl.api';
 
 /** A map from a contract value to an i18n key: the labels live in the dictionaries, not in code. */
 export const UPL_PERIODICITY_KEY: Record<UplPeriodicity, string> = {

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
-import { UplFormatDraftRequest } from '../upl-api';
+import { UplFormatDraftRequest } from '../upl.api';
 import { FormatFileStepComponent } from './format-file-step.component';
 import { emptyModel } from './upl-format-model';
 

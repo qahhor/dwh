@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, signal, inject, input, output } from '@angular/core';
 
-import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { SMTDropzoneComponent } from '../ui-kit/components/dropzone';
 import { SMTFileCardComponent, SMTFilePreviewService } from '../ui-kit/components/file-preview';
 import { TaskFile } from '@core/models/task.models';
 import { ToastService } from '@core/services/toast.service';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { FileUploadApi } from './file-upload.api';
 
 /** One file in the upload queue. */
 export interface QueuedUpload {
@@ -15,15 +15,6 @@ export interface QueuedUpload {
   readonly status: 'queued' | 'uploading' | 'failed';
   readonly progress: number;
   readonly error?: string;
-}
-
-/** What the upload endpoint answers: the stored file. */
-interface UploadedFile {
-  id: string;
-  originalName?: string;
-  sizeBytes?: number;
-  mimeType?: string;
-  createdAt?: string;
 }
 
 @Component({
@@ -123,7 +114,7 @@ interface UploadedFile {
   styleUrl: './ui-file-upload.component.css',
 })
 export class UiFileUploadComponent {
-  private http = inject(HttpClient);
+  private readonly uploads = inject(FileUploadApi);
   private toast = inject(ToastService);
 
   private readonly preview = inject(SMTFilePreviewService);
@@ -211,41 +202,33 @@ export class UiFileUploadComponent {
     if (!next) return;
     this.patch(next.id, { status: 'uploading', progress: 0 });
 
-    const formData = new FormData();
-    formData.append('file', next.file);
-    this.current = this.http
-      .post<UploadedFile>('/api/v1/files/upload', formData, {
-        reportProgress: true,
-        observe: 'events',
-        withCredentials: true,
-      })
-      .subscribe({
-        next: (event) => {
-          if (event.type === HttpEventType.UploadProgress && event.total) {
-            this.patch(next.id, { progress: Math.round((100 * event.loaded) / event.total) });
-          } else if (event.type === HttpEventType.Response) {
-            const body: Partial<UploadedFile> = event.body ?? {};
-            const taskFile: TaskFile = {
-              fileId: body.id ?? '',
-              fileName: body.originalName || next.file.name,
-              sizeBytes: body.sizeBytes || next.file.size,
-              mimeType: body.mimeType || next.file.type,
-              createdAt: body.createdAt || new Date().toISOString(),
-            };
-            this.finish(next.id);
-            this.fileAttached.emit(taskFile);
-            this.toast.success(this.uiI18n.translate('ui.file_upload.uploaded_named', { name: taskFile.fileName }));
-          }
-        },
-        error: (err) => {
-          const msg = err.error?.detail || err.error?.message || this.uiI18n.translate('ui.file_upload.upload_failed');
-          this.current = null;
-          // The failure is an alert on the file's own row, beside its retry button. Not a toast: inside a modal
-          // dialog the rest of the page is aria-hidden, so a toast would never be announced there, and it fades.
-          this.patch(next.id, { status: 'failed', error: msg });
-          this.pump();
-        },
-      });
+    this.current = this.uploads.upload(next.file).subscribe({
+      next: (step) => {
+        if (step.kind === 'progress') {
+          this.patch(next.id, { progress: step.percent });
+        } else {
+          const body = step.file;
+          const taskFile: TaskFile = {
+            fileId: body.id ?? '',
+            fileName: body.originalName || next.file.name,
+            sizeBytes: body.sizeBytes || next.file.size,
+            mimeType: body.mimeType || next.file.type,
+            createdAt: body.createdAt || new Date().toISOString(),
+          };
+          this.finish(next.id);
+          this.fileAttached.emit(taskFile);
+          this.toast.success(this.uiI18n.translate('ui.file_upload.uploaded_named', { name: taskFile.fileName }));
+        }
+      },
+      error: (err) => {
+        const msg = err.error?.detail || err.error?.message || this.uiI18n.translate('ui.file_upload.upload_failed');
+        this.current = null;
+        // The failure is an alert on the file's own row, beside its retry button. Not a toast: inside a modal
+        // dialog the rest of the page is aria-hidden, so a toast would never be announced there, and it fades.
+        this.patch(next.id, { status: 'failed', error: msg });
+        this.pump();
+      },
+    });
   }
 
   private finish(id: number) {

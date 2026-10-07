@@ -4,7 +4,7 @@ import { ApiService } from '@core/services/api.service';
 import { ListQuery } from '@core/models/query-meta.models';
 import { toQueryParams } from '@core/services/query-meta.service';
 import { KeysetPage } from '@core/models/common.models';
-import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
+import { UplApiService, UplSource, UplSourceItem } from '../upl.api';
 
 export type UplPackageStatus = 'received' | 'verified' | 'applying' | 'rejected' | 'applied';
 

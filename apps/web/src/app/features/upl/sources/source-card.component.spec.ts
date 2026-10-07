@@ -7,7 +7,7 @@ import { ApiService } from '@core/services/api.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
-import { UplApiService, UplFormatVersion, UplSource, UplVersionItem } from '../upl-api';
+import { UplApiService, UplFormatVersion, UplSource, UplVersionItem } from '../upl.api';
 import { SourceCardComponent } from './source-card.component';
 import { inScreen } from '@testing/in-screen';
 

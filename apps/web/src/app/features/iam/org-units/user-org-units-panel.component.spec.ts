@@ -4,7 +4,7 @@ import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
-import { OrgUnitsApiService } from './org-units-api.service';
+import { OrgUnitsApiService } from './org-units.api';
 import { OrgUnit, ScopeRule, UserAssignments, UserScope } from './org-units.models';
 import { UserOrgUnitsPanelComponent } from './user-org-units-panel.component';
 

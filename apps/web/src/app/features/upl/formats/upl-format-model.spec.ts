@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { UplColumn, UplFormatDraftRequest } from '../upl-api';
+import { UplColumn, UplFormatDraftRequest } from '../upl.api';
 import {
   buildDraftRequest,
   clearFieldsForType,

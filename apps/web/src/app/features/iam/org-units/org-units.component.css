@@ -6,21 +6,6 @@
   padding: 20px;
   color: var(--text-main);
 }
-header,
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-header {
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-h1 {
-  font-size: 24px;
-  margin: 0;
-}
 h2 {
   font-size: 18px;
   overflow-wrap: anywhere;
@@ -56,6 +41,10 @@ dd {
   overflow-wrap: anywhere;
 }
 .actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   margin-block: 16px;
   justify-content: flex-end;
 }

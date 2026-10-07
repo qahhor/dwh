@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { OrgUnitsComponent } from './org-units.component';
-import { OrgUnitsApiService } from './org-units-api.service';
+import { OrgUnitsApiService } from './org-units.api';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { OrgUnit } from './org-units.models';

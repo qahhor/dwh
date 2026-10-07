@@ -6,28 +6,7 @@
   min-width: 0;
 }
 .overview__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.overview__title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-.overview__subtitle {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-.overview__controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  margin-bottom: 0;
 }
 .overview__stamp {
   margin: 0;

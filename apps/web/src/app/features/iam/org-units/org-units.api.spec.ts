@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
-import { OrgUnitsApiService } from './org-units-api.service';
+import { OrgUnitsApiService } from './org-units.api';
 
 describe('OrgUnitsApiService contracts', () => {
   function setup() {

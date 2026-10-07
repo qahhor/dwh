@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
+import { AnalyticsApi } from './analytics.api';
 import { AnalyticsSummary, TrendDataPoint, ProjectDistribution, UserWorkload } from './analytics.models';
 
 import { AnalyticsMetricsTilesComponent } from './components/analytics-metrics-tiles.component';
@@ -172,7 +172,7 @@ export class AnalyticsComponent {
   private readonly optionText = inject(I18nService);
 
   private readonly uiI18n = inject(I18nService);
-  private http = inject(HttpClient);
+  private readonly analytics = inject(AnalyticsApi);
   private router = inject(Router);
 
   /* Each section keeps what it showed while a read is pending or failed, and a
@@ -249,13 +249,13 @@ export class AnalyticsComponent {
 
   /** The whole snapshot, or only the trend of a new period once a snapshot is on screen. */
   private fetch({ range, full }: AnalyticsRead): Observable<AnalyticsLoaded | AnalyticsFailure> {
-    const trends = this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`);
+    const trends = this.analytics.trends(range);
     const read: Observable<AnalyticsLoaded> = full
       ? forkJoin({
-          summary: this.http.get<AnalyticsSummary>('/api/v1/analytics/summary'),
+          summary: this.analytics.summary(),
           trends,
-          projects: this.http.get<ProjectDistribution[]>('/api/v1/analytics/projects'),
-          workload: this.http.get<UserWorkload[]>('/api/v1/analytics/workload'),
+          projects: this.analytics.projects(),
+          workload: this.analytics.workload(),
         }).pipe(
           tap(() => (this.refreshRequired = false)),
           map(({ trends: points, ...snapshot }) => ({ range, trends: points, snapshot })),

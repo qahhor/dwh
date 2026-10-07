@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
-import { UplPackageItem, UplPackageStatus } from './packages-api';
+import { UplPackageItem, UplPackageStatus } from './packages.api';
 import {
   UPL_PACKAGE_STATUS_KEY,
   UPL_PACKAGE_STATUS_VARIANT,

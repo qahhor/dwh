@@ -4,18 +4,8 @@
   gap: 1rem;
 }
 
-.upl-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.upl-title {
-  margin: 0;
-  font-family: var(--font-family);
-  font-size: 1.25rem;
-  color: var(--text-main);
+ui-page-header {
+  margin-bottom: 0;
 }
 
 .upl-pkg-form {
