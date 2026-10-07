@@ -5,6 +5,9 @@ server:
 spring:
   application:
     name: smartupcms-server
+  main:
+    # The console carries one JSON object per line (plan 10/10, item 7.1); the banner is not one.
+    banner-mode: "off"
   servlet:
     multipart:
       # Product contract: a file can contain up to 50 MiB. The request gets one
@@ -113,6 +116,22 @@ management:
       # healthcheck reads this same endpoint and would restart the application.
       # NotificationChannelStartupCheck and the log show the channel state.
       enabled: false
+  # OpenTelemetry tracing (plan 10/10, item 7.2; docs/ops/operations-runbook.md, "Logs and traces"). Off by default:
+  # trace ids are still made and written to every log line, but no span is recorded (sampling 0) and none leaves the
+  # process (export off). A recorded trace also puts a traceparent comment on its SQL statements.
+  tracing:
+    sampling:
+      probability: ${SMC_TRACING_SAMPLING_PROBABILITY:0.0}
+    export:
+      enabled: ${SMC_TRACING_EXPORT_ENABLED:false}
+    propagation:
+      type: w3c
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          # OTLP over HTTP of the collector (Grafana Alloy, an OpenTelemetry Collector); used when export is on.
+          endpoint: ${SMC_TRACING_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 smc:
   database:
@@ -284,8 +303,18 @@ smc:
 
 
 logging:
-  pattern:
-    level: "%5p [traceparent=%X{traceparent}] [client=%X{client_code}]"
+  # Structured logs (plan 10/10, item 7.1; ADR-0009): one JSON object per line in Elastic Common Schema, on the
+  # console and in the file. The trace and span ids of the current span become trace_id and span_id; secrets are
+  # masked in every member (LogMaskingJsonMembersCustomizer). The dev profile switches the console back to text.
+  structured:
+    format:
+      console: ecs
+      file: ecs
+    json:
+      rename:
+        traceId: trace_id
+        spanId: span_id
+      customizer: com.smartup24.cms.instance.config.observability.LogMaskingJsonMembersCustomizer
   # The log file, next to the console (decision of 2026-09-27): archived to .gz every week or at 100 MB, whichever
   # comes first. Empty SMC_LOG_FILE -> console only (development). Production sets it in docker-compose.prod.yml.
   file:
