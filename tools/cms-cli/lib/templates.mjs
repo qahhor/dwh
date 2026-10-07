@@ -1,7 +1,7 @@
 // Every file and fragment the CLI writes (plan 10/10, item 6.1): the Java of a module and an entity, the SQL of its
 // migrations, its catalog keys and its rows in the repository's registries. The generated code follows the server
 // rules of phase 3 (docs/guidelines/module-development-guide.md) and the formatting Spotless (palantir) expects.
-import { PLATFORM } from './layout.mjs';
+import { PLATFORM, PLATFORM_DEFAULTS } from './layout.mjs';
 import { camel, humanize, labelKey, snake } from './names.mjs';
 
 const MAX_LINE = 120;
@@ -538,28 +538,84 @@ export function fieldKeys(entity, field) {
 // ---------------------------------------------------------------------------------------------------------------
 // External Module (ADR-0033)
 
-export function externalPom(module, { hasParent = true, relPom = '../../pom.xml' } = {}) {
+/**
+ * The pom of a module outside the monorepo (ADR-0033, 8 and 13). Inside the repository it takes the root pom as its
+ * parent (the platform's plugins and versions). Standalone it names what it builds against itself: the platform's API
+ * (platform-api.version), the test kit of the platform's version, every library in the platform's versions — the
+ * platform's dependency management imported, the Spring Boot BOM and the platform's overrides with it — and the
+ * platform's compiler, surefire and jar plugins.
+ */
+export function externalPom(module, { hasParent = true, relPom = '../../pom.xml', platform = PLATFORM_DEFAULTS } = {}) {
   const parentBlock = hasParent
     ? `    <parent>
         <groupId>com.smartup24.cms</groupId>
         <artifactId>smartupcms-platform</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>${platform.appVersion}</version>
         <relativePath>${relPom}</relativePath>
     </parent>\n\n`
     : '';
 
-  const versionBlock = hasParent ? '' : '    <version>1.0.0-SNAPSHOT</version>\n';
+  const versionBlock = hasParent ? '' : '    <version>1.0.0</version>\n';
   const propertiesBlock = hasParent
     ? `        <!-- Coverage floor of this module: raised, never lowered, towards 0.80. -->
         <coverage.line.minimum>0.80</coverage.line.minimum>
         <coverage.branch.minimum>0.50</coverage.branch.minimum>\n`
     : `        <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <smartupcms.version>1.0.0-SNAPSHOT</smartupcms.version>\n`;
+        <!-- The platform the module is built and tested against (ADR-0033, 4): the version of its API and the version
+             of the platform whose test kit runs the module (Spring Boot ${platform.bootVersion}). -->
+        <platform-api.version>${platform.apiVersion}</platform-api.version>
+        <smartupcms.version>${platform.appVersion}</smartupcms.version>
+        <maven-compiler-plugin.version>${platform.compilerPlugin}</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>${platform.surefirePlugin}</maven-surefire-plugin.version>
+        <maven-jar-plugin.version>${platform.jarPlugin}</maven-jar-plugin.version>\n`;
 
   const kitVersion = hasParent ? '${project.version}' : '${smartupcms.version}';
-  const apiVersion = hasParent ? '' : '            <version>${smartupcms.version}</version>\n';
-  const springVersion = hasParent ? '' : '            <version>6.2.2</version>\n';
+  const apiVersion = hasParent ? '' : '            <version>${platform-api.version}</version>\n';
+  const bomBlock = hasParent
+    ? ''
+    : `    <dependencyManagement>
+        <dependencies>
+            <!-- Every library in the platform's versions: its Spring Boot BOM and the overrides the platform runs
+                 with (a patched Tomcat), so the kit tests the module on the libraries of the platform. -->
+            <dependency>
+                <groupId>com.smartup24.cms</groupId>
+                <artifactId>smartupcms-platform</artifactId>
+                <version>\${smartupcms.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>\n\n`;
+  const buildBlock = hasParent
+    ? ''
+    : `
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>\${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <release>\${maven.compiler.release}</release>
+                    <parameters>true</parameters>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>\${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <argLine>-XX:+EnableDynamicAgentLoading -Dnet.bytebuddy.experimental=true</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>\${maven-jar-plugin.version}</version>
+            </plugin>
+        </plugins>
+    </build>\n`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -575,7 +631,7 @@ ${versionBlock}    <name>External module: ${module.code}</name>
     <properties>
 ${propertiesBlock}    </properties>
 
-    <dependencies>
+${bomBlock}    <dependencies>
         <!-- The contract the module builds against; the platform brings it at run time. -->
         <dependency>
             <groupId>com.smartup24.cms</groupId>
@@ -586,7 +642,7 @@ ${apiVersion}            <scope>provided</scope>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-${springVersion}            <scope>provided</scope>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -597,17 +653,17 @@ ${springVersion}            <scope>provided</scope>
             <scope>test</scope>
         </dependency>
     </dependencies>
-</project>
+${buildBlock}</project>
 `;
 }
 
-export function externalModuleManifest(module) {
+export function externalModuleManifest(module, platform = PLATFORM_DEFAULTS) {
   return `${JSON.stringify(
     {
       code: module.code,
       name: module.title.ru,
       version: '1.0.0',
-      minPlatform: '1.0.0',
+      minPlatform: platform.apiVersion,
       dependencies: [{ code: 'iam', version: '1.0.0' }],
       configuration: `${module.package}.${module.pascal}Module`,
       migrations: `db/modules/${module.code}`,
@@ -744,7 +800,7 @@ import org.junit.jupiter.api.Test;
 class ${module.pascal}ModuleBoundaryTest {
 
     private static final Pattern IMPORT =
-            Pattern.compile("^import (?:static )?(com\\.smartup24\\.[\\w.]+);", Pattern.MULTILINE);
+            Pattern.compile("^import (?:static )?(com\\\\.smartup24\\\\.[\\\\w.]+);", Pattern.MULTILINE);
 
     @Test
     void theModuleImportsThePlatformApiOnly() throws IOException {
@@ -763,8 +819,8 @@ class ${module.pascal}ModuleBoundaryTest {
         String manifest = Files.readString(
                 Path.of("src", "main", "resources", "META-INF", "smartupcms", "modules", "${module.code}.json"));
         assertThat(manifest)
-                .contains("\"configuration\": \"" + ${module.pascal}Module.class.getName() + "\"")
-                .contains("\"code\": \"" + ${module.pascal}Module.MODULE + "\"");
+                .contains("\\"configuration\\": \\"" + ${module.pascal}Module.class.getName() + "\\"")
+                .contains("\\"code\\": \\"" + ${module.pascal}Module.MODULE + "\\"");
     }
 
     private static Stream<String> platformImports(Path source) {

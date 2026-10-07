@@ -71,9 +71,43 @@ export function findRoot(explicit) {
   throw new CliError('No SmartupCMS repository above the working directory; pass --root <dir>');
 }
 
-/** An absolute path of a repository path. */
+/** An absolute path of a repository path; an absolute path (a module outside the repository) stays as it is. */
 export function resolve(root, relative) {
+  if (path.isAbsolute(relative)) return path.normalize(relative);
   return path.join(root, ...relative.split('/'));
+}
+
+/** What a module outside the monorepo builds against when the repository's pom says nothing (ADR-0033, 4). */
+export const PLATFORM_DEFAULTS = {
+  appVersion: '1.0.0-SNAPSHOT',
+  apiVersion: '1.0.0',
+  bootVersion: '4.1.1',
+  compilerPlugin: '3.16.0',
+  surefirePlugin: '3.6.0',
+  jarPlugin: '3.5.0',
+};
+
+/**
+ * The versions of the platform a module outside the monorepo builds against, read from the root pom of the repository
+ * the CLI runs in, else of the CLI's own: the application's version (the server and its test kit), the version of the
+ * platform's API (platform-api.version), Spring Boot and the build plugins of the platform's own build.
+ */
+export function platformVersions(root) {
+  const own = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+  const pom = [path.join(root, 'pom.xml'), path.join(own, 'pom.xml')].find((file) => fs.existsSync(file));
+  if (!pom) return { ...PLATFORM_DEFAULTS };
+  const text = fs.readFileSync(pom, 'utf8');
+  const property = (name) => new RegExp(`<${name.replace(/\./g, '\\.')}>([^<]+)</`).exec(text)?.[1]?.trim();
+  const jar = /<artifactId>maven-jar-plugin<\/artifactId>\s*<version>([^<]+)<\/version>/.exec(text)?.[1]?.trim();
+  const app = /<artifactId>smartupcms-platform<\/artifactId>\s*<version>([^<]+)<\/version>/.exec(text)?.[1]?.trim();
+  return {
+    appVersion: app ?? PLATFORM_DEFAULTS.appVersion,
+    apiVersion: property('platform-api.version') ?? PLATFORM_DEFAULTS.apiVersion,
+    bootVersion: property('spring-boot.version') ?? PLATFORM_DEFAULTS.bootVersion,
+    compilerPlugin: property('maven-compiler-plugin.version') ?? PLATFORM_DEFAULTS.compilerPlugin,
+    surefirePlugin: property('maven-surefire-plugin.version') ?? PLATFORM_DEFAULTS.surefirePlugin,
+    jarPlugin: jar ?? PLATFORM_DEFAULTS.jarPlugin,
+  };
 }
 
 /** An error the CLI reports as a message, without a stack. */
