@@ -166,7 +166,7 @@ $oldNameTokens = @(
     [pscustomobject]@{ Path = '^(docs|deploy|scripts/prod)/|^\.env\.example$|(^|/)docker-compose[^/]*\.yml$'; Token = '\bDWH\b|DwhBackupFile'; Reason = 'the warehouse in operations documents and scripts' },
     [pscustomobject]@{ Path = '^docs/adr/ADR-00(0[1-9]|1[0-9])-'; Token = '\bDWH\b|smartup5x_dwh'; Reason = 'the warehouse stage in early ADRs and its Biruni node' },
     # Warehouse identifiers used outside the warehouse module (item 4.2 moved them there; their users stay elsewhere).
-    [pscustomobject]@{ Path = '^apps/server/src/|^docs/|^deploy/|(^|/)docker-compose[^/]*\.yml$'; Token = 'fnd\.dwh|TestDatabases\.(DWH_DB|dwh\(\))|dwh\.maintenance|`dwh`'; Reason = 'warehouse identifiers, the warehouse session setting and the database name used outside the warehouse module' },
+    [pscustomobject]@{ Path = '^apps/server/src/|^docs/|^deploy/|(^|/)docker-compose[^/]*\.yml$'; Token = 'TestDatabases\.(DWH_DB|dwh\(\))|dwh\.maintenance|`dwh`'; Reason = 'warehouse identifiers, the warehouse session setting and the database name used outside the warehouse module' },
     [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/config/system/ReadinessGroupIntegrationTest\.java$'; Token = '"dwh"'; Reason = 'health component of the warehouse database' },
     [pscustomobject]@{ Path = '^apps/server/src/'; Token = 'WarehouseError\.DWH_(READ_FORBIDDEN|UNAVAILABLE)'; Reason = 'error codes of the warehouse module' },
     # i18n keys and texts about the warehouse.
