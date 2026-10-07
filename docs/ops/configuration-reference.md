@@ -168,6 +168,9 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_LOG_MAX_FILE_SIZE` | `logging.logback.rollingpolicy.max-file-size` | `100MB` |
 | `SMC_LOG_MAX_HISTORY` | `logging.logback.rollingpolicy.max-history` | `12` |
 | `SMC_LOG_TOTAL_SIZE_CAP` | `logging.logback.rollingpolicy.total-size-cap` | `2GB` |
+| `SMC_TRACING_EXPORT_ENABLED` | `management.tracing.export.enabled` | `false` |
+| `SMC_TRACING_OTLP_ENDPOINT` | `management.opentelemetry.tracing.export.otlp.endpoint` | `http://localhost:4318/v1/traces` |
+| `SMC_TRACING_SAMPLING_PROBABILITY` | `management.tracing.sampling.probability` | `0.0` |
 | `SMTP_AUTH` | `spring.mail.properties.mail.smtp.auth` | `true` |
 | `SMTP_HOST` | `spring.mail.host` | пусто |
 | `SMTP_PASSWORD` | `spring.mail.password` | пусто |

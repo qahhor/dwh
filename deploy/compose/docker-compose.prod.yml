@@ -45,6 +45,10 @@ x-server-common: &server-common
     # Invitation and password reset links are built from it; the server refuses to start without it.
     SMC_PUBLIC_URL: ${SMC_PUBLIC_URL:?SMC_PUBLIC_URL is required (https://cms.example.com)}
     SMC_LOG_FILE: ${SMC_LOG_FILE:-/var/lib/smartupcms/logs/server.log}
+    # OpenTelemetry traces stay off unless the environment file turns them on (plan 10/10, item 7.2).
+    SMC_TRACING_EXPORT_ENABLED: ${SMC_TRACING_EXPORT_ENABLED:-false}
+    SMC_TRACING_OTLP_ENDPOINT: ${SMC_TRACING_OTLP_ENDPOINT:-http://localhost:4318/v1/traces}
+    SMC_TRACING_SAMPLING_PROBABILITY: ${SMC_TRACING_SAMPLING_PROBABILITY:-0.0}
     SMC_AUDIT_ARCHIVE_ENABLED: ${SMC_AUDIT_ARCHIVE_ENABLED:-true}
     SMC_AUDIT_ARCHIVE_TARGET: ${SMC_AUDIT_ARCHIVE_TARGET:-local}
     SMC_AUDIT_ARCHIVE_LOCAL_PATH: ${SMC_AUDIT_ARCHIVE_LOCAL_PATH:-/var/lib/smartupcms/audit-archive}

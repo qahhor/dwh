@@ -2,7 +2,7 @@
 
 **Version:** 2.0
 
-**Updated:** 2026-09-05
+**Updated:** 2026-10-07
 
 **Audience:** the operator responsible for one SmartupCMS installation.
 
@@ -69,6 +69,72 @@ Logs are kept in two places (decision of 2026-09-27):
   (`SMC_LOG_*` in the environment file);
 - every container's console log rotates at 100 MB, five compressed files
   (Docker's json-file driver rotates by size only).
+
+### Logs and traces
+
+The server writes one JSON object per line, on the console and in the file
+(Elastic Common Schema, plan 10/10, item 7.1; ADR-0009). A line looks like
+this:
+
+```json
+{"@timestamp":"2026-10-07T11:09:01.463Z","log":{"level":"DEBUG","logger":"org.springframework.web.servlet.DispatcherServlet"},"process":{"pid":1,"thread":{"name":"tomcat-handler-0"}},"service":{"name":"smartupcms-server","node":{}},"message":"GET \"/api/v1/i18n/languages\", parameters={}","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"04ca800467044885","ecs":{"version":"8.11"}}
+```
+
+| Field | Meaning |
+|---|---|
+| `@timestamp` | UTC time of the event |
+| `log.level`, `log.logger` | level and the class that wrote the line |
+| `process.thread.name` | thread (`tomcat-handler-*` for requests, `scheduling-*` for jobs) |
+| `service.name` | `smartupcms-server` |
+| `message` | the text; secrets are already masked |
+| `trace_id`, `span_id` | the trace of the request or job; absent only in lines written outside any request or job (startup) |
+| `error.type`, `error.message`, `error.stack_trace` | the exception, when there is one |
+
+Every response carries the `traceparent` header
+(`00-<trace_id>-<span_id>-<flags>`): ask the reporter of a failure for it, or
+send your own valid `traceparent` with a test request. A header that is not of
+the strict W3C form (version `00`, lower-case hex, ids not all zeros) is
+ignored and the request starts a new trace.
+
+Find the lines of one request:
+
+```bash
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production exec server \
+  sh -c 'grep "\"trace_id\":\"4bf92f3577b34da6a3ce929d0e0e4736\"" /var/lib/smartupcms/logs/server.log'
+# errors of the last archive week, readable:
+zcat /var/lib/smartupcms/logs/server.log.2026-W40.0.gz | jq -c 'select(.log.level=="ERROR") | {t:."@timestamp", trace_id, message}'
+```
+
+In Loki (Grafana Alloy collecting the console): `{app="smartupcms-server"} | json | trace_id="4bf9..."`;
+keep `trace_id` out of labels (ADR-0009, section 4).
+
+Masking: the value of any member named like a secret (password, secret,
+token, authorization, cookie, otp, api key, credentials, `code`) and the value
+after such a key inside a text (`password=...`, `"token":"..."`,
+`Authorization: Bearer ...`, `#token=` of invitation and reset links,
+`?code=`) is replaced by `***`. It is a safety net: code still logs
+identifiers only (CODE_STYLE, section 5). The `dev` profile prints readable
+text on the console; every other profile prints JSON.
+
+**Traces** (plan 10/10, item 7.2) are off by default: trace ids are made and
+logged, but no span is recorded or sent. To record them, point the server at
+an OTLP/HTTP collector (Grafana Alloy, an OpenTelemetry Collector, Tempo) in
+the environment file and restart the server:
+
+```bash
+SMC_TRACING_EXPORT_ENABLED=true
+SMC_TRACING_OTLP_ENDPOINT=http://alloy:4318/v1/traces
+SMC_TRACING_SAMPLING_PROBABILITY=0.1   # 10 % of requests; 1.0 while investigating
+```
+
+A recorded trace holds the HTTP request, Spring Security, scheduled jobs,
+outgoing HTTP (webhook deliveries carry `traceparent` to the receiver) and one
+`jdbc statement` span per SQL statement. Its SQL ends with
+`/*traceparent='00-<trace_id>-<span_id>-01'*/`, so a slow statement in the
+PostgreSQL log (`log_min_duration_statement`) or in `pg_stat_activity` leads
+to its trace. Statements outside a recorded trace are not changed. Spans carry
+no SQL text and no parameters.
 
 ### Audit log archive
 
