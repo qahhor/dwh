@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
 import com.smartup24.cms.instance.support.entity.KitWorld.Created;
@@ -21,13 +22,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import org.junit.jupiter.api.DynamicTest;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * Who may do what (ADR-0032, 11.2, "rights" and "scope"; ADR-0013, ADR-0028): without the entity's {@code view} every
  * path refuses; with {@code view} alone every change is 403 and {@code form-meta} offers no action; a record outside the
  * viewer's scope answers exactly as a missing id, 404, on every path by id, and is in none of the viewer's lists, bulk
- * actions or exports.
+ * actions or exports; with the entity's module switched off every path answers 404, as for an unknown entity, even to
+ * a holder of every right (ADR-0032, 6.3, step 1).
  */
 final class KitAccessChecks {
 
@@ -100,35 +104,104 @@ final class KitAccessChecks {
 
     private void withoutViewThePlatformRefuses() throws Exception {
         Created record = world.create(world.owner);
-        TestSession session = world.session(world.stranger);
+        assertThat(platformAnswers(world.stranger, record.id()))
+                .allSatisfy((path, status) -> assertThat(status).as(path).isEqualTo(404));
+        assertThat(world.read(world.owner, record.id()).getStatus()).isEqualTo(200);
+    }
+
+    /** The platform's paths of the entity, beside its own endpoints: form-meta, query-meta, history, export, bulk. */
+    private Map<String, Integer> platformAnswers(TestUser who, long id) throws Exception {
+        TestSession session = world.session(who);
         String code = world.entity.code();
-        assertThat(session.send(get("/api/v1/form-meta/" + code)).getStatus())
-                .as("form-meta")
-                .isEqualTo(404);
+        Map<String, Integer> answers = new LinkedHashMap<>();
+        answers.put("form-meta", session.send(get("/api/v1/form-meta/" + code)).getStatus());
         if (world.entity.listCode() != null) {
-            assertThat(session.send(get("/api/v1/query-meta/" + world.entity.listCode()))
-                            .getStatus())
-                    .as("query-meta")
-                    .isEqualTo(404);
+            answers.put(
+                    "query-meta",
+                    session.send(get("/api/v1/query-meta/" + world.entity.listCode()))
+                            .getStatus());
         }
         if (world.has(EntityCapability.HISTORY)) {
-            assertThat(world.history(world.stranger, record.id()).getStatus())
-                    .as("history")
-                    .isIn(403, 404);
+            answers.put("history", world.history(who, id).getStatus());
         }
         if (world.has(EntityCapability.EXPORT)) {
-            assertThat(session.send(post("/api/v1/exports"), Map.of("list", world.entity.listCode(), "lang", "en"))
-                            .getStatus())
-                    .as("export")
-                    .isIn(403, 404);
+            answers.put(
+                    "export",
+                    session.send(post("/api/v1/exports"), Map.of("list", world.entity.listCode(), "lang", "en"))
+                            .getStatus());
         }
         if (world.has(EntityCapability.BULK)) {
-            MockHttpServletResponse bulk = session.send(
-                    post("/api/v1/entities/" + code + "/bulk"),
-                    Map.of("action", EntityDefinition.DELETE, "ids", List.of(record.id())));
-            assertThat(bulk.getStatus()).as("bulk").isIn(403, 404);
+            answers.put(
+                    "bulk",
+                    session.send(
+                                    post("/api/v1/entities/" + code + "/bulk"),
+                                    Map.of("action", EntityDefinition.DELETE, "ids", List.of(id)))
+                            .getStatus());
         }
-        assertThat(world.read(world.owner, record.id()).getStatus()).isEqualTo(200);
+        return answers;
+    }
+
+    List<DynamicTest> module() {
+        return List.of(dynamicTest(
+                "with its module switched off every path answers 404, as for an unknown entity",
+                this::moduleOffClosesEveryPath));
+    }
+
+    private void moduleOffClosesEveryPath() throws Exception {
+        Created record = world.create(world.owner);
+        // Written before the switch: a valid record may need records of other entities of the same module.
+        Map<String, Object> values = world.validValues(world.owner);
+        String module = world.wac
+                .getBean(EntityGate.class)
+                .moduleOf(world.entity.code())
+                .orElseThrow(() -> new AssertionError(world.entity.code() + " belongs to no installed module"));
+        String status = world.jdbc
+                .sql("select status from md_installed_modules where code = :code")
+                .param("code", module)
+                .query(String.class)
+                .single();
+        switchModule(module, "DISABLED");
+        Map<String, Integer> answers = new LinkedHashMap<>();
+        try {
+            if (world.transport.withoutView() == 404) {
+                // The general runtime's own endpoints; a module's controller keeps its own answer.
+                answers.put(
+                        "list",
+                        world.session(world.owner)
+                                .send(get(world.transport.collection()))
+                                .getStatus());
+                answers.put("read", world.read(world.owner, record.id()).getStatus());
+                answers.put("create", world.post(world.owner, values).getStatus());
+                for (Map.Entry<String, ByIdRequest> change : changes().entrySet()) {
+                    answers.put(
+                            change.getKey(),
+                            change.getValue().send(world.owner, record.id()).getStatus());
+                }
+            }
+            answers.putAll(platformAnswers(world.owner, record.id()));
+        } finally {
+            switchModule(module, status);
+        }
+        assertThat(answers)
+                .allSatisfy((path, answer) -> assertThat(answer).as(path).isEqualTo(404));
+        assertThat(world.read(world.owner, record.id()).getStatus())
+                .as("the module switched on again")
+                .isEqualTo(200);
+    }
+
+    /** Switches a module in the registry and forgets the cached switch, as the registry's own change does. */
+    private void switchModule(String module, String status) {
+        world.jdbc
+                .sql("update md_installed_modules set status = :status where code = :code")
+                .param("status", status)
+                .param("code", module)
+                .update();
+        world.wac.getBeanProvider(CacheManager.class).ifAvailable(caches -> {
+            for (String name : List.of("moduleActive", "activeModules", "allModules")) {
+                Cache cache = caches.getCache(name);
+                if (cache != null) cache.clear();
+            }
+        });
     }
 
     private void formMetaActions() throws Exception {

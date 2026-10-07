@@ -16,10 +16,22 @@ BACKUP_STORAGE_MODE="${BACKUP_STORAGE_MODE:-local}"
 HTTP_PORT="${HTTP_PORT:-8080}"
 HTTP_BIND="${HTTP_BIND:-127.0.0.1}"
 SMC_PUBLIC_URL="${SMC_PUBLIC_URL:-}"
+SMTP_HOST="${SMTP_HOST:-}"
 FORCE="${FORCE:-false}"
 VALIDATE="${VALIDATE:-false}"
 
 echo "=== SmartupCMS Production Environment Initializer ==="
+
+if [[ -z "$SMC_PUBLIC_URL" ]]; then
+    echo "Error: SMC_PUBLIC_URL is required (e.g. https://cms.example.com): invitation and reset links are built from it." >&2
+    exit 1
+fi
+
+if [[ -n "$SMTP_HOST" ]]; then
+    MAIL_PROVIDER="smtp"
+else
+    MAIL_PROVIDER="console_mail"
+fi
 
 if [[ -f "$ENV_FILE" && "$FORCE" != "true" ]]; then
     echo "Error: Target environment file '$ENV_FILE' already exists. Set FORCE=true or remove the file." >&2
@@ -128,7 +140,8 @@ ORGANIZATION_NAME=$ORGANIZATION_NAME
 RESOURCE_PROFILE=$RESOURCE_PROFILE
 
 # Public address of the web application, e.g. https://cms.example.com.
-# Password reset links are built from it; empty means no link is sent.
+# Required: invitation and password reset links are built from it, and the
+# server refuses to start without it.
 SMC_PUBLIC_URL=$SMC_PUBLIC_URL
 
 # Database credentials (I-02 Least Privilege role separation)
@@ -182,18 +195,19 @@ SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false
 SMC_WEBHOOKS_CONNECT_TIMEOUT=3s
 SMC_WEBHOOKS_READ_TIMEOUT=10s
 
-# Delivery channels: password reset links and two-factor codes. console_* only
-# writes to the log; the server refuses to start while two-factor users depend
-# on it (SMC_DELIVERY_ENFORCE). Mail: SMTP_HOST + SMC_PROVIDER_MAIL=smtp.
+# Delivery channels: invitations, password reset links and two-factor codes.
+# console_* delivers nothing. While SMC_DELIVERY_ENFORCE=true the server
+# refuses to start on console_mail and while two-factor users depend on a
+# console channel. Mail: SMTP_HOST + SMC_PROVIDER_MAIL=smtp.
 # Telegram: TELEGRAM_BOT_TOKEN + SMC_PROVIDER_MESSENGER=telegram.
-SMTP_HOST=
+SMTP_HOST=$SMTP_HOST
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASSWORD=
 SMTP_STARTTLS=true
 SMC_MAIL_FROM=no-reply@localhost
 SMC_MAIL_FROM_NAME=SmartupCMS
-SMC_PROVIDER_MAIL=console_mail
+SMC_PROVIDER_MAIL=$MAIL_PROVIDER
 TELEGRAM_BOT_TOKEN=
 SMC_PROVIDER_MESSENGER=console_messenger
 SMC_PROVIDER_SMS=console_sms
@@ -235,4 +249,8 @@ echo "Admin pass   : $ADMIN_PASSWORD"
 echo "Environment  : $ENV_FILE"
 echo "Secrets dir  : $SECRETS_DIR"
 echo "Age public   : $AGE_RECIPIENT"
+if [[ "$MAIL_PROVIDER" == "console_mail" ]]; then
+    echo "Mail         : not configured. The server refuses to start until SMTP_HOST and"
+    echo "               SMC_PROVIDER_MAIL=smtp are set in $ENV_FILE, or SMC_DELIVERY_ENFORCE=false knowingly."
+fi
 echo "Next step    : ./scripts/prod/deploy.sh $ENV_FILE"

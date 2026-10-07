@@ -1,64 +1,29 @@
-# SmartupCMS migration history repair
+# SmartupCMS migration failure repair
 
-**Version:** 1.0
+**Version:** 2.0
 
-**Updated:** 2026-09-27
+**Updated:** 2026-10-03
 
 A released migration never changes and never disappears: a database keeps the
-checksum of every file it applied, and an edited or deleted file stops it from
-starting. Since plan 10/10 item 0.5, `MigrationManifestTest` holds the SHA-256
-of every migration and fails the build on any edit or removal. A mistake in a
-merged migration is corrected by a new migration.
+checksum of every file it applied, and `MigrationManifestTest` holds the
+SHA-256 of every migration and fails the build on any edit or removal (plan
+10/10, item 0.5). A mistake in a merged migration is corrected by a new
+migration. There is no switch that rewrites the migration history: the former
+`SMC_MIGRATE_REPAIR` served databases migrated before 2026-09-20, and no such
+installation exists (AGENTS.md, «No client installations exist before the
+final release»).
 
-Two files changed before that rule existed:
+This runbook covers the two failures a migration may leave behind on purpose:
+an interrupted concurrent index build and a constraint that does not validate.
+In both cases the migration is recorded in `flyway_schema_history` as failed
+(`success = false`), and the migrate job refuses to run until that row is gone.
+Remove only that row, as the migrator role, after fixing the cause:
 
-| File | Change | Date |
-|---|---|---|
-| `V100__fnd_core.sql` | a comment was rewritten after release | 2026-09-20 |
-| `V101__fnd_system_user.sql` | deleted after release; the `system` account is created by code now | 2026-09-20 |
+```sql
+delete from flyway_schema_history where version = '<NNN>' and not success;
+```
 
-## Symptom
-
-The migrate job or the server stops at start with a Flyway validation error
-such as:
-
-- `Migration checksum mismatch for migration version 100`;
-- `Detected applied migration not resolved locally: 101`.
-
-Only databases migrated before 2026-09-20 are affected. A database created
-later validates as is.
-
-## Repair
-
-1. Take the encrypted pre-migration backup as in the
-   [maintenance guide](maintenance-guide.md) and confirm it is readable.
-2. Run the migrate job once with the repair switch:
-
-   ```bash
-   docker compose -f deploy/compose/docker-compose.prod.yml --env-file .env.production \
-     --profile tools run --rm -e SMC_MIGRATE_REPAIR=true migrate
-   ```
-
-   The migrate profile runs `flyway repair` first: it realigns the checksums of
-   applied migrations with the files and marks missing migrations as deleted.
-   Then it migrates as usual. The log line `migration_history_repaired` shows
-   how many rows were aligned and deleted.
-3. Run the migrate job again **without** the switch. It must finish with no
-   validation error.
-4. Start the server and check readiness.
-
-The repair touches `flyway_schema_history` only. Data created by the repaired
-migrations stays: the `system` account from V101 remains and the code that now
-creates it skips an existing one.
-
-## Do not
-
-- Do not keep `SMC_MIGRATE_REPAIR=true` in the environment file: repair hides
-  any future edit of a released migration, which is what the manifest exists
-  to catch.
-- Do not delete rows from `flyway_schema_history` or edit checksums by hand.
-- Do not restore the old text of V100 or the file V101: databases created after
-  2026-09-20 would then fail the same way.
+Never delete a successful row and never edit a checksum.
 
 ## An interrupted concurrent index build
 
@@ -75,8 +40,7 @@ select indexrelid::regclass from pg_index where not indisvalid;
 drop index concurrently <name>;
 ```
 
-Then clear the failed row with `flyway repair` (it only removes failed
-entries) and start the migration again.
+Then remove the failed row as shown above and start the migration again.
 
 ## A constraint that does not validate (V150)
 
@@ -105,5 +69,5 @@ select id from ms_tasks where jsonb_typeof(attributes) <> 'object';
 
 The same query with another table finds the rows of the other checks
 (`md_users`, `md_installed_modules`, `ms_notes`, `ms_task_projects`) and of
-`search_settings.updated_by`. After the correction, clear the failed row with
-`flyway repair` and run the migration again.
+`search_settings.updated_by`. After the correction, remove the failed row as shown
+above and run the migration again.

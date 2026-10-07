@@ -101,15 +101,20 @@ final class KitWorld {
         plain = fieldRights().isEmpty() ? null : users.withRights(plainRights(), unitA);
     }
 
-    /** The rights of a user without the field rights: a field may need an action of the entity itself. */
+    /**
+     * The rights of a user without the field rights: a field may need an action of the entity itself, which keeps its
+     * {@code view}, or the right of another entity — even one a reference names (the projects' {@code view} behind
+     * a task's project name) — which the user then lacks whole and writes no reference to.
+     */
     private Map<String, Set<String>> plainRights() {
         Map<String, Set<String>> rights = merge(entityRights(), referenceRights());
         fieldRights().forEach((form, actions) -> {
             Set<String> held = rights.get(form);
             if (held == null) return;
             held.removeAll(actions);
-            held.add("view");
+            if (form.equals(entity.form())) held.add("view");
         });
+        rights.values().removeIf(Set::isEmpty);
         return rights;
     }
 

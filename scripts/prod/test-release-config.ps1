@@ -56,11 +56,12 @@ Assert-Matches $composeSource 'SMC_WEBHOOKS_ALLOWED_HOSTS:\s*\$\{SMC_WEBHOOKS_AL
 Assert-Matches $composeSource 'SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:\s*\$\{SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false\}' 'Private webhook destinations must require an explicit opt-in.'
 Assert-DoesNotMatch $composeSource '(?<![A-Z0-9_])(?:APP_)?DWH_[A-Z0-9_]+' 'Compose must use only the configuration names of ADR-0027 (SMC_*, WAREHOUSE_*).'
 foreach ($variable in @('SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_STARTTLS', 'SMC_MAIL_FROM',
-        'TELEGRAM_BOT_TOKEN', 'SMC_PROVIDER_MAIL', 'SMC_PROVIDER_MESSENGER', 'SMC_PUBLIC_URL')) {
+        'TELEGRAM_BOT_TOKEN', 'SMC_PROVIDER_MAIL', 'SMC_PROVIDER_MESSENGER')) {
     Assert-Matches $composeSource ([regex]::Escape($variable) + ':\s*\$\{' + [regex]::Escape($variable) + ':-')
         "Production Compose must pass $variable to the server (password reset and two-factor delivery)."
 }
 Assert-Matches $composeSource 'SMC_DELIVERY_ENFORCE:\s*\$\{SMC_DELIVERY_ENFORCE:-true\}' 'Production must refuse to start while two-factor users depend on a stub channel.'
+Assert-Matches $composeSource 'SMC_PUBLIC_URL:\s*\$\{SMC_PUBLIC_URL:\?' 'Production must require the public address invitation and reset links are built from.'
 Assert-Matches $composeSource 'SMC_SECRETS_KEY:\s*\$\{SMC_SECRETS_KEY:\?' 'Production must require the key of the secrets kept in the database (ADR-0029).'
 Assert-DoesNotMatch $composeSource 'max-size:\s*"50m"' 'Container logs rotate at 100 MB (decision of 2026-09-27).'
 Assert-Matches $composeSource 'max-size:\s*"100m",\s*max-file:\s*"5",\s*compress:\s*"true"' 'Container logs must rotate at 100 MB and be compressed.'

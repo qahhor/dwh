@@ -28,8 +28,8 @@ All data processed and stored by SmartupCMS is classified into four sensitivity 
 
 | Tier | Definition | Examples | Storage location | Protection controls |
 |---|---|---|---|---|
-| **Public** | Information approved for unauthenticated public access. | OpenAPI schema (`/api/v1/openapi.json`), public documentation, favicon/static web assets. | NGINX, web container | Cache-Control headers, read-only filesystem. |
-| **Internal** | Non-sensitive operational data accessible to all authenticated organization users. | Module registry (`md_module_registry`), custom field definitions, system status (`/api/v1/system/info`), organization structure names. | PostgreSQL (`public`) | Scoped RBAC, authentication required. |
+| **Public** | Information approved for unauthenticated public access. | Public documentation, favicon/static web assets. | NGINX, web container | Cache-Control headers, read-only filesystem. |
+| **Internal** | Non-sensitive operational data accessible to all authenticated organization users. | OpenAPI schema (`/api/v1/openapi.json`, signed-in users only since 2026-10-03), module registry (`md_module_registry`), custom field definitions, system status (`/api/v1/system/info`), organization structure names. | PostgreSQL (`public`) | Scoped RBAC, authentication required. |
 | **Confidential** | Business workflows, user tasks, uploaded documents, and communications. | Task details (`ms_tasks`), comments, notes (`ms_notes`), uploaded attachments (`mf_files`). | PostgreSQL, S3/MinIO object store | Data scope RBAC (`ALL`, `SUBTREE`, `UNITS`, `SELF`), malware scanning via ClamAV, object lock, OCC revisions. |
 | **Restricted (Sensitive)** | Authentication credentials, security keys, audit logs, and encrypted backups. | User passwords (Argon2id), API tokens (SHA-256), session tokens, audit log entries (`audit_log`, `security_events`), age encrypted backups. | PostgreSQL, encrypted backup volumes | `AuditDataRedactor` credential redaction, least privilege DB users, age encryption, `SECURITY DEFINER` partition functions. |
 

@@ -440,7 +440,8 @@ try {
 }
 
 # 18.5 OpenAPI Specification verification
-$openApiSpec = Invoke-RestMethod -Uri "$BaseUrl/api/v1/openapi.json" -Method Get
+# The description is for signed-in users only (product owner, 2026-10-03).
+$openApiSpec = Invoke-RestMethod -Uri "$BaseUrl/api/v1/openapi.json" -Method Get -WebSession $session
 Write-Host "   OpenAPI Spec verified: Version=$($openApiSpec.openapi), Title='$($openApiSpec.info.title)', Paths count=$($openApiSpec.paths.PSObject.Properties.Count)" -ForegroundColor Green
 
 # 19. Fleet Observability & Metrics (M13 OBS)
@@ -473,8 +474,13 @@ $whBody = @{
     name = "Integration Webhook $randWh"
     # The server itself, allowed by scripts/dev/api-smoke.compose.yml (SMC_WEBHOOKS_ALLOWED_HOSTS=server).
     targetUrl = "http://server:9090/actuator/health"
-    subscribedEvents = @("task.created", "user.created", "file.uploaded")
+    # Only events of GET /api/v1/webhooks/events: any other is 422 (ADR-0032, 6.9).
+    subscribedEvents = @("tasks.items.created", "md.users.created", "notes.created")
 } | ConvertTo-Json
+$whEvents = @(Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/events" -Method Get -WebSession $session)
+if (-not ($whEvents | Where-Object { $_.type -eq 'tasks.items.created' })) {
+    throw "The webhook events catalog does not name tasks.items.created."
+}
 
 # 20.1 Create Subscription
 $newSub = Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions" -Method Post -Body $whBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
@@ -490,7 +496,7 @@ Write-Host "   Active Webhook Subscriptions count: $($subsList.Count)" -Foregrou
 $updateWhBody = @{
     name = "Integration Webhook $randWh (Updated)"
     targetUrl = "http://server:9090/actuator/health/liveness"
-    subscribedEvents = @("task.created", "task.status_changed")
+    subscribedEvents = @("tasks.items.created", "tasks.items.set_status")
     state = "A"
 } | ConvertTo-Json
 # The change names the revision the list shows (ADR-0024); the create answer carries none.

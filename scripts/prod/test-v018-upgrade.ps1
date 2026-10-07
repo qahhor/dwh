@@ -97,6 +97,9 @@ try {
         "ADMIN_PASSWORD=$adminPassword",
         "TYPESENSE_API_KEY=$typesenseKey",
         "SMC_SECRETS_KEY=$secretsKey",
+        "SMC_PUBLIC_URL=http://127.0.0.1:$HttpPort",
+        # No mail server in this check: the stub mail provider is accepted knowingly.
+        "SMC_DELIVERY_ENFORCE=false",
         "HTTP_BIND=127.0.0.1",
         "HTTP_PORT=$HttpPort",
         "SMC_PROVIDER_STORAGE=local_disk",

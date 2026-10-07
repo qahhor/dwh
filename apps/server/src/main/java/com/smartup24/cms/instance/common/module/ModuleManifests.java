@@ -29,8 +29,16 @@ public final class ModuleManifests {
     public static final String LOCATION = "META-INF/smartupcms/modules/";
 
     private static final String PATTERN = "classpath*:" + LOCATION + "*.json";
-    private static final Set<String> FIELDS =
-            Set.of("code", "name", "version", "minPlatform", "dependencies", "configuration", "migrations", "messages");
+    private static final Set<String> FIELDS = Set.of(
+            "code",
+            "name",
+            "version",
+            "minPlatform",
+            "dependencies",
+            "areas",
+            "configuration",
+            "migrations",
+            "messages");
     private static final Set<String> DEPENDENCY_FIELDS = Set.of("code", "version");
     private static final JsonMapper JSON = JsonMapper.shared();
 
@@ -100,6 +108,7 @@ public final class ModuleManifests {
                     PlatformVersion.parse(required(root, "version")),
                     PlatformVersion.parse(required(root, "minPlatform")),
                     dependencies,
+                    strings(root, "areas"),
                     optional(root, "configuration"),
                     optional(root, "migrations"),
                     optional(root, "messages"),
@@ -122,6 +131,17 @@ public final class ModuleManifests {
             if (twin != null) {
                 problems.add("module " + manifest.code() + " is declared twice: " + twin.source() + " and "
                         + manifest.source());
+            }
+        }
+        Map<String, String> areas = new LinkedHashMap<>();
+        byCode.keySet().forEach(code -> areas.put(code, code));
+        for (ModuleManifest manifest : byCode.values()) {
+            for (String area : manifest.areas()) {
+                String holder = areas.putIfAbsent(area, manifest.code());
+                if (holder != null) {
+                    problems.add("permission area " + area + " of module " + manifest.code() + " is held by module "
+                            + holder);
+                }
             }
         }
         for (ModuleManifest manifest : byCode.values()) {
@@ -194,6 +214,19 @@ public final class ModuleManifests {
             path.removeLast();
         }
         return false;
+    }
+
+    /** An optional array of strings; absent means none. */
+    private static List<String> strings(JsonNode node, String name) {
+        JsonNode listed = node.get(name);
+        if (listed == null || listed.isNull()) return List.of();
+        if (!listed.isArray()) throw new IllegalArgumentException(name + " is an array");
+        List<String> values = new ArrayList<>();
+        for (JsonNode value : listed) {
+            if (!value.isString()) throw new IllegalArgumentException(name + " holds strings");
+            values.add(value.asString());
+        }
+        return values;
     }
 
     private static void requireKnown(JsonNode node, Set<String> known, String prefix) {

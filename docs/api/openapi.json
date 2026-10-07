@@ -17445,7 +17445,8 @@
           },
           "projectName" : {
             "type" : "string",
-            "readOnly" : true
+            "readOnly" : true,
+            "x-requires" : "tasks.projects.view"
           },
           "reporterId" : {
             "type" : "integer",

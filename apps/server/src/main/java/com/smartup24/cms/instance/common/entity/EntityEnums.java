@@ -28,6 +28,10 @@ import org.springframework.stereotype.Component;
  * {@value #CACHE} cache; a change of a reference clears it on every node of the cluster ({@link #evict}, ADR-0025).
  * An archivable reference (ADR-0032, 5.4) keeps its archived items, so an old value is still named, but offers only
  * the active ones ({@link Items#offered}), and a new value may not be an archived item.
+ *
+ * <p>The items are read with no viewer's scope and no right of the reference: they name the values of other entities'
+ * fields for whoever fills or reads those. A reference therefore declares {@code EntityScope.all()}, which its model
+ * checks when it is declared ({@code EntityModel}), so no row of it is any viewer's secret.
  */
 @Component
 public class EntityEnums {

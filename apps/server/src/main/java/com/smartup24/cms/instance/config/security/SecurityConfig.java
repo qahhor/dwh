@@ -31,8 +31,12 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
 @EnableConfigurationProperties({RateLimitProperties.class, TrustedProxyProperties.class})
 public class SecurityConfig {
 
+    /**
+     * The paths open without a sign-in. The API description ({@code /api/v1/openapi.json}) is not one of them: it names
+     * every entity and field of the installation, so only a signed-in user reads it (product owner, 2026-10-03).
+     */
     private static final String[] PUBLIC_PATHS = {
-        "/api/v1/auth/login", "/api/v1/auth/otp", "/api/v1/auth/password-reset/**", "/api/v1/openapi.json", "/error"
+        "/api/v1/auth/login", "/api/v1/auth/otp", "/api/v1/auth/password-reset/**", "/error"
     };
 
     @Bean

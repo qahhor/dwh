@@ -1,31 +1,41 @@
 package com.smartup24.cms.instance.ms.task.worker;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import com.smartup24.cms.instance.md.service.MdUserTexts;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import tools.jackson.databind.ObjectMapper;
 
 class TaskDeadlineReminderWorkerTest {
 
     private final MsTaskStatsRepository taskRepository = Mockito.mock(MsTaskStatsRepository.class);
     private final MsNotificationService notificationService = Mockito.mock(MsNotificationService.class);
+    private final MdUserTexts texts = Mockito.mock(MdUserTexts.class);
     private final TaskDeadlineReminderWorker worker =
-            new TaskDeadlineReminderWorker(taskRepository, notificationService);
+            new TaskDeadlineReminderWorker(taskRepository, notificationService, texts);
 
     @BeforeEach
     void setUp() {
         when(notificationService.isNotificationEnabled(anyLong(), anyString(), anyString()))
                 .thenReturn(true);
+        // The recipient's language: the catalog text of each key, its placeholders filled.
+        when(texts.text(anyLong(), anyString(), Mockito.<Map<String, String>>any()))
+                .thenAnswer(call -> "[" + call.getArgument(0) + "] " + call.getArgument(1) + " "
+                        + new TreeMap<>(call.<Map<String, String>>getArgument(2)));
     }
 
     @Test
@@ -38,12 +48,13 @@ class TaskDeadlineReminderWorkerTest {
 
         worker.scanAndNotifyDeadlines();
 
+        // Catalog keys in the recipient's language (ru, uz, en), never a text of the code.
         verify(notificationService)
                 .sendInAppNotification(
                         eq(10L),
                         eq(TaskDeadlineReminderWorker.REMINDER_TYPE),
-                        eq("Приближается дедлайн по задаче #101"),
-                        eq("Срок выполнения задачи 'Сдать финансовый отчёт' истекает в ближайшие 24 часа."),
+                        eq("[10] notify.task_deadline.title {hours=24, id=101, title=Сдать финансовый отчёт}"),
+                        eq("[10] notify.task_deadline.body {hours=24, id=101, title=Сдать финансовый отчёт}"),
                         eq("/tasks"),
                         eq("task_deadline_101"));
     }
@@ -106,5 +117,21 @@ class TaskDeadlineReminderWorkerTest {
                         anyString(),
                         eq("/tasks"),
                         eq("task_deadline_105"));
+    }
+
+    @Test
+    @DisplayName("The reminder's strings exist in ru, uz and en with their placeholders")
+    void theStringsAreInEveryCatalog() throws Exception {
+        for (String language : List.of("ru", "uz", "en")) {
+            try (var in = getClass().getResourceAsStream("/i18n/" + language + ".json")) {
+                Map<?, ?> catalog = new ObjectMapper().readValue(in, Map.class);
+                assertThat((String) catalog.get(TaskDeadlineReminderWorker.TITLE))
+                        .as(language)
+                        .contains("{id}");
+                assertThat((String) catalog.get(TaskDeadlineReminderWorker.BODY))
+                        .as(language)
+                        .contains("{title}", "{hours}");
+            }
+        }
     }
 }

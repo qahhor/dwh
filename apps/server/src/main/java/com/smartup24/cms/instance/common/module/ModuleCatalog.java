@@ -67,4 +67,14 @@ public class ModuleCatalog {
     public Optional<ModuleManifest> find(String code) {
         return Optional.ofNullable(byCode.get(code));
     }
+
+    /**
+     * The module that holds a permission area (ADR-0028): the one of that code, else the one that lists the area
+     * ({@link ModuleManifest#areas}). The manifests' check refused an area held twice.
+     */
+    public Optional<ModuleManifest> holding(String area) {
+        ModuleManifest own = byCode.get(area);
+        if (own != null) return Optional.of(own);
+        return manifests.stream().filter(manifest -> manifest.holds(area)).findFirst();
+    }
 }

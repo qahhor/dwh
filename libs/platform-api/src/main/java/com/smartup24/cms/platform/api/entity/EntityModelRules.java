@@ -63,6 +63,18 @@ final class EntityModelRules {
     }
 
     /**
+     * The items of a reference are read whole, for anyone who fills or reads an enumeration of another entity, without
+     * the viewer's scope or the reference's own right ({@code EntityEnums}, ADR-0032, 4.5): its rows are therefore
+     * every viewer's, {@link EntityScope#all()}.
+     */
+    static void checkReference(String table, @Nullable EntityReference reference, EntityScope scope) {
+        if (reference != null && scope != EntityScope.All.INSTANCE) {
+            throw new IllegalArgumentException("Table " + table + ": a reference is read whole for every viewer, so its"
+                    + " scope is EntityScope.all(), not " + scope.describe() + " (ADR-0032, 4.5)");
+        }
+    }
+
+    /**
      * The field money takes its currency from (ADR-0032, 9.1): a select of a column of the record whose every option is
      * a currency the money allows.
      */

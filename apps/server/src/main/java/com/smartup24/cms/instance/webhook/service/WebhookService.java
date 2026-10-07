@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
 import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.workflow.EntityTransition;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -241,6 +242,13 @@ public class WebhookService {
                     nameKey = entity.rights().actionKeys().get(action.permission());
                 }
                 registerEvent(events, form + "." + actionCode, entityCode, form, actionCode, nameKey);
+            }
+
+            // A workflow transition is published under its own code, like a record action.
+            if (entity.model() != null && entity.model().workflow() != null) {
+                for (EntityTransition transition : entity.model().workflow().transitions()) {
+                    registerEvent(events, form + "." + transition.code(), entityCode, form, transition.code(), null);
+                }
             }
         }
         return List.copyOf(events.values());

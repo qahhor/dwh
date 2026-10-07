@@ -114,9 +114,12 @@ class DefaultSecretsGuardTest {
         application.setWebApplicationType(WebApplicationType.NONE);
         application.setRegisterShutdownHook(false);
 
+        // The settings ProductionStartGuard asks for outside development: this start is a production one.
         try (ConfigurableApplicationContext context = application.run(
                 "--smc.typesense.api-key=a-key-of-this-installation",
-                "--DB_PASSWORD=a-password-of-this-installation")) {
+                "--DB_PASSWORD=a-password-of-this-installation",
+                "--smc.public-url=https://cms.example.test",
+                "--smc.providers.mail=smtp")) {
             assertThat(context.getEnvironment().getProperty("smc.typesense.api-key"))
                     .isEqualTo("a-key-of-this-installation");
         }

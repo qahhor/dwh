@@ -53,6 +53,7 @@ class ModuleRegistryIntegrationTest {
                 PlatformVersion.parse("1.2.0"),
                 PlatformVersion.parse("1.0.0"),
                 List.of(new ModuleManifest.Dependency("iam", PlatformVersion.parse("1.0.0"))),
+                List.of(),
                 "com.acme.library.LibraryModule",
                 null,
                 null,

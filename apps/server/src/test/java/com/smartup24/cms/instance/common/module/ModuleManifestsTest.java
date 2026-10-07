@@ -30,6 +30,7 @@ class ModuleManifestsTest {
                 PlatformVersion.parse(version),
                 PlatformVersion.parse(minPlatform),
                 dependencies,
+                List.of(),
                 null,
                 null,
                 null,
@@ -114,6 +115,28 @@ class ModuleManifestsTest {
                         List.of(module("aa", "1.0.0", "1.0.0", "bb@1.0.0"), module("bb", "1.0.0", "1.0.0", "aa@1.0.0")),
                         PLATFORM))
                 .containsExactly("modules depend on each other in a cycle: aa -> bb -> aa");
+    }
+
+    /** ADR-0032, 6.3, step 1: the permission areas a module holds beside its code decide the module of an entity. */
+    @Test
+    void readsThePermissionAreasAndRefusesOneHeldTwice() {
+        ModuleManifest iam = parse("iam.json", """
+                {"code": "iam", "name": "IAM", "version": "1.0.0", "minPlatform": "1.0.0", "areas": ["md"]}
+                """);
+        assertThat(iam.areas()).containsExactly("md");
+        assertThat(iam.holds("md")).isTrue();
+        assertThat(iam.holds("iam")).isTrue();
+        assertThat(iam.holds("tasks")).isFalse();
+        assertThatThrownBy(() -> parse("iam.json", """
+                        {"code": "iam", "name": "IAM", "version": "1.0.0", "minPlatform": "1.0.0", "areas": ["Md"]}
+                        """)).hasMessageContaining("bad permission area Md");
+
+        ModuleManifest other = parse("crm.json", """
+                {"code": "crm", "name": "CRM", "version": "1.0.0", "minPlatform": "1.0.0", "areas": ["md"]}
+                """);
+        assertThat(ModuleManifests.problems(List.of(iam, other), PLATFORM))
+                .containsExactly("permission area md of module crm is held by module iam");
+        assertThat(new ModuleCatalog(PLATFORM, List.of(iam)).holding("md")).contains(iam);
     }
 
     @Test
