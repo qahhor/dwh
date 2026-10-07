@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.common.xlsx;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.unit.DataSize;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * The bounds an uploaded xlsx workbook must stay within before it is read (plan 10/10, item 7.6). A value left
@@ -18,6 +19,7 @@ import org.springframework.util.unit.DataSize;
  * @param maxRows the highest row number of a sheet
  * @param maxColumns the highest column number of a sheet
  */
+@Validated
 @ConfigurationProperties(prefix = "smc.uploads.xlsx")
 public record XlsxLimits(
         @Nullable DataSize maxUnpackedSize,

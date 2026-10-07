@@ -42,6 +42,8 @@ class ErrorModelTest {
             "ends an import job, never a request: the job records its code in the import's journal row",
             "com.smartup24.cms.instance.report.imports.ImportFile$Unreadable",
             "a file the import job cannot read, caught by the job and recorded as IMPORT_UNREADABLE",
+            "com.smartup24.cms.instance.common.xlsx.XlsxGuard$Rejected",
+            "an xlsx out of its limits (plan 10/10, item 7.6), caught by the import and upload readers as unreadable",
             "com.smartup24.cms.instance.common.module.ModuleManifestException",
             "stops the application at startup when a module cannot run on this platform (ADR-0033, 6.3)",
             "com.smartup24.cms.platform.api.entity.hook.EntityRefusal",
