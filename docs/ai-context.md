@@ -166,7 +166,7 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 - Коммиты подписываются `git commit -s`; CI (`ci.yml`, `dco.yml`) запускается
   на push в main и на pull request, `nightly.yml` — по расписанию.
 
-## 7. Точка продолжения — 2026-10-03
+## 7. Точка продолжения — 2026-10-07
 
 Фазы 0–5 [плана 10/10](plan-10-10.md) выполнены и влиты в main; из фазы 6
 выполнены 6.1–6.5 (ветка интеграции `claude/p6-int2` поверх main `01794bf7`,
@@ -176,6 +176,18 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 SLO, заголовки nginx, сессии, threat model, DAST, хранилище pg-dwh).
 Правила для всех AI-ассистентов — в [`AGENTS.md`](../AGENTS.md), карта модулей —
 в [module-map.md](architecture/module-map.md).
+
+- **Ревью фаз 0–6** (2026-10-03, исправления влиты веткой `claude/rf-int`
+  2026-10-07 поверх main `ca7efde7`): см. раздел «Ревью фаз 0–6» плана и
+  `CHANGELOG.md`. Вебхук: каталог `GET /api/v1/webhooks/events` (`*`, события
+  сущностей, действия и переходы), 422 `error.webhook.event_unknown`, подпись
+  `X-Signature-SHA256` от `<timestamp>.<тело>`; `/api/v1/openapi.json` — только
+  вошедшим; `ProductionStartGuard` (нужен `SMC_PUBLIC_URL` вне dev/test); один
+  `EntityGate` на все пути сущности (выключенный модуль — 404); ключи
+  `error.fnd.*` стали ключами модулей; права аудит-партиций — V200. Профиль
+  `devtools` одобрен владельцем продукта (2026-10-07). Администратор GitHub
+  должен заново применить `.github/rulesets/main.json` (обязательные проверки
+  CLI `cms`).
 
 - **Фаза 5** (2026-10-03, ADR-0032): общий runtime сущностей
   `/api/v1/entities/<код>` — объявление `EntityDefinition` и хуки вместо

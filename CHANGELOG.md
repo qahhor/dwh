@@ -9,6 +9,28 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Phase 0–6 review fixes (2026-10-07) — `ProductionStartGuard` refuses a
+  start outside the `dev`/`test` profiles without `SMC_PUBLIC_URL`, with the
+  entity schema gate switched off, with `console_mail` while
+  `SMC_DELIVERY_ENFORCE` is on, or with the `demo` profile; Compose and the
+  production init scripts require `SMC_PUBLIC_URL`.
+- Phase 0–6 review fixes — a module manifest may list the permission areas it
+  holds (`areas`, ADR-0033); the module of an entity is the installed module
+  holding the area of its form, and an entity whose area no module holds
+  refuses the start.
+- Phase 0–6 review fixes — the webhook events catalog also names the codes of
+  workflow transitions, and the entity contract kit checks that it names every
+  event of a declaration.
+- Phase 0–6 review fixes — the nightly workflow runs the load criteria of the
+  `upl-large`, `audit-large` and `import-large` profiles.
+- Phase 0–6 review fixes — structural checks: `EntityFileBudgetTest` (item
+  5.4: only the declaration and hooks per entity, reasoned exceptions),
+  `EntityCustomFieldsIndexTest` (a GIN index on custom attributes),
+  `ErrorCodesUsedTest` (every `ErrorCode` constant is thrown), the web
+  component audit in `npm run lint` (component ≤ 400 lines, inline template
+  ≤ 150, inline styles ≤ 50, an own spec, `<h1>` only in `ui-page-header`),
+  17 new web specs, E2E entity page helpers by field, line and action key.
+
 - Plan 10/10, item 6.5 — verified and approved optional dependency `spring-boot-devtools`
   in profile `devtools` for local inner-loop development (`make dev` /
   `run-local.ps1 -DevTools`).
@@ -28,20 +50,6 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   creation and PATCH validate `subscribedEvents` against the catalog, rejecting
   unknown event codes with 422 `error.webhook.event_unknown`. The web settings UI
   dynamically retrieves and displays the catalog for subscription event selection.
-
-### Changed
-
-- Plan 10/10, item 5.4 (ADR-0032 question B9) — webhook outbox deliveries now
-  compute HMAC-SHA256 signature over `${timestamp}.${payload}` sent in headers
-  `X-Signature-SHA256` and `X-Signature-Timestamp` to protect against replay
-  attacks.
-
-- Plan 10/10, item 5.4 (ADR-0032 §4.6) — batch resolution of relation labels
-  (`labels`) for `ref` and `multi_ref` fields in the low-code runtime.
-  `EntityLabelResolver` batch-resolves referenced records across model fields,
-  collections, and custom attributes in a single SQL query per target entity
-  respecting viewer data scopes, eliminating client-side N+1 lookups in `RefLookups`
-  and UI registry tables.
 
 - Plan 10/10, item 6.6 — cookbook and reference modules. `docs/cookbook`
   holds 17 recipes: reference list, list filters and search, document with
@@ -987,6 +995,58 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Phase 0–6 review fixes (2026-10-07) — **API break:** `/api/v1/openapi.json`
+  needs a signed-in user (product owner, 2026-10-03).
+- Phase 0–6 review fixes — **API break:** the constraint message keys
+  `error.fnd.<code>` of the jobs, warehouse, units, versioning and actor rules
+  are now `error.<jobs|warehouse|units|versioning|actor>.<code>` (ADR-0030,
+  §6), without aliases.
+- Phase 0–6 review fixes — **API break:** the `JsonNode` schema is gone from
+  `openapi.json`; `BulkRequest.params` and the list view and widget `state`
+  are free-form objects.
+- Phase 0–6 review fixes — **API break:** the record history and the list
+  export without the view right answer 404 (`entity_not_found`,
+  `export_list_unknown`) instead of 403; a switched-off module closes every
+  entity path (runtime, bulk actions, files, form and query meta, history,
+  export) with 404 through `EntityGate`.
+- Phase 0–6 review fixes — a task's `projectName` needs `tasks.projects:view`;
+  a reference entity must declare `EntityScope.all()`.
+- Phase 0–6 review fixes — the task deadline reminder is rendered in the
+  recipient's language (`notify.task_deadline.title`/`.body`, ru, uz, en).
+- Phase 0–6 review fixes — JSON columns of list views, report widgets, search
+  jobs and projections, the job runner and the webhook delivery body go
+  through `JsonColumns`.
+- Phase 0–6 review fixes — `run-local` starts the `server-*-exec.jar`; the
+  README names the Maven wrapper and describes the E2E stack as it is.
+- Phase 0–6 review fixes — CI: the main ruleset requires the two `cms` CLI
+  checks and `test-rulesets.ps1` checks both directions (an administrator
+  re-applies `.github/rulesets/main.json`); `mvnw` and every shell script are
+  executable in git with LF endings; ArchUnit rules are strict without a
+  store; `test-no-skipped-tests.ps1` also reads `examples/*` and fails on
+  skipped or focused Vitest and Playwright tests; drills fail when a named
+  test class did not run; web coverage counts every application file.
+- Phase 0–6 review fixes — web: components send no HTTP requests themselves
+  (`AnalyticsApi`, `FileUploadApi`), API files are named `<feature>.api.ts`,
+  long templates and styles live in files, screens take their title from
+  `ui-page-header`, saved reports and list metadata are read by
+  `rxResource`.
+- Phase 0–6 review fixes — documentation describes the final state: no
+  aliases or transition period before the final release, ADR-0032 and
+  ADR-0033 accepted, nine entities on the model, one webhook signature scheme
+  (ADR-0032 §6.9, `docs/api/README.md` §9).
+
+- Plan 10/10, item 5.4 (ADR-0032 question B9) — webhook outbox deliveries now
+  compute HMAC-SHA256 signature over `${timestamp}.${payload}` sent in headers
+  `X-Signature-SHA256` and `X-Signature-Timestamp` to protect against replay
+  attacks.
+
+- Plan 10/10, item 5.4 (ADR-0032 §4.6) — batch resolution of relation labels
+  (`labels`) for `ref` and `multi_ref` fields in the low-code runtime.
+  `EntityLabelResolver` batch-resolves referenced records across model fields,
+  collections, and custom attributes in a single SQL query per target entity
+  respecting viewer data scopes, eliminating client-side N+1 lookups in `RefLookups`
+  and UI registry tables.
+
 - Plan 10/10, item 6.6: the entity contract kit grants its users `view` on
   the entities a reference names, and its user without field rights no
   longer holds an entity action that a field right names, so such field
@@ -1427,6 +1487,19 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Phase 0–6 review fixes (2026-10-07) — the application context did not
+  start: `SearchChangePublisher` had two public constructors and none marked
+  for injection.
+- Phase 0–6 review fixes — entity discovery of the contract tests found only
+  seven of nine entities (declarations taking plain beans were skipped).
+- Phase 0–6 review fixes — `test-final-readiness.ps1` ran a removed test class
+  and stayed green; it runs `OpenApiContractTest` and fails on a missing
+  report.
+- Phase 0–6 review fixes — a late answer of a previous list no longer
+  overwrites the saved reports of the current one.
+- Phase 0–6 review fixes — ADR-0024 and the operations runbook named the
+  removed `task_revision_conflict`; tasks answer `revision_conflict`.
+
 - On a fresh database the job queue ran its first tick before the first
   administrator existed, so `upl.apply_recovery` failed once with an ERROR in
   the log; the queue now starts after the startup runners
@@ -1782,6 +1855,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+- Phase 0–6 review fixes (2026-10-07) — **API break:** 13 `ErrorCode`
+  constants nobody threw and their texts: `reset_code_expired`,
+  `invite_invalid`, `invite_expired`, `session_expired`, `session_revoked`,
+  `token_revoked`, `license_read_only`, `project_not_found`,
+  `task_parent_cycle`, `single_responsible_violation`, `field_in_use`,
+  `task_revision_conflict`, `otp_rate_limited`.
+- Phase 0–6 review fixes — `FlywayRepairConfiguration` and
+  `SMC_MIGRATE_REPAIR`; the key `error.audit.history_source_not_found`
+  (an unknown history kind answers `error.common.entity_not_found`).
+
 - Repository cleanup before the developer presentation: dated audit reports
   (`audit/`), agent plans (`docs/superpowers/`), design scratch
   (`.superdesign/`), the machine-bound `local-up.cmd` with a plaintext local
@@ -1805,6 +1888,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
 
 ### Security
+
+- Phase 0–6 review fixes (2026-10-07) — the console mail, messenger and SMS
+  providers log only that a message was not delivered (masked recipient,
+  subject, length): invitation and reset links and one-time codes no longer
+  reach the log; an invitation refuses a stub mail provider while delivery is
+  enforced.
+- Phase 0–6 review fixes — the monthly audit partitions and their archives
+  are no longer open to `PUBLIC` (V200 `audit_partitions_not_public`).
+- Phase 0–6 review fixes — `/api/v1/openapi.json` is no longer public.
 
 - Analytics ignored the viewer's data scope: `/api/v1/analytics/summary`,
   `/trends`, `/projects` and `/workload` counted every task, project and user
