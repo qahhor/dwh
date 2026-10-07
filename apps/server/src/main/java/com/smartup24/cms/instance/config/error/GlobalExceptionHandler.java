@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.config.error;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.error.ProblemDetailRecord;
+import com.smartup24.cms.instance.common.entity.runtime.EntityHookMisuse;
 import com.smartup24.cms.instance.common.error.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -315,6 +316,17 @@ public class GlobalExceptionHandler {
     public void handleAsyncRequestNotUsable(AsyncRequestNotUsableException ex) {
         // The browser closed the SSE/HTTP connection: the response is gone, so building a 500 is too late and wrong.
         log.debug("Клиент закрыл соединение до завершения ответа: {}", ex.getMessage());
+    }
+
+    /**
+     * A hook or an action's handler misused the values of a save (ADR-0032, 6.5): a defect of the module, 500, logged
+     * with the entity, the hook and the field the message names.
+     */
+    @ExceptionHandler(EntityHookMisuse.class)
+    public ResponseEntity<ProblemDetailRecord> handleHookMisuse(EntityHookMisuse ex, HttpServletRequest request) {
+        log.error("Entity hook misuse at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
+        return problem(
+                HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, "error.internal_error", Map.of(), request);
     }
 
     @ExceptionHandler(Exception.class)

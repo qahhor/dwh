@@ -22,7 +22,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -205,6 +208,49 @@ class EntityRuntimeIntegrationTest extends EmbeddedPostgresTest {
         assertThat(errors(ownerSession.send(
                         patch(ITEMS + "/" + id).header("If-Match", "\"2\""), Map.of("starred", false))))
                 .containsExactly("starred:readonly");
+    }
+
+    @Test
+    @DisplayName(
+            "ADR-0032, 6.7: a reference an action's handler sets is checked in the target's scope like the client's")
+    void aHandlersReferenceIsCheckedInTheTargetsScope() throws Exception {
+        long id = item(ownerSession, "to link");
+        long theirs = note(otherSession, "their note to link");
+        long mine = note(ownerSession, "my note to link");
+        String action = ITEMS + "/" + id + "/actions/link";
+        MockHttpServletResponse foreign =
+                ownerSession.send(post(action).header("If-Match", "\"1\""), Map.of("noteId", theirs));
+        assertThat(foreign.getStatus()).as(foreign.getContentAsString()).isEqualTo(422);
+        assertThat(errors(foreign)).containsExactly("noteId:not_found");
+        MockHttpServletResponse linked =
+                ownerSession.send(post(action).header("If-Match", "\"1\""), Map.of("noteId", mine));
+        assertThat(linked.getStatus()).as(linked.getContentAsString()).isEqualTo(200);
+        assertThat(number(TestSession.object(linked).get("noteId"))).isEqualTo(mine);
+    }
+
+    @Test
+    @DisplayName("ADR-0032, 6.5: a value a hook sets meets the declaration's rules; a refused one writes nothing")
+    void aHooksValueMeetsTheRules() throws Exception {
+        long before = count();
+        MockHttpServletResponse refused = ownerSession.send(
+                post(ITEMS), Map.of("title", EntityRuntimeFixture.ENDS_EARLY, "startsOn", "2026-10-10"));
+        assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(422);
+        assertThat(errors(refused)).containsExactly("endsOn:before_start");
+        assertThat(count()).isEqualTo(before);
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    @DisplayName("ADR-0032, 6.5: a hook that misuses the values is the module's defect: 500, logged with the field")
+    void aHookThatMisusesTheValuesIsLogged(CapturedOutput output) throws Exception {
+        long before = count();
+        MockHttpServletResponse failed = ownerSession.send(post(ITEMS), Map.of("title", EntityRuntimeFixture.MISUSES));
+        assertThat(failed.getStatus()).as(failed.getContentAsString()).isEqualTo(500);
+        assertThat(TestSession.object(failed)).containsEntry("code", "internal_error");
+        assertThat(failed.getContentAsString()).doesNotContain("createdBy");
+        assertThat(output.getAll())
+                .contains("Entity hook misuse", EntityRuntimeFixture.CODE, "createdBy is no written field");
+        assertThat(count()).isEqualTo(before);
     }
 
     @Test
