@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.webhook.repository;
 
 import com.smartup24.cms.instance.common.json.JsonColumns;
+import com.smartup24.cms.instance.common.metrics.Backlog;
 import com.smartup24.cms.instance.common.security.StoredSecrets;
 import java.time.Instant;
 import java.util.List;
@@ -130,6 +131,25 @@ public class WebhookOutboxRepository {
                         .param("claimToken", claimToken)
                         .update()
                 == 1;
+    }
+
+    /**
+     * The deliveries due now and the wait of the oldest past its due time (plan 10/10, item 7.3). Items of a paused
+     * subscription are not counted: the worker does not deliver them, by design.
+     */
+    public Backlog backlog() {
+        return jdbcClient
+                .sql("""
+                select count(*) as pending,
+                       coalesce(extract(epoch from now() - min(outbox.next_attempt_at)), 0) as lag
+                from kwh_outbox as outbox
+                join kwh_subscriptions as subscription on subscription.id = outbox.subscription_id
+                where subscription.state = 'A'
+                  and outbox.status = 'PENDING'
+                  and outbox.next_attempt_at <= now()
+                """)
+                .query((rs, row) -> new Backlog(rs.getLong("pending"), rs.getDouble("lag")))
+                .single();
     }
 
     public void recordLog(Long subscriptionId, String eventType, int httpStatus, int durationMs, boolean isSuccess) {

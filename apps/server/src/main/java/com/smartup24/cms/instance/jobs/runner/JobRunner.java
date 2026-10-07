@@ -62,6 +62,7 @@ public class JobRunner implements JobQueue {
     private final TransactionTemplate tx;
     private final JobProperties settings;
     private final JobSwitch jobSwitch;
+    private final JobMetrics metrics;
     private final Map<String, JobHandler> handlers = new HashMap<>();
     private final String[] handlerCodes;
 
@@ -72,8 +73,10 @@ public class JobRunner implements JobQueue {
             PlatformTransactionManager transactions,
             List<JobHandler> handlers,
             JobProperties settings,
-            JobSwitch jobSwitch) {
+            JobSwitch jobSwitch,
+            JobMetrics metrics) {
         this.queue = queue;
+        this.metrics = metrics;
         this.columns = new JsonColumns(json, "fnd_job_queue");
         this.tx = new TransactionTemplate(transactions);
         this.settings = settings;
@@ -90,7 +93,7 @@ public class JobRunner implements JobQueue {
             List<JobHandler> handlers,
             JobProperties settings,
             JobSwitch jobSwitch) {
-        this(new JobQueueRepository(jdbc), json, transactions, handlers, settings, jobSwitch);
+        this(new JobQueueRepository(jdbc), json, transactions, handlers, settings, jobSwitch, JobMetrics.NONE);
     }
 
     /** A runner built by hand with the given retry and lease; it is never switched off. */
@@ -188,6 +191,7 @@ public class JobRunner implements JobQueue {
 
     private boolean execute(Claim claim) {
         RuntimeException failure = null;
+        long started = System.nanoTime();
         JobLease lease = JobLease.start(queue, settings.lease(), claim.queueId(), claim.handler(), claim.token());
         try {
             handler(claim.handler())
@@ -196,6 +200,7 @@ public class JobRunner implements JobQueue {
             failure = e;
         } finally {
             lease.close();
+            metrics.executed(claim.handler(), System.nanoTime() - started, failure == null);
         }
         RuntimeException outcome = failure;
         tx.executeWithoutResult(status -> finish(claim, outcome, lease.lost()));

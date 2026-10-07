@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.instance.common.retention.RetentionPolicy;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -74,6 +75,32 @@ class RetentionJobTest {
     }
 
     @Test
+    @DisplayName("7.3: a run that leaves a journal uncleaned is timed as a failure, a clean run as a success")
+    void runOutcomeIsMetered() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        JdbcClient failing = mock(JdbcClient.class, RETURNS_DEEP_STUBS);
+        when(failing.sql(anyString())).thenThrow(new IllegalStateException("table is locked"));
+        job(failing, new MockEnvironment(), List.of(LOGS), registry).run();
+        job(
+                        mock(JdbcClient.class),
+                        new MockEnvironment().withProperty("smc.retention.days.probe-logs", "0"),
+                        List.of(LOGS),
+                        registry)
+                .run();
+
+        assertThat(registry.get("smc.task.run")
+                        .tags("task", "retention", "outcome", "failure")
+                        .timer()
+                        .count())
+                .isEqualTo(1);
+        assertThat(registry.get("smc.task.run")
+                        .tags("task", "retention", "outcome", "success")
+                        .timer()
+                        .count())
+                .isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("3.13: a policy names a table and uses the cutoff")
     void policyIsChecked() {
         for (Runnable bad : List.<Runnable>of(
@@ -90,7 +117,18 @@ class RetentionJobTest {
     }
 
     private static RetentionJob job(JdbcClient jdbc, MockEnvironment environment, List<RetentionPolicy> policies) {
+        return job(jdbc, environment, policies, null);
+    }
+
+    private static RetentionJob job(
+            JdbcClient jdbc,
+            MockEnvironment environment,
+            List<RetentionPolicy> policies,
+            io.micrometer.core.instrument.MeterRegistry registry) {
         DefaultListableBeanFactory beans = new DefaultListableBeanFactory();
+        if (registry != null) {
+            beans.registerSingleton("meterRegistry", registry);
+        }
         ObjectProvider<io.micrometer.core.instrument.MeterRegistry> meters =
                 beans.getBeanProvider(io.micrometer.core.instrument.MeterRegistry.class);
         ObjectProvider<Clock> clock = beans.getBeanProvider(Clock.class);
