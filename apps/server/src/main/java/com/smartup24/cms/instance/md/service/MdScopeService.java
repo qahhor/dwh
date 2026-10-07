@@ -5,15 +5,24 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.DataScopes;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.RoleRule;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.UserAssignments;
+import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
+import com.smartup24.cms.platform.api.entity.event.EntityChanged;
+import com.smartup24.cms.platform.api.entity.event.EntityEventType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,16 +53,28 @@ public class MdScopeService implements DataScopes {
     private final MdOrgUnitRepository orgUnitRepository;
     private final MdPermissionService permissionService;
     private final AuditLogService auditLogService;
+    private final @Nullable ApplicationEventPublisher eventPublisher;
 
     public MdScopeService(
             MdScopeRepository scopeRepository,
             MdOrgUnitRepository orgUnitRepository,
             MdPermissionService permissionService,
             AuditLogService auditLogService) {
+        this(scopeRepository, orgUnitRepository, permissionService, auditLogService, null);
+    }
+
+    @Autowired
+    public MdScopeService(
+            MdScopeRepository scopeRepository,
+            MdOrgUnitRepository orgUnitRepository,
+            MdPermissionService permissionService,
+            AuditLogService auditLogService,
+            @Nullable ApplicationEventPublisher eventPublisher) {
         this.scopeRepository = scopeRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.permissionService = permissionService;
         this.auditLogService = auditLogService;
+        this.eventPublisher = eventPublisher;
     }
 
     // ---------------------------------------------------------- role's rule
@@ -137,6 +158,19 @@ public class MdScopeService implements DataScopes {
                 List.of("org_units"),
                 Map.of("org_units", List.copyOf(before)),
                 Map.of("org_units", List.copyOf(scopeRepository.getUserOrgUnitIds(userId))));
+        if (!before.equals(new TreeSet<>(requested)) && eventPublisher != null) {
+            eventPublisher.publishEvent(new EntityChanged(
+                    "md.users",
+                    MdPref.FORM_USERS,
+                    userId,
+                    revision,
+                    EntityEventType.UPDATED,
+                    null,
+                    List.of("orgUnits"),
+                    SecurityContext.getCurrentUserId(),
+                    Instant.now(),
+                    UUID.randomUUID()));
+        }
         return revision;
     }
 

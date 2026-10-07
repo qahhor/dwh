@@ -27,5 +27,18 @@ public class EntitySearchListener {
         if (entities.find(change.entity()).isPresent()) {
             publisher.changed(change.entity(), change.id());
         }
+        if ("ms.tasks".equals(change.entity())) {
+            publisher.invalidateTaskProject(change.id());
+        } else if ("md.users".equals(change.entity()) && isUserOrgUnitChanged(change)) {
+            publisher.invalidateUserScope(change.id());
+        }
+    }
+
+    private static boolean isUserOrgUnitChanged(EntityChanged change) {
+        return change.changedFields().contains("orgUnitId")
+                || change.changedFields().contains("org_unit_id")
+                || change.changedFields().contains("orgUnits")
+                || change.changedFields().contains("org_units")
+                || change.changedFields().isEmpty();
     }
 }

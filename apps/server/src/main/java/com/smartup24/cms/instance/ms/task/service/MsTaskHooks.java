@@ -3,6 +3,9 @@ package com.smartup24.cms.instance.ms.task.service;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTreeRepository;
+import com.smartup24.cms.platform.api.entity.event.EntityChanged;
+import com.smartup24.cms.platform.api.entity.event.EntityEventType;
+import com.smartup24.cms.platform.api.entity.hook.EntityDelete;
 import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
 import com.smartup24.cms.platform.api.entity.hook.EntityOperation;
 import com.smartup24.cms.platform.api.entity.hook.EntitySave;
@@ -11,7 +14,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 /**
@@ -33,11 +39,22 @@ public class MsTaskHooks implements EntityHooks {
     private final MdScopeService scopes;
     private final MsTaskTreeRepository tree;
     private final MsTaskMemberService members;
+    private final @Nullable ApplicationEventPublisher eventPublisher;
 
     public MsTaskHooks(MdScopeService scopes, MsTaskTreeRepository tree, MsTaskMemberService members) {
+        this(scopes, tree, members, null);
+    }
+
+    @Autowired
+    public MsTaskHooks(
+            MdScopeService scopes,
+            MsTaskTreeRepository tree,
+            MsTaskMemberService members,
+            @Nullable ApplicationEventPublisher eventPublisher) {
         this.scopes = scopes;
         this.tree = tree;
         this.members = members;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -87,6 +104,36 @@ public class MsTaskHooks implements EntityHooks {
         }
         if (was != null && save.changed("statusCode")) {
             members.tellStatus(id, title, Objects.requireNonNull(now.text("statusCode")), actor);
+        }
+        if (was != null && save.changed("projectId")) {
+            Long oldProjectId = was.ref("projectId");
+            if (oldProjectId != null) {
+                publishProjectTasksChanged(oldProjectId, actor);
+            }
+        }
+    }
+
+    @Override
+    public void afterDelete(EntityDelete delete) {
+        Long projectId = delete.before().ref("projectId");
+        if (projectId != null) {
+            publishProjectTasksChanged(projectId, delete.actor().userId());
+        }
+    }
+
+    private void publishProjectTasksChanged(long projectId, long actor) {
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new EntityChanged(
+                    MsProjectEntity.CODE,
+                    MsTaskPref.FORM_PROJECTS,
+                    projectId,
+                    0L,
+                    EntityEventType.UPDATED,
+                    null,
+                    List.of("tasks"),
+                    actor,
+                    Instant.now(),
+                    UUID.randomUUID()));
         }
     }
 

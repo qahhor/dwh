@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.8 (ADR-0032 §10.3.1 item C7) — search scope invalidation on
+  org unit transfer and project task changes. When a user's organizational units
+  change, their tasks and projects are invalidated in `search_projection_versions`
+  for delivery worker reindexing. When project tasks change or are deleted, the
+  associated project search projection is marked stale to refresh project task
+  participant scopes. Added published view `ms_task_pub_project_members` (V199)
+  for boundary-safe scope discovery.
+
 - Plan 10/10, item 5.4 (ADR-0032 §6.9, §6.16) — webhook events catalog and replay
   protection. Endpoint `GET /api/v1/webhooks/events` exposes the available
   event codes derived dynamically from `EntityRegistry` (standard CRUD/archive/restore
