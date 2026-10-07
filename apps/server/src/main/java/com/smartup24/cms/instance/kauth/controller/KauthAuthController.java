@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.kauth.api.LoginResponse;
+import com.smartup24.cms.instance.kauth.pref.KauthSessionProperties;
 import com.smartup24.cms.instance.kauth.security.KauthSessionCookies;
 import com.smartup24.cms.instance.kauth.service.KauthAuthService;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
@@ -15,6 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Set;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,13 +40,18 @@ public class KauthAuthController {
             KauthSessionService sessionService,
             MdUserService userService,
             CsrfTokenRepository csrfTokenRepository,
-            ClientIpResolver clientIpResolver) {
+            ClientIpResolver clientIpResolver,
+            ObjectProvider<KauthSessionProperties> sessionProperties) {
         this.authService = authService;
         this.sessionService = sessionService;
         this.userService = userService;
         this.csrfTokenRepository = csrfTokenRepository;
         this.clientIpResolver = clientIpResolver != null ? clientIpResolver : new ClientIpResolver(null);
-        this.sessionCookies = new KauthSessionCookies(this.clientIpResolver);
+        this.sessionCookies = new KauthSessionCookies(
+                this.clientIpResolver,
+                sessionProperties != null
+                        ? sessionProperties.getIfAvailable(KauthSessionProperties::defaults)
+                        : KauthSessionProperties.defaults());
     }
 
     public KauthAuthController(
@@ -52,7 +59,7 @@ public class KauthAuthController {
             KauthSessionService sessionService,
             MdUserService userService,
             CsrfTokenRepository csrfTokenRepository) {
-        this(authService, sessionService, userService, csrfTokenRepository, null);
+        this(authService, sessionService, userService, csrfTokenRepository, null, null);
     }
 
     @Operation(

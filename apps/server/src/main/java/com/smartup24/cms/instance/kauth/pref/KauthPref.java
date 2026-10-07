@@ -16,8 +16,6 @@ public final class KauthPref {
     // Session Constants
     /** The session cookie the server sets (plan 10/10, item 4.7). */
     public static final String SESSION_COOKIE_NAME = "SMC_SESSION";
-    /** Seven days: the lifetime of the session cookie in the browser. */
-    public static final int SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
     /** The prefix of every personal API token; a bearer value without it is not looked up (plan 10/10, item 4.7). */
     public static final String API_TOKEN_PREFIX = "smc_";
 

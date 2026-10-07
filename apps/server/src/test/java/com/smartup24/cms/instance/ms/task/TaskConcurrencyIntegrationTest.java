@@ -106,18 +106,20 @@ class TaskConcurrencyIntegrationTest {
 
         Instant initialSeen = session.lastSeenAt();
 
-        // Immediate touch within 60s -> should be coalesced (0 rows updated)
-        sessionRepository.updateLastSeen(session.id());
+        // Immediate touch within the touch interval -> coalesced without a statement
+        assertThat(sessionRepository.touch(session)).isFalse();
         var fetched = sessionRepository.findActiveById(session.id()).orElseThrow();
         assertThat(fetched.lastSeenAt()).isEqualTo(initialSeen);
 
-        // Age session past 60s
+        // Age session past the interval
         jdbc.sql("update kauth_sessions set last_seen_at = now() - interval '65 seconds' where id = :id")
                 .param("id", session.id())
                 .update();
 
-        // Touch after 65s -> should update last_seen_at
-        sessionRepository.updateLastSeen(session.id());
+        // Touch after 65s -> should update last_seen_at; a second request with the stale view changes nothing
+        var aged = sessionRepository.findActiveById(session.id()).orElseThrow();
+        assertThat(sessionRepository.touch(aged)).isTrue();
+        assertThat(sessionRepository.touch(aged)).isFalse();
         var updated = sessionRepository.findActiveById(session.id()).orElseThrow();
         assertThat(updated.lastSeenAt()).isAfter(initialSeen);
     }

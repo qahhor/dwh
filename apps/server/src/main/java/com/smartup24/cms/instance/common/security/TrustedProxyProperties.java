@@ -5,20 +5,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * Configuration of trusted proxy servers and networks (FR-SEC-2).
+ * Configuration of trusted proxy servers and networks (FR-SEC-2, ADR-0034).
  * <p>
- * Includes by default:
- * <ul>
- *   <li>127.0.0.1/32, ::1/128 (loopback)</li>
- *   <li>10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 (private IPv4 networks, including Docker Bridge/Compose)</li>
- *   <li>fc00::/7, fe80::/10 (unique local and link-local IPv6 networks)</li>
- * </ul>
+ * Only a direct peer from this list may set {@code X-Forwarded-For} / {@code X-Forwarded-Proto}. The default is
+ * loopback only: an installation names its proxies explicitly (Compose passes the network of its web container,
+ * {@code SMC_SECURITY_TRUSTED_PROXIES}). Private networks are not trusted wholesale.
  */
 @Validated
 @ConfigurationProperties(prefix = "smc.security")
 public record TrustedProxyProperties(List<String> trustedProxies) {
-    public static final List<String> DEFAULT_TRUSTED_PROXIES = List.of(
-            "127.0.0.1/32", "::1/128", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7", "fe80::/10");
+    public static final List<String> DEFAULT_TRUSTED_PROXIES = List.of("127.0.0.1/32", "::1/128");
 
     public TrustedProxyProperties {
         if (trustedProxies == null || trustedProxies.isEmpty()) {

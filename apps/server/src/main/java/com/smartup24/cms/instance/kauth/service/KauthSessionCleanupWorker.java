@@ -1,7 +1,5 @@
 package com.smartup24.cms.instance.kauth.service;
 
-import java.time.Duration;
-import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -9,9 +7,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Background worker that cleans up inactive sessions (FR-AUTH-8):
- * sessions with no activity for more than 12 hours (last_seen_at < now() - 12h)
- * are closed automatically (closed_at = now()).
+ * Housekeeping of expired cookie sessions (FR-AUTH-8, ADR-0034). The active-session condition already refuses a
+ * session past its absolute lifetime or idle timeout; this worker only marks such sessions closed, so they leave the
+ * open-session indexes and the retention of closed sessions removes them later. A stopped worker never keeps an
+ * expired session usable.
  */
 @Component
 @Profile("!migrate")
@@ -26,15 +25,14 @@ public class KauthSessionCleanupWorker {
     }
 
     @Scheduled(fixedDelayString = "${smc.session.cleanup-interval:1h}", initialDelayString = "PT1M")
-    public void cleanupInactiveSessions() {
+    public void cleanupExpiredSessions() {
         try {
-            Instant cutoff = Instant.now().minus(Duration.ofHours(12));
-            int closedCount = sessionService.closeInactiveSessions(cutoff);
+            int closedCount = sessionService.closeExpiredSessions();
             if (closedCount > 0) {
-                log.info("Автоматически закрыто {} неактивных сессий (> 12 ч без активности)", closedCount);
+                log.info("Closed {} expired sessions", closedCount);
             }
-        } catch (Exception e) {
-            log.error("Ошибка при выполнении плановой очистки неактивных сессий: {}", e.getMessage(), e);
+        } catch (RuntimeException e) {
+            log.error("Housekeeping of expired sessions failed: {}", e.getMessage(), e);
         }
     }
 }

@@ -247,8 +247,15 @@ smc:
     timeout-ms: 1800000            # 30 min; EventSource reconnects by itself
     heartbeat-ms: 25000            # keep-alive < proxy timeout (usually 60 s)
     max-connections-per-user: 5    # protects against leaked tabs on the client
+  session:
+    # ADR-0034: both limits are part of the active-session condition; the cookie lives absolute-ttl.
+    absolute-ttl: ${SMC_SESSION_ABSOLUTE_TTL:7d}
+    idle-timeout: ${SMC_SESSION_IDLE_TIMEOUT:12h}
+    touch-interval: ${SMC_SESSION_TOUCH_INTERVAL:1m}   # last activity is written at most this often
+    cleanup-interval: ${SMC_SESSION_CLEANUP_INTERVAL:1h} # housekeeping only, never the enforcement
   security:
-    trusted-proxies: ${SMC_SECURITY_TRUSTED_PROXIES:127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10}
+    # ADR-0034: only the direct peer addresses listed here may set X-Forwarded-*; Compose passes its network.
+    trusted-proxies: ${SMC_SECURITY_TRUSTED_PROXIES:127.0.0.1/32,::1/128}
   rate-limit:
     enabled: true
     max-entries: ${SMC_RATE_LIMIT_MAX_ENTRIES:10000}

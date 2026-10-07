@@ -127,6 +127,14 @@ Current ADRs that are not superseded:
   the module manifest checked before any bean starts, the entity schema checked
   against `information_schema`, and the test kit published for modules outside
   the monorepo; plan 10/10, items 6.3 and 6.4.
+- [ADR-0034 — edge security headers, trusted proxies and session lifetime](adr/ADR-0034-edge-headers-and-session-lifetime.md)
+  — every nginx location includes the security headers (HSTS one year,
+  nosniff, CSP without third-party hosts, `frame-src` from the operator's
+  `SMC_WEB_FRAME_SOURCES`), `X-Forwarded-For` is believed only from explicit
+  lists (`SMC_WEB_TRUSTED_PROXIES`, `SMC_SECURITY_TRUSTED_PROXIES`, the pinned
+  frontend network in production), and the absolute lifetime and idle timeout
+  of a session are part of the active-session query; plan 10/10, items 7.4
+  and 7.5.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
