@@ -2778,6 +2778,7 @@
   "error.common.precondition_required": "The save was refused: the record version is missing. Open the record again and retry",
   "error.common.revision_conflict": "Someone else has changed this record. Refresh it and save again",
   "error.common.if_match_invalid": "The If-Match header must hold the record version",
+  "error.common.entity_state_locked": "The action \"{action}\" is not available: a record in the state \"{state}\" is kept as the trace of its process",
   "error.common.entity_transition_not_allowed": "The action \"{action}\" is not available for a record in the state \"{from}\"",
   "nav.example_orders": "Orders (reference)",
   "example.orders.rights.form": "Orders (reference document)",
@@ -2908,6 +2909,5 @@
   "entity.action.submit": "Submit",
   "entity.action.recall": "Recall",
   "entity.action.approve": "Approve",
-  "entity.action.reject": "Reject",
-  "error.example.request_not_draft": "Only a draft request can be deleted"
+  "entity.action.reject": "Reject"
 }

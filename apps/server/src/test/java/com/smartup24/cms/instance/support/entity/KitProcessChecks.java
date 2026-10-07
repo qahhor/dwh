@@ -14,6 +14,7 @@ import com.smartup24.cms.instance.support.TestUsers;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
 import com.smartup24.cms.instance.support.entity.KitWorld.Created;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.FormField;
 import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
 import com.smartup24.cms.platform.api.entity.workflow.EntityState;
@@ -38,7 +39,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
  * The process of a document (ADR-0032, 9.2 and 11.2, "collections and process"): a new record starts in the initial
  * state; each transition from a state it does not leave is 422 {@code entity_transition_not_allowed}, without its right
  * 403, and from a state it leaves moves the record, raises its revision and reaches the history; a field or collection a
- * state locks is 422 {@code readonly}; the record's actions follow its state.
+ * state locks is 422 {@code readonly}; a record in a terminal state or one that locks is neither deleted nor archived
+ * (422 {@code entity_state_locked}) and its actions offer neither; the record's actions follow its state.
  */
 final class KitProcessChecks {
 
@@ -83,8 +85,47 @@ final class KitProcessChecks {
             if (state.locks().isEmpty() && !state.terminal()) continue;
             if (path(state.code()).isEmpty()) continue;
             tests.add(dynamicTest("in " + state.code() + " a locked field is 422 readonly", () -> locked(state)));
+            if (removable()) {
+                tests.add(dynamicTest(
+                        "in " + state.code() + " delete and archive are 422 entity_state_locked", () -> kept(state)));
+            }
         }
         return tests;
+    }
+
+    /** Whether the entity is deleted or archived at all, so a state can keep its records from it. */
+    private boolean removable() {
+        return world.entity.action(EntityDefinition.DELETE).isPresent() || world.has(EntityCapability.ARCHIVE);
+    }
+
+    /**
+     * A record in a state that keeps it (ADR-0032, 9.2): its actions offer neither delete nor archive, and both are
+     * 422 {@code entity_state_locked} with nothing written, whatever a hook would say.
+     */
+    private void kept(EntityState state) throws Exception {
+        Created record = reach(state.code());
+        long revision = world.revision(world.owner, record.id());
+        assertThat((List<String>) cast(world.readOk(world.owner, record.id()).get("actions")))
+                .as("the actions in %s", state.code())
+                .doesNotContain(EntityDefinition.DELETE, EntityDefinition.ARCHIVE);
+        if (world.entity.action(EntityDefinition.DELETE).isPresent()) {
+            stateLocked(world.delete(world.owner, record.id(), ifMatch(revision)), state, EntityDefinition.DELETE);
+        }
+        if (world.has(EntityCapability.ARCHIVE)) {
+            stateLocked(
+                    world.archive(world.owner, record.id(), true, ifMatch(revision)), state, EntityDefinition.ARCHIVE);
+        }
+        Map<String, Object> after = world.readOk(world.owner, record.id());
+        assertThat(number(after.get("revision"))).as("nothing was written").isEqualTo(revision);
+        assertThat(after).containsEntry(workflow.field(), state.code());
+    }
+
+    private static void stateLocked(MockHttpServletResponse refused, EntityState state, String action)
+            throws Exception {
+        assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(422);
+        Map<String, Object> problem = TestSession.object(refused);
+        assertThat(problem).containsEntry("code", "entity_state_locked");
+        assertThat(problem.get("params")).isEqualTo(Map.of("state", state.code(), "action", action));
     }
 
     private void formMetaGivesTheProcess() throws Exception {

@@ -2778,6 +2778,7 @@
   "error.common.precondition_required": "Saqlash rad etildi: yozuv versiyasi ko‘rsatilmagan. Yozuvni qayta oching va takrorlang",
   "error.common.revision_conflict": "Bu yozuvni boshqa foydalanuvchi o‘zgartirgan. Yangilang va qayta saqlang",
   "error.common.if_match_invalid": "If-Match sarlavhasida yozuv versiyasi bo‘lishi kerak",
+  "error.common.entity_state_locked": "«{action}» amali mavjud emas: «{state}» holatidagi yozuv jarayon izi sifatida saqlanadi",
   "error.common.entity_transition_not_allowed": "«{action}» amali «{from}» holatidagi yozuv uchun mavjud emas",
   "nav.example_orders": "Buyurtmalar (namuna)",
   "example.orders.rights.form": "Buyurtmalar (hujjat namunasi)",
@@ -2908,6 +2909,5 @@
   "entity.action.submit": "Yuborish",
   "entity.action.recall": "Qaytarib olish",
   "entity.action.approve": "Tasdiqlash",
-  "entity.action.reject": "Rad etish",
-  "error.example.request_not_draft": "Faqat qoralama arizani o'chirish mumkin"
+  "entity.action.reject": "Rad etish"
 }
