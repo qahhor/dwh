@@ -59,9 +59,30 @@ if (-not $main) {
     }
     $checks = @($main.rules | Where-Object { $_.type -eq 'required_status_checks' })
     if ($checks.Count -ne 1) { $errors.Add('main.json must have one required_status_checks rule.') }
+    $required = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($check in $checks.parameters.required_status_checks) {
+        [void]$required.Add($check.context)
         if (-not $pullRequestJobs.Contains($check.context)) {
             $errors.Add("Required check '$($check.context)' is produced by no job that runs on pull requests.")
+        }
+    }
+    # The other direction: a job that runs on pull requests is required, or it is listed here with the reason it
+    # may stay red without blocking a merge. A new job is therefore required from its first pull request.
+    $optionalJobs = @{
+        # dependabot-auto-merge.yml: skipped on every pull request not opened by Dependabot; it only arms auto-merge,
+        # the required checks above still decide the merge.
+        'arm auto-merge for a patch update' = 'runs only for Dependabot pull requests and merges nothing itself'
+    }
+    foreach ($job in $pullRequestJobs) {
+        if (-not $required.Contains($job) -and -not $optionalJobs.ContainsKey($job)) {
+            $errors.Add("Pull request job '$job' is not a required check of main.json (add it, or list it as optional with a reason).")
+        }
+    }
+    foreach ($job in $optionalJobs.Keys) {
+        if (-not $pullRequestJobs.Contains($job)) {
+            $errors.Add("Optional job '$job' runs on no pull request: remove it from the list.")
+        } elseif ($required.Contains($job)) {
+            $errors.Add("Optional job '$job' is also required: remove it from one of the lists.")
         }
     }
     $pullRequest = @($main.rules | Where-Object { $_.type -eq 'pull_request' })

@@ -25,7 +25,7 @@ import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/component
 import { isRevisionConflict, SaveErrorNotifier } from '@shared/ui/save-errors';
 import { latestRevision } from './org-unit-assignments';
 import { OrgUnitDraft } from './org-unit-draft';
-import { OrgUnitsApiService } from './org-units-api.service';
+import { OrgUnitsApiService } from './org-units.api';
 import { ScopeRule } from './org-units.models';
 
 export interface ScopeRuleOption {

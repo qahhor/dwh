@@ -389,7 +389,7 @@ $uzDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/uz" -Method Get -WebSessi
 $enDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/en" -Method Get -WebSession $session
 Write-Host "   I18n Dictionaries retrieved: RU: nav.tasks='$($ruDict.'nav.tasks')', UZ: nav.tasks='$($uzDict.'nav.tasks')', EN: nav.tasks='$($enDict.'nav.tasks')'" -ForegroundColor Green
 
-# 18. API Contract & Idempotency Key (M10 API)
+# 18. API Contract & Idempotency Key (ADR-0023)
 Write-Host "`n18. Idempotency Key & OpenAPI Contract (POST /api/v1/entities/ms.tasks with Idempotency-Key)..." -ForegroundColor Yellow
 $idemKey = [guid]::NewGuid().ToString()
 $idemHeaders = @{
@@ -440,10 +440,11 @@ try {
 }
 
 # 18.5 OpenAPI Specification verification
-$openApiSpec = Invoke-RestMethod -Uri "$BaseUrl/api/v1/openapi.json" -Method Get
+# The description is for signed-in users only (product owner, 2026-10-03).
+$openApiSpec = Invoke-RestMethod -Uri "$BaseUrl/api/v1/openapi.json" -Method Get -WebSession $session
 Write-Host "   OpenAPI Spec verified: Version=$($openApiSpec.openapi), Title='$($openApiSpec.info.title)', Paths count=$($openApiSpec.paths.PSObject.Properties.Count)" -ForegroundColor Green
 
-# 19. Fleet Observability & Metrics (M13 OBS)
+# 19. Fleet Observability & Metrics (NFR-OBS-01)
 Write-Host "`n19. Fleet Observability & Metrics (W3C Traceparent, Actuator Info, Prometheus)..." -ForegroundColor Yellow
 
 # 19.1 W3C Traceparent Header Verification
@@ -465,16 +466,21 @@ $hasJvmMetrics = $promMetrics -match "jvm_memory_used_bytes"
 $hasUptime = $promMetrics -match "process_uptime_seconds"
 Write-Host "   Prometheus Metrics verified: JVM metrics=$hasJvmMetrics, Uptime metrics=$hasUptime" -ForegroundColor Green
 
-# 20. Outbound Webhooks (M18, module webhook)
-Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (M18, module webhook)..." -ForegroundColor Yellow
+# 20. Outbound Webhooks (FR-COMM-03, module webhook)
+Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (FR-COMM-03, module webhook)..." -ForegroundColor Yellow
 
 $randWh = Get-Random -Minimum 1000 -Maximum 9999
 $whBody = @{
     name = "Integration Webhook $randWh"
     # The server itself, allowed by scripts/dev/api-smoke.compose.yml (SMC_WEBHOOKS_ALLOWED_HOSTS=server).
     targetUrl = "http://server:9090/actuator/health"
-    subscribedEvents = @("task.created", "user.created", "file.uploaded")
+    # Only events of GET /api/v1/webhooks/events: any other is 422 (ADR-0032, 6.9).
+    subscribedEvents = @("tasks.items.created", "md.users.created", "notes.created")
 } | ConvertTo-Json
+$whEvents = @(Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/events" -Method Get -WebSession $session)
+if (-not ($whEvents | Where-Object { $_.type -eq 'tasks.items.created' })) {
+    throw "The webhook events catalog does not name tasks.items.created."
+}
 
 # 20.1 Create Subscription
 $newSub = Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions" -Method Post -Body $whBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
@@ -490,7 +496,7 @@ Write-Host "   Active Webhook Subscriptions count: $($subsList.Count)" -Foregrou
 $updateWhBody = @{
     name = "Integration Webhook $randWh (Updated)"
     targetUrl = "http://server:9090/actuator/health/liveness"
-    subscribedEvents = @("task.created", "task.status_changed")
+    subscribedEvents = @("tasks.items.created", "tasks.items.set_status")
     state = "A"
 } | ConvertTo-Json
 # The change names the revision the list shows (ADR-0024); the create answer carries none.

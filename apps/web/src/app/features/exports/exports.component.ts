@@ -18,6 +18,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
@@ -49,14 +50,18 @@ const POLL_MS = 3000;
 @Component({
   selector: 'app-exports',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTAlertComponent, DatePipe, TranslatePipe, SMTBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
+  imports: [
+    SMTAlertComponent,
+    DatePipe,
+    TranslatePipe,
+    SMTBadgeComponent,
+    SMTButtonComponent,
+    UiLocalTableComponent,
+    UiPageHeaderComponent,
+  ],
   template: `
     <section class="exports-page" aria-labelledby="exports-title">
-      <header class="exports-head">
-        <div>
-          <h1 id="exports-title" class="exports-title">{{ 'exports.title' | t }}</h1>
-          <p class="exports-subtitle">{{ 'exports.subtitle' | t }}</p>
-        </div>
+      <ui-page-header titleId="exports-title" [title]="'exports.title' | t" [subtitle]="'exports.subtitle' | t">
         <button
           smt-button
           type="button"
@@ -68,7 +73,7 @@ const POLL_MS = 3000;
         >
           {{ 'common.refresh' | t }}
         </button>
-      </header>
+      </ui-page-header>
 
       @if (failed()) {
         <smt-alert smtTone="danger" data-testid="exports-error">

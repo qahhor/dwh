@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.search.service;
 
 import com.smartup24.cms.instance.search.repository.SearchScopeInvalidationRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -16,6 +17,7 @@ public class SearchChangePublisher {
     private final JdbcClient jdbc;
     private final SearchScopeInvalidationRepository invalidation;
 
+    @Autowired
     public SearchChangePublisher(JdbcClient jdbc, SearchScopeInvalidationRepository invalidation) {
         this.jdbc = jdbc;
         this.invalidation = invalidation;

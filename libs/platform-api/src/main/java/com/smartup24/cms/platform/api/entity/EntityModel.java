@@ -93,6 +93,7 @@ public record EntityModel(
             }
         }
         EntityModelRules.check(table, fields);
+        EntityModelRules.checkReference(table, reference, scope);
         rules = Collections.unmodifiableMap(new LinkedHashMap<>(rules));
         collections = List.copyOf(collections);
         tabs = List.copyOf(tabs);

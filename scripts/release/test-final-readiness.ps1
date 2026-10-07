@@ -11,7 +11,7 @@ $mvnCmd = if ($env:OS -eq 'Windows_NT') { Join-Path $repoRoot 'mvnw.cmd' } else 
 $pomPath = Join-Path $repoRoot 'pom.xml'
 
 Write-Host "=================================================================" -ForegroundColor Cyan
-Write-Host " Running Master Final Release Readiness Quality Gates Drill (I-10)" -ForegroundColor Cyan
+Write-Host " Running Master Final Release Readiness Quality Gates Drill" -ForegroundColor Cyan
 Write-Host "=================================================================" -ForegroundColor Cyan
 
 function Run-Step {
@@ -46,7 +46,7 @@ try {
     }
 
     # 3. Production Compose Resource Limits & Config Verification
-    Run-Step "Production Resource Limits & Release Configuration (D-04)" {
+    Run-Step "Production Resource Limits & Release Configuration (NFR-SEC-02)" {
         & (Join-Path $repoRoot 'scripts/prod/test-release-config.ps1')
     }
 
@@ -60,36 +60,43 @@ try {
         & (Join-Path $repoRoot 'scripts/release/verify-release.ps1')
     }
 
-    # 6. OpenAPI Specification & Branding Contract (M17)
+    # 6. OpenAPI contract: the committed docs/api/openapi.json matches the code
     Run-Step "OpenAPI 3.1.0 Contract & Core Route Catalog" {
-        $cmd = "& `"$mvnCmd`" test -f `"$pomPath`" -pl apps/server -am -B -q `"-Dtest=OpenApiControllerTest`" `"-Dsurefire.failIfNoSpecifiedTests=false`""
+        # The libraries built with -am have no such class, hence failIfNoSpecifiedTests=false; the report of the
+        # server module proves the class exists and ran, so a renamed or removed test turns this step red.
+        $report = Join-Path $repoRoot 'apps/server/target/surefire-reports/TEST-com.smartup24.cms.instance.config.openapi.OpenApiContractTest.xml'
+        if (Test-Path -LiteralPath $report) { Remove-Item -LiteralPath $report -Force }
+        $cmd = "& `"$mvnCmd`" test -f `"$pomPath`" -pl apps/server -am -B -q `"-Dtest=OpenApiContractTest`" `"-Dsurefire.failIfNoSpecifiedTests=false`""
         $output = Invoke-Expression $cmd 2>&1
         if ($LASTEXITCODE -ne 0) {
             $output | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkRed }
-            throw "OpenApiControllerTest failed"
+            throw "OpenApiContractTest failed"
+        }
+        if (-not (Test-Path -LiteralPath $report)) {
+            throw "OpenApiContractTest did not run: no report at $report"
         }
     }
 
-    # 7. Search Reliability & Transactional Outbox (I-07)
-    Run-Step "Search Reliability & Outbox Synchronization Drill (I-07)" {
+    # 7. Search Reliability & Transactional Outbox (FR-SEARCH-01)
+    Run-Step "Search Reliability & Outbox Synchronization Drill (FR-SEARCH-01)" {
         $script = Join-Path $repoRoot 'scripts/search/test-search-reliability.ps1'
         if ($Quick) { & $script -Quick } else { & $script }
     }
 
-    # 8. Database Concurrency, Duplicate Indexes & OCC (I-08)
-    Run-Step "Database Concurrency, OCC & Index Cleanup Drill (I-08)" {
+    # 8. Database Concurrency, Duplicate Indexes & OCC (ADR-0024)
+    Run-Step "Database Concurrency, OCC & Index Cleanup Drill (ADR-0024)" {
         $script = Join-Path $repoRoot 'scripts/db/test-db-concurrency.ps1'
         if ($Quick) { & $script -Quick } else { & $script }
     }
 
-    # 9. Capacity Guards & Operations Evidence (I-09)
-    Run-Step "Capacity Guards, Upload Limiter & Export Bounds Drill (I-09)" {
+    # 9. Capacity Guards & Operations Evidence (NFR-PERF-01)
+    Run-Step "Capacity Guards, Upload Limiter & Export Bounds Drill (NFR-PERF-01)" {
         $script = Join-Path $repoRoot 'scripts/acceptance/test-capacity-guards.ps1'
         if ($Quick) { & $script -Quick } else { & $script }
     }
 
     Write-Host "`n=================================================================" -ForegroundColor Green
-    Write-Host " ALL RELEASE HARDENING GATES (I-01..I-10) VERIFIED SUCCESSFULLY! " -ForegroundColor Green
+    Write-Host " ALL RELEASE HARDENING GATES VERIFIED SUCCESSFULLY! " -ForegroundColor Green
     Write-Host "=================================================================" -ForegroundColor Green
 }
 catch {

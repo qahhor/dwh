@@ -8,7 +8,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
-import { UplApiService, UplPeriodicity, UplSource, UplSourceRequest, UplStrictness, UplVersionItem } from '../upl-api';
+import { UplApiService, UplPeriodicity, UplSource, UplSourceRequest, UplStrictness, UplVersionItem } from '../upl.api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { UPL_ERROR, uplProblemText } from '../upl-labels';
 import { UplRuleMessage, uplSourceLengthLimits, uplSourceRequisiteRules } from './source-form-rules';

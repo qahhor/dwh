@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.entity.KitWorld.Created;
 import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository;
+import com.smartup24.cms.instance.webhook.service.WebhookService;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.field.EntityField;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +40,25 @@ final class KitEventChecks {
         if (world.declares("update")) {
             tests.add(dynamicTest("a refused change writes no event", this::aRefusedChangeIsNoEvent));
         }
+        tests.add(dynamicTest(
+                "the webhook events catalog names the events of every declared action", this::catalogNamesTheEvents));
         return tests;
+    }
+
+    /** A subscription may name only what the catalog holds (422 otherwise): every event the runtime publishes. */
+    private void catalogNamesTheEvents() {
+        String form = world.entity.form();
+        List<String> expected = new ArrayList<>();
+        if (world.declares("create")) expected.add(form + ".created");
+        if (world.declares("update")) expected.add(form + ".updated");
+        if (world.declares(EntityDefinition.DELETE)) expected.add(form + ".deleted");
+        if (world.has(EntityCapability.ARCHIVE)) {
+            expected.add(form + ".archived");
+            expected.add(form + ".restored");
+        }
+        world.ownActions().forEach(action -> expected.add(form + "." + action));
+        var catalog = world.wac.getBean(WebhookService.class).knownEventCodes();
+        assertThat(catalog).containsAll(expected);
     }
 
     private void changesAreEvents() throws Exception {

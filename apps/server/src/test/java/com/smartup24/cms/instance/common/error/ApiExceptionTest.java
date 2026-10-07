@@ -20,10 +20,10 @@ class ApiExceptionTest {
     @Test
     void requirePresentRefusesAnEmptyLookupWithTheCallersError() {
         assertThatThrownBy(() -> ApiException.requirePresent(
-                        Optional.empty(), () -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден")))
+                        Optional.empty(), () -> ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена")))
                 .isInstanceOf(ApiException.class)
-                .hasMessage("Проект не найден")
+                .hasMessage("Задача не найдена")
                 .extracting(error -> ((ApiException) error).getErrorCode())
-                .isEqualTo(ErrorCode.PROJECT_NOT_FOUND);
+                .isEqualTo(ErrorCode.TASK_NOT_FOUND);
     }
 }

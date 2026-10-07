@@ -34,6 +34,8 @@ import org.springframework.web.context.WebApplicationContext;
  *       {@code form-meta} offers the actions the viewer's rights allow;
  *   <li>scope: a record outside the viewer's scope answers as a missing id, 404, on every path by id, and is in none
  *       of the viewer's lists, bulk actions and exports (ADR-0013);
+ *   <li>module: with the entity's module switched off every path — the records, form-meta, query-meta, history,
+ *       export, bulk — answers 404, as for an unknown entity (ADR-0032, 6.3, step 1);
  *   <li>field rights: a field whose right the viewer lacks is absent everywhere and refused as unknown; a field they
  *       may not write is read-only and refused;
  *   <li>validation: every rule of every written field refuses its invalid value with 422 on the field;
@@ -108,6 +110,7 @@ public abstract class EntityContractTestKit extends EmbeddedPostgresTest {
                         group("archive (ADR-0032, 5.4)", crud::archive),
                         group("rights (ADR-0028)", access::rights),
                         group("scope: 404, not 403 (ADR-0013)", access::scope),
+                        group("module switched off: 404 (ADR-0032, 6.3)", access::module),
                         group("field rights (ADR-0032, 5.2)", new KitFieldRightChecks(world)::fieldRights),
                         group("validation (ADR-0032, 4.2)", data::validation),
                         group("audit (ADR-0017)", data::audit),

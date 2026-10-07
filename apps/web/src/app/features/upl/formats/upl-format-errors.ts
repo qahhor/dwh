@@ -1,5 +1,5 @@
 import { FieldErrorItem, ProblemDetail } from '@core/models/common.models';
-import { UplFormatDraftRequest } from '../upl-api';
+import { UplFormatDraftRequest } from '../upl.api';
 import { uplErrorKey } from '../upl-labels';
 
 /**
@@ -139,7 +139,7 @@ export function localFormatErrors(model: UplFormatDraftRequest): UplFieldError[]
   return parseUplFieldErrors(found);
 }
 
-/** Field of a column error (the tail after `columns[n].`) → key of that column's table header (M-21). */
+/** Field of a column error (the tail after `columns[n].`) → key of that column's table header. */
 const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
   nameInFile: 'upl.format.col.name_in_file',
   targetField: 'upl.format.col.target_field',
@@ -154,7 +154,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
   filePosition: 'upl.format.col.file_position',
 };
 
-/** Where an error is, for the summary: with the field's name when the table header knows it (M-21). */
+/** Where an error is, for the summary: with the field's name when the table header knows it. */
 export function uplErrorAddress(
   problem: UplFieldError,
   translate: (key: string, params?: Record<string, string>) => string,

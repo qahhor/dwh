@@ -38,7 +38,7 @@ import {
   UplSourceItem,
   UplSourceRequest,
   UplStrictness,
-} from '../upl-api';
+} from '../upl.api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { UPL_ERROR, UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, uplProblemText } from '../upl-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
@@ -52,6 +52,7 @@ import {
   uplSourceLengthLimits,
   uplSourceRequisiteRules,
 } from './source-form-rules';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 /** The model of the "new source" window, bound to its fields through Signal Forms. */
 interface SourceCreateForm {
@@ -84,6 +85,7 @@ function emptyForm(): SourceCreateForm {
   selector: 'app-upl-sources-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTInputComponent,
     SMTSelectComponent,
     SMTAlertComponent,

@@ -122,14 +122,20 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 ## 6. Проверки перед пушем
 
-- Сервер: `mvn -B verify` (Spotless, Checkstyle, Error Prone и NullAway,
-  тесты с архитектурными правилами, JaCoCo), затем
-  `scripts/quality/test-no-skipped-tests.ps1` и
-  `scripts/quality/test-coverage-floors.ps1`.
+- Сервер: `mvn -B clean spotless:check verify` (Spotless, Checkstyle, Error
+  Prone и NullAway, тесты с архитектурными правилами, JaCoCo), затем
+  `scripts/quality/test-no-skipped-tests.ps1` (пропущенные тесты Maven,
+  `skip`/`only`/`todo` в тестах веба и e2e) и
+  `scripts/quality/test-coverage-floors.ps1`; покрытие изменённых строк
+  ветки (diff-cover 10.6.0, как в `ci.yml`, порог 80 %):
+  `python -m diff_cover.diff_cover_tool apps/server/target/site/jacoco/jacoco.xml --compare-branch=main --src-roots apps/server/src/main/java --fail-under=80`.
+- Совместимость публичного API (`libs/platform-api`, `libs/provider-spi`):
+  `scripts/api/test-platform-api-compat.ps1`.
 - Web (`apps/web`): `npm run lint`, `npm run typecheck`, `npm run i18n:audit`,
   `npm run aria:audit`, `npm run contrast:audit`, `npm run api:audit`,
-  `npm run signals:audit`, `npm test`, `npm run build`; после изменения API —
-  `npm run api:types`.
+  `npm run signals:audit`, `npm run comments:audit`, `npm run test:coverage`
+  и порог покрытия `node scripts/coverage-summary.mjs`, `npm run build`; после
+  изменения API — `npm run api:types`.
 - API: `scripts/api/test-api-contract.ps1` (Spectral, свежесть типов веба,
   openapi-diff против базовой ветки).
 - E2E (`e2e`): `npm run typecheck`; доступность — `npm run test:a11y`; полный
@@ -140,14 +146,17 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   `scripts/dev/test-readiness-dependency.ps1`).
 - Документация и репозиторий: `scripts/docs/test-public-docs.ps1` (каждый ADR
   в индексе, ссылки), `scripts/docs/test-repository-hygiene.ps1`,
-  `scripts/architecture/test-unified-boundaries.ps1`.
-- CLI `cms`: `npm test` в `tools/cms-cli`; сгенерированный модуль целиком —
+  `scripts/architecture/test-unified-boundaries.ps1`, обязательные проверки
+  ruleset — `scripts/github/test-rulesets.ps1`.
+- CLI `cms`: `npm test` в `tools/cms-cli` (как в CI: `node --test
+  'tools/cms-cli/test/**/*.test.mjs'` и `node tools/cms-cli/scripts/smoke.mjs
+  --skip-build`); сгенерированный модуль целиком —
   `scripts/dev/test-cms-cli.ps1` (`-SkipBuild` — без сборки Maven).
 - Контракт документации (cookbook и руководство по модулям): `node --test
   scripts/docs/docs-contract.test.mjs` и `node scripts/docs/test-docs-contract.mjs`.
 - Локальный запуск из исходников (план 10/10, пункт 6.5):
   `scripts/dev/run-local.sh` / `scripts/dev/run-local.ps1` (`up`, `migrate`,
-  `down`, `status`; `--demo`, `--detach`, `--devtools`, `--search`; порты из
+  `down`, `status`; `--demo`, `--detach`, `--search`; порты из
   окружения `DB_PORT`, `SERVER_PORT`, `MANAGEMENT_PORT`, `WEB_PORT`,
   `MAILPIT_*_PORT`, проект Compose `SMC_LOCAL_PROJECT`). Пароль первого
   администратора — в игнорируемом `.local/admin-password`, логи там же; `make`
@@ -157,7 +166,7 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 - Коммиты подписываются `git commit -s`; CI (`ci.yml`, `dco.yml`) запускается
   на push в main и на pull request, `nightly.yml` — по расписанию.
 
-## 7. Точка продолжения — 2026-10-03
+## 7. Точка продолжения — 2026-10-07
 
 Фазы 0–5 [плана 10/10](plan-10-10.md) выполнены и влиты в main; из фазы 6
 выполнены 6.1–6.5 (ветка интеграции `claude/p6-int2` поверх main `01794bf7`,
@@ -168,10 +177,22 @@ SLO, заголовки nginx, сессии, threat model, DAST, хранили�
 Правила для всех AI-ассистентов — в [`AGENTS.md`](../AGENTS.md), карта модулей —
 в [module-map.md](architecture/module-map.md).
 
+- **Ревью фаз 0–6** (2026-10-03, исправления влиты веткой `claude/rf-int`
+  2026-10-07 поверх main `ca7efde7`): см. раздел «Ревью фаз 0–6» плана и
+  `CHANGELOG.md`. Вебхук: каталог `GET /api/v1/webhooks/events` (`*`, события
+  сущностей, действия и переходы), 422 `error.webhook.event_unknown`, подпись
+  `X-Signature-SHA256` от `<timestamp>.<тело>`; `/api/v1/openapi.json` — только
+  вошедшим; `ProductionStartGuard` (нужен `SMC_PUBLIC_URL` вне dev/test); один
+  `EntityGate` на все пути сущности (выключенный модуль — 404); ключи
+  `error.fnd.*` стали ключами модулей; права аудит-партиций — V200. Профиль
+  `devtools` одобрен владельцем продукта (2026-10-07). Администратор GitHub
+  должен заново применить `.github/rulesets/main.json` (обязательные проверки
+  CLI `cms`).
+
 - **Фаза 5** (2026-10-03, ADR-0032): общий runtime сущностей
   `/api/v1/entities/<код>` — объявление `EntityDefinition` и хуки вместо
   контроллера, сервиса и репозитория; типы полей, документы со строками и
-  статусами, импорт, отчёты, поиск и вебхуки по возможностям; 7 сущностей на
+  статусами, импорт, отчёты, поиск и вебхуки по возможностям; 9 сущностей на
   модели; тест-кит `EntityContractTestKit` (пункт 6.2) у каждой сущности.
 - **Фаза 6, 6.3 и 6.4** (ADR-0033): публичный API — `libs/platform-api`
   (`com.smartup24.cms.platform.api..`, `@PlatformApi`, japicmp против 1.0.0,

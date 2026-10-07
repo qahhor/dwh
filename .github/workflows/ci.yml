@@ -47,14 +47,6 @@ jobs:
         shell: pwsh
         run: ./scripts/api/test-platform-api-compat.ps1
 
-      - name: Report frozen architecture violations
-        if: always()
-        shell: bash
-        run: |
-          if [ -f apps/server/target/architecture/frozen-violations.md ]; then
-            cat apps/server/target/architecture/frozen-violations.md >> "$GITHUB_STEP_SUMMARY"
-          fi
-
       # Plan 10/10, item 1.4: every test runs, every business module keeps its coverage floor,
       # and the lines a pull request changes are covered at 80 % at least.
       - name: Every test ran
@@ -111,8 +103,8 @@ jobs:
         working-directory: apps/web
         run: npm ci
 
-      # Plan 10/10, item 1.1. The ESLint violations of 2026-09-28 live in eslint-suppressions.json:
-      # a new one fails here, and so does a fixed one that is still listed (npm run lint:prune).
+      # Plan 10/10, item 1.1. eslint-suppressions.json is empty since phase 2: a new violation fails here
+      # and is fixed, never suppressed.
       - name: Lint (ESLint, Stylelint, Prettier)
         working-directory: apps/web
         run: npm run lint
@@ -144,7 +136,7 @@ jobs:
           fi
           npm run i18n:audit
 
-      # Plan 10/10, item 3.4 (ADR-0023): the server answers deprecated forms until their sunset; the web uses none.
+      # Plan 10/10, item 3.4 (ADR-0023): the web calls no API form the server lists as deprecated (ApiDeprecations).
       - name: Validate that the web calls no deprecated API form
         working-directory: apps/web
         run: npm run api:audit

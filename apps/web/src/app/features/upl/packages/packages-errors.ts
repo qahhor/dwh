@@ -1,6 +1,6 @@
 import { ProblemDetail } from '@core/models/common.models';
 import { UPL_ERROR, UplTranslateFn, uplErrorKey, uplProblemText } from '../upl-labels';
-import { UplPackageParams } from './packages-api';
+import { UplPackageParams } from './packages.api';
 
 /** All load error codes from the contract: each has the key `upl.err.<CODE>` in the dictionary. */
 export const UPL_PACKAGE_CODES = [

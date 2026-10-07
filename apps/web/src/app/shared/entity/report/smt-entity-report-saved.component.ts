@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  output,
+  signal,
+} from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { problemText } from '@shared/ui/problem-text';
@@ -171,10 +182,12 @@ export class SMTEntityReportSavedComponent {
   readonly listCode = input.required<string>();
   /** What is on screen now: what a save writes. */
   readonly state = input.required<ReportState>();
+
   /** A saved report was chosen: the builder shows it. */
   readonly opened = output<ReportState>();
 
-  readonly saved = signal<SavedReport[]>([]);
+  /** The reports on screen: the read, then the person's saves and deletions over it. */
+  readonly saved = linkedSignal<SavedReport[]>(() => (this.list.hasValue() ? this.list.value() : []));
   readonly activeId = signal<number | null>(null);
   readonly busy = signal(false);
   readonly saveAsOpen = signal(false);
@@ -193,12 +206,14 @@ export class SMTEntityReportSavedComponent {
     }));
   });
 
+  /** The person's reports of the list, read again when the list changes; a failed read shows none. */
+  private readonly list = rxResource({
+    params: () => this.listCode(),
+    stream: ({ params }) => this.reports.list(params).pipe(catchError(() => of<SavedReport[]>([]))),
+  });
+
   readonly ids = `report-saved-${nextSavedId++}`;
   readonly nameMax = NAME_MAX;
-
-  constructor() {
-    effect(() => this.load(this.listCode()));
-  }
 
   pick(id: number | null): void {
     this.activeId.set(id);
@@ -271,13 +286,6 @@ export class SMTEntityReportSavedComponent {
         this.busy.set(false);
         this.toast.error(problemText(failure) || this.i18n.translate('ui.report.save_failed'));
       },
-    });
-  }
-
-  private load(listCode: string): void {
-    this.reports.list(listCode).subscribe({
-      next: (reports) => this.saved.set(reports),
-      error: () => this.saved.set([]),
     });
   }
 

@@ -10,7 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Development stub of the mail channel: writes the message to the log and sends it nowhere.
+ * Development stub of the mail channel: writes that a message was not delivered — the masked recipient, the subject
+ * and the length, never the body — and sends it nowhere.
  * Its health is deliberately negative: password recovery through such a channel
  * never reaches the recipient, and operations must know this, not the user.
  */
@@ -26,10 +27,12 @@ public class ConsoleMailProvider implements MailProvider {
 
     @Override
     public MailSendResult send(MailMessage message) {
+        // Never the body: it carries invitation and reset links (StubRecipients).
         log.warn(
-                "[ЗАГЛУШКА ПОЧТЫ — НЕ ДОСТАВЛЕНО] Тема: {}, тело: {}",
+                "mail_stub_not_delivered to={} subject={} length={}",
+                StubRecipients.mask(message.recipientEmail()),
                 message.subject(),
-                message.htmlBody() != null ? message.htmlBody() : message.textBody());
+                StubRecipients.length(message.htmlBody() != null ? message.htmlBody() : message.textBody()));
 
         return MailSendResult.success(UUID.randomUUID().toString(), 5);
     }

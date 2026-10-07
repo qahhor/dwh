@@ -1,2 +1,6 @@
 *.sh text eol=lf
 Makefile text eol=lf
+# Shell entry points without the .sh extension: a CRLF checkout breaks the shebang on Linux and macOS.
+mvnw text eol=lf
+tools/cms-cli/bin/cms.mjs text eol=lf
+mvnw.cmd text eol=crlf

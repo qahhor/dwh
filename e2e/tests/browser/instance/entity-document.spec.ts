@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors, uniqueRunName } from '../../../support/diagnostics.js';
+import { openEntity } from '../../../support/entity-page.js';
 
 /*
  * The reference "document with lines and statuses" (ADR-0032 9.4; plan 10/10, item 5.7) on the general entity screen
@@ -36,31 +37,23 @@ test('an order is created with three lines, posted and its history shows it', as
   try {
     const assertNoPageErrors = collectPageErrors(page);
 
-    await page.goto('/e/example.orders');
-    await expect(page.getByRole('heading', { level: 1, name: 'Заказы (эталон)' })).toBeVisible();
+    const orders = await openEntity(page, 'example.orders', 'Заказы (эталон)');
 
     // Create: the form and its lines come from form-meta alone.
     await page.getByRole('link', { name: 'Создать' }).click();
     await expect(page).toHaveURL(/\/e\/example\.orders\/new$/u);
-    await page.getByRole('textbox', { name: 'Клиент' }).fill(customer);
+    await orders.fillField('customer', customer);
     const lines = [
       { product: 'Мука пшеничная, 50 кг', qty: '3', price: '10.00' },
       { product: 'Сахар, 25 кг', qty: '1.5', price: '4.20' },
       { product: 'Соль, 1 кг', qty: '10', price: '0.55' },
     ];
     for (const [index, line] of lines.entries()) {
-      await page.getByRole('button', { name: 'Добавить строку' }).click();
-      const group = page.getByRole('group', { name: `Строка ${index + 1}` });
-      await expect(group).toBeVisible();
-      await group.locator('[data-field="product"] input').fill(line.product);
-      await group.locator('[data-field="qty"] input').fill(line.qty);
-      await group.locator('[data-field="price"] input').fill(line.price);
+      await orders.addLine(line);
+      await expect(page.getByRole('group', { name: `Строка ${index + 1}` })).toBeVisible();
     }
-    const created = page.waitForResponse(response =>
-      response.request().method() === 'POST' && /\/api\/v1\/entities\/example\.orders$/u.test(response.url())
-    );
-    await page.getByRole('button', { name: 'Сохранить' }).click();
-    const createResponse = await created;
+    const createResponse = await orders.save();
+    expect(createResponse.request().method()).toBe('POST');
     expect(createResponse.status()).toBe(201);
     const order = await createResponse.json() as { number: string; lines: unknown[]; total: { amount: string } };
     expect(order.lines).toHaveLength(3);
@@ -75,11 +68,8 @@ test('an order is created with three lines, posted and its history shows it', as
     await expect(page.getByRole('cell', { name: 'Сахар, 25 кг' })).toBeVisible();
 
     // Post: a transition of the process from the revision on screen.
-    const posted = page.waitForResponse(response =>
-      response.request().method() === 'POST' && /\/api\/v1\/entities\/example\.orders\/\d+\/actions\/post$/u.test(response.url())
-    );
-    await page.getByRole('button', { name: 'Провести' }).click();
-    const postResponse = await posted;
+    await expect(page.getByRole('button', { name: 'Провести' })).toBeVisible();
+    const postResponse = await orders.runAction('post');
     expect(postResponse.status()).toBe(200);
     expect(postResponse.request().headers()['if-match']).toMatch(/^"\d+"$/u);
     await expect(page.getByTestId('entity-state')).toContainText('Проведён');

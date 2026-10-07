@@ -42,7 +42,8 @@ x-server-common: &server-common
     SMC_INSTANCE_ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
     SMC_INSTANCE_ADMIN_EMAIL: ${ADMIN_EMAIL:-}
     SMC_INSTANCE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
-    SMC_PUBLIC_URL: ${SMC_PUBLIC_URL:-}
+    # Invitation and password reset links are built from it; the server refuses to start without it.
+    SMC_PUBLIC_URL: ${SMC_PUBLIC_URL:?SMC_PUBLIC_URL is required (https://cms.example.com)}
     SMC_LOG_FILE: ${SMC_LOG_FILE:-/var/lib/smartupcms/logs/server.log}
     SMC_AUDIT_ARCHIVE_ENABLED: ${SMC_AUDIT_ARCHIVE_ENABLED:-true}
     SMC_AUDIT_ARCHIVE_TARGET: ${SMC_AUDIT_ARCHIVE_TARGET:-local}
@@ -77,6 +78,8 @@ x-server-common: &server-common
     SMC_MAIL_FROM: ${SMC_MAIL_FROM:-no-reply@localhost}
     SMC_MAIL_FROM_NAME: ${SMC_MAIL_FROM_NAME:-SmartupCMS}
     TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    # console_mail writes nothing but "not delivered" to the log; while SMC_DELIVERY_ENFORCE is true the server
+    # refuses to start on it: set SMC_PROVIDER_MAIL=smtp with SMTP_HOST, or SMC_DELIVERY_ENFORCE=false knowingly.
     SMC_PROVIDER_MAIL: ${SMC_PROVIDER_MAIL:-console_mail}
     SMC_PROVIDER_SMS: ${SMC_PROVIDER_SMS:-console_sms}
     SMC_PROVIDER_MESSENGER: ${SMC_PROVIDER_MESSENGER:-console_messenger}
@@ -183,7 +186,7 @@ services:
     command:
       - >-
         java -cp "app.jar:lib/*:/app/modules/*" com.smartup24.cms.instance.warehouse.migration.MigrateMain
-        && exec java -cp app.jar org.springframework.boot.loader.launch.PropertiesLauncher --spring.profiles.active=migrate
+        && exec java -cp "app.jar:lib/*:/app/modules/*" com.smartup24.cms.instance.InstanceApplication --spring.profiles.active=migrate
     restart: "no"
     depends_on:
       postgres: {condition: service_healthy}

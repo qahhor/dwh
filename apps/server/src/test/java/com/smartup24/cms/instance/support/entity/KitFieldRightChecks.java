@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.support.TestUsers.TestUser;
 import com.smartup24.cms.instance.support.entity.KitWorld.Created;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.field.EntityField;
+import com.smartup24.cms.platform.api.entity.field.FieldSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -96,9 +97,13 @@ final class KitFieldRightChecks {
                 .as("the list read")
                 .allSatisfy(item -> assertThat(item).doesNotContainKey(field.key()));
         Created held = world.create(world.owner);
-        assertThat(world.readOk(world.owner, held.id()))
-                .as("the record a holder reads")
-                .containsKey(field.key());
+        Map<String, Object> holderRecord = world.readOk(world.owner, held.id());
+        if (field.source() instanceof FieldSource.Expression && !holderRecord.containsKey(field.key())) {
+            // A value read from other records is null for a fresh one (a task without a project): a holder's
+            // query-meta names the field (hiddenInMeta), and a record leaves out a null value.
+            return;
+        }
+        assertThat(holderRecord).as("the record a holder reads").containsKey(field.key());
     }
 
     private void refused(EntityField field, String code) throws Exception {

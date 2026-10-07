@@ -47,8 +47,7 @@ WORKDIR /app
 RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup /var/lib/smartupcms/logs /var/lib/smartupcms/audit-archive /opt/smartupcms/jna /app/modules \
  && chown -R smartupcms:smartupcms /var/lib/smartupcms /opt/smartupcms/jna /app/modules
 ENV SMC_STORAGE_LOCAL_PATH=/var/lib/smartupcms/storage \
-    SMC_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json \
-    LOADER_PATH="lib,/app/modules"
+    SMC_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json
 VOLUME ["/var/lib/smartupcms"]
 
 # Порядок COPY = порядок изменчивости (реже меняется — раньше): зависимости,
@@ -75,6 +74,7 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=45s --retries=4 \
 # Exec-форма обязательна: при ENTRYPOINT ["sh","-c","..."] аргументы из
 # command (например --spring.profiles.active=migrate) НЕ доходят до Java —
 # из-за этого шаг миграций молча запускался с профилем приложения.
-# PropertiesLauncher загружает зависимости из lib/ и внешние модули из /app/modules (LOADER_PATH).
-ENTRYPOINT ["java", "-cp", "app.jar", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+# The extracted app.jar holds no Spring Boot loader: the class path names the libraries in lib/ and the external
+# modules in /app/modules (ADR-0033); the JVM itself expands the wildcards.
+ENTRYPOINT ["java", "-cp", "app.jar:lib/*:/app/modules/*", "com.smartup24.cms.instance.InstanceApplication"]
 

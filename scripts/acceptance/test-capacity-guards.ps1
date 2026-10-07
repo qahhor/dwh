@@ -12,7 +12,7 @@ $pomPath = Join-Path $repoRoot 'pom.xml'
 $appYmlPath = Join-Path $repoRoot 'apps/server/src/main/resources/application.yml'
 $releaseConfigScript = Join-Path $repoRoot 'scripts/prod/test-release-config.ps1'
 
-Write-Host "=== Starting Capacity & Operations Evidence Drill (I-09) ===" -ForegroundColor Cyan
+Write-Host "=== Starting Capacity & Operations Evidence Drill (NFR-PERF-01) ===" -ForegroundColor Cyan
 
 function Invoke-MavenTests {
     param(
@@ -23,6 +23,9 @@ function Invoke-MavenTests {
     Write-Host "`n--> [$Description]" -ForegroundColor Yellow
     $startTime = [System.Diagnostics.Stopwatch]::StartNew()
 
+    # The libraries built with -am have none of these classes, hence failIfNoSpecifiedTests=false; the reports of
+    # the server module below prove that every named class exists and ran.
+    $since = Get-Date
     $cmd = "& `"$mvnCmd`" test -f `"$pomPath`" -pl apps/server -am -B -q `"-Dtest=$TestPattern`" `"-Dsurefire.failIfNoSpecifiedTests=false`""
     
     $prevEap = $ErrorActionPreference
@@ -37,9 +40,16 @@ function Invoke-MavenTests {
         Write-Host "FAILED in $($startTime.Elapsed.TotalSeconds.ToString('F1'))s" -ForegroundColor Red
         $output | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkRed }
         throw "Test verification failed for: $Description"
-    } else {
-        Write-Host "PASSED in $($startTime.Elapsed.TotalSeconds.ToString('F1'))s" -ForegroundColor Green
     }
+    $reports = Join-Path $repoRoot 'apps/server/target/surefire-reports'
+    foreach ($class in @($TestPattern -split ',' | ForEach-Object { ($_ -split '#')[0].Trim() } | Select-Object -Unique)) {
+        $report = Get-ChildItem -LiteralPath $reports -Filter "TEST-*.$class.xml" -ErrorAction SilentlyContinue |
+            Where-Object { $_.LastWriteTime -ge $since } | Select-Object -First 1
+        if (-not $report -or -not (Select-String -LiteralPath $report.FullName -Pattern 'tests="[1-9]' -Quiet)) {
+            throw "Test verification failed for: $Description ($class did not run: renamed or removed?)"
+        }
+    }
+    Write-Host "PASSED in $($startTime.Elapsed.TotalSeconds.ToString('F1'))s" -ForegroundColor Green
 }
 
 try {
@@ -56,7 +66,7 @@ try {
     }
     Write-Host "PASSED (application.yml capacity settings verified)" -ForegroundColor Green
 
-    # 2. Release & Docker Resource Configuration (D-04: CPU/RAM bounds & tmpfs)
+    # 2. Release & Docker Resource Configuration (NFR-SEC-02: CPU/RAM bounds & tmpfs)
     Write-Host "`n--> [Running Release Configuration & Resource Limits Verifier]" -ForegroundColor Yellow
     & $releaseConfigScript
     if ($LASTEXITCODE -ne 0) {
@@ -64,9 +74,9 @@ try {
     }
     Write-Host "PASSED (Container resource limits & tmpfs bounded)" -ForegroundColor Green
 
-    # 3. Capacity Guards Integration Test (P-03, P-04 in real Postgres 18)
+    # 3. Capacity Guards Integration Test (real Postgres 18)
     Invoke-MavenTests -TestPattern 'CapacityGuardsIntegrationTest' `
-        -Description 'Contracts P-03, P-04: Real PostgreSQL 18 export bounds, disconnect handling, upload rate limit, audit cache'
+        -Description 'Real PostgreSQL 18 export bounds, disconnect handling, upload rate limit, audit cache'
 
     if (-not $Quick) {
         # 4. Report Export Integration Suite
@@ -78,7 +88,7 @@ try {
             -Description 'Unit checks: Audit stats caching and file upload transaction boundaries'
     }
 
-    Write-Host "`n=== All Capacity & Operations Evidence (I-09) Verified Successfully! ===" -ForegroundColor Green
+    Write-Host "`n=== All Capacity & Operations Evidence Verified Successfully! ===" -ForegroundColor Green
 }
 catch {
     Write-Host "`nCapacity Verification Drill Failed: $_" -ForegroundColor Red

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { ToastService } from '@core/services/toast.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
-import { UplColumn, UplFormatDraftRequest, UplUnit } from '../upl-api';
+import { UplColumn, UplFormatDraftRequest, UplUnit } from '../upl.api';
 import { FormatSheetsStepComponent } from './format-sheets-step.component';
 import { UplFieldError } from './upl-format-errors';
 import { emptyColumn, emptyModel, emptySheet } from './upl-format-model';

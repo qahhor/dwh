@@ -1,10 +1,9 @@
 package com.smartup24.cms.instance.audit.service;
 
-import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
-import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.common.history.RecordHistorySource;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
@@ -29,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
  * that record, newest first, each turned into the fields that changed with
  * their old and new values. The history opens only with the record's own right
  * and only for a record the viewer can see; values are redacted as in the
- * audit log, and technical fields are left out.
+ * audit log, and technical fields are left out. A kind the viewer may not open —
+ * no right, an entity of a switched-off module ({@link EntityGate}) — answers the
+ * same 404 as an unknown one, so the answer tells nothing of the kinds that exist.
  */
 @Service
 public class RecordHistoryService {
@@ -43,11 +44,18 @@ public class RecordHistoryService {
 
     private final AuditLogService auditLogService;
     private final Map<String, RecordHistorySource> sources;
+    private final EntityRegistry entities;
+    private final EntityGate gate;
 
     /** The modules' own sources and those the declared entities get from their declaration (roadmap item 56). */
     public RecordHistoryService(
-            AuditLogService auditLogService, List<RecordHistorySource> sources, EntityRegistry entities) {
+            AuditLogService auditLogService,
+            List<RecordHistorySource> sources,
+            EntityRegistry entities,
+            EntityGate gate) {
         this.auditLogService = auditLogService;
+        this.entities = entities;
+        this.gate = gate;
         this.sources = Stream.concat(sources.stream(), entities.historySources().stream())
                 .collect(Collectors.toUnmodifiableMap(RecordHistorySource::key, Function.identity()));
     }
@@ -59,12 +67,8 @@ public class RecordHistoryService {
     @Transactional(readOnly = true)
     public KeysetPage<HistoryEntry> history(String key, String recordId, Integer limit, String cursor) {
         RecordHistorySource source = sources.get(key);
-        if (source == null) {
-            throw ApiException.notFound(
-                    ErrorCode.NOT_FOUND, "error.audit.history_source_not_found", Map.of("key", String.valueOf(key)));
-        }
-        if (!SecurityContext.hasPermission(source.form(), source.action())) {
-            throw ApiException.permissionDenied(source.form(), source.action());
+        if (source == null || !opens(source)) {
+            throw EntityGate.unknownEntity();
         }
         source.requireVisible(recordId);
 
@@ -97,10 +101,18 @@ public class RecordHistoryService {
     /** The kinds of records with a history the viewer may open, for the UI to know where to offer it. */
     public List<String> availableKinds() {
         return sources.values().stream()
-                .filter(source -> SecurityContext.hasPermission(source.form(), source.action()))
+                .filter(this::opens)
                 .map(RecordHistorySource::key)
                 .sorted()
                 .toList();
+    }
+
+    /** The source's right, and for an entity's history the entity itself through {@link EntityGate}. */
+    private boolean opens(RecordHistorySource source) {
+        if (!SecurityContext.hasPermission(source.form(), source.action())) {
+            return false;
+        }
+        return entities.find(source.key()).isEmpty() || gate.visible(source.key());
     }
 
     private HistoryEntry toEntry(AuditLogRepository.AuditRecord row, Labels labels) {

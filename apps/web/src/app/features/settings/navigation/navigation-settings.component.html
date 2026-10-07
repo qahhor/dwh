@@ -1,16 +1,10 @@
 <div class="nav-settings-page">
   <!-- Header -->
-  <div class="page-header">
-    <div class="header-titles">
-      <h1 class="page-title">{{ 'nav.settings.navigation_title' | t }}</h1>
-      <p class="page-subtitle">{{ 'nav.settings.navigation_subtitle' | t }}</p>
-    </div>
-    <div class="header-actions">
-      <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
-        {{ 'nav.settings.add_item' | t }}
-      </button>
-    </div>
-  </div>
+  <ui-page-header [title]="'nav.settings.navigation_title' | t" [subtitle]="'nav.settings.navigation_subtitle' | t">
+    <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
+      {{ 'nav.settings.add_item' | t }}
+    </button>
+  </ui-page-header>
 
   <!-- Stats Summary -->
   <app-navigation-settings-stats

@@ -11,20 +11,19 @@ import java.util.Optional;
  * {@link ConstraintErrors} turns a database error into a {@link ConstraintViolationException} with the code (plan
  * 10/10, items 3.1 and 4.2).
  *
- * <p>The codes of the data modules split out of the former foundation keep the catalog family
- * {@value #FOUNDATION_KEYS}: the key is part of the response ({@code messageKey}) and its texts are already in every
- * catalog, so the split changes no key (ADR-0030).
+ * <p>The message key belongs to the module that declares the code: {@code error.<module>.<code>} (ADR-0021,
+ * ADR-0030), for example {@code error.units.fnd_units_uk_code}.
  */
 public interface ConstraintCode {
-
-    /** The catalog family of the codes of the jobs, warehouse, units, versioning and actor rules (ADR-0030). */
-    String FOUNDATION_KEYS = "error.fnd.";
 
     /** The enum constant's name; an enum implements it by itself. */
     String name();
 
     /** The database constraint name; empty for a logical code. */
     Optional<String> constraintName();
+
+    /** The owner of the code as it appears in the message key: {@code jobs}, {@code units}, {@code versioning}. */
+    String module();
 
     /** The API response code of the violation. */
     ErrorCode errorCode();
@@ -34,9 +33,9 @@ public interface ConstraintCode {
         return name().toLowerCase(Locale.ROOT);
     }
 
-    /** The message key in the i18n catalogs: {@code error.fnd.<code>}. */
+    /** The message key in the i18n catalogs: {@code error.<module>.<code>}. */
     default String messageKey() {
-        return FOUNDATION_KEYS + code();
+        return "error." + module() + "." + code();
     }
 
     /** The exception that reports this code; a code with an exception type of its own overrides it. */

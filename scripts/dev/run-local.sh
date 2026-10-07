@@ -21,7 +21,7 @@
 #   --demo        the server starts with the demo profile: users, projects, tasks, notes and orders (idempotent)
 #   --devtools    the server runs with mvn spring-boot:run -Pdevtools (restarts on recompile) instead of the jar
 #   --search      also starts Typesense and turns the search index on
-#   --skip-build  reuses apps/server/target/server-*.jar
+#   --skip-build  reuses apps/server/target/server-*-exec.jar
 #   --volumes     with down: also deletes the database volumes and the local state in .local/
 #
 # Ports and names come from the environment (defaults in brackets): DB_PORT [5432], SERVER_PORT [8080],
@@ -110,13 +110,14 @@ start_infra() {
     compose up -d --wait --wait-timeout 300 "${services[@]}"
 }
 
-server_jar() { ls "$ROOT"/apps/server/target/server-*.jar 2>/dev/null | head -n 1 || true; }
+# The runnable jar has the exec classifier; the plain and testkit jars next to it are libraries.
+server_jar() { ls "$ROOT"/apps/server/target/server-*-exec.jar 2>/dev/null | head -n 1 || true; }
 
 build_server() {
     if [ "$SKIP_BUILD" = 1 ] && [ -n "$(server_jar)" ]; then return; fi
     say "Building the server (Maven wrapper, tests skipped)"
     (cd "$ROOT" && ./mvnw -B -q -DskipTests -Djacoco.skip=true -pl apps/server -am package)
-    [ -n "$(server_jar)" ] || fail "The build produced no apps/server/target/server-*.jar."
+    [ -n "$(server_jar)" ] || fail "The build produced no apps/server/target/server-*-exec.jar."
 }
 
 # The environment the server reads (ADR-0027 names), for the host processes.

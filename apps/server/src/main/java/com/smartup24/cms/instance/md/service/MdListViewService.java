@@ -9,6 +9,7 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.report.EntityReports;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryList;
@@ -69,8 +70,10 @@ public class MdListViewService {
     private final AuditLogService audit;
     private final MdReportViewState reports;
     private final EntityReports entityReports;
-    /** Builds and reads the view state trees (plan 10/10, item 3.11: the application's mapper). */
+    /** Builds the view state trees (plan 10/10, item 3.11: the application's mapper). */
     private final ObjectMapper json;
+    /** Writes and reads the stored state column. */
+    private final JsonColumns stored;
 
     public MdListViewService(
             MdListViewRepository repo,
@@ -85,6 +88,7 @@ public class MdListViewService {
         this.reports = reports;
         this.entityReports = entityReports;
         this.json = json;
+        this.stored = new JsonColumns(json, AUDIT_TABLE);
     }
 
     /** The user's views of the list of the given kinds; no kinds means the table views. */
@@ -268,7 +272,7 @@ public class MdListViewService {
             canonical.put("sort", sort);
         }
         canonical.set("filter", filterNode == null || filterNode.isNull() ? json.createArrayNode() : filterNode);
-        return canonical.toString();
+        return stored.write(canonical);
     }
 
     private ObjectNode columns(JsonNode node, Set<String> keys, List<FieldErrorItem> errors) {
@@ -343,7 +347,7 @@ public class MdListViewService {
                 view.id(),
                 view.kind(),
                 view.name(),
-                json.readTree(view.stateJson()),
+                stored.tree(view.stateJson()),
                 view.isDefault(),
                 view.lockVersion(),
                 view.modifiedAt());

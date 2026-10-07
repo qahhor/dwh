@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.webhook.worker;
 
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
 import com.smartup24.cms.instance.webhook.service.WebhookProperties;
 import com.smartup24.cms.instance.webhook.service.WebhookService;
@@ -23,7 +24,7 @@ public class WebhookOutboxWorker {
     private static final Logger log = LoggerFactory.getLogger(WebhookOutboxWorker.class);
 
     private final WebhookOutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final JsonColumns json;
     private final RestClient restClient;
     private final WebhookProperties properties;
     private final WebhookTargetPolicy targetPolicy;
@@ -34,7 +35,7 @@ public class WebhookOutboxWorker {
             WebhookProperties properties,
             WebhookTargetPolicy targetPolicy) {
         this.outboxRepository = outboxRepository;
-        this.objectMapper = objectMapper;
+        this.json = new JsonColumns(objectMapper, "kwh_outbox");
         this.properties = properties;
         this.targetPolicy = targetPolicy;
         properties.validate();
@@ -51,7 +52,7 @@ public class WebhookOutboxWorker {
     private org.springframework.http.ResponseEntity<Void> post(WebhookOutboxRepository.OutboxRecord item) {
         var target = targetPolicy.validate(item.targetUrl());
         long timestamp = Instant.now().getEpochSecond();
-        String payloadJson = objectMapper.writeValueAsString(item.payload());
+        String payloadJson = json.write(item.payload());
         String signature = WebhookService.computeHmacSha256(timestamp, payloadJson, item.secretToken());
         return restClient
                 .post()

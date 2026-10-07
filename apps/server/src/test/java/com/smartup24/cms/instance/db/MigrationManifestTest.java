@@ -29,8 +29,7 @@ import org.junit.jupiter.api.Test;
  * <p>A new migration is added to the manifest with
  * {@code mvn test -pl apps/server -Dtest=MigrationManifestTest -Dmigrations.manifest.append=true}: the mode appends
  * missing files and never rewrites a listed one. To correct a migration that is not merged yet, delete its line by
- * hand and append again; a merged migration is corrected by a new one. Stands that applied a changed or deleted file
- * are repaired as described in {@code docs/ops/migration-repair.md}.
+ * hand and append again; a merged migration is corrected by a new one.
  */
 class MigrationManifestTest {
 

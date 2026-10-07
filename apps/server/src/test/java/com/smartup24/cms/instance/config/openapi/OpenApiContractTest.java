@@ -231,6 +231,20 @@ class OpenApiContractTest extends EmbeddedPostgresTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("3.3: a JSON value of a DTO is a free-form object, not the getters of Jackson's tree node")
+    void jsonValuesAreFreeFormObjects() throws Exception {
+        JsonNode schemas = generated().path("components").path("schemas");
+
+        assertThat(schemas.has("JsonNode")).isFalse();
+        assertThat(schemas.has("ObjectNode")).isFalse();
+        JsonNode params = schemas.path("BulkRequest").path("properties").path("params");
+        assertThat(params.path("type").asString()).isEqualTo("object");
+        assertThat(params.has("properties"))
+                .as("no nodeType, pojo, missingNode")
+                .isFalse();
+    }
+
     private static List<String> parameterNames(JsonNode operation) {
         List<String> names = new ArrayList<>();
         operation

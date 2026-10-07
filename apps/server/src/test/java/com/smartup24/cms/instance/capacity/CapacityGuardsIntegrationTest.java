@@ -67,7 +67,7 @@ class CapacityGuardsIntegrationTest {
     }
 
     @Test
-    @DisplayName("P-03: Потоковый экспорт ограничивает максимальное количество строк лимитом maxRows")
+    @DisplayName("Потоковый экспорт ограничивает максимальное количество строк лимитом maxRows")
     void shouldEnforceMaxRowsLimitOnTaskExportStream() {
         var reportRepo = new ReportRepository(jdbc);
 
@@ -96,7 +96,7 @@ class CapacityGuardsIntegrationTest {
     }
 
     @Test
-    @DisplayName("P-03: Обрыв соединения клиентом прерывает экспорт и не выбрасывает неперехваченную ошибку")
+    @DisplayName("Обрыв соединения клиентом прерывает экспорт и не выбрасывает неперехваченную ошибку")
     void shouldAbortStreamingGracefullyWhenClientDisconnects() throws Exception {
         var reportRepo = new ReportRepository(jdbc);
         var scopeService = mock(MdScopeService.class);
@@ -127,7 +127,7 @@ class CapacityGuardsIntegrationTest {
     }
 
     @Test
-    @DisplayName("P-04: Статистика аудита вычисляется объединенным запросом и кэшируется на 15 секунд с computedAt")
+    @DisplayName("Статистика аудита вычисляется объединенным запросом и кэшируется на 15 секунд с computedAt")
     void shouldCoalesceAndCacheAuditStats() {
         var auditRepo = new AuditLogRepository(jdbc, new ObjectMapper());
         var redactor = new AuditDataRedactor();
@@ -153,7 +153,7 @@ class CapacityGuardsIntegrationTest {
     }
 
     @Test
-    @DisplayName("P-03: Семафор одновременных загрузок файлов отклоняет избыточные запросы с кодом RATE_LIMITED (429)")
+    @DisplayName("Семафор одновременных загрузок файлов отклоняет избыточные запросы с кодом RATE_LIMITED (429)")
     void shouldRejectConcurrentUploadsWhenLimitExceeded() throws Exception {
         var metadataService = mock(MfFileMetadataService.class);
         var storageProvider = mock(StorageProvider.class);

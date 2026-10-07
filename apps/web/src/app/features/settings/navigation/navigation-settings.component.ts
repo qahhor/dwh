@@ -9,6 +9,7 @@ import {
 } from '@core/models/navigation.models';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import { transliterateToCode } from '@core/utils/transliteration';
 import { NavigationSettingsStatsComponent } from './components/navigation-settings-stats.component';
 import { NavigationSettingsTableComponent } from './components/navigation-settings-table.component';
@@ -25,6 +26,7 @@ import { NavigationSettingsStore } from './navigation-settings.store';
     NavigationSettingsStatsComponent,
     NavigationSettingsTableComponent,
     NavigationSettingsModalComponent,
+    UiPageHeaderComponent,
   ],
   providers: [NavigationSettingsStore],
   templateUrl: './navigation-settings.component.html',

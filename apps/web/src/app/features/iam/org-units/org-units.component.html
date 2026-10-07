@@ -1,6 +1,5 @@
 <section class="page" aria-labelledby="org-units-title">
-  <header>
-    <h1 id="org-units-title">{{ 'iam.org_units.title' | t }}</h1>
+  <ui-page-header titleId="org-units-title" [title]="'iam.org_units.title' | t">
     @if (can('view')) {
       <button
         smt-button
@@ -12,7 +11,7 @@
         {{ 'iam.org_units.refresh' | t }}
       </button>
     }
-  </header>
+  </ui-page-header>
   @if (!can('view')) {
     <p role="alert">{{ 'iam.org_units.forbidden' | t }}</p>
   } @else {

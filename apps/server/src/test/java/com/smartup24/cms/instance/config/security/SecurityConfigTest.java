@@ -159,6 +159,15 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("The API description is for signed-in users only: anonymous -> 401 (product owner, 2026-10-03)")
+    void apiDescriptionNeedsASignIn() throws Exception {
+        mvc.perform(get("/api/v1/openapi.json"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+        mvc.perform(get("/api/v1/openapi.json.yaml")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("Валидная сессия + CSRF-токен -> 200, аутентификация доходит до контроллера")
     void mutatingWithSessionAndCsrf_returns200() throws Exception {
         when(sessionService.getActiveSession("raw-session"))

@@ -9,7 +9,7 @@ import { PermissionService } from '@core/services/permission.service';
 import { QueryMetaService } from '@core/services/query-meta.service';
 import { ToastService } from '@core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
-import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
+import { UplApiService, UplSource, UplSourceItem } from '../upl.api';
 import { SourcesListComponent } from './sources-list.component';
 import { ListViewsApi, SavedListView } from '@shared/list-views/list-views';
 import { inScreen } from '@testing/in-screen';
