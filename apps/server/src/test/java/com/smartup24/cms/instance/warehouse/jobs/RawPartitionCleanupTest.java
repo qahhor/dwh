@@ -87,7 +87,9 @@ class RawPartitionCleanupTest extends EmbeddedPostgresTest {
         assertThat(raw.partitions())
                 .containsExactlyInAnyOrder(
                         new RawPartition(failed, true, false), new RawPartition(applied, true, false));
-        assertThat(triggerOf(applied)).as("the immutability trigger is cloned on attach").isTrue();
+        assertThat(triggerOf(applied))
+                .as("the immutability trigger is cloned on attach")
+                .isTrue();
         assertThatThrownBy(() -> dwhJdbc.sql("delete from raw.rows where load_id = :id")
                         .param("id", applied)
                         .update())
@@ -181,8 +183,10 @@ class RawPartitionCleanupTest extends EmbeddedPostgresTest {
         long second = newLoad();
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
-            Future<Long> a = pool.submit(() -> rawWriter.copy(first, null, sink -> rows(2_000).forEach(sink)));
-            Future<Long> b = pool.submit(() -> rawWriter.copy(second, null, sink -> rows(3_000).forEach(sink)));
+            Future<Long> a = pool.submit(
+                    () -> rawWriter.copy(first, null, sink -> rows(2_000).forEach(sink)));
+            Future<Long> b = pool.submit(
+                    () -> rawWriter.copy(second, null, sink -> rows(3_000).forEach(sink)));
             assertThat(a.get(60, TimeUnit.SECONDS)).isEqualTo(2_000);
             assertThat(b.get(60, TimeUnit.SECONDS)).isEqualTo(3_000);
         } finally {

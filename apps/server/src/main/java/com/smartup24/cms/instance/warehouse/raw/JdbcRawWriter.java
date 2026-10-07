@@ -65,7 +65,8 @@ public class JdbcRawWriter implements RawWriter {
     /** For writers built by hand; the application takes {@code warehouse.raw-write-timeout}. */
     private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(30);
 
-    private static final String COPY_COLUMNS = " (load_id, source_file_id, row_no, sheet, source_row_no, fields) from stdin";
+    private static final String COPY_COLUMNS =
+            " (load_id, source_file_id, row_no, sheet, source_row_no, fields) from stdin";
     private static final String NULL = "\\N";
 
     private final DataSource dwh;

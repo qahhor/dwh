@@ -28,8 +28,7 @@ public final class RawTables {
                             end loop;
                         end
                         $$
-                        """)
-                .update();
+                        """).update();
     }
 
     /** Creates the attached partition of a load, for rows a test inserts with plain SQL. */

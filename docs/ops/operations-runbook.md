@@ -228,6 +228,46 @@ Audit logs are partitioned monthly into `audit_log_YYYY_MM` tables:
   ```
 - If partition creation fails, inspect postgres logs to verify function permissions and ensure disk space is sufficient.
 
+## Warehouse raw layer (pg-dwh)
+
+Plan 10/10, item 7.8 (ADR-0030, section 7). `raw.rows` in pg-dwh is partitioned by load: every load
+(`fnd_loads.id` in the CMS database) has its own partition `raw.rows_<load_id>`. The application role owns pg-dwh,
+so the server creates and drops these partitions itself; no manual partition runway is needed.
+
+- **Write.** An upload apply (`upl.apply`) copies the rows into a new table of its load, builds its key and index and
+  attaches it in one pg-dwh transaction. A failed or interrupted write leaves no partition behind.
+- **Cleanup.** The scheduled job `fnd.load_cleanup` drops the partitions of loads in status `failed`
+  (`DETACH PARTITION ... CONCURRENTLY`, then `DROP TABLE`). Rows are never deleted: a trigger on `raw.rows` rejects
+  `UPDATE` and `DELETE` (`raw_rows_immutable`). The cleanup of a million-row load takes well under a second and
+  leaves no dead tuples, so raw needs no manual `VACUUM`. Applied and superseded loads are kept.
+- **Stuck applies.** `upl.apply_recovery` marks an apply that never finished as `failed`; the next cleanup drops its
+  partition if the write had committed. Applies and cleanups of different loads run in parallel.
+- **Log lines.** `raw_write load_id=… rows=…` per write, `load_cleanup partitions_dropped=…` per run,
+  `load_cleanup_failed load_id=…` for a partition that could not go (the run fails, the queue retries it; the other
+  partitions are dropped regardless).
+
+Inspect the partitions and their sizes:
+
+```sql
+-- in pg-dwh
+select c.relname, i.inhrelid is not null as attached, i.inhdetachpending as detach_pending,
+       pg_size_pretty(pg_total_relation_size(c.oid)) as size, s.n_live_tup, s.n_dead_tup
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  left join pg_inherits i on i.inhrelid = c.oid
+  left join pg_stat_user_tables s on s.relid = c.oid
+ where n.nspname = 'raw' and c.relkind = 'r'
+ order by c.relname;
+```
+
+A partition with `detach_pending = true` or one not attached is the remainder of an interrupted cleanup; the next run
+of `fnd.load_cleanup` finishes it (`DETACH ... FINALIZE`, `DROP`). A partition whose load does not exist in
+`fnd_loads` is reported by `fnd.xdb_check` as `xdb_mismatch` and is never dropped automatically: find out where the
+load went (a restore of only one database?) before removing it by hand with
+`alter table raw.rows detach partition raw.rows_<id> concurrently; drop table raw.rows_<id>;`.
+`DETACH ... CONCURRENTLY` waits for transactions that hold a lock on `raw.rows`; a cleanup that hangs points at a
+long query on raw (see `pg_stat_activity`), it is ended by `WAREHOUSE_MAINTENANCE_STATEMENT_TIMEOUT`.
+
 ## Search outbox sync and reconciliation
 
 Mutations to tasks, files, and notes are staged transactionally in `search_outbox` and asynchronously delivered to Typesense by `SearchDeliveryWorker`:

@@ -95,8 +95,8 @@ public final class RawPartitions {
         String table = table(loadId);
         String name = name(loadId);
         try (Statement statement = connection.createStatement()) {
-            statement.execute("alter table " + table + " add constraint " + name + "_ck_load check (load_id = "
-                    + loadId + ")");
+            statement.execute(
+                    "alter table " + table + " add constraint " + name + "_ck_load check (load_id = " + loadId + ")");
             statement.execute("alter table " + table + " add constraint " + name + "_pk primary key (load_id, row_no)");
             statement.execute("create index " + name + "_source_file_idx on " + table
                     + " (source_file_id) where source_file_id is not null");
