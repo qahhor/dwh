@@ -9,6 +9,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import java.lang.reflect.Method;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,7 +26,7 @@ import org.springframework.web.method.annotation.ExceptionHandlerMethodResolver;
 class ErrorModelTest {
 
     /** Internal exceptions: never the outcome of a request, so they are not part of the API's error model. */
-    static final Map<String, String> INTERNAL = Map.of(
+    static final Map<String, String> INTERNAL = pairs(
             "com.smartup24.cms.instance.warehouse.migration.SchemaVersionMismatchException",
             "stops the application at startup when the database schema does not match the build",
             "com.smartup24.cms.instance.report.service.ReportService$ClientAbortException",
@@ -54,6 +55,13 @@ class ErrorModelTest {
      * exemption stays visible, and the check below fails when a listed class is already on the model.
      */
     static final Set<String> PENDING = Set.of();
+
+    /** A map of name and reason pairs: more pairs than {@code Map.of} takes. */
+    private static Map<String, String> pairs(String... namesAndReasons) {
+        Map<String, String> pairs = new LinkedHashMap<>();
+        for (int i = 0; i < namesAndReasons.length; i += 2) pairs.put(namesAndReasons[i], namesAndReasons[i + 1]);
+        return Map.copyOf(pairs);
+    }
 
     private static JavaClasses classes;
 
