@@ -195,8 +195,8 @@ SLO, заголовки nginx, сессии, threat model, DAST, хранили�
 - **Фаза 6, 6.5:** `make dev`, `scripts/dev/run-local.{sh,ps1}`, профиль
   `demo`, `.devcontainer`, `.editorconfig`, ночной job `onboarding`. Очередь
   заданий тикает только после `ApplicationReadyEvent` (гонка с созданием
-  первого администратора). Профиль `devtools` не проверен: зависимость
-  `spring-boot-devtools` ждёт одобрения.
+  первого администратора). Профиль `devtools` проверен: опциональная зависимость
+  `spring-boot-devtools` работает при старте через `make dev` / `run-local.ps1 -DevTools`.
 
 - **Фаза 3** прошла ревью качества; её долги закрыты: `NOT_YET_LOCKED` и
   `NOT_YET_PAGED` удалены, хранилище замороженных нарушений ArchUnit пусто,

@@ -9,6 +9,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 6.5 — verified and approved optional dependency `spring-boot-devtools`
+  in profile `devtools` for local inner-loop development (`make dev` /
+  `run-local.ps1 -DevTools`).
+
 - Plan 10/10, item 5.8 (ADR-0032 §10.3.1 item C7) — search scope invalidation on
   org unit transfer and project task changes. When a user's organizational units
   change, their tasks and projects are invalidated in `search_projection_versions`
