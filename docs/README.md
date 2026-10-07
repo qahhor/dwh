@@ -72,7 +72,8 @@ Current ADRs that are not superseded:
   and the breaking-change check read it.
 - [ADR-0023 — uniform REST](adr/ADR-0023-uniform-rest.md)
   — one path per operation, camelCase parameters, statuses that say what
-  happened, switches that take their state; old forms answer for one release.
+  happened, switches that take their state; before the final release old forms
+  are removed at once, after it a deprecated form answers for one more release.
 - [ADR-0024 — mandatory optimistic locking](adr/ADR-0024-optimistic-locking.md)
   — a change names the revision it was made from (If-Match); none is 428, a
   stale one 409; switches write only when the state changes.
@@ -110,9 +111,6 @@ Current ADRs that are not superseded:
   transliterated, truncated and hash-suffixed keys were renamed by a mapping
   and a script, V156 moved administrators' overrides, and `npm run i18n:audit`
   refuses such keys from now on.
-
-Proposed decisions (not yet accepted; they guide planned work and do not
-override the current ADRs above until accepted):
 
 - [ADR-0032 — low-code platform v2](adr/ADR-0032-low-code-platform-v2.md)
   — one `EntityField` per field, a mandatory `EntityScope`, field rights, the

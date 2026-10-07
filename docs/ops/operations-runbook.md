@@ -239,11 +239,11 @@ Mutations to tasks, files, and notes are staged transactionally in `search_outbo
   ```
 - Alternatively, restarting the server container triggers non-blocking startup reconciliation automatically.
 
-## Task optimistic concurrency conflicts (HTTP 409)
+## Optimistic concurrency conflicts (HTTP 409 / 428)
 
-Tasks enforce monotonic compare-and-set versioning via the `revision` column:
-- If two users or processes modify the same task concurrently with a stale `expectedRevision`, the API returns HTTP 409 with error code `revision_conflict` (`error.common.revision_conflict`).
-- Triage: The UI prompts the user to refresh the task to view the latest changes before reapplying edits. If automated integrations receive 409, they should re-fetch the current task revision and retry.
+Every revisioned record, tasks included (they are an entity of the shared runtime `/api/v1/entities/ms.tasks`), enforces compare-and-set versioning via the `revision` column (ADR-0024):
+- A change sent with a stale `If-Match` revision gets HTTP 409 with error code `revision_conflict`; a change without `If-Match` gets HTTP 428 `precondition_required`.
+- Triage: The UI prompts the user to refresh the record to view the latest changes before reapplying edits. If automated integrations receive 409, they should re-fetch the record (its `ETag`) and retry; a 428 means the client does not send `If-Match` at all.
 
 ## Rate limiting and upload concurrency (HTTP 429)
 

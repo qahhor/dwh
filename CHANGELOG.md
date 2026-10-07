@@ -290,13 +290,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `PUT /navigation/items/{id}/active`, and `PUT /modules/{code}` registers a
   module. A create answers 201 with `Location` (replayed with the same
   `Idempotency-Key`), started work 202, a success without a body 204.
-  **Deprecated, answering until 2026-12-31:** the old paths (`/tasks/items`,
-  `/rbac`, `/notify`, `/iam/sessions`, `/iam/profile/sessions/users/…`,
-  `/iam/users/me/password`, `GET /announcements`), `POST …/toggle`,
-  `POST /notes/{id}/pin`, `POST /modules` and the snake_case parameters; they
-  answer with `Deprecation`, `Sunset` and `Link`, and
-  `dwh_api_deprecated_calls_total` counts them. Spectral rules keep the style,
-  `npm run api:audit` keeps the web off deprecated forms.
+  The old paths, toggles, `POST /modules` and the snake_case parameters were
+  removed before the release (2026-10-01, see Changed). The deprecation
+  machinery (`ApiDeprecations`, `Deprecation`/`Sunset`/`Link` headers,
+  `smc_api_deprecated_calls_total`) stays for forms deprecated after the final
+  release (ADR-0023 §5). Spectral rules keep the style, `npm run api:audit`
+  keeps the web off deprecated forms.
 - The API description comes from the code (plan 10/10, item 3.3, ADR-0022).
   springdoc-openapi generates `/api/v1/openapi.json` (OpenAPI 3.1) from the
   controllers and DTOs; the hand-written `OpenApiController` is gone, and with
@@ -1059,25 +1058,30 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`dwh.*`, `DWH_*`, `APP_DWH_*`), the `DWH_SESSION` cookie, `dwh_` tokens,
   old permission codes and old browser storage keys are no longer read; the
   browser-kept language import is withdrawn (FR-I18N-05). The deprecation
-  machinery of ADR-0023 stays, with empty tables.
+  machinery of ADR-0023 stays, with empty tables. The entries below (phase 4
+  waves A and B, item 4.4, phase 3 debts and review) first described these
+  old forms as accepted until 2026-12-31; that transition was cancelled on
+  2026-10-01 and the entries are rewritten to the final state. Older entries
+  in this section may still name settings by their pre-4.1 names (`DWH_*`,
+  `APP_DWH_*`, `dwh.*`); the current names are in
+  `docs/ops/configuration-reference.md`.
 
 - **API- and upgrade-breaking (phase 4, wave B):**
   - The session cookie is `SMC_SESSION` (OpenAPI cookie scheme renamed);
-    `DWH_SESSION` is accepted and replaced until 2026-12-31. New API tokens
-    start with `smc_`; `dwh_` tokens keep working.
+    `DWH_SESSION` is not read. API tokens start with `smc_`; `dwh_` tokens
+    are not accepted.
   - Problem `type` is `urn:smartupcms:problem:<code>` instead of
     `https://api.dwh.internal/errors/<code>`; `code` stays the contract.
   - Metrics are renamed from `dwh.*` / `dwh_*` to `smc.*` / `smc_*`: update
     dashboards and alert rules at upgrade.
   - The migrate entry point is `warehouse.migration.MigrateMain`; the old
-    `fnd.migration.MigrateMain` delegates to it until 2026-12-31.
+    `fnd.migration.MigrateMain` is gone.
   - The default database name in `DB_URL` is `smartupcms`; the unused table
     `md_custom_modules` is dropped (V152).
 
 - **Upgrade-breaking (phase 4, wave A):**
-  - Old `dwh.*` / `DWH_*` / `app.dwh.*` / `APP_DWH_*` names are still read
-    until 2026-12-31 with a warning (compose falls back to them too); rename
-    them in `.env` (`deploy.sh` lists the ones found).
+  - Old `dwh.*` / `DWH_*` / `app.dwh.*` / `APP_DWH_*` names are not read
+    (neither by the server nor by compose); use the new names in `.env`.
   - Outside the dev and test profiles the server refuses to start while the
     Typesense key, the first admin password or a database password keeps its
     published development value.
@@ -1089,27 +1093,26 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   every grant): `iam.*`, `rbac.*`, `platform.*` become `md.*`,
   `notify.announcements`, `mf.files`, `search`, `webhook.subscriptions`.
   `/auth/me`, the role matrix and effective rights answer the new codes; old
-  codes are accepted on input until 2026-12-31.
+  codes are rejected on input like any unknown code.
 
 - **API-breaking (phase 3 debts):** `GET /settings/system` answers
   `{values, revision}` with an `ETag` instead of a bare map;
   `PATCH /settings/system`, `PUT /iam/org-units/users/{id}` and
   `PUT /iam/org-units/roles/{id}/rule` answer 428 without `If-Match`;
   `PUT /modules/{code}` without `If-Match` only creates a module (428 for an
-  existing one). Deprecated until 2026-12-31: the whole project list
-  `GET /tasks/projects` (successor `GET /tasks/projects/page`); task rows
-  carry `projectName`. String and select custom-field values are stored as
+  existing one). The whole project list `GET /tasks/projects` is gone
+  (use `GET /tasks/projects/page`); task rows carry `projectName`. String and select custom-field values are stored as
   strings (V145 converts numbers and booleans stored before).
 
 - **API-breaking (phase 3 review):** `PUT /iam/users/{id}/roles` and
   `PUT /iam/users/{id}/permissions` answer 428 without `If-Match` carrying
   the user's revision, like every other change of a revisioned record
-  (ADR-0024); their answer gains `revision` and an `ETag`. Deprecated until
-  2026-12-31: `GET /tasks/projects/stats` (the paged project list carries the
-  counts) and the whole list `GET /tasks/projects/{id}/members` (paged
-  successor `GET /tasks/projects/{id}/members/page`). Sign-in and OTP answer
-  a typed `LoginResponse` with `otpToken`; the old `otp_token` key is sent
-  beside it until the sunset. `GET …/format-versions?at=` with an empty
+  (ADR-0024); their answer gains `revision` and an `ETag`.
+  `GET /tasks/projects/stats` (the paged project list carries the counts) and
+  the whole list `GET /tasks/projects/{id}/members` (use
+  `GET /tasks/projects/{id}/members/page`) are gone. Sign-in and OTP answer
+  a typed `LoginResponse` with `otpToken`; the old `otp_token` key is not
+  sent. `GET …/format-versions?at=` with an empty
   value answers 400.
 
 - **API-breaking (plan item 3.6):** `PUT`/`PATCH` of the records above,
