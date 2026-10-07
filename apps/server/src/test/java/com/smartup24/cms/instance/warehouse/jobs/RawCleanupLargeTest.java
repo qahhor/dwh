@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
-import com.smartup24.cms.instance.support.RawTables;
+import com.smartup24.cms.instance.warehouse.RawTables;
 import com.smartup24.cms.instance.warehouse.WarehousePref;
 import com.smartup24.cms.instance.warehouse.api.RawRow;
 import com.smartup24.cms.instance.warehouse.api.RawWriter;
@@ -29,21 +29,21 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * Plan 10/10, item 7.8, acceptance: the cleanup of a failed load of a million rows takes under a second and leaves
  * {@code n_dead_tup} of the raw layer near zero, because it drops the load's partition instead of deleting rows.
  *
- * <p>Tagged {@code dwh-large}: writing a million rows through {@code COPY} takes a while, so the everyday suite skips
+ * <p>Tagged {@code warehouse-large}: writing a million rows through {@code COPY} takes a while, so the everyday suite skips
  * it; {@link RawPartitionCleanupTest} proves the same mechanics on small loads. The nightly {@code load} job runs it:
  *
  * <pre>
- * mvn -pl apps/server test -Pdwh-large [-Ddwh.large.rows=1000000]
+ * mvn -pl apps/server test -Pwarehouse-large [-Dwarehouse.large.rows=1000000]
  * </pre>
  */
-@Tag("dwh-large")
+@Tag("warehouse-large")
 class RawCleanupLargeTest extends EmbeddedPostgresTest {
 
     private static final Logger log = LoggerFactory.getLogger(RawCleanupLargeTest.class);
-    private static final int ROWS = Integer.getInteger("dwh.large.rows", 1_000_000);
+    private static final int ROWS = Integer.getInteger("warehouse.large.rows", 1_000_000);
     private static final int KEPT_ROWS = 10_000;
     private static final Duration LIMIT = Duration.ofSeconds(1);
-    private static final String SOURCE = "src_test_dwh_large";
+    private static final String SOURCE = "src_test_warehouse_large";
 
     @Autowired
     private WarehouseLoadService loads;
@@ -92,7 +92,7 @@ class RawCleanupLargeTest extends EmbeddedPostgresTest {
         assertThat(rawWriter.count(kept)).isEqualTo(KEPT_ROWS);
         long deadTuples = deadTuplesOfRaw(kept);
         log.info(
-                "dwh_large rows={} copy_ms={} cleanup_ms={} n_dead_tup={}",
+                "warehouse_large rows={} copy_ms={} cleanup_ms={} n_dead_tup={}",
                 ROWS,
                 copyTime.toMillis(),
                 cleanupTime.toMillis(),

@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.support;
+package com.smartup24.cms.instance.warehouse;
 
 import com.smartup24.cms.instance.warehouse.raw.RawPartitions;
 import org.springframework.jdbc.core.simple.JdbcClient;

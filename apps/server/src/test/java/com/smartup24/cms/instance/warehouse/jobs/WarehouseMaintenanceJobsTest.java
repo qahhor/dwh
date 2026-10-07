@@ -8,7 +8,7 @@ import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.jobs.runner.JobSwitch;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
-import com.smartup24.cms.instance.support.RawTables;
+import com.smartup24.cms.instance.warehouse.RawTables;
 import com.smartup24.cms.instance.warehouse.WarehousePref;
 import com.smartup24.cms.instance.warehouse.api.RawRow;
 import com.smartup24.cms.instance.warehouse.api.RawWriter;

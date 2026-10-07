@@ -149,7 +149,7 @@ PR без одобрения или с красной проверкой не в
 вручную (`workflow_dispatch`). В нём учения готовности релиза, генератор `cms`
 на Linux и Windows, учения обновления и исходящего трафика, живой API smoke,
 onboarding smoke, свежие advisories (Trivy) и нагрузочные критерии
-(`-Pupl-large`, `-Paudit-large`, `-Pimport-large`, `-Pdwh-large`). Эти джобы не входят в
+(`-Pupl-large`, `-Paudit-large`, `-Pimport-large`, `-Pwarehouse-large`). Эти джобы не входят в
 обязательные проверки PR: красный ночной джоб разбирается на следующее утро.
 [`scripts/docs/test-repository-hygiene.ps1`](../../scripts/docs/test-repository-hygiene.ps1)
 падает, если скрипт `scripts/**/test-*` не вызывает ни один workflow.

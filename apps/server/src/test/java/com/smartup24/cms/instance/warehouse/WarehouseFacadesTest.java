@@ -8,7 +8,6 @@ import com.smartup24.cms.instance.common.error.ConstraintCode;
 import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
-import com.smartup24.cms.instance.support.RawTables;
 import com.smartup24.cms.instance.warehouse.api.RawRow;
 import com.smartup24.cms.instance.warehouse.api.RawWriter;
 import com.smartup24.cms.instance.warehouse.api.WarehouseError;
