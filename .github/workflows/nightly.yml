@@ -54,6 +54,9 @@ jobs:
           # Plan 10/10, item 5.8: an import of 10 000 rows through the entity runtime in under 60 s.
           - profile: import-large
             timeout: 45
+          # Plan 10/10, item 7.8: cleanup of a million-row raw load in under 1 s, n_dead_tup about 0 afterwards.
+          - profile: dwh-large
+            timeout: 45
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 

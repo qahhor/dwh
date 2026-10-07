@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.support.RawTables;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.instance.warehouse.WarehousePref;
 import com.smartup24.cms.instance.warehouse.api.RawRow;
@@ -68,7 +69,7 @@ class JdbcRawWriterCopyTest extends EmbeddedPostgresTest {
 
     @BeforeEach
     void cleanDwh() {
-        dwhJdbc.sql("delete from raw.rows").update();
+        RawTables.clear(dwhJdbc);
     }
 
     @Test

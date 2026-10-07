@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.support.RawTables;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.parse.UplParseJob;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
@@ -114,7 +115,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from fnd_job_queue").update();
             jdbc.sql("delete from fnd_job_runs").update();
         });
-        warehouseJdbc.sql("delete from raw.rows").update();
+        RawTables.clear(warehouseJdbc);
         sourceId = UplPackageTestData.publishedSource(sources, userId, LocalDate.of(2026, 1, 1));
     }
 

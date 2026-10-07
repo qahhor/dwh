@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.support.RawTables;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.parse.UplParseJob;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
@@ -106,7 +107,7 @@ class UplApplyStreamingTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from upl_packages").update();
             jdbc.sql("delete from fnd_job_queue").update();
         });
-        warehouseJdbc.sql("delete from raw.rows").update();
+        RawTables.clear(warehouseJdbc);
     }
 
     @Test

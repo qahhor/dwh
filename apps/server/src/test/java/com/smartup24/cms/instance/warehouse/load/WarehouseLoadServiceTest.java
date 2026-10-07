@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.common.error.ConstraintCode;
 import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.support.RawTables;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
 import com.smartup24.cms.instance.warehouse.WarehousePref;
 import com.smartup24.cms.instance.warehouse.api.RawRow;
@@ -109,7 +110,7 @@ class WarehouseLoadServiceTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from security_events where event_type = 'xdb_mismatch'")
                     .update();
         });
-        dwhJdbc.sql("delete from raw.rows").update();
+        RawTables.clear(dwhJdbc);
     }
 
     @ParameterizedTest(name = "конфигурация {0}")
