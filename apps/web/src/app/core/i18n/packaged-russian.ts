@@ -2780,6 +2780,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "error.common.precondition_required": "Сохранение отклонено: не указана версия записи. Откройте запись заново и повторите",
   "error.common.revision_conflict": "Запись уже изменил другой пользователь. Обновите её и повторите сохранение",
   "error.common.if_match_invalid": "Заголовок If-Match должен содержать версию записи",
+  "error.common.entity_state_locked": "Действие «{action}» недоступно: запись в состоянии «{state}» хранится как след процесса",
   "error.common.entity_transition_not_allowed": "Действие «{action}» недоступно для записи в состоянии «{from}»",
   "nav.example_orders": "Заказы (эталон)",
   "example.orders.rights.form": "Заказы (эталон документа)",
@@ -2910,6 +2911,5 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "entity.action.submit": "Отправить",
   "entity.action.recall": "Отозвать",
   "entity.action.approve": "Утвердить",
-  "entity.action.reject": "Отклонить",
-  "error.example.request_not_draft": "Удалить можно только черновик заявки"
+  "entity.action.reject": "Отклонить"
 });
