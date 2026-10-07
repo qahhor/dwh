@@ -114,7 +114,7 @@ class KauthPasswordResetIntegrationTest {
         var userService = new MdUserService(
                 new MdUserRepository(jdbc, mapper),
                 new MdRoleRepository(jdbc),
-                new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), auditLogService),
+                new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), auditLogService, mapper),
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
                 Mockito.mock(SearchChangePublisher.class),

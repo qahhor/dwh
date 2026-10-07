@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -55,13 +56,38 @@ public final class JsonColumns {
         return read(json, OBJECT);
     }
 
+    /** A stored JSON document as a tree; null or blank is the empty object. */
+    public JsonNode tree(@Nullable String json) {
+        if (json == null || json.isBlank()) {
+            return mapper.createObjectNode();
+        }
+        try {
+            return mapper.readTree(json);
+        } catch (JacksonException e) {
+            throw readFailed(json, e);
+        }
+    }
+
+    /** A stored JSON document as the class asked for. */
+    public <T> T read(String json, Class<T> type) {
+        try {
+            return mapper.readValue(json, type);
+        } catch (JacksonException e) {
+            throw readFailed(json, e);
+        }
+    }
+
     /** A stored JSON document as the type asked for. */
     public <T> T read(String json, TypeReference<T> type) {
         try {
             return mapper.readValue(json, type);
         } catch (JacksonException e) {
-            log.error("json_column_read_failed table={} length={}", table, json.length(), e);
-            throw new IllegalStateException("A JSON column of " + table + " cannot be read", e);
+            throw readFailed(json, e);
         }
+    }
+
+    private IllegalStateException readFailed(String json, JacksonException e) {
+        log.error("json_column_read_failed table={} length={}", table, json.length(), e);
+        return new IllegalStateException("A JSON column of " + table + " cannot be read", e);
     }
 }

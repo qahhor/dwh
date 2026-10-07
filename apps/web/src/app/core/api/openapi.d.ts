@@ -3871,7 +3871,9 @@ export interface components {
         BulkRequest: {
             action?: string;
             ids?: number[];
-            params?: components["schemas"]["JsonNode"];
+            params?: {
+                [key: string]: unknown;
+            };
         };
         BulkResult: {
             action?: string;
@@ -4708,34 +4710,6 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             verification?: components["schemas"]["VerificationSummary"];
-        };
-        JsonNode: {
-            array?: boolean;
-            bigDecimal?: boolean;
-            bigInteger?: boolean;
-            binary?: boolean;
-            boolean?: boolean;
-            container?: boolean;
-            double?: boolean;
-            embeddedValue?: boolean;
-            empty?: boolean;
-            float?: boolean;
-            floatingPointNumber?: boolean;
-            int?: boolean;
-            integralNumber?: boolean;
-            long?: boolean;
-            missingNode?: boolean;
-            /** @enum {string} */
-            nodeType?: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
-            null?: boolean;
-            number?: boolean;
-            object?: boolean;
-            pojo?: boolean;
-            short?: boolean;
-            string?: boolean;
-            /** @deprecated */
-            textual?: boolean;
-            valueNode?: boolean;
         };
         KeysetPageAuditLogView: {
             hasMore?: boolean;
@@ -6090,7 +6064,9 @@ export interface components {
             /** Format: int32 */
             lockVersion?: number;
             name?: string;
-            state?: components["schemas"]["JsonNode"];
+            state?: {
+                [key: string]: unknown;
+            };
         };
         ViewResponse: {
             /** Format: int64 */
@@ -6103,7 +6079,9 @@ export interface components {
             /** Format: date-time */
             modifiedAt?: string;
             name?: string;
-            state?: components["schemas"]["JsonNode"];
+            state?: {
+                [key: string]: unknown;
+            };
         };
         WebhookEventView: {
             action?: string;
@@ -6124,7 +6102,9 @@ export interface components {
             /** Format: date-time */
             modifiedAt?: string;
             name?: string;
-            state?: components["schemas"]["JsonNode"];
+            state?: {
+                [key: string]: unknown;
+            };
         };
     };
     responses: never;

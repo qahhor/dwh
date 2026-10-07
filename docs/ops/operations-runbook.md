@@ -242,7 +242,7 @@ Mutations to tasks, files, and notes are staged transactionally in `search_outbo
 ## Task optimistic concurrency conflicts (HTTP 409)
 
 Tasks enforce monotonic compare-and-set versioning via the `revision` column:
-- If two users or processes modify the same task concurrently with a stale `expectedRevision`, the API returns HTTP 409 with error code `task_revision_conflict`.
+- If two users or processes modify the same task concurrently with a stale `expectedRevision`, the API returns HTTP 409 with error code `revision_conflict` (`error.common.revision_conflict`).
 - Triage: The UI prompts the user to refresh the task to view the latest changes before reapplying edits. If automated integrations receive 409, they should re-fetch the current task revision and retry.
 
 ## Rate limiting and upload concurrency (HTTP 429)

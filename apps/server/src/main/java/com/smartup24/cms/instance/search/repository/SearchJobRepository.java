@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.search.repository;
 
 import com.smartup24.cms.instance.common.jdbc.StatementTimeouts;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,11 +24,11 @@ public class SearchJobRepository {
     public static final Duration STATE_CHANGE_LIMIT = Duration.ofSeconds(2);
 
     private final JdbcClient jdbc;
-    private final ObjectMapper mapper;
+    private final JsonColumns columns;
 
     public SearchJobRepository(JdbcClient jdbc, ObjectMapper mapper) {
         this.jdbc = jdbc;
-        this.mapper = mapper;
+        this.columns = new JsonColumns(mapper, "search_jobs");
     }
 
     /** Runs a job state change with each statement limited to {@link #STATE_CHANGE_LIMIT}. */
@@ -168,7 +169,7 @@ public class SearchJobRepository {
                         .param("state", state)
                         .param("processed", processed)
                         .param("failed", failed)
-                        .param("verification", verification == null ? null : mapper.writeValueAsString(verification))
+                        .param("verification", verification == null ? null : columns.write(verification))
                         .param("id", id)
                         .param("owner", owner)
                         .update()
@@ -239,7 +240,7 @@ public class SearchJobRepository {
                 rs.getString("state"),
                 rs.getLong("processed_count"),
                 rs.getLong("failed_count"),
-                verification == null ? null : mapper.readValue(verification, VerificationSummary.class),
+                verification == null ? null : columns.read(verification, VerificationSummary.class),
                 rs.getString("error_code"),
                 rs.getObject("retry_of_job_id", UUID.class),
                 rs.getTimestamp("created_at").toInstant(),

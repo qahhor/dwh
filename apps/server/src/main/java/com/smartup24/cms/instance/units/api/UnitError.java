@@ -43,6 +43,11 @@ public enum UnitError implements ConstraintCode {
     }
 
     @Override
+    public String module() {
+        return "units";
+    }
+
+    @Override
     public Optional<String> constraintName() {
         return Optional.ofNullable(constraintName);
     }

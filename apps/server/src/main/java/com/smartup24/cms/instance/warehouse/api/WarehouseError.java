@@ -36,6 +36,11 @@ public enum WarehouseError implements ConstraintCode {
     }
 
     @Override
+    public String module() {
+        return "warehouse";
+    }
+
+    @Override
     public Optional<String> constraintName() {
         return Optional.ofNullable(constraintName);
     }

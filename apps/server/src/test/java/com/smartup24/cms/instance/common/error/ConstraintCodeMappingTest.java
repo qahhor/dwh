@@ -165,7 +165,7 @@ class ConstraintCodeMappingTest extends EmbeddedPostgresTest {
         ConstraintViolationException uk =
                 violation(() -> units.registerUnit("u_map_a", Map.of("uz", "Dubl TEST"), base, actor));
         assertThat(uk.code()).isEqualTo(UnitError.FND_UNITS_UK_CODE);
-        assertThat(uk.getMessageKey()).isEqualTo("error.fnd.fnd_units_uk_code");
+        assertThat(uk.getMessageKey()).isEqualTo("error.units.fnd_units_uk_code");
         assertThat(uk.getErrorCode()).isEqualTo(ErrorCode.CODE_ALREADY_EXISTS);
         assertThat(uk.getCause())
                 .as("SQL-текст остаётся причиной, код — контракт")

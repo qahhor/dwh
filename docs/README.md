@@ -103,7 +103,8 @@ Current ADRs that are not superseded:
   load ledger is `warehouse`, units of measure are `units`, versioning and the
   audit actor are platform contracts in `common`; SQL lives only in
   repositories (no `*Service` runs SQL), the queue never depends on the
-  warehouse, and message keys stay `error.fnd.*`.
+  warehouse, and each module owns its message keys (`error.jobs.*`,
+  `error.warehouse.*`, `error.units.*`, `error.versioning.*`, `error.actor.*`).
 - [ADR-0031 — semantic translation keys](adr/ADR-0031-semantic-translation-keys.md)
   — a key is `<module>.<screen>.<element>` in English snake_case; 857
   transliterated, truncated and hash-suffixed keys were renamed by a mapping

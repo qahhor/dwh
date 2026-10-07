@@ -115,7 +115,7 @@ class KauthOtpLoginIntegrationTest {
         var userService = new MdUserService(
                 userRepository,
                 new MdRoleRepository(jdbc),
-                new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), auditLogService),
+                new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), auditLogService, mapper),
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
                 Mockito.mock(SearchChangePublisher.class),

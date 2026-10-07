@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class MdCustomFieldService {
@@ -67,21 +66,15 @@ public class MdCustomFieldService {
             @Lazy ObjectProvider<MdCustomFieldService> selfProvider) {
         this.customFieldRepository = customFieldRepository;
         this.auditLogService = auditLogService;
-        this.objectMapper = objectMapper != null ? objectMapper : JsonMapper.shared();
+        this.objectMapper = objectMapper;
         this.userRepository = userRepository;
         this.selfProvider = selfProvider;
     }
 
+    /** A service built by hand, without user references or the caching proxy; the mapper is the caller's. */
     public MdCustomFieldService(
-            MdCustomFieldRepository customFieldRepository,
-            AuditLogService auditLogService,
-            ObjectMapper objectMapper,
-            MdUserRepository userRepository) {
-        this(customFieldRepository, auditLogService, objectMapper, userRepository, null);
-    }
-
-    public MdCustomFieldService(MdCustomFieldRepository customFieldRepository, AuditLogService auditLogService) {
-        this(customFieldRepository, auditLogService, JsonMapper.shared(), null, null);
+            MdCustomFieldRepository customFieldRepository, AuditLogService auditLogService, ObjectMapper objectMapper) {
+        this(customFieldRepository, auditLogService, objectMapper, null, null);
     }
 
     private MdCustomFieldService getSelf() {

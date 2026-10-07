@@ -25,6 +25,11 @@ public enum VersionError implements ConstraintCode {
     FND_VERSION_CONFLICT;
 
     @Override
+    public String module() {
+        return "versioning";
+    }
+
+    @Override
     public Optional<String> constraintName() {
         return Optional.empty();
     }

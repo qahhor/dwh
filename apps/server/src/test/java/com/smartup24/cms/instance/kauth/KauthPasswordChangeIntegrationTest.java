@@ -276,7 +276,7 @@ class KauthPasswordChangeIntegrationTest {
                 () -> new MdUserService(
                         users,
                         new MdRoleRepository(jdbc),
-                        new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit),
+                        new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit, mapper),
                         hasher,
                         new PasswordValidator(),
                         mock(SearchChangePublisher.class),

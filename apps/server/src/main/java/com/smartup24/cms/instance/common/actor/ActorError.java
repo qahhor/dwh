@@ -11,6 +11,11 @@ public enum ActorError implements ConstraintCode {
     AUDIT_ACTOR_MISSING;
 
     @Override
+    public String module() {
+        return "actor";
+    }
+
+    @Override
     public Optional<String> constraintName() {
         return Optional.empty();
     }

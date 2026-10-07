@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.search.repository;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.search.service.SearchEntities;
 import com.smartup24.cms.instance.search.service.SearchEntity;
 import java.security.MessageDigest;
@@ -23,6 +24,9 @@ import tools.jackson.databind.ObjectMapper;
 public class SearchProjectionReader {
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
+    /** Reads the documents the search SQL builds (plan 10/10, item 3.11). */
+    private final JsonColumns documents;
+
     private final SearchEntities entities;
     private static final TypeReference<Map<String, Object>> DOCUMENT = new TypeReference<>() {};
 
@@ -32,6 +36,7 @@ public class SearchProjectionReader {
     public SearchProjectionReader(JdbcClient jdbc, ObjectMapper mapper, SearchEntities entities) {
         this.jdbc = jdbc;
         this.mapper = mapper;
+        this.documents = new JsonColumns(mapper, "search documents");
         this.entities = entities;
     }
 
@@ -83,8 +88,7 @@ public class SearchProjectionReader {
                     if (rs.getBoolean("oversized")) throw new DocumentTooLargeException();
                     long revision = rs.getLong("revision");
                     String json = rs.getString("document");
-                    Map<String, Object> document =
-                            json == null ? null : new TreeMap<>(mapper.readValue(json, DOCUMENT));
+                    Map<String, Object> document = json == null ? null : new TreeMap<>(documents.read(json, DOCUMENT));
                     Map<String, Object> fingerprintInput = document == null
                             ? new TreeMap<>(Map.of("entity_type", entityType, "entity_id", entityId, "deleted", true))
                             : document;
