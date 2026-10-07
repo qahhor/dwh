@@ -48,7 +48,10 @@ import org.springframework.web.context.WebApplicationContext;
  *   <li>collections and process: a document reads back its rows, a row's mistake is addressed {@code lines[i].field},
  *       a row of another record and too many rows are refused, a change of the rows raises the revision once; a
  *       transition from a state it does not leave is 422 {@code entity_transition_not_allowed}, without its right
- *       403, and moves the record from a state it leaves; a field a state locks is 422 {@code readonly} (ADR-0032, 9).
+ *       403, and moves the record from a state it leaves; a field a state locks is 422 {@code readonly}; a record in
+ *       a terminal or locking state is neither deleted nor archived, 422 {@code entity_state_locked} (ADR-0032, 9);
+ *   <li>SQL boundaries: the declaration's tables, expressions, computed fields and custom scope read only the
+ *       module's own relations and published views (ADR-0026).
  * </ul>
  *
  * <pre>{@code
@@ -118,6 +121,7 @@ public abstract class EntityContractTestKit extends EmbeddedPostgresTest {
                         group("events (ADR-0032, 6.9)", new KitEventChecks(world)::events),
                         group("import (ADR-0032, 10.1)", new KitImportChecks(world)::imports),
                         group("search (ADR-0032, 10.3)", new KitSearchChecks(world)::search),
+                        group("SQL boundaries (ADR-0026)", new KitSqlChecks(world)::boundaries),
                         group("collections and process (ADR-0032, 9)", () -> document(world, collections)))
                 .flatMap(Stream::ofNullable);
     }
