@@ -186,7 +186,7 @@ services:
     command:
       - >-
         java -cp "app.jar:lib/*:/app/modules/*" com.smartup24.cms.instance.warehouse.migration.MigrateMain
-        && exec java -cp app.jar org.springframework.boot.loader.launch.PropertiesLauncher --spring.profiles.active=migrate
+        && exec java -cp "app.jar:lib/*:/app/modules/*" com.smartup24.cms.instance.InstanceApplication --spring.profiles.active=migrate
     restart: "no"
     depends_on:
       postgres: {condition: service_healthy}

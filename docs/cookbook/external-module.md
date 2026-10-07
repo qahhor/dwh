@@ -70,6 +70,5 @@ class LibraryBooksContractTest extends EntityContractTestKit {
 - Таблицы — по соглашению ADR-0032 §14.1 (`attributes`, `revision`, авторы);
   расхождение с объявлением — отказ старта (`EntitySchemaGate`).
 - Доставка jar в образ Docker: каталог `modules/` монтируется в контейнер как `/app/modules:ro`,
-  платформа загружает его через `PropertiesLauncher` (`LOADER_PATH="lib,/app/modules"`).
+  платформа загружает его по пути классов `app.jar:lib/*:/app/modules/*` (точка входа образа — `InstanceApplication`; извлечённый `app.jar` без загрузчика Spring Boot).
 
-<!-- docs-contract: hypothetical PropertiesLauncher -->

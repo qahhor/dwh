@@ -95,8 +95,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   working screen: 4 minutes. `cms module new <code> --external` creates a
   standalone module project outside the monorepo (`pom.xml`, manifest, starter
   entity, migration, translations, contract and boundary tests); `Dockerfile`
-  and Compose load external module JARs from `/app/modules` via
-  `PropertiesLauncher` and `LOADER_PATH`.
+  and Compose load external module JARs from `/app/modules` on the class
+  path of the image (`app.jar:lib/*:/app/modules/*`).
 
 - Plan 10/10, item 6.5 — start in ten minutes: `make dev` and the portable
   `scripts/dev/run-local.sh` / `run-local.ps1` (Compose infrastructure,
