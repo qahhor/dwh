@@ -231,11 +231,11 @@
               },
               {
                 "color": "orange",
-                "value": 0.005
+                "value": 0.001
               },
               {
                 "color": "red",
-                "value": 0.072
+                "value": 0.0144
               }
             ]
           }

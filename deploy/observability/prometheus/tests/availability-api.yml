@@ -84,7 +84,7 @@ tests:
               application: smartupcms
             exp_annotations:
               summary: "API errors burn the monthly error budget 14 times too fast"
-              description: "9.091% of API requests answered 5xx over the last hour (budget 0.5 %)."
+              description: "9.091% of API requests answered 5xx over the last hour (budget 0.1 %)."
               runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
       - eval_time: 60m
         alertname: SmartupcmsApiErrorBudgetBurnSlow
@@ -94,15 +94,16 @@ tests:
               application: smartupcms
             exp_annotations:
               summary: "API errors burn the monthly error budget 6 times too fast"
-              description: "9.091% of API requests answered 5xx over the last six hours (budget 0.5 %)."
+              description: "9.091% of API requests answered 5xx over the last six hours (budget 0.1 %)."
               runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
 
-  # 1 % of API requests fail; the event stream (left out of the SLO) fails often but does not count.
+  # 0.2 % of API requests fail (under 6x the 0.1 % budget); the event stream, left out of the SLO, fails often
+  # but does not count.
   - name: error budget within the SLO
     interval: 1m
     input_series:
       - series: 'http_server_requests_seconds_count{application="smartupcms", instance="a", uri="/api/v1/tasks", status="200"}'
-        values: '0+99x120'
+        values: '0+499x120'
       - series: 'http_server_requests_seconds_count{application="smartupcms", instance="a", uri="/api/v1/tasks", status="503"}'
         values: '0+1x120'
       - series: 'http_server_requests_seconds_count{application="smartupcms", instance="a", uri="/api/v1/events", status="500"}'

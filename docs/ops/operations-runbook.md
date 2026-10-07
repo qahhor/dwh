@@ -37,6 +37,8 @@ curl --fail --silent --show-error http://127.0.0.1:8080/healthz
 Confirm all long-running services are healthy, the backup status in the System
 screen is successful and younger than the accepted RPO, disk usage is below the
 operator threshold, TLS is valid, and error/dead-letter alerts are quiet.
+The metrics, SLOs, Prometheus alert rules and Grafana dashboards, and the
+runbook of each alert, are described in [SLO, metrics and alerts](slo.md).
 
 ## Service is unavailable
 

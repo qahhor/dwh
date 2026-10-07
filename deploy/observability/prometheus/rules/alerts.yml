@@ -36,25 +36,27 @@ groups:
 
   - name: smartupcms-api-slo
     rules:
-      # Availability SLO 99.5 % over 30 days: the error budget is 0.5 % of API requests.
-      # Multiwindow burn rates: 14.4x spends 2 % of the monthly budget in an hour, 6x spends 5 % in six hours.
+      # Availability SLO 99.9 % over 30 days (approved, docs/technical-specification.md): the error budget is
+      # 0.1 % of API requests. Multiwindow burn rates: 14.4x spends 2 % of the monthly budget in an hour, 6x spends
+      # 5 % in six hours. The latency thresholds below are proposed defaults until the installation approves its
+      # own (NFR-PERF-02, AC-12; docs/ops/slo.md).
       - alert: SmartupcmsApiErrorBudgetBurnFast
-        expr: smc:api_error_ratio:rate1h > (14.4 * 0.005) and smc:api_error_ratio:rate5m > (14.4 * 0.005)
+        expr: smc:api_error_ratio:rate1h > (14.4 * 0.001) and smc:api_error_ratio:rate5m > (14.4 * 0.001)
         for: 2m
         labels:
           severity: critical
         annotations:
           summary: "API errors burn the monthly error budget 14 times too fast"
-          description: "{{ $value | humanizePercentage }} of API requests answered 5xx over the last hour (budget 0.5 %)."
+          description: "{{ $value | humanizePercentage }} of API requests answered 5xx over the last hour (budget 0.1 %)."
           runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
       - alert: SmartupcmsApiErrorBudgetBurnSlow
-        expr: smc:api_error_ratio:rate6h > (6 * 0.005) and smc:api_error_ratio:rate30m > (6 * 0.005)
+        expr: smc:api_error_ratio:rate6h > (6 * 0.001) and smc:api_error_ratio:rate30m > (6 * 0.001)
         for: 15m
         labels:
           severity: warning
         annotations:
           summary: "API errors burn the monthly error budget 6 times too fast"
-          description: "{{ $value | humanizePercentage }} of API requests answered 5xx over the last six hours (budget 0.5 %)."
+          description: "{{ $value | humanizePercentage }} of API requests answered 5xx over the last six hours (budget 0.1 %)."
           runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
       - alert: SmartupcmsApiLatencyP95High
         expr: smc:api_latency_seconds:p95_5m > 0.3
