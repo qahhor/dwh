@@ -219,6 +219,20 @@ smc:
         port: ${SMC_FILE_SCANNER_CLAMAV_PORT:3310}
         connect-timeout: ${SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT:3s}
         read-timeout: ${SMC_FILE_SCANNER_CLAMAV_READ_TIMEOUT:60s}
+        # Plan 10/10, item 7.6: the server stops a stream past this size itself, below clamd's StreamMaxLength (64M
+        # in production Compose), so a 50 MiB upload is always scanned whole and a larger one fails closed.
+        max-stream-size: ${SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE:60MB}
+  uploads:
+    # Bounds an uploaded xlsx must stay within before it is read (plan 10/10, item 7.6): the import of entities and
+    # the packages of uploads refuse a zip bomb, a flood of shared strings or a cell past the last column unread.
+    xlsx:
+      max-unpacked-size: ${SMC_UPLOADS_XLSX_MAX_UNPACKED_SIZE:1GB}
+      max-entries: ${SMC_UPLOADS_XLSX_MAX_ENTRIES:1000}
+      max-compression-ratio: ${SMC_UPLOADS_XLSX_MAX_COMPRESSION_RATIO:200}
+      max-shared-strings: ${SMC_UPLOADS_XLSX_MAX_SHARED_STRINGS:5000000}
+      max-shared-strings-size: ${SMC_UPLOADS_XLSX_MAX_SHARED_STRINGS_SIZE:256MB}
+      max-rows: ${SMC_UPLOADS_XLSX_MAX_ROWS:1048576}
+      max-columns: ${SMC_UPLOADS_XLSX_MAX_COLUMNS:16384}
   reports:
     export:
       max-rows: ${SMC_REPORTS_EXPORT_MAX_ROWS:50000}

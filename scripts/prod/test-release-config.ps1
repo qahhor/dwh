@@ -23,6 +23,13 @@ function Assert-Matches([string]$Text, [string]$Pattern, [string]$Message) {
     if ($Text -notmatch $Pattern) { throw $Message }
 }
 
+function ConvertTo-Bytes([string]$Value, [string]$Name) {
+    # clamd and Spring both read K/M/G (optionally followed by B) as binary multiples.
+    if ($Value -notmatch '^\s*(\d+)\s*([KMG]?)B?\s*$') { throw "$Name must be a size such as 64M, got '$Value'." }
+    $units = @{ '' = 1; 'K' = 1KB; 'M' = 1MB; 'G' = 1GB }
+    return [int64]$Matches[1] * $units[$Matches[2].ToUpperInvariant()]
+}
+
 function Assert-DoesNotMatch([string]$Text, [string]$Pattern, [string]$Message) {
     if ($Text -match $Pattern) { throw $Message }
 }
@@ -144,6 +151,18 @@ try {
     if ("$($config.services.server.depends_on.clamav.condition)" -ne 'service_healthy') {
         throw 'Production server must wait for a healthy ClamAV service.'
     }
+    # Plan 10/10, item 7.6: a 50 MiB upload is scanned whole. The server stops a stream at its own cap, which must
+    # fit under clamd's StreamMaxLength; inflated archive parts are scanned up to MaxFileSize and MaxScanSize.
+    $clamEnv = $config.services.clamav.environment
+    $streamMax = ConvertTo-Bytes "$($clamEnv.CLAMD_CONF_StreamMaxLength)" 'CLAMD_CONF_StreamMaxLength'
+    $fileMax = ConvertTo-Bytes "$($clamEnv.CLAMD_CONF_MaxFileSize)" 'CLAMD_CONF_MaxFileSize'
+    $scanMax = ConvertTo-Bytes "$($clamEnv.CLAMD_CONF_MaxScanSize)" 'CLAMD_CONF_MaxScanSize'
+    $serverCap = ConvertTo-Bytes "$($config.services.server.environment.SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE)" 'SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE'
+    $uploadMax = 50MB
+    if ($serverCap -le $uploadMax) { throw 'The server scanner stream cap must exceed the 50 MiB upload limit.' }
+    if ($streamMax -le $serverCap) { throw 'clamd StreamMaxLength must exceed the server scanner stream cap.' }
+    if ($fileMax -lt $streamMax) { throw 'clamd MaxFileSize must not be below StreamMaxLength.' }
+    if ($scanMax -lt $fileMax) { throw 'clamd MaxScanSize must not be below MaxFileSize.' }
 }
 finally {
     $env:DB_PASSWORD_FILE = $previousDbPasswordFile

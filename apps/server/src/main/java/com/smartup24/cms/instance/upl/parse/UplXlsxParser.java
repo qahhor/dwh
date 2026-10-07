@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.upl.parse;
 
+import com.smartup24.cms.instance.common.xlsx.XlsxGuard;
+import com.smartup24.cms.instance.common.xlsx.XlsxLimits;
 import com.smartup24.cms.instance.upl.UplLimits;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
 import com.smartup24.cms.instance.upl.parse.UplCells.CellValue;
@@ -7,7 +9,10 @@ import com.smartup24.cms.instance.upl.parse.UplParseResult.ErrorRecord;
 import com.smartup24.cms.instance.upl.parse.UplStructureMatcher.SheetMatch;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -18,22 +23,28 @@ import java.util.stream.Stream;
 import org.dhatim.fastexcel.reader.ExcelReaderException;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
 import org.dhatim.fastexcel.reader.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
  * Parses the xlsx file of a package by the published format. Reads the file as a stream in two passes:
- * first the structure (sheets and columns), then the values. Writes nothing to the database or the log:
+ * first the structure (sheets and columns), then the values. Writes nothing to the database and logs only a refused file:
  * the result is returned in memory, and data rows go to the given consumer one by one.
  *
- * <p>A workbook given as a stream is copied into memory whole by the reader (it needs random access to the zip); the
- * jobs give a file on disk instead ({@link #parse(Path, FormatVersion, Consumer)}), so a 50 MB file costs no heap.
+ * <p>The reader needs random access to the zip: a workbook given as a stream is spooled to a temporary file first, and
+ * the jobs give a file on disk ({@link #parse(Path, FormatVersion, Consumer)}), so a 50 MB file costs no heap. Before
+ * the reader opens it the file is checked against {@link XlsxLimits} (plan 10/10, item 7.6): a zip bomb, a flood of
+ * shared strings or a cell past the last column is refused as unreadable.
  *
  * <p>This class coordinates the passes; {@link UplStructureMatcher} matches sheets and headers, {@link UplCellChecks}
  * checks values and {@link UplCells} reads cells.
  */
 @Component
 public class UplXlsxParser {
+
+    private static final Logger log = LoggerFactory.getLogger(UplXlsxParser.class);
 
     /** File rejected: mismatches with the format. */
     public static final String UPL_PKG_STRUCTURE = "UPL_PKG_STRUCTURE";
@@ -59,14 +70,24 @@ public class UplXlsxParser {
     public static final String UPL_CELL_KEY_MASK = "UPL_CELL_KEY_MASK";
 
     private final long maxCells;
+    private final XlsxLimits limits;
 
-    @Autowired
     public UplXlsxParser() {
         this(UplLimits.MAX_CELLS);
     }
 
     public UplXlsxParser(long maxCells) {
+        this(maxCells, XlsxLimits.defaults());
+    }
+
+    @Autowired
+    public UplXlsxParser(XlsxLimits limits) {
+        this(UplLimits.MAX_CELLS, limits);
+    }
+
+    public UplXlsxParser(long maxCells, XlsxLimits limits) {
         this.maxCells = maxCells;
+        this.limits = limits;
     }
 
     /** Parses the file by the format. The caller closes the stream. */
@@ -79,10 +100,15 @@ public class UplXlsxParser {
      * to {@code rows} in the order of the format sheets and rows. The caller closes the stream.
      */
     public UplParseResult parse(InputStream content, FormatVersion format, Consumer<DataRow> rows) {
-        try (ReadableWorkbook book = new ReadableWorkbook(content)) {
-            return parse(book, format, rows);
-        } catch (IOException | ExcelReaderException unreadable) {
-            return unreadable();
+        Path spooled = null;
+        try {
+            spooled = Files.createTempFile("upl-parse-", ".xlsx");
+            Files.copy(content, spooled, StandardCopyOption.REPLACE_EXISTING);
+            return parse(spooled, format, rows);
+        } catch (IOException spoolFailure) {
+            throw new UncheckedIOException("The workbook cannot be spooled for parsing", spoolFailure);
+        } finally {
+            if (spooled != null) deleteQuietly(spooled);
         }
     }
 
@@ -96,10 +122,27 @@ public class UplXlsxParser {
      * FormatVersion, Consumer)}.
      */
     public UplParseResult parse(Path file, FormatVersion format, Consumer<DataRow> rows) {
+        try {
+            XlsxGuard.check(file, limits);
+        } catch (XlsxGuard.Rejected outOfBounds) {
+            log.warn("upl_xlsx_out_of_bounds limit={}", outOfBounds.limit(), outOfBounds);
+            return unreadable();
+        } catch (IOException unreadable) {
+            log.warn("upl_xlsx_unreadable", unreadable);
+            return unreadable();
+        }
         try (ReadableWorkbook book = new ReadableWorkbook(file.toFile())) {
             return parse(book, format, rows);
         } catch (IOException | ExcelReaderException unreadable) {
             return unreadable();
+        }
+    }
+
+    private static void deleteQuietly(Path spooled) {
+        try {
+            Files.deleteIfExists(spooled);
+        } catch (IOException leftBehind) {
+            log.warn("upl_parse_spool_not_deleted path={}", spooled, leftBehind);
         }
     }
 

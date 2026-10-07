@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.upl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
+import com.smartup24.cms.instance.common.xlsx.XlsxLimits;
+import com.smartup24.cms.instance.support.XlsxBombs;
 import com.smartup24.cms.instance.upl.UplXlsxFixtures.SheetSpec;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.DataType;
@@ -14,6 +16,8 @@ import com.smartup24.cms.instance.upl.parse.UplParseResult;
 import com.smartup24.cms.instance.upl.parse.UplParseResult.ErrorRecord;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.util.unit.DataSize;
 
 /** Parsing xlsx by a file format: structure, values, counters and limits. */
 class UplXlsxParserTest {
@@ -296,6 +302,31 @@ class UplXlsxParserTest {
         assertThat(result.errors()).hasSize(1);
         assertThat(result.errors().getFirst().code()).isEqualTo(UplXlsxParser.UPL_CELL_NOT_INTEGER);
         assertThat(result.errors().getFirst().cellValue()).hasSize(UplLimits.MAX_VALUE_LENGTH);
+    }
+
+    @Test
+    @DisplayName("Zip-бомба (план 10/10, п. 7.6): файл отклонён как нечитаемый до разбора")
+    void zipBombIsRejectedUnread(@TempDir Path dir) throws IOException {
+        Path bomb = XlsxBombs.bomb(dir.resolve("bomb.xlsx"), 256);
+        List<UplXlsxParser.DataRow> rows = new ArrayList<>();
+
+        UplParseResult result = parser.parse(bomb, format(), rows::add);
+
+        assertThat(result.outcome()).isEqualTo(UplParseResult.Outcome.REJECTED);
+        assertThat(result.rejectCode()).isEqualTo(UplXlsxParser.UPL_PKG_UNREADABLE);
+        assertThat(rows).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Пределы xlsx настраиваются: файл больше распакованного предела отклонён")
+    void configuredUnpackedLimitIsApplied() {
+        byte[] content = file(HEADER, cleanRows(200));
+        XlsxLimits tiny = new XlsxLimits(DataSize.ofBytes(2_048), 0, 0, 0, null, 0, 0);
+
+        UplParseResult limited = new UplXlsxParser(tiny).parse(new ByteArrayInputStream(content), format());
+
+        assertThat(limited.rejectCode()).isEqualTo(UplXlsxParser.UPL_PKG_UNREADABLE);
+        assertThat(parse(content, format()).outcome()).isEqualTo(UplParseResult.Outcome.VERIFIED);
     }
 
     private UplParseResult parse(byte[] content, FormatVersion format) {
