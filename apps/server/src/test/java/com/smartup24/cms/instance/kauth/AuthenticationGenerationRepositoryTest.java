@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.junit.jupiter.Container;
@@ -261,5 +262,37 @@ class AuthenticationGenerationRepositoryTest {
         assertThat(otps.claimAttempt(fresh.id()))
                 .as("a used code has no attempt to claim")
                 .isFalse();
+    }
+
+    /** Plan 10/10, item 0.8 (V146): a code sent by email is stored like one sent by Telegram or SMS. */
+    @Test
+    void codesOfEveryDeliveryChannelAreStored() {
+        String key = UUID.randomUUID().toString();
+        long user = jdbc.sql("insert into md_users(name,login,email) values (:k,:k,:k) returning id")
+                .param("k", key)
+                .query(Long.class)
+                .single();
+        for (String channel : List.of("email", "telegram", "sms")) {
+            var otp = otps.create(
+                    user,
+                    0,
+                    channel,
+                    "synthetic",
+                    key + channel,
+                    "login",
+                    Instant.now().plusSeconds(300));
+            assertThat(otp.channel()).isEqualTo(channel);
+            assertThat(otps.findActiveByTokenHash(key + channel, "login")).isPresent();
+        }
+        assertThatThrownBy(() -> otps.create(
+                        user,
+                        0,
+                        "fax",
+                        "synthetic",
+                        key + "fax",
+                        "login",
+                        Instant.now().plusSeconds(300)))
+                .as("a channel outside the check is refused by the database")
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 }

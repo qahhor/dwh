@@ -389,7 +389,7 @@ $uzDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/uz" -Method Get -WebSessi
 $enDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/en" -Method Get -WebSession $session
 Write-Host "   I18n Dictionaries retrieved: RU: nav.tasks='$($ruDict.'nav.tasks')', UZ: nav.tasks='$($uzDict.'nav.tasks')', EN: nav.tasks='$($enDict.'nav.tasks')'" -ForegroundColor Green
 
-# 18. API Contract & Idempotency Key (M10 API)
+# 18. API Contract & Idempotency Key (ADR-0023)
 Write-Host "`n18. Idempotency Key & OpenAPI Contract (POST /api/v1/entities/ms.tasks with Idempotency-Key)..." -ForegroundColor Yellow
 $idemKey = [guid]::NewGuid().ToString()
 $idemHeaders = @{
@@ -444,7 +444,7 @@ try {
 $openApiSpec = Invoke-RestMethod -Uri "$BaseUrl/api/v1/openapi.json" -Method Get -WebSession $session
 Write-Host "   OpenAPI Spec verified: Version=$($openApiSpec.openapi), Title='$($openApiSpec.info.title)', Paths count=$($openApiSpec.paths.PSObject.Properties.Count)" -ForegroundColor Green
 
-# 19. Fleet Observability & Metrics (M13 OBS)
+# 19. Fleet Observability & Metrics (NFR-OBS-01)
 Write-Host "`n19. Fleet Observability & Metrics (W3C Traceparent, Actuator Info, Prometheus)..." -ForegroundColor Yellow
 
 # 19.1 W3C Traceparent Header Verification
@@ -466,8 +466,8 @@ $hasJvmMetrics = $promMetrics -match "jvm_memory_used_bytes"
 $hasUptime = $promMetrics -match "process_uptime_seconds"
 Write-Host "   Prometheus Metrics verified: JVM metrics=$hasJvmMetrics, Uptime metrics=$hasUptime" -ForegroundColor Green
 
-# 20. Outbound Webhooks (M18, module webhook)
-Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (M18, module webhook)..." -ForegroundColor Yellow
+# 20. Outbound Webhooks (FR-COMM-03, module webhook)
+Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (FR-COMM-03, module webhook)..." -ForegroundColor Yellow
 
 $randWh = Get-Random -Minimum 1000 -Maximum 9999
 $whBody = @{

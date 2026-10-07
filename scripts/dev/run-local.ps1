@@ -10,7 +10,7 @@
 # until Ctrl+C; infra; migrate; down (-Volumes also deletes the data and .local\); status.
 # Options: -Detach (up returns once everything answers), -Demo (demo profile: users, projects, tasks, notes, orders),
 # -DevTools (mvn spring-boot:run -Pdevtools instead of the jar), -Search (Typesense and the search index),
-# -SkipBuild (reuse apps\server\target\server-*.jar), -Volumes (with down).
+# -SkipBuild (reuse apps\server\target\server-*-exec.jar), -Volumes (with down).
 # Ports and names: DB_PORT [5432], SERVER_PORT [8080], MANAGEMENT_PORT [9090], WEB_PORT [4200], WEB_HOST [localhost],
 # MAILPIT_HTTP_PORT [8025], MAILPIT_SMTP_PORT [1025], TYPESENSE_PORT [8108], SMC_LOCAL_PROJECT [smartupcms-local].
 # Prerequisites: JDK 25 (JAVA_HOME or java on PATH), Node.js of .node-version with npm, Docker Desktop with Compose v2.
@@ -136,7 +136,8 @@ function Start-Infra {
 }
 
 function Get-ServerJar {
-    $jar = Get-ChildItem (Join-Path $Root 'apps\server\target') -Filter 'server-*.jar' -ErrorAction SilentlyContinue |
+    # The runnable jar has the exec classifier; the plain and testkit jars next to it are libraries.
+    $jar = Get-ChildItem (Join-Path $Root 'apps\server\target') -Filter 'server-*-exec.jar' -ErrorAction SilentlyContinue |
         Select-Object -First 1
     if ($jar) { return $jar.FullName }
     return $null
@@ -154,7 +155,7 @@ function Build-Server {
     Push-Location $Root
     try { Invoke-Native 'Maven build' { & $mvnw -B -q -DskipTests '-Djacoco.skip=true' -pl apps/server -am package } }
     finally { Pop-Location }
-    if (-not (Get-ServerJar)) { throw 'The build produced no apps\server\target\server-*.jar.' }
+    if (-not (Get-ServerJar)) { throw 'The build produced no apps\server\target\server-*-exec.jar.' }
 }
 
 # The environment the server reads (ADR-0027 names), for the host processes.

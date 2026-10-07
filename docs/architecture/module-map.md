@@ -92,6 +92,12 @@ OpenAPI обработчиков сменился с `kwh-subscription-controlle
 карте у него нет (карта описывает пакеты `apps/server`), его код и версия видны
 в реестре модулей. Образец — `examples/external-module` (модуль `library`).
 
+Провайдеры почты, SMS, мессенджеров, хранилища файлов и проверки файлов —
+SPI `libs/provider-spi` (`com.smartup24.cms.spi..`,
+[ADR-0011](../adr/ADR-0011-provider-spi.md)); он версионируется вместе с
+`libs/platform-api`, и совместимость обоих артефактов проверяет japicmp при
+сборке (ADR-0033, 4.1).
+
 ## Новый модуль
 
 1. Пакет `com.smartup24.cms.instance.<код>` с `package-info.java`: абзац о

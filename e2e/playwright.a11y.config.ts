@@ -9,6 +9,8 @@ const port = Number(process.env.A11Y_PORT ?? 4310);
 
 export default defineConfig({
   testDir: './tests/a11y',
+  // A focused test (test.only) left in a commit would silently drop the rest of the suite in CI.
+  forbidOnly: !!process.env.CI,
   fullyParallel: false,
   workers: 1,
   retries: 0,

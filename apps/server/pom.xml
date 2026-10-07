@@ -21,7 +21,8 @@
         <coverage.branch.minimum>0.69</coverage.branch.minimum>
         <!-- Tests tagged "large" (plan 10/10, item 3.9: a 50 MB file applied in a 512 MB heap) run only with -Pupl-large,
              those tagged "audit-large" (item 3.5: the audit list on fifty million rows) only with -Paudit-large,
-             those tagged "import-large" (item 5.8: an import of 10 000 rows in under 60 s) only with -Pimport-large. -->
+             those tagged "import-large" (item 5.8: an import of 10 000 rows in under 60 s) only with -Pimport-large.
+             The load job of .github/workflows/nightly.yml runs the three profiles every night. -->
         <test.groups></test.groups>
         <test.excludedGroups>large,audit-large,import-large</test.excludedGroups>
         <test.heap></test.heap>

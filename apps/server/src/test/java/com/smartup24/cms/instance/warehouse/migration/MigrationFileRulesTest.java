@@ -93,7 +93,7 @@ class MigrationFileRulesTest {
                 "do $$ begin execute format('drop table %I', 'audit_log_2027_01'); end $$;",
                 "do $$ begin delete from t where id = 1; end $$;"
             })
-    @DisplayName("AC-2/M-6: каждое деструктивное слово — красный")
+    @DisplayName("AC-2: каждое деструктивное слово — красный")
     void destructiveWordsAreRed(String sql) {
         assertThat(destructive("set lock_timeout = '2s';\nset statement_timeout = '60s';\n" + sql))
                 .isTrue();
@@ -108,7 +108,7 @@ class MigrationFileRulesTest {
                 "insert into t (a) values (1) on conflict (a) do update set b = excluded.b;",
                 "create trigger trg before update or delete on t for each row execute function f();"
             })
-    @DisplayName("AC-2/M-6: create or replace function, do update, тела функций и триггеры — не деструктивны")
+    @DisplayName("AC-2: create or replace function, do update, тела функций и триггеры — не деструктивны")
     void nonDestructiveIsGreen(String sql) {
         assertThat(destructive(sql)).isFalse();
     }

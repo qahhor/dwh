@@ -19,6 +19,8 @@ const onlyQuarantine = process.env.E2E_QUARANTINE === 'only';
 
 export default defineConfig({
   testDir: './tests/browser',
+  // A focused test (test.only) left in a commit would silently drop the rest of the suite in CI.
+  forbidOnly: !!process.env.CI,
   fullyParallel: false,
   workers: 1,
   retries: 0,
