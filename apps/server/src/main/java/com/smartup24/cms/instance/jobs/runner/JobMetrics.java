@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
@@ -68,7 +67,10 @@ public class JobMetrics {
                 .record(Math.max(0, elapsedNanos), TimeUnit.NANOSECONDS);
     }
 
-    @Scheduled(fixedDelayString = "${smc.metrics.backlog-interval:PT30S}", initialDelayString = "PT10S")
+    /**
+     * Reads the queue state into the gauges. The {@code jobs} core schedules nothing itself (AC-7): the application
+     * wiring calls this every half minute ({@code JobQueueMetricsSampler}).
+     */
     public void sample() {
         if (queue == null) {
             return;
