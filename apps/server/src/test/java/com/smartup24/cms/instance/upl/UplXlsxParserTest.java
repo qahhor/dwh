@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.upl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import com.smartup24.cms.instance.common.xlsx.XlsxLimits;
@@ -17,6 +18,8 @@ import com.smartup24.cms.instance.upl.parse.UplParseResult.ErrorRecord;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -327,6 +330,21 @@ class UplXlsxParserTest {
 
         assertThat(limited.rejectCode()).isEqualTo(UplXlsxParser.UPL_PKG_UNREADABLE);
         assertThat(parse(content, format()).outcome()).isEqualTo(UplParseResult.Outcome.VERIFIED);
+    }
+
+    @Test
+    @DisplayName("Файл, которого нет на диске, — нечитаемый; поток, который не читается, — ошибка ввода-вывода")
+    void missingFileAndBrokenStream(@TempDir Path dir) {
+        UplParseResult missing = parser.parse(dir.resolve("absent.xlsx"), format());
+        InputStream broken = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("TEST broken stream");
+            }
+        };
+
+        assertThat(missing.rejectCode()).isEqualTo(UplXlsxParser.UPL_PKG_UNREADABLE);
+        assertThatThrownBy(() -> parser.parse(broken, format())).isInstanceOf(UncheckedIOException.class);
     }
 
     private UplParseResult parse(byte[] content, FormatVersion format) {
