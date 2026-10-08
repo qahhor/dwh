@@ -43,7 +43,7 @@ networks.
 | `server` | Authentication, server-side authorization, validation, business transactions | `server-data` for local file storage |
 | `postgres` | Authoritative transactional state and audit records | `postgres-data` |
 | `typesense` | Derived search index; not an authorization source | `typesense-data` |
-| `clamav` | Untrusted quarantined upload bytes; malware verdicts fail closed | `clamav-data` for signatures |
+| `clamav` | Untrusted quarantined upload bytes; malware verdicts fail closed; hardened release image (`deploy/images/clamav`) | `clamav-data` for signatures |
 | `backup` | Dedicated read-only database role; encryption before persistence | `backups`, `backup-status` |
 | `migrate` | One-shot schema mutation with application database credentials | PostgreSQL schema history |
 

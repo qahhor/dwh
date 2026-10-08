@@ -210,8 +210,8 @@ secret files, database dumps, customer data, or decrypted backups.
 
 ## Verifying a release
 
-A stable SemVer tag publishes five `linux/amd64` and `linux/arm64` images:
-`server`, `web`, `backup`, `postgres`, and `typesense`. The GitHub Release also
+A stable SemVer tag publishes six `linux/amd64` and `linux/arm64` images:
+`server`, `web`, `backup`, `postgres`, `typesense`, and `clamav`. The GitHub Release also
 contains a versioned Compose bundle, SHA-256 checksums, SPDX and CycloneDX SBOMs,
 and provenance bundles. Images are signed keylessly with GitHub OIDC and Cosign;
 no long-lived signing secret is used.

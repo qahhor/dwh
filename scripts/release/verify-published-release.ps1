@@ -29,7 +29,7 @@ $cosign = (Get-Command cosign -ErrorAction Stop).Source
 $gh = (Get-Command gh -ErrorAction Stop).Source
 $images = [System.Collections.Generic.List[string]]::new()
 $owner = $Repository.Split('/')[0].ToLowerInvariant()
-foreach ($component in @('server', 'web', 'backup', 'postgres', 'typesense')) {
+foreach ($component in @('server', 'web', 'backup', 'postgres', 'typesense', 'clamav')) {
     $imageFile = Join-Path $releaseRoot "smartupcms-$component-$Version.image.txt"
     $spdxFile = Join-Path $releaseRoot "smartupcms-$component-$Version.spdx.json"
     $cyclonedxFile = Join-Path $releaseRoot "smartupcms-$component-$Version.cdx.json"

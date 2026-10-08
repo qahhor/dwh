@@ -13,11 +13,11 @@ owner. A commercial SLA cannot override a failed safety gate.
 - [ ] Release tag is immutable SemVer and resolves to the reviewed commit.
 - [ ] Required CI and DCO checks are green on that commit.
 - [ ] Server, web, and backup image digests match the release manifest.
-- [ ] Managed host evidence confirms all five running release containers were
+- [ ] Managed host evidence confirms all six running release containers were
       configured by complete `image@sha256` references, not tags alone.
 - [ ] Image signatures, provenance, and SBOMs verify successfully.
 - [ ] Target-side `verify-published-release.ps1` evidence verifies checksums,
-      five image signatures/attestations, and both SBOM formats.
+      six image signatures/attestations, and both SBOM formats.
 - [ ] No Critical/High accepted vulnerability lacks a documented owner,
       mitigation, expiry date, and release decision.
 - [ ] Changelog, migration notes, known limits, and rollback path are published.

@@ -60,6 +60,10 @@ try {
         "compose", "-f", "docker-compose.yml", "--profile", "tools", "--profile", "backup",
         "build", "server", "web", "postgres", "typesense", "backup"
     )
+    # The development Compose file has no ClamAV service; the hardened image is built from its Dockerfile.
+    Invoke-Docker -Arguments @(
+        "build", "--tag", "smartupcms/clamav:1.5.4-hardened", (Join-Path $repositoryRoot "deploy/images/clamav")
+    )
     # age-keygen prints the public key on stderr; Windows PowerShell 5.1 turns a redirected stderr line into a
     # terminating error under "Stop", so the call runs under "Continue" and is judged by its exit code.
     $previousPreference = $ErrorActionPreference
@@ -84,6 +88,7 @@ try {
         "APP_VERSION=dev",
         "POSTGRES_IMAGE=smartupcms/postgres:18-alpine-hardened",
         "TYPESENSE_IMAGE=smartupcms/typesense:27.1-hardened",
+        "CLAMAV_IMAGE=smartupcms/clamav:1.5.4-hardened",
         "ORGANIZATION_CODE=upgrade-test",
         "ORGANIZATION_NAME=Upgrade Test Organization",
         "DB_NAME=smartupcms",

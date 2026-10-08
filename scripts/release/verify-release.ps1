@@ -79,7 +79,7 @@ if ($workflow -and $usesMatches.Count -eq 0) {
     Add-ContractError 'Release workflow does not contain pinned actions.'
 }
 
-foreach ($image in @('server', 'web', 'backup', 'postgres', 'typesense')) {
+foreach ($image in @('server', 'web', 'backup', 'postgres', 'typesense', 'clamav')) {
     Assert-Matches $workflow "(?m)^\s*-?\s*image:\s*$image\s*$" "Release matrix is missing image '$image'."
     Assert-Matches $workflow ([regex]::Escape("smartupcms/$image")) "Release workflow is missing the versioned '$image' image reference."
 }
@@ -104,7 +104,7 @@ Assert-Matches $ciWorkflow '(?m)^\s*workflow_call:' 'ci.yml must be callable by 
 Assert-Matches $ciWorkflow 'gitleaks/gitleaks-action@' 'ci.yml must scan the Git history for secrets.'
 Assert-Matches $workflow 'rollback\.ps1' 'Release bundle must contain rollback automation.'
 Assert-Matches $workflow 'test-recovery\.ps1' 'Release bundle must contain recovery drill test.'
-Assert-Matches (Get-Content -LiteralPath (Join-Path $repoRoot 'scripts/security/scan-runtime-images.ps1') -Raw) 'clamav' 'Runtime image scanner must include ClamAV.'
+Assert-Matches (Get-Content -LiteralPath (Join-Path $repoRoot 'scripts/security/scan-runtime-images.ps1') -Raw) 'deploy/images/clamav' 'Runtime image scanner must build and scan the hardened ClamAV image.'
 Assert-Matches $workflow 'attest-build-provenance' 'Release workflow must emit GitHub build provenance attestations.'
 Assert-Matches $workflow 'cosign sign --yes' 'Release workflow must create keyless Cosign signatures.'
 Assert-Matches $workflow '@\$\{[^\r\n]+digest' 'Cosign and attestations must address images by digest.'
@@ -132,7 +132,8 @@ $dockerfiles = @(
     'apps/web/Dockerfile',
     'deploy/images/backup/Dockerfile',
     'deploy/images/postgres/Dockerfile',
-    'deploy/images/typesense/Dockerfile'
+    'deploy/images/typesense/Dockerfile',
+    'deploy/images/clamav/Dockerfile'
 )
 foreach ($dockerfile in $dockerfiles) {
     $absoluteDockerfile = Join-Path $repoRoot $dockerfile
@@ -153,7 +154,7 @@ foreach ($dockerfile in $dockerfiles) {
 
 $composePath = Join-Path $repoRoot 'deploy/compose/docker-compose.prod.yml'
 $compose = Get-Content -LiteralPath $composePath -Raw
-foreach ($image in @('server', 'web', 'backup', 'postgres', 'typesense')) {
+foreach ($image in @('server', 'web', 'backup', 'postgres', 'typesense', 'clamav')) {
     Assert-Matches $compose ([regex]::Escape("/${image}:" + '${APP_VERSION')) "Production Compose does not pin '$image' to APP_VERSION."
 }
 
@@ -162,4 +163,4 @@ if ($errors.Count -gt 0) {
     exit 1
 }
 
-Write-Host 'Release supply-chain contract passed: tag gate, pinned actions/bases, five signed multi-arch images, SBOM, provenance, checksums, and bundle.'
+Write-Host 'Release supply-chain contract passed: tag gate, pinned actions/bases, six signed multi-arch images, SBOM, provenance, checksums, and bundle.'

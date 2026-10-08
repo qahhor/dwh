@@ -102,7 +102,7 @@ try {
         if (Test-Path -LiteralPath $imagesTxtPath -PathType Leaf) {
             $approvedImages = @(Get-Content -LiteralPath $imagesTxtPath | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { $_.Trim() })
             $composeConfig = (& docker compose -f $ComposeFile --env-file $EnvFile config --format json | ConvertFrom-Json)
-            foreach ($serviceName in @('server', 'web', 'backup', 'postgres', 'typesense')) {
+            foreach ($serviceName in @('server', 'web', 'backup', 'postgres', 'typesense', 'clamav')) {
                 $serviceConfig = $composeConfig.services.$serviceName
                 if ($null -ne $serviceConfig -and -not [string]::IsNullOrWhiteSpace($serviceConfig.image)) {
                     $configuredImage = $serviceConfig.image.Trim()

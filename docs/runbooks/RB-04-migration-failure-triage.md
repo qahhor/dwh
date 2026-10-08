@@ -96,7 +96,7 @@ these steps in order:
    images, and inspect their repository digests:
 
    ```powershell
-   docker compose -f deploy/compose/docker-compose.prod.yml --env-file .env.production pull server web backup postgres typesense
+   docker compose -f deploy/compose/docker-compose.prod.yml --env-file .env.production pull server web backup postgres typesense clamav
    docker compose -f deploy/compose/docker-compose.prod.yml --env-file .env.production config --images
    docker image inspect <each-image-reference> --format '{{json .RepoDigests}}'
    ```

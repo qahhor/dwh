@@ -56,9 +56,9 @@ a database restored without its key loses those secrets, and the server does
 not start until the original key is back. Do not change the key on an existing
 installation: the start is refused while the stored secrets do not open.
 
-For Smartup-managed installations, also copy the five full `SERVER_IMAGE`,
-`WEB_IMAGE`, `BACKUP_IMAGE`, `POSTGRES_IMAGE`, and `TYPESENSE_IMAGE` references
-from the signed release bundle. Each must end in `@sha256:<digest>`; the managed
+For Smartup-managed installations, also copy the six full `SERVER_IMAGE`,
+`WEB_IMAGE`, `BACKUP_IMAGE`, `POSTGRES_IMAGE`, `TYPESENSE_IMAGE`, and
+`CLAMAV_IMAGE` references from the signed release bundle. Each must end in `@sha256:<digest>`; the managed
 host check rejects tag-only containers.
 
 Generate the age identity on a trusted workstation, store the private identity
@@ -100,15 +100,20 @@ successful backup as current. This threshold is independent of
 before the approved maximum age.
 
 Every upload is checked against executable signatures and strict MIME magic
-bytes before storage. Production Compose starts the official multi-architecture
-ClamAV image pinned by version and digest, persists signatures in `clamav-data`,
-and waits for its built-in health check before starting the server. Both
+bytes before storage. Production Compose starts the release's hardened ClamAV
+image (`clamav:${APP_VERSION}`, built from `deploy/images/clamav`: the official
+multi-architecture `clamav/clamav-debian` image pinned by version and digest,
+plus the current Debian security updates; scanned, signed and published with
+SBOMs like the other release images). It persists signatures in `clamav-data`,
+applies the `CLAMD_CONF_*` options through the upstream `/init`, runs clamd as
+the `clamav` user, and waits for its built-in health check before starting the
+server. Both
 `SMC_FILE_SCANNER_REQUIRED` and the ClamAV provider are forced on in this
 supported topology. The temporary object remains under an unpublished
 quarantine key until every active scanner returns `CLEAN`; an infected verdict
-or scanner failure deletes it. Operators may override `CLAMAV_IMAGE` only with
-another reviewed immutable image and must monitor signature freshness and
-scanner memory on the host.
+or scanner failure deletes it. `CLAMAV_IMAGE` takes the digest reference of the
+release's ClamAV image; another image is not supported. Operators must monitor
+signature freshness and scanner memory on the host.
 
 ## 3. Validate before first start
 

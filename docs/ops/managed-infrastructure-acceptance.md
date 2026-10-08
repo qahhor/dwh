@@ -29,7 +29,7 @@ profile, and hashed target identifiers. Never attach `.env`, API tokens, API
 token files, cookies, object contents, database dumps, or alert webhook URLs.
 
 Copy the non-secret template from the release bundle and provide secret values
-only through the process environment. The release workflow pre-fills all five
+only through the process environment. The release workflow pre-fills all six
 accepted `image@sha256` references in both production and acceptance templates:
 
 ```powershell
@@ -39,7 +39,7 @@ $env:AWS_ACCESS_KEY_ID = '<application-bucket-test-key>'
 $env:AWS_SECRET_ACCESS_KEY = '<application-bucket-test-secret>'
 ```
 
-On the Hetzner host, set the five `*_IMAGE` variables in `.env.production` to
+On the Hetzner host, set the six `*_IMAGE` variables in `.env.production` to
 those exact references, then run the read-only host check:
 
 ```powershell
@@ -232,7 +232,7 @@ authenticated `gh` plus `cosign` installed:
   -Repository qahhor/dwh -Version vX.Y.Z
 ```
 
-This independently verifies `SHA256SUMS`, five digest-addressed images, Cosign
+This independently verifies `SHA256SUMS`, six digest-addressed images, Cosign
 OIDC signatures, GitHub provenance attestations, and SPDX/CycloneDX documents.
 Deploy only the verified digests. Finish the production launch checklist with
 links to preflight, capacity, failure, alert, release-integrity, rollback, and

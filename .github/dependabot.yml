@@ -125,6 +125,7 @@ updates:
       - /deploy/images/backup
       - /deploy/images/postgres
       - /deploy/images/typesense
+      - /deploy/images/clamav
     schedule:
       interval: weekly
       day: monday

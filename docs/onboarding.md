@@ -32,7 +32,7 @@ Historical ADRs remain in the repository as decision records. An ADR marked
 | `libs/provider-spi` | Storage and delivery provider contracts |
 | `libs/platform-testkit`, `examples/external-module` | Test kit for modules outside the monorepo and an example module |
 | `deploy/compose` | Production Compose and environment template |
-| `deploy/images` | Hardened PostgreSQL, Typesense, proxy, and backup images |
+| `deploy/images` | Hardened PostgreSQL, Typesense, ClamAV, and backup images |
 | `scripts/prod` | Deploy, backup, restore, and release-contract checks |
 | `e2e` | Playwright configuration and critical-flow tests |
 | `docs/ops` | Active deployment and operations guidance |

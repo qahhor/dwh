@@ -58,6 +58,7 @@ $expectedImages = [ordered]@{
     backup = Get-Required $config 'ACCEPTANCE_EXPECTED_BACKUP_IMAGE'
     postgres = Get-Required $config 'ACCEPTANCE_EXPECTED_POSTGRES_IMAGE'
     typesense = Get-Required $config 'ACCEPTANCE_EXPECTED_TYPESENSE_IMAGE'
+    clamav = Get-Required $config 'ACCEPTANCE_EXPECTED_CLAMAV_IMAGE'
 }
 foreach ($entry in $expectedImages.GetEnumerator()) {
     if ($entry.Value -notmatch '^ghcr\.io/[a-z0-9_.-]+/smartupcms/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$') {

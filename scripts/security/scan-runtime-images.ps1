@@ -1,12 +1,14 @@
 param(
     [string]$ImageRegistry = "smartupcms",
     [string]$AppVersion = "dev",
-    [string]$ClamavImage = "clamav/clamav-debian:1.5.4@sha256:df80497be841a8ad57f95e04f978216241457f8f8ad608f1f682e3cd0fe63c45",
+    [string]$ClamavImage = "smartupcms/clamav:1.5.4-hardened",
     [string]$TrivyImage = "aquasec/trivy:0.74.0",
     [string]$TrivyCacheVolume = "smc-trivy-cache"
 )
 
 $ErrorActionPreference = "Stop"
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
+$clamavContext = Join-Path $repoRoot "deploy/images/clamav"
 
 $images = @(
     "${ImageRegistry}/server:${AppVersion}",
@@ -17,16 +19,16 @@ $images = @(
     $ClamavImage
 )
 
+# The development Compose file has no ClamAV service: the hardened image is built here from its Dockerfile, so the
+# scan never reads a stale local tag.
+Write-Host "Building runtime image: $ClamavImage" -ForegroundColor Yellow
+& docker build --pull --tag $ClamavImage $clamavContext
+if ($LASTEXITCODE -ne 0) {
+    throw "Required runtime image could not be built: $ClamavImage"
+}
+
 foreach ($image in $images) {
     & docker image inspect $image *> $null
-    if ($LASTEXITCODE -ne 0 -and $image -eq $ClamavImage) {
-        Write-Host "Pulling runtime image: $image" -ForegroundColor Yellow
-        & docker pull $image
-        if ($LASTEXITCODE -ne 0) {
-            throw "Required runtime image could not be pulled: $image"
-        }
-        & docker image inspect $image *> $null
-    }
     if ($LASTEXITCODE -ne 0) {
         throw "Required runtime image was not built: $image"
     }
