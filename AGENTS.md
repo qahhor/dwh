@@ -125,6 +125,10 @@ The full list with commands is in `docs/ai-context.md` §6. In short:
   environment (`DB_PORT`, `SERVER_PORT`, `MANAGEMENT_PORT`, `WEB_PORT`,
   `MAILPIT_HTTP_PORT`, `MAILPIT_SMTP_PORT`, `SMC_LOCAL_PROJECT`), so a parallel
   stand takes its own. The admin password and logs stay in the ignored `.local/`.
+- At most 2–3 parallel AI agents on one workstation (owner, 2026-10-08); heavy
+  checks (full reactor verify, e2e stacks, ZAP, Testcontainers, `-P*-large`)
+  run one at a time; stop an agent as soon as it reports. Maven's own JVM is
+  capped by `.mvn/jvm.config` (`-Xmx2g`).
 - Machine-local extras, when present, live in the ignored `.tools/` folder (a
   JDK, a short `TEMP`); they are optional. Point `JAVA_HOME` at a JDK 25 before
   running the scripts. In a git worktree run `mvnw.cmd` from the worktree, never
