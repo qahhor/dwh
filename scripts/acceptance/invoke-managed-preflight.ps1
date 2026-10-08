@@ -87,6 +87,7 @@ $expectedImages = [ordered]@{
     backup = Get-RequiredValue $config 'ACCEPTANCE_EXPECTED_BACKUP_IMAGE'
     postgres = Get-RequiredValue $config 'ACCEPTANCE_EXPECTED_POSTGRES_IMAGE'
     typesense = Get-RequiredValue $config 'ACCEPTANCE_EXPECTED_TYPESENSE_IMAGE'
+    clamav = Get-RequiredValue $config 'ACCEPTANCE_EXPECTED_CLAMAV_IMAGE'
 }
 $accountId = Get-RequiredValue $config 'ACCEPTANCE_CLOUDFLARE_ACCOUNT_ID'
 $zoneId = Get-RequiredValue $config 'ACCEPTANCE_CLOUDFLARE_ZONE_ID'

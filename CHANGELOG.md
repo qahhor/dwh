@@ -1996,6 +1996,20 @@ green); the behaviour changes are listed under «Changed».
 
 ### Security
 
+- Hardened ClamAV image (2026-10-08) — `deploy/images/clamav` builds the
+  official `clamav/clamav-debian:1.5.4` (pinned by digest) with the current
+  Debian security updates, like the PostgreSQL and Typesense images. The base
+  carried 7 HIGH fixable findings (OpenSSL CVE-2026-75804, CVE-2026-84782;
+  PCRE2 CVE-2026-103111); the built image has none (Trivy, HIGH/CRITICAL,
+  `--ignore-unfixed`). The upstream `/init` stays the entrypoint, so the
+  `CLAMD_CONF_*` options apply as before and clamd runs as `clamav`. The
+  release builds, scans, signs and publishes it with SBOMs and provenance as
+  `smartupcms/clamav`; production Compose runs
+  `${IMAGE_REGISTRY}/clamav:${APP_VERSION}` and `CLAMAV_IMAGE` takes its digest
+  reference (it no longer names the upstream image; the managed host check
+  requires `ACCEPTANCE_EXPECTED_CLAMAV_IMAGE`). The CI runtime image scan builds
+  it from the Dockerfile, `ClamAvDaemonLimitsIntegrationTest` runs against it,
+  and Dependabot follows its base.
 - Dependency updates (2026-10-08) — Jackson 3 3.1.5 → 3.1.7 and Jackson 2
   2.21.5 → 2.21.7 (through springdoc/swagger-core): the root `pom.xml` imports
   both Jackson BOMs ahead of Spring Boot's, `jackson.version` and
