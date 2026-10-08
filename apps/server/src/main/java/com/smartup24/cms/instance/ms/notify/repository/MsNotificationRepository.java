@@ -10,6 +10,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class MsNotificationRepository {
 
+    /** The first key of the advisory locks on a source code, apart from the other lock spaces of the application. */
+    static final int SOURCE_LOCK_SPACE = 731_001;
+
     private final JdbcClient jdbcClient;
 
     public MsNotificationRepository(JdbcClient jdbcClient) {
@@ -97,6 +100,19 @@ public class MsNotificationRepository {
                 set is_read = true
                 where user_id = :userId and not is_read
                 """).param("userId", userId).update();
+    }
+
+    /**
+     * Serializes, until the current transaction ends, the senders of one source code to one user: of two nodes that
+     * decide together, the second waits and then sees the first one's row.
+     */
+    public void lockSource(Long userId, String sourceCode) {
+        jdbcClient
+                .sql("select pg_advisory_xact_lock(:space, hashtext(:key))")
+                .param("space", SOURCE_LOCK_SPACE)
+                .param("key", userId + ":" + sourceCode)
+                .query((rs, rowNum) -> true)
+                .single();
     }
 
     public boolean hasRecentNotification(Long userId, String sourceCode, Instant since) {
