@@ -7,7 +7,6 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.common.security.SecurityEventLog;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class AuditLogService implements SecurityEventLog {
+public class AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
     private final PlatformMetrics platformMetrics;
@@ -84,7 +83,6 @@ public class AuditLogService implements SecurityEventLog {
         }
     }
 
-    @Override
     @Transactional
     public void logSecurityEvent(
             String eventType, Long userId, String ip, String userAgent, Map<String, Object> details) {
