@@ -66,6 +66,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT` | `smc.files.scanner.clamav.connect-timeout` | `3s` |
 | `SMC_FILE_SCANNER_CLAMAV_ENABLED` | `smc.files.scanner.clamav.enabled` | `false` |
 | `SMC_FILE_SCANNER_CLAMAV_HOST` | `smc.files.scanner.clamav.host` | `clamav` |
+| `SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE` | `smc.files.scanner.clamav.max-stream-size` | `60MB` |
 | `SMC_FILE_SCANNER_CLAMAV_PORT` | `smc.files.scanner.clamav.port` | `3310` |
 | `SMC_FILE_SCANNER_CLAMAV_READ_TIMEOUT` | `smc.files.scanner.clamav.read-timeout` | `60s` |
 | `SMC_FILE_SCANNER_REQUIRED` | `smc.files.scanner.required` | `false` |
@@ -141,6 +142,13 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_TYPESENSE_ENABLED` | `smc.typesense.enabled` | `true` |
 | `SMC_TYPESENSE_SYNC_ON_STARTUP` | `smc.typesense.sync-on-startup` | `true` |
 | `SMC_TYPESENSE_URL` | `smc.typesense.url` | `http://typesense:8108` |
+| `SMC_UPLOADS_XLSX_MAX_COLUMNS` | `smc.uploads.xlsx.max-columns` | `16384` |
+| `SMC_UPLOADS_XLSX_MAX_COMPRESSION_RATIO` | `smc.uploads.xlsx.max-compression-ratio` | `200` |
+| `SMC_UPLOADS_XLSX_MAX_ENTRIES` | `smc.uploads.xlsx.max-entries` | `1000` |
+| `SMC_UPLOADS_XLSX_MAX_ROWS` | `smc.uploads.xlsx.max-rows` | `1048576` |
+| `SMC_UPLOADS_XLSX_MAX_SHARED_STRINGS` | `smc.uploads.xlsx.max-shared-strings` | `5000000` |
+| `SMC_UPLOADS_XLSX_MAX_SHARED_STRINGS_SIZE` | `smc.uploads.xlsx.max-shared-strings-size` | `256MB` |
+| `SMC_UPLOADS_XLSX_MAX_UNPACKED_SIZE` | `smc.uploads.xlsx.max-unpacked-size` | `1GB` |
 | `SMC_WEBHOOKS_ALLOWED_HOSTS` | `smc.webhooks.allowed-hosts` | пусто |
 | `SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES` | `smc.webhooks.allow-private-addresses` | `false` |
 | `SMC_WEBHOOKS_CONNECT_TIMEOUT` | `smc.webhooks.connect-timeout` | `3s` |

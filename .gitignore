@@ -73,3 +73,6 @@ graphify-out/
 
 # --- Local run from the sources: generated admin password, logs, storage (scripts/dev/run-local.*) ---
 /.local/
+
+# --- DAST reports of a local ZAP baseline run (scripts/security/run-zap-baseline.ps1) ---
+/zap-report/

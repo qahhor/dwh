@@ -9,6 +9,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import java.lang.reflect.Method;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,46 +26,44 @@ import org.springframework.web.method.annotation.ExceptionHandlerMethodResolver;
 class ErrorModelTest {
 
     /** Internal exceptions: never the outcome of a request, so they are not part of the API's error model. */
-    static final Map<String, String> INTERNAL = Map.ofEntries(
-            Map.entry(
-                    "com.smartup24.cms.instance.warehouse.migration.SchemaVersionMismatchException",
-                    "stops the application at startup when the database schema does not match the build"),
-            Map.entry(
-                    "com.smartup24.cms.instance.report.service.ReportService$ClientAbortException",
-                    "the client closed the connection of a streamed export: there is no response left to write"),
-            Map.entry(
-                    "com.smartup24.cms.instance.search.repository.SearchProjectionReader$DocumentTooLargeException",
-                    "caught by the indexer, which skips the document and records it"),
-            Map.entry(
-                    "com.smartup24.cms.instance.search.typesense.TypesenseException",
-                    "a failure of the search engine, caught by its callers (search falls back to PostgreSQL)"),
-            Map.entry(
-                    "com.smartup24.cms.instance.warehouse.raw.JdbcRawWriter$CopyFailed",
-                    "carries a server refusal out of the COPY callback and is unwrapped by the writer itself"),
-            Map.entry(
-                    "com.smartup24.cms.instance.jobs.api.JobNotRetryableException",
-                    "ends a queued job, never a request: the job runner records it and marks the job failed at once"),
-            Map.entry(
-                    "com.smartup24.cms.instance.report.imports.ImportFailure",
-                    "ends an import job, never a request: the job records its code in the import's journal row"),
-            Map.entry(
-                    "com.smartup24.cms.instance.report.imports.ImportFile$Unreadable",
-                    "a file the import job cannot read, caught by the job and recorded as IMPORT_UNREADABLE"),
-            Map.entry(
-                    "com.smartup24.cms.instance.common.module.ModuleManifestException",
-                    "stops the application at startup when a module cannot run on this platform (ADR-0033, 6.3)"),
-            Map.entry(
-                    "com.smartup24.cms.platform.api.entity.hook.EntityRefusal",
-                    "the refusal of a module's hook in the platform API; the runtime turns it into an ApiException (ADR-0033)"),
-            Map.entry(
-                    "com.smartup24.cms.instance.common.entity.runtime.EntityHookMisuse",
-                    "a module's hook misused the values of a save: its defect, answered 500 and logged (ADR-0032, 6.17)"));
+    static final Map<String, String> INTERNAL = pairs(
+            "com.smartup24.cms.instance.warehouse.migration.SchemaVersionMismatchException",
+            "stops the application at startup when the database schema does not match the build",
+            "com.smartup24.cms.instance.report.service.ReportService$ClientAbortException",
+            "the client closed the connection of a streamed export: there is no response left to write",
+            "com.smartup24.cms.instance.search.repository.SearchProjectionReader$DocumentTooLargeException",
+            "caught by the indexer, which skips the document and records it",
+            "com.smartup24.cms.instance.search.typesense.TypesenseException",
+            "a failure of the search engine, caught by its callers (search falls back to PostgreSQL)",
+            "com.smartup24.cms.instance.warehouse.raw.JdbcRawWriter$CopyFailed",
+            "carries a server refusal out of the COPY callback and is unwrapped by the writer itself",
+            "com.smartup24.cms.instance.jobs.api.JobNotRetryableException",
+            "ends a queued job, never a request: the job runner records it and marks the job failed at once",
+            "com.smartup24.cms.instance.report.imports.ImportFailure",
+            "ends an import job, never a request: the job records its code in the import's journal row",
+            "com.smartup24.cms.instance.report.imports.ImportFile$Unreadable",
+            "a file the import job cannot read, caught by the job and recorded as IMPORT_UNREADABLE",
+            "com.smartup24.cms.instance.common.xlsx.XlsxGuard$Rejected",
+            "an xlsx out of its limits (plan 10/10, item 7.6), caught by the import and upload readers as unreadable",
+            "com.smartup24.cms.instance.common.module.ModuleManifestException",
+            "stops the application at startup when a module cannot run on this platform (ADR-0033, 6.3)",
+            "com.smartup24.cms.platform.api.entity.hook.EntityRefusal",
+            "the refusal of a module's hook in the platform API; the runtime turns it into an ApiException (ADR-0033)",
+            "com.smartup24.cms.instance.common.entity.runtime.EntityHookMisuse",
+            "a module's hook misused the values of a save: its defect, answered 500 and logged (ADR-0032, 6.17)");
 
     /**
      * Exceptions of modules not yet moved to the model. Empty since the fnd hierarchy joined it; kept so a temporary
      * exemption stays visible, and the check below fails when a listed class is already on the model.
      */
     static final Set<String> PENDING = Set.of();
+
+    /** A map of name and reason pairs: more pairs than {@code Map.of} takes. */
+    private static Map<String, String> pairs(String... namesAndReasons) {
+        Map<String, String> pairs = new LinkedHashMap<>();
+        for (int i = 0; i < namesAndReasons.length; i += 2) pairs.put(namesAndReasons[i], namesAndReasons[i + 1]);
+        return Map.copyOf(pairs);
+    }
 
     private static JavaClasses classes;
 

@@ -25,6 +25,11 @@ List the exact commands and results:
 Describe affected data, permissions, API contracts, deployment behavior, and
 the safe rollback path. Write `None` only after checking each area.
 
+- [ ] Threat model reviewed: [`docs/security/threat-model.md`](../docs/security/threat-model.md)
+      is updated (with a new date) when this change adds or changes an endpoint, a
+      permission, an upload or file type, an outbound provider, a token or secret,
+      a module or deployment boundary; otherwise it is not affected
+
 ## UI changes
 
 - [ ] Not applicable

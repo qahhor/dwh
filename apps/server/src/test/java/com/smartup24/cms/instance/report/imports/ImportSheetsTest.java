@@ -8,7 +8,10 @@ import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Column;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Option;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Row;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Template;
+import com.smartup24.cms.instance.common.xlsx.XlsxGuard;
+import com.smartup24.cms.instance.common.xlsx.XlsxLimits;
 import com.smartup24.cms.instance.report.repository.ReportImportRepository.ErrorRow;
+import com.smartup24.cms.instance.support.XlsxBombs;
 import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -112,7 +115,7 @@ class ImportSheetsTest {
             sheet.value(5, 3, "beyond the keys");
             book.finish();
         }
-        try (ImportFile read = ImportFile.open(file)) {
+        try (ImportFile read = ImportFile.open(file, XlsxLimits.defaults())) {
             List<String> keys = read.keys();
             assertThat(keys).containsExactly("code", "flag", "amount");
             assertThat(read.count(keys, 10)).isEqualTo(2);
@@ -135,7 +138,21 @@ class ImportSheetsTest {
     void unreadable() throws Exception {
         Path file = dir.resolve("broken.xlsx");
         Files.writeString(file, "not a zip");
-        assertThatThrownBy(() -> ImportFile.open(file)).isInstanceOf(ImportFile.Unreadable.class);
+        assertThatThrownBy(() -> ImportFile.open(file, XlsxLimits.defaults()))
+                .isInstanceOf(ImportFile.Unreadable.class);
+    }
+
+    @Test
+    @DisplayName("plan 10/10, item 7.6: a zip bomb is refused before the reader opens it")
+    void zipBombIsRefused() throws Exception {
+        Path bomb = XlsxBombs.bomb(dir.resolve("bomb.xlsx"), 256);
+
+        assertThatThrownBy(() -> ImportFile.open(bomb, XlsxLimits.defaults()))
+                .isInstanceOf(ImportFile.Unreadable.class)
+                .cause()
+                .isInstanceOfSatisfying(
+                        XlsxGuard.Rejected.class,
+                        rejected -> assertThat(rejected.limit()).isEqualTo(XlsxGuard.Limit.COMPRESSION_RATIO));
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.smartup24.cms.instance.report.imports;
 
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter;
+import com.smartup24.cms.instance.common.xlsx.XlsxGuard;
+import com.smartup24.cms.instance.common.xlsx.XlsxLimits;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
@@ -42,9 +44,13 @@ final class ImportFile implements AutoCloseable {
         this.book = book;
     }
 
-    static ImportFile open(Path path) {
+    /** Opens the file once it is within {@code limits} (plan 10/10, item 7.6): a zip bomb is refused unread. */
+    static ImportFile open(Path path, XlsxLimits limits) {
         try {
+            XlsxGuard.check(path, limits);
             return new ImportFile(new ReadableWorkbook(path.toFile()));
+        } catch (XlsxGuard.Rejected outOfBounds) {
+            throw new Unreadable("The import file is out of the xlsx limits", outOfBounds);
         } catch (IOException | ExcelReaderException unreadable) {
             throw new Unreadable("The import file is not an xlsx workbook", unreadable);
         }

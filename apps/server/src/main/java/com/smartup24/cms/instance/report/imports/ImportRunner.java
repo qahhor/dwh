@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.common.entity.importing.EntityImporter;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Result;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.RowOutcome;
 import com.smartup24.cms.instance.common.entity.importing.EntityImporter.Template;
+import com.smartup24.cms.instance.common.xlsx.XlsxLimits;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.report.repository.ReportImportRepository;
@@ -56,6 +57,7 @@ class ImportRunner {
     private final ReportImportRepository repo;
     private final MfFileService files;
     private final StorageProvider storage;
+    private final XlsxLimits limits;
     private final MdI18nService i18n;
 
     ImportRunner(
@@ -63,12 +65,14 @@ class ImportRunner {
             ReportImportRepository repo,
             MfFileService files,
             StorageProvider storage,
-            MdI18nService i18n) {
+            MdI18nService i18n,
+            XlsxLimits limits) {
         this.importer = importer;
         this.repo = repo;
         this.files = files;
         this.storage = storage;
         this.i18n = i18n;
+        this.limits = limits;
     }
 
     /** Runs the import as the signed-in person, who is its owner. */
@@ -78,7 +82,7 @@ class ImportRunner {
         Map<String, String> dictionary = i18n.effectiveDictionary(row.lang());
         Function<String, String> text = key -> dictionary.getOrDefault(key, key);
         Path spooled = spool(row);
-        try (ImportFile file = ImportFile.open(spooled)) {
+        try (ImportFile file = ImportFile.open(spooled, limits)) {
             List<String> keys = file.keys();
             List<ErrorRow> structure = ImportStructure.problems(template, keys, text);
             if (!structure.isEmpty()) {

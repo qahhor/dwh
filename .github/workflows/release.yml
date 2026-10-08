@@ -41,6 +41,11 @@ jobs:
             exit 1
           }
 
+      # Plan 10/10, item 7.6: no release with a threat model reviewed more than 30 days before the release commit.
+      - name: Require a threat model reviewed within 30 days
+        shell: pwsh
+        run: ./scripts/security/test-threat-model-freshness.ps1 -MaxAgeDays 30 -AsOf (git log -1 --format=%cs $env:GITHUB_SHA)
+
   # The release is checked by the same jobs as every pull request: no reduced copy of CI to drift apart from it.
   # The Gitleaks secret scan runs in its security job.
   ci:

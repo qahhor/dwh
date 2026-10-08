@@ -262,6 +262,12 @@ jobs:
         shell: pwsh
         run: ./scripts/docs/test-repository-hygiene.ps1
 
+      # Plan 10/10, item 7.6: a pull request is warned when the threat model is older than 30 days; the release
+      # workflow fails on it, judged on the release commit's date.
+      - name: Check the threat model date
+        shell: pwsh
+        run: ./scripts/security/test-threat-model-freshness.ps1 -WarnOnly
+
       - name: Validate branch and tag rulesets
         shell: pwsh
         run: ./scripts/github/test-rulesets.ps1
@@ -308,7 +314,8 @@ jobs:
     name: e2e (clean deploy + Playwright Chromium, shard ${{ matrix.shard }}/2)
     runs-on: ubuntu-24.04
     needs: [backend, frontend, release-config]
-    timeout-minutes: 30
+    # Shard 2 also pulls the ZAP image and runs the DAST baseline (plan 10/10, item 7.7).
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -402,6 +409,26 @@ jobs:
           INSTANCE_BASE_URL: http://localhost:4201
           E2E_QUARANTINE: only
         run: npx playwright test --pass-with-no-tests
+
+      # Plan 10/10, item 7.7 (DAST): ZAP baseline, passive, against the web origin and every OpenAPI operation of
+      # the stack; fails on a High alert. One shard is enough; shard 1 already scans the images.
+      - name: DAST baseline (ZAP)
+        if: matrix.shard == 2
+        shell: pwsh
+        run: ./scripts/security/run-zap-baseline.ps1 -WebUrl http://localhost:4200 -OutputDir zap-report
+
+      - name: Upload ZAP report
+        if: always() && matrix.shard == 2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: zap-baseline-report
+          path: |
+            zap-report/*.html
+            zap-report/*.md
+            zap-report/*.json
+            !zap-report/openapi.json
+          if-no-files-found: ignore
+          retention-days: 14
 
       # Last, because it takes the database away (plan 10/10, item 0.7): readiness answers 503 within 30 s of
       # stopping postgres and 200 again after it starts. One shard is enough; shard 1 already scans the images.

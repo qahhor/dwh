@@ -104,6 +104,7 @@ x-server-common: &server-common
     SMC_FILE_SCANNER_CLAMAV_PORT: ${SMC_FILE_SCANNER_CLAMAV_PORT:-3310}
     SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT: ${SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT:-3s}
     SMC_FILE_SCANNER_CLAMAV_READ_TIMEOUT: ${SMC_FILE_SCANNER_CLAMAV_READ_TIMEOUT:-60s}
+    SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE: ${SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE:-60MB}
     SMC_RATE_LIMIT_PUBLIC_READ_PER_MINUTE: ${SMC_RATE_LIMIT_PUBLIC_READ_PER_MINUTE:-600}
     # ADR-0034: X-Forwarded-For is believed only from the web container's network (pinned below).
     SMC_SECURITY_TRUSTED_PROXIES: ${SMC_SECURITY_TRUSTED_PROXIES:-${SMC_FRONTEND_SUBNET:-172.30.80.0/24}}
@@ -292,6 +293,15 @@ services:
     # release and its immutable OCI index digest.
     image: ${CLAMAV_IMAGE:-clamav/clamav-debian:1.5.4@sha256:df80497be841a8ad57f95e04f978216241457f8f8ad608f1f682e3cd0fe63c45}
     restart: unless-stopped
+    # The image's /init writes every CLAMD_CONF_<Option> into clamd.conf before
+    # clamd starts. Plan 10/10, item 7.6: a 50 MiB upload (FR-FILE-02) is
+    # scanned whole; the server stops a stream at 60 MiB itself
+    # (SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE), below StreamMaxLength. Inflated
+    # parts of an archive are scanned up to MaxFileSize each, MaxScanSize in all.
+    environment:
+      CLAMD_CONF_StreamMaxLength: 64M
+      CLAMD_CONF_MaxFileSize: 100M
+      CLAMD_CONF_MaxScanSize: 400M
     volumes:
       - clamav-data:/var/lib/clamav
     networks: [backend, egress]
