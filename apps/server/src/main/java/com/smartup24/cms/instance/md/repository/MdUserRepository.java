@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -77,6 +78,14 @@ public class MdUserRepository {
                 from md_users
                 where login = :ident or email = :ident
                 """).param("ident", clean).query(this::mapUser).optional();
+    }
+
+    /** The ids of active users with two-factor sign-in on. */
+    public List<Long> activeTwoFactorUserIds() {
+        return jdbcClient
+                .sql("select id from md_users where is_2fa_enabled and state = 'A' order by id")
+                .query(Long.class)
+                .list();
     }
 
     public Optional<UserRecord> findByLogin(String login) {

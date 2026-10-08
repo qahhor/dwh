@@ -11,7 +11,7 @@ import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.CreateOrgUnitDto;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.OrgUnitView;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.ScopeRuleDto;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.UpdateOrgUnitDto;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,7 +1,9 @@
-package com.smartup24.cms.instance.md.pref;
+package com.smartup24.cms.instance.md.api;
 
 /**
- * Biruni/Smartup Master Data Preferences and Constants (MdPref).
+ * Master data constants other modules share: role codes, user states and form codes. They are published in the api
+ * package because a compile-time constant is inlined into its user's bytecode, so only the source shows the
+ * dependency; other modules read them only from here (plan 10/10, item 1.3).
  */
 public final class MdPref {
     private MdPref() {}

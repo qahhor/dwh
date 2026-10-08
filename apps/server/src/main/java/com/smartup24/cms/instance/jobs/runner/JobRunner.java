@@ -5,6 +5,8 @@ import com.smartup24.cms.instance.jobs.api.JobAttempt;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.jobs.api.JobNotRetryableException;
 import com.smartup24.cms.instance.jobs.api.JobQueue;
+import com.smartup24.cms.instance.jobs.api.JobQueueDriver;
+import com.smartup24.cms.instance.jobs.api.JobSwitch;
 import com.smartup24.cms.instance.jobs.config.JobProperties;
 import com.smartup24.cms.instance.jobs.repository.JobQueueRepository;
 import com.smartup24.cms.instance.jobs.repository.JobQueueRepository.ClaimedRow;
@@ -46,7 +48,7 @@ import tools.jackson.databind.ObjectMapper;
  * item 4.2).
  */
 @Component
-public class JobRunner implements JobQueue {
+public class JobRunner implements JobQueue, JobQueueDriver {
 
     /** The switch key in the instance settings; with no such setting, jobs run. */
     public static final String JOBS_ENABLED_KEY = JobSwitch.KEY;
@@ -117,6 +119,7 @@ public class JobRunner implements JobQueue {
      * the advisory lock enqueues, the other returns 0 at once; the conditional update would stop a duplicate even
      * without the lock, which only spares the second node the wait on the schedule rows.
      */
+    @Override
     public int enqueueDue() {
         Integer queued = tx.execute(status -> queue.tryEnqueueLock() ? queue.enqueueDue(handlerCodes) : 0);
         return queued == null ? 0 : queued;
@@ -130,6 +133,7 @@ public class JobRunner implements JobQueue {
      *
      * @return the number of jobs that succeeded
      */
+    @Override
     public int runQueued() {
         int done = 0;
         while (true) {
@@ -141,6 +145,12 @@ public class JobRunner implements JobQueue {
                 done++;
             }
         }
+    }
+
+    /** Reads the queue state into the gauges; every node samples, whether or not it runs jobs (item 7.3). */
+    @Override
+    public void sampleGauges() {
+        metrics.sample();
     }
 
     /**

@@ -3,8 +3,8 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.api.MdUserIdentity;
-import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.search.service.SearchChangePublisher;
@@ -278,6 +278,11 @@ public class MdUserService {
     }
 
     @Transactional(readOnly = true)
+    /** The ids of active users with two-factor sign-in on, for the start check of their code channels. */
+    public List<Long> activeTwoFactorUserIds() {
+        return userRepository.activeTwoFactorUserIds();
+    }
+
     public Optional<AuthUser> findAuthUserByLogin(String login) {
         return userRepository.findByLogin(login).map(AuthUser::from);
     }

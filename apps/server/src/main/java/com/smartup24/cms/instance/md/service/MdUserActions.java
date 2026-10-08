@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.platform.api.entity.hook.EntityActionCall;
 import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
 import com.smartup24.cms.platform.api.entity.hook.EntityValues;

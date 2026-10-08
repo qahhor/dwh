@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos;
 import com.smartup24.cms.instance.search.service.FieldPolicy;
 import com.smartup24.cms.instance.search.service.SearchFieldPolicies;
 import com.smartup24.cms.instance.search.service.SearchQueryPolicy;

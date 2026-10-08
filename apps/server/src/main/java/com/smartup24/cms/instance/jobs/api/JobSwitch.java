@@ -1,8 +1,9 @@
-package com.smartup24.cms.instance.jobs.runner;
+package com.smartup24.cms.instance.jobs.api;
 
 /**
  * Whether the runner may take jobs now. The application reads the switch {@code jobs_enabled} from the instance
- * settings through the settings' owner ({@code JobsConfig}, ADR-0026); a runner built by hand runs always.
+ * settings through the settings' owner ({@code config.jobs.JobSwitchConfiguration}, ADR-0026); a runner built by
+ * hand runs always.
  */
 @FunctionalInterface
 public interface JobSwitch {

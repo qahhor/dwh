@@ -5,7 +5,7 @@ import static org.mockito.Mockito.*;
 
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.*;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.service.*;
 import com.smartup24.cms.instance.search.typesense.*;

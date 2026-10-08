@@ -59,6 +59,11 @@ class ModuleBoundariesTest {
             "upl",
             "warehouse",
             "webhook");
+    /**
+     * Modules of the platform the business modules stand on: they depend on no business module. A platform contract
+     * in {@code common} ({@code AuditActorContext}, {@code SecurityEventLog}) inverts what they would need from one.
+     */
+    static final List<String> INFRASTRUCTURE = List.of("jobs", "units", "warehouse");
 
     private static JavaClasses classes;
 
@@ -193,6 +198,77 @@ class ModuleBoundariesTest {
     }
 
     @Test
+    @DisplayName("1.3: the wiring (config) reaches modules only through their service or api package")
+    void wiringReachesModulesThroughServiceOrApi() {
+        // Strict: what the wiring needs from a module (a filter, a probe, a driver) the module publishes as a contract
+        // in its api package; a module registers its own MVC and health parts where it can.
+        ArchRule rule = classes()
+                .that()
+                .resideInAPackage(ROOT + ".config..")
+                .should(reachModulesOnlyThroughServiceOrApi())
+                .as("the wiring reaches modules only through their service or api package");
+        rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("1.3: no module depends on the wiring (config)")
+    void noModuleDependsOnTheWiring() {
+        String[] modules =
+                MODULES.stream().map(module -> ROOT + "." + module + "..").toArray(String[]::new);
+        ArchRule rule = noClasses()
+                .that()
+                .resideInAnyPackage(modules)
+                .or()
+                .resideInAPackage(ROOT + ".common..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage(ROOT + ".config..")
+                .as("no module depends on the wiring");
+        rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("1.3: infrastructure modules (jobs, units, warehouse) depend on no business module")
+    void infrastructureDependsOnNoBusinessModule() {
+        String[] infrastructure = INFRASTRUCTURE.stream()
+                .map(module -> ROOT + "." + module + "..")
+                .toArray(String[]::new);
+        String[] business = MODULES.stream()
+                .filter(module -> !INFRASTRUCTURE.contains(module))
+                .map(module -> ROOT + "." + module + "..")
+                .toArray(String[]::new);
+        ArchRule rule = noClasses()
+                .that()
+                .resideInAnyPackage(infrastructure)
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(business)
+                .as("infrastructure modules depend on no business module; a platform contract in common inverts it");
+        rule.check(classes);
+    }
+
+    private static ArchCondition<JavaClass> reachModulesOnlyThroughServiceOrApi() {
+        return new ArchCondition<>("reach modules only through their service or api package") {
+            @Override
+            public void check(JavaClass source, ConditionEvents events) {
+                source.getDirectDependenciesFromSelf().forEach(dependency -> {
+                    JavaClass target = dependency.getTargetClass();
+                    Optional<String> to = moduleOf(target);
+                    if (to.isEmpty()) {
+                        return;
+                    }
+                    String prefix = ROOT + "." + to.get() + ".";
+                    String pkg = target.getPackageName() + ".";
+                    if (!pkg.startsWith(prefix + "service.") && !pkg.startsWith(prefix + "api.")) {
+                        events.add(SimpleConditionEvent.violated(
+                                dependency, "config -> " + to.get() + ": " + dependency.getDescription()));
+                    }
+                });
+            }
+        };
+    }
+
+    @Test
     @DisplayName("1.3: the rules still catch what they forbid")
     void rulesCatchViolations() {
         var probe = new ClassFileImporter().importClasses(ProbeController.class);
@@ -223,6 +299,11 @@ class ModuleBoundariesTest {
     /** A relation after a SQL keyword, or a relation name alone in a string literal (built into SQL later). */
     private static final Pattern TABLE_USE = Pattern.compile(
             "(?i)\\b(delete\\s+from|from|join|into|update)\\s+([a-z_][a-z0-9_]*)|\"([a-z_][a-z0-9_]*)\"");
+    /** Two string literals joined by {@code +}: {@code "from md_" + "users"} reads as {@code "from md_users"}. */
+    private static final Pattern JOINED_LITERALS = Pattern.compile("\"\\s*\\+\\s*\"");
+    /** A source that runs SQL wherever it lives: a JDBC client, template or statement. */
+    private static final Pattern RUNS_SQL = Pattern.compile(
+            "\\bJdbc(?:Client|Template|Operations)\\b|\\.(?:prepareStatement|prepareCall|createStatement)\\(");
     /** A published read view: {@code <owner prefix>_pub_<name>} (ADR-0026). */
     static final Pattern PUBLISHED_VIEW = Pattern.compile("^([a-z][a-z0-9_]*?)_pub_[a-z0-9_]+$");
 
@@ -252,15 +333,22 @@ class ModuleBoundariesTest {
         return Optional.empty();
     }
 
+    /**
+     * The check reads source text, so it sees what a regular expression can: a relation after a SQL keyword, a relation
+     * name alone in a string literal (a constant built into SQL later) and literals joined by {@code +}. It does not
+     * see a name assembled at run time from a prefix and a variable; such SQL is not written in this code base, and a
+     * review keeps it out. The wiring ({@code config}) is outside the check: it owns no module's data but bootstraps
+     * the first administrator before any module runs.
+     */
     @Test
-    @DisplayName("1.3: a repository reads other modules only through their published views and writes only its own")
+    @DisplayName(
+            "1.3: code that runs SQL reads other modules only through their published views and writes only its own")
     void repositoriesTouchOnlyTheirModulesTables() throws IOException {
         Set<String> tables = createdRelations(CREATE_TABLE);
         Set<String> views = createdRelations(CREATE_VIEW);
         List<String> found;
         try (Stream<Path> files = Files.walk(SOURCES)) {
-            found = files.filter(file -> file.toString().replace('\\', '/').contains("/repository/")
-                            && file.toString().endsWith(".java"))
+            found = files.filter(file -> file.toString().endsWith(".java"))
                     .flatMap(file -> foreignAccess(file, tables, views).stream())
                     .sorted()
                     .distinct()
@@ -292,6 +380,17 @@ class ModuleBoundariesTest {
         assertThat(foreignAccessIn(
                         "ms/task/repository/Probe.java", "case \"USER\" -> \"md_users\";", Set.of("md_users")))
                 .containsExactly("ms.task Probe -> md_users");
+        assertThat(foreignAccessIn(
+                        "ms/task/repository/Probe.java", "\"select 1 from md_\" + \"users\"", Set.of("md_users")))
+                .containsExactly("ms.task Probe -> md_users");
+        assertThat(foreignAccessIn(
+                        "ms/task/service/Probe.java",
+                        "JdbcClient jdbc; String sql = \"select 1 from md_users\";",
+                        Set.of("md_users")))
+                .containsExactly("ms.task Probe -> md_users");
+        assertThat(foreignAccessIn("ms/task/service/Probe.java", "String text = \"md_users\";", Set.of("md_users")))
+                .as("a class that runs no SQL may name a table, in a message for one")
+                .isEmpty();
     }
 
     private static String prefixOf(String view) {
@@ -311,19 +410,22 @@ class ModuleBoundariesTest {
     }
 
     /**
-     * Violations in one repository source: a table of another module, a write to any published view, a view of
-     * another module that is not published. Published views need not be in {@code relations}: the name says it.
+     * Violations in one source that runs SQL (a repository, or any class with a JDBC client, template or statement): a
+     * table of another module, a write to any published view, a view of another module that is not published.
+     * Published views need not be in {@code relations}: the name says it.
      */
     static List<String> foreignAccessIn(String relative, String source, Set<String> relations) {
         String module = MODULES.stream()
                 .filter(candidate -> relative.startsWith(candidate.replace('.', '/') + "/"))
                 .findFirst()
                 .orElse(null);
-        if (module == null) {
+        if (module == null
+                || !(relative.contains("/repository/")
+                        || RUNS_SQL.matcher(source).find())) {
             return List.of();
         }
         String className = relative.substring(relative.lastIndexOf('/') + 1).replace(".java", "");
-        Matcher matcher = TABLE_USE.matcher(source);
+        Matcher matcher = TABLE_USE.matcher(JOINED_LITERALS.matcher(source).replaceAll(""));
         TreeSet<String> result = new TreeSet<>();
         while (matcher.find()) {
             String keyword = matcher.group(1) == null ? "" : matcher.group(1).toLowerCase();

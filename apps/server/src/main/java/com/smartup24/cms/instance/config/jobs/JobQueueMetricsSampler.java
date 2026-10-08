@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.config.jobs;
 
-import com.smartup24.cms.instance.jobs.runner.JobMetrics;
+import com.smartup24.cms.instance.jobs.api.JobQueueDriver;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -14,14 +14,14 @@ import org.springframework.stereotype.Component;
 @Profile("!migrate")
 public class JobQueueMetricsSampler {
 
-    private final JobMetrics metrics;
+    private final JobQueueDriver queue;
 
-    public JobQueueMetricsSampler(JobMetrics metrics) {
-        this.metrics = metrics;
+    public JobQueueMetricsSampler(JobQueueDriver queue) {
+        this.queue = queue;
     }
 
     @Scheduled(fixedDelayString = "${smc.metrics.backlog-interval:PT30S}", initialDelayString = "PT10S")
     public void sample() {
-        metrics.sample();
+        queue.sampleGauges();
     }
 }

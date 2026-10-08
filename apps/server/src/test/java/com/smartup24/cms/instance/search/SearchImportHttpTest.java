@@ -3,11 +3,11 @@ package com.smartup24.cms.instance.search;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.instance.search.service.SearchMetrics;
 import com.smartup24.cms.instance.search.typesense.TypesenseDocumentStream;
 import com.smartup24.cms.instance.search.typesense.TypesenseDocuments;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
-import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;

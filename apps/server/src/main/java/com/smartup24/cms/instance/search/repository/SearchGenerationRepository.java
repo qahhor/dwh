@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.search.repository;
 
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.SettingsSnapshot;
 import com.smartup24.cms.instance.search.service.SearchEntity;
 import java.time.Instant;
 import java.util.List;

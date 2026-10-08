@@ -5,8 +5,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.instance.common.health.ReadinessChecks;
+import com.smartup24.cms.instance.mf.api.FileScannerProbe;
 import com.smartup24.cms.instance.mf.scan.ClamAvFileScanner;
-import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.instance.support.TestDatabases;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.InputStream;
@@ -92,7 +93,7 @@ class ReadinessHealthTest {
     }
 
     private HealthIndicator clamav(ClamAvFileScanner scanner, boolean required) {
-        return config.clamavHealthIndicator(provider(scanner), required);
+        return config.clamavHealthIndicator(provider((FileScannerProbe) scanner), required);
     }
 
     private static void answerPong(ServerSocket daemon) {

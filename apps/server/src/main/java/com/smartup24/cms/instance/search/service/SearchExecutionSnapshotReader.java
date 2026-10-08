@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.search.service;
 
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.SearchExecutionSnapshot;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.SearchExecutionSnapshot;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import org.springframework.stereotype.Service;
 

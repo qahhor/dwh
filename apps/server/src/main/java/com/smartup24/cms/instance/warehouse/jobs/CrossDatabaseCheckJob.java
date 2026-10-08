@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.warehouse.jobs;
 
-import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
+import com.smartup24.cms.instance.common.security.SecurityEventLog;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.warehouse.repository.LoadRepository;
 import com.smartup24.cms.instance.warehouse.repository.RawRowRepository;
@@ -17,8 +17,8 @@ import org.springframework.stereotype.Component;
 /**
  * Cross-database check: there are no foreign keys between OLTP and pg-dwh, so a job looks for orphans instead.
  * A {@code raw} row that refers to a load or a framework file that does not exist becomes an {@code xdb_mismatch}
- * event in {@code security_events}, written by the audit module's service; the data itself is left untouched. The
- * handler code stays {@code fnd.xdb_check}: it is a row of the schedule (V105).
+ * event in {@code security_events}, written through the platform contract audit implements; the data itself is left
+ * untouched. The handler code stays {@code fnd.xdb_check}: it is a row of the schedule (V105).
  */
 @Component
 public class CrossDatabaseCheckJob implements JobHandler {
@@ -33,14 +33,14 @@ public class CrossDatabaseCheckJob implements JobHandler {
     private final LoadRepository loads;
     private final SourceFileRepository files;
     private final AuditActorContext actors;
-    private final AuditLogService audit;
+    private final SecurityEventLog audit;
 
     public CrossDatabaseCheckJob(
             RawRowRepository raw,
             LoadRepository loads,
             SourceFileRepository files,
             AuditActorContext actors,
-            AuditLogService audit) {
+            SecurityEventLog audit) {
         this.raw = raw;
         this.loads = loads;
         this.files = files;

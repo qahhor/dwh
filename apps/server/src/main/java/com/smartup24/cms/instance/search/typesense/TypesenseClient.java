@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.search.typesense;
 
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import java.time.Duration;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;

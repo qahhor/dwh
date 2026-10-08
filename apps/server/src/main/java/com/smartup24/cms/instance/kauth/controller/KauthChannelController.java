@@ -7,7 +7,7 @@ import com.smartup24.cms.instance.kauth.api.ChannelVerification;
 import com.smartup24.cms.instance.kauth.api.ChannelView;
 import com.smartup24.cms.instance.kauth.api.ConfirmChannelRequest;
 import com.smartup24.cms.instance.kauth.service.KauthChannelService;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;

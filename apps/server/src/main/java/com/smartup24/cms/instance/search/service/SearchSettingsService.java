@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.search.service;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import java.time.Duration;
 import java.util.List;

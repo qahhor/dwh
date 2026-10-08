@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.analytics.service;
 
-import com.smartup24.cms.instance.analytics.dto.AnalyticsSummaryDto;
-import com.smartup24.cms.instance.analytics.dto.ProjectDistributionDto;
-import com.smartup24.cms.instance.analytics.dto.TrendDataPointDto;
-import com.smartup24.cms.instance.analytics.dto.UserWorkloadDto;
+import com.smartup24.cms.instance.analytics.api.AnalyticsSummaryDto;
+import com.smartup24.cms.instance.analytics.api.ProjectDistributionDto;
+import com.smartup24.cms.instance.analytics.api.TrendDataPointDto;
+import com.smartup24.cms.instance.analytics.api.UserWorkloadDto;
 import com.smartup24.cms.instance.analytics.repository.AnalyticsRepository;
 import com.smartup24.cms.instance.analytics.repository.AnalyticsRepository.Scope;
 import com.smartup24.cms.instance.common.error.ApiException;

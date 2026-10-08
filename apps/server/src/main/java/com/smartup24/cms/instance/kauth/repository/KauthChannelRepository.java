@@ -2,7 +2,9 @@ package com.smartup24.cms.instance.kauth.repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -74,6 +76,34 @@ public class KauthChannelRepository {
                         rs.getBoolean("is_verified"),
                         rs.getTimestamp("created_at").toInstant()))
                 .list();
+    }
+
+    /**
+     * The code channel of each given user resolved the way sign-in resolves it (the first verified channel in the
+     * priority order), counted per channel.
+     */
+    public Map<String, Long> codeChannelUsers(List<Long> userIds, List<String> priority) {
+        Map<String, Long> users = new TreeMap<>();
+        if (userIds.isEmpty()) {
+            return users;
+        }
+        return jdbcClient
+                .sql("""
+                select channel, count(*) as users
+                from (select distinct on (c.user_id) c.user_id, c.channel
+                      from kauth_user_channels c
+                      where c.is_verified and c.user_id in (:userIds)
+                      order by c.user_id, array_position(cast(:priority as text[]), c.channel)) resolved
+                group by channel
+                """)
+                .param("userIds", userIds)
+                .param("priority", priority.toArray(String[]::new))
+                .query(rs -> {
+                    while (rs.next()) {
+                        users.put(rs.getString("channel"), rs.getLong("users"));
+                    }
+                    return users;
+                });
     }
 
     public void delete(Long userId, String channel) {
