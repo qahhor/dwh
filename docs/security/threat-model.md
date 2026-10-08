@@ -2,7 +2,7 @@
 
 **Версия:** 2.0
 
-**Обновлено:** 2026-10-07
+**Обновлено:** 2026-10-08
 
 **Область:** одна установка SmartupCMS, одна организация, много пользователей
 
@@ -110,7 +110,7 @@ D — отказ в обслуживании, E — повышение прив�
 |---|---|---|---|
 | I | Агрегаты по чужим записям или закрытым полям | `S/common/entity/report/EntityReports.java`: предикат области в том же SQL, поле без права — 422 (`QueryAggregates`) → `T/common/entity/report/EntityReportIntegrationTest#totalsFollowTheScope`, `#fieldRightsHoldInReports` | — |
 | I | Чужой виджет или сохранённый отчёт | Виджеты личные, виджет невидимой сущности скрыт (`S/md/service/MdReportWidgetService.java`) → `EntityReportIntegrationTest#reportViewsAreChecked`, `#widgetsAreLimited` | — |
-| S, I | Встраиваемый отчёт (`embed/:code`) показывает вредоносную страницу | Маршрут под `authGuard`; URL пункта меню проверяется на сервере (`S/md/service/NavigationItemService.java#validateUrl`), пункты меняет только право `md.navigation.manage` | iframe получает `allow-scripts` и `allow-same-origin`, `frame-src` в `apps/web/nginx.conf` разрешает `http: https: data: blob:`; шаблон URL пропускает `//host`; серверного теста валидации URL нет. Владелец — п. 7.4/7.5 (edge) |
+| S, I | Встраиваемый отчёт (`embed/:code`) показывает вредоносную страницу | Маршрут под `authGuard`; URL пункта меню проверяется на сервере (`S/md/service/NavigationItemService.java#validateUrl`), пункты меняет только право `md.navigation.manage` | iframe получает `allow-scripts` и `allow-same-origin`; `frame-src` с 2026-10-08 — `'self'` и источники из `SMC_WEB_FRAME_SOURCES` (`apps/web/nginx/spa-csp.conf`, ADR-0034), поэтому внешний отчёт показывается только с хоста, который назвал оператор; шаблон URL пропускает `//host`; серверного теста валидации URL нет |
 
 ### Поисковая проекция (Typesense)
 
@@ -192,20 +192,23 @@ D — отказ в обслуживании, E — повышение прив�
 
 ## Результаты DAST
 
-Прогон 2026-10-07: ZAP baseline (`zaproxy/zap-stable@sha256:781a2bdaea47…`) по
-локальному стенду Compose, веб-origin со spider и все операции
-`docs/api/openapi.json` без аутентификации.
+Прогон 2026-10-08: ZAP baseline (`zaproxy/zap-stable@sha256:781a2bdaea47…`) по
+локальному стенду Compose интеграционной ветки фазы 7 (с заголовками nginx
+п. 7.4), веб-origin со spider и все операции `docs/api/openapi.json` без
+аутентификации. Первый прогон (2026-10-07, до п. 7.4): High 0, Medium 2,
+Low 10; исправлены `frame-src` с целыми схемами, заголовки на статике и
+`SameSite` у `XSRF-TOKEN`.
 
 | Уровень | Число типов | Находки | Решение |
 |---|---|---|---|
 | High | 0 | — | — |
-| Medium | 2 | CSP: `style-src 'unsafe-inline'`; CSP: wildcard-директива (`frame-src http: https:`) | Заголовки `apps/web/nginx.conf`, владелец — п. 7.4/7.5 (edge) |
-| Low | 10 | Нет `X-Content-Type-Options` и `Permissions-Policy` на статике (свой `add_header` в location отменяет серверные); нет COEP/COOP/CORP; `XSRF-TOKEN` без HttpOnly (так задумано: cookie читает веб для double submit) и без `SameSite`; «debug error message» — ложное срабатывание на текст перевода в `/api/v1/i18n/en`; `bypassSecurityTrustHtml` в бандле | Заголовки — п. 7.4/7.5; `SameSite` для `XSRF-TOKEN` — п. 7.4/7.5 |
-| Informational | 6 | Кеширование, идентификация сессии, `userId` в query аудита | Не требует действий |
+| Medium | 1 | CSP: `style-src 'unsafe-inline'` | Принято: стили компонентов Angular вставляются элементами `<style>`; обоснование и альтернатива (nonce) — ADR-0034, п. 2.1; правило 10055 не игнорируется |
+| Low | 7 | `XSRF-TOKEN` без HttpOnly (так задумано: веб читает токен для double submit; `SameSite=Lax`); нет COEP, COOP, CORP (веб) и CORP (API); «debug error message» — ложное срабатывание на текст перевода в `/api/v1/i18n/en`; `bypassSecurityTrustHtml` в бандле | COEP/COOP/CORP не заданы: COEP `require-corp` ломает встраиваемые отчёты; остаточный риск принят до решения по изоляции origin |
+| Informational | 6 | Кеширование, идентификация сессии, запрос входа, `userId` в query аудита, современное веб-приложение | Не требует действий |
 
-`zap-baseline.conf` игнорирует только правило 100000 (коды 4xx): скан без
-аутентификации, и каждая защищённая операция по построению отвечает
-400/401/403.
+`zap-baseline.conf` игнорирует только правило 100000 (коды 4xx, 229
+вхождений): скан без аутентификации, и каждая защищённая операция по
+построению отвечает 400/401/403.
 
 ## Реестр персональных данных
 
