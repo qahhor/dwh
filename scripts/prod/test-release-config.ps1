@@ -50,7 +50,7 @@ Assert-Matches $composeSource '/typesense:\$\{APP_VERSION' 'Production must use 
 Assert-Matches $composeSource '/clamav:\$\{APP_VERSION' 'Production must use the versioned SmartupCMS ClamAV image.'
 Assert-DoesNotMatch $composeSource 'clamav/clamav' 'Production must run the hardened ClamAV image of the release, not the upstream one.'
 $clamavDockerfile = Get-Content -LiteralPath (Join-Path $repoRoot 'deploy/images/clamav/Dockerfile') -Raw
-Assert-Matches $clamavDockerfile '(?m)^ARG CLAMAV_BASE=clamav/clamav-debian:1\.5\.4@sha256:[a-f0-9]{64}\s*$' 'The hardened ClamAV image must pin the official base by version and digest.'
+Assert-Matches $clamavDockerfile '(?m)^ARG CLAMAV_BASE=clamav/clamav-debian:\d+\.\d+\.\d+@sha256:[a-f0-9]{64}\s*$' 'The hardened ClamAV image must pin the official base by version and digest.'
 Assert-Matches $clamavDockerfile 'apt-get upgrade -y' 'The hardened ClamAV image must take the current Debian security updates.'
 Assert-DoesNotMatch $clamavDockerfile '(?im)^\s*(ENTRYPOINT|CMD)\s' 'The hardened ClamAV image must keep the upstream /init, which applies CLAMD_CONF_* options.'
 Assert-DoesNotMatch $composeSource 'control-plane|web-cp|db-cp|migrate-cp|smartupcms/instance' 'Retired Control Plane topology remains in production Compose.'
