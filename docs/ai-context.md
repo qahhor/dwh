@@ -180,7 +180,7 @@ JDBC, комментарий в SQL, трасса вебхука), гистог�
 [SLO](ops/slo.md), правила и дашборды `deploy/observability`, runbook
 RB-01…RB-09, заголовки nginx и сроки сессий (ADR-0034, V202), модель угроз
 2.0 и лимиты xlsx/ClamAV, ZAP baseline в e2e, секции `raw.rows` по загрузке
-(dwh V004); платформа — 422 `entity_state_locked`, проверка значений хуков,
+(миграция pg-dwh V004); платформа — 422 `entity_state_locked`, проверка значений хуков,
 `EntitySqlBoundariesTest`, автономный `--external`.
 
 **Следующее** (раздел «Фаза 7 — статус» плана): онлайн-проверка Mozilla
