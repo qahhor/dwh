@@ -80,7 +80,7 @@ class WarehouseFacadesTest extends EmbeddedPostgresTest {
             jdbc.sql("update fnd_loads set superseded_by = null").update();
             jdbc.sql("delete from fnd_loads").update();
         });
-        dwhJdbc.sql("delete from raw.rows").update();
+        RawTables.clear(dwhJdbc);
         dwhJdbc.sql("delete from cache.items").update();
         dwhJdbc.sql("delete from cache.generations").update();
     }

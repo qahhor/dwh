@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Apply protocol: {@link #begin} creates a version in {@code pending}; the {@code RawWriter} facade then writes
  * rows into pg-dwh under that {@code load_id}; {@link #apply} moves the version to {@code applied} and supersedes the
  * previous load of the same source for the same period. On failure, {@link #fail} is called: the rows stay, and the
- * maintenance job {@code fnd.load_cleanup} deletes them. Allowed transitions: {@code pending→applied},
+ * maintenance job {@code fnd.load_cleanup} drops their partition (plan 10/10, item 7.8). Allowed transitions: {@code pending→applied},
  * {@code pending→failed}, {@code applied→superseded}.
  */
 @Service

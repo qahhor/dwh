@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.jobs.runner.JobSwitch;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.warehouse.RawTables;
 import com.smartup24.cms.instance.warehouse.WarehousePref;
 import com.smartup24.cms.instance.warehouse.api.RawRow;
 import com.smartup24.cms.instance.warehouse.api.RawWriter;
@@ -81,7 +82,7 @@ class WarehouseMaintenanceJobsTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from fnd_job_runs").update();
             jdbc.sql("update fnd_job_schedule set last_enqueued = null").update();
         });
-        dwhJdbc.sql("delete from raw.rows").update();
+        RawTables.clear(dwhJdbc);
     }
 
     @Test
@@ -133,6 +134,7 @@ class WarehouseMaintenanceJobsTest extends EmbeddedPostgresTest {
         loads.apply(applied, 2, 2, 0, actor);
 
         UUID orphanFile = UUID.randomUUID();
+        RawTables.partition(dwhJdbc, 999999);
         dwhJdbc.sql("insert into raw.rows (load_id, row_no, fields) values (999999, 1, '{}'::jsonb)")
                 .update();
         dwhJdbc.sql("insert into raw.rows (load_id, source_file_id, row_no, fields)"
@@ -171,6 +173,8 @@ class WarehouseMaintenanceJobsTest extends EmbeddedPostgresTest {
         loads.apply(second, 2, 2, 0, actor);
 
         UUID orphanFile = UUID.randomUUID();
+        RawTables.partition(dwhJdbc, 999991);
+        RawTables.partition(dwhJdbc, 999992);
         dwhJdbc.sql("insert into raw.rows (load_id, row_no, fields) values (999991, 1, '{}'::jsonb)")
                 .update();
         dwhJdbc.sql("insert into raw.rows (load_id, row_no, fields) values (999992, 1, '{}'::jsonb)")

@@ -51,6 +51,10 @@ import tools.jackson.databind.ObjectMapper;
  * <p>Plan 10/10, item 3.9: rows go through one {@code COPY ... from stdin} in text format, encoded into a small buffer
  * as the source pushes them; no row outlives its line. The copy may run for as long as the file takes to parse, so the
  * transaction lifts the pool's statement limit to {@code warehouse.raw-write-timeout} for itself only.
+ *
+ * <p>Plan 10/10, item 7.8: the copy goes straight into the load's own partition ({@link RawPartitions}), created and
+ * attached in the same transaction, so a failed write leaves no partition behind and the rows of a load leave raw only
+ * with their partition.
  */
 @Component
 public class JdbcRawWriter implements RawWriter {
@@ -61,8 +65,8 @@ public class JdbcRawWriter implements RawWriter {
     /** For writers built by hand; the application takes {@code warehouse.raw-write-timeout}. */
     private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(30);
 
-    private static final String COPY =
-            "copy raw.rows (load_id, source_file_id, row_no, sheet, source_row_no, fields) from stdin";
+    private static final String COPY_COLUMNS =
+            " (load_id, source_file_id, row_no, sheet, source_row_no, fields) from stdin";
     private static final String NULL = "\\N";
 
     private final DataSource dwh;
@@ -118,7 +122,16 @@ public class JdbcRawWriter implements RawWriter {
             connection.setAutoCommit(false);
             try {
                 liftTimeout(connection);
+                // Plan 10/10, item 7.8: a new load's partition is filled detached and attached before the commit;
+                // a load whose partition is already attached (an empty earlier write) is copied into it
+                boolean fresh = !RawPartitions.attached(connection, loadId);
+                if (fresh) {
+                    RawPartitions.create(connection, loadId);
+                }
                 written = stream(connection, loadId, sourceFileId, rows);
+                if (fresh) {
+                    RawPartitions.attach(connection, loadId);
+                }
                 commitWhilePending(loadId, connection);
             } catch (RuntimeException | SQLException failure) {
                 // The row source may throw too: nothing of this write may remain in raw
@@ -137,7 +150,10 @@ public class JdbcRawWriter implements RawWriter {
 
     /** Runs the source into one COPY; a failure cancels the copy, the caller rolls the transaction back. */
     private long stream(Connection connection, long loadId, UUID sourceFileId, RawSource rows) throws SQLException {
-        CopyIn copy = connection.unwrap(PGConnection.class).getCopyAPI().copyIn(COPY);
+        CopyIn copy = connection
+                .unwrap(PGConnection.class)
+                .getCopyAPI()
+                .copyIn("copy " + RawPartitions.table(loadId) + COPY_COLUMNS);
         try {
             CopyBuffer buffer = new CopyBuffer(copy);
             String prefix = loadId + "\t" + (sourceFileId == null ? NULL : sourceFileId.toString()) + "\t";

@@ -150,7 +150,7 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
 | `jobs.service.JobQueries` | класс | он же | Вопросы к очереди только на чтение (`pendingArgumentValues`). |
 | `warehouse.api.WarehouseLoads` | интерфейс | `warehouse.load.WarehouseLoadService` | Версии загрузок: `begin` → `apply`/`fail`, журнал пакета `log`, `find`, `appliedLoadIds`. |
 | `warehouse.api.WarehouseLoad` | record | — | Версия загрузки и её статусы. |
-| `warehouse.api.RawWriter`, `RawSource`, `RawRow` | интерфейсы, record | `warehouse.raw.JdbcRawWriter` | Потоковая запись строк загрузки в слой `raw` pg-dwh (`copy`, `count`, `read`). |
+| `warehouse.api.RawWriter`, `RawSource`, `RawRow` | интерфейсы, record | `warehouse.raw.JdbcRawWriter` | Потоковая запись строк загрузки в слой `raw` pg-dwh (`copy`, `count`, `read`); у каждой загрузки своя секция `raw.rows_<load_id>`, удаляется она только целиком (ADR-0030, раздел 7). |
 | `warehouse.api.WarehouseUnavailableException` | исключение | — | pg-dwh недоступна (503, временный сбой для очереди); пустой результат вместо данных не возвращается. |
 | `units.api.Units` | интерфейс | `units.service.UnitService` | Единицы измерения и пересчёт по датированному коэффициенту. |
 | `units.api.Unit`, `UnitConversion`, `CoefficientMissingException` | record, record, исключение | — | Единица, результат пересчёта со ссылкой на коэффициент, отказ без коэффициента (409). |
