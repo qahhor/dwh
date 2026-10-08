@@ -22,6 +22,10 @@
         <!-- Boot 4.1.1 manages 11.0.24; 11.0.25 fixes the August 2026
              security-constraint and authentication vulnerabilities. -->
         <tomcat.version>11.0.26</tomcat.version>
+        <!-- Boot 4.1.1 manages Jackson 3.1.5 and 2.21.5; 3.1.7 and 2.21.7 fix the 2026 jackson-core and
+             jackson-databind vulnerabilities (HIGH in Trivy). Jackson 2 reaches the server through springdoc (swagger-core). -->
+        <jackson.version>3.1.7</jackson.version>
+        <jackson-2.version>2.21.7</jackson-2.version>
         <postgresql.version>42.7.5</postgresql.version>
         <archunit.version>1.5.0</archunit.version>
         <testcontainers.version>2.0.5</testcontainers.version>
@@ -73,6 +77,23 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Jackson 3 and Jackson 2 BOMs ahead of Spring Boot's: the first import wins, so the security-patched
+                 releases replace the ones Boot 4.1.1 manages until its BOM catches up. -->
+            <dependency>
+                <groupId>tools.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson-2.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!-- Spring Boot Dependencies BOM -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
