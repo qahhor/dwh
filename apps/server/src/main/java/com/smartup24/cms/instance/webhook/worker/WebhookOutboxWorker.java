@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
 import com.smartup24.cms.instance.webhook.service.WebhookProperties;
 import com.smartup24.cms.instance.webhook.service.WebhookService;
 import com.smartup24.cms.instance.webhook.service.WebhookTargetPolicy;
+import io.micrometer.observation.ObservationRegistry;
 import java.net.http.HttpClient;
 import java.time.Instant;
 import java.util.List;
@@ -33,7 +34,8 @@ public class WebhookOutboxWorker {
             WebhookOutboxRepository outboxRepository,
             ObjectMapper objectMapper,
             WebhookProperties properties,
-            WebhookTargetPolicy targetPolicy) {
+            WebhookTargetPolicy targetPolicy,
+            ObservationRegistry observationRegistry) {
         this.outboxRepository = outboxRepository;
         this.json = new JsonColumns(objectMapper, "kwh_outbox");
         this.properties = properties;
@@ -45,7 +47,12 @@ public class WebhookOutboxWorker {
                 .build();
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(properties.getReadTimeout());
-        this.restClient = RestClient.builder().requestFactory(requestFactory).build();
+        // The observation registry makes each delivery a client span and sends the W3C traceparent of the job's trace
+        // to the receiver (plan 10/10, item 7.2).
+        this.restClient = RestClient.builder()
+                .requestFactory(requestFactory)
+                .observationRegistry(observationRegistry)
+                .build();
     }
 
     /** One signed delivery to the subscription's checked address. */

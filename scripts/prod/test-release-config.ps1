@@ -66,6 +66,8 @@ Assert-Matches $composeSource 'SMC_SECRETS_KEY:\s*\$\{SMC_SECRETS_KEY:\?' 'Produ
 Assert-DoesNotMatch $composeSource 'max-size:\s*"50m"' 'Container logs rotate at 100 MB (decision of 2026-09-27).'
 Assert-Matches $composeSource 'max-size:\s*"100m",\s*max-file:\s*"5",\s*compress:\s*"true"' 'Container logs must rotate at 100 MB and be compressed.'
 Assert-Matches $composeSource 'SMC_LOG_FILE:\s*\$\{SMC_LOG_FILE:-/var/lib/smartupcms/logs/server\.log\}' 'The server must write its weekly archived log file on the data volume.'
+Assert-Matches $composeSource 'SMC_TRACING_EXPORT_ENABLED:\s*\$\{SMC_TRACING_EXPORT_ENABLED:-false\}' 'Trace export must be an explicit opt-in (plan 10/10, item 7.2).'
+Assert-Matches $composeSource 'SMC_TRACING_SAMPLING_PROBABILITY:\s*\$\{SMC_TRACING_SAMPLING_PROBABILITY:-0\.0\}' 'Traces must not be recorded unless the environment asks for it (plan 10/10, item 7.2).'
 foreach ($variable in @('SMC_AUDIT_ARCHIVE_TARGET', 'SMC_AUDIT_ARCHIVE_LOCAL_PATH', 'SMC_AUDIT_ARCHIVE_RETENTION',
         'SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE', 'SMC_AUDIT_ARCHIVE_S3_BUCKET', 'SMC_AUDIT_ARCHIVE_S3_SECRET_KEY')) {
     Assert-Matches $composeSource ([regex]::Escape($variable) + ':\s*\$\{' + [regex]::Escape($variable) + ':-')

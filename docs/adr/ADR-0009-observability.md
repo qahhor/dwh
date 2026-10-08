@@ -127,7 +127,43 @@ JVM, PostgreSQL (postgres_exporter в составе job'а клиента), Gar
 
 1. [ ] Nomad job'ы: Loki, VictoriaMetrics, Tempo, Grafana, vmalert (M0, вместе с кластером).
 2. [ ] Alloy как system job на все узлы; буферизация; mTLS.
-3. [ ] Logback JSON-энкодер + маскирующий фильтр + тест маскирования (M1).
+3. [x] JSON-логи + маскирующий фильтр + тест маскирования — сделано иначе, см. разд. 8 (план 10/10, пункт 7.1).
 4. [ ] Дашборды: флот, экземпляр, SLO; postgres_exporter/node_exporter в шаблоне job'а.
 5. [ ] Каталог алертов + маршрутизация в Telegram (M3).
-6. [ ] SQL-комментарии с trace_id (M1–M2).
+6. [x] SQL-комментарии с trace_id — разд. 8 (план 10/10, пункт 7.2).
+
+## 8. Реализация в продукте (2026-10-07, план 10/10, пункты 7.1 и 7.2)
+
+Положения о флоте выше — история; для одного экземпляра действует следующее.
+
+**Логи.** Встроенное structured logging Spring Boot, формат ECS (а не logstash-encoder из разд. 4),
+одна JSON-строка на событие в консоли и в файле (`SMC_LOG_FILE`, архив раз в неделю или при 100 МБ —
+без изменений). Поля: `@timestamp`, `log.level`, `log.logger`, `process.thread.name`, `service.name`,
+`message`, `error.*`, `trace_id`, `span_id` (`traceId`/`spanId` Micrometer Tracing переименованы).
+Профиль `dev` печатает в консоль текст. Баннер Spring выключен: в консоли только JSON.
+
+- `client_code` в строке **нет**, заголовок `X-Client-Code` удалён: экземпляр обслуживает одного
+  клиента, а значение заголовка задавал вызывающий, то есть подделывал. Метку клиента для Loki ставит
+  сборщик (Alloy) по месту развёртывания.
+- Маскирование (разд. 5): `LogMaskingJsonMembersCustomizer` обрабатывает каждое поле строки — по имени
+  поля (password, secret, token, authorization, cookie, otp, api key, credentials, `code`) и по тексту
+  (`key=value`, `"key":"value"`, `Authorization: Bearer`, `Cookie:`, `#token=`, `?code=`). Телефоны и email
+  фильтр не распознаёт: запрет из CODE_STYLE, разд. 5, остаётся. Тесты: `LogMaskingTest`,
+  `ObservabilityIntegrationTest` (каждая строка консоли и файла — JSON, строки запроса несут его `trace_id`).
+- Входящий `traceparent` принимается только строгого вида W3C: версия `00`, 32 и 16 hex-символов в нижнем
+  регистре, не нули, 2 hex флагов, один заголовок. Иначе заголовок (с `tracestate`) скрывается и
+  начинается новая трасса; значение не возвращается и не пишется. Ответ несёт `traceparent` серверного span.
+
+**Трейсы.** Micrometer Tracing с мостом OpenTelemetry и экспортом OTLP/HTTP (версии — из BOM Spring Boot).
+По умолчанию вероятность записи 0 и экспорт выключен (`SMC_TRACING_SAMPLING_PROBABILITY`,
+`SMC_TRACING_EXPORT_ENABLED`, `SMC_TRACING_OTLP_ENDPOINT`): идентификаторы трассы создаются и пишутся в
+логи, span не записываются. Вместо tail-sampling на экземпляре — вероятностная запись; tail-sampling при
+необходимости делает коллектор.
+
+- В записанной трассе каждый оператор JDBC получает клиентский span и комментарий в конце SQL
+  `/*traceparent='00-<trace>-<span>-01'*/` (формат sqlcommenter). Библиотеки для этого в Spring Boot нет;
+  обёртка источника данных — `config.observability.JdbcTracing`, без новых зависимостей. Вне записанной
+  трассы SQL не меняется, чтобы не ломать кэш подготовленных операторов PostgreSQL. В span нет текста SQL
+  и параметров.
+- Исходящий HTTP вебхуков передаёт `traceparent` получателю. Тест цепочки HTTP → JDBC и комментария —
+  `ObservabilityIntegrationTest`.

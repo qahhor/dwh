@@ -6,8 +6,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * W3C Traceparent Filter (ADR-0006).
- * Inherits the production implementation from the platform-common library.
+ * The strict gate of the incoming {@code traceparent} (plan 10/10, item 7.1): runs before the HTTP observation, so an
+ * invalid header starts a new trace. The implementation lives in the platform-common library.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)

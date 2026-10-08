@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.webhook.service.WebhookService;
 import com.smartup24.cms.instance.webhook.service.WebhookTargetPolicy;
 import com.smartup24.cms.instance.webhook.worker.WebhookOutboxWorker;
 import com.sun.net.httpserver.HttpServer;
+import io.micrometer.observation.ObservationRegistry;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,7 +27,11 @@ class WebhookOutboxWorkerSecurityTest {
         var repository = Mockito.mock(WebhookOutboxRepository.class);
         var properties = properties(false, Set.of(), false);
         var worker = new WebhookOutboxWorker(
-                repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
+                repository,
+                new ObjectMapper(),
+                properties,
+                new WebhookTargetPolicy(properties),
+                ObservationRegistry.NOOP);
 
         worker.processWebhooks();
 
@@ -39,7 +44,11 @@ class WebhookOutboxWorkerSecurityTest {
         var properties = properties(true, Set.of("127.0.0.1"), false);
         Mockito.when(repository.fetchPending(20)).thenReturn(java.util.List.of());
         var worker = new WebhookOutboxWorker(
-                repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
+                repository,
+                new ObjectMapper(),
+                properties,
+                new WebhookTargetPolicy(properties),
+                ObservationRegistry.NOOP);
 
         worker.processWebhooks();
 
@@ -71,7 +80,11 @@ class WebhookOutboxWorkerSecurityTest {
                 "signing-secret");
         Mockito.when(repository.fetchPending(20)).thenReturn(List.of(item));
         var worker = new WebhookOutboxWorker(
-                repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
+                repository,
+                new ObjectMapper(),
+                properties,
+                new WebhookTargetPolicy(properties),
+                ObservationRegistry.NOOP);
 
         worker.processWebhooks();
 
@@ -128,7 +141,11 @@ class WebhookOutboxWorkerSecurityTest {
                     "signing-secret");
             Mockito.when(repository.fetchPending(20)).thenReturn(List.of(item));
             var worker = new WebhookOutboxWorker(
-                    repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
+                    repository,
+                    new ObjectMapper(),
+                    properties,
+                    new WebhookTargetPolicy(properties),
+                    ObservationRegistry.NOOP);
 
             long startedAt = System.nanoTime();
             worker.processWebhooks();
@@ -191,7 +208,11 @@ class WebhookOutboxWorkerSecurityTest {
                     "my-test-secret");
             Mockito.when(repository.fetchPending(20)).thenReturn(List.of(item));
             var worker = new WebhookOutboxWorker(
-                    repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
+                    repository,
+                    new ObjectMapper(),
+                    properties,
+                    new WebhookTargetPolicy(properties),
+                    ObservationRegistry.NOOP);
 
             worker.processWebhooks();
 
