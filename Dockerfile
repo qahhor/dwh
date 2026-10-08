@@ -29,7 +29,7 @@ RUN java -Djarmode=tools -jar /build/app.jar extract --destination /layers \
  && mv /layers/app-*.jar /layers/run.jar 2>/dev/null || mv /layers/*.jar /layers/run.jar
 
 # ---------------------------------------------------------------- runtime
-FROM eclipse-temurin:25-jre@sha256:8da0490fa9a3c26867012019565948eef0ee69438f5c75ac28146967bae984b5 AS runtime
+FROM eclipse-temurin:25-jre@sha256:fcd7fd7b387f94bb2ac461478a7436ad8e349924c374ea8313919624dceae636 AS runtime
 
 # Hardening:non-root пользователь, только необходимые пакеты, чистый apt-кэш
 RUN apt-get update && apt-get upgrade -y --no-install-recommends \
