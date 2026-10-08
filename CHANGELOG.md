@@ -107,10 +107,6 @@ green); the behaviour changes are listed under «Changed».
   (`style-src 'unsafe-inline'`, kept for Angular component styles, ADR-0034
   §2.1), Low 7, Informational 6; the first run (2026-10-07) had Medium 2 and
   Low 10. Results and decisions: `docs/security/threat-model.md`.
-- Trivy runtime image scan: `smartupcms/server` reports HIGH CVEs in
-  Jackson 2.21.5 / 3.1.5 (fixed in 2.21.7 / 3.1.7), newly published in the
-  vulnerability database; the versions come from the Spring Boot BOM and are
-  the same on `main`. The upgrade waits for the owner's approval.
 
 #### Removed
 
