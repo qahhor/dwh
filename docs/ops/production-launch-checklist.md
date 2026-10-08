@@ -29,10 +29,16 @@ owner. A commercial SLA cannot override a failed safety gate.
 - [ ] Explicit container CPU and RAM limits and reservations (`deploy.resources.limits`)
       are configured for all services (`server`, `postgres`, `typesense`, `clamav`,
       `web`, `backup`), and `/tmp` tmpfs is bounded (`size=1024m`).
-- [ ] Trusted proxy CIDRs (`SMC_SECURITY_TRUSTED_PROXIES`) are explicitly configured
-      for the ingress topology; spoofed `X-Forwarded-For` headers cannot bypass rate limiting.
+- [ ] Trusted proxies are explicit for the ingress topology (ADR-0034): the pinned frontend
+      network (`SMC_FRONTEND_SUBNET`) covers a host-side edge; a proxy elsewhere is listed in
+      `SMC_WEB_TRUSTED_PROXIES`; `SMC_SECURITY_TRUSTED_PROXIES` names only the web container's
+      network. Spoofed `X-Forwarded-For` headers cannot bypass rate limiting.
+- [ ] Hosts that embedded reports frame are listed in `SMC_WEB_FRAME_SOURCES` (empty: none).
 - [ ] Only the web origin is published; PostgreSQL, Typesense, server, management
       endpoints, secret files, and Docker socket are unreachable externally.
+- [ ] Mozilla HTTP Observatory (https://developer.mozilla.org/en-US/observatory) grades the
+      public address A+; `scripts/security/test-security-headers.ps1 -BaseUrl https://<host>`
+      passes against it (the offline rules run in CI, ADR-0034).
 - [ ] HTTPS, certificate renewal, security headers, upload limits, and edge rate
       limits are tested from an external network.
 - [ ] `.env.production` and `.secrets` have restricted ownership/permissions and

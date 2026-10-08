@@ -83,6 +83,9 @@ x-server-environment: &server-environment
   SMC_TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-smartupcms_typesense_local_dev}
   SMC_TYPESENSE_ENABLED: ${SMC_TYPESENSE_ENABLED:-true}
   SMC_RATE_LIMIT_USER_PER_MINUTE: ${SMC_RATE_LIMIT_USER_PER_MINUTE:-600}
+  # ADR-0034: the server believes X-Forwarded-For only from the web container. This development stack does
+  # not pin its network (parallel stacks would collide), so it names Docker's default address pools.
+  SMC_SECURITY_TRUSTED_PROXIES: ${SMC_SECURITY_TRUSTED_PROXIES:-172.16.0.0/12,192.168.0.0/16}
   MANAGEMENT_PORT: 9090
   TZ: UTC
 

@@ -25,7 +25,6 @@ libs/platform-testkit/    test kit artifact for modules outside the monorepo
 examples/external-module/ example module built against the API alone
 deploy/compose/           production Compose bundle
 deploy/images/            hardened image extensions
-deploy/nginx/             production reverse proxy
 e2e/                      Playwright and configuration/security tests
 scripts/                  architecture, docs, dev, prod, release, security gates
 docs/                     requirements, ADRs, engineering and operations docs

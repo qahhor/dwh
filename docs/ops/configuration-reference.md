@@ -127,8 +127,11 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_SCHEMA_GATE_ENABLED` | `smc.schema-gate.enabled` | `true` |
 | `SMC_SEARCH_MAXIMUM_GENERATIONS` | `smc.search.maximum-generations` | `4` |
 | `SMC_SECRETS_KEY` | `smc.secrets.key` | пусто |
-| `SMC_SECURITY_TRUSTED_PROXIES` | `smc.security.trusted-proxies` | `127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10` |
+| `SMC_SECURITY_TRUSTED_PROXIES` | `smc.security.trusted-proxies` | `127.0.0.1/32,::1/128` |
+| `SMC_SESSION_ABSOLUTE_TTL` | `smc.session.absolute-ttl` | `7d` |
 | `SMC_SESSION_CLEANUP_INTERVAL` | `smc.session.cleanup-interval` | `1h` |
+| `SMC_SESSION_IDLE_TIMEOUT` | `smc.session.idle-timeout` | `12h` |
+| `SMC_SESSION_TOUCH_INTERVAL` | `smc.session.touch-interval` | `1m` |
 | `SMC_SSE_HEARTBEAT_MS` | `smc.sse.heartbeat-ms` | `25000` |
 | `SMC_SSE_MAX_CONNECTIONS_PER_USER` | `smc.sse.max-connections-per-user` | `5` |
 | `SMC_SSE_TIMEOUT_MS` | `smc.sse.timeout-ms` | `1800000` |

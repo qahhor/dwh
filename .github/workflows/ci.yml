@@ -365,6 +365,14 @@ jobs:
           curl --fail --silent --show-error http://localhost:4200/healthz
           curl --fail --silent --show-error http://localhost:4200/
 
+      # Plan 10/10, item 7.4 (ADR-0034): the security headers of the running web container — the document, a hashed
+      # bundle, /healthz and API answers — by the offline rules of the Mozilla Observatory; both script forms.
+      - name: Check security headers of the web origin
+        shell: pwsh
+        run: |
+          ./scripts/security/test-security-headers.ps1 -BaseUrl http://localhost:4200
+          bash scripts/security/test-security-headers.sh http://localhost:4200
+
       - name: Cache Playwright browsers
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

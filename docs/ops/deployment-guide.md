@@ -162,6 +162,19 @@ not bypass application authentication or authorization.
 From an external network, verify that only HTTPS is reachable. Requests to
 PostgreSQL, Typesense, the server port, and `/actuator/*` must fail.
 
+The web container sets the security headers itself (HSTS, CSP, nosniff,
+framing, referrer and permissions policies;
+[ADR-0034](../adr/ADR-0034-edge-headers-and-session-lifetime.md)); the edge
+must pass them through unchanged. `X-Forwarded-For` is believed only from
+explicit lists: the frontend network is pinned (`SMC_FRONTEND_SUBNET`,
+default `172.30.80.0/24`) and covers a reverse proxy on the same host; a proxy
+on another address is listed in `SMC_WEB_TRUSTED_PROXIES`. Hosts that embedded
+reports may frame go to `SMC_WEB_FRAME_SOURCES` (`https://bi.example.com`,
+space or comma separated); an invalid value stops the web container at start.
+After the address is public, run
+`scripts/security/test-security-headers.ps1 -BaseUrl https://<host>` and the
+Mozilla HTTP Observatory (grade A+ expected).
+
 ## 6. Acceptance checks
 
 ```bash

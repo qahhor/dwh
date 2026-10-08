@@ -7,12 +7,17 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
+import com.smartup24.cms.instance.kauth.pref.KauthSessionProperties;
 import com.smartup24.cms.instance.kauth.repository.*;
 import com.smartup24.cms.instance.kauth.service.*;
 import com.smartup24.cms.instance.md.repository.*;
 import com.smartup24.cms.instance.md.service.*;
 import com.smartup24.cms.instance.search.service.SearchChangePublisher;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -38,6 +43,10 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
     final JdbcClient jdbc;
     final ObjectMapper mapper = new ObjectMapper();
     final HookedUsers users;
+    /** Real time unless a test moves it forward (session expiry, ADR-0034). */
+    final OffsetClock clock = new OffsetClock();
+
+    final KauthSessionProperties sessionProperties = KauthSessionProperties.defaults();
     final HookedSessions sessions;
     final HookedTokens tokens;
     final HookedOtps otps;
@@ -56,7 +65,7 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
     AuthenticationGenerationFixture(DataSource ds) {
         jdbc = JdbcClient.create(ds);
         users = new HookedUsers(jdbc, mapper);
-        sessions = new HookedSessions(jdbc);
+        sessions = new HookedSessions(jdbc, sessionProperties, clock);
         tokens = new HookedTokens(jdbc);
         otps = new HookedOtps(jdbc);
         channels = new KauthChannelRepository(jdbc);
@@ -86,6 +95,7 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
         context.registerBean(DataSource.class, () -> ds);
         context.registerBean(JdbcClient.class, () -> jdbc);
         context.registerBean(ObjectMapper.class, () -> mapper);
+        context.registerBean(KauthSessionProperties.class, () -> sessionProperties);
         context.registerBean(AuditLogService.class, () -> audit);
         context.registerBean(MdPermissionService.class, () -> permissions);
         context.registerBean(KauthSessionService.class, () -> new KauthSessionService(sessions));
@@ -277,8 +287,8 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
         volatile boolean failInsert;
         volatile boolean failClose;
 
-        HookedSessions(JdbcClient jdbc) {
-            super(jdbc);
+        HookedSessions(JdbcClient jdbc, KauthSessionProperties properties, Clock clock) {
+            super(jdbc, properties, clock);
         }
 
         @Override
@@ -381,5 +391,29 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
     static void requireTransaction() {
         assertThat(TransactionSynchronizationManager.isActualTransactionActive())
                 .isTrue();
+    }
+
+    /** The system clock moved forward by a test-controlled offset. */
+    static final class OffsetClock extends Clock {
+        private volatile Duration offset = Duration.ZERO;
+
+        void advance(Duration by) {
+            offset = offset.plus(by);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public Instant instant() {
+            return Instant.now().plus(offset);
+        }
     }
 }

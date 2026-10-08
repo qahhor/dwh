@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.kauth.security;
 
 import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.pref.KauthSessionProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,9 +17,16 @@ import org.springframework.http.ResponseCookie;
 public class KauthSessionCookies {
 
     private final ClientIpResolver clientIpResolver;
+    private final long maxAgeSeconds;
 
     public KauthSessionCookies(ClientIpResolver clientIpResolver) {
+        this(clientIpResolver, KauthSessionProperties.defaults());
+    }
+
+    /** The cookie lives as long as the session may: its absolute lifetime (ADR-0034). */
+    public KauthSessionCookies(ClientIpResolver clientIpResolver, KauthSessionProperties sessions) {
         this.clientIpResolver = clientIpResolver != null ? clientIpResolver : new ClientIpResolver(null);
+        this.maxAgeSeconds = sessions.cookieMaxAgeSeconds();
     }
 
     /**
@@ -47,9 +55,7 @@ public class KauthSessionCookies {
 
     /** Sets the session cookie. */
     public void issue(HttpServletRequest request, HttpServletResponse response, String rawToken) {
-        add(
-                response,
-                cookie(request, KauthPref.SESSION_COOKIE_NAME, rawToken, KauthPref.SESSION_COOKIE_MAX_AGE_SECONDS));
+        add(response, cookie(request, KauthPref.SESSION_COOKIE_NAME, rawToken, maxAgeSeconds));
     }
 
     /** Removes the session cookie (sign-out). */
@@ -57,7 +63,7 @@ public class KauthSessionCookies {
         add(response, cookie(request, KauthPref.SESSION_COOKIE_NAME, "", 0));
     }
 
-    private ResponseCookie cookie(HttpServletRequest request, String name, String value, int maxAgeSeconds) {
+    private ResponseCookie cookie(HttpServletRequest request, String name, String value, long maxAgeSeconds) {
         return ResponseCookie.from(name, value)
                 .httpOnly(true)
                 .secure(clientIpResolver.isSecure(request))

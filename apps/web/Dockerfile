@@ -24,9 +24,15 @@ RUN apk del nginx-module-acme nginx-module-geoip nginx-module-image-filter nginx
  && rm -f /etc/nginx/conf.d/default.conf \
  && sed -i '/^user nginx;/d' /etc/nginx/nginx.conf \
  && mkdir -p /var/cache/nginx /var/lib/nginx /var/run/nginx /tmp/nginx /usr/share/nginx/html \
- && chown -R web:web /var/cache/nginx /var/lib/nginx /var/run/nginx /tmp/nginx /usr/share/nginx/html
+ && chown -R web:web /var/cache/nginx /var/lib/nginx /var/run/nginx /tmp/nginx /usr/share/nginx/html \
+ && install -d -m 0755 /etc/nginx/smc
 
 COPY --chown=web:web nginx.conf /etc/nginx/http.d/default.conf
+# Security headers included by every location, and the start-up step that validates the operator's
+# frame sources and trusted proxies into /run/nginx/smc-edge.conf (ADR-0034). /etc/nginx/smc exists
+# before the copy: a directory that COPY --chmod creates takes the file mode and loses its search bit.
+COPY --chown=root:root --chmod=0644 nginx/security-headers.conf nginx/spa-csp.conf nginx/api-csp.conf /etc/nginx/smc/
+COPY --chown=root:root --chmod=0755 nginx/40-smc-edge-config.sh /docker-entrypoint.d/40-smc-edge-config.sh
 COPY --from=build --chown=web:web /build/dist/web/browser /usr/share/nginx/html
 
 USER web:web

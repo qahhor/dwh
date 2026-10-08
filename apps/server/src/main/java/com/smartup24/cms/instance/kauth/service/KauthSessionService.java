@@ -9,7 +9,6 @@ import com.smartup24.cms.instance.kauth.api.UserSecuritySummary;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.md.service.MdUserService;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,9 +91,10 @@ public class KauthSessionService {
         return sessionRepository.findActiveByTokenHash(tokenHash);
     }
 
+    /** Records the use of a session, at most once per touch interval (ADR-0034). */
     @Transactional
-    public void updateLastSeen(Long sessionId) {
-        sessionRepository.updateLastSeen(sessionId);
+    public void touch(KauthSessionRepository.SessionRecord session) {
+        sessionRepository.touch(session);
     }
 
     @Transactional
@@ -123,8 +123,9 @@ public class KauthSessionService {
         sessionRepository.closeOtherSessions(userId, currentSessionId);
     }
 
+    /** Housekeeping of expired sessions; the active condition already refuses them (ADR-0034). */
     @Transactional
-    public int closeInactiveSessions(Instant cutoff) {
-        return sessionRepository.closeInactiveSessions(cutoff);
+    public int closeExpiredSessions() {
+        return sessionRepository.closeExpiredSessions();
     }
 }

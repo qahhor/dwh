@@ -105,6 +105,10 @@ x-server-common: &server-common
     SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT: ${SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT:-3s}
     SMC_FILE_SCANNER_CLAMAV_READ_TIMEOUT: ${SMC_FILE_SCANNER_CLAMAV_READ_TIMEOUT:-60s}
     SMC_RATE_LIMIT_PUBLIC_READ_PER_MINUTE: ${SMC_RATE_LIMIT_PUBLIC_READ_PER_MINUTE:-600}
+    # ADR-0034: X-Forwarded-For is believed only from the web container's network (pinned below).
+    SMC_SECURITY_TRUSTED_PROXIES: ${SMC_SECURITY_TRUSTED_PROXIES:-${SMC_FRONTEND_SUBNET:-172.30.80.0/24}}
+    SMC_SESSION_ABSOLUTE_TTL: ${SMC_SESSION_ABSOLUTE_TTL:-7d}
+    SMC_SESSION_IDLE_TIMEOUT: ${SMC_SESSION_IDLE_TIMEOUT:-12h}
     SMC_TYPESENSE_URL: http://typesense:8108
     SMC_TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:?TYPESENSE_API_KEY is required}
     SMC_TYPESENSE_ENABLED: ${SMC_TYPESENSE_ENABLED:-true}
@@ -218,6 +222,11 @@ services:
     restart: unless-stopped
     ports:
       - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:8080"
+    environment:
+      # ADR-0034: proxies whose X-Forwarded-For nginx believes (the host-side edge reaches the container
+      # through the gateway of the frontend network) and the extra frame sources of embedded reports.
+      SMC_WEB_TRUSTED_PROXIES: ${SMC_WEB_TRUSTED_PROXIES:-${SMC_FRONTEND_SUBNET:-172.30.80.0/24}}
+      SMC_WEB_FRAME_SOURCES: ${SMC_WEB_FRAME_SOURCES:-}
     networks: [frontend]
     depends_on:
       server: {condition: service_healthy}
@@ -375,6 +384,11 @@ services:
 networks:
   frontend:
     driver: bridge
+    # Pinned so the trusted-proxy lists of web and server can name it (ADR-0034); change it with
+    # SMC_FRONTEND_SUBNET when it overlaps a host network.
+    ipam:
+      config:
+        - subnet: ${SMC_FRONTEND_SUBNET:-172.30.80.0/24}
   backend:
     driver: bridge
     internal: true

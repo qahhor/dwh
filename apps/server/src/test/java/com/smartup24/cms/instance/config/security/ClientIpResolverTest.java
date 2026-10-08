@@ -11,8 +11,27 @@ import org.springframework.mock.web.MockHttpServletRequest;
 
 class ClientIpResolverTest {
 
-    private final ClientIpResolver defaultResolver =
-            new ClientIpResolver(new TrustedProxyProperties(TrustedProxyProperties.DEFAULT_TRUSTED_PROXIES));
+    /** An installation that lists the private networks of its proxies explicitly. */
+    private static final List<String> PRIVATE_NETWORKS = List.of(
+            "127.0.0.1/32", "::1/128", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7", "fe80::/10");
+
+    private final ClientIpResolver defaultResolver = new ClientIpResolver(new TrustedProxyProperties(PRIVATE_NETWORKS));
+
+    @Test
+    @DisplayName("ADR-0034: without a configured list only loopback is a trusted proxy")
+    void defaultTrustsOnlyLoopback() {
+        ClientIpResolver resolver = new ClientIpResolver(new TrustedProxyProperties(null));
+        assertThat(resolver.isTrustedProxy("127.0.0.1")).isTrue();
+        assertThat(resolver.isTrustedProxy("::1")).isTrue();
+        assertThat(resolver.isTrustedProxy("10.0.0.1")).isFalse();
+        assertThat(resolver.isTrustedProxy("172.18.0.3")).isFalse();
+        assertThat(resolver.isTrustedProxy("192.168.1.1")).isFalse();
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("172.18.0.3");
+        request.addHeader("X-Forwarded-For", "198.51.100.1");
+        assertThat(resolver.resolveClientIp(request)).isEqualTo("172.18.0.3");
+    }
 
     @Test
     @DisplayName("Direct connection from untrusted IP ignores spoofed X-Forwarded-For")

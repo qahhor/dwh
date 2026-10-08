@@ -65,8 +65,9 @@ Data is retained only as long as operationally necessary or legally mandated. Au
 | Detached archived audit partitions | Per corporate policy  | Cold S3 / compressed |
 | Idempotency keys & cached payloads | 14 days               | IdempotencyCleanup-  |
 |                                    |                       |   Worker, daily      |
-| Idle user sessions                 | closed after 12 hours | KauthSessionCleanup- |
-|                                    |   without activity    |   Worker, hourly     |
+| User sessions                      | invalid after 12 h    | Active-session query |
+|                                    |   idle or 7 days old  |   (ADR-0034); closed |
+|                                    |                       |   by the worker      |
 | Journals: 10 RetentionPolicy beans | 7 - 365 days,         | RetentionJob nightly |
 |   (table in 4.2a)                  |   per journal         |   (ADR-0025)         |
 | Rate-limit in-memory tracking      | 10 minutes sliding    | Caffeine cache TTL   |
@@ -88,8 +89,11 @@ Data is retained only as long as operationally necessary or legally mandated. Au
 - `IdempotencyCleanupWorker` purges older records daily at 02:15 UTC (`SMC_IDEMPOTENCY_CLEANUP_CRON`).
 
 ### 4.2a. Sessions
-- `KauthSessionCleanupWorker` runs hourly and closes every session idle for more than 12 hours
-  (`last_seen_at` older than 12 hours).
+- A session stops working once it is idle longer than `SMC_SESSION_IDLE_TIMEOUT` (12 hours) or older
+  than `SMC_SESSION_ABSOLUTE_TTL` (7 days, also the cookie Max-Age): both limits are part of the
+  active-session query ([ADR-0034](../adr/ADR-0034-edge-headers-and-session-lifetime.md)).
+- `KauthSessionCleanupWorker` (hourly, `SMC_SESSION_CLEANUP_INTERVAL`) only marks such sessions closed;
+  a stopped worker never keeps an expired session usable.
 - A closed session row is deleted 90 days after `closed_at` by the `closed-sessions` journal policy below.
 
 ### 4.2b. Journal tables
