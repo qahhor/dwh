@@ -98,6 +98,7 @@ gh auth login
 `cms CLI (node:test, ubuntu-24.04)` и `cms CLI (node:test, windows-2025)`
 (тесты генератора `cms` и контракт документации),
 `release config (Compose + NGINX + fail-closed deploy)`,
+`observability (promtool rules + unit tests, dashboards)` (план 10/10, п. 7.3),
 `e2e (clean deploy + Playwright Chromium, shard 1/2)` и `… shard 2/2`,
 `security (gitleaks + trivy)`, `Verify commit sign-offs`,
 `codeql (java-kotlin)`, `codeql (javascript-typescript)`, `codeql (actions)`.

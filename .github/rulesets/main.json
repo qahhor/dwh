@@ -41,6 +41,7 @@
           { "context": "cms CLI (node:test, ubuntu-24.04)", "integration_id": 15368 },
           { "context": "cms CLI (node:test, windows-2025)", "integration_id": 15368 },
           { "context": "release config (Compose + NGINX + fail-closed deploy)", "integration_id": 15368 },
+          { "context": "observability (promtool rules + unit tests, dashboards)", "integration_id": 15368 },
           { "context": "e2e (clean deploy + Playwright Chromium, shard 1/2)", "integration_id": 15368 },
           { "context": "e2e (clean deploy + Playwright Chromium, shard 2/2)", "integration_id": 15368 },
           { "context": "security (gitleaks + trivy)", "integration_id": 15368 },
