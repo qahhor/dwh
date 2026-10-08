@@ -45,6 +45,9 @@ public class SecurityConfig {
         repository.setHeaderName("X-XSRF-TOKEN");
         repository.setCookieName("XSRF-TOKEN");
         repository.setCookiePath("/");
+        // Lax like the session cookie: the web still reads the token for the double submit, and a cross-site
+        // request never carries it (ADR-0034, plan 10/10, item 7.7).
+        repository.setCookieCustomizer(cookie -> cookie.sameSite("Lax"));
         return repository;
     }
 
