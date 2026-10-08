@@ -25,7 +25,7 @@ class StoredSecretsTest {
     }
 
     @Test
-    @DisplayName("4.6: a configured key encrypts; null stays null and a legacy plain value reads as it is")
+    @DisplayName("4.6: a configured key encrypts; null stays null and a plain value is refused naming its column")
     void configuredKey() {
         StoredSecrets secrets = StoredSecrets.fromConfiguration(randomKey(), false, false);
 
@@ -34,7 +34,11 @@ class StoredSecretsTest {
         assertThat(secrets.open(sealed, COLUMN)).isEqualTo("plain");
         assertThat(secrets.seal(null, COLUMN)).isNull();
         assertThat(secrets.open(null, COLUMN)).isNull();
-        assertThat(secrets.open("legacy", COLUMN)).isEqualTo("legacy");
+        assertThatThrownBy(() -> secrets.open("plain-value", COLUMN))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(COLUMN)
+                .hasMessageContaining("v1:")
+                .hasMessageNotContaining("plain-value");
     }
 
     @Test
@@ -66,7 +70,7 @@ class StoredSecretsTest {
     void migrateProfileHasNoCipher() {
         StoredSecrets migrate = StoredSecrets.fromConfiguration(" ", false, true);
 
-        assertThat(migrate.open("legacy", COLUMN)).isEqualTo("legacy");
+        assertThat(migrate.open(null, COLUMN)).isNull();
         assertThatThrownBy(() -> migrate.seal("x", COLUMN))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("SMC_SECRETS_KEY");

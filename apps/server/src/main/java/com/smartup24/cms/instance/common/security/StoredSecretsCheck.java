@@ -1,58 +1,48 @@
 package com.smartup24.cms.instance.common.security;
 
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * At every start: refuses a key that does not open the stored secrets, then encrypts the plain ones (ADR-0029).
- *
- * <p>Plain values come from installations older than the encryption and from seed rows of old migrations. The step is
- * idempotent, so it runs on each start instead of as a migration: migrations run without the key (the migrate
- * profile), and a Flyway Java migration would need it there.
+ * At every start: refuses a key that does not open the stored secrets, and a secret column that holds a value in plain
+ * text (ADR-0029). Secrets are written only encrypted; a plain value means a row written around the application, and
+ * the start stops with a message that names the column, never the value.
  */
 @Component
 @Profile("!migrate")
-public class StoredSecretsSealing implements ApplicationRunner {
-
-    private static final Logger log = LoggerFactory.getLogger(StoredSecretsSealing.class);
+public class StoredSecretsCheck implements ApplicationRunner {
 
     private final List<StoredSecretColumn> columns;
     private final StoredSecrets secrets;
 
-    public StoredSecretsSealing(List<StoredSecretColumn> columns, StoredSecrets secrets) {
+    public StoredSecretsCheck(List<StoredSecretColumn> columns, StoredSecrets secrets) {
         this.columns = columns;
         this.secrets = secrets;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        sealAll();
+        checkAll();
     }
 
     /**
-     * Checks the key against every column and encrypts the plain values.
+     * Checks the key against every column, then that no column holds a plain value.
      *
-     * @return the number of values encrypted
-     * @throws IllegalStateException when the key does not open a stored value
+     * @throws IllegalStateException when the key does not open a stored value or a column holds a plain value
      */
-    public int sealAll() {
+    public void checkAll() {
         for (StoredSecretColumn column : columns) {
             column.anySealedSecret().ifPresent(sample -> requireOpens(column.secretColumn(), sample));
         }
-        int sealed = 0;
         for (StoredSecretColumn column : columns) {
-            int count = column.sealPlainSecrets(secrets);
-            if (count > 0) {
-                log.info("stored_secrets_sealed column={} count={}", column.secretColumn(), count);
+            int plain = column.countPlainSecrets();
+            if (plain > 0) {
+                throw new IllegalStateException(StoredSecrets.plainRefused(column.secretColumn(), plain));
             }
-            sealed += count;
         }
-        return sealed;
     }
 
     private void requireOpens(String column, String sample) {
