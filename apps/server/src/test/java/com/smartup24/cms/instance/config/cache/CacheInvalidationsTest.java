@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.config.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.endsWith;
 import static org.mockito.ArgumentMatchers.eq;
@@ -102,5 +103,23 @@ class CacheInvalidationsTest {
         JdbcClient jdbc = mock(JdbcClient.class);
         new CacheInvalidations(null, jdbc).publish("probe");
         verifyNoInteractions(jdbc);
+    }
+
+    @Test
+    @DisplayName("ADR-0025: a message goes on the same channel with its topic marked, a topic is one word")
+    void messageRidesTheSameChannel() throws Exception {
+        DataSource dataSource = mock(DataSource.class);
+        Connection connection = mock(Connection.class);
+        PreparedStatement statement = mock(PreparedStatement.class);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.getAutoCommit()).thenReturn(true);
+        when(connection.prepareStatement(anyString())).thenReturn(statement);
+        CacheInvalidations invalidations = new CacheInvalidations(dataSource, mock(JdbcClient.class));
+
+        invalidations.send("sse.notification", "7 42");
+
+        verify(statement).setString(1, CacheInvalidations.CHANNEL);
+        verify(statement).setString(eq(2), endsWith(" @sse.notification 7 42"));
+        assertThatThrownBy(() -> invalidations.send("two words", "1")).isInstanceOf(IllegalArgumentException.class);
     }
 }

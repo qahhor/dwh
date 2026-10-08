@@ -16,9 +16,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * Registry of open SSE connections (FR-NOTIF-2, FR-API-5).
  * One user may have several tabs open, hence a list per user.
  *
- * Scope: one application instance per customer installation.
- * When the deployment moves to several nodes, delivery between nodes will be provided by
- * PostgreSQL LISTEN/NOTIFY; the extension point is described in ADR-0009, section 3.
+ * The registry holds the streams of this node only. Notifications created on another node of a cluster reach them
+ * through {@link MsSsePublisher}, which relays them over PostgreSQL LISTEN/NOTIFY (ADR-0025, section 2.5).
  */
 @Component
 public class MsSseRegistry {
@@ -106,6 +105,12 @@ public class MsSseRegistry {
                 }
             }
         });
+    }
+
+    /** Whether the user has a stream open on this node. */
+    public boolean hasConnections(Long userId) {
+        List<SseEmitter> userEmitters = emittersByUser.get(userId);
+        return userEmitters != null && !userEmitters.isEmpty();
     }
 
     public int openConnectionCount() {

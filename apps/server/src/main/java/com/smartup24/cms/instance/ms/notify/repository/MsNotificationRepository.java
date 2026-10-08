@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.query.TimePage;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -73,6 +74,28 @@ public class MsNotificationRepository {
                         rs.getBoolean("is_read"),
                         rs.getTimestamp("created_at").toInstant()))
                 .list();
+    }
+
+    /** One notification by its id. */
+    public Optional<NotificationRecord> findById(long id) {
+        return jdbcClient
+                .sql("""
+                select id, user_id, type, title, body, form_link, source_code, is_read, created_at
+                from ms_notifications
+                where id = :id
+                """)
+                .param("id", id)
+                .query((rs, rowNum) -> new NotificationRecord(
+                        rs.getLong("id"),
+                        rs.getLong("user_id"),
+                        rs.getString("type"),
+                        rs.getString("title"),
+                        rs.getString("body"),
+                        rs.getString("form_link"),
+                        rs.getString("source_code"),
+                        rs.getBoolean("is_read"),
+                        rs.getTimestamp("created_at").toInstant()))
+                .optional();
     }
 
     public int getUnreadCount(Long userId) {
