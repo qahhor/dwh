@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.example;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -13,6 +14,7 @@ import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestSession;
 import com.smartup24.cms.instance.support.TestUsers;
 import com.smartup24.cms.instance.support.TestUsers.TestUser;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -27,8 +29,9 @@ import org.springframework.web.context.WebApplicationContext;
 /**
  * The reference requests beyond the entity contract (plan 10/10, item 6.6), the recipes of the cookbook as a running
  * example: only the approver writes the resolution (a field right), a decision stamps its moment (a hook on the
- * transition), a decided request is not deleted (a hook's refusal, 409), and an archived product is no longer offered
- * to a new request (a reference, 422 {@code archived}).
+ * transition), a submitted or decided request is not deleted — by id or in bulk — because its state keeps it (the
+ * platform's refusal, 422 {@code entity_state_locked}, ADR-0032, 9.2), and an archived product is no longer offered to
+ * a new request (a reference, 422 {@code archived}).
  */
 class ExampleRequestsProcessIntegrationTest extends EmbeddedPostgresTest {
 
@@ -93,8 +96,26 @@ class ExampleRequestsProcessIntegrationTest extends EmbeddedPostgresTest {
                 .isNotNull();
 
         MockHttpServletResponse deleted = clerk.send(delete(REQUESTS + "/" + id).header("If-Match", "\"4\""));
-        assertThat(deleted.getStatus()).as(deleted.getContentAsString()).isEqualTo(409);
-        assertThat(deleted.getContentAsString()).contains("error.example.request_not_draft");
+        assertThat(deleted.getStatus()).as(deleted.getContentAsString()).isEqualTo(422);
+        assertThat(TestSession.object(deleted))
+                .containsEntry("code", "entity_state_locked")
+                .containsEntry("messageKey", "error.common.entity_state_locked")
+                .containsEntry("params", Map.of("state", "approved", "action", "delete"));
+    }
+
+    @Test
+    @DisplayName("ADR-0032, 9.2: a bulk delete passes a draft and refuses a submitted request record by record")
+    void aBulkDeleteRefusesWhatTheStateKeeps() throws Exception {
+        Object draft = created().get("id");
+        Object submitted = created().get("id");
+        assertThat(take(clerk, submitted, "submit", 1).getStatus()).isEqualTo(200);
+        MockHttpServletResponse bulk =
+                clerk.send(post(REQUESTS + "/bulk"), Map.of("action", "delete", "ids", List.of(draft, submitted)));
+        assertThat(bulk.getStatus()).as(bulk.getContentAsString()).isEqualTo(200);
+        assertThat(TestSession.object(bulk)).containsEntry("succeeded", 1).containsEntry("failed", 1);
+        assertThat(bulk.getContentAsString()).contains("entity_state_locked");
+        assertThat(clerk.send(get(REQUESTS + "/" + submitted)).getStatus()).isEqualTo(200);
+        assertThat(clerk.send(get(REQUESTS + "/" + draft)).getStatus()).isEqualTo(404);
     }
 
     @Test

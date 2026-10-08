@@ -31,8 +31,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * A test entity on the runtime with what an author writes besides the declaration (ADR-0032, 6.5–6.7): a rule, hooks
- * that set a value, refuse a save and fail after the commit, an action handler, and a reference to notes by the notes'
- * entity code. Its table {@value #TABLE} is created by {@link EntityRuntimeIntegrationTest} and dropped after it.
+ * that set a value, refuse a save, set a value the rule refuses, misuse the values and fail after the commit, action
+ * handlers — one links the note its parameters name — and a reference to notes by the notes' entity code. Its table {@value #TABLE} is created by {@link EntityRuntimeIntegrationTest} and dropped after it.
  */
 @TestConfiguration
 class EntityRuntimeFixture {
@@ -44,6 +44,12 @@ class EntityRuntimeFixture {
     static final String REFUSED = "refused by the hook";
 
     static final String FAILS_AFTER_COMMIT = "fails after commit";
+
+    /** A title whose hook sets an end before the start: the rule refuses the hook's value. */
+    static final String ENDS_EARLY = "ends early";
+
+    /** A title whose hook sets a key that is no written field: a defect of the module. */
+    static final String MISUSES = "misuses the values";
 
     static final List<String> SAVES = new CopyOnWriteArrayList<>();
     static final List<Long> COMMITTED = new CopyOnWriteArrayList<>();
@@ -90,6 +96,7 @@ class EntityRuntimeFixture {
             .rule("period", Rules.notBefore("endsOn", "startsOn"))
             .actions("create", "update", "delete")
             .action("star", "update")
+            .action("link", "update")
             .defaultSort("modifiedAt", Entity.Sort.DESC)
             .auditTable(TABLE)
             .capabilities(EntityCapability.HISTORY)
@@ -118,6 +125,12 @@ class EntityRuntimeFixture {
                 String title = save.values().text("title");
                 if (REFUSED.equals(title)) {
                     save.reject("title", "refused", "error.field.unknown", Map.of());
+                }
+                if (ENDS_EARLY.equals(title)) {
+                    save.values().set("endsOn", "2000-01-01");
+                }
+                if (MISUSES.equals(title)) {
+                    save.values().set("createdBy", 1L);
                 }
                 if (title != null && save.changed("title")) {
                     save.values()
@@ -163,6 +176,27 @@ class EntityRuntimeFixture {
                     call.reject("", "already_starred", "error.field.unknown", Map.of());
                 }
                 call.values().set("starred", true);
+            }
+        };
+    }
+
+    /** The action {@code link}: the record links the note its parameters name, as a handler trusting its input. */
+    @Bean
+    EntityActionHandler testRuntimeItemLink() {
+        return new EntityActionHandler() {
+            @Override
+            public String entity() {
+                return CODE;
+            }
+
+            @Override
+            public String action() {
+                return "link";
+            }
+
+            @Override
+            public void run(EntityActionCall call) {
+                call.values().set("noteId", call.params().get("noteId"));
             }
         };
     }

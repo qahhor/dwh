@@ -14,6 +14,7 @@ import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
 import com.smartup24.cms.platform.api.entity.hook.EntityRule;
 import com.smartup24.cms.platform.api.entity.hook.EntityValues;
 import com.smartup24.cms.platform.api.entity.hook.RuleErrors;
+import com.smartup24.cms.platform.api.entity.workflow.EntityState;
 import com.smartup24.cms.platform.api.entity.workflow.EntityTransition;
 import com.smartup24.cms.platform.api.entity.workflow.EntityWorkflow;
 import java.util.ArrayList;
@@ -42,7 +43,8 @@ public final class EntityProcess {
 
     /**
      * The declared actions this viewer may take on this record (ADR-0032, 6.2): their right is held and, with a process,
-     * a transition leaves the record's state; in a terminal state the record is only read — no change, no delete.
+     * a transition leaves the record's state; in a terminal state the record is only read — no change — and a state that
+     * keeps the record ({@link #keepingState}) offers neither delete nor archive.
      */
     public static List<String> actions(EntityDefinition entity, Map<String, ?> record) {
         EntityWorkflow workflow = workflow(entity);
@@ -50,17 +52,51 @@ public final class EntityProcess {
         boolean terminal = workflow != null
                 && state != null
                 && workflow.state(state).map(found -> found.terminal()).orElse(false);
+        boolean kept = keepingState(entity, record).isPresent();
         List<String> actions = new ArrayList<>();
         for (EntityAction action : entity.actions()) {
             if (!SecurityContext.hasPermission(entity.form(), action.permission())) continue;
             if (action.kind() == EntityAction.Kind.TRANSITION) {
                 if (workflow == null || !workflow.allows(action.code(), state)) continue;
-            } else if (terminal && ("update".equals(action.code()) || EntityDefinition.DELETE.equals(action.code()))) {
+            } else if ((terminal && "update".equals(action.code())) || (kept && removes(action.code()))) {
                 continue;
             }
             actions.add(action.code());
         }
         return actions;
+    }
+
+    /**
+     * The state of the record that keeps it (ADR-0032, 9.2): a terminal state, or one that locks fields or collections
+     * — the record has left its draft and stays as the trace of its process, so it is neither deleted nor archived.
+     * Empty without a process or in a state that locks nothing.
+     */
+    public static Optional<String> keepingState(EntityDefinition entity, Map<String, ?> record) {
+        EntityWorkflow workflow = workflow(entity);
+        String state = workflow == null ? null : text(record.get(workflow.field()));
+        if (workflow == null || state == null) return Optional.empty();
+        return workflow.state(state)
+                .filter(found -> found.terminal() || !found.locks().isEmpty())
+                .map(EntityState::code);
+    }
+
+    /**
+     * A delete or an archive ({@code action}) of a record its state keeps is 422 {@code entity_state_locked} with the
+     * state and the action (ADR-0032, 6.12 and 9.2), on every path — by id and in bulk — before any hook.
+     */
+    public static void requireRemovable(EntityDefinition entity, Map<String, ?> record, String action) {
+        Optional<String> state = keepingState(entity, record);
+        if (state.isPresent()) {
+            throw ApiException.unprocessable(
+                    ErrorCode.ENTITY_STATE_LOCKED,
+                    "error.common.entity_state_locked",
+                    Map.of("state", state.get(), "action", action),
+                    List.of());
+        }
+    }
+
+    private static boolean removes(String action) {
+        return EntityDefinition.DELETE.equals(action) || EntityDefinition.ARCHIVE.equals(action);
     }
 
     /** The fields and collections a save cannot change in the state of {@code record}; none without a process. */

@@ -2,6 +2,9 @@
 // hooks and three fields, checks that a re-run changes nothing and that a hand edit is never overwritten, lets
 // `cms migration diff` write a migration the declaration needs, and builds the server with the result: Spotless,
 // Error Prone, Checkstyle, the architecture and migration tests, the entity contract kit and the schema comparison.
+// Then a module outside the monorepo (ADR-0033, 13): `cms module new --external` into a directory outside the copy,
+// the platform installed into a Maven repository of the smoke's own (the developer's is read, never written), and the
+// generated module built standalone against it, offline outside CI, with its contract kit.
 // CI runs it on Linux and Windows (.github/workflows/nightly.yml); scripts/dev/test-cms-cli.ps1 runs it locally.
 //
 //   node tools/cms-cli/scripts/smoke.mjs [--keep] [--skip-build]
@@ -10,13 +13,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PATHS, resolve } from '../lib/layout.mjs';
+import { PATHS, platformVersions, resolve } from '../lib/layout.mjs';
 import { runMaven } from '../lib/toolchain.mjs';
 
 const keep = process.argv.includes('--keep');
 const skipBuild = process.argv.includes('--skip-build');
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const work = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP ?? os.tmpdir(), 'cms-cli-smoke-'));
+// Outside the copy of the repository, so no pom above it makes the module a part of the reactor.
+const outside = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP ?? os.tmpdir(), 'cms-cli-external-'));
 const started = Date.now();
 
 const TESTS = [
@@ -191,6 +196,44 @@ function build() {
   check(status === 0, `the server with the generated module fails the build (exit ${status})`);
 }
 
+/**
+ * A module outside the monorepo (ADR-0033, 13): generated standalone, built against the platform the copy installs.
+ * The platform goes into a local repository of the smoke's own whose tail is the developer's (maven.repo.local.tail:
+ * read, never written); outside CI nothing is downloaded (-o), so what is missing is named by Maven.
+ */
+function checkExternal() {
+  const head = path.join(work, '.m2-smoke');
+  const tail = process.env.CMS_SMOKE_M2_TAIL ?? path.join(os.homedir(), '.m2', 'repository');
+  const repository = [`-Dmaven.repo.local=${head}`, `-Dmaven.repo.local.tail=${tail}`, ...(process.env.CI ? [] : ['-o'])];
+  const installLog = path.join(work, 'smoke-install.log');
+  const install = ['-B', '-ntp', '-pl', 'apps/server,libs/platform-testkit', '-am', 'install', '-DskipTests'];
+  install.push('-Djacoco.skip=true', '-Dcheckstyle.skip=true', '-Dspotless.check.skip=true', '-Djapicmp.skip=true');
+  console.log(`Installing the platform into ${head}; log ${installLog}`);
+  const installed = runMaven(work, [...install, ...repository], installLog);
+  if (installed !== 0) process.stdout.write(fs.readFileSync(installLog, 'utf8').split(/\r?\n/).slice(-60).join('\n'));
+  check(installed === 0, `the platform does not install (exit ${installed})`);
+
+  const dir = path.join(outside, 'stock').replace(/\\/g, '/');
+  cmsOk('module', 'new', 'stock', '--external', '--dir', dir, '--package', 'com.acme.stock', '--group', 'com.acme.stock',
+    '--title', 'Склад', '--title-en', 'Stock', '--title-uz', 'Ombor');
+  const pom = fs.readFileSync(path.join(dir, 'pom.xml'), 'utf8');
+  const platform = platformVersions(work);
+  check(!pom.includes('<parent>'), 'a module outside the repository has no parent pom');
+  check(pom.includes(`<platform-api.version>${platform.apiVersion}</platform-api.version>`), 'the pom names the API version');
+  check(pom.includes(`<smartupcms.version>${platform.appVersion}</smartupcms.version>`), 'the pom names the platform');
+
+  const log = path.join(work, 'smoke-external.log');
+  console.log(`Building the external module standalone in ${dir}; log ${log}`);
+  const status = runMaven(work, ['-B', '-ntp', '-f', path.join(dir, 'pom.xml'), 'verify', ...repository], log);
+  const text = fs.readFileSync(log, 'utf8');
+  if (status !== 0) process.stdout.write(text.split(/\r?\n/).slice(-80).join('\n'));
+  check(status === 0, `the external module does not build standalone (exit ${status})`);
+  for (const test of ['StockItemsContractTest', 'StockModuleBoundaryTest']) {
+    check(new RegExp(`Tests run: [1-9]\\d*, Failures: 0, Errors: 0, Skipped: 0.* in com\\.acme\\.stock\\.${test}`).test(text),
+      `${test} runs and passes`);
+  }
+}
+
 let failed = false;
 try {
   console.log(`Copying the repository to ${work}`);
@@ -201,18 +244,23 @@ try {
   if (!skipBuild) {
     checkMigrationDiff();
     build();
+    checkExternal();
   }
   const minutes = ((Date.now() - started) / 60000).toFixed(1);
   console.log(
     skipBuild
       ? `cms-cli smoke passed in ${minutes} min without the build (--skip-build).`
-      : `cms-cli smoke passed in ${minutes} min: the generated module builds and passes ${TESTS.length} test classes.`,
+      : `cms-cli smoke passed in ${minutes} min: the generated module builds and passes ${TESTS.length} test classes;` +
+          ' the external module builds standalone and passes its contract kit.',
   );
 } catch (error) {
   failed = true;
   console.error(error.message);
 } finally {
-  if (keep) console.log(`Kept ${work}`);
-  else fs.rmSync(work, { recursive: true, force: true, maxRetries: 3 });
+  if (keep) console.log(`Kept ${work} and ${outside}`);
+  else {
+    fs.rmSync(work, { recursive: true, force: true, maxRetries: 3 });
+    fs.rmSync(outside, { recursive: true, force: true, maxRetries: 3 });
+  }
 }
 process.exitCode = failed ? 1 : 0;

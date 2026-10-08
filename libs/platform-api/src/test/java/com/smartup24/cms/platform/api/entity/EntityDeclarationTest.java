@@ -161,6 +161,13 @@ class EntityDeclarationTest {
         assertThat(orders.menu()).isNotNull();
         assertThat(orders.menu().routeFor(orders.code())).isEqualTo("/e/acme.orders");
         assertThat(orders.fieldsByKey()).containsKey("currency");
+        assertThat(orders.fieldsByKey()).as("built once with the entity").isSameAs(orders.fieldsByKey());
+        assertThat(orders.fieldsByKey().keySet())
+                .containsExactlyElementsOf(
+                        model.formFields().stream().map(FormField::key).toList());
+        assertThatThrownBy(() -> orders.fieldsByKey().clear()).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> orders.fields().clear()).isInstanceOf(UnsupportedOperationException.class);
+        assertThat(orders.withForm(orders.fields(), orders.layout())).isEqualTo(orders);
         assertThat(model.sqlOf("customer")).isEqualTo("o.customer");
         assertThatThrownBy(() -> model.sqlOf("nothing")).isInstanceOf(IllegalArgumentException.class);
     }

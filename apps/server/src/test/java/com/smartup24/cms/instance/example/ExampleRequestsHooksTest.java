@@ -1,15 +1,12 @@
 package com.smartup24.cms.instance.example;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.example.service.ExampleRequestsEntity;
 import com.smartup24.cms.instance.example.service.ExampleRequestsHooks;
 import com.smartup24.cms.platform.api.actor.AuditActor;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
-import com.smartup24.cms.platform.api.entity.hook.EntityDelete;
 import com.smartup24.cms.platform.api.entity.hook.EntityOperation;
-import com.smartup24.cms.platform.api.entity.hook.EntityRefusal;
 import com.smartup24.cms.platform.api.entity.hook.EntitySave;
 import com.smartup24.cms.platform.api.entity.hook.EntityValues;
 import java.time.Clock;
@@ -36,21 +33,6 @@ class ExampleRequestsHooksTest {
         assertThat(save(EntityOperation.ACTION, "reject").text("decidedAt")).isEqualTo("2026-10-03T09:15Z");
         assertThat(save(EntityOperation.ACTION, "submit").has("decidedAt")).isFalse();
         assertThat(save(EntityOperation.UPDATE, null).has("decidedAt")).isFalse();
-    }
-
-    @Test
-    void onlyADraftIsDeleted() {
-        hooks.beforeDelete(delete("draft"));
-        assertThatThrownBy(() -> hooks.beforeDelete(delete("submitted")))
-                .isInstanceOfSatisfying(EntityRefusal.class, refusal -> {
-                    assertThat(refusal.kind()).isEqualTo(EntityRefusal.Kind.CONFLICT);
-                    assertThat(refusal.messageKey()).isEqualTo("error.example.request_not_draft");
-                });
-    }
-
-    private static EntityDelete delete(String status) {
-        return new EntityDelete(
-                REQUESTS, 7L, EntityValues.readOnly(REQUESTS, Map.of("status", status)), AuditActor.user(1L));
     }
 
     /** Runs {@code beforeSave} on a save of the operation and returns the values it would write. */

@@ -7,8 +7,11 @@
 ## Цель
 
 То, что объявление сказать не может: поле, которое пишет сервер в момент
-события; отказ по состоянию записи; запись своих данных вместе с сохранением;
-действие после коммита. Хуки — второй и последний файл сущности.
+события; отказ по данным, которых нет в записи; запись своих данных вместе с
+сохранением; действие после коммита. Хуки — второй и последний файл сущности.
+Удаление и архив записи вне черновика хук не запрещает: это говорит процесс
+объявления — в конечном состоянии и в состоянии с блокировками платформа
+отказывает сама (422 `entity_state_locked`, ADR-0032 §6.17).
 
 ## Команда
 
@@ -38,19 +41,12 @@ public class ExampleRequestsHooks implements EntityHooks {
             save.values().set("decidedAt", OffsetDateTime.now(clock).toString());
         }
     }
-
-    @Override
-    public void beforeDelete(EntityDelete delete) {
-        if (!"draft".equals(delete.before().text("status"))) {
-            throw EntityRefusal.conflict("error.example.request_not_draft", Map.of());
-        }
-    }
 }
 ```
 
 | Метод | Когда | Что можно |
 |---|---|---|
-| `beforeSave` | после проверок полей и правил, в транзакции | менять записываемые поля (`save.values().set`), добавить проблему поля (`save.reject(...)` — один 422), отказать (`EntityRefusal`) |
+| `beforeSave` | после проверок полей и правил, в транзакции | менять записываемые поля (`save.values().set`; изменённое снова проходит проверки ссылок, скоупа, справочников, файлов и правила `EntityRule`), добавить проблему поля (`save.reject(...)` — один 422), отказать (`EntityRefusal`) |
 | `afterSave` | после записи, в той же транзакции | писать свои данные через свой репозиторий; исключение откатывает всё |
 | `beforeDelete` / `afterDelete` | вокруг удаления | отказать (`EntityRefusal`), убрать свои данные |
 | `beforeArchive` | перед архивом и восстановлением | отказать |
@@ -68,18 +64,15 @@ public class ExampleRequestsHooks implements EntityHooks {
 <!-- from: apps/server/src/test/java/com/smartup24/cms/instance/example/ExampleRequestsHooksTest.java -->
 ```java
     @Test
-    void onlyADraftIsDeleted() {
-        hooks.beforeDelete(delete("draft"));
-        assertThatThrownBy(() -> hooks.beforeDelete(delete("submitted")))
-                .isInstanceOfSatisfying(EntityRefusal.class, refusal -> {
-                    assertThat(refusal.kind()).isEqualTo(EntityRefusal.Kind.CONFLICT);
-                    assertThat(refusal.messageKey()).isEqualTo("error.example.request_not_draft");
-                });
-    }
+    void aDecisionStampsItsMomentAndOtherSavesDoNot() {
+        assertThat(hooks.entity()).isEqualTo(ExampleRequestsEntity.CODE);
+        EntityValues approved = save(EntityOperation.ACTION, "approve");
+        assertThat(approved.text("decidedAt")).isEqualTo("2026-10-03T09:15Z");
 ```
 
-Через весь runtime (409 с текстом ключа на удалении решённой заявки) —
-`ExampleRequestsProcessIntegrationTest`.
+Через весь runtime (отметка решения, 422 `entity_state_locked` на удалении
+решённой заявки) — `ExampleRequestsProcessIntegrationTest`; отказ хука с
+ключом модуля (409) — `LibraryBookHooks` стороннего модуля.
 
 ## Подводные камни
 
@@ -87,8 +80,12 @@ public class ExampleRequestsHooks implements EntityHooks {
   необъявленной сущности не дают приложению стартовать.
 - SQL в хуке нет: свои данные — через репозиторий модуля, чужие — через сервис
   другого модуля.
-- Ключ отказа (`error.example.request_not_draft`) — в каталогах ru, uz и en;
-  сторонний модуль кладёт ключи в свой `messages`.
+- Ключ отказа (`error.<модуль>.<имя>`) — в каталогах ru, uz и en; сторонний
+  модуль кладёт ключи в свой `messages`.
+- `save.values().set` — только записываемое поле формы и значение его типа;
+  иначе это дефект модуля: 500 и запись `Entity hook misuse` в журнале с
+  сущностью, хуком и полем. Значение, неверное из-за данных запроса, —
+  `save.reject(...)`, а не `set`.
 - `EntityRefusal` — для любого модуля (сторонний не видит `ApiException`);
   встроенный может бросить и `ApiException`.
 - Хук с `Clock` в конструкторе: Spring берёт конструктор с `@Autowired`,

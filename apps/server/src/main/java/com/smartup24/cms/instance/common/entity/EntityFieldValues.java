@@ -169,7 +169,12 @@ public class EntityFieldValues {
         return errors;
     }
 
-    private List<FieldErrorItem> lookupProblems(
+    /**
+     * The problems of the values that need the database: an item of an enumeration that exists and is in use, a file the
+     * saver may attach with its type and size; a value equal to the record's {@code before} is kept. Also run on the
+     * values a hook or an action's handler changed (ADR-0032, 6.5).
+     */
+    public List<FieldErrorItem> lookupProblems(
             EntityDefinition entity,
             Map<String, Object> prepared,
             Map<String, ?> before,
