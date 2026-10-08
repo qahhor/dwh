@@ -1996,6 +1996,14 @@ green); the behaviour changes are listed under «Changed».
 
 ### Security
 
+- Dependency updates (2026-10-08) — Jackson 3 3.1.5 → 3.1.7 and Jackson 2
+  2.21.5 → 2.21.7 (through springdoc/swagger-core): the root `pom.xml` imports
+  both Jackson BOMs ahead of Spring Boot's, `jackson.version` and
+  `jackson-2.version` hold the versions (CVE-2026-89407, CVE-2026-89425,
+  CVE-2026-68497, CVE-2026-91776, CVE-2026-91777). The web lockfile takes
+  `fast-uri` 3.1.8 (CVE-2026-84292, CVE-2026-84394), `source-map-js` 1.2.2
+  (CVE-2026-93749) and `undici` 7.30.0 (CVE-2026-19534, CVE-2026-84961) within
+  their existing ranges.
 - Phase 0–6 review fixes (2026-10-07) — the console mail, messenger and SMS
   providers log only that a message was not delivered (masked recipient,
   subject, length): invitation and reset links and one-time codes no longer
