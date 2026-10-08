@@ -102,7 +102,7 @@ class CapacityGuardsIntegrationTest {
         var scopeService = mock(MdScopeService.class);
         when(scopeService.filterForTasks(9001L)).thenReturn(ScopeFilter.unrestricted());
 
-        var reportService = new ReportService(reportRepo, scopeService, 100);
+        var reportService = new ReportService(reportRepo, scopeService, user -> java.util.Map.of(), 100);
 
         var writtenCount = new AtomicInteger(0);
         OutputStream abortingStream = new OutputStream() {

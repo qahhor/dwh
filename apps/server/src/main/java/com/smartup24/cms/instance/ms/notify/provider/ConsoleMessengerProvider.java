@@ -43,6 +43,6 @@ public class ConsoleMessengerProvider implements MessengerProvider {
     @Override
     public ProviderHealth checkHealth() {
         return ProviderHealth.unhealthy(
-                getProviderCode(), "Заглушка: сообщения не доставляются. Задайте smc.telegram.bot-token", 0);
+                getProviderCode(), "Stub: messages are not delivered. Set smc.telegram.bot-token", 0);
     }
 }

@@ -120,6 +120,6 @@ public class MsSseRegistry {
                 emittersByUser.remove(userId, userEmitters);
             }
         }
-        log.debug("SSE-соединение закрыто, user={}, осталось открытых={}", userId, openConnections.get());
+        log.debug("sse_connection_closed user={} open={}", userId, openConnections.get());
     }
 }

@@ -60,15 +60,11 @@ public class MdFormCatalogSynchronizer {
         declared.addAll(entityPairs(entities));
         var result = permissionService.syncFormCatalog(declared);
 
-        log.info(
-                "Каталог прав синхронизирован с кодом: {} пар из @RequiresPermission, "
-                        + "помечено устаревшими за этот проход: {}",
-                declared.size(),
-                result.deprecated());
+        log.info("permission_catalog_synced declared={} deprecatedNow={}", declared.size(), result.deprecated());
 
         if (!result.deprecatedPairs().isEmpty()) {
             log.warn(
-                    "Устаревшие права в каталоге (за ними нет эндпоинта, выдать их нельзя): {}",
+                    "permission_catalog_obsolete pairs={}: no endpoint behind them, they cannot be granted",
                     String.join(", ", result.deprecatedPairs()));
         }
     }

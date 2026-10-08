@@ -52,8 +52,8 @@ public class MdAuditActors implements AuditActorContext {
      */
     private long createAfterInstanceBootstrap() {
         if (accounts.countUsers() == 0) {
-            throw new IllegalStateException("Учётка " + AuditActor.SYSTEM
-                    + " запрошена до первичной настройки экземпляра: в md_users нет ни одного пользователя");
+            throw new IllegalStateException(
+                    "Account " + AuditActor.SYSTEM + " requested before the instance was set up: md_users has no user");
         }
         return ensureSystemUser(accounts);
     }
@@ -82,7 +82,7 @@ public class MdAuditActors implements AuditActorContext {
         return accounts.findUserId(login).orElseGet(() -> {
             accounts.insertTechnicalUser(login, name, email);
             return accounts.findUserId(login)
-                    .orElseThrow(() -> new IllegalStateException("Учётка " + login + " не создана в md_users"));
+                    .orElseThrow(() -> new IllegalStateException("Account " + login + " is not created in md_users"));
         });
     }
 

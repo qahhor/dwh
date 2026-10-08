@@ -104,7 +104,7 @@ public class UnitService implements Units {
     public CoefficientRef publishCoefficient(
             String fromUnit, String toUnit, BigDecimal factor, LocalDate validFrom, AuditActor actor) {
         if (factor == null) {
-            throw new IllegalArgumentException("Множитель не задан");
+            throw new IllegalArgumentException("The factor is not set");
         }
         actors.apply(actor);
         long coefficientId = units.findCoefficientId(fromUnit, toUnit)
@@ -123,7 +123,7 @@ public class UnitService implements Units {
     @Override
     public UnitConversion convert(BigDecimal value, String fromUnit, String toUnit, LocalDate date) {
         if (value == null) {
-            throw new IllegalArgumentException("Значение не задано: пересчитывать нечего");
+            throw new IllegalArgumentException("The value is not set: nothing to convert");
         }
         requireUnitCode(fromUnit);
         requireUnitCode(toUnit);

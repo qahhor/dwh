@@ -31,10 +31,10 @@ public class IdempotencyCleanupWorker {
         try {
             int deleted = idempotencyService.cleanupOldKeys(retentionDays);
             if (deleted > 0) {
-                log.info("Удалено {} устаревших записей идемпотентности (> {} дн.)", deleted, retentionDays);
+                log.info("idempotency_keys_deleted count={} olderThanDays={}", deleted, retentionDays);
             }
         } catch (Exception e) {
-            log.error("Ошибка при выполнении плановой очистки ключей идемпотентности: {}", e.getMessage(), e);
+            log.error("idempotency_cleanup_failed error={}", e.getMessage(), e);
         }
     }
 }

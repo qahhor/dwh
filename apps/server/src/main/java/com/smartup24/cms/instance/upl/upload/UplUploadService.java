@@ -111,7 +111,7 @@ public class UplUploadService {
         try (InputStream content = upload.content().getInputStream()) {
             return files.store(upload.fileName(), mimeType, content, upload.sizeBytes(), userId);
         } catch (IOException failure) {
-            throw new UncheckedIOException("Тело загружаемого файла не читается", failure);
+            throw new UncheckedIOException("The body of the uploaded file cannot be read", failure);
         }
     }
 

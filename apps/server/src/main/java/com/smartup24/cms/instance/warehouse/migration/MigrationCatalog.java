@@ -38,11 +38,11 @@ public final class MigrationCatalog {
                     .sorted()
                     .toList();
             if (names.isEmpty()) {
-                throw new IllegalStateException("Каталог миграций пуст: " + location);
+                throw new IllegalStateException("The migration folder is empty: " + location);
             }
             return new MigrationCatalog(location, names);
         } catch (IOException e) {
-            throw new UncheckedIOException("Не удалось прочитать каталог миграций " + location, e);
+            throw new UncheckedIOException("Cannot read the migration folder " + location, e);
         }
     }
 
@@ -66,7 +66,7 @@ public final class MigrationCatalog {
     static BigInteger versionOf(String fileName) {
         Matcher m = VERSIONED.matcher(fileName);
         if (!m.matches()) {
-            throw new IllegalStateException("Имя миграции не по регламенту: " + fileName);
+            throw new IllegalStateException("The migration name breaks the naming rule: " + fileName);
         }
         return new BigInteger(m.group(1));
     }

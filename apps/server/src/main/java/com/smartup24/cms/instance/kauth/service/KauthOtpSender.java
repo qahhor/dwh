@@ -118,7 +118,7 @@ public class KauthOtpSender {
 
         if (!delivered) {
             // The recipient address is personal data and is not written to the log.
-            log.warn("Код не доставлен в канал {}", channel.channel());
+            log.warn("otp_not_delivered channel={}", channel.channel());
             throw new ApiException(
                     ErrorCode.OTP_SEND_FAILED, "error.auth.otp_send_failed", Map.of("channel", channel.channel()));
         }

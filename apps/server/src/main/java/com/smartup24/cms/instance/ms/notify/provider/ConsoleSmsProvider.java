@@ -38,6 +38,6 @@ public class ConsoleSmsProvider implements SmsProvider {
     @Override
     public ProviderHealth checkHealth() {
         return ProviderHealth.unhealthy(
-                getProviderCode(), "Заглушка: SMS не доставляются. Подключите шлюз оператора", 0);
+                getProviderCode(), "Stub: SMS are not delivered. Connect an operator gateway", 0);
     }
 }

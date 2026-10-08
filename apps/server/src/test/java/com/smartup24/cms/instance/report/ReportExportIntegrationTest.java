@@ -18,6 +18,7 @@ import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
+import com.smartup24.cms.instance.md.service.MdI18nCatalog;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
@@ -36,6 +37,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -77,7 +80,7 @@ class ReportExportIntegrationTest {
                 new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
         scopes = new MdScopeService(scopeRepository, orgRepository, permissions, audit);
         orgUnits = new MdOrgUnitService(orgRepository, scopes, audit);
-        reports = new ReportService(jdbc, scopes);
+        reports = new ReportService(jdbc, scopes, user -> new MdI18nCatalog(new ObjectMapper()).bundled("ru"));
         mvc = MockMvcBuilders.standaloneSetup(new ReportController(reports))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
@@ -172,6 +175,30 @@ class ReportExportIntegrationTest {
         }
         assignScope(viewer, "ALL");
         assertIds(export(format), format, List.of(first, second));
+    }
+
+    @Test
+    @DisplayName("The export speaks the language of the user who exports: columns and priorities")
+    void exportIsInTheUsersLanguage() throws Exception {
+        Long viewer = user("viewer", null);
+        Long id = task("Quarterly report", viewer, viewer);
+        jdbc.sql("update ms_tasks set priority = 'critical' where id = :id")
+                .param("id", id)
+                .update();
+        assignScope(viewer, "SELF");
+        var english = new ReportService(jdbc, scopes, user -> new MdI18nCatalog(new ObjectMapper()).bundled("en"));
+
+        var csv = new ByteArrayOutputStream();
+        english.exportTasksCsv(csv, viewer);
+        var xml = new ByteArrayOutputStream();
+        english.exportTasksExcelXml(xml, viewer);
+
+        String text = csv.toString(StandardCharsets.UTF_8);
+        assertThat(text).contains("ID;Title;Project;Priority;Status;Due date;Created;Author");
+        assertThat(text).contains(";Critical;");
+        assertThat(xml.toString(StandardCharsets.UTF_8))
+                .contains("<Worksheet ss:Name=\"Tasks\">", ">Due date<", ">Critical<")
+                .doesNotContain("Заголовок");
     }
 
     @ParameterizedTest

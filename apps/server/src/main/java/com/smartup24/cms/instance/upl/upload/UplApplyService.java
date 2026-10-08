@@ -84,11 +84,12 @@ public class UplApplyService {
                     actor);
             actors.apply(actor);
             if (repo.setLoadId(row.id(), loadId) != 1) {
-                throw new IllegalStateException("Пакет " + row.publicId() + " уже не в статусе «проверен»");
+                throw new IllegalStateException("Package " + row.publicId() + " is no longer validated");
             }
             jobs.enqueueOnce(UplPref.JOB_APPLY, UplApplyJob.args(row.publicId(), userId));
             return repo.findById(row.id())
-                    .orElseThrow(() -> new IllegalStateException("Пакет " + id + " пропал при постановке применения"));
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Package " + id + " disappeared while its apply was being queued"));
         });
     }
 }
