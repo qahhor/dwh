@@ -110,6 +110,29 @@ management:
           # outage degrades one feature (warehouse loads, search falls back to PostgreSQL, uploads fail closed), and
           # taking the instance out of traffic would turn that into a full outage. Liveness stays the process alone.
           include: readinessState,database
+  metrics:
+    tags:
+      application: smartupcms
+    system:
+      diskspace:
+        # disk_free_bytes / disk_total_bytes: the working directory and the file storage, which in the production
+        # bundle lives on the server data volume with the logs and the audit archive (docs/ops/slo.md).
+        paths: .,${smc.storage.local-path}
+    distribution:
+      # Plan 10/10, item 7.3 (docs/ops/slo.md): the latency SLOs and their alerts are computed from histogram
+      # buckets, so every node's buckets add up; the SLO thresholds are buckets of their own (100 ms, 300 ms, 1 s).
+      percentiles-histogram:
+        "[http.server.requests]": true
+      minimum-expected-value:
+        "[http.server.requests]": 5ms
+      maximum-expected-value:
+        "[http.server.requests]": 30s
+      slo:
+        "[http.server.requests]": 100ms,300ms,1s
+        "[smc.search.query.duration]": 100ms,300ms,1s
+        "[smc.jobs.execution]": 1s,10s,1m,5m,30m
+        "[smc.outbox.delivery]": 100ms,1s,5s,30s
+        "[smc.task.run]": 1s,1m,10m,1h
   health:
     mail:
       # An unreachable mail gateway must not bring the instance down: the container

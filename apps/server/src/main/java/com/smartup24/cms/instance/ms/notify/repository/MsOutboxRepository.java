@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.ms.notify.repository;
 
 import com.smartup24.cms.instance.common.json.JsonColumns;
+import com.smartup24.cms.instance.common.metrics.Backlog;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import java.time.Instant;
 import java.util.List;
@@ -79,6 +80,18 @@ public class MsOutboxRepository {
                 .param("claimToken", claimToken)
                 .query(this::mapRecord)
                 .list();
+    }
+
+    /** The notifications due now and the wait of the oldest past its due time (plan 10/10, item 7.3). */
+    public Backlog backlog() {
+        return jdbcClient
+                .sql("""
+                select count(*) as pending, coalesce(extract(epoch from now() - min(next_attempt_at)), 0) as lag
+                from ms_notification_outbox
+                where status = 'PENDING' and next_attempt_at <= now()
+                """)
+                .query((rs, row) -> new Backlog(rs.getLong("pending"), rs.getDouble("lag")))
+                .single();
     }
 
     public boolean markSuccess(Long id, UUID claimToken) {

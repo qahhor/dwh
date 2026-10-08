@@ -1,0 +1,215 @@
+# promtool unit tests: job queue, outbox, maintenance and search alerts (plan 10/10, item 7.3).
+rule_files:
+  - ../rules/recording.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Two nodes sample the same queue; the alert takes the larger lag.
+  - name: job queue lag
+    interval: 1m
+    input_series:
+      - series: 'smc_jobs_queue_lag_seconds{application="smartupcms", instance="a"}'
+        values: '0 400x30'
+      - series: 'smc_jobs_queue_lag_seconds{application="smartupcms", instance="b"}'
+        values: '0x30'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: SmartupcmsJobQueueLagHigh
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: SmartupcmsJobQueueLagHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "Job queue: the oldest due job waits longer than 5 minutes"
+              description: "The oldest due job has waited 6m 40s past its time."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-05-job-queue.md"
+      - eval_time: 25m
+        alertname: SmartupcmsJobQueueStalled
+        exp_alerts: []
+
+  - name: job queue stalled
+    interval: 1m
+    input_series:
+      - series: 'smc_jobs_queue_lag_seconds{application="smartupcms", instance="a"}'
+        values: '1000x30'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: SmartupcmsJobQueueStalled
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: SmartupcmsJobQueueStalled
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              application: smartupcms
+            exp_annotations:
+              summary: "Job queue stalled: the oldest due job waits longer than 15 minutes"
+              description: "Uploads, exports and maintenance do not run: the oldest due job has waited 16m 40s."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-05-job-queue.md"
+
+  - name: jobs out of attempts
+    interval: 1m
+    input_series:
+      - series: 'smc_jobs_queue_failed{application="smartupcms", instance="a"}'
+        values: '3x10 5x60'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: SmartupcmsJobsFailed
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: SmartupcmsJobsFailed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "Jobs ran out of attempts"
+              description: "More jobs were marked failed in the last 30 minutes; they wait for the operator."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-05-job-queue.md"
+      # The failed jobs stay for the operator, but no new one came: the alert clears.
+      - eval_time: 60m
+        alertname: SmartupcmsJobsFailed
+        exp_alerts: []
+
+  - name: outbox lag
+    interval: 1m
+    input_series:
+      - series: 'smc_outbox_lag_seconds{application="smartupcms", instance="a", outbox="webhook"}'
+        values: '1000x30'
+      - series: 'smc_outbox_lag_seconds{application="smartupcms", instance="a", outbox="notification"}'
+        values: '4000x30'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SmartupcmsOutboxLagHigh
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: SmartupcmsOutboxLagHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+              outbox: webhook
+            exp_annotations:
+              summary: "webhook outbox: the oldest due item waits longer than 15 minutes"
+              description: "The oldest due webhook delivery has waited 16m 40s past its time."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-06-outbox-delivery.md"
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+              outbox: notification
+            exp_annotations:
+              summary: "notification outbox: the oldest due item waits longer than 15 minutes"
+              description: "The oldest due notification delivery has waited 1h 6m 40s past its time."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-06-outbox-delivery.md"
+      - eval_time: 20m
+        alertname: SmartupcmsOutboxStalled
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              application: smartupcms
+              outbox: notification
+            exp_annotations:
+              summary: "notification outbox stalled for more than an hour"
+              description: "No notification delivery has left the outbox for 1h 6m 40s."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-06-outbox-delivery.md"
+
+  - name: outbox dead letters
+    interval: 1m
+    input_series:
+      - series: 'smc_outbox_dead_letters_total{application="smartupcms", instance="a", outbox="notification"}'
+        values: '0x5 1x40'
+      - series: 'smc_outbox_dead_letters_total{application="smartupcms", instance="a", outbox="webhook"}'
+        values: '3x45'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: SmartupcmsOutboxDeadLetters
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SmartupcmsOutboxDeadLetters
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+              outbox: notification
+            exp_annotations:
+              summary: "notification outbox: deliveries ran out of attempts"
+              description: "notification deliveries became dead letters in the last 15 minutes."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-06-outbox-delivery.md"
+      - eval_time: 40m
+        alertname: SmartupcmsOutboxDeadLetters
+        exp_alerts: []
+
+  - name: nightly tasks failed
+    interval: 10m
+    input_series:
+      - series: 'smc_task_run_seconds_count{application="smartupcms", instance="a", task="audit_archive", outcome="failure"}'
+        values: '0x3 1x20'
+      - series: 'smc_task_run_seconds_count{application="smartupcms", instance="a", task="retention", outcome="failure"}'
+        values: '0x3 1x20'
+      - series: 'smc_task_run_seconds_count{application="smartupcms", instance="a", task="retention", outcome="success"}'
+        values: '0+1x23'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: SmartupcmsAuditArchiveFailed
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: SmartupcmsAuditArchiveFailed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "The nightly audit log archive failed"
+              description: "The audit archive run failed within the last day; the next night retries it."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-08-maintenance-tasks.md"
+      - eval_time: 60m
+        alertname: SmartupcmsRetentionFailed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "The nightly retention left a journal table uncleaned"
+              description: "A retention run failed for at least one table within the last day (log line retention_failed)."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-08-maintenance-tasks.md"
+
+  - name: nightly tasks succeed
+    interval: 10m
+    input_series:
+      - series: 'smc_task_run_seconds_count{application="smartupcms", instance="a", task="audit_archive", outcome="success"}'
+        values: '0+1x23'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: SmartupcmsAuditArchiveFailed
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: SmartupcmsRetentionFailed
+        exp_alerts: []
+
+  # The candidate collection of a rebuild may lag; only the active one serves search.
+  - name: search delivery lag
+    interval: 1m
+    input_series:
+      - series: 'smc_search_delivery_lag_seconds{application="smartupcms", instance="a", role="ACTIVE"}'
+        values: '1000x30'
+      - series: 'smc_search_delivery_lag_seconds{application="smartupcms", instance="b", role="CANDIDATE"}'
+        values: '9000x30'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: SmartupcmsSearchDeliveryLagHigh
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: SmartupcmsSearchDeliveryLagHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "Search index lags behind the database by more than 15 minutes"
+              description: "The search outbox of the active collection has waited 16m 40s."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-09-search-delivery.md"

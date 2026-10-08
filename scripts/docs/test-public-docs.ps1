@@ -56,7 +56,16 @@ $activeDocs = @(
     'docs/ops/privacy-and-retention-annex.md',
     'docs/ops/production-launch-checklist.md',
     'docs/ops/rollback.md',
-    'docs/runbooks/RB-04-migration-failure-triage.md'
+    'docs/ops/slo.md',
+    'docs/runbooks/RB-01-instance-unavailable.md',
+    'docs/runbooks/RB-02-api-errors-and-latency.md',
+    'docs/runbooks/RB-03-backup.md',
+    'docs/runbooks/RB-04-migration-failure-triage.md',
+    'docs/runbooks/RB-05-job-queue.md',
+    'docs/runbooks/RB-06-outbox-delivery.md',
+    'docs/runbooks/RB-07-database-pool-and-disk.md',
+    'docs/runbooks/RB-08-maintenance-tasks.md',
+    'docs/runbooks/RB-09-search-delivery.md'
 )
 
 $supersededAdrs = @(

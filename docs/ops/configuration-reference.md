@@ -86,6 +86,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_JOBS_TICKER_ENABLED` | `smc.jobs.ticker-enabled` | `true` |
 | `SMC_MAIL_FROM` | `smc.mail.from` | `no-reply@localhost` |
 | `SMC_MAIL_FROM_NAME` | `smc.mail.from-name` | `SmartupCMS` |
+| `SMC_METRICS_BACKLOG_INTERVAL` | `smc.metrics.backlog-interval` | `PT30S` |
 | `SMC_PROVIDER_MAIL` | `smc.providers.mail` | `console_mail` |
 | `SMC_PROVIDER_MESSENGER` | `smc.providers.messenger` | `console_messenger` |
 | `SMC_PROVIDER_SMS` | `smc.providers.sms` | `console_sms` |

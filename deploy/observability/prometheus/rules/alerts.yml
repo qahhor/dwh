@@ -1,0 +1,245 @@
+# Alerts of the SmartupCMS SLOs (plan 10/10, item 7.3; docs/ops/slo.md).
+# Every alert carries a severity (critical pages the on-call operator, warning waits for the working day)
+# and a runbook_url to its file in docs/runbooks; scripts/docs/test-repository-hygiene.ps1 checks both
+# directions, and every alert has a unit test in deploy/observability/prometheus/tests.
+# The scrape job of the server is named "smartupcms" (deploy/observability/prometheus/prometheus.yml).
+groups:
+  - name: smartupcms-availability
+    rules:
+      - alert: SmartupcmsInstanceDown
+        expr: up{job="smartupcms"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SmartupCMS instance {{ $labels.instance }} does not answer the scrape"
+          description: "The management port has not answered Prometheus for 2 minutes: the process is down or unreachable."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-01-instance-unavailable.md"
+      - alert: SmartupcmsScrapeTargetMissing
+        expr: absent(up{job="smartupcms"})
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No SmartupCMS instance is scraped"
+          description: "Prometheus has no target of the job smartupcms: the service discovery or the scrape configuration lost the server."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-01-instance-unavailable.md"
+      - alert: SmartupcmsReadinessDown
+        expr: smc_health_readiness == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SmartupCMS instance {{ $labels.instance }} is not ready"
+          description: "The readiness group (main database) has been DOWN for 2 minutes: the instance is out of traffic."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-01-instance-unavailable.md"
+
+  - name: smartupcms-api-slo
+    rules:
+      # Availability SLO 99.9 % over 30 days (approved, docs/technical-specification.md): the error budget is
+      # 0.1 % of API requests. Multiwindow burn rates: 14.4x spends 2 % of the monthly budget in an hour, 6x spends
+      # 5 % in six hours. The latency thresholds below are proposed defaults until the installation approves its
+      # own (NFR-PERF-02, AC-12; docs/ops/slo.md).
+      - alert: SmartupcmsApiErrorBudgetBurnFast
+        expr: smc:api_error_ratio:rate1h > (14.4 * 0.001) and smc:api_error_ratio:rate5m > (14.4 * 0.001)
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API errors burn the monthly error budget 14 times too fast"
+          description: "{{ $value | humanizePercentage }} of API requests answered 5xx over the last hour (budget 0.1 %)."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - alert: SmartupcmsApiErrorBudgetBurnSlow
+        expr: smc:api_error_ratio:rate6h > (6 * 0.001) and smc:api_error_ratio:rate30m > (6 * 0.001)
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API errors burn the monthly error budget 6 times too fast"
+          description: "{{ $value | humanizePercentage }} of API requests answered 5xx over the last six hours (budget 0.1 %)."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - alert: SmartupcmsApiLatencyP95High
+        expr: smc:api_latency_seconds:p95_5m > 0.3
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API p95 latency above 300 ms"
+          description: "The 95th percentile of API requests has been {{ $value | humanizeDuration }} for 15 minutes (SLO 300 ms)."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - alert: SmartupcmsApiLatencyP99High
+        expr: smc:api_latency_seconds:p99_5m > 1
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API p99 latency above 1 s"
+          description: "The 99th percentile of API requests has been {{ $value | humanizeDuration }} for 15 minutes (SLO 1 s)."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - alert: SmartupcmsEntityRuntimeLatencyHigh
+        expr: smc:entity_latency_seconds:p95_5m > 0.3
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Entity runtime p95 latency above 300 ms"
+          description: "The 95th percentile of /api/v1/entities requests has been {{ $value | humanizeDuration }} for 15 minutes."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+
+  - name: smartupcms-jobs
+    rules:
+      - alert: SmartupcmsJobQueueLagHigh
+        expr: smc:jobs_queue_lag_seconds:max > 300
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Job queue: the oldest due job waits longer than 5 minutes"
+          description: "The oldest due job has waited {{ $value | humanizeDuration }} past its time."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-05-job-queue.md"
+      - alert: SmartupcmsJobQueueStalled
+        expr: smc:jobs_queue_lag_seconds:max > 900
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Job queue stalled: the oldest due job waits longer than 15 minutes"
+          description: "Uploads, exports and maintenance do not run: the oldest due job has waited {{ $value | humanizeDuration }}."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-05-job-queue.md"
+      - alert: SmartupcmsJobsFailed
+        expr: delta(smc:jobs_queue_failed:max[30m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Jobs ran out of attempts"
+          description: "More jobs were marked failed in the last 30 minutes; they wait for the operator."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-05-job-queue.md"
+
+  - name: smartupcms-outbox
+    rules:
+      - alert: SmartupcmsOutboxLagHigh
+        expr: smc:outbox_lag_seconds:max > 900
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.outbox }} outbox: the oldest due item waits longer than 15 minutes"
+          description: "The oldest due {{ $labels.outbox }} delivery has waited {{ $value | humanizeDuration }} past its time."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-06-outbox-delivery.md"
+      - alert: SmartupcmsOutboxStalled
+        expr: smc:outbox_lag_seconds:max > 3600
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.outbox }} outbox stalled for more than an hour"
+          description: "No {{ $labels.outbox }} delivery has left the outbox for {{ $value | humanizeDuration }}."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-06-outbox-delivery.md"
+      - alert: SmartupcmsOutboxDeadLetters
+        expr: sum by (application, outbox) (increase(smc_outbox_dead_letters_total[15m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.outbox }} outbox: deliveries ran out of attempts"
+          description: "{{ $labels.outbox }} deliveries became dead letters in the last 15 minutes."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-06-outbox-delivery.md"
+
+  - name: smartupcms-backup
+    rules:
+      - alert: SmartupcmsBackupFailed
+        expr: max by (application) (smc_backup_status{status="FAILED"}) == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "The last encrypted backup failed"
+          description: "The backup sidecar reported FAILED; the recovery point grows older with every hour."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-03-backup.md"
+      - alert: SmartupcmsBackupStale
+        expr: smc_backup_age_seconds > smc_backup_max_age_seconds
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "The last successful backup is older than the accepted age"
+          description: "The last backup is {{ $value | humanizeDuration }} old (SMC_BACKUP_MAX_AGE, 26 h when not set)."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-03-backup.md"
+      - alert: SmartupcmsBackupMissing
+        expr: max by (application) (smc_backup_status{status=~"NEVER|UNKNOWN"}) == 1
+        for: 26h
+        labels:
+          severity: warning
+        annotations:
+          summary: "No readable backup status for more than a day"
+          description: "The backup status file is missing or unreadable: the server cannot tell whether a backup exists."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-03-backup.md"
+
+  - name: smartupcms-saturation
+    rules:
+      - alert: SmartupcmsDbPoolSaturated
+        expr: smc:db_pool_utilisation:ratio > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Connection pool {{ $labels.pool }} more than 90 % busy"
+          description: "{{ $value | humanizePercentage }} of the pool {{ $labels.pool }} on {{ $labels.instance }} has been in use for 10 minutes."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-07-database-pool-and-disk.md"
+      - alert: SmartupcmsDbPoolStarved
+        expr: max by (application, instance, pool) (hikaricp_connections_pending) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Requests wait for a connection of the pool {{ $labels.pool }}"
+          description: "{{ $value }} threads on {{ $labels.instance }} have waited for a database connection for 5 minutes."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-07-database-pool-and-disk.md"
+      - alert: SmartupcmsDiskSpaceLow
+        expr: smc:disk_free:ratio < 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Less than 20 % disk space left on {{ $labels.instance }}"
+          description: "{{ $value | humanizePercentage }} of {{ $labels.path }} is free."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-07-database-pool-and-disk.md"
+      - alert: SmartupcmsDiskSpaceCritical
+        expr: smc:disk_free:ratio < 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Less than 10 % disk space left on {{ $labels.instance }}"
+          description: "{{ $value | humanizePercentage }} of {{ $labels.path }} is free: logs, uploads and archives stop soon."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-07-database-pool-and-disk.md"
+
+  - name: smartupcms-maintenance
+    rules:
+      - alert: SmartupcmsAuditArchiveFailed
+        expr: sum by (application) (increase(smc_task_run_seconds_count{task="audit_archive", outcome="failure"}[1d])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "The nightly audit log archive failed"
+          description: "The audit archive run failed within the last day; the next night retries it."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-08-maintenance-tasks.md"
+      - alert: SmartupcmsRetentionFailed
+        expr: sum by (application) (increase(smc_task_run_seconds_count{task="retention", outcome="failure"}[1d])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "The nightly retention left a journal table uncleaned"
+          description: "A retention run failed for at least one table within the last day (log line retention_failed)."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-08-maintenance-tasks.md"
+
+  - name: smartupcms-search
+    rules:
+      - alert: SmartupcmsSearchDeliveryLagHigh
+        expr: max by (application) (smc_search_delivery_lag_seconds{role="ACTIVE"}) > 900
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Search index lags behind the database by more than 15 minutes"
+          description: "The search outbox of the active collection has waited {{ $value | humanizeDuration }}."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-09-search-delivery.md"

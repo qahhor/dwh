@@ -27,6 +27,26 @@ public class JobQueueRepository {
     public record ClaimedRow(long id, String handler, String args, int attempt) {}
 
     /**
+     * The queue as the metrics see it (plan 10/10, item 7.3): jobs due and not leased, the wait of the oldest of them
+     * past its due time in seconds, and the jobs out of attempts that wait for the operator.
+     */
+    public record QueueState(long due, double lagSeconds, long failed) {}
+
+    public QueueState state() {
+        return jdbc.sql("""
+                        select count(*) filter (where ready) as due,
+                               coalesce(extract(epoch from now() - min(next_run_at) filter (where ready)), 0) as lag,
+                               count(*) filter (where failed_at is not null) as failed
+                          from (select next_run_at, failed_at,
+                                       failed_at is null and next_run_at <= now()
+                                           and (locked_until is null or locked_until < now()) as ready
+                                  from fnd_job_queue) q
+                        """)
+                .query((rs, row) -> new QueueState(rs.getLong("due"), rs.getDouble("lag"), rs.getLong("failed")))
+                .single();
+    }
+
+    /**
      * The transaction-scoped lock that lets one node enqueue the due scheduled jobs; false when another node holds
      * it.
      */

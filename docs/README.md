@@ -186,7 +186,16 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [Rollback and recovery](ops/rollback.md)
 - [Migration failure repair](ops/migration-repair.md)
 - [GitHub repository settings](ops/repository-settings.md)
+- [SLO, metrics and alerts](ops/slo.md)
+- [RB-01 instance unavailable](runbooks/RB-01-instance-unavailable.md)
+- [RB-02 API errors and latency](runbooks/RB-02-api-errors-and-latency.md)
+- [RB-03 backup failed or stale](runbooks/RB-03-backup.md)
 - [RB-04 migration failure triage](runbooks/RB-04-migration-failure-triage.md)
+- [RB-05 job queue](runbooks/RB-05-job-queue.md)
+- [RB-06 outbox delivery](runbooks/RB-06-outbox-delivery.md)
+- [RB-07 database pool and disk](runbooks/RB-07-database-pool-and-disk.md)
+- [RB-08 maintenance tasks](runbooks/RB-08-maintenance-tasks.md)
+- [RB-09 search delivery](runbooks/RB-09-search-delivery.md)
 - [Threat model and personal-data inventory](security/threat-model.md)
 
 These documents govern execution for a concrete installation but cannot supply
