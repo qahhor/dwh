@@ -96,7 +96,7 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
         authenticateUser(
                 session.userId(),
                 session.authenticationVersion(),
-                () -> sessionService.updateLastSeen(session.id()),
+                () -> sessionService.touch(session),
                 session.id(),
                 false,
                 null);

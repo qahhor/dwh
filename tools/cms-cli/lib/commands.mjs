@@ -14,7 +14,7 @@ import {
   declaresField,
 } from './edits.mjs';
 import { list } from './args.mjs';
-import { CliError, NEW_MODULE_FLOOR, PATHS, resolve } from './layout.mjs';
+import { CliError, NEW_MODULE_FLOOR, PATHS, platformVersions, resolve } from './layout.mjs';
 import { createsTable, hasColumn, planMigration, seedsForm } from './migrations.mjs';
 import { entityNames, fieldKey, humanize, labelKey, moduleNames, pascal, snake } from './names.mjs';
 import { findDeclaration, loadModule, planKeys, titles } from './repo.mjs';
@@ -88,13 +88,17 @@ export function externalModuleNew(plan, code, values) {
     pascal: pascal(code),
   };
 
+  // A directory outside the repository (absolute, or above its root) is a standalone project: it names the platform's
+  // versions itself (ADR-0033, 13). Inside the repository the module takes the root pom as its parent.
+  const outside = path.isAbsolute(dir) || path.posix.normalize(dir).startsWith('../');
   const relPom = path.posix.relative(dir, '.').replace(/\\/g, '/') + '/pom.xml';
-  const hasParent = fs.existsSync(resolve(plan.root, relPom));
+  const hasParent = !outside && fs.existsSync(path.join(resolve(plan.root, dir), relPom));
+  const platform = platformVersions(plan.root);
 
-  plan.create(`${dir}/pom.xml`, externalPom(module, { hasParent, relPom }), 'external module pom.xml');
+  plan.create(`${dir}/pom.xml`, externalPom(module, { hasParent, relPom, platform }), 'external module pom.xml');
   plan.create(
     `${dir}/src/main/resources/META-INF/smartupcms/modules/${code}.json`,
-    externalModuleManifest(module),
+    externalModuleManifest(module, platform),
     'module manifest',
   );
   const keys = externalKeys(module, title);
@@ -132,7 +136,12 @@ export function externalModuleNew(plan, code, values) {
   );
 
   plan.note(`external module created in ${dir}`);
-  plan.note(`build: cd ${dir} && mvn package`);
+  plan.note(
+    hasParent
+      ? `build: cd ${dir} && mvn verify (the root pom is its parent)`
+      : `build: cd ${dir} && mvn verify (the platform ${platform.appVersion} and its API ${platform.apiVersion} must be in ` +
+          'your Maven repository: mvn install -DskipTests in the platform repository)',
+  );
   plan.note(`deploy: copy ${dir}/target/${code}-module-*.jar to modules/ directory for Docker`);
   return module;
 }

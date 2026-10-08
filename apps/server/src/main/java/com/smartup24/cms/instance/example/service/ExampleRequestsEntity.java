@@ -32,8 +32,8 @@ import org.springframework.context.annotation.Configuration;
  * submitted → approved or rejected (back to draft by {@code recall}) as record actions with a right each. A submitted
  * request keeps its subject, product and quantity; a decided one is only read. Only a holder of {@code approve} writes
  * the resolution (a field right, ADR-0032, 5.2); the hooks ({@link ExampleRequestsHooks}) stamp the moment of the
- * decision and refuse to delete a request that left its draft. A request is in the org unit of its author by default
- * (ADR-0013).
+ * decision. A request that left its draft is neither deleted nor archived: its state locks or is terminal (ADR-0032,
+ * 9.2). A request is in the org unit of its author by default (ADR-0013).
  */
 @Configuration
 public class ExampleRequestsEntity {

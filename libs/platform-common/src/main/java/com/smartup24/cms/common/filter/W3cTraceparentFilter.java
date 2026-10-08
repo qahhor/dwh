@@ -3,91 +3,76 @@ package com.smartup24.cms.common.filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.security.SecureRandom;
-import java.util.HexFormat;
-import org.slf4j.MDC;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.regex.Pattern;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Standard W3C traceparent filter for end-to-end tracing and logging (ADR-0006).
+ * The gate of the incoming W3C trace context (plan 10/10, item 7.1; ADR-0009).
+ *
+ * <p>The trace itself is started by the HTTP observation of Spring Boot, which reads {@code traceparent}. This filter
+ * runs before it and lets through only a header of the strict W3C form: version {@code 00}, a 32-hex trace id and a
+ * 16-hex parent id that are not all zeros, 2-hex flags, lower case, nothing else. Anything else is hidden from the
+ * rest of the chain together with its {@code tracestate}, so the request starts a new trace and the bad value is
+ * never echoed back or written to a log.
  */
-@Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
 public class W3cTraceparentFilter extends OncePerRequestFilter {
 
     public static final String HEADER_TRACEPARENT = "traceparent";
-    public static final String HEADER_CLIENT_CODE = "X-Client-Code";
+    public static final String HEADER_TRACESTATE = "tracestate";
 
-    public static final String MDC_TRACEPARENT = "traceparent";
-    public static final String MDC_TRACE_ID = "trace_id";
-    public static final String MDC_CLIENT_CODE = "client_code";
-
-    private final SecureRandom random = new SecureRandom();
+    private static final Pattern TRACEPARENT = Pattern.compile("00-([0-9a-f]{32})-([0-9a-f]{16})-[0-9a-f]{2}");
+    private static final String ZERO_TRACE_ID = "0".repeat(32);
+    private static final String ZERO_PARENT_ID = "0".repeat(16);
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-
-        String incomingTraceparent = request.getHeader(HEADER_TRACEPARENT);
-        String traceparent = (incomingTraceparent != null && isValidTraceparent(incomingTraceparent))
-                ? incomingTraceparent.trim()
-                : generateTraceparent();
-
-        String traceId = extractTraceId(traceparent);
-
-        String clientCode = request.getHeader(HEADER_CLIENT_CODE);
-        if (clientCode == null || clientCode.isBlank()) {
-            clientCode = "default";
-        }
-
-        MDC.put(MDC_TRACEPARENT, traceparent);
-        MDC.put(MDC_TRACE_ID, traceId);
-        MDC.put(MDC_CLIENT_CODE, clientCode.trim());
-
-        response.setHeader(HEADER_TRACEPARENT, traceparent);
-
-        try {
-            filterChain.doFilter(request, response);
-        } finally {
-            MDC.remove(MDC_TRACEPARENT);
-            MDC.remove(MDC_TRACE_ID);
-            MDC.remove(MDC_CLIENT_CODE);
-        }
+        List<String> values = Collections.list(request.getHeaders(HEADER_TRACEPARENT));
+        boolean accepted = values.isEmpty() || (values.size() == 1 && isValidTraceparent(values.getFirst()));
+        filterChain.doFilter(accepted ? request : new WithoutTraceContext(request), response);
     }
 
-    private String generateTraceparent() {
-        byte[] traceBytes = new byte[16];
-        byte[] spanBytes = new byte[8];
-        random.nextBytes(traceBytes);
-        random.nextBytes(spanBytes);
-
-        String traceId = HexFormat.of().formatHex(traceBytes);
-        String spanId = HexFormat.of().formatHex(spanBytes);
-
-        return "00-" + traceId + "-" + spanId + "-01";
-    }
-
-    public static boolean isValidTraceparent(String tp) {
-        if (tp == null || tp.length() < 55) return false;
-        String[] parts = tp.trim().split("-");
-        return parts.length == 4
-                && "00".equals(parts[0])
-                && parts[1].length() == 32
-                && parts[2].length() == 16
-                && parts[3].length() == 2;
-    }
-
-    public static String extractTraceId(String tp) {
-        if (tp == null) return "00000000000000000000000000000000";
-        String[] parts = tp.trim().split("-");
-        if (parts.length >= 2 && parts[1].length() == 32) {
-            return parts[1];
+    /** True for a {@code traceparent} of the strict W3C version 00 form. */
+    public static boolean isValidTraceparent(String value) {
+        if (value == null) {
+            return false;
         }
-        return "00000000000000000000000000000000";
+        var matcher = TRACEPARENT.matcher(value);
+        return matcher.matches() && !ZERO_TRACE_ID.equals(matcher.group(1)) && !ZERO_PARENT_ID.equals(matcher.group(2));
+    }
+
+    /** The request with the trace context headers removed. */
+    private static final class WithoutTraceContext extends HttpServletRequestWrapper {
+
+        WithoutTraceContext(HttpServletRequest request) {
+            super(request);
+        }
+
+        private static boolean hidden(String name) {
+            return HEADER_TRACEPARENT.equalsIgnoreCase(name) || HEADER_TRACESTATE.equalsIgnoreCase(name);
+        }
+
+        @Override
+        public String getHeader(String name) {
+            return hidden(name) ? null : super.getHeader(name);
+        }
+
+        @Override
+        public Enumeration<String> getHeaders(String name) {
+            return hidden(name) ? Collections.emptyEnumeration() : super.getHeaders(name);
+        }
+
+        @Override
+        public Enumeration<String> getHeaderNames() {
+            List<String> names = Collections.list(super.getHeaderNames());
+            names.removeIf(WithoutTraceContext::hidden);
+            return Collections.enumeration(names);
+        }
     }
 }

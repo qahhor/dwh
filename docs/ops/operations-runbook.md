@@ -2,7 +2,7 @@
 
 **Version:** 2.0
 
-**Updated:** 2026-09-05
+**Updated:** 2026-10-07
 
 **Audience:** the operator responsible for one SmartupCMS installation.
 
@@ -37,6 +37,8 @@ curl --fail --silent --show-error http://127.0.0.1:8080/healthz
 Confirm all long-running services are healthy, the backup status in the System
 screen is successful and younger than the accepted RPO, disk usage is below the
 operator threshold, TLS is valid, and error/dead-letter alerts are quiet.
+The metrics, SLOs, Prometheus alert rules and Grafana dashboards, and the
+runbook of each alert, are described in [SLO, metrics and alerts](slo.md).
 
 ## Service is unavailable
 
@@ -69,6 +71,72 @@ Logs are kept in two places (decision of 2026-09-27):
   (`SMC_LOG_*` in the environment file);
 - every container's console log rotates at 100 MB, five compressed files
   (Docker's json-file driver rotates by size only).
+
+### Logs and traces
+
+The server writes one JSON object per line, on the console and in the file
+(Elastic Common Schema, plan 10/10, item 7.1; ADR-0009). A line looks like
+this:
+
+```json
+{"@timestamp":"2026-10-07T11:09:01.463Z","log":{"level":"DEBUG","logger":"org.springframework.web.servlet.DispatcherServlet"},"process":{"pid":1,"thread":{"name":"tomcat-handler-0"}},"service":{"name":"smartupcms-server","node":{}},"message":"GET \"/api/v1/i18n/languages\", parameters={}","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"04ca800467044885","ecs":{"version":"8.11"}}
+```
+
+| Field | Meaning |
+|---|---|
+| `@timestamp` | UTC time of the event |
+| `log.level`, `log.logger` | level and the class that wrote the line |
+| `process.thread.name` | thread (`tomcat-handler-*` for requests, `scheduling-*` for jobs) |
+| `service.name` | `smartupcms-server` |
+| `message` | the text; secrets are already masked |
+| `trace_id`, `span_id` | the trace of the request or job; absent only in lines written outside any request or job (startup) |
+| `error.type`, `error.message`, `error.stack_trace` | the exception, when there is one |
+
+Every response carries the `traceparent` header
+(`00-<trace_id>-<span_id>-<flags>`): ask the reporter of a failure for it, or
+send your own valid `traceparent` with a test request. A header that is not of
+the strict W3C form (version `00`, lower-case hex, ids not all zeros) is
+ignored and the request starts a new trace.
+
+Find the lines of one request:
+
+```bash
+docker compose -f deploy/compose/docker-compose.prod.yml \
+  --env-file .env.production exec server \
+  sh -c 'grep "\"trace_id\":\"4bf92f3577b34da6a3ce929d0e0e4736\"" /var/lib/smartupcms/logs/server.log'
+# errors of the last archive week, readable:
+zcat /var/lib/smartupcms/logs/server.log.2026-W40.0.gz | jq -c 'select(.log.level=="ERROR") | {t:."@timestamp", trace_id, message}'
+```
+
+In Loki (Grafana Alloy collecting the console): `{app="smartupcms-server"} | json | trace_id="4bf9..."`;
+keep `trace_id` out of labels (ADR-0009, section 4).
+
+Masking: the value of any member named like a secret (password, secret,
+token, authorization, cookie, otp, api key, credentials, `code`) and the value
+after such a key inside a text (`password=...`, `"token":"..."`,
+`Authorization: Bearer ...`, `#token=` of invitation and reset links,
+`?code=`) is replaced by `***`. It is a safety net: code still logs
+identifiers only (CODE_STYLE, section 5). The `dev` profile prints readable
+text on the console; every other profile prints JSON.
+
+**Traces** (plan 10/10, item 7.2) are off by default: trace ids are made and
+logged, but no span is recorded or sent. To record them, point the server at
+an OTLP/HTTP collector (Grafana Alloy, an OpenTelemetry Collector, Tempo) in
+the environment file and restart the server:
+
+```bash
+SMC_TRACING_EXPORT_ENABLED=true
+SMC_TRACING_OTLP_ENDPOINT=http://alloy:4318/v1/traces
+SMC_TRACING_SAMPLING_PROBABILITY=0.1   # 10 % of requests; 1.0 while investigating
+```
+
+A recorded trace holds the HTTP request, Spring Security, scheduled jobs,
+outgoing HTTP (webhook deliveries carry `traceparent` to the receiver) and one
+`jdbc statement` span per SQL statement. Its SQL ends with
+`/*traceparent='00-<trace_id>-<span_id>-01'*/`, so a slow statement in the
+PostgreSQL log (`log_min_duration_statement`) or in `pg_stat_activity` leads
+to its trace. Statements outside a recorded trace are not changed. Spans carry
+no SQL text and no parameters.
 
 ### Audit log archive
 
@@ -227,6 +295,46 @@ Audit logs are partitioned monthly into `audit_log_YYYY_MM` tables:
   SELECT audit_log_detach_partition(2025, 9);
   ```
 - If partition creation fails, inspect postgres logs to verify function permissions and ensure disk space is sufficient.
+
+## Warehouse raw layer (pg-dwh)
+
+Plan 10/10, item 7.8 (ADR-0030, section 7). `raw.rows` in pg-dwh is partitioned by load: every load
+(`fnd_loads.id` in the CMS database) has its own partition `raw.rows_<load_id>`. The application role owns pg-dwh,
+so the server creates and drops these partitions itself; no manual partition runway is needed.
+
+- **Write.** An upload apply (`upl.apply`) copies the rows into a new table of its load, builds its key and index and
+  attaches it in one pg-dwh transaction. A failed or interrupted write leaves no partition behind.
+- **Cleanup.** The scheduled job `fnd.load_cleanup` drops the partitions of loads in status `failed`
+  (`DETACH PARTITION ... CONCURRENTLY`, then `DROP TABLE`). Rows are never deleted: a trigger on `raw.rows` rejects
+  `UPDATE` and `DELETE` (`raw_rows_immutable`). The cleanup of a million-row load takes well under a second and
+  leaves no dead tuples, so raw needs no manual `VACUUM`. Applied and superseded loads are kept.
+- **Stuck applies.** `upl.apply_recovery` marks an apply that never finished as `failed`; the next cleanup drops its
+  partition if the write had committed. Applies and cleanups of different loads run in parallel.
+- **Log lines.** `raw_write load_id=… rows=…` per write, `load_cleanup partitions_dropped=…` per run,
+  `load_cleanup_failed load_id=…` for a partition that could not go (the run fails, the queue retries it; the other
+  partitions are dropped regardless).
+
+Inspect the partitions and their sizes:
+
+```sql
+-- in pg-dwh
+select c.relname, i.inhrelid is not null as attached, i.inhdetachpending as detach_pending,
+       pg_size_pretty(pg_total_relation_size(c.oid)) as size, s.n_live_tup, s.n_dead_tup
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  left join pg_inherits i on i.inhrelid = c.oid
+  left join pg_stat_user_tables s on s.relid = c.oid
+ where n.nspname = 'raw' and c.relkind = 'r'
+ order by c.relname;
+```
+
+A partition with `detach_pending = true` or one not attached is the remainder of an interrupted cleanup; the next run
+of `fnd.load_cleanup` finishes it (`DETACH ... FINALIZE`, `DROP`). A partition whose load does not exist in
+`fnd_loads` is reported by `fnd.xdb_check` as `xdb_mismatch` and is never dropped automatically: find out where the
+load went (a restore of only one database?) before removing it by hand with
+`alter table raw.rows detach partition raw.rows_<id> concurrently; drop table raw.rows_<id>;`.
+`DETACH ... CONCURRENTLY` waits for transactions that hold a lock on `raw.rows`; a cleanup that hangs points at a
+long query on raw (see `pg_stat_activity`), it is ended by `WAREHOUSE_MAINTENANCE_STATEMENT_TIMEOUT`.
 
 ## Search outbox sync and reconciliation
 

@@ -521,6 +521,9 @@ class AuthenticationGenerationHttpTest {
                 .getResponse();
         Cookie token = lastCookie(response, "XSRF-TOKEN");
         assertThat(token != null).isTrue();
+        // ADR-0034: the double-submit cookie stays readable by the web and is SameSite=Lax like the session.
+        assertThat(token.isHttpOnly()).isFalse();
+        assertThat(token.getAttribute("SameSite")).isEqualTo("Lax");
         return token;
     }
 
@@ -534,6 +537,7 @@ class AuthenticationGenerationHttpTest {
                 .as("successful authentication issues usable CSRF cookie")
                 .isTrue();
         assertThat(csrf.getValue().isEmpty()).isFalse();
+        assertThat(csrf.getAttribute("SameSite")).isEqualTo("Lax");
         assertThat(lastCookie(response, "JSESSIONID") == null).isTrue();
         return new BrowserCookies(session, csrf);
     }

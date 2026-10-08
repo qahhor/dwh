@@ -16,6 +16,7 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageRepository;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
+import com.smartup24.cms.instance.warehouse.RawTables;
 import com.smartup24.cms.instance.warehouse.WarehousePref;
 import com.smartup24.cms.instance.warehouse.api.RawRow;
 import com.smartup24.cms.instance.warehouse.api.RawSource;
@@ -106,7 +107,7 @@ class UplApplyStreamingTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from upl_packages").update();
             jdbc.sql("delete from fnd_job_queue").update();
         });
-        warehouseJdbc.sql("delete from raw.rows").update();
+        RawTables.clear(warehouseJdbc);
     }
 
     @Test

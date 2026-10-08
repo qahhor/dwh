@@ -127,6 +127,14 @@ Current ADRs that are not superseded:
   the module manifest checked before any bean starts, the entity schema checked
   against `information_schema`, and the test kit published for modules outside
   the monorepo; plan 10/10, items 6.3 and 6.4.
+- [ADR-0034 — edge security headers, trusted proxies and session lifetime](adr/ADR-0034-edge-headers-and-session-lifetime.md)
+  — every nginx location includes the security headers (HSTS one year,
+  nosniff, CSP without third-party hosts, `frame-src` from the operator's
+  `SMC_WEB_FRAME_SOURCES`), `X-Forwarded-For` is believed only from explicit
+  lists (`SMC_WEB_TRUSTED_PROXIES`, `SMC_SECURITY_TRUSTED_PROXIES`, the pinned
+  frontend network in production), and the absolute lifetime and idle timeout
+  of a session are part of the active-session query; plan 10/10, items 7.4
+  and 7.5.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
@@ -186,7 +194,16 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [Rollback and recovery](ops/rollback.md)
 - [Migration failure repair](ops/migration-repair.md)
 - [GitHub repository settings](ops/repository-settings.md)
+- [SLO, metrics and alerts](ops/slo.md)
+- [RB-01 instance unavailable](runbooks/RB-01-instance-unavailable.md)
+- [RB-02 API errors and latency](runbooks/RB-02-api-errors-and-latency.md)
+- [RB-03 backup failed or stale](runbooks/RB-03-backup.md)
 - [RB-04 migration failure triage](runbooks/RB-04-migration-failure-triage.md)
+- [RB-05 job queue](runbooks/RB-05-job-queue.md)
+- [RB-06 outbox delivery](runbooks/RB-06-outbox-delivery.md)
+- [RB-07 database pool and disk](runbooks/RB-07-database-pool-and-disk.md)
+- [RB-08 maintenance tasks](runbooks/RB-08-maintenance-tasks.md)
+- [RB-09 search delivery](runbooks/RB-09-search-delivery.md)
 - [Threat model and personal-data inventory](security/threat-model.md)
 
 These documents govern execution for a concrete installation but cannot supply

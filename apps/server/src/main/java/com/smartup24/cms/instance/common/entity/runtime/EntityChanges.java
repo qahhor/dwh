@@ -56,34 +56,35 @@ public class EntityChanges {
 
     /** {@code beforeSave} of the entity's hooks; the problems it adds answer one 422 (ADR-0032, 6.5). */
     void beforeSave(RuntimeSave save) {
-        hooks(save.entity()).ifPresent(hook -> refusing(() -> hook.beforeSave(save)));
+        hooks(save.entity()).ifPresent(hook -> refusing(save.entity(), hook, () -> hook.beforeSave(save)));
         refuseRejected(save);
     }
 
     void afterSave(RuntimeSave save) {
-        hooks(save.entity()).ifPresent(hook -> refusing(() -> hook.afterSave(save)));
+        hooks(save.entity()).ifPresent(hook -> refusing(save.entity(), hook, () -> hook.afterSave(save)));
         refuseRejected(save);
     }
 
     void beforeDelete(EntityDelete delete) {
-        hooks(delete.entity()).ifPresent(hook -> refusing(() -> hook.beforeDelete(delete)));
+        hooks(delete.entity()).ifPresent(hook -> refusing(delete.entity(), hook, () -> hook.beforeDelete(delete)));
     }
 
     void afterDelete(EntityDelete delete) {
-        hooks(delete.entity()).ifPresent(hook -> refusing(() -> hook.afterDelete(delete)));
+        hooks(delete.entity()).ifPresent(hook -> refusing(delete.entity(), hook, () -> hook.afterDelete(delete)));
     }
 
     void beforeArchive(EntityArchive archive) {
-        hooks(archive.entity()).ifPresent(hook -> refusing(() -> hook.beforeArchive(archive)));
+        hooks(archive.entity()).ifPresent(hook -> refusing(archive.entity(), hook, () -> hook.beforeArchive(archive)));
     }
 
     /**
-     * Runs a hook or an action's handler: the refusal of a module outside the monorepo (ADR-0033, 3.2) answers as the
-     * error of the request, like an {@code ApiException} of a built-in module.
+     * Runs a hook or an action's handler of {@code entity}: the refusal of a module outside the monorepo (ADR-0033, 3.2)
+     * answers as the error of the request, like an {@code ApiException} of a built-in module; a misuse of the save's
+     * values is the module's defect, {@link EntityHookMisuse}.
      */
-    static void refusing(Runnable hook) {
+    static void refusing(EntityDefinition entity, Object hook, Runnable run) {
         try {
-            hook.run();
+            EntityHookMisuse.guarding(entity.code(), hook, run);
         } catch (EntityRefusal refusal) {
             throw ApiException.refused(refusal);
         }

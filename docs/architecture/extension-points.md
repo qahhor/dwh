@@ -45,7 +45,7 @@ classpath сервера (ADR-0033, §6); экран его сущностей �
 | `EntityLists` | `S/common/entity/EntityLists.java` | Список сущности, выведенный из её полей: код = код сущности, право `<форма>.view`, `select` — системные колонки, поля под ключами записи (`<sql> as "<key>"`) и `attributes`. Реестр списков получает его через `QueryListSource`; бин `QueryList` с тем же кодом не даёт приложению стартовать. |
 | Общий runtime `/api/v1/entities/{code}` | `S/common/entity/runtime/EntityController.java`, `EntityRuntime`, `EntityWrites`, `S/common/entity/store/EntityStoreRepository.java` | CRUD каждой сущности с таблицей **без кода модуля** (ADR-0032, §6; план 10/10, пункт 5.4): список (`q`, `filter`, `sort`, `limit`, `cursor`), чтение, создание (201 + `Location` + `ETag`), `PATCH` с `If-Match`, `DELETE` (необязательный `If-Match`), `PUT …/{id}/archived`, `POST …/{id}/actions/{action}`. Порядок §6.3 фиксирован: право и `If-Match` до транзакции, запись со скоупом `for update` (вне скоупа — 404), тело по полям (неизвестное, системное свойство, неверный тип JSON — 422), значения по умолчанию, readonly, правила полей, ссылки в скоупе цели, `EntityRule`, доп. поля — один 422; хуки, запись, аудит платформой, `EntityChanged` в транзакции, `afterCommit` после коммита. Транзакция — фильтра идемпотентности, если в запросе есть ключ. Тело — до 512 КБ (`EntityBodyLimitFilter`). |
 | `EntityCollection` | `A/entity/collection/EntityCollection.java`, runtime `EntityLines`, `S/common/entity/store/EntityCollectionStore.java` | Строки документа (ADR-0032, §9.1; план 10/10, пункт 5.7): `.collection(EntityCollection.of("lines", подпись).table(таблица, псевдоним).parentColumn(...).positionColumn(...).field(...).maxRows(500).build())`. Строки читаются с записью (массив под ключом коллекции, у строки `id` и `position`), сохраняются в транзакции записи заменой по id (с `id` — изменение, без — вставка, отсутствующая — удаление), ревизия записи растёт на единицу за сохранение. Поле строки — колонка, деньги (`money(сумма, null).currencyFrom("currency")` — в валюте документа) или вычисляемое; проверка — правилами полей строки, ошибки `lines[3].qty`, чужая строка — `lines[i].id` `not_found`, больше `maxRows` — `lines` `too_many`. Аудит — одно свойство коллекции со сводкой (добавлено, изменено, удалено, число строк). Хук видит строки `EntityValues.collection("lines")`. |
-| `EntityWorkflow` | `A/entity/workflow/`, runtime `EntityProcess`, `EntityWrites.transition` | Процесс документа (ADR-0032, §9.2): `.workflow(EntityWorkflow.on("status").state(...).initial().state(...).locks("lines", ...).state(...).terminal().transition("post", "draft", "posted").rule(Rules.hasRows("lines")).confirm(ключ).build())`. Поле статуса — выбор колонки с вариантами-состояниями, `readonly()` и умолчанием начального состояния (иначе старт отказывает). Переход — действие записи с правом (по умолчанию — код перехода) `POST …/{id}/actions/{переход}` с `If-Match`: из состояния, из которого он не ведёт, — 422 `entity_transition_not_allowed` (`from`, `action`); хуки видят его в `beforeSave`/`afterSave` с `ACTION` и кодом, обработчик не нужен (и не принимается). Состояние блокирует поля и строки (`locks`), конечное — всё; `actions` записи — переходы её состояния. |
+| `EntityWorkflow` | `A/entity/workflow/`, runtime `EntityProcess`, `EntityWrites.transition` | Процесс документа (ADR-0032, §9.2): `.workflow(EntityWorkflow.on("status").state(...).initial().state(...).locks("lines", ...).state(...).terminal().transition("post", "draft", "posted").rule(Rules.hasRows("lines")).confirm(ключ).build())`. Поле статуса — выбор колонки с вариантами-состояниями, `readonly()` и умолчанием начального состояния (иначе старт отказывает). Переход — действие записи с правом (по умолчанию — код перехода) `POST …/{id}/actions/{переход}` с `If-Match`: из состояния, из которого он не ведёт, — 422 `entity_transition_not_allowed` (`from`, `action`); хуки видят его в `beforeSave`/`afterSave` с `ACTION` и кодом, обработчик не нужен (и не принимается). Состояние блокирует поля и строки (`locks`), конечное — всё; запись в конечном состоянии или в состоянии с блокировками не удаляется и не архивируется (422 `entity_state_locked`, ADR-0032 §6.17); `actions` записи — переходы её состояния. |
 | `EntityTab` | `A/entity/EntityTab.java`, `FormDocumentMetas` | Вкладки карточки (ADR-0032, §9.3): `.tab(EntityTab.sections(...))`, `collection(...)`, `related(ключ, подпись, сущность, поле-ссылка)`, `history(...)`; `form-meta` отдаёт `tabs`, связанный список — только зрителю с `view` его сущности, поле — фильтруемый `REF` той сущности. Пример — проекты (вкладка задач проекта) и заказы `example.orders`. |
 | `Entity.importKey(ключ)` и `EntityImporter` | `A/entity/importing/` (`EntityImportSpec`), `S/common/entity/importing/` (`EntityImporter`), runtime `EntityImports`, `EntityImportBatch`, `S/common/entity/store/EntityKeyLookup.java`; журнал и задание — `S/report/imports/` | Импорт записей из xlsx (ADR-0032, §10.1; план 10/10, пункт 5.8): `.importKey("code")` даёт возможность `IMPORT`; ключ — текстовое поле формы в своей колонке с уникальным индексом (`EntityImportDeclaredTest`). Шаблон `GET /api/v1/entities/{code}/import-template` — колонки полей, которые зритель может писать (подпись, во второй скрытой строке ключ, листы-подсказки выборов); `POST …/imports {fileId, mode: dry_run\|apply, lang}` ставит задание `report.import`; `GET /api/v1/imports/{id}` — ход и первые 100 ошибок, `…/report` — файл с колонкой ошибок. Строка — создание или изменение по ключу в скоупе импортирующего через тот же порядок §6.3 (права `create`/`update`, права на поля, правила, хуки — `CREATE`/`UPDATE` с `EntitySave.imported()`, аудит с `_action: import`, события), пачка 500 строк в транзакции, точка сохранения на строку; `dry_run` откатывает пачку. Право — `<форма>.import`. |
 | `EntityHooks` (`@Bean`) | `A/entity/hook/EntityHooks.java` | Второй файл автора сущности (ADR-0032, §6.5): `beforeSave` (может изменить значения через `EntityValues.set` и добавить ошибки `reject`), `afterSave`, `beforeArchive` (может отказать в архиве или восстановлении), `beforeDelete`, `afterDelete` — в транзакции, `afterCommit` — после коммита (сбой пишется в журнал и не меняет ответ). Один бин на сущность с таблицей, иначе приложение не стартует. |
@@ -85,7 +85,10 @@ classpath сервера (ADR-0033, §6); экран его сущностей �
 по порядку, ошибка строки `lines[i].поле`, чужая строка, лишние строки, замена
 строк одной ревизией; недопустимый переход — 422
 `entity_transition_not_allowed`, без права — 403, заблокированное поле — 422
-`readonly`; строки фикстура даёт `EntityFixture.valid(Map.of("lines", ...))`),
+`readonly`, удаление и архив в хранящем состоянии — 422 `entity_state_locked`;
+строки фикстура даёт `EntityFixture.valid(Map.of("lines", ...))`), у каждой
+сущности — границы SQL объявления (группа «SQL boundaries»: свои таблицы и
+`*_pub_*`, ADR-0032 §6.17),
 у сущности с `IMPORT` — импорт (шаблон по правам, 403 без `import`, проверка
 ничего не пишет, строка создаёт или изменяет запись по ключу, ошибочная строка —
 `rows[n].поле`, запись вне скоупа не меняется), у сущности с `SEARCH` — поиск
@@ -147,7 +150,7 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
 | `jobs.service.JobQueries` | класс | он же | Вопросы к очереди только на чтение (`pendingArgumentValues`). |
 | `warehouse.api.WarehouseLoads` | интерфейс | `warehouse.load.WarehouseLoadService` | Версии загрузок: `begin` → `apply`/`fail`, журнал пакета `log`, `find`, `appliedLoadIds`. |
 | `warehouse.api.WarehouseLoad` | record | — | Версия загрузки и её статусы. |
-| `warehouse.api.RawWriter`, `RawSource`, `RawRow` | интерфейсы, record | `warehouse.raw.JdbcRawWriter` | Потоковая запись строк загрузки в слой `raw` pg-dwh (`copy`, `count`, `read`). |
+| `warehouse.api.RawWriter`, `RawSource`, `RawRow` | интерфейсы, record | `warehouse.raw.JdbcRawWriter` | Потоковая запись строк загрузки в слой `raw` pg-dwh (`copy`, `count`, `read`); у каждой загрузки своя секция `raw.rows_<load_id>`, удаляется она только целиком (ADR-0030, раздел 7). |
 | `warehouse.api.WarehouseUnavailableException` | исключение | — | pg-dwh недоступна (503, временный сбой для очереди); пустой результат вместо данных не возвращается. |
 | `units.api.Units` | интерфейс | `units.service.UnitService` | Единицы измерения и пересчёт по датированному коэффициенту. |
 | `units.api.Unit`, `UnitConversion`, `CoefficientMissingException` | record, record, исключение | — | Единица, результат пересчёта со ссылкой на коэффициент, отказ без коэффициента (409). |
@@ -217,14 +220,17 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
    связанные поисковые проекции инвалидируются в `search_projection_versions` и
    переиндексируются в Typesense (ADR-0032, §10.3.1, С7; `SearchScopeInvalidationRepository`).
    Фасетов поиска (фильтр по полю) нет.
-2. **Вебхуки — только у сущностей на runtime.** События сущностей приходят из
-   `EntityChanged`; модули вне runtime (задачи, проекты) `publishEvent` пока не
-   вызывают. Каталог событий подписки (`GET /api/v1/webhooks/events`) строится из
-   `EntityRegistry`, подписка валидируется с 422, подпись метки времени
-   (`timestamp.body`, В9) защищает от replay-атак.
-3. **Подписей ссылок (`labels`) в ответе runtime нет** — общий экран называет
-   ссылку отдельным чтением её цели (`RefLookups`, по запросу на значение).
-   Строки документа не выгружаются отдельным листом, поле строки не бывает
+2. **Вебхуки — только у записей сущностей на runtime.** События приходят из
+   `EntityChanged`: заметки, задачи, проекты, их справочники, пользователи и
+   эталоны `example` — сущности runtime (ADR-0032, §8). Собственные эндпоинты
+   модулей вне runtime (комментарии и файлы задач, участники задачи и проекта)
+   событий вебхука не публикуют. Каталог событий подписки
+   (`GET /api/v1/webhooks/events`) строится из `EntityRegistry`, подписка
+   валидируется с 422, подпись метки времени (`timestamp.body`, В9) защищает от
+   replay-атак.
+3. **Строки документа — без ссылок с проверкой цели.** Подписи ссылок записи
+   runtime отдаёт сам (`labels`, `EntityLabelResolver`, ADR-0032, §6.16, Р10), но
+   строки документа не выгружаются отдельным листом, а поле строки не бывает
    ссылкой с проверкой цели, справочником или файлом (ADR-0032, §9.5, Д1, Д13).
 4. **Встраивание внешнего приложения — только iframe** из пункта меню, без SSO
    и передачи сессии.
@@ -235,6 +241,8 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
    в V019) удалена миграцией V152 (план 10/10, пункт 4.7); модули
    регистрируются только в `md_installed_modules`, их версии — из манифестов
    (ADR-0033, §6.4).
-7. **Доставка jar стороннего модуля в образ Docker не сделана** (ADR-0033,
-   §11, В2): модуль работает, если его jar на classpath сервера (так его
-   запускает тест-кит); тома `/app/modules` и `-cp` в `ENTRYPOINT` нет.
+7. **Сторонний модуль — только при старте.** Jar модуля кладётся в
+   `/app/modules` (путь классов образа `app.jar:lib/*:/app/modules/*`, том
+   `./modules:/app/modules:ro` в compose; ADR-0033, §13, Р6) и подключается при
+   старте; горячей загрузки, изоляции и порядка миграций нескольких модулей
+   между собой (кроме «после платформы, по коду») нет (ADR-0033, §10).

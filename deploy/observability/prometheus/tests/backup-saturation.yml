@@ -1,0 +1,166 @@
+# promtool unit tests: backup freshness, connection pool and disk alerts (plan 10/10, item 7.3).
+rule_files:
+  - ../rules/recording.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: backup failed and stale
+    interval: 1m
+    input_series:
+      - series: 'smc_backup_status{application="smartupcms", instance="a", job="smartupcms", status="FAILED"}'
+        values: '0 0 1x20'
+      - series: 'smc_backup_status{application="smartupcms", instance="a", job="smartupcms", status="SUCCESS"}'
+        values: '1 1 0x20'
+      - series: 'smc_backup_age_seconds{application="smartupcms", instance="a", job="smartupcms"}'
+        values: '100000x20'
+      - series: 'smc_backup_max_age_seconds{application="smartupcms", instance="a", job="smartupcms"}'
+        values: '93600x20'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: SmartupcmsBackupFailed
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SmartupcmsBackupFailed
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              application: smartupcms
+            exp_annotations:
+              summary: "The last encrypted backup failed"
+              description: "The backup sidecar reported FAILED; the recovery point grows older with every hour."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-03-backup.md"
+      - eval_time: 10m
+        alertname: SmartupcmsBackupStale
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              application: smartupcms
+              instance: a
+              job: smartupcms
+            exp_annotations:
+              summary: "The last successful backup is older than the accepted age"
+              description: "The last backup is 1d 3h 46m 40s old (SMC_BACKUP_MAX_AGE, 26 h when not set)."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-03-backup.md"
+      - eval_time: 10m
+        alertname: SmartupcmsBackupMissing
+        exp_alerts: []
+
+  - name: backup current
+    interval: 1m
+    input_series:
+      - series: 'smc_backup_status{application="smartupcms", instance="a", job="smartupcms", status="SUCCESS"}'
+        values: '1x20'
+      - series: 'smc_backup_age_seconds{application="smartupcms", instance="a", job="smartupcms"}'
+        values: '3600x20'
+      - series: 'smc_backup_max_age_seconds{application="smartupcms", instance="a", job="smartupcms"}'
+        values: '93600x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: SmartupcmsBackupStale
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: SmartupcmsBackupFailed
+        exp_alerts: []
+
+  - name: backup never ran
+    interval: 1m
+    input_series:
+      - series: 'smc_backup_status{application="smartupcms", instance="a", job="smartupcms", status="NEVER"}'
+        values: '1x1700'
+    alert_rule_test:
+      - eval_time: 20h
+        alertname: SmartupcmsBackupMissing
+        exp_alerts: []
+      - eval_time: 27h
+        alertname: SmartupcmsBackupMissing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "No readable backup status for more than a day"
+              description: "The backup status file is missing or unreadable: the server cannot tell whether a backup exists."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-03-backup.md"
+
+  - name: connection pool saturated and starved
+    interval: 1m
+    input_series:
+      - series: 'hikaricp_connections_active{application="smartupcms", instance="a", pool="main"}'
+        values: '19x20'
+      - series: 'hikaricp_connections_max{application="smartupcms", instance="a", pool="main"}'
+        values: '20x20'
+      - series: 'hikaricp_connections_pending{application="smartupcms", instance="a", pool="main"}'
+        values: '0 0 2x20'
+      - series: 'hikaricp_connections_active{application="smartupcms", instance="a", pool="warehouse"}'
+        values: '2x20'
+      - series: 'hikaricp_connections_max{application="smartupcms", instance="a", pool="warehouse"}'
+        values: '10x20'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: SmartupcmsDbPoolSaturated
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: SmartupcmsDbPoolSaturated
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+              instance: a
+              pool: main
+            exp_annotations:
+              summary: "Connection pool main more than 90 % busy"
+              description: "95% of the pool main on a has been in use for 10 minutes."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-07-database-pool-and-disk.md"
+      - eval_time: 4m
+        alertname: SmartupcmsDbPoolStarved
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SmartupcmsDbPoolStarved
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              application: smartupcms
+              instance: a
+              pool: main
+            exp_annotations:
+              summary: "Requests wait for a connection of the pool main"
+              description: "2 threads on a have waited for a database connection for 5 minutes."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-07-database-pool-and-disk.md"
+
+  - name: disk space
+    interval: 1m
+    input_series:
+      - series: 'disk_free_bytes{application="smartupcms", instance="a", path="/var/lib/smartupcms"}'
+        values: '50 50 5x30'
+      - series: 'disk_total_bytes{application="smartupcms", instance="a", path="/var/lib/smartupcms"}'
+        values: '100x32'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: SmartupcmsDiskSpaceLow
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: SmartupcmsDiskSpaceCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              application: smartupcms
+              instance: a
+              path: /var/lib/smartupcms
+            exp_annotations:
+              summary: "Less than 10 % disk space left on a"
+              description: "5% of /var/lib/smartupcms is free: logs, uploads and archives stop soon."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-07-database-pool-and-disk.md"
+      - eval_time: 20m
+        alertname: SmartupcmsDiskSpaceLow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+              instance: a
+              path: /var/lib/smartupcms
+            exp_annotations:
+              summary: "Less than 20 % disk space left on a"
+              description: "5% of /var/lib/smartupcms is free."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-07-database-pool-and-disk.md"

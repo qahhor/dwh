@@ -2,13 +2,16 @@ package com.smartup24.cms.platform.api.entity;
 
 import com.smartup24.cms.platform.api.PlatformApi;
 import com.smartup24.cms.platform.api.Stability;
+import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.RandomAccess;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
@@ -165,7 +168,7 @@ public record EntityDefinition(
     public EntityDefinition {
         Objects.requireNonNull(code, "code");
         Objects.requireNonNull(form, "form");
-        fields = List.copyOf(fields);
+        fields = fields instanceof KeyedFields keyed ? keyed : new KeyedFields(fields);
         layout = List.copyOf(layout);
         actions = List.copyOf(actions);
         capabilities = Set.copyOf(capabilities);
@@ -310,9 +313,35 @@ public record EntityDefinition(
         return actions.stream().filter(action -> action.code().equals(code)).findFirst();
     }
 
+    /** The form fields by key, in order: built once with the entity, read-only. */
     public Map<String, FormField> fieldsByKey() {
-        Map<String, FormField> byKey = new LinkedHashMap<>();
-        fields.forEach(field -> byKey.put(field.key(), field));
-        return byKey;
+        return ((KeyedFields) fields).byKey;
+    }
+
+    /**
+     * The form fields, immutable, with their index by key built once: the runtime looks a field up by key for every
+     * value of a save (ADR-0032, 6.5). Equal to any list of the same fields, so the record's equality is unchanged.
+     */
+    private static final class KeyedFields extends AbstractList<FormField> implements RandomAccess {
+
+        private final List<FormField> fields;
+        private final Map<String, FormField> byKey;
+
+        KeyedFields(List<FormField> fields) {
+            this.fields = List.copyOf(fields);
+            Map<String, FormField> index = new LinkedHashMap<>();
+            this.fields.forEach(field -> index.put(field.key(), field));
+            this.byKey = Collections.unmodifiableMap(index);
+        }
+
+        @Override
+        public FormField get(int index) {
+            return fields.get(index);
+        }
+
+        @Override
+        public int size() {
+            return fields.size();
+        }
     }
 }

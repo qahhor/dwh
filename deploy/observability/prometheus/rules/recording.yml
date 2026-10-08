@@ -1,0 +1,66 @@
+# Recording rules of the SmartupCMS SLOs (plan 10/10, item 7.3; docs/ops/slo.md).
+# Every series is aggregated by the `application` label, which the server puts on all its metrics
+# (management.metrics.tags.application). The API selector leaves out the server-sent events stream
+# (/api/v1/events): one request lives as long as the browser tab.
+# Unit tests: deploy/observability/prometheus/tests; run scripts/observability/test-prometheus-rules.ps1.
+groups:
+  - name: smartupcms-api-sli
+    interval: 30s
+    rules:
+      - record: smc:api_requests:rate5m
+        expr: sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m]))
+      - record: smc:api_error_ratio:rate5m
+        expr: |
+          sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*", status=~"5.."}[5m]))
+            / sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m]))
+      - record: smc:api_error_ratio:rate30m
+        expr: |
+          sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*", status=~"5.."}[30m]))
+            / sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[30m]))
+      - record: smc:api_error_ratio:rate1h
+        expr: |
+          sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*", status=~"5.."}[1h]))
+            / sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[1h]))
+      - record: smc:api_error_ratio:rate6h
+        expr: |
+          sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*", status=~"5.."}[6h]))
+            / sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[6h]))
+      - record: smc:api_latency_seconds:p95_5m
+        expr: histogram_quantile(0.95, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m])))
+      - record: smc:api_latency_seconds:p99_5m
+        expr: histogram_quantile(0.99, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m])))
+      # Share of API requests answered within 300 ms: the latency SLI of the 30-day report.
+      - record: smc:api_requests_within_300ms:ratio_rate5m
+        expr: |
+          sum by (application) (rate(http_server_requests_seconds_bucket{uri=~"/api/.+", uri!~"/api/v1/events.*", le="0.3"}[5m]))
+            / sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m]))
+      # The entity runtime: the generic CRUD of declared entities (ADR-0032).
+      - record: smc:entity_requests:rate5m
+        expr: sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/v1/entities/.+"}[5m]))
+      - record: smc:entity_latency_seconds:p95_5m
+        expr: histogram_quantile(0.95, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri=~"/api/v1/entities/.+"}[5m])))
+      - record: smc:entity_latency_seconds:p99_5m
+        expr: histogram_quantile(0.99, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri=~"/api/v1/entities/.+"}[5m])))
+
+  - name: smartupcms-background
+    interval: 30s
+    rules:
+      # The queue and the outboxes are tables every node samples alike: the maximum over the instances.
+      - record: smc:jobs_queue_lag_seconds:max
+        expr: max by (application) (smc_jobs_queue_lag_seconds)
+      - record: smc:jobs_queue_due:max
+        expr: max by (application) (smc_jobs_queue_due)
+      - record: smc:jobs_queue_failed:max
+        expr: max by (application) (smc_jobs_queue_failed)
+      - record: smc:outbox_lag_seconds:max
+        expr: max by (application, outbox) (smc_outbox_lag_seconds)
+      - record: smc:outbox_pending:max
+        expr: max by (application, outbox) (smc_outbox_pending)
+
+  - name: smartupcms-saturation
+    interval: 30s
+    rules:
+      - record: smc:db_pool_utilisation:ratio
+        expr: max by (application, instance, pool) (hikaricp_connections_active / hikaricp_connections_max)
+      - record: smc:disk_free:ratio
+        expr: min by (application, instance, path) (disk_free_bytes / disk_total_bytes)

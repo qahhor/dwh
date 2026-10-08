@@ -90,7 +90,9 @@ public class EntityWrites {
         RuntimeSave save = save(entity, EntityOperation.CREATE, null, null, prepared.record(), null, Map.of());
         if (imported) save.asImported();
         changes.beforeSave(save);
-        EntityWrite write = EntityWrite.of(entity, written(entity, prepared, save), store.json(entity));
+        Map<String, Object> hooked = touched(entity, save.values().asMap(), prepared.record());
+        requireHookValues(entity, hooked, Map.of(), prepared.record(), null, null, user);
+        EntityWrite write = EntityWrite.of(entity, written(prepared, hooked), store.json(entity));
         long id = store.insert(entity, write, prepared.attributes(), user);
         changes.writeExtras(entity, id, write);
         lines.write(entity, id, prepared.rows());
@@ -125,7 +127,9 @@ public class EntityWrites {
         RuntimeSave save = save(entity, EntityOperation.UPDATE, id, before, prepared.record(), null, Map.of());
         if (imported) save.asImported();
         changes.beforeSave(save);
-        EntityWrite write = EntityWrite.of(entity, written(entity, prepared, save), store.json(entity));
+        Map<String, Object> hooked = touched(entity, save.values().asMap(), prepared.record());
+        requireHookValues(entity, hooked, before, prepared.record(), before, id, user);
+        EntityWrite write = EntityWrite.of(entity, written(prepared, hooked), store.json(entity));
         if (store.update(entity, id, expected, write, prepared.attributes(), user)
                 .isEmpty()) {
             throw Revisions.conflict();
@@ -144,11 +148,15 @@ public class EntityWrites {
         return imported ? IMPORT_SOURCE : null;
     }
 
-    /** Deletes the record; with a revision only from it (ADR-0032, 5.3), without one from whatever it is. */
+    /**
+     * Deletes the record; with a revision only from it (ADR-0032, 5.3), without one from whatever it is; never in a
+     * state of its process that keeps it (ADR-0032, 9.2), before any hook.
+     */
     void delete(EntityDefinition entity, long id, @Nullable Long expected) {
         long user = EntityReads.userId();
         Map<String, Object> before = reads.visible(entity, id, true);
         if (expected != null) requireRevision(before, expected);
+        EntityProcess.requireRemovable(entity, before, EntityDefinition.DELETE);
         EntityDelete delete =
                 new EntityDelete(entity, id, EntityValues.readOnly(entity, before), AuditActor.user(user));
         changes.beforeDelete(delete);
@@ -161,14 +169,16 @@ public class EntityWrites {
 
     /**
      * Archives or restores the record (ADR-0032, 5.4), a switch of ADR-0023: written and audited only when the state
-     * changes; with a revision only from it — a stale one is 409 — without one (a bulk action) from whatever it is. The
-     * entity's {@code beforeArchive} hook may refuse the switch before it is written.
+     * changes; with a revision only from it — a stale one is 409 — without one (a bulk action) from whatever it is. A
+     * record in a state of its process that keeps it is not archived (ADR-0032, 9.2); a restore is never refused by the
+     * state. The entity's {@code beforeArchive} hook may refuse the switch before it is written.
      */
     Map<String, Object> archive(EntityDefinition entity, long id, @Nullable Long expected, boolean archived) {
         long user = EntityReads.userId();
         Map<String, Object> before = reads.visible(entity, id, true);
         if (expected != null) requireRevision(before, expected);
         if (Boolean.valueOf(archived).equals(before.get(EntityModel.ARCHIVED))) return before;
+        if (archived) EntityProcess.requireRemovable(entity, before, EntityDefinition.ARCHIVE);
         changes.beforeArchive(
                 new EntityArchive(entity, id, EntityValues.readOnly(entity, before), archived, AuditActor.user(user)));
         long revision = store.archive(entity, id, archived, user).orElseThrow(Revisions::conflict);
@@ -190,9 +200,10 @@ public class EntityWrites {
         requireRevision(before, expected);
         String code = handler.action();
         RuntimeSave call = save(entity, EntityOperation.ACTION, id, before, before, code, params);
-        EntityChanges.refusing(() -> handler.run(call));
+        EntityChanges.refusing(entity, handler, () -> handler.run(call));
         EntityChanges.refuseRejected(call);
         Map<String, Object> touched = touched(entity, call.values().asMap(), before);
+        requireHookValues(entity, touched, before, before, before, id, user);
         EntityWrite write = EntityWrite.of(entity, touched, store.json(entity));
         if (store.update(entity, id, expected, write, null, user).isEmpty()) throw Revisions.conflict();
         changes.writeExtras(entity, id, write);
@@ -229,6 +240,7 @@ public class EntityWrites {
         String code = transition.code();
         RuntimeSave save = save(entity, EntityOperation.ACTION, id, before, record, code, params);
         changes.beforeSave(save);
+        requireHookValues(entity, touched(entity, save.values().asMap(), record), before, record, before, id, user);
         EntityWrite write = EntityWrite.of(entity, touched(entity, save.values().asMap(), before), store.json(entity));
         if (store.update(entity, id, expected, write, null, user).isEmpty()) throw Revisions.conflict();
         changes.writeExtras(entity, id, write);
@@ -282,10 +294,42 @@ public class EntityWrites {
     }
 
     /** What the save writes: the prepared values and every value the hook changed (ADR-0032, 6.5). */
-    private static Map<String, Object> written(EntityDefinition entity, Prepared prepared, RuntimeSave save) {
+    private static Map<String, Object> written(Prepared prepared, Map<String, Object> hooked) {
         Map<String, Object> written = new LinkedHashMap<>(prepared.values());
-        written.putAll(touched(entity, save.values().asMap(), prepared.record()));
+        written.putAll(hooked);
         return written;
+    }
+
+    /**
+     * The values a hook or an action's handler changed ({@code touched}) pass the checks of step 8 that look at data
+     * (ADR-0032, 6.5 and 6.7): a reference to a row the saver sees in its target's scope, a unit in the saver's scope, an
+     * item of the enumeration, an attachable file — so module code cannot link what the saver does not see, from action
+     * parameters for one — and the declaration's rules over the record as it will be written. Read-only flags, field
+     * rights and the locks of the process limit the client, not the module, and do not apply. One 422 with them all.
+     *
+     * @param current the record before the save, empty for a create: an unchanged old value is kept
+     * @param record  the record as the checks left it before the hook
+     * @param before  the record before the save, or null for a create
+     */
+    private void requireHookValues(
+            EntityDefinition entity,
+            Map<String, Object> touched,
+            Map<String, Object> current,
+            Map<String, Object> record,
+            @Nullable Map<String, Object> before,
+            @Nullable Long id,
+            long user) {
+        if (touched.isEmpty()) return;
+        List<FieldErrorItem> errors = new ArrayList<>(checks.references(entity, touched, current, user));
+        errors.addAll(checks.unit(entity, touched, current, user));
+        errors.addAll(fieldValues.lookupProblems(entity, touched, current, id, user));
+        Map<String, Object> after = new LinkedHashMap<>(record);
+        after.putAll(touched);
+        EntityValues was = before == null ? null : EntityValues.readOnly(entity, before);
+        errors.addAll(checks.rules(entity, EntityValues.readOnly(entity, after), was));
+        if (!errors.isEmpty()) {
+            throw ApiException.validation("error.common.record_fields_invalid", errors);
+        }
     }
 
     /**

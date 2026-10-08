@@ -7,6 +7,113 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Phase 7 and platform fixes (2026-10-08)
+
+Plan 10/10, items 7.1–7.8, and the platform review fixes; integrated by the
+branch `claude/p7-int`. No OpenAPI change (openapi-diff against `main` is
+green); the behaviour changes are listed under «Changed».
+
+#### Added
+
+- 7.1 — structured JSON logs (Spring Boot ECS) on the console and in the
+  file with `trace_id`/`span_id`; secrets are masked in every member
+  (`config.observability.LogMasking`); the response carries its
+  `traceparent`.
+- 7.2 — OpenTelemetry tracing (Micrometer Tracing bridge and OTLP exporter),
+  off by default (`SMC_TRACING_EXPORT_ENABLED`, `SMC_TRACING_OTLP_ENDPOINT`,
+  `SMC_TRACING_SAMPLING_PROBABILITY`); JDBC client spans with a `traceparent`
+  SQL comment; webhook deliveries are client spans that send the job's
+  `traceparent` to the receiver.
+- 7.3 — `http.server.requests` is a percentiles histogram with 100 ms, 300 ms
+  and 1 s SLO buckets; new meters for job attempts and the queue
+  (`smc_jobs_*`), outbox deliveries, dead letters and backlog
+  (`smc_outbox_*`), nightly task runs, readiness and backup freshness;
+  `docs/ops/slo.md`; Prometheus recording and alert rules with promtool unit
+  tests and Grafana dashboards in `deploy/observability`; runbooks RB-01…RB-09
+  (one per alert); the CI job `observability`
+  (`scripts/observability/test-prometheus-rules.ps1`); the hygiene check that
+  every alert names an existing runbook; `PrometheusScrapeIntegrationTest`.
+- 7.4 — nginx header snippets (`apps/web/nginx/security-headers.conf`,
+  `spa-csp.conf`, `api-csp.conf`) included in every location: HSTS one year
+  with subdomains, nosniff, `X-Frame-Options`, `Referrer-Policy`,
+  `Permissions-Policy`, `server_tokens off`; a start-up step validates
+  `SMC_WEB_FRAME_SOURCES` and `SMC_WEB_TRUSTED_PROXIES`;
+  `scripts/security/test-security-headers.{ps1,sh}` in the e2e job (ADR-0034).
+- 7.5 — the absolute lifetime (`SMC_SESSION_ABSOLUTE_TTL`, 7 d) and the idle
+  timeout (`SMC_SESSION_IDLE_TIMEOUT`, 12 h) are part of the SQL condition of
+  an active session; last activity is written at most once per
+  `SMC_SESSION_TOUCH_INTERVAL`; index migration V202; an e2e spec sends an
+  expired tab to sign-in (ADR-0034).
+- 7.6 — `common.xlsx.XlsxGuard` checks an uploaded workbook before reading
+  (unpacked size, entries, compression ratio, shared strings, rows, columns,
+  no DTD; `smc.uploads.xlsx.*`); the ClamAV client stops a stream past
+  `SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE` (60 MB) and production clamd gets
+  `StreamMaxLength 64M`; threat model 2.0 with STRIDE per area added since
+  2026-09-04; `scripts/security/test-threat-model-freshness.ps1` (fails a
+  release with a model older than 30 days, warns a pull request); the PR
+  template asks for the threat model review.
+- 7.7 — ZAP baseline (`scripts/security/run-zap-baseline.ps1`, rules
+  `scripts/security/zap-baseline.conf`) in e2e shard 2: the web origin with
+  the spider and every OpenAPI operation; fails on a High alert.
+- 7.8 — warehouse `raw.rows` is LIST-partitioned by load (dwh V004) with an
+  immutability trigger; the `warehouse-large` profile in the nightly `load`
+  job checks a one-million-row cleanup under 1 s with `n_dead_tup` near 0.
+- Platform — `EntitySqlBoundariesTest` and the contract kit group «SQL
+  boundaries»: the SQL of a declaration reads only its module's relations and
+  published `<owner>_pub_*` views.
+- `.mvn/jvm.config` caps the Maven JVM at 2 GiB; AGENTS.md: at most 2–3
+  parallel AI agents on one workstation, heavy checks one at a time.
+
+#### Changed
+
+- A state that keeps the record (terminal or locking fields) refuses
+  `DELETE`, bulk delete and archive with 422
+  `error.common.entity_state_locked` (params `state`, `action`) before any
+  hook; the record's actions no longer offer them. `example.requests`
+  answers this 422 instead of the 409 of its own guard; the key
+  `error.example.request_not_draft` is removed.
+- Values a `beforeSave` hook or an action handler sets pass the data checks
+  (references and unit in scope, enumeration items, files, declaration
+  rules); a hook's misuse of `EntityValues` is `EntityHookMisuse`, a logged
+  500 naming the entity, hook and field.
+- The server trusts `X-Forwarded-For` only from loopback by default
+  (`SMC_SECURITY_TRUSTED_PROXIES`, before: every private network); nginx
+  believes only `SMC_WEB_TRUSTED_PROXIES`.
+- The SPA CSP `frame-src` is `'self'` plus `SMC_WEB_FRAME_SOURCES` (before:
+  `http: https: data: blob:`); the third-party font hosts are dropped; the API
+  location is `location ^~ /api/`.
+- Sessions stop working after 12 h idle or 7 d in the active-session query;
+  the cookie `Max-Age` equals the absolute lifetime; the cleanup worker only
+  marks expired sessions closed.
+- `W3cTraceparentFilter` accepts only a well-formed W3C `traceparent`.
+- `cms module new --external` writes a standalone pom on the platform's
+  versions and BOM; the CLI smoke builds such a module offline.
+- `EntityDefinition` builds its field index once (`fieldsByKey` cached).
+- The warehouse cleanup of a failed load detaches and drops its partition
+  instead of deleting rows.
+
+#### Fixed
+
+- The job queue gauges are sampled by `config.jobs.JobQueueMetricsSampler`
+  (the jobs core schedules nothing).
+- The nginx header snippet directory is created before the snippets are
+  copied, so nginx can read them.
+
+#### Security
+
+- The `XSRF-TOKEN` cookie is `SameSite=Lax`, like the session cookie; it
+  stays readable by the web for the double submit.
+- ZAP baseline on the integrated stack (2026-10-08): High 0, Medium 1
+  (`style-src 'unsafe-inline'`, kept for Angular component styles, ADR-0034
+  §2.1), Low 7, Informational 6; the first run (2026-10-07) had Medium 2 and
+  Low 10. Results and decisions: `docs/security/threat-model.md`.
+
+#### Removed
+
+- The header `X-Client-Code` is no longer read into the log context.
+- `deploy/nginx/nginx.prod.conf` and the image `deploy/images/nginx-proxy`
+  (never wired into the production Compose).
+
 ### Added
 
 - Phase 0–6 review fixes (2026-10-07) — `ProductionStartGuard` refuses a

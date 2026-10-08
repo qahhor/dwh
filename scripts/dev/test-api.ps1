@@ -478,7 +478,7 @@ $whBody = @{
     subscribedEvents = @("tasks.items.created", "md.users.created", "notes.created")
 } | ConvertTo-Json
 $whEvents = @(Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/events" -Method Get -WebSession $session)
-if (-not ($whEvents | Where-Object { $_.type -eq 'tasks.items.created' })) {
+if (-not ($whEvents | ForEach-Object { $_ } | Where-Object { $_.code -eq 'tasks.items.created' })) {
     throw "The webhook events catalog does not name tasks.items.created."
 }
 

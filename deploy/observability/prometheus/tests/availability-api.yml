@@ -1,0 +1,200 @@
+# promtool unit tests: availability and API SLO alerts (plan 10/10, item 7.3).
+rule_files:
+  - ../rules/recording.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: instance down and not ready
+    interval: 1m
+    input_series:
+      - series: 'up{job="smartupcms", instance="server:9090"}'
+        values: '1 1 0x10'
+      - series: 'smc_health_readiness{application="smartupcms", job="smartupcms", instance="server:9090"}'
+        values: '1 1 0x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SmartupcmsInstanceDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: SmartupcmsInstanceDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: smartupcms
+              instance: server:9090
+            exp_annotations:
+              summary: "SmartupCMS instance server:9090 does not answer the scrape"
+              description: "The management port has not answered Prometheus for 2 minutes: the process is down or unreachable."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-01-instance-unavailable.md"
+      - eval_time: 3m
+        alertname: SmartupcmsReadinessDown
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: SmartupcmsReadinessDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              application: smartupcms
+              job: smartupcms
+              instance: server:9090
+            exp_annotations:
+              summary: "SmartupCMS instance server:9090 is not ready"
+              description: "The readiness group (main database) has been DOWN for 2 minutes: the instance is out of traffic."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-01-instance-unavailable.md"
+      - eval_time: 10m
+        alertname: SmartupcmsScrapeTargetMissing
+        exp_alerts: []
+
+  - name: scrape target missing
+    interval: 1m
+    input_series:
+      - series: 'up{job="other", instance="other:9100"}'
+        values: '1x10'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: SmartupcmsScrapeTargetMissing
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: SmartupcmsScrapeTargetMissing
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: smartupcms
+            exp_annotations:
+              summary: "No SmartupCMS instance is scraped"
+              description: "Prometheus has no target of the job smartupcms: the service discovery or the scrape configuration lost the server."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-01-instance-unavailable.md"
+
+  # 10 errors per 110 API requests a minute: 9 % of requests fail, above both burn-rate thresholds.
+  - name: error budget burns
+    interval: 1m
+    input_series:
+      - series: 'http_server_requests_seconds_count{application="smartupcms", instance="a", uri="/api/v1/tasks", status="200"}'
+        values: '0+100x120'
+      - series: 'http_server_requests_seconds_count{application="smartupcms", instance="a", uri="/api/v1/tasks", status="500"}'
+        values: '0+10x120'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: SmartupcmsApiErrorBudgetBurnFast
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              application: smartupcms
+            exp_annotations:
+              summary: "API errors burn the monthly error budget 14 times too fast"
+              description: "9.091% of API requests answered 5xx over the last hour (budget 0.1 %)."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - eval_time: 60m
+        alertname: SmartupcmsApiErrorBudgetBurnSlow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "API errors burn the monthly error budget 6 times too fast"
+              description: "9.091% of API requests answered 5xx over the last six hours (budget 0.1 %)."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+
+  # 0.2 % of API requests fail (under 6x the 0.1 % budget); the event stream, left out of the SLO, fails often
+  # but does not count.
+  - name: error budget within the SLO
+    interval: 1m
+    input_series:
+      - series: 'http_server_requests_seconds_count{application="smartupcms", instance="a", uri="/api/v1/tasks", status="200"}'
+        values: '0+499x120'
+      - series: 'http_server_requests_seconds_count{application="smartupcms", instance="a", uri="/api/v1/tasks", status="503"}'
+        values: '0+1x120'
+      - series: 'http_server_requests_seconds_count{application="smartupcms", instance="a", uri="/api/v1/events", status="500"}'
+        values: '0+50x120'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: SmartupcmsApiErrorBudgetBurnFast
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: SmartupcmsApiErrorBudgetBurnSlow
+        exp_alerts: []
+
+  # Every task request takes between 1 and 5 seconds; the entity runtime is not called.
+  - name: api latency high
+    interval: 1m
+    input_series:
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/tasks", le="0.3"}'
+        values: '0x40'
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/tasks", le="1"}'
+        values: '0x40'
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/tasks", le="5"}'
+        values: '0+60x40'
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/tasks", le="+Inf"}'
+        values: '0+60x40'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: SmartupcmsApiLatencyP95High
+        exp_alerts: []
+      - eval_time: 30m
+        alertname: SmartupcmsApiLatencyP95High
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "API p95 latency above 300 ms"
+              description: "The 95th percentile of API requests has been 4.8s for 15 minutes (SLO 300 ms)."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - eval_time: 30m
+        alertname: SmartupcmsApiLatencyP99High
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              application: smartupcms
+            exp_annotations:
+              summary: "API p99 latency above 1 s"
+              description: "The 99th percentile of API requests has been 4.96s for 15 minutes (SLO 1 s)."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - eval_time: 30m
+        alertname: SmartupcmsEntityRuntimeLatencyHigh
+        exp_alerts: []
+
+  # Entity runtime requests take 0.3 to 1 second: p95 above 300 ms, p99 under the 1 s SLO.
+  - name: entity runtime latency high
+    interval: 1m
+    input_series:
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/entities/{code}/rows", le="0.3"}'
+        values: '0x40'
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/entities/{code}/rows", le="1"}'
+        values: '0+60x40'
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/entities/{code}/rows", le="+Inf"}'
+        values: '0+60x40'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: SmartupcmsEntityRuntimeLatencyHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "Entity runtime p95 latency above 300 ms"
+              description: "The 95th percentile of /api/v1/entities requests has been 965ms for 15 minutes."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - eval_time: 30m
+        alertname: SmartupcmsApiLatencyP99High
+        exp_alerts: []
+
+  # Fast answers: no latency alert.
+  - name: latency within the SLO
+    interval: 1m
+    input_series:
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/entities/{code}/rows", le="0.1"}'
+        values: '0+60x40'
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/entities/{code}/rows", le="0.3"}'
+        values: '0+60x40'
+      - series: 'http_server_requests_seconds_bucket{application="smartupcms", instance="a", uri="/api/v1/entities/{code}/rows", le="+Inf"}'
+        values: '0+60x40'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: SmartupcmsApiLatencyP95High
+        exp_alerts: []
+      - eval_time: 30m
+        alertname: SmartupcmsEntityRuntimeLatencyHigh
+        exp_alerts: []

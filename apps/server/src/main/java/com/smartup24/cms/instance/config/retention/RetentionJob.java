@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.config.retention;
 
+import com.smartup24.cms.instance.common.metrics.TaskRunMetrics;
 import com.smartup24.cms.instance.common.retention.RetentionPolicy;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -90,6 +91,8 @@ public class RetentionJob {
 
     /** One pass over every policy: the rows deleted, by policy name. */
     public Map<String, Long> run() {
+        long started = System.nanoTime();
+        boolean clean = true;
         Map<String, Long> deleted = new LinkedHashMap<>();
         for (RetentionPolicy policy : policies) {
             try {
@@ -103,8 +106,12 @@ public class RetentionJob {
             } catch (RuntimeException failure) {
                 // One journal that cannot be cleaned must not keep the others growing; the next run retries it.
                 log.warn("retention_failed policy={} table={}", policy.name(), policy.table(), failure);
+                clean = false;
             }
         }
+        // Plan 10/10, item 7.3: smc_task_run_seconds{task="retention"}; a run with a table left uncleaned is a failure.
+        boolean success = clean;
+        meters.ifAvailable(registry -> TaskRunMetrics.record(registry, "retention", started, success));
         return deleted;
     }
 

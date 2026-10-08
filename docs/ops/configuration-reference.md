@@ -66,6 +66,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT` | `smc.files.scanner.clamav.connect-timeout` | `3s` |
 | `SMC_FILE_SCANNER_CLAMAV_ENABLED` | `smc.files.scanner.clamav.enabled` | `false` |
 | `SMC_FILE_SCANNER_CLAMAV_HOST` | `smc.files.scanner.clamav.host` | `clamav` |
+| `SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE` | `smc.files.scanner.clamav.max-stream-size` | `60MB` |
 | `SMC_FILE_SCANNER_CLAMAV_PORT` | `smc.files.scanner.clamav.port` | `3310` |
 | `SMC_FILE_SCANNER_CLAMAV_READ_TIMEOUT` | `smc.files.scanner.clamav.read-timeout` | `60s` |
 | `SMC_FILE_SCANNER_REQUIRED` | `smc.files.scanner.required` | `false` |
@@ -86,6 +87,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_JOBS_TICKER_ENABLED` | `smc.jobs.ticker-enabled` | `true` |
 | `SMC_MAIL_FROM` | `smc.mail.from` | `no-reply@localhost` |
 | `SMC_MAIL_FROM_NAME` | `smc.mail.from-name` | `SmartupCMS` |
+| `SMC_METRICS_BACKLOG_INTERVAL` | `smc.metrics.backlog-interval` | `PT30S` |
 | `SMC_PROVIDER_MAIL` | `smc.providers.mail` | `console_mail` |
 | `SMC_PROVIDER_MESSENGER` | `smc.providers.messenger` | `console_messenger` |
 | `SMC_PROVIDER_SMS` | `smc.providers.sms` | `console_sms` |
@@ -126,8 +128,11 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_SCHEMA_GATE_ENABLED` | `smc.schema-gate.enabled` | `true` |
 | `SMC_SEARCH_MAXIMUM_GENERATIONS` | `smc.search.maximum-generations` | `4` |
 | `SMC_SECRETS_KEY` | `smc.secrets.key` | пусто |
-| `SMC_SECURITY_TRUSTED_PROXIES` | `smc.security.trusted-proxies` | `127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10` |
+| `SMC_SECURITY_TRUSTED_PROXIES` | `smc.security.trusted-proxies` | `127.0.0.1/32,::1/128` |
+| `SMC_SESSION_ABSOLUTE_TTL` | `smc.session.absolute-ttl` | `7d` |
 | `SMC_SESSION_CLEANUP_INTERVAL` | `smc.session.cleanup-interval` | `1h` |
+| `SMC_SESSION_IDLE_TIMEOUT` | `smc.session.idle-timeout` | `12h` |
+| `SMC_SESSION_TOUCH_INTERVAL` | `smc.session.touch-interval` | `1m` |
 | `SMC_SSE_HEARTBEAT_MS` | `smc.sse.heartbeat-ms` | `25000` |
 | `SMC_SSE_MAX_CONNECTIONS_PER_USER` | `smc.sse.max-connections-per-user` | `5` |
 | `SMC_SSE_TIMEOUT_MS` | `smc.sse.timeout-ms` | `1800000` |
@@ -137,6 +142,13 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_TYPESENSE_ENABLED` | `smc.typesense.enabled` | `true` |
 | `SMC_TYPESENSE_SYNC_ON_STARTUP` | `smc.typesense.sync-on-startup` | `true` |
 | `SMC_TYPESENSE_URL` | `smc.typesense.url` | `http://typesense:8108` |
+| `SMC_UPLOADS_XLSX_MAX_COLUMNS` | `smc.uploads.xlsx.max-columns` | `16384` |
+| `SMC_UPLOADS_XLSX_MAX_COMPRESSION_RATIO` | `smc.uploads.xlsx.max-compression-ratio` | `200` |
+| `SMC_UPLOADS_XLSX_MAX_ENTRIES` | `smc.uploads.xlsx.max-entries` | `1000` |
+| `SMC_UPLOADS_XLSX_MAX_ROWS` | `smc.uploads.xlsx.max-rows` | `1048576` |
+| `SMC_UPLOADS_XLSX_MAX_SHARED_STRINGS` | `smc.uploads.xlsx.max-shared-strings` | `5000000` |
+| `SMC_UPLOADS_XLSX_MAX_SHARED_STRINGS_SIZE` | `smc.uploads.xlsx.max-shared-strings-size` | `256MB` |
+| `SMC_UPLOADS_XLSX_MAX_UNPACKED_SIZE` | `smc.uploads.xlsx.max-unpacked-size` | `1GB` |
 | `SMC_WEBHOOKS_ALLOWED_HOSTS` | `smc.webhooks.allowed-hosts` | пусто |
 | `SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES` | `smc.webhooks.allow-private-addresses` | `false` |
 | `SMC_WEBHOOKS_CONNECT_TIMEOUT` | `smc.webhooks.connect-timeout` | `3s` |
@@ -168,6 +180,9 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_LOG_MAX_FILE_SIZE` | `logging.logback.rollingpolicy.max-file-size` | `100MB` |
 | `SMC_LOG_MAX_HISTORY` | `logging.logback.rollingpolicy.max-history` | `12` |
 | `SMC_LOG_TOTAL_SIZE_CAP` | `logging.logback.rollingpolicy.total-size-cap` | `2GB` |
+| `SMC_TRACING_EXPORT_ENABLED` | `management.tracing.export.enabled` | `false` |
+| `SMC_TRACING_OTLP_ENDPOINT` | `management.opentelemetry.tracing.export.otlp.endpoint` | `http://localhost:4318/v1/traces` |
+| `SMC_TRACING_SAMPLING_PROBABILITY` | `management.tracing.sampling.probability` | `0.0` |
 | `SMTP_AUTH` | `spring.mail.properties.mail.smtp.auth` | `true` |
 | `SMTP_HOST` | `spring.mail.host` | пусто |
 | `SMTP_PASSWORD` | `spring.mail.password` | пусто |

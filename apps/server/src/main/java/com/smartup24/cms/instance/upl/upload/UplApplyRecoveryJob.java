@@ -23,7 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
  * would stay "applying" forever (verified with a load number) and the load {@code pending}: a repeated apply
  * would answer 409, and the raw cleanup only sees {@code failed}.
  *
- * <p>The job marks such a load as failed (its raw rows are removed by {@code fnd.load_cleanup}) and
+ * <p>The job marks such a load as failed (its raw partition, if the write ever committed, is dropped by
+ * {@code fnd.load_cleanup}; plan 10/10, item 7.8) and
  * the package as "rejected" with code {@link UplApplyService#UPL_PKG_APPLY_INTERRUPTED}, as on
  * a raw write failure: the load has a unique {@code package_ref}, so the same package cannot be
  * applied a second time and the file is uploaded again. An apply older than {@code staleMinutes} counts as interrupted

@@ -6,6 +6,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $composePath = Join-Path $repoRoot 'deploy/compose/docker-compose.prod.yml'
 $envPath = Join-Path $PSScriptRoot 'release-config.test.env'
 $webNginxPath = Join-Path $repoRoot 'apps/web/nginx.conf'
+$webNginxSnippets = Join-Path $repoRoot 'apps/web/nginx'
 $backupDockerfile = Join-Path $repoRoot 'deploy/images/backup/Dockerfile'
 $backupBuildContext = Join-Path $repoRoot 'deploy/images/backup'
 $backupImage = 'smartupcms/backup:release-config-test'
@@ -21,6 +22,13 @@ $testRecoveryPsPath = Join-Path $PSScriptRoot 'test-recovery.ps1'
 
 function Assert-Matches([string]$Text, [string]$Pattern, [string]$Message) {
     if ($Text -notmatch $Pattern) { throw $Message }
+}
+
+function ConvertTo-Bytes([string]$Value, [string]$Name) {
+    # clamd and Spring both read K/M/G (optionally followed by B) as binary multiples.
+    if ($Value -notmatch '^\s*(\d+)\s*([KMG]?)B?\s*$') { throw "$Name must be a size such as 64M, got '$Value'." }
+    $units = @{ '' = 1; 'K' = 1KB; 'M' = 1MB; 'G' = 1GB }
+    return [int64]$Matches[1] * $units[$Matches[2].ToUpperInvariant()]
 }
 
 function Assert-DoesNotMatch([string]$Text, [string]$Pattern, [string]$Message) {
@@ -66,6 +74,8 @@ Assert-Matches $composeSource 'SMC_SECRETS_KEY:\s*\$\{SMC_SECRETS_KEY:\?' 'Produ
 Assert-DoesNotMatch $composeSource 'max-size:\s*"50m"' 'Container logs rotate at 100 MB (decision of 2026-09-27).'
 Assert-Matches $composeSource 'max-size:\s*"100m",\s*max-file:\s*"5",\s*compress:\s*"true"' 'Container logs must rotate at 100 MB and be compressed.'
 Assert-Matches $composeSource 'SMC_LOG_FILE:\s*\$\{SMC_LOG_FILE:-/var/lib/smartupcms/logs/server\.log\}' 'The server must write its weekly archived log file on the data volume.'
+Assert-Matches $composeSource 'SMC_TRACING_EXPORT_ENABLED:\s*\$\{SMC_TRACING_EXPORT_ENABLED:-false\}' 'Trace export must be an explicit opt-in (plan 10/10, item 7.2).'
+Assert-Matches $composeSource 'SMC_TRACING_SAMPLING_PROBABILITY:\s*\$\{SMC_TRACING_SAMPLING_PROBABILITY:-0\.0\}' 'Traces must not be recorded unless the environment asks for it (plan 10/10, item 7.2).'
 foreach ($variable in @('SMC_AUDIT_ARCHIVE_TARGET', 'SMC_AUDIT_ARCHIVE_LOCAL_PATH', 'SMC_AUDIT_ARCHIVE_RETENTION',
         'SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE', 'SMC_AUDIT_ARCHIVE_S3_BUCKET', 'SMC_AUDIT_ARCHIVE_S3_SECRET_KEY')) {
     Assert-Matches $composeSource ([regex]::Escape($variable) + ':\s*\$\{' + [regex]::Escape($variable) + ':-')
@@ -135,6 +145,18 @@ try {
         }
     }
     if (-not $config.networks.backend.internal) { throw 'Production backend network is not internal.' }
+    # ADR-0034: X-Forwarded-For is believed only from an explicit list, by default the pinned frontend network.
+    $frontendSubnet = "$(@($config.networks.frontend.ipam.config)[0].subnet)"
+    if (-not $frontendSubnet) { throw 'The production frontend network must have a pinned subnet for the trusted-proxy lists.' }
+    if ("$($config.services.server.environment.SMC_SECURITY_TRUSTED_PROXIES)" -ne $frontendSubnet) {
+        throw 'The server must trust X-Forwarded-For only from the frontend network by default.'
+    }
+    if ("$($config.services.web.environment.SMC_WEB_TRUSTED_PROXIES)" -ne $frontendSubnet) {
+        throw 'The web origin must trust X-Forwarded-For only from the frontend network by default.'
+    }
+    if ("$($config.services.web.environment.SMC_WEB_FRAME_SOURCES)" -ne '') {
+        throw 'Embedded frame sources must be an explicit operator choice (empty by default).'
+    }
     if ("$($config.services.server.environment.SMC_FILE_SCANNER_REQUIRED)" -ne 'true') {
         throw 'Production server must require a malware scanner by default.'
     }
@@ -144,6 +166,18 @@ try {
     if ("$($config.services.server.depends_on.clamav.condition)" -ne 'service_healthy') {
         throw 'Production server must wait for a healthy ClamAV service.'
     }
+    # Plan 10/10, item 7.6: a 50 MiB upload is scanned whole. The server stops a stream at its own cap, which must
+    # fit under clamd's StreamMaxLength; inflated archive parts are scanned up to MaxFileSize and MaxScanSize.
+    $clamEnv = $config.services.clamav.environment
+    $streamMax = ConvertTo-Bytes "$($clamEnv.CLAMD_CONF_StreamMaxLength)" 'CLAMD_CONF_StreamMaxLength'
+    $fileMax = ConvertTo-Bytes "$($clamEnv.CLAMD_CONF_MaxFileSize)" 'CLAMD_CONF_MaxFileSize'
+    $scanMax = ConvertTo-Bytes "$($clamEnv.CLAMD_CONF_MaxScanSize)" 'CLAMD_CONF_MaxScanSize'
+    $serverCap = ConvertTo-Bytes "$($config.services.server.environment.SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE)" 'SMC_FILE_SCANNER_CLAMAV_MAX_STREAM_SIZE'
+    $uploadMax = 50MB
+    if ($serverCap -le $uploadMax) { throw 'The server scanner stream cap must exceed the 50 MiB upload limit.' }
+    if ($streamMax -le $serverCap) { throw 'clamd StreamMaxLength must exceed the server scanner stream cap.' }
+    if ($fileMax -lt $streamMax) { throw 'clamd MaxFileSize must not be below StreamMaxLength.' }
+    if ($scanMax -lt $fileMax) { throw 'clamd MaxScanSize must not be below MaxFileSize.' }
 }
 finally {
     $env:DB_PASSWORD_FILE = $previousDbPasswordFile
@@ -164,17 +198,61 @@ if ($LASTEXITCODE -ne 0 -or $backupUid.Trim() -ne '10001') {
     throw 'Backup image UID must match the server data UID so 0600 status remains readable.'
 }
 
+# The image copies the header snippets to /etc/nginx/smc and runs 40-smc-edge-config.sh at start (ADR-0034);
+# the same layout here, with an operator's frame source and proxy list, must pass nginx -t.
 $prevEap = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 $nginxConfigOutput = docker run --rm `
     --add-host server:127.0.0.1 `
+    -e 'SMC_WEB_FRAME_SOURCES=https://bi.example.test' `
+    -e 'SMC_WEB_TRUSTED_PROXIES=172.30.80.0/24' `
     -v "${webNginxPath}:/etc/nginx/conf.d/default.conf:ro" `
-    nginx:1.28-alpine nginx -T 2>&1
+    -v "${webNginxSnippets}:/etc/nginx/smc:ro" `
+    --entrypoint sh `
+    nginx:1.28-alpine -ec 'sh /etc/nginx/smc/40-smc-edge-config.sh && nginx -T' 2>&1
 $ErrorActionPreference = $prevEap
-if ($LASTEXITCODE -ne 0) { throw 'Web NGINX configuration failed nginx -t.' }
-Assert-Matches ($nginxConfigOutput -join [Environment]::NewLine) `
-    'client_max_body_size\s+51m' `
+if ($LASTEXITCODE -ne 0) { throw "Web NGINX configuration failed nginx -t: $($nginxConfigOutput -join [Environment]::NewLine)" }
+$nginxConfigText = $nginxConfigOutput -join [Environment]::NewLine
+Assert-Matches $nginxConfigText 'client_max_body_size\s+51m' `
     'Web NGINX must allow a 50 MiB file plus bounded multipart overhead.'
+Assert-Matches $nginxConfigText "frame-src 'self'\`$smc_frame_sources" 'The SPA CSP must take its frame sources from the validated runtime list.'
+Assert-Matches $nginxConfigText 'default " https://bi\.example\.test"' 'The start-up step must pass a valid frame source through.'
+Assert-Matches $nginxConfigText 'set_real_ip_from 172\.30\.80\.0/24;' 'The start-up step must trust exactly the listed proxies.'
+foreach ($bad in @('SMC_WEB_FRAME_SOURCES=https:', 'SMC_WEB_TRUSTED_PROXIES=0.0.0.0/0', 'SMC_WEB_TRUSTED_PROXIES=proxy.example.test')) {
+    $ErrorActionPreference = 'Continue'
+    $null = docker run --rm -e $bad -v "${webNginxSnippets}:/smc:ro" --entrypoint sh nginx:1.28-alpine /smc/40-smc-edge-config.sh 2>&1
+    $badExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEap
+    if ($badExit -eq 0) { throw "The web start-up step must refuse $bad." }
+}
+
+# ADR-0034, plan 10/10, item 7.4: nginx drops outer add_header directives in a location with its own, so the
+# headers live in snippets that every location includes; /api/ wins over the asset regex.
+Assert-Matches $webNginx 'location \^~ /api/' 'The API location must be a prefix match (^~) so the asset regex cannot take /api/*.js.'
+Assert-Matches $webNginx 'server_tokens off;' 'The web origin must not reveal the nginx version.'
+$serverLevel = ($webNginx -split 'location ')[0]
+Assert-DoesNotMatch $serverLevel '(?m)^\s*add_header\s' 'Server-level add_header is lost in every location with its own; use the snippets.'
+foreach ($location in @(($webNginx -split '(?m)^\s*location ') | Select-Object -Skip 1)) {
+    $name = ($location -split '\{')[0].Trim()
+    if ($location -notmatch 'include /etc/nginx/smc/security-headers\.conf;') { throw "NGINX location '$name' does not include the security headers." }
+    if ($location -notmatch 'include /etc/nginx/smc/(spa|api)-csp\.conf;') { throw "NGINX location '$name' does not include a CSP." }
+}
+$webHeaders = Get-Content -LiteralPath (Join-Path $webNginxSnippets 'security-headers.conf') -Raw
+if ($webHeaders -notmatch 'Strict-Transport-Security "max-age=(\d+); includeSubDomains"' -or [long]$Matches[1] -lt 31536000) {
+    throw 'HSTS must last at least a year and cover subdomains.'
+}
+foreach ($header in @('X-Content-Type-Options "nosniff"', 'X-Frame-Options "DENY"', 'Referrer-Policy', 'Permissions-Policy')) {
+    Assert-Matches $webHeaders ([regex]::Escape($header)) "The web security headers must set $header."
+}
+$spaPolicy = Get-Content -LiteralPath (Join-Path $webNginxSnippets 'spa-csp.conf') -Raw
+Assert-DoesNotMatch $spaPolicy 'fonts\.googleapis\.com|fonts\.gstatic\.com' 'Fonts are local: the CSP must not allow third-party font hosts.'
+Assert-DoesNotMatch $spaPolicy 'frame-src[^;"]*\s(http:|https:|data:|blob:|\*)[\s;"]' 'frame-src must list origins, never whole schemes.'
+Assert-DoesNotMatch $spaPolicy "script-src[^;]*'unsafe-(inline|eval)'" 'script-src must not allow inline or eval scripts.'
+$webDockerfile = Get-Content -LiteralPath (Join-Path $repoRoot 'apps/web/Dockerfile') -Raw
+Assert-Matches $webDockerfile 'nginx/40-smc-edge-config\.sh /docker-entrypoint\.d/' 'The web image must run the edge start-up step.'
+if (Test-Path -LiteralPath (Join-Path $repoRoot 'deploy/nginx')) {
+    throw 'deploy/nginx is not part of the runtime: the web image is the only origin (ADR-0034).'
+}
 
 $bashSyntaxCheck = @'
 set -eu

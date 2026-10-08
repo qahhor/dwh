@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { entityAddField, entityNew, moduleNew } from '../lib/commands.mjs';
 import { addCatalogKeys, addImports, addToSection } from '../lib/edits.mjs';
-import { PATHS, resolve } from '../lib/layout.mjs';
+import { PATHS, platformVersions, resolve } from '../lib/layout.mjs';
 import { main } from '../lib/main.mjs';
 import { createsTable, hasColumn, highestVersion, manifestHash, versionName } from '../lib/migrations.mjs';
 import { entityNames, moduleNames } from '../lib/names.mjs';
@@ -191,6 +191,41 @@ describe('cms module new', () => {
     const plan = run((p) => moduleNew(p, 'library', { ...MODULE, external: true }));
     assert.equal(plan.changes, 0);
     assert.deepEqual(snapshot(), before);
+  });
+
+  test('a module outside the repository is standalone and builds against the platform it names', () => {
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'cms-cli-outside-'));
+    try {
+      const dir = path.join(outside, 'stock').replace(/\\/g, '/');
+      run((plan) => moduleNew(plan, 'stock', { ...MODULE, external: true, dir, package: 'com.acme.stock' }));
+      const pom = fs.readFileSync(path.join(dir, 'pom.xml'), 'utf8');
+      const platform = platformVersions(root);
+      assert.doesNotMatch(pom, /<parent>/);
+      assert.match(pom, new RegExp(`<platform-api.version>${platform.apiVersion}</platform-api.version>`));
+      assert.match(pom, new RegExp(`<smartupcms.version>${platform.appVersion}</smartupcms.version>`));
+      assert.match(pom, /<artifactId>smartupcms-platform<\/artifactId>\s*<version>\$\{smartupcms.version\}<\/version>\s*<type>pom<\/type>\s*<scope>import<\/scope>/);
+      assert.match(pom, /<artifactId>platform-api<\/artifactId>\s*<version>\$\{platform-api.version\}<\/version>/);
+      assert.doesNotMatch(pom, /6\.2\.2/);
+      assert.match(pom, new RegExp(`<maven-surefire-plugin.version>${platform.surefirePlugin}<`));
+      const manifest = JSON.parse(
+        fs.readFileSync(path.join(dir, 'src/main/resources/META-INF/smartupcms/modules/stock.json'), 'utf8'),
+      );
+      assert.equal(manifest.minPlatform, platform.apiVersion);
+      const boundary = fs.readFileSync(path.join(dir, 'src/test/java/com/acme/stock/StockModuleBoundaryTest.java'), 'utf8');
+      assert.match(boundary, /Pattern\.compile\("\^import \(\?:static \)\?\(com\\\\\.smartup24\\\\\.\[\\\\w\.\]\+\);"/);
+      assert.match(boundary, /\.contains\("\\"configuration\\": \\"" \+ StockModule\.class\.getName\(\) \+ "\\""\)/);
+    } finally {
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  test('a module inside a repository with a root pom takes it as its parent', () => {
+    fs.copyFileSync(path.join(repo, 'pom.xml'), path.join(root, 'pom.xml'));
+    run((plan) => moduleNew(plan, 'library', { ...MODULE, external: true }));
+    const pom = read('modules/library/pom.xml');
+    assert.match(pom, /<parent>[\s\S]*<relativePath>\.\.\/\.\.\/pom\.xml<\/relativePath>/);
+    assert.match(pom, new RegExp(`<version>${platformVersions(root).appVersion}</version>\\s*<relativePath>`));
+    assert.doesNotMatch(pom, /<dependencyManagement>/);
   });
 
   test('creates an external module in custom directory', () => {

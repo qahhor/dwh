@@ -272,6 +272,64 @@ foreach ($alternative in $tokenAlternatives) {
     }
 }
 
+# Plan 10/10, item 7.3 (docs/ops/slo.md): every Prometheus alert carries a severity and a runbook_url to a runbook
+# file docs/runbooks/RB-NN-*.md in this repository; every runbook is named by an alert, or is listed below with the
+# reason no metric raises it, and is linked from the documentation index.
+$runbookUrl = 'https://github.com/qahhor/dwh/blob/main/'
+$alertRuleFiles = @($tracked | Where-Object { $_ -match '^deploy/observability/prometheus/rules/[^/]+\.ya?ml$' })
+$runbookFiles = @($tracked | Where-Object { $_ -match '^docs/runbooks/RB-\d{2}-[a-z0-9-]+\.md$' })
+$runbooksWithoutAlert = @{
+    'docs/runbooks/RB-04-migration-failure-triage.md' = 'raised by the exit code of the migrate service, not by a metric'
+}
+$referencedRunbooks = [System.Collections.Generic.HashSet[string]]::new()
+$alertCount = 0
+foreach ($relativePath in $alertRuleFiles) {
+    $text = Get-Content -LiteralPath (Join-Path $repoRoot $relativePath) -Raw
+    foreach ($block in [regex]::Split($text, '(?m)^(?=\s*-\s*(?:alert|record|name):)')) {
+        if ($block -notmatch '^\s*-\s*alert:\s*(\S+)') { continue }
+        $alert = $Matches[1]
+        $alertCount++
+        if ($block -notmatch '(?m)^\s*severity:\s*(critical|warning)\s*$') {
+            $errors.Add("Alert has no severity critical or warning: $alert ($relativePath)")
+        }
+        if ($block -notmatch '(?m)^\s*runbook_url:\s*"?([^"\s]+)"?\s*$') {
+            $errors.Add("Alert has no runbook_url: $alert ($relativePath)")
+            continue
+        }
+        $url = $Matches[1]
+        if (-not $url.StartsWith($runbookUrl, [System.StringComparison]::Ordinal) -or
+            $url.Substring([Math]::Min($url.Length, $runbookUrl.Length)) -notmatch '^docs/runbooks/RB-\d{2}-[a-z0-9-]+\.md$') {
+            $errors.Add("Alert runbook_url is not ${runbookUrl}docs/runbooks/RB-NN-*.md: $alert ($url)")
+            continue
+        }
+        $runbook = $url.Substring($runbookUrl.Length)
+        if ($runbookFiles -notcontains $runbook) {
+            $errors.Add("Alert runbook file does not exist: $alert -> $runbook")
+        }
+        [void]$referencedRunbooks.Add($runbook)
+    }
+}
+if ($alertRuleFiles.Count -gt 0 -and $alertCount -eq 0) {
+    $errors.Add('No alert rules found in deploy/observability/prometheus/rules')
+}
+$runbookIndex = Get-Content -LiteralPath (Join-Path $repoRoot 'docs/README.md') -Raw -Encoding UTF8
+foreach ($runbook in $runbookFiles) {
+    if (-not $referencedRunbooks.Contains($runbook) -and -not $runbooksWithoutAlert.ContainsKey($runbook)) {
+        $errors.Add("Runbook is named by no alert: $runbook (add the alert's runbook_url or an exemption with a reason)")
+    }
+    if (-not $runbookIndex.Contains('(' + $runbook.Substring('docs/'.Length) + ')')) {
+        $errors.Add("Runbook is not linked from docs/README.md: $runbook")
+    }
+}
+foreach ($runbook in $runbooksWithoutAlert.Keys) {
+    if ($runbookFiles -notcontains $runbook) {
+        $errors.Add("Runbook exemption names a file that is not tracked: $runbook")
+    }
+    if ($referencedRunbooks.Contains($runbook)) {
+        $errors.Add("Runbook exemption is stale, an alert names it: $runbook")
+    }
+}
+
 if ($errors.Count -gt 0) {
     throw "Repository hygiene contract failed:`n - $($errors -join "`n - ")"
 }

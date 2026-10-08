@@ -5,8 +5,8 @@ import java.util.UUID;
 
 /**
  * The only entry point into the {@code raw} layer of the second database. The facade has no update or delete
- * methods: {@code raw} is immutable, and a new version of the data is a new load. Removing the rows of a failed
- * load is the job of {@code fnd.load_cleanup}.
+ * methods: {@code raw} is immutable, and a new version of the data is a new load. Each load has its own partition
+ * (plan 10/10, item 7.8); dropping the partition of a failed load is the job of {@code fnd.load_cleanup}.
  */
 public interface RawWriter {
 
