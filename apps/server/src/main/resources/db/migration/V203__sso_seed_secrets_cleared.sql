@@ -7,7 +7,6 @@ set statement_timeout = '60s';
 -- ADR-0029: secrets are stored only encrypted (v1: prefix) and the server refuses a plain value at start. The seeded
 -- placeholders are cleared; an administrator sets a real client secret through the application, which encrypts it.
 update md_sso_providers
-set client_secret = null,
-    updated_at = now()
+set client_secret = null
 where client_secret is not null
   and client_secret not like 'v1:%';
