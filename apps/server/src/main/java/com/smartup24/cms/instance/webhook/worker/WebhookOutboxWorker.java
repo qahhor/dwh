@@ -44,13 +44,7 @@ public class WebhookOutboxWorker {
             WebhookProperties properties,
             WebhookTargetPolicy targetPolicy,
             ObservationRegistry observationRegistry) {
-        this(
-                outboxRepository,
-                objectMapper,
-                properties,
-                targetPolicy,
-                observationRegistry,
-                OutboxMetrics.none(OUTBOX));
+        this(outboxRepository, objectMapper, properties, targetPolicy, observationRegistry, OutboxMetrics.none(OUTBOX));
     }
 
     @Autowired
