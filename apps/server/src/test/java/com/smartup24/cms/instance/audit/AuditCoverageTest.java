@@ -60,6 +60,9 @@ class AuditCoverageTest {
             "SearchService", // indexing, derived from data that is already logged
             "SearchChangePublisher", // derived revisions; the owner logs the business mutation
             "MsNotificationService", // delivers notifications, does not change data
+            // the first start (FR-INST-1): no user exists to act yet; the instance record and the first administrator
+            // come from the deployment configuration and are logged as instance_initialized / first_admin_created
+            "MdInstanceService",
             // the participation rows follow the task record the runtime audits; a "seen" mark is no business change
             "MsTaskMemberService",
             // audited by the foundation triggers (fnd_audit_enable, V100): the actor comes from app.user_id, one
