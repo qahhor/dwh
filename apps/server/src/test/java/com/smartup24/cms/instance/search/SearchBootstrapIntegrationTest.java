@@ -7,9 +7,12 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrap;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
+import com.smartup24.cms.instance.md.repository.MdInstanceRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
+import com.smartup24.cms.instance.md.service.MdInstanceService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.SearchOwnerRateLimits;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
 import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
@@ -319,9 +322,10 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         @Bean
         InstanceBootstrap instanceBootstrap() {
             return new InstanceBootstrap(
-                    jdbc,
-                    new KauthPasswordHasher(),
-                    new MdPermissionService(new MdPermissionRepository(jdbc)),
+                    new MdInstanceService(
+                            new MdInstanceRepository(jdbc),
+                            new KauthPasswordHasher(),
+                            new MdPermissionService(new MdPermissionRepository(jdbc))),
                     new InstanceBootstrapProperties(
                             "search-test",
                             "Search test",

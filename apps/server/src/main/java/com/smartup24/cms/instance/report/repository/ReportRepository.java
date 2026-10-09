@@ -39,7 +39,7 @@ public class ReportRepository {
                     t.title,
                     coalesce(p.name, '—') as project_name,
                     t.priority,
-                    coalesce(s.name, 'Новая') as status_name,
+                    coalesce(s.name, t.status_code) as status_name,
                     t.end_time,
                     t.created_at,
                     coalesce(u.name, '—') as reporter_name

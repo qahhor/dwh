@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import java.util.Map;
 import org.springframework.stereotype.Service;

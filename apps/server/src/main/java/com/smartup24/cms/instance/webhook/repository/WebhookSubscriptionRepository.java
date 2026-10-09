@@ -118,30 +118,12 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
     }
 
     @Override
-    public int sealPlainSecrets(StoredSecrets cipher) {
-        List<PlainSecret> plain = jdbcClient
-                .sql("select id, secret_token from kwh_subscriptions where secret_token not like 'v1:%'")
-                .query((rs, rowNum) -> new PlainSecret(rs.getLong("id"), rs.getString("secret_token")))
-                .list();
-        int sealed = 0;
-        for (PlainSecret row : plain) {
-            // The stored form changes, so the revision moves on as for any write of the row (ADR-0024).
-            sealed += jdbcClient
-                    .sql("""
-                    update kwh_subscriptions
-                    set secret_token = :sealed,
-                        revision = revision + 1
-                    where id = :id and secret_token = :plain
-                    """)
-                    .param("sealed", cipher.seal(row.value(), SECRET_COLUMN))
-                    .param("id", row.id())
-                    .param("plain", row.value())
-                    .update();
-        }
-        return sealed;
+    public int countPlainSecrets() {
+        return jdbcClient
+                .sql("select count(*) from kwh_subscriptions where secret_token not like 'v1:%'")
+                .query(Integer.class)
+                .single();
     }
-
-    private record PlainSecret(long id, String value) {}
 
     private SubscriptionRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         String[] arr = (String[]) rs.getArray("subscribed_events").getArray();

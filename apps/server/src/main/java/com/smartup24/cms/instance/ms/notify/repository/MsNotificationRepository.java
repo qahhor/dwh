@@ -4,11 +4,15 @@ import com.smartup24.cms.instance.common.query.TimePage;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class MsNotificationRepository {
+
+    /** The first key of the advisory locks on a source code, apart from the other lock spaces of the application. */
+    static final int SOURCE_LOCK_SPACE = 731_001;
 
     private final JdbcClient jdbcClient;
 
@@ -72,6 +76,28 @@ public class MsNotificationRepository {
                 .list();
     }
 
+    /** One notification by its id. */
+    public Optional<NotificationRecord> findById(long id) {
+        return jdbcClient
+                .sql("""
+                select id, user_id, type, title, body, form_link, source_code, is_read, created_at
+                from ms_notifications
+                where id = :id
+                """)
+                .param("id", id)
+                .query((rs, rowNum) -> new NotificationRecord(
+                        rs.getLong("id"),
+                        rs.getLong("user_id"),
+                        rs.getString("type"),
+                        rs.getString("title"),
+                        rs.getString("body"),
+                        rs.getString("form_link"),
+                        rs.getString("source_code"),
+                        rs.getBoolean("is_read"),
+                        rs.getTimestamp("created_at").toInstant()))
+                .optional();
+    }
+
     public int getUnreadCount(Long userId) {
         return jdbcClient.sql("""
                 select count(*) from ms_notifications
@@ -97,6 +123,19 @@ public class MsNotificationRepository {
                 set is_read = true
                 where user_id = :userId and not is_read
                 """).param("userId", userId).update();
+    }
+
+    /**
+     * Serializes, until the current transaction ends, the senders of one source code to one user: of two nodes that
+     * decide together, the second waits and then sees the first one's row.
+     */
+    public void lockSource(Long userId, String sourceCode) {
+        jdbcClient
+                .sql("select pg_advisory_xact_lock(:space, hashtext(:key))")
+                .param("space", SOURCE_LOCK_SPACE)
+                .param("key", userId + ":" + sourceCode)
+                .query((rs, rowNum) -> true)
+                .single();
     }
 
     public boolean hasRecentNotification(Long userId, String sourceCode, Instant since) {

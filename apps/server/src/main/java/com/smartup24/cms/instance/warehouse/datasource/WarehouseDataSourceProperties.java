@@ -38,7 +38,7 @@ public record WarehouseDataSourceProperties(
 
     private static void requirePositive(String name, Duration value) {
         if (value != null && (value.isNegative() || value.isZero())) {
-            throw new IllegalArgumentException(name + " должен быть положительным");
+            throw new IllegalArgumentException(name + " must be positive");
         }
     }
 }

@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.analytics.repository;
 
-import com.smartup24.cms.instance.analytics.dto.AnalyticsSummaryDto;
-import com.smartup24.cms.instance.analytics.dto.ProjectDistributionDto;
-import com.smartup24.cms.instance.analytics.dto.TrendDataPointDto;
-import com.smartup24.cms.instance.analytics.dto.UserWorkloadDto;
+import com.smartup24.cms.instance.analytics.api.AnalyticsSummaryDto;
+import com.smartup24.cms.instance.analytics.api.ProjectDistributionDto;
+import com.smartup24.cms.instance.analytics.api.TrendDataPointDto;
+import com.smartup24.cms.instance.analytics.api.UserWorkloadDto;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;

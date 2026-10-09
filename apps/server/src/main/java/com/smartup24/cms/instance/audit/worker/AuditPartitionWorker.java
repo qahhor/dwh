@@ -84,14 +84,13 @@ public class AuditPartitionWorker {
                                 ? partitionRepository.detachDay(partition.from())
                                 : partitionRepository.detachAndArchive(YearMonth.from(partition.from())));
             } catch (Exception e) {
-                log.error("Не удалось отцепить партицию аудита {}: {}", partition.name(), e.getMessage());
+                log.error("audit_partition_detach_failed partition={} error={}", partition.name(), e.getMessage());
             }
         }
 
         if (!archived.isEmpty()) {
             log.warn(
-                    "Срок хранения {} мес. истёк, партиции аудита отцеплены и переименованы: {}. "
-                            + "Данные не удалены (FR-AUD-2)",
+                    "audit_partitions_detached retentionMonths={} partitions={}: renamed, no data deleted (FR-AUD-2)",
                     retentionMonths,
                     String.join(", ", archived));
         }
@@ -113,22 +112,22 @@ public class AuditPartitionWorker {
                 // The one expected cause: rows for this day already sit in default;
                 // PostgreSQL scans it when creating the partition and refuses
                 log.error(
-                        "Не удалось создать партицию аудита за {}: {}. Перенесите строки "
-                                + "за этот день из audit_log_default и повторите",
+                        "audit_partition_create_failed day={} error={}: move the rows of that day out of audit_log_default"
+                                + " and retry",
                         day,
                         e.getMessage());
             }
         }
 
         if (!created.isEmpty()) {
-            log.info("Созданы партиции аудита: {}", String.join(", ", created));
+            log.info("audit_partitions_created partitions={}", String.join(", ", created));
         }
 
         long stranded = partitionRepository.countDefaultRows();
         if (stranded > 0) {
             log.error(
-                    "В audit_log_default {} строк: партиция за какой-то день не была создана "
-                            + "вовремя, retention и архив эти записи не заберут (FR-AUD-2)",
+                    "audit_default_partition_rows count={}: a daily partition was not created in time; retention and"
+                            + " the archive do not take these rows (FR-AUD-2)",
                     stranded);
         }
     }

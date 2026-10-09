@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.search.repository;
 
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.VerificationSummary;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.VerificationSummary;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;

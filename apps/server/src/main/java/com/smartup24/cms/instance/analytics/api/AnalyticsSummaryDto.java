@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.analytics.dto;
+package com.smartup24.cms.instance.analytics.api;
 
 public record AnalyticsSummaryDto(
         long totalTasks,

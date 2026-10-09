@@ -58,7 +58,7 @@ public class MdI18nCatalog {
 
         Map<String, String> russian = loaded.get("ru");
         if (russian == null || russian.isEmpty()) {
-            throw new IllegalStateException("Русский каталог локализации отсутствует или пуст");
+            throw new IllegalStateException("The Russian catalog is missing or empty");
         }
 
         Set<String> canonicalKeys = new LinkedHashSet<>(russian.keySet());
@@ -122,17 +122,17 @@ public class MdI18nCatalog {
         if (!"ru".equals(code) && !canonicalKeys.containsAll(dictionary.keySet())) {
             Set<String> unknown = new LinkedHashSet<>(dictionary.keySet());
             unknown.removeAll(canonicalKeys);
-            throw new IllegalStateException("Каталог " + code + " содержит неизвестные ключи: " + unknown);
+            throw new IllegalStateException("Catalog " + code + " has unknown keys: " + unknown);
         }
         dictionary.forEach((key, value) -> {
             if (key == null || key.isBlank() || value == null || value.isBlank()) {
-                throw new IllegalStateException("Пустой перевод в каталоге " + code + ":" + key);
+                throw new IllegalStateException("Empty translation in catalog " + code + ":" + key);
             }
             if (value.length() > 4000) {
-                throw new IllegalStateException("Слишком длинный перевод в каталоге " + code + ":" + key);
+                throw new IllegalStateException("Translation too long in catalog " + code + ":" + key);
             }
             if (value.matches(".*<[/!a-zA-Z][^>]*>.*")) {
-                throw new IllegalStateException("HTML запрещён в каталоге " + code + ":" + key);
+                throw new IllegalStateException("HTML is not allowed in catalog " + code + ":" + key);
             }
         });
     }

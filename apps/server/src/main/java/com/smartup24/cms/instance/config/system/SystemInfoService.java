@@ -2,7 +2,8 @@ package com.smartup24.cms.instance.config.system;
 
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
-import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
+import com.smartup24.cms.instance.md.service.MdInstanceService;
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.spi.common.ProviderHealth;
 import jakarta.annotation.PreDestroy;
 import java.net.URI;
@@ -34,6 +35,7 @@ public class SystemInfoService {
     private static final Duration COMPONENT_TIMEOUT = Duration.ofSeconds(2);
 
     private final SystemInfoRepository repository;
+    private final MdInstanceService instance;
     private final ProviderRegistry providers;
     private final BackupStatusReader backupStatusReader;
     private final TypesenseProperties typesense;
@@ -46,6 +48,7 @@ public class SystemInfoService {
 
     public SystemInfoService(
             SystemInfoRepository repository,
+            MdInstanceService instance,
             ProviderRegistry providers,
             BackupStatusReader backupStatusReader,
             TypesenseProperties typesense,
@@ -54,6 +57,7 @@ public class SystemInfoService {
             @Value("${smc.system.health-timeout:2s}") Duration healthTimeout,
             @Value("${smc.backup.max-age:0s}") Duration backupMaxAge) {
         this.repository = repository;
+        this.instance = instance;
         this.providers = providers;
         this.backupStatusReader = backupStatusReader;
         this.typesense = typesense;
@@ -143,7 +147,10 @@ public class SystemInfoService {
 
     private SystemInfoResponse.Organization organization() {
         try {
-            return repository.organization().orElseGet(this::configuredOrganization);
+            return instance.organization()
+                    .map(recorded -> new SystemInfoResponse.Organization(
+                            recorded.code(), recorded.name(), recorded.resourceProfile()))
+                    .orElseGet(this::configuredOrganization);
         } catch (Exception unavailable) {
             log.warn("system_info_organization_unavailable error={}", unavailable.toString());
             return configuredOrganization();

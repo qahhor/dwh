@@ -4,8 +4,7 @@ import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.security.TrustedProxyProperties;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
-import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
-import com.smartup24.cms.instance.kauth.security.KauthSessionCookies;
+import com.smartup24.cms.instance.kauth.api.KauthRequestAuthentication;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -59,7 +58,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            KauthAuthenticationFilter kauthAuthenticationFilter,
+            KauthRequestAuthentication kauthAuthentication,
             RateLimitFilter rateLimitFilter,
             IdempotencyFilter idempotencyFilter,
             CookieCsrfTokenRepository tokenRepository,
@@ -78,7 +77,7 @@ public class SecurityConfig {
                             .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
                             // FR-SEC-1: CSRF applies to mutating requests WITH cookie authentication.
                             // Only an accepted API token exempts a request that carries a session cookie.
-                            .ignoringRequestMatchers(SecurityConfig::isCsrfExempt);
+                            .ignoringRequestMatchers(request -> isCsrfExempt(request, kauthAuthentication));
                 })
                 .authorizeHttpRequests(auth -> auth
                         // ASYNC/ERROR are continuations of an already-authorized request. Re-authorizing
@@ -111,7 +110,7 @@ public class SecurityConfig {
                 .exceptionHandling(
                         ex -> ex.authenticationEntryPoint(problemHandlers).accessDeniedHandler(problemHandlers))
                 // The order is deterministic: authentication -> rate limits -> idempotency -> authorization
-                .addFilterAfter(kauthAuthenticationFilter, SecurityContextHolderFilter.class)
+                .addFilterAfter(kauthAuthentication, SecurityContextHolderFilter.class)
                 .addFilterBefore(rateLimitFilter, AuthorizationFilter.class)
                 .addFilterAfter(idempotencyFilter, RateLimitFilter.class);
 
@@ -119,9 +118,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    FilterRegistrationBean<KauthAuthenticationFilter> kauthFilterAutoRegistrationDisabled(
-            KauthAuthenticationFilter filter) {
-        FilterRegistrationBean<KauthAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+    FilterRegistrationBean<KauthRequestAuthentication> kauthFilterAutoRegistrationDisabled(
+            KauthRequestAuthentication filter) {
+        FilterRegistrationBean<KauthRequestAuthentication> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
     }
@@ -140,20 +139,16 @@ public class SecurityConfig {
         return registration;
     }
 
-    private static boolean isCsrfExempt(HttpServletRequest request) {
+    private static boolean isCsrfExempt(HttpServletRequest request, KauthRequestAuthentication authentication) {
         var principal = SecurityContext.getPrincipal();
         if (principal != null && principal.isApi()) {
             return true;
         }
-        return !hasSessionCookie(request);
+        return !authentication.carriesSessionCookie(request);
     }
 
     private static boolean isPublicI18nDictionaryRead(HttpServletRequest request) {
         return "GET".equals(request.getMethod())
                 && request.getRequestURI().matches("^/api/v1/i18n/[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*$");
-    }
-
-    private static boolean hasSessionCookie(HttpServletRequest request) {
-        return KauthSessionCookies.present(request);
     }
 }

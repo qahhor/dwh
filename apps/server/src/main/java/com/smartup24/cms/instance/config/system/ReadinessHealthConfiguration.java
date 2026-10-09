@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.config.system;
 
 import com.smartup24.cms.instance.common.health.ReadinessChecks;
-import com.smartup24.cms.instance.mf.scan.ClamAvFileScanner;
-import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
+import com.smartup24.cms.instance.mf.api.FileScannerProbe;
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -78,12 +78,12 @@ public class ReadinessHealthConfiguration {
 
     @Bean
     HealthIndicator clamavHealthIndicator(
-            ObjectProvider<ClamAvFileScanner> scanner, @Value("${smc.files.scanner.required:false}") boolean required) {
+            ObjectProvider<FileScannerProbe> scanner, @Value("${smc.files.scanner.required:false}") boolean required) {
         return () -> {
             if (!required) {
                 return Health.up().withDetail("required", false).build();
             }
-            ClamAvFileScanner clamav = scanner.getIfAvailable();
+            FileScannerProbe clamav = scanner.getIfAvailable();
             if (clamav == null) {
                 return Health.down()
                         .withDetail("reason", "scanning is required, but ClamAV is not enabled")

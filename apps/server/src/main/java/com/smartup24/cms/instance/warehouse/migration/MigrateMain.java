@@ -32,7 +32,7 @@ public final class MigrateMain {
     static String run(Map<String, String> env) {
         String scope = env.getOrDefault(SCOPE_KEY, SCOPE_ALL);
         if (!SCOPE_ALL.equals(scope) && !SCOPE_WAREHOUSE.equals(scope)) {
-            throw new IllegalStateException(SCOPE_KEY + ": ожидается all или warehouse, получено " + scope);
+            throw new IllegalStateException(SCOPE_KEY + ": expected all or warehouse, got " + scope);
         }
         int oltp =
                 SCOPE_ALL.equals(scope) ? Migrator.migrateOltp(dataSource(env, "DB_URL", "DB_USER", "DB_PASSWORD")) : 0;
@@ -44,7 +44,7 @@ public final class MigrateMain {
             Map<String, String> env, String urlKey, String userKey, String passwordKey) {
         String url = env.get(urlKey);
         if (url == null || url.isBlank()) {
-            throw new IllegalStateException("Не задана переменная окружения " + urlKey);
+            throw new IllegalStateException("The environment variable is not set: " + urlKey);
         }
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setUrl(url);

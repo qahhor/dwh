@@ -11,9 +11,9 @@ import org.jspecify.annotations.Nullable;
  * Secrets kept in the database, encrypted with the installation key {@code SMC_SECRETS_KEY} (ADR-0029).
  *
  * <p>A repository seals a secret before it writes it and opens it when it reads it, so the rest of the code sees the
- * plain value (a webhook is still signed with its plain key). A value without the {@code v1:} prefix is a legacy plain
- * value written before the encryption: it is returned as it is, and {@link StoredSecretsSealing} encrypts every such
- * value at the next start.
+ * plain value (a webhook is still signed with its plain key). A stored value without the {@code v1:} prefix is plain
+ * text and is refused: no installation predates the encryption, and {@link StoredSecretsCheck} stops the start when a
+ * column holds one.
  */
 public final class StoredSecrets {
 
@@ -89,15 +89,25 @@ public final class StoredSecrets {
     }
 
     /**
-     * The plain value of a stored secret; {@code null} stays {@code null}, a legacy plain value is returned as it is.
+     * The plain value of a stored secret; {@code null} stays {@code null}.
      *
-     * @throws IllegalStateException when the value was encrypted with another key or changed
+     * @throws IllegalStateException when the value is not encrypted, was encrypted with another key or changed; the
+     *     message names the column and never the value
      */
     public @Nullable String open(@Nullable String stored, String context) {
-        if (stored == null || !isSealed(stored)) {
-            return stored;
+        if (stored == null) {
+            return null;
+        }
+        if (!isSealed(stored)) {
+            throw new IllegalStateException(plainRefused(context, 1));
         }
         return cipher().decrypt(stored, context);
+    }
+
+    /** The message that refuses plain values in a column: what is wrong and how to fix it, never a value. */
+    static String plainRefused(String column, int count) {
+        return column + " holds " + count + " value(s) without the v1: prefix: secrets are stored only encrypted"
+                + " (ADR-0029). Set the secret again through the application, or clear the column.";
     }
 
     private SecretCipher cipher() {

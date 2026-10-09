@@ -15,6 +15,7 @@ import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.*;
 import com.smartup24.cms.instance.ms.task.MsTaskFixture;
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.service.*;
 import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;

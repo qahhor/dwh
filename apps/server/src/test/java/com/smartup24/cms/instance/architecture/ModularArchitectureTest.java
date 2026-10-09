@@ -207,7 +207,7 @@ class ModularArchitectureTest {
     @Test
     @DisplayName("12. Внешние модули не должны напрямую обращаться к клиенту Typesense (только через поисковый модуль)")
     void externalModulesShouldNotDependOnTypesenseClientDirectly() {
-        // The client is split by concern; TypesenseProperties stays readable for the health probes.
+        // The client is split by concern; the health probes read TypesenseProperties from search.api.
         noClasses()
                 .that()
                 .resideOutsideOfPackage("com.smartup24.cms.instance.search..")

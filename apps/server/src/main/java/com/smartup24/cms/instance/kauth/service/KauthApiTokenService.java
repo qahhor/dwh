@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.kauth.service;
 import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
 import com.smartup24.cms.instance.kauth.api.ApiTokenView;
 import com.smartup24.cms.instance.kauth.api.CreatedApiToken;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.api.KauthPref;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import java.security.SecureRandom;
 import java.time.Instant;

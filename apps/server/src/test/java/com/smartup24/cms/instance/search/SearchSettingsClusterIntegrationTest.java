@@ -4,8 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.cache.CacheInvalidations;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.SaveSettingsRequest;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.SaveSettingsRequest;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.SettingsSnapshot;
+import com.smartup24.cms.instance.search.api.SearchOwnerRateLimits;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchSettingsService;

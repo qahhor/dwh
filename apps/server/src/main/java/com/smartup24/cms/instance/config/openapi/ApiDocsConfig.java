@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.config.openapi;
 
 import com.smartup24.cms.core.error.ProblemDetailRecord;
 import com.smartup24.cms.instance.common.web.ApiDeprecations;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.api.KauthPref;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

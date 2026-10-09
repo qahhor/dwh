@@ -17,10 +17,10 @@ public record AuditActor(long userId, String name) {
 
     public AuditActor {
         if (userId <= 0) {
-            throw new IllegalArgumentException("userId должен быть положительным id из md_users");
+            throw new IllegalArgumentException("userId must be a positive md_users id");
         }
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("name актора не задан");
+            throw new IllegalArgumentException("the actor name is not set");
         }
     }
 

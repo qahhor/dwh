@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.api.KauthPref;
 import com.smartup24.cms.instance.kauth.service.KauthSessionCleanupWorker;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import jakarta.servlet.http.Cookie;

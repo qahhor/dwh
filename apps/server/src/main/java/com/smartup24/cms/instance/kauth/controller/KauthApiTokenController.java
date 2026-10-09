@@ -9,7 +9,7 @@ import com.smartup24.cms.instance.kauth.api.ApiTokenView;
 import com.smartup24.cms.instance.kauth.api.CreateTokenRequest;
 import com.smartup24.cms.instance.kauth.api.CreatedApiToken;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;

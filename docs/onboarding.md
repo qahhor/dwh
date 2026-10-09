@@ -128,6 +128,12 @@ first: `DB_PORT` (5432), `SERVER_PORT` (8080), `MANAGEMENT_PORT` (9090),
 `MAILPIT_SMTP_PORT` (1025), `TYPESENSE_PORT` (8108), and the Compose project
 `SMC_LOCAL_PROJECT`.
 
+A stored secret without the `v1:` prefix stops the start (ADR-0029,
+`StoredSecretsCheck` names the table and column; since 2026-10-09 the server
+no longer encrypts such a value at start). When an older local stand stops
+with this message, delete its data with `run-local.ps1 down -Volumes`
+(`run-local.sh down --volumes`, `make reset`) and start again.
+
 The demo profile adds three fictional users (`demo.anna`, `demo.bobur`,
 `demo.dilnoza`), two projects with six tasks, three notes and two orders,
 switching the orders module on. Records go through the entity runtime as the

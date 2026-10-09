@@ -10,6 +10,8 @@ import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.instance.kauth.service.KauthDeliveryGuard;
 import com.smartup24.cms.instance.kauth.service.KauthOtpSender;
+import com.smartup24.cms.instance.md.repository.MdUserRepository;
+import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.spi.mail.MailProvider;
 import com.smartup24.cms.spi.messenger.MessengerProvider;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import tools.jackson.databind.ObjectMapper;
 
 /** Plan 10/10, item 0.8: the instance does not start while two-factor users depend on a stub channel. */
 class KauthDeliveryGuardTest {
@@ -88,7 +91,11 @@ class KauthDeliveryGuardTest {
                 mail,
                 "console_sms",
                 messenger);
-        return new KauthDeliveryGuard(new KauthOtpSender(registry, null), jdbc, enforced);
+        MdUserService users = mock(MdUserService.class);
+        when(users.activeTwoFactorUserIds())
+                .thenAnswer(ignored -> new MdUserRepository(jdbc, new ObjectMapper()).activeTwoFactorUserIds());
+        return new KauthDeliveryGuard(
+                new KauthOtpSender(registry, null), new KauthChannelRepository(jdbc), users, enforced);
     }
 
     private KauthOtpSender sender(String mail, String messenger, boolean enforced) {

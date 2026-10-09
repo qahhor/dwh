@@ -3,11 +3,11 @@ package com.smartup24.cms.instance.search;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.instance.search.service.SearchEntity;
 import com.smartup24.cms.instance.search.service.SearchFieldPolicies;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
-import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionQuery;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import com.sun.net.httpserver.HttpExchange;

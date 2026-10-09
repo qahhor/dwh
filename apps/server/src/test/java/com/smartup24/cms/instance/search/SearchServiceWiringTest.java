@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.smartup24.cms.instance.common.query.QueryPlan;
+import com.smartup24.cms.instance.search.api.SearchOwnerRateLimits;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;

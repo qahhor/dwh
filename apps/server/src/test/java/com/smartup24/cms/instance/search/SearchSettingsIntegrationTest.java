@@ -9,7 +9,7 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.security.*;
 import com.smartup24.cms.instance.kauth.service.*;
 import com.smartup24.cms.instance.md.service.*;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos;
 import com.smartup24.cms.instance.search.service.*;
 import com.smartup24.cms.instance.search.service.SearchSettingsService;
 import com.smartup24.cms.instance.search.typesense.*;

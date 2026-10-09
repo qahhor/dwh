@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.kauth.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.api.KauthPref;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.spi.mail.MailMessage;
 import com.smartup24.cms.spi.messenger.MessengerMessage;
@@ -118,7 +118,7 @@ public class KauthOtpSender {
 
         if (!delivered) {
             // The recipient address is personal data and is not written to the log.
-            log.warn("Код не доставлен в канал {}", channel.channel());
+            log.warn("otp_not_delivered channel={}", channel.channel());
             throw new ApiException(
                     ErrorCode.OTP_SEND_FAILED, "error.auth.otp_send_failed", Map.of("channel", channel.channel()));
         }

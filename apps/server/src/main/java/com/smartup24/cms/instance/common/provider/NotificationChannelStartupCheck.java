@@ -37,26 +37,26 @@ public class NotificationChannelStartupCheck {
         var stubs = findStubChannels();
         if (stubs.isEmpty()) {
             log.info(
-                    "Каналы доставки настроены: почта={}, SMS={}, мессенджер={}",
+                    "delivery_channels_configured mail={} sms={} messenger={}",
                     providerRegistry.getActiveMailProvider().getProviderCode(),
                     providerRegistry.getActiveSmsProvider().getProviderCode(),
                     providerRegistry.getActiveMessengerProvider().getProviderCode());
             return;
         }
         log.warn(
-                "КАНАЛЫ ДОСТАВКИ НЕ НАСТРОЕНЫ: {}. Восстановление пароля и OTP "
-                        + "по этим каналам не дойдут до получателя — сообщения только пишутся в журнал.",
+                "delivery_channels_not_configured channels={}: password recovery and one-time codes over them"
+                        + " never reach the recipient, the messages are only written to the log",
                 String.join(", ", stubs));
     }
 
     /** Channels where a stub is active. An empty list means every channel is configured. */
     public List<String> findStubChannels() {
         List<String> stubs = new ArrayList<>();
-        addIfStub(stubs, "почта", providerRegistry.getActiveMailProvider().getProviderCode());
+        addIfStub(stubs, "mail", providerRegistry.getActiveMailProvider().getProviderCode());
         addIfStub(stubs, "SMS", providerRegistry.getActiveSmsProvider().getProviderCode());
         addIfStub(
                 stubs,
-                "мессенджер",
+                "messenger",
                 providerRegistry.getActiveMessengerProvider().getProviderCode());
         return stubs;
     }

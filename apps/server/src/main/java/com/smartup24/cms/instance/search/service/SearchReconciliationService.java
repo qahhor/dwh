@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.search.service;
 
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.VerificationSummary;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.VerificationSummary;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.Generation;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
 import com.smartup24.cms.instance.search.repository.SearchReconcileRepository;

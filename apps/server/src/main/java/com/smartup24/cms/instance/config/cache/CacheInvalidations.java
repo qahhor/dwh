@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 import javax.sql.DataSource;
 import org.jspecify.annotations.Nullable;
 import org.postgresql.PGConnection;
@@ -30,7 +31,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * and drops with a rollback, so a rolled-back change tells nobody; every other node, listening on a connection of its
  * own, clears the same cache. A notice may also name a node-local copy that is not a cache (the search settings): the
  * handlers registered for that name run instead. After a lost connection the node clears all its caches and runs all
- * handlers, since it may have missed a notice, and listens again.
+ * handlers, since it may have missed a notice, and listens again. A message ({@link #send}) rides the same channel
+ * with its topic marked by {@value #MESSAGE}; a message missed while the node did not listen is not replayed.
  */
 public class CacheInvalidations implements SmartLifecycle, ClusterNotices {
 
@@ -38,6 +40,9 @@ public class CacheInvalidations implements SmartLifecycle, ClusterNotices {
 
     static final String CHANNEL = "smc_cache";
     static final String ALL = "*";
+    /** The mark of a message topic in a payload: no cache name starts with it. */
+    static final String MESSAGE = "@";
+
     private static final Duration POLL = Duration.ofSeconds(1);
     private static final Duration MAX_BACKOFF = Duration.ofSeconds(30);
 
@@ -45,6 +50,7 @@ public class CacheInvalidations implements SmartLifecycle, ClusterNotices {
     private final @Nullable JdbcClient jdbc;
     private final String node = UUID.randomUUID().toString();
     private final Map<String, List<Runnable>> handlers = new ConcurrentHashMap<>();
+    private final Map<String, List<Consumer<String>>> messageHandlers = new ConcurrentHashMap<>();
     private volatile @Nullable CacheManager local;
     private volatile boolean running;
     private volatile boolean listening;
@@ -84,6 +90,22 @@ public class CacheInvalidations implements SmartLifecycle, ClusterNotices {
         handlers.computeIfAbsent(name, key -> new CopyOnWriteArrayList<>()).add(handler);
     }
 
+    @Override
+    public void onMessage(String topic, Consumer<String> handler) {
+        messageHandlers
+                .computeIfAbsent(topic, key -> new CopyOnWriteArrayList<>())
+                .add(handler);
+    }
+
+    /** Sends {@code message} on {@code topic} to the other nodes, by the same rule as {@link #publish}. */
+    @Override
+    public void send(String topic, String message) {
+        if (topic.isEmpty() || topic.contains(" ")) {
+            throw new IllegalArgumentException("A message topic is one word: " + topic);
+        }
+        notice(MESSAGE + topic + " " + message);
+    }
+
     /**
      * Tells the other nodes that {@code name} (a cache or a notice with handlers) is stale once the change commits.
      * Inside a transaction of this data source the notice is sent on the transaction's own connection: PostgreSQL
@@ -93,6 +115,10 @@ public class CacheInvalidations implements SmartLifecycle, ClusterNotices {
      */
     @Override
     public void publish(String name) {
+        notice(name);
+    }
+
+    private void notice(String name) {
         if (jdbc == null || dataSource == null) {
             return;
         }
@@ -193,7 +219,29 @@ public class CacheInvalidations implements SmartLifecycle, ClusterNotices {
         if (space <= 0 || payload.substring(0, space).equals(node)) {
             return;
         }
-        clear(payload.substring(space + 1));
+        String body = payload.substring(space + 1);
+        if (body.startsWith(MESSAGE)) {
+            deliver(body.substring(MESSAGE.length()));
+        } else {
+            clear(body);
+        }
+    }
+
+    /** Runs the handlers of a message's topic; {@code body} is the topic, a space and the message. */
+    private void deliver(String body) {
+        int space = body.indexOf(' ');
+        if (space <= 0) {
+            return;
+        }
+        String message = body.substring(space + 1);
+        for (Consumer<String> handler : messageHandlers.getOrDefault(body.substring(0, space), List.of())) {
+            try {
+                handler.accept(message);
+            } catch (RuntimeException failure) {
+                // One failing handler must not keep the message from the others or stop the listener.
+                log.warn("cluster_message_handler_failed error={}", failure.toString());
+            }
+        }
     }
 
     private void clear(String cacheName) {

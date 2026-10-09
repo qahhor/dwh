@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.common.security.StoredSecrets;
-import com.smartup24.cms.instance.common.security.StoredSecretsSealing;
+import com.smartup24.cms.instance.common.security.StoredSecretsCheck;
 import com.smartup24.cms.instance.kauth.repository.SsoProviderRepository;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.instance.support.TestStoredSecrets;
@@ -56,7 +56,7 @@ class StoredSecretsSchemaTest {
     private static StoredSecrets secrets;
     private static WebhookSubscriptionRepository subscriptions;
     private static SsoProviderRepository providers;
-    private static StoredSecretsSealing sealing;
+    private static StoredSecretsCheck check;
 
     @BeforeAll
     static void migrate() {
@@ -64,7 +64,7 @@ class StoredSecretsSchemaTest {
         secrets = TestStoredSecrets.secrets();
         subscriptions = new WebhookSubscriptionRepository(jdbc, secrets);
         providers = new SsoProviderRepository(jdbc, secrets);
-        sealing = new StoredSecretsSealing(List.of(subscriptions, providers), secrets);
+        check = new StoredSecretsCheck(List.of(subscriptions, providers), secrets);
     }
 
     @Test
@@ -79,58 +79,81 @@ class StoredSecretsSchemaTest {
     }
 
     @Test
-    @DisplayName("4.6: after the start and a write through the repository, secret columns hold only encrypted values")
+    @DisplayName(
+            "4.6: after the migrations and a write through the repository, secret columns hold only encrypted values")
     void secretsAreStoredEncrypted() {
-        // A legacy plain value, as an installation older than the encryption keeps it
-        jdbc.sql("""
-                        insert into kwh_subscriptions (name, target_url, secret_token, subscribed_events, state)
-                        values ('legacy', 'https://hooks.example.test/legacy', 'legacy-plain-key',
-                                array['task.created'], 'A')
-                        """).update();
-
-        sealing.sealAll();
+        check.checkAll();
         var created = subscriptions.create(
                 "fresh", "https://hooks.example.test/fresh", "fresh-plain-key", List.of("task.created"), null);
-
-        for (String column : ENCRYPTED) {
-            String table = column.substring(0, column.indexOf('.'));
-            String field = column.substring(column.indexOf('.') + 1);
-            List<String> stored = jdbc.sql("select " + field + " from " + table + " where " + field + " is not null")
-                    .query(String.class)
-                    .list();
-            assertThat(stored)
-                    .as(column)
-                    .isNotEmpty()
-                    .allSatisfy(value ->
-                            assertThat(StoredSecrets.isSealed(value)).as(column).isTrue());
+        try {
+            for (String column : ENCRYPTED) {
+                String table = column.substring(0, column.indexOf('.'));
+                String field = column.substring(column.indexOf('.') + 1);
+                List<String> stored = jdbc.sql(
+                                "select " + field + " from " + table + " where " + field + " is not null")
+                        .query(String.class)
+                        .list();
+                assertThat(stored)
+                        .as(column)
+                        .allSatisfy(value -> assertThat(StoredSecrets.isSealed(value))
+                                .as(column)
+                                .isTrue());
+            }
+            assertThat(created.secretToken()).isEqualTo("fresh-plain-key");
+            assertThat(subscriptions.findById(created.id()).orElseThrow().secretToken())
+                    .isEqualTo("fresh-plain-key");
+            assertThat(jdbc.sql("select count(*) from md_sso_providers where client_secret is not null")
+                            .query(Integer.class)
+                            .single())
+                    .as("V203 cleared the placeholder secrets of the seeded SSO providers")
+                    .isZero();
+            check.checkAll();
+        } finally {
+            subscriptions.delete(created.id());
         }
-        assertThat(created.secretToken()).isEqualTo("fresh-plain-key");
-        assertThat(subscriptions.findById(created.id()).orElseThrow().secretToken())
-                .isEqualTo("fresh-plain-key");
-        assertThat(subscriptions.listSubscriptions())
-                .extracting(WebhookSubscriptionRepository.SubscriptionRecord::secretToken)
-                .contains("legacy-plain-key", "fresh-plain-key");
-        String seed = jdbc.sql("select client_secret from md_sso_providers where provider_id = 'google'")
-                .query(String.class)
-                .single();
-        assertThat(secrets.open(seed, SsoProviderRepository.SECRET_COLUMN)).isEqualTo("secret");
-        assertThat(sealing.sealAll())
-                .as("a second start has nothing left to encrypt")
-                .isZero();
+    }
+
+    @Test
+    @DisplayName("ADR-0029: a plain value stops the start and its read, naming the column and never the value")
+    void plainValueIsRefused() {
+        long id = jdbc.sql("""
+                        insert into kwh_subscriptions (name, target_url, secret_token, subscribed_events, state)
+                        values ('plain', 'https://hooks.example.test/plain', 'plain-key-value',
+                                array['task.created'], 'A')
+                        returning id
+                        """).query(Long.class).single();
+        try {
+            assertThatThrownBy(check::checkAll)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(WebhookSubscriptionRepository.SECRET_COLUMN)
+                    .hasMessageContaining("v1:")
+                    .hasMessageNotContaining("plain-key-value");
+            assertThatThrownBy(() -> subscriptions.findById(id))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(WebhookSubscriptionRepository.SECRET_COLUMN)
+                    .hasMessageNotContaining("plain-key-value");
+        } finally {
+            subscriptions.delete(id);
+        }
     }
 
     @Test
     @DisplayName("4.6: a start with another key is refused before anything is written")
     void anotherKeyIsRefused() {
-        sealing.sealAll();
+        var created = subscriptions.create(
+                "sealed", "https://hooks.example.test/sealed", "sealed-key", List.of("task.created"), null);
         byte[] other = new byte[32];
         new SecureRandom().nextBytes(other);
         StoredSecrets wrong = StoredSecrets.withKey(other);
-        var wrongSealing = new StoredSecretsSealing(
+        var wrongCheck = new StoredSecretsCheck(
                 List.of(new WebhookSubscriptionRepository(jdbc, wrong), new SsoProviderRepository(jdbc, wrong)), wrong);
 
-        assertThatThrownBy(wrongSealing::sealAll)
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining(StoredSecrets.KEY_VARIABLE);
+        try {
+            assertThatThrownBy(wrongCheck::checkAll)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(StoredSecrets.KEY_VARIABLE);
+        } finally {
+            subscriptions.delete(created.id());
+        }
     }
 }

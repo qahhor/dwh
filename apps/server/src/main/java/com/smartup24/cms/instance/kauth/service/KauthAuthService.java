@@ -6,7 +6,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthOtpCodeRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import java.security.SecureRandom;

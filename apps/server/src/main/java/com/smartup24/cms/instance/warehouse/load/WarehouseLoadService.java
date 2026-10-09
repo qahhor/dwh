@@ -87,7 +87,8 @@ public class WarehouseLoadService implements WarehouseLoads {
     @Override
     public void fail(long loadId, String reason, AuditActor actor) {
         if (reason == null || reason.isBlank()) {
-            throw new IllegalArgumentException("Причина сбоя не задана: загрузка без причины не отмечается");
+            throw new IllegalArgumentException(
+                    "The failure reason is not set: a load is not marked failed without one");
         }
         WarehouseLoad load = lockPending(loadId);
         actors.apply(actor);

@@ -27,7 +27,7 @@ public class Argon2idPasswordHasher {
 
     public String hashPassword(String rawPassword) {
         if (rawPassword == null || rawPassword.isBlank()) {
-            throw new IllegalArgumentException("Пароль не может быть пустым");
+            throw new IllegalArgumentException("The password must not be blank");
         }
         char[] chars = rawPassword.toCharArray();
         try {
@@ -51,7 +51,7 @@ public class Argon2idPasswordHasher {
 
     public static String sha256(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {
-            throw new IllegalArgumentException("Токен не может быть пустым");
+            throw new IllegalArgumentException("The token must not be blank");
         }
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

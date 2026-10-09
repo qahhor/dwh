@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.search.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchGenerationRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import java.util.Map;

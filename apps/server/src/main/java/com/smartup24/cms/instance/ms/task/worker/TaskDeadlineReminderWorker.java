@@ -1,48 +1,48 @@
 package com.smartup24.cms.instance.ms.task.worker;
 
-import com.smartup24.cms.instance.md.service.MdUserTexts;
-import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
+import com.smartup24.cms.instance.ms.task.api.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Reminds the people of a task whose deadline comes within a day, once per task and person, in the person's language
- * ({@link MdUserTexts}: the catalog strings {@value #TITLE} and {@value #BODY}).
+ * Finds the people of a task whose deadline comes within a day and announces each of them as
+ * {@link MsTaskEvents.TaskDeadlineApproaching} (FR-TASK-8). The task module does not notify anyone itself: the
+ * notification module listens, writes the reminder in the person's language and sends it once per task and person.
+ *
+ * <p>Every node of a cluster runs the scan. Each announcement runs in a transaction of its own, and the subscriber
+ * decides and records the reminder inside it under a lock on the person and the task, so two nodes scanning together
+ * still send one reminder.
  */
 @Component
+@Profile("!migrate")
 public class TaskDeadlineReminderWorker {
 
-    /** The catalog key of the reminder's title; {@code {id}} is the task's number. */
-    static final String TITLE = "notify.task_deadline.title";
-
-    /** The catalog key of the reminder's text; {@code {title}} is the task's title, {@code {hours}} the window. */
-    static final String BODY = "notify.task_deadline.body";
-
     private static final Logger log = LoggerFactory.getLogger(TaskDeadlineReminderWorker.class);
-    private static final Duration DEADLINE_WINDOW = Duration.ofHours(24);
+
+    /** How far ahead a deadline is reminded of. */
+    static final Duration DEADLINE_WINDOW = Duration.ofHours(24);
 
     private final MsTaskStatsRepository taskRepository;
-    private final MsNotificationService notificationService;
-    private final MdUserTexts texts;
+    private final ApplicationEventPublisher events;
+    private final TransactionTemplate transactions;
 
     public TaskDeadlineReminderWorker(
-            MsTaskStatsRepository taskRepository, MsNotificationService notificationService, MdUserTexts texts) {
+            MsTaskStatsRepository taskRepository,
+            ApplicationEventPublisher events,
+            PlatformTransactionManager transactionManager) {
         this.taskRepository = taskRepository;
-        this.notificationService = notificationService;
-        this.texts = texts;
+        this.events = events;
+        this.transactions = new TransactionTemplate(transactionManager);
     }
-
-    /**
-     * Notification type of a reminder. It must be one of the types ms_notifications allows (info, success,
-     * warning, danger): the former "deadline_warning" broke the check constraint, so no reminder was ever saved.
-     */
-    static final String REMINDER_TYPE = "warning";
 
     /** A failure on one task is logged and the scan goes on with the next one. */
     @Scheduled(fixedDelay = 600000, initialDelay = 30000)
@@ -56,33 +56,12 @@ public class TaskDeadlineReminderWorker {
         }
         for (var row : rows) {
             try {
-                remind(row);
+                transactions.executeWithoutResult(
+                        status -> events.publishEvent(new MsTaskEvents.TaskDeadlineApproaching(
+                                row.taskId(), row.title(), row.userId(), DEADLINE_WINDOW)));
             } catch (RuntimeException e) {
                 log.warn("deadline_reminder_failed task={} user={}", row.taskId(), row.userId(), e);
             }
         }
-    }
-
-    private void remind(MsTaskStatsRepository.TaskDeadlineCandidate row) {
-        if (!notificationService.isNotificationEnabled(row.userId(), "task_deadline_reminder", "in_app")) {
-            return;
-        }
-        String reminderKey = "task_deadline_" + row.taskId();
-        // One reminder per task and person within the window.
-        if (notificationService.hasRecentNotification(row.userId(), reminderKey, DEADLINE_WINDOW)) {
-            return;
-        }
-        Map<String, String> params = Map.of(
-                "id", String.valueOf(row.taskId()),
-                "title", String.valueOf(row.title()),
-                "hours", String.valueOf(DEADLINE_WINDOW.toHours()));
-        notificationService.sendInAppNotification(
-                row.userId(),
-                REMINDER_TYPE,
-                texts.text(row.userId(), TITLE, params),
-                texts.text(row.userId(), BODY, params),
-                "/tasks",
-                reminderKey);
-        log.info("deadline_reminder_sent task={} user={}", row.taskId(), row.userId());
     }
 }

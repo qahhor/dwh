@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.pref;
 
+import com.smartup24.cms.instance.md.api.MdPref;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;

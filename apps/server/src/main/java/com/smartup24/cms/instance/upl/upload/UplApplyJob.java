@@ -105,7 +105,7 @@ public class UplApplyJob implements JobHandler {
         UUID publicId = packageId(args);
         long userId = userId(args);
         PackageRow row = repo.findByPublicId(publicId)
-                .orElseThrow(() -> new IllegalStateException("Пакет " + publicId + " не найден"));
+                .orElseThrow(() -> new IllegalStateException("Package " + publicId + " is not found"));
         if (!UplPackageModel.APPLYING.equals(row.status()) || !loadOpen(row)) {
             return;
         }
@@ -128,7 +128,10 @@ public class UplApplyJob implements JobHandler {
         try {
             long already = raw.count(row.loadId());
             if (already > 0) {
-                log.warn("Пакет {}: строки уже в raw ({}), повтор закрывает пакет без записи", row.publicId(), already);
+                log.warn(
+                        "upl_apply_rows_already_raw package={} rows={}: the retry closes the package without writing",
+                        row.publicId(),
+                        already);
                 return already;
             }
             return copyRows(row);
@@ -142,7 +145,7 @@ public class UplApplyJob implements JobHandler {
                         failure);
                 throw unchecked(failure);
             }
-            log.error("Пакет {}: строки не записаны в raw", row.publicId(), failure);
+            log.error("upl_apply_raw_write_failed package={}", row.publicId(), failure);
             return null;
         }
     }
@@ -164,7 +167,7 @@ public class UplApplyJob implements JobHandler {
                         data -> sink.accept(new RawRow(++rowNo[0], data.sheet(), data.sourceRowNo(), data.fields())));
                 if (result.outcome() != UplParseResult.Outcome.VERIFIED) {
                     throw new IllegalStateException(
-                            "Повторный разбор файла пакета " + row.publicId() + " не дал «проверен»");
+                            "Parsing the file of package " + row.publicId() + " again did not end validated");
                 }
             });
         }
@@ -172,7 +175,8 @@ public class UplApplyJob implements JobHandler {
 
     private void finish(long packageId, Long rawRows, AuditActor actor) {
         PackageRow row = repo.lockById(packageId)
-                .orElseThrow(() -> new IllegalStateException("Пакет " + packageId + " пропал во время применения"));
+                .orElseThrow(
+                        () -> new IllegalStateException("Package " + packageId + " disappeared while being applied"));
         if (!UplPackageModel.APPLYING.equals(row.status())) {
             // The recovery job closed it, with its load, while the rows were being written
             return;
@@ -198,7 +202,7 @@ public class UplApplyJob implements JobHandler {
         } else {
             loads.fail(
                     row.loadId(),
-                    UplApplyService.UPL_PKG_RECONCILIATION + ": в файле " + row.rowsTotal() + ", в raw " + rawRows,
+                    UplApplyService.UPL_PKG_RECONCILIATION + ": file " + row.rowsTotal() + ", raw " + rawRows,
                     actor);
             requireOne(
                     repo.markApplyRejected(
@@ -212,22 +216,20 @@ public class UplApplyJob implements JobHandler {
 
     private static void requireOne(int updated, PackageRow row) {
         if (updated != 1) {
-            throw new IllegalStateException("Пакет " + row.publicId() + " уже не в статусе «применяется»");
+            throw new IllegalStateException("Package " + row.publicId() + " is no longer being applied");
         }
     }
 
     private static UUID packageId(Map<String, Object> args) {
         Object value = args == null ? null : args.get(ARG_PACKAGE_ID);
         if (value == null) {
-            throw new IllegalStateException("В задании " + UplPref.JOB_APPLY + " нет аргумента " + ARG_PACKAGE_ID);
+            throw new IllegalStateException("Job " + UplPref.JOB_APPLY + " has no argument " + ARG_PACKAGE_ID);
         }
         try {
             return UUID.fromString(value.toString());
         } catch (IllegalArgumentException notUuid) {
             throw new IllegalStateException(
-                    "Аргумент " + ARG_PACKAGE_ID + " задания " + UplPref.JOB_APPLY
-                            + " не является идентификатором пакета",
-                    notUuid);
+                    "Argument " + ARG_PACKAGE_ID + " of job " + UplPref.JOB_APPLY + " is not a package id", notUuid);
         }
     }
 
@@ -235,6 +237,6 @@ public class UplApplyJob implements JobHandler {
         if (args.get(ARG_USER_ID) instanceof Number user) {
             return user.longValue();
         }
-        throw new IllegalStateException("В задании " + UplPref.JOB_APPLY + " нет аргумента " + ARG_USER_ID);
+        throw new IllegalStateException("Job " + UplPref.JOB_APPLY + " has no argument " + ARG_USER_ID);
     }
 }

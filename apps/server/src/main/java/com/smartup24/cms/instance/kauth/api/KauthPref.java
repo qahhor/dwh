@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.kauth.pref;
+package com.smartup24.cms.instance.kauth.api;
 
 /**
  * Kernel Auth Preferences and Constants (KauthPref).

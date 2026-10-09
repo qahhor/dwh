@@ -8,7 +8,7 @@ import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.RoleRule;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.UserAssignments;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.platform.api.entity.event.EntityChanged;

@@ -46,7 +46,7 @@ class MdAuditActorsTest extends EmbeddedPostgresTest {
 
         assertThatThrownBy(freshActors::system)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("первичной настройки");
+                .hasMessageContaining("before the instance was set up");
         assertThat(fresh.sql("select count(*) from md_users").query(Long.class).single())
                 .isZero();
     }

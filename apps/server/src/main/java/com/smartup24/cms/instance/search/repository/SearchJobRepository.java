@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.search.repository;
 
 import com.smartup24.cms.instance.common.jdbc.StatementTimeouts;
 import com.smartup24.cms.instance.common.json.JsonColumns;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;

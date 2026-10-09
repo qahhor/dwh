@@ -17,7 +17,7 @@ public final class UplFormatModel {
 
     private static <E extends Enum<E>> E parse(Class<E> type, String value) {
         if (value == null) {
-            throw new IllegalArgumentException("Пустое значение для " + type.getSimpleName());
+            throw new IllegalArgumentException("Empty value for " + type.getSimpleName());
         }
         return Enum.valueOf(type, value.toUpperCase(Locale.ROOT));
     }

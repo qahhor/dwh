@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.md.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.WidgetResponse;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.service.MdReportWidgetService;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;

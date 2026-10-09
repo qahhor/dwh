@@ -4,7 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.repository.*;
 import java.time.Duration;
 import java.time.Instant;

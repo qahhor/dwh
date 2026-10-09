@@ -82,6 +82,25 @@ public class MsNotificationService {
         eventPublisher.publishEvent(new MsNotificationCreatedEvent(userId, created));
     }
 
+    /**
+     * Sends the notification unless the user already got one with the same source code within {@code window}.
+     * Two nodes deciding together are serialized by a transaction-scoped lock on the user and the source code, so
+     * the second one sees the row of the first and sends nothing.
+     *
+     * @return whether the notification was sent
+     */
+    @Transactional
+    public boolean sendInAppNotificationOnce(
+            Long userId, String type, String title, String body, String formLink, String sourceCode, Duration window) {
+        notificationRepository.lockSource(userId, sourceCode);
+        if (notificationRepository.hasRecentNotification(
+                userId, sourceCode, Instant.now().minus(window))) {
+            return false;
+        }
+        sendInAppNotification(userId, type, title, body, formLink, sourceCode);
+        return true;
+    }
+
     @Transactional
     public void enqueueExternalNotification(
             String channel, String recipient, String templateCode, Map<String, Object> payload, UUID idempotencyKey) {

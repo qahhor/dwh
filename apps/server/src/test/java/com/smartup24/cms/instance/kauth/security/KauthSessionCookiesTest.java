@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.kauth.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.api.KauthPref;
 import com.smartup24.cms.instance.kauth.pref.KauthSessionProperties;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;

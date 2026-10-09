@@ -20,8 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
@@ -52,11 +50,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private final IdempotencyAnswers answers;
     /** Finds the handler of a request, to honour {@link ReturnsSecret}; absent in slice tests. */
     private final ObjectProvider<RequestMappingHandlerMapping> handlerMapping;
-    /**
-     * Runs an accepted request and records its answer in one transaction (plan 10/10, item 3.12); absent in slice
-     * tests, where the answer is recorded after the request as before.
-     */
-    private final @Nullable PlatformTransactionManager transactions;
+    /** Runs an accepted request and records its answer (plan 10/10, item 3.12). */
+    private final IdempotentExecution execution;
 
     @Autowired
     public IdempotencyFilter(
@@ -81,7 +76,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
         this.idempotencyService = idempotencyService;
         this.answers = new IdempotencyAnswers(objectMapper, messages);
-        this.transactions = transactions;
+        this.execution = new IdempotentExecution(idempotencyService, answers, transactions);
         this.handlerMapping = handlerMapping;
     }
 
@@ -189,18 +184,12 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             return;
         }
 
-        ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
-        if (transactions == null) {
-            runAndRecordAfter(wrappedRequest, responseWrapper, filterChain, idempotencyKey, claim.reservationToken());
-        } else {
-            runAndRecordAtomically(
-                    transactions,
-                    wrappedRequest,
-                    responseWrapper,
-                    filterChain,
-                    idempotencyKey,
-                    claim.reservationToken());
-        }
+        execution.run(
+                wrappedRequest,
+                new ContentCachingResponseWrapper(response),
+                filterChain,
+                idempotencyKey,
+                claim.reservationToken());
     }
 
     /** Multipart bodies and bodies over the limit are not kept for replay: refused before the body is read. */
@@ -247,149 +236,6 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                     ErrorCode.IDEMPOTENCY_KEY_INVALID,
                     "error.idempotency_key_format");
             return null;
-        }
-    }
-
-    /**
-     * Plan 10/10, item 3.12: the request and the record of its answer commit together. The business writes join the
-     * transaction opened here (propagation REQUIRED), and the answer is stored in it before the commit, so a process
-     * that dies after the commit leaves a stored answer for the retry instead of running the operation twice.
-     * A 5xx rolls the request back and frees the key, so a corrected retry runs again. When the business code has
-     * rolled back (a refusal thrown from a transactional method), nothing of the request is committed and only the
-     * answer is recorded. The answer reaches the client only after the commit.
-     */
-    private void runAndRecordAtomically(
-            PlatformTransactionManager transactionManager,
-            HttpServletRequest request,
-            ContentCachingResponseWrapper responseWrapper,
-            FilterChain filterChain,
-            UUID key,
-            UUID reservationToken)
-            throws ServletException, IOException {
-        var definition = new DefaultTransactionDefinition();
-        definition.setName("idempotent-request");
-        TransactionStatus tx = transactionManager.getTransaction(definition);
-        try {
-            filterChain.doFilter(request, responseWrapper);
-        } catch (IOException | ServletException | RuntimeException e) {
-            transactionManager.rollback(tx);
-            idempotencyService.release(key, reservationToken);
-            responseWrapper.copyBodyToResponse();
-            throw e;
-        }
-        int status = responseWrapper.getStatus();
-        byte[] body = responseWrapper.getContentAsByteArray();
-        if (status < 500 && !tx.isRollbackOnly()) {
-            commitWithAnswer(transactionManager, tx, request, responseWrapper, key, reservationToken);
-        } else if (status < 400) {
-            // The handler reports success although something in the request rolled back (a failure swallowed on
-            // the way): nothing was written, so a success must not reach the client or be replayed.
-            log.error("idempotent_success_rolled_back key={} uri={} status={}", key, request.getRequestURI(), status);
-            transactionManager.rollback(tx);
-            answerInternalError(request, responseWrapper, key, reservationToken);
-        } else {
-            transactionManager.rollback(tx);
-            record(request, key, reservationToken, responseWrapper, status, body);
-        }
-        responseWrapper.copyBodyToResponse();
-    }
-
-    /**
-     * Stores the answer in the request's transaction and commits both. A failed commit replaces the buffered answer
-     * with a 500. A hook that fails after a successful commit does not: the operation and its stored answer are
-     * committed, so the client gets the buffered answer, as a replay of the key would give it.
-     */
-    private void commitWithAnswer(
-            PlatformTransactionManager transactionManager,
-            TransactionStatus tx,
-            HttpServletRequest request,
-            ContentCachingResponseWrapper responseWrapper,
-            UUID key,
-            UUID reservationToken)
-            throws IOException {
-        CommitWatch commit = CommitWatch.register();
-        try {
-            // An answer that cannot be kept (too large, not JSON) still commits; only its replay is lost.
-            record(
-                    request,
-                    key,
-                    reservationToken,
-                    responseWrapper,
-                    responseWrapper.getStatus(),
-                    responseWrapper.getContentAsByteArray());
-            transactionManager.commit(tx);
-        } catch (RuntimeException e) {
-            if (commit.committed()) {
-                log.warn("idempotent_after_commit_failed key={} uri={}", key, request.getRequestURI(), e);
-                return;
-            }
-            // The commit failed after the handler answered: the operation did not happen, so the buffered
-            // success must not reach the client.
-            log.error("idempotent_commit_failed key={} uri={}", key, request.getRequestURI(), e);
-            if (!tx.isCompleted()) {
-                transactionManager.rollback(tx);
-            }
-            answerInternalError(request, responseWrapper, key, reservationToken);
-        }
-    }
-
-    /** Frees the key and replaces the buffered answer with a 500: nothing of the request was committed. */
-    private void answerInternalError(
-            HttpServletRequest request, ContentCachingResponseWrapper responseWrapper, UUID key, UUID reservationToken)
-            throws IOException {
-        idempotencyService.release(key, reservationToken);
-        responseWrapper.resetBuffer();
-        answers.problem(
-                request,
-                responseWrapper,
-                HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                ErrorCode.INTERNAL_ERROR,
-                "error.internal_error");
-    }
-
-    /** Stores the answer for a replay when it can be kept, otherwise frees the key. */
-    private void record(
-            HttpServletRequest request,
-            UUID key,
-            UUID reservationToken,
-            HttpServletResponse response,
-            int status,
-            byte[] body) {
-        if (IdempotencyAnswers.storable(response, status, body, IdempotencyAnswers.answerLimit(request))) {
-            idempotencyService.complete(key, reservationToken, IdempotencyAnswers.answer(response, status, body));
-        } else {
-            idempotencyService.release(key, reservationToken);
-        }
-    }
-
-    /** Without a transaction manager (web slices): the answer is recorded after the request, as before 3.12. */
-    private void runAndRecordAfter(
-            HttpServletRequest request,
-            ContentCachingResponseWrapper responseWrapper,
-            FilterChain filterChain,
-            UUID key,
-            UUID reservationToken)
-            throws ServletException, IOException {
-        boolean chainCompleted = false;
-        try {
-            filterChain.doFilter(request, responseWrapper);
-            chainCompleted = true;
-        } finally {
-            try {
-                if (chainCompleted) {
-                    record(
-                            request,
-                            key,
-                            reservationToken,
-                            responseWrapper,
-                            responseWrapper.getStatus(),
-                            responseWrapper.getContentAsByteArray());
-                } else {
-                    idempotencyService.release(key, reservationToken);
-                }
-            } finally {
-                responseWrapper.copyBodyToResponse();
-            }
         }
     }
 }

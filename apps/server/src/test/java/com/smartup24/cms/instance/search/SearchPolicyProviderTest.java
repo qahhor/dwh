@@ -4,7 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.SearchOwnerRateLimits;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchQueryPolicy;

@@ -40,6 +40,39 @@ final class CommentLines {
         return lines.size();
     }
 
+    /**
+     * Java, the other way round: the lines with Cyrillic letters inside string, char and text block literals, outside
+     * comments (CyrillicLiteralsTest).
+     */
+    static Set<Integer> javaLiteralLines(String source) {
+        int[] lineStarts = lineStarts(source);
+        Set<Integer> lines = new TreeSet<>();
+        int i = 0;
+        int length = source.length();
+        while (i < length) {
+            char c = source.charAt(i);
+            if (source.startsWith("\"\"\"", i)) {
+                int end = source.indexOf("\"\"\"", i + 3);
+                while (end > 0 && source.charAt(end - 1) == '\\') {
+                    end = source.indexOf("\"\"\"", end + 1);
+                }
+                i = collect(source, i, end < 0 ? length : end + 3, lineStarts, lines);
+            } else if (c == '"' || c == '\'') {
+                i = collect(source, i, afterQuoted(source, i, c), lineStarts, lines);
+            } else if (source.startsWith("//", i)) {
+                i = lineEnd(source, i);
+            } else if (source.startsWith("/*", i)) {
+                int end = source.indexOf("*/", i + 2);
+                i = end < 0 ? length : end + 2;
+            } else {
+                i++;
+            }
+        }
+        Set<Integer> numbered = new TreeSet<>();
+        lines.forEach(line -> numbered.add(line + 1));
+        return numbered;
+    }
+
     /** SQL: {@code --} and block comments, outside single-quoted literals (a doubled quote stays inside). */
     static int sql(String source) {
         int[] lineStarts = lineStarts(source);

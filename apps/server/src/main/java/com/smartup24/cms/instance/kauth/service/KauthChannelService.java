@@ -5,7 +5,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
 import com.smartup24.cms.instance.kauth.api.ChannelView;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.api.KauthPref;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthOtpCodeRepository;
 import java.security.SecureRandom;

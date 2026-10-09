@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.mf.scan;
 
+import com.smartup24.cms.instance.mf.api.FileScannerProbe;
 import com.smartup24.cms.spi.storage.FileScanner;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -22,7 +23,7 @@ import org.springframework.util.unit.DataSize;
 
 @Component
 @ConditionalOnProperty(name = "smc.files.scanner.clamav.enabled", havingValue = "true")
-public class ClamAvFileScanner implements FileScanner {
+public class ClamAvFileScanner implements FileScanner, FileScannerProbe {
 
     private static final Logger log = LoggerFactory.getLogger(ClamAvFileScanner.class);
 
@@ -125,6 +126,7 @@ public class ClamAvFileScanner implements FileScanner {
      * Whether the daemon answers: PING must come back as PONG within the connect timeout. Used by the readiness
      * group (plan 10/10, item 0.7).
      */
+    @Override
     public boolean ping() {
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), timeoutMillis(connectTimeout));
