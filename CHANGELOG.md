@@ -7,6 +7,71 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Open items after phase 7 (2026-10-09)
+
+The open items of the deep review after phase 7; integrated by the branch
+`claude/open-int` (branches `claude/open-notify-cluster` and
+`claude/open-arch-coverage`). No OpenAPI change. The refusal of plaintext
+secrets breaks stored data, not the REST API.
+
+#### Added
+
+- SSE notifications reach the streams of every node of a cluster: inside the
+  creating transaction `MsSsePublisher` sends the other nodes the user and
+  notification ids over the cluster channel (`ClusterNotices`, PostgreSQL
+  `NOTIFY` on `smc_cache`); a node with a stream of that user reads the row
+  and pushes it; a rollback tells nobody (ADR-0025, 2.5).
+- Architecture checks: `ModuleSourceBoundariesTest` holds source imports
+  (static ones included) to the module rules; `businessModulesHaveNoCycles`
+  (`ms.task`, `ms.notify`, `ms.note` as slices of their own);
+  infrastructure modules (`jobs`, `units`, `warehouse`) depend on no
+  business module; the wiring (`config`) reaches modules only through their
+  `api`/`service` package and no module depends on it;
+  `CyrillicLiteralsTest` forbids Cyrillic literals in the main code of the
+  server and of `libs/*` outside listed data files.
+- Module contracts: `KauthRequestAuthentication`, `FileScannerProbe`,
+  `JobQueueDriver`, `JobSwitch`, `common.security.SecurityEventLog`
+  (implemented by `AuditSecurityEvents`), `md.service.MdInstanceService`.
+- Tests of the delivery paths of `webhook`, `mf` and `ms.notify` (target
+  policy, retry and dead letter, storage failures, scan outcomes, Telegram
+  and SMTP providers).
+
+#### Changed
+
+- `MdPref` moves to `md.api`, `KauthPref` to `kauth.api`; the DTOs of
+  `search` and `analytics` move from `dto` to `api`; kauth registers its
+  permission interceptor itself (`KauthWebMvcConfig`); the jobs switch bean
+  moves to `config.jobs.JobSwitchConfiguration`.
+- The foreign-SQL check covers every class that runs SQL (not only
+  `repository` packages), literals joined with `+`, and the `config`
+  package: `KauthDeliveryGuard` takes users from `MdUserService`;
+  `InstanceBootstrap` and the system information page reach md tables only
+  through `MdInstanceService` (ADR-0026).
+- **Stored secrets without the `v1:` prefix are refused**: `StoredSecrets.open`
+  refuses a plain value and `StoredSecretsCheck` (formerly
+  `StoredSecretsSealing`) stops the start when a secret column holds one;
+  messages name the table and column, never the value. V203 clears the
+  placeholder client secrets of the disabled demo SSO providers seeded by
+  V017 (destructive, approved by the product owner 2026-10-08). A local
+  stand that stops with this message is reset with `run-local.ps1 down
+  -Volumes` (ADR-0029, `docs/onboarding.md`).
+- `AuditLogRepository` and `IdempotencyFilter` split
+  (`AuditListFilters`, `IdempotentExecution`); no behaviour change.
+- Coverage floors raised: `webhook` 97/83, `mf` 94/74, `ms.notify` 90/71,
+  `ms.task` 94/76.
+
+#### Fixed
+
+- Task notifications (titles `notify.task_*`) and the task export (columns,
+  sheet, priorities `report.task_export.*`) are written in the recipient's
+  or exporter's language (ru, uz, en) instead of Russian; a letter without a
+  subject gets the product name; logs and internal exception messages of
+  the server and the libraries are English.
+- The cycle `ms.task` ↔ `ms.notify` is broken: the deadline reminder worker
+  publishes `MsTaskEvents.TaskDeadlineApproaching`, and the listener sends
+  through `sendInAppNotificationOnce`, which takes a transaction-scoped
+  advisory lock, so two nodes send one reminder.
+
 ### Phase 7 and platform fixes (2026-10-08)
 
 Plan 10/10, items 7.1–7.8, and the platform review fixes; integrated by the
