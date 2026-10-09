@@ -52,21 +52,19 @@ class WebhookRepositoriesIntegrationTest {
     }
 
     @Test
-    @DisplayName("A key stored in the clear is sealed once, and its row moves to the next revision")
-    void plainKeysAreSealed() {
+    @DisplayName("A key stored in the clear is counted and never read as it is (ADR-0029)")
+    void plainKeysAreRefused() {
+        assertThat(subscriptions.countPlainSecrets()).isZero();
         Long id = jdbc.sql("""
                         insert into kwh_subscriptions (name, target_url, secret_token, subscribed_events, state)
-                        values ('Legacy', 'https://hooks.example/l', 'clear-key', array['*'], 'A')
+                        values ('Plain', 'https://hooks.example/l', 'clear-key', array['*'], 'A')
                         returning id
                         """).query(Long.class).single();
-        long revision = subscriptions.findById(id).orElseThrow().revision();
 
-        assertThat(subscriptions.sealPlainSecrets(TestStoredSecrets.secrets())).isEqualTo(1);
-        assertThat(subscriptions.sealPlainSecrets(TestStoredSecrets.secrets())).isZero();
-
-        var sealed = subscriptions.findById(id).orElseThrow();
-        assertThat(sealed.secretToken()).isEqualTo("clear-key");
-        assertThat(sealed.revision()).isEqualTo(revision + 1);
+        assertThat(subscriptions.countPlainSecrets()).isEqualTo(1);
+        assertThatThrownBy(() -> subscriptions.findById(id))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageNotContaining("clear-key");
     }
 
     @Test
