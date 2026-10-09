@@ -8,7 +8,7 @@ import com.smartup24.cms.instance.kauth.api.ActiveSessionView;
 import com.smartup24.cms.instance.kauth.api.SessionView;
 import com.smartup24.cms.instance.kauth.api.UserSecuritySummary;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;

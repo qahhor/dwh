@@ -6,13 +6,12 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.smartup24.cms.instance.config.WebMvcConfig;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.idempotency.*;
 import com.smartup24.cms.instance.config.security.*;
+import com.smartup24.cms.instance.kauth.api.KauthPref;
 import com.smartup24.cms.instance.kauth.controller.*;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.security.*;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
@@ -668,7 +667,7 @@ class AuthenticationGenerationHttpTest {
     @EnableTransactionManagement
     @Import({
         SecurityConfig.class,
-        WebMvcConfig.class,
+        KauthWebMvcConfig.class,
         ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class,
         RequiresPermissionInterceptor.class,

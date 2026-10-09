@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.config.security;
 
-import com.smartup24.cms.instance.search.SearchOwnerRateLimits;
+import com.smartup24.cms.instance.search.api.SearchOwnerRateLimits;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;

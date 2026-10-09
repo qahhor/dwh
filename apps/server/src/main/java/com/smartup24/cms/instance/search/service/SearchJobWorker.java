@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.search.service;
 
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.JobStatus;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.JobStatus;
 import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.repository.SearchGenerationRepository.FrozenGeneration;
 import com.smartup24.cms.instance.search.typesense.TypesenseCollections;

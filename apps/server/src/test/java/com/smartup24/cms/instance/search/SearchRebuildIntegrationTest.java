@@ -3,7 +3,8 @@ package com.smartup24.cms.instance.search;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.instance.search.repository.SearchDocumentSql;
 import com.smartup24.cms.instance.search.service.SearchEntity;
 import com.smartup24.cms.instance.search.service.SearchFieldPolicies;

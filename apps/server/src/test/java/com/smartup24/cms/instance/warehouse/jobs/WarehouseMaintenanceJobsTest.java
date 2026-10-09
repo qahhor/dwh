@@ -3,9 +3,9 @@ package com.smartup24.cms.instance.warehouse.jobs;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.jobs.api.JobHandler;
+import com.smartup24.cms.instance.jobs.api.JobSwitch;
 import com.smartup24.cms.instance.jobs.config.JobProperties;
 import com.smartup24.cms.instance.jobs.runner.JobRunner;
-import com.smartup24.cms.instance.jobs.runner.JobSwitch;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.warehouse.RawTables;

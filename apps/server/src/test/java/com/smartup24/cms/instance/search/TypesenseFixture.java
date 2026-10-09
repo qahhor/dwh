@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.search;
 
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.instance.search.service.SearchMetrics;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
 import com.smartup24.cms.instance.search.typesense.TypesenseCollections;
 import com.smartup24.cms.instance.search.typesense.TypesenseDocuments;
 import com.smartup24.cms.instance.search.typesense.TypesenseHealth;
-import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
 import java.util.Optional;
 import tools.jackson.databind.ObjectMapper;

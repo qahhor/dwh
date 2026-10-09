@@ -6,7 +6,7 @@ import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
-import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import com.sun.net.httpserver.HttpServer;

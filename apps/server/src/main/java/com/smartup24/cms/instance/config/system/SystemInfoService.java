@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.config.system;
 
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
-import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
+import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.spi.common.ProviderHealth;
 import jakarta.annotation.PreDestroy;
 import java.net.URI;

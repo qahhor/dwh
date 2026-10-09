@@ -2,9 +2,10 @@ package com.smartup24.cms.instance.kauth.security;
 
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.kauth.api.KauthRequestAuthentication;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import jakarta.servlet.FilterChain;
@@ -31,7 +32,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * (Spring Security authorization).
  */
 @Component
-public class KauthAuthenticationFilter extends OncePerRequestFilter {
+public class KauthAuthenticationFilter extends OncePerRequestFilter implements KauthRequestAuthentication {
 
     private static final Logger log = LoggerFactory.getLogger(KauthAuthenticationFilter.class);
 
@@ -136,6 +137,11 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
             // Any other failure is a defect: the request stays anonymous, and the log says why.
             log.warn("kauth_authentication_failed userId={}", userId, unexpected);
         }
+    }
+
+    @Override
+    public boolean carriesSessionCookie(HttpServletRequest request) {
+        return KauthSessionCookies.present(request);
     }
 
     private void authenticate(SecurityContext.KauthPrincipal principal) {

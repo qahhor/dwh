@@ -7,7 +7,7 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewRequest;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewResponse;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.service.MdListViewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

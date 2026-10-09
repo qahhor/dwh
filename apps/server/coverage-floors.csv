@@ -10,6 +10,8 @@
 # 2026-10-01: the fnd package with the old migrate entry point removed (no installations to keep, ADR-0030).
 # 2026-10-02: example, the reference document of plan 10/10, item 5.7, at its first measure.
 # 2026-10-03: analytics raised to 96/63 with the data scope tests of its endpoints (ADR-0013).
+# 2026-10-08: webhook, mf, ms.notify and ms.task raised to their measured values with the tests of the delivery
+# paths (target policy, retry and dead letter, storage failures, scan outcomes, delivery providers).
 module,line,branch
 analytics,96,63
 audit,87,68
@@ -19,13 +21,13 @@ example,100,100
 jobs,95,78
 kauth,83,71
 md,82,65
-mf,67,52
+mf,94,74
 ms.note,86,48
-ms.notify,63,46
-ms.task,66,52
+ms.notify,90,71
+ms.task,94,76
 report,90,72
 search,91,75
 units,97,94
 upl,96,82
 warehouse,94,82
-webhook,65,48
+webhook,97,83

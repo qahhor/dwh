@@ -5,10 +5,11 @@ import com.smartup24.cms.instance.audit.api.AuditLogFilter;
 import com.smartup24.cms.instance.audit.api.AuditLogView;
 import com.smartup24.cms.instance.audit.api.SecurityEventFilter;
 import com.smartup24.cms.instance.audit.api.SecurityEventView;
+import com.smartup24.cms.instance.audit.repository.AuditListFilters;
+import com.smartup24.cms.instance.audit.repository.AuditListFilters.AuditLogFilters;
+import com.smartup24.cms.instance.audit.repository.AuditListFilters.SecurityEventFilters;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditLogFilters;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditRecord;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository.SecurityEventFilters;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository.SecurityEventRecord;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
@@ -42,7 +43,7 @@ public class AuditListService {
         return lists.page(
                 plan,
                 (rs, row) -> view(auditLogService.redacted(repository.mapAuditRecord(rs, row))),
-                AuditLogRepository.logPredicate(filters));
+                AuditListFilters.logPredicate(filters));
     }
 
     @Transactional(readOnly = true)
@@ -55,7 +56,7 @@ public class AuditListService {
         return lists.page(
                 plan,
                 (rs, row) -> view(auditLogService.redacted(repository.mapSecurityEvent(rs, row))),
-                AuditLogRepository.securityPredicate(filters));
+                AuditListFilters.securityPredicate(filters));
     }
 
     private static AuditLogView view(AuditRecord r) {

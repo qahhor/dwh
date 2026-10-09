@@ -10,7 +10,7 @@ import com.smartup24.cms.instance.md.api.MdAssignmentDtos.GrantsResponse;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.PermissionsVersionResponse;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.ReplacePermissionsDto;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.RoleIdsResponse;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.service.MdAssignmentService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import io.swagger.v3.oas.annotations.Operation;

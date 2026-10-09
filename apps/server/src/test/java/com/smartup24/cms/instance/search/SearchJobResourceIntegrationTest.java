@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.search;
 import static org.assertj.core.api.Assertions.*;
 
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.StartJobRequest;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.StartJobRequest;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;

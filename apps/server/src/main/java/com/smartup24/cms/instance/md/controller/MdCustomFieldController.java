@@ -7,7 +7,7 @@ import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CreateCustomFieldDto;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CustomFieldView;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.UpdateCustomFieldDto;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;

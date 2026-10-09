@@ -13,7 +13,7 @@ import static com.smartup24.cms.platform.api.entity.field.EntityFields.select;
 import static com.smartup24.cms.platform.api.entity.field.EntityFields.sortable;
 import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 
-import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.api.MdPref;
 import com.smartup24.cms.platform.api.entity.Entity;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;

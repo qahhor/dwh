@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.search.dto;
+package com.smartup24.cms.instance.search.api;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;

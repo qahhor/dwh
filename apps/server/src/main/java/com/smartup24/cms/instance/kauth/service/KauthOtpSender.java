@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.kauth.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.api.KauthPref;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.spi.mail.MailMessage;
 import com.smartup24.cms.spi.messenger.MessengerMessage;

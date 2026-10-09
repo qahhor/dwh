@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.kauth.security;
 
 import com.smartup24.cms.instance.common.security.ClientIpResolver;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.api.KauthPref;
 import com.smartup24.cms.instance.kauth.pref.KauthSessionProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;

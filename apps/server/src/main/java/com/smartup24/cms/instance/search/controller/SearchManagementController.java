@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.search.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos;
+import com.smartup24.cms.instance.search.api.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.UUID;
