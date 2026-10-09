@@ -78,7 +78,7 @@ public class InstanceBootstrap implements ApplicationRunner {
                 .param("name", props.clientName())
                 .param("profile", props.resourceProfile())
                 .update();
-        log.info("Экземпляр инициализирован: client_code={}, profile={}", props.clientCode(), props.resourceProfile());
+        log.info("instance_initialized client_code={} profile={}", props.clientCode(), props.resourceProfile());
     }
 
     private void initFirstAdmin() {
@@ -113,14 +113,14 @@ public class InstanceBootstrap implements ApplicationRunner {
         permissionService.recalculateEffectivePermissions(userId);
         // The password is never written to the log (FR-OBS-4); force_password_change=true
         // makes the first sign-in require a change.
-        log.info("Первый администратор создан: login={}, смена пароля при входе обязательна", props.adminLogin());
+        log.info("first_admin_created login={} passwordChangeRequired=true", props.adminLogin());
     }
 
     private static void require(String value, String property) {
         if (value == null || value.isBlank()) {
-            throw new IllegalStateException("Экземпляр не инициализирован: задайте " + property
-                    + " в конфигурации развёртывания (FR-INST-1). "
-                    + "Значения по умолчанию запрещены (AUDIT-03 C-1/C-2).");
+            throw new IllegalStateException("The instance is not initialized: set " + property
+                    + " in the deployment configuration (FR-INST-1). "
+                    + "Default values are refused (AUDIT-03 C-1/C-2).");
         }
     }
 }

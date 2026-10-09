@@ -60,7 +60,7 @@ public class UplParseJob implements JobHandler {
     public void run(Map<String, Object> args, JobAttempt attempt) {
         UUID publicId = packageId(args);
         PackageRow row = packages.find(publicId)
-                .orElseThrow(() -> new IllegalStateException("Пакет " + publicId + " не найден"));
+                .orElseThrow(() -> new IllegalStateException("Package " + publicId + " is not found"));
         if (!UplPackageModel.RECEIVED.equals(row.status())) {
             return;
         }
@@ -83,7 +83,8 @@ public class UplParseJob implements JobHandler {
             throw settle(
                     row,
                     attempt,
-                    new UncheckedIOException("Файл пакета " + row.publicId() + " не читается из хранилища", failure));
+                    new UncheckedIOException(
+                            "The file of package " + row.publicId() + " cannot be read from the storage", failure));
         } catch (RuntimeException failure) {
             throw settle(row, attempt, failure);
         }
@@ -101,15 +102,13 @@ public class UplParseJob implements JobHandler {
     private static UUID packageId(Map<String, Object> args) {
         Object raw = args == null ? null : args.get(ARG_PACKAGE_ID);
         if (raw == null) {
-            throw new IllegalStateException("В задании " + UplPref.JOB_PARSE + " нет аргумента " + ARG_PACKAGE_ID);
+            throw new IllegalStateException("Job " + UplPref.JOB_PARSE + " has no argument " + ARG_PACKAGE_ID);
         }
         try {
             return UUID.fromString(raw.toString());
         } catch (IllegalArgumentException notUuid) {
             throw new IllegalStateException(
-                    "Аргумент " + ARG_PACKAGE_ID + " задания " + UplPref.JOB_PARSE
-                            + " не является идентификатором пакета",
-                    notUuid);
+                    "Argument " + ARG_PACKAGE_ID + " of job " + UplPref.JOB_PARSE + " is not a package id", notUuid);
         }
     }
 }

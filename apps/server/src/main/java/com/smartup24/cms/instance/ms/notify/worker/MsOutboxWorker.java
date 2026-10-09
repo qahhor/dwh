@@ -29,6 +29,8 @@ public class MsOutboxWorker {
     private static final Logger log = LoggerFactory.getLogger(MsOutboxWorker.class);
     /** The outbox label of the delivery meters (plan 10/10, item 7.3). */
     static final String OUTBOX = "notification";
+    /** The subject of a letter enqueued without one: the product name, the same in every language. */
+    static final String DEFAULT_SUBJECT = "SmartupCMS";
 
     private final MsOutboxRepository outboxRepository;
     private final ProviderRegistry providers;
@@ -100,7 +102,7 @@ public class MsOutboxWorker {
                 : "";
         String subject = item.payload() != null && item.payload().get("subject") != null
                 ? item.payload().get("subject").toString()
-                : "Уведомление SmartupCMS";
+                : DEFAULT_SUBJECT;
         String idempotencyKey = item.idempotencyKey().toString();
 
         switch (item.channel().toLowerCase()) {

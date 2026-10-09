@@ -55,9 +55,9 @@ class NotificationChannelTest {
 
         assertThat(check.findStubChannels())
                 .hasSize(3)
-                .anySatisfy(s -> assertThat(s).contains("почта"))
+                .anySatisfy(s -> assertThat(s).contains("mail"))
                 .anySatisfy(s -> assertThat(s).contains("SMS"))
-                .anySatisfy(s -> assertThat(s).contains("мессенджер"));
+                .anySatisfy(s -> assertThat(s).contains("messenger"));
     }
 
     @Test
@@ -65,7 +65,7 @@ class NotificationChannelTest {
     void startupCheckIgnoresConfiguredChannel() {
         var check = new NotificationChannelStartupCheck(registryWith(new StubRealMailProvider()));
 
-        assertThat(check.findStubChannels()).noneSatisfy(s -> assertThat(s).contains("почта"));
+        assertThat(check.findStubChannels()).noneSatisfy(s -> assertThat(s).contains("mail"));
     }
 
     @Test

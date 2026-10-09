@@ -285,7 +285,7 @@ public class JdbcRawWriter implements RawWriter {
                 copy.cancelCopy();
             }
         } catch (SQLException cancelFailure) {
-            log.error("raw_write отмена COPY не выполнена", cancelFailure);
+            log.error("raw_write_copy_cancel_failed", cancelFailure);
         }
     }
 
@@ -293,7 +293,7 @@ public class JdbcRawWriter implements RawWriter {
         try {
             connection.rollback();
         } catch (SQLException rollbackFailure) {
-            log.error("raw_write откат не выполнен", rollbackFailure);
+            log.error("raw_write_rollback_failed", rollbackFailure);
         }
     }
 

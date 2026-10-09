@@ -82,7 +82,7 @@ public class WarehouseSchemaVersionGate implements InitializingBean {
             if ("42P01".equals(e.getSQLState())) {
                 return "none"; // no history table: no migration has ever been applied
             }
-            throw new IllegalStateException("Не удалось прочитать flyway_schema_history в " + db, e);
+            throw new IllegalStateException("Cannot read flyway_schema_history in " + db, e);
         }
     }
 }

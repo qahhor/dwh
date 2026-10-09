@@ -85,12 +85,12 @@ public class TelegramBotMessengerProvider implements MessengerProvider {
             }
 
             String description = response != null ? String.valueOf(response.get("description")) : "empty response";
-            log.warn("Telegram: сообщение не принято API: {}", description);
+            log.warn("telegram_message_rejected description={}", description);
             return MessengerSendResult.failure("telegram_rejected", description, elapsedMs(startedAt));
 
         } catch (Exception ex) {
             // chat_id identifies the recipient and is not logged (no personal data in logs).
-            log.warn("Telegram: отправка не удалась: {}", ex.getMessage());
+            log.warn("telegram_send_failed error={}", ex.getMessage());
             return MessengerSendResult.failure("telegram_send_failed", ex.getMessage(), elapsedMs(startedAt));
         }
     }
@@ -105,10 +105,10 @@ public class TelegramBotMessengerProvider implements MessengerProvider {
             if (response != null && Boolean.TRUE.equals(response.get("ok"))) {
                 return ProviderHealth.healthy(getProviderCode(), elapsedMs(startedAt));
             }
-            return ProviderHealth.unhealthy(getProviderCode(), "Telegram API отклонил getMe", elapsedMs(startedAt));
+            return ProviderHealth.unhealthy(getProviderCode(), "Telegram API refused getMe", elapsedMs(startedAt));
         } catch (Exception ex) {
             return ProviderHealth.unhealthy(
-                    getProviderCode(), "Telegram API недоступен: " + ex.getMessage(), elapsedMs(startedAt));
+                    getProviderCode(), "Telegram API is unavailable: " + ex.getMessage(), elapsedMs(startedAt));
         }
     }
 

@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.common.retention.RetentionPolicy;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.support.TestStoredSecrets;
+import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.List;
@@ -54,9 +56,14 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
                 .single();
         subscription = jdbc.sql("""
                         insert into kwh_subscriptions (name, target_url, secret_token, subscribed_events, state, created_at)
-                        values ('Retention probe', 'https://hooks.example.invalid/r', 'secret', array['task.created'], 'A', now())
+                        values ('Retention probe', 'https://hooks.example.invalid/r', :secret, array['task.created'], 'A', now())
                         returning id
-                        """).query(Long.class).single();
+                        """)
+                .param(
+                        "secret",
+                        TestStoredSecrets.secrets().seal("secret", WebhookSubscriptionRepository.SECRET_COLUMN))
+                .query(Long.class)
+                .single();
         jdbc.sql("delete from kauth_login_attempts where login like 'retention-%'")
                 .update();
     }

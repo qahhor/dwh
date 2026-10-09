@@ -50,7 +50,8 @@ public class UplPackageService {
         actors.apply(actor);
         long id = repo.insert(p, actor.name());
         return repo.findById(id)
-                .orElseThrow(() -> new IllegalStateException("Пакет " + id + " не найден сразу после записи"));
+                .orElseThrow(
+                        () -> new IllegalStateException("Package " + id + " is not found right after it was written"));
     }
 
     /** Package by its API identifier; a string that is not a uuid or a missing package gives 404. */
@@ -119,7 +120,7 @@ public class UplPackageService {
                         id, result.rowsTotal(), result.rowsAccepted(), result.rowsRejected(), result.errorsTotal())
                 : repo.markRejected(id, result.rejectCode(), result.rejectParams(), result.errorsTotal());
         if (updated == 0) {
-            throw new IllegalStateException("Пакет " + id + " уже не в статусе «получен»");
+            throw new IllegalStateException("Package " + id + " is no longer received");
         }
         repo.insertErrors(id, numbered(result.errors()));
     }

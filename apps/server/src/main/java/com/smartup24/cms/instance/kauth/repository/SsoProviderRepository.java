@@ -99,31 +99,14 @@ public class SsoProviderRepository implements StoredSecretColumn {
     }
 
     @Override
-    public int sealPlainSecrets(StoredSecrets cipher) {
-        List<PlainSecret> plain = jdbcClient
-                .sql("select id, client_secret from md_sso_providers where client_secret not like 'v1:%'")
-                .query((rs, rowNum) -> new PlainSecret(rs.getLong("id"), rs.getString("client_secret")))
-                .list();
-        int sealed = 0;
-        for (PlainSecret row : plain) {
-            sealed += jdbcClient
-                    .sql("""
-                    update md_sso_providers
-                    set client_secret = :sealed,
-                        updated_at = now()
-                    where id = :id and client_secret = :plain
-                    """)
-                    .param("sealed", cipher.seal(row.value(), SECRET_COLUMN))
-                    .param("id", row.id())
-                    .param("plain", row.value())
-                    .update();
-        }
-        return sealed;
+    public int countPlainSecrets() {
+        return jdbcClient
+                .sql("select count(*) from md_sso_providers where client_secret not like 'v1:%'")
+                .query(Integer.class)
+                .single();
     }
 
     private SsoProviderRecord opened(SsoProviderRecord row) {
         return row.withClientSecret(secrets.open(row.clientSecret(), SECRET_COLUMN));
     }
-
-    private record PlainSecret(long id, String value) {}
 }

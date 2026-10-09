@@ -48,7 +48,7 @@ class WarehouseDataSourcePropertiesTest {
     void zeroTimeoutFailsStartup() {
         runner.withPropertyValues("warehouse.connect-timeout=0s").run(context -> {
             assertThat(context.getStartupFailure()).isNotNull();
-            assertThat(causeChain(context.getStartupFailure())).contains("должен быть положительным");
+            assertThat(causeChain(context.getStartupFailure())).contains("must be positive");
         });
     }
 

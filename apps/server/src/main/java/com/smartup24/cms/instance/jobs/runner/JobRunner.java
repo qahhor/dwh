@@ -260,7 +260,7 @@ public class JobRunner implements JobQueue {
     private JobHandler handler(String code) {
         JobHandler handler = handlers.get(code);
         if (handler == null) {
-            throw new IllegalStateException("Обработчик " + code + " не зарегистрирован");
+            throw new IllegalStateException("Handler " + code + " is not registered");
         }
         return handler;
     }
@@ -270,7 +270,7 @@ public class JobRunner implements JobQueue {
     @Override
     public void enqueue(String scheduleCode) {
         if (queue.enqueueScheduled(scheduleCode) == 0) {
-            throw new IllegalArgumentException("Задание " + scheduleCode + " отсутствует в расписании");
+            throw new IllegalArgumentException("Job " + scheduleCode + " is not in the schedule");
         }
     }
 

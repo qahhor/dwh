@@ -101,7 +101,7 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException ex, HttpServletRequest request) {
         // Malformed JSON is the client's fault, not the server's: 400, not 500.
         // The exception text is not exposed (it may contain fragments of the body).
-        log.warn("Некорректное тело запроса {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("request_body_invalid uri={} error={}", request.getRequestURI(), ex.getMessage());
         return problem(HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "error.request_body_invalid", Map.of(), request);
     }
 
@@ -114,7 +114,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ProblemDetailRecord> handleMethodNotSupported(
             HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
-        log.warn("Метод {} не поддержан маршрутом {}", ex.getMethod(), request.getRequestURI());
+        log.warn("method_not_supported method={} uri={}", ex.getMethod(), request.getRequestURI());
 
         var response = problem(
                 HttpStatus.METHOD_NOT_ALLOWED,
@@ -145,7 +145,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetailRecord> handleDataIntegrityViolation(
             DataIntegrityViolationException ex, HttpServletRequest request) {
         log.warn(
-                "Нарушение ограничения целостности на {}: {}",
+                "data_integrity_violation uri={} error={}",
                 request.getRequestURI(),
                 ex.getMostSpecificCause().getMessage());
 
@@ -210,7 +210,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetailRecord> handleTypeMismatch(
             MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
         log.warn(
-                "Некорректный тип аргумента в запросе {}: параметр '{}' имеет значение '{}'",
+                "argument_type_mismatch uri={} parameter={} value={}",
                 request.getRequestURI(),
                 ex.getName(),
                 ex.getValue());
@@ -225,7 +225,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ProblemDetailRecord> handleMissingParam(
             MissingServletRequestParameterException ex, HttpServletRequest request) {
-        log.warn("Отсутствует обязательный параметр запроса {}: '{}'", request.getRequestURI(), ex.getParameterName());
+        log.warn("request_parameter_missing uri={} parameter={}", request.getRequestURI(), ex.getParameterName());
         return problem(
                 HttpStatus.BAD_REQUEST,
                 ErrorCode.BAD_REQUEST,
@@ -315,7 +315,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AsyncRequestNotUsableException.class)
     public void handleAsyncRequestNotUsable(AsyncRequestNotUsableException ex) {
         // The browser closed the SSE/HTTP connection: the response is gone, so building a 500 is too late and wrong.
-        log.debug("Клиент закрыл соединение до завершения ответа: {}", ex.getMessage());
+        log.debug("client_disconnected_before_response error={}", ex.getMessage());
     }
 
     /**

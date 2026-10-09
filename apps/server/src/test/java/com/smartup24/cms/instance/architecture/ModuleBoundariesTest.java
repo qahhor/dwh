@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
@@ -14,6 +15,8 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import com.tngtech.archunit.library.dependencies.SliceAssignment;
+import com.tngtech.archunit.library.dependencies.SliceIdentifier;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -190,6 +193,30 @@ class ModuleBoundariesTest {
                 });
             }
         };
+    }
+
+    /** Each business module is a slice of its own ({@code ms.task} and {@code ms.notify} apart); infrastructure none. */
+    static final SliceAssignment BUSINESS_MODULES = new SliceAssignment() {
+        @Override
+        public SliceIdentifier getIdentifierOf(JavaClass javaClass) {
+            return moduleOf(javaClass).map(SliceIdentifier::of).orElseGet(SliceIdentifier::ignore);
+        }
+
+        @Override
+        public String getDescription() {
+            return "business modules";
+        }
+    };
+
+    @Test
+    @DisplayName("1.3: business modules depend on each other without cycles")
+    void businessModulesHaveNoCycles() {
+        // A module that reacts to another listens to its events (api package); the other never calls it back.
+        slices().assignedFrom(BUSINESS_MODULES)
+                .should()
+                .beFreeOfCycles()
+                .as("business modules depend on each other without cycles")
+                .check(classes);
     }
 
     @Test

@@ -57,7 +57,7 @@ class MigrateMainTest {
         // An unreachable address: the run gets past the missing-variable check and fails on the connection.
         assertThatThrownBy(() -> MigrateMain.run(Map.of(
                         "SMC_MIGRATE_SCOPE", "warehouse", "WAREHOUSE_URL", "jdbc:postgresql://127.0.0.1:1/none")))
-                .hasMessageNotContaining("Не задана переменная окружения");
+                .hasMessageNotContaining("The environment variable is not set");
     }
 
     @Test

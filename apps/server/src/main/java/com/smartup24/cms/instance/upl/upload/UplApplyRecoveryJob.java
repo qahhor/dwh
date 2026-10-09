@@ -85,9 +85,12 @@ public class UplApplyRecoveryJob implements JobHandler {
             }
             loads.fail(row.loadId(), UplApplyService.UPL_PKG_APPLY_INTERRUPTED, actor);
             if (repo.markApplyRejected(row.id(), UplApplyService.UPL_PKG_APPLY_INTERRUPTED, Map.of(), null) != 1) {
-                throw new IllegalStateException("Пакет " + row.publicId() + " уже не в статусе «проверен»");
+                throw new IllegalStateException("Package " + row.publicId() + " is no longer validated");
             }
-            log.warn("Пакет {}: применение прервалось, загрузка {} отмечена неудачной", row.publicId(), row.loadId());
+            log.warn(
+                    "upl_apply_interrupted package={} load={}: the load is marked failed",
+                    row.publicId(),
+                    row.loadId());
         }
     }
 }

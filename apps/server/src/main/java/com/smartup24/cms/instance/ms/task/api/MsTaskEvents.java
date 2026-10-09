@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.task.api;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -46,4 +47,10 @@ public final class MsTaskEvents {
     /** A user was removed from the task. */
     public record TaskMemberRemoved(
             Long taskId, String taskTitle, List<Long> recipientUserIds, String involveKind, Long actorUserId) {}
+
+    /**
+     * The task's deadline comes within {@code window}: a reminder for one of its people. Published by the reminder
+     * scan inside a transaction of its own per person, so the subscriber decides and records the reminder atomically.
+     */
+    public record TaskDeadlineApproaching(long taskId, String taskTitle, long recipientUserId, Duration window) {}
 }

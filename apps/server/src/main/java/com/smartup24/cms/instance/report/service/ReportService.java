@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.report.service;
 
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.md.service.MdUserTexts;
 import com.smartup24.cms.instance.report.repository.ReportRepository;
 import com.smartup24.cms.instance.report.repository.ReportRepository.TaskExportRow;
 import java.io.IOException;
@@ -10,6 +11,9 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,9 +22,26 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Exports the tasks a user may see as CSV or SpreadsheetML. The column names and priorities are catalog strings
+ * ({@code report.task_export.*}) in the language of the user who exports.
+ */
 @Service
 @Transactional(readOnly = true)
 public class ReportService {
+
+    /** The catalog keys of the columns after the ID, in their order. */
+    static final List<String> COLUMNS = List.of(
+            "report.task_export.title",
+            "report.task_export.project",
+            "report.task_export.priority",
+            "report.task_export.status",
+            "report.task_export.deadline",
+            "report.task_export.created_at",
+            "report.task_export.author");
+
+    static final String SHEET = "report.task_export.sheet";
+    static final String PRIORITY = "report.task_export.priority_";
 
     private static final Logger log = LoggerFactory.getLogger(ReportService.class);
 
@@ -30,23 +51,50 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final MdScopeService scopeService;
     private final int maxExportRows;
+    /** The catalog strings in the language of a user. */
+    private final Function<Long, Map<String, String>> dictionaries;
 
     @Autowired
     public ReportService(
             ReportRepository reportRepository,
             MdScopeService scopeService,
+            MdUserTexts texts,
             @Value("${smc.reports.export.max-rows:50000}") int maxExportRows) {
+        this(reportRepository, scopeService, texts::dictionary, maxExportRows);
+    }
+
+    /** A service built by hand, with the strings of each user given directly. */
+    public ReportService(
+            ReportRepository reportRepository,
+            MdScopeService scopeService,
+            Function<Long, Map<String, String>> dictionaries,
+            int maxExportRows) {
         this.reportRepository = reportRepository;
         this.scopeService = scopeService;
+        this.dictionaries = dictionaries;
         this.maxExportRows = maxExportRows > 0 ? maxExportRows : ReportRepository.DEFAULT_MAX_EXPORT_ROWS;
     }
 
-    public ReportService(ReportRepository reportRepository, MdScopeService scopeService) {
-        this(reportRepository, scopeService, ReportRepository.DEFAULT_MAX_EXPORT_ROWS);
+    public ReportService(
+            JdbcClient jdbcClient, MdScopeService scopeService, Function<Long, Map<String, String>> dictionaries) {
+        this(new ReportRepository(jdbcClient), scopeService, dictionaries, ReportRepository.DEFAULT_MAX_EXPORT_ROWS);
     }
 
-    public ReportService(JdbcClient jdbcClient, MdScopeService scopeService) {
-        this(new ReportRepository(jdbcClient), scopeService, ReportRepository.DEFAULT_MAX_EXPORT_ROWS);
+    /** The strings of one export: column names and priorities in the language of the user who exports. */
+    record Labels(Map<String, String> dictionary) {
+
+        String text(String key) {
+            return dictionary.getOrDefault(key, key);
+        }
+
+        List<String> columns() {
+            return COLUMNS.stream().map(this::text).toList();
+        }
+
+        String priority(String code) {
+            String known = code == null ? "medium" : code.toLowerCase(java.util.Locale.ROOT);
+            return text(PRIORITY + (List.of("critical", "high", "low").contains(known) ? known : "medium"));
+        }
     }
 
     public void exportTasksCsv(OutputStream outputStream, Long currentUserId) throws IOException {
@@ -54,19 +102,22 @@ public class ReportService {
             throw ApiException.unauthorized("error.report.auth_required");
         }
         var scope = scopeService.filterForTasks(currentUserId);
+        Labels labels = new Labels(dictionaries.apply(currentUserId));
         // UTF-8 BOM so Microsoft Excel automatically recognizes Russian UTF-8
         outputStream.write(new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
 
         java.io.BufferedWriter writer =
                 new java.io.BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
-        writer.write("ID;Заголовок;Проект;Приоритет;Статус;Срок;Дата создания;Автор\n");
+        writer.write("ID;"
+                + String.join(
+                        ";", labels.columns().stream().map(this::escapeCsv).toList()) + "\n");
 
         try {
             reportRepository.streamScopedTasks(scope, maxExportRows, row -> {
                 try {
                     String title = escapeCsv(row.title());
                     String project = escapeCsv(row.projectName());
-                    String priority = mapPriority(row.priority());
+                    String priority = escapeCsv(labels.priority(row.priority()));
                     String status = escapeCsv(row.statusName());
                     String endTimeStr = row.endTime() != null ? DATE_FMT.format(row.endTime()) : "—";
                     String createdStr = row.createdAt() != null ? DATE_FMT.format(row.createdAt()) : "—";
@@ -87,7 +138,7 @@ public class ReportService {
     }
 
     /** The workbook's XML head, styles, columns and header row (SpreadsheetML 2003). */
-    private static void writeWorkbookHead(java.io.BufferedWriter writer) throws IOException {
+    private void writeWorkbookHead(java.io.BufferedWriter writer, Labels labels) throws IOException {
         writer.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         writer.write("<?mso-application progid=\"Excel.Sheet\"?>\n");
         writer.write("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\"\n");
@@ -105,7 +156,7 @@ public class ReportService {
         writer.write("   <Alignment ss:Vertical=\"Center\"/>\n");
         writer.write("  </Style>\n");
         writer.write(" </Styles>\n");
-        writer.write(" <Worksheet ss:Name=\"Задачи\">\n");
+        writer.write(" <Worksheet ss:Name=\"" + escapeXml(labels.text(SHEET)) + "\">\n");
         writer.write("  <Table>\n");
         writer.write("   <Column ss:Width=\"50\"/>\n");
         writer.write("   <Column ss:Width=\"220\"/>\n");
@@ -119,21 +170,17 @@ public class ReportService {
         // Header
         writer.write("   <Row ss:StyleID=\"Header\">\n");
         writer.write("    <Cell><Data ss:Type=\"String\">ID</Data></Cell>\n");
-        writer.write("    <Cell><Data ss:Type=\"String\">Заголовок</Data></Cell>\n");
-        writer.write("    <Cell><Data ss:Type=\"String\">Проект</Data></Cell>\n");
-        writer.write("    <Cell><Data ss:Type=\"String\">Приоритет</Data></Cell>\n");
-        writer.write("    <Cell><Data ss:Type=\"String\">Статус</Data></Cell>\n");
-        writer.write("    <Cell><Data ss:Type=\"String\">Срок</Data></Cell>\n");
-        writer.write("    <Cell><Data ss:Type=\"String\">Дата создания</Data></Cell>\n");
-        writer.write("    <Cell><Data ss:Type=\"String\">Автор</Data></Cell>\n");
+        for (String column : labels.columns()) {
+            writer.write("    <Cell><Data ss:Type=\"String\">" + escapeXml(column) + "</Data></Cell>\n");
+        }
         writer.write("   </Row>\n");
     }
 
     /** One task as a row: text escaped, dates formatted, an empty date as a dash. */
-    private void writeTaskRow(java.io.BufferedWriter writer, TaskExportRow row) throws IOException {
+    private void writeTaskRow(java.io.BufferedWriter writer, TaskExportRow row, Labels labels) throws IOException {
         String title = escapeXml(row.title());
         String project = escapeXml(row.projectName());
-        String priority = mapPriority(row.priority());
+        String priority = escapeXml(labels.priority(row.priority()));
         String status = escapeXml(row.statusName());
         String endTimeStr = row.endTime() != null ? DATE_FMT.format(row.endTime()) : "—";
         String createdStr = row.createdAt() != null ? DATE_FMT.format(row.createdAt()) : "—";
@@ -156,15 +203,16 @@ public class ReportService {
             throw ApiException.unauthorized("error.report.auth_required");
         }
         var scope = scopeService.filterForTasks(currentUserId);
+        Labels labels = new Labels(dictionaries.apply(currentUserId));
         java.io.BufferedWriter writer =
                 new java.io.BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
 
         try {
-            writeWorkbookHead(writer);
+            writeWorkbookHead(writer, labels);
 
             reportRepository.streamScopedTasks(scope, maxExportRows, row -> {
                 try {
-                    writeTaskRow(writer, row);
+                    writeTaskRow(writer, row, labels);
                 } catch (IOException e) {
                     throw new ClientAbortException(e);
                 }
@@ -236,15 +284,5 @@ public class ReportService {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&apos;");
-    }
-
-    private String mapPriority(String p) {
-        if (p == null) return "Средний";
-        return switch (p.toLowerCase()) {
-            case "critical" -> "Критический";
-            case "high" -> "Высокий";
-            case "low" -> "Низкий";
-            default -> "Средний";
-        };
     }
 }

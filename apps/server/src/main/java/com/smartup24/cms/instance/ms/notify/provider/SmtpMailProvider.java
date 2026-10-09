@@ -92,7 +92,7 @@ public class SmtpMailProvider implements MailProvider {
 
         } catch (Exception ex) {
             // The recipient address is personal data and is not logged (CODE_STYLE, no personal data in logs).
-            log.warn("SMTP: письмо не отправлено, тема '{}': {}", message.subject(), ex.getMessage());
+            log.warn("smtp_send_failed subject={} error={}", message.subject(), ex.getMessage());
             return MailSendResult.failure("smtp_send_failed", ex.getMessage(), elapsedMs(startedAt));
         }
     }
@@ -108,7 +108,7 @@ public class SmtpMailProvider implements MailProvider {
             return ProviderHealth.healthy(getProviderCode(), elapsedMs(startedAt));
         } catch (Exception ex) {
             return ProviderHealth.unhealthy(
-                    getProviderCode(), "SMTP недоступен: " + ex.getMessage(), elapsedMs(startedAt));
+                    getProviderCode(), "SMTP is unavailable: " + ex.getMessage(), elapsedMs(startedAt));
         }
     }
 

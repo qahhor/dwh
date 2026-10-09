@@ -157,17 +157,17 @@ public class VersioningService implements Versions {
             AuditActor actor) {
         String header = headerColumn(versionsTable);
         if (columns.isEmpty()) {
-            throw new IllegalArgumentException("Нечего обновлять: список колонок пуст");
+            throw new IllegalArgumentException("Nothing to update: the column list is empty");
         }
         Map<String, Object> checked = new LinkedHashMap<>();
         columns.forEach((column, value) -> {
             if (!IDENTIFIER.matcher(column).matches()) {
-                throw new IllegalArgumentException("Недопустимое имя колонки: " + column);
+                throw new IllegalArgumentException("Invalid column name: " + column);
             }
             String normalized = column.toLowerCase(Locale.ROOT);
             if (RESERVED_COLUMNS.contains(normalized) || normalized.equals(header)) {
                 throw new IllegalArgumentException(
-                        "Колонка управляется версионностью, правка через updateDraft запрещена: " + column);
+                        "The column is managed by versioning and cannot be changed through updateDraft: " + column);
             }
             checked.put(column, value);
         });
@@ -202,12 +202,12 @@ public class VersioningService implements Versions {
     /** The header column from the registry; also checks that the table was declared under the versioning standard. */
     private String headerColumn(String versionsTable) {
         if (!IDENTIFIER.matcher(versionsTable).matches()) {
-            throw new IllegalArgumentException("Недопустимое имя таблицы версий: " + versionsTable);
+            throw new IllegalArgumentException("Invalid versions table name: " + versionsTable);
         }
         return headerColumns.computeIfAbsent(
                 versionsTable,
                 table -> versions.headerColumn(table)
                         .orElseThrow(() -> new IllegalArgumentException(
-                                "Таблица " + table + " не объявлена через fnd_versioning_enable")));
+                                "Table " + table + " is not declared through fnd_versioning_enable")));
     }
 }

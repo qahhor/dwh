@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.support.TestStoredSecrets;
 import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
+import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository;
 import java.util.Map;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
@@ -48,9 +49,14 @@ class WebhookOutboxRepositoryIntegrationTest {
                             (name, target_url, secret_token, subscribed_events, state)
                         values
                             ('release-hook', 'https://example.test/hooks/release',
-                             'test-secret', array['release.ready'], 'A')
+                             :secret, array['release.ready'], 'A')
                         returning id
-                        """).query(Long.class).single();
+                        """)
+                .param(
+                        "secret",
+                        TestStoredSecrets.secrets().seal("test-secret", WebhookSubscriptionRepository.SECRET_COLUMN))
+                .query(Long.class)
+                .single();
         firstWorkerRepository = new WebhookOutboxRepository(jdbc, new ObjectMapper(), TestStoredSecrets.secrets());
         secondWorkerRepository = new WebhookOutboxRepository(
                 JdbcClient.create(dataSource), new ObjectMapper(), TestStoredSecrets.secrets());

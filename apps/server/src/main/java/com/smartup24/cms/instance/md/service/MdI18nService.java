@@ -235,7 +235,7 @@ public class MdI18nService {
     private LanguageRecord russianLanguage() {
         return repository
                 .findLanguage(RUSSIAN)
-                .orElseThrow(() -> new IllegalStateException("Русский язык не зарегистрирован"));
+                .orElseThrow(() -> new IllegalStateException("The Russian language is not registered"));
     }
 
     private LanguageSummary summary(LanguageRecord language, Map<String, String> overrides) {
