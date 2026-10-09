@@ -8,7 +8,9 @@ import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.db.SchemaVersionGate;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
+import com.smartup24.cms.instance.md.repository.MdInstanceRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
+import com.smartup24.cms.instance.md.service.MdInstanceService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -131,6 +133,8 @@ class MigrationGateAndBootstrapTest {
     private static InstanceBootstrap bootstrap(InstanceBootstrapProperties props) {
         JdbcClient jdbc = JdbcClient.create(dataSource());
         var permissionService = new MdPermissionService(new MdPermissionRepository(jdbc));
-        return new InstanceBootstrap(jdbc, new KauthPasswordHasher(), permissionService, props);
+        var instance =
+                new MdInstanceService(new MdInstanceRepository(jdbc), new KauthPasswordHasher(), permissionService);
+        return new InstanceBootstrap(instance, props);
     }
 }

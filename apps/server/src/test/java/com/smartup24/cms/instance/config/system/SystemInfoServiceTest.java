@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
+import com.smartup24.cms.instance.md.api.MdInstanceOrganization;
+import com.smartup24.cms.instance.md.service.MdInstanceService;
 import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.storage.StorageProvider;
@@ -15,6 +17,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.info.BuildProperties;
@@ -48,6 +51,7 @@ class SystemInfoServiceTest {
 
         SystemInfoService service = new SystemInfoService(
                 new SystemInfoRepository(jdbc),
+                mock(MdInstanceService.class),
                 providers,
                 backup,
                 typesense,
@@ -68,6 +72,37 @@ class SystemInfoServiceTest {
     }
 
     @Test
+    void showsTheOrganizationMdRecordedAndTheConfiguredOneWithoutIt() {
+        MdInstanceService instance = mock(MdInstanceService.class);
+        when(instance.organization())
+                .thenReturn(Optional.of(new MdInstanceOrganization("client-042", "Client", "M")))
+                .thenReturn(Optional.empty());
+        InstanceBootstrapProperties bootstrap = mock(InstanceBootstrapProperties.class);
+        when(bootstrap.clientCode()).thenReturn("configured");
+        BackupStatusReader backup = mock(BackupStatusReader.class);
+        when(backup.read()).thenReturn(new BackupStatus("NEVER", null, null));
+        @SuppressWarnings("unchecked")
+        ObjectProvider<BuildProperties> buildProperties = mock(ObjectProvider.class);
+        SystemInfoService service = new SystemInfoService(
+                new SystemInfoRepository(mock(JdbcClient.class)),
+                instance,
+                mock(ProviderRegistry.class),
+                backup,
+                new TypesenseProperties("http://typesense:8108", "test-key", false, false),
+                bootstrap,
+                buildProperties,
+                Duration.ofSeconds(3),
+                Duration.ZERO);
+        try {
+            assertThat(service.getInfo().organization())
+                    .isEqualTo(new SystemInfoResponse.Organization("client-042", "Client", "M"));
+            assertThat(service.getInfo().organization().code()).isEqualTo("configured");
+        } finally {
+            service.close();
+        }
+    }
+
+    @Test
     void evaluatesBackupFreshnessBeforeReturningTheSystemSnapshot() {
         JdbcClient jdbc = mock(JdbcClient.class);
         ProviderRegistry providers = mock(ProviderRegistry.class);
@@ -81,6 +116,7 @@ class SystemInfoServiceTest {
 
         SystemInfoService service = new SystemInfoService(
                 new SystemInfoRepository(jdbc),
+                mock(MdInstanceService.class),
                 providers,
                 backup,
                 typesense,
@@ -135,6 +171,7 @@ class SystemInfoServiceTest {
         ObjectProvider<BuildProperties> buildProperties = mock(ObjectProvider.class);
         SystemInfoService service = new SystemInfoService(
                 new SystemInfoRepository(mock(JdbcClient.class)),
+                mock(MdInstanceService.class),
                 providers,
                 backup,
                 new TypesenseProperties(typesenseUrl, "test-key", true, false),

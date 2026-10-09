@@ -331,6 +331,8 @@ class ModuleBoundariesTest {
     /** A source that runs SQL wherever it lives: a JDBC client, template or statement. */
     private static final Pattern RUNS_SQL = Pattern.compile(
             "\\bJdbc(?:Client|Template|Operations)\\b|\\.(?:prepareStatement|prepareCall|createStatement)\\(");
+    /** The wiring: no business module, yet its SQL is held to the same rule (ADR-0026). */
+    private static final String CONFIG = "config";
     /** A published read view: {@code <owner prefix>_pub_<name>} (ADR-0026). */
     static final Pattern PUBLISHED_VIEW = Pattern.compile("^([a-z][a-z0-9_]*?)_pub_[a-z0-9_]+$");
 
@@ -364,8 +366,8 @@ class ModuleBoundariesTest {
      * The check reads source text, so it sees what a regular expression can: a relation after a SQL keyword, a relation
      * name alone in a string literal (a constant built into SQL later) and literals joined by {@code +}. It does not
      * see a name assembled at run time from a prefix and a variable; such SQL is not written in this code base, and a
-     * review keeps it out. The wiring ({@code config}) is outside the check: it owns no module's data but bootstraps
-     * the first administrator before any module runs.
+     * review keeps it out. The wiring ({@code config}) is checked as well: it owns only {@code idempotency_keys}, and the
+     * first start writes md's tables through md's service.
      */
     @Test
     @DisplayName(
@@ -415,6 +417,16 @@ class ModuleBoundariesTest {
                         "JdbcClient jdbc; String sql = \"select 1 from md_users\";",
                         Set.of("md_users")))
                 .containsExactly("ms.task Probe -> md_users");
+        assertThat(foreignAccessIn(
+                        "config/bootstrap/Probe.java",
+                        "JdbcClient jdbc; String sql = \"insert into md_users\";",
+                        Set.of("md_users")))
+                .containsExactly("config Probe -> md_users");
+        assertThat(foreignAccessIn(
+                        "config/idempotency/Probe.java",
+                        "JdbcClient jdbc; String sql = \"delete from idempotency_keys\";",
+                        Set.of("idempotency_keys")))
+                .isEmpty();
         assertThat(foreignAccessIn("ms/task/service/Probe.java", "String text = \"md_users\";", Set.of("md_users")))
                 .as("a class that runs no SQL may name a table, in a message for one")
                 .isEmpty();
@@ -442,7 +454,7 @@ class ModuleBoundariesTest {
      * Published views need not be in {@code relations}: the name says it.
      */
     static List<String> foreignAccessIn(String relative, String source, Set<String> relations) {
-        String module = MODULES.stream()
+        String module = Stream.concat(MODULES.stream(), Stream.of(CONFIG))
                 .filter(candidate -> relative.startsWith(candidate.replace('.', '/') + "/"))
                 .findFirst()
                 .orElse(null);
