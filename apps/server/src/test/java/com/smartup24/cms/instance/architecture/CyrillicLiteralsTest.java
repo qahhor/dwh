@@ -35,6 +35,28 @@ class CyrillicLiteralsTest {
             "common/entity/importing/EntityImportCells.java",
             "the Russian words an import accepts for yes and no in a cell");
 
+    /** The libraries the server is built on: their main code is held to the same rule. */
+    private static final Path LIBS = Path.of("../../libs");
+
+    /** Library files whose Cyrillic literals are data; the path is under {@link #LIBS}. */
+    static final Map<String, String> ALLOWED_IN_LIBS = Map.of(
+            "core-types/src/main/java/com/smartup24/cms/core/model/Language.java",
+            "the name of each language in that language, as a language picker shows it");
+
+    @Test
+    @DisplayName("3.14: no Cyrillic string or char literal in the main code of the libraries outside the allowed files")
+    void noCyrillicLiteralsInTheLibraries() {
+        List<String> found = libraryFiles()
+                .filter(file -> !ALLOWED_IN_LIBS.containsKey(relative(LIBS, file)))
+                .flatMap(file -> CommentLines.javaLiteralLines(read(file)).stream()
+                        .map(line -> relative(LIBS, file) + ":" + line))
+                .sorted()
+                .toList();
+        assertThat(found)
+                .as("a library message is English; a user reads a catalog text that the server renders")
+                .isEmpty();
+    }
+
     @Test
     @DisplayName("3.14: no Cyrillic string or char literal in main code outside the allowed data files")
     void noCyrillicLiteralsOutsideTheAllowList() {
@@ -55,6 +77,11 @@ class CyrillicLiteralsTest {
     void theAllowListIsNotStale() {
         for (String file : ALLOWED.keySet()) {
             assertThat(CommentLines.javaLiteralLines(read(SOURCES.resolve(file))))
+                    .as(file + " no longer holds Cyrillic literals: drop it from the list")
+                    .isNotEmpty();
+        }
+        for (String file : ALLOWED_IN_LIBS.keySet()) {
+            assertThat(CommentLines.javaLiteralLines(read(LIBS.resolve(file))))
                     .as(file + " no longer holds Cyrillic literals: drop it from the list")
                     .isNotEmpty();
         }
@@ -85,8 +112,25 @@ class CyrillicLiteralsTest {
         }
     }
 
+    /** The main Java sources of every library. */
+    private static Stream<Path> libraryFiles() {
+        try (Stream<Path> files = Files.walk(LIBS)) {
+            return files
+                    .filter(file -> file.toString().endsWith(".java"))
+                    .filter(file -> relative(LIBS, file).matches("[^/]+/src/main/java/.*"))
+                    .toList()
+                    .stream();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     private static String relative(Path file) {
-        return SOURCES.relativize(file).toString().replace('\\', '/');
+        return relative(SOURCES, file);
+    }
+
+    private static String relative(Path root, Path file) {
+        return root.relativize(file).toString().replace('\\', '/');
     }
 
     private static String read(Path file) {

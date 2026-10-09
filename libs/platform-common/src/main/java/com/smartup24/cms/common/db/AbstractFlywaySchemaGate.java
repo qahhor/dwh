@@ -28,7 +28,7 @@ public abstract class AbstractFlywaySchemaGate {
     @PostConstruct
     public void verifySchemaMatchesApplication() {
         if (!enabled) {
-            log.warn("Schema-gate [{}] ОТКЛЮЧЁН — допустимо только в тестах", moduleName);
+            log.warn("Schema gate [{}] is disabled: acceptable in tests only", moduleName);
             return;
         }
         Flyway flyway =
@@ -40,13 +40,13 @@ public abstract class AbstractFlywaySchemaGate {
                     .reduce((a, b) -> a + "; " + b)
                     .orElse(result.getAllErrorMessages());
             throw new IllegalStateException(
-                    "Схема БД [" + moduleName + "] не соответствует приложению. Запустите миграции: "
-                            + "--spring.profiles.active=migrate. Детали: " + details);
+                    "The database schema [" + moduleName + "] does not match the application. Run the migrations: "
+                            + "--spring.profiles.active=migrate. Details: " + details);
         }
         var current = flyway.info().current();
         log.info(
-                "Schema-gate [{}]: версия схемы {} соответствует приложению",
+                "Schema gate [{}]: schema version {} matches the application",
                 moduleName,
-                current != null ? current.getVersion() : "<пусто>");
+                current != null ? current.getVersion() : "<empty>");
     }
 }
