@@ -75,7 +75,6 @@ export class ProfileTokensCardComponent {
   private readonly i18n = inject(I18nService);
   private readonly profile = inject(ProfileApi);
   private readonly toast = inject(ToastService);
-  private readonly askDiscard = discardChangesQuestion();
   private readonly injector = inject(Injector);
 
   readonly isLoadingTokens = input(false);
@@ -151,6 +150,8 @@ export class ProfileTokensCardComponent {
     created: (t: ApiToken) => new Date(t.createdAt),
     expires: (t: ApiToken) => (t.expiresAt ? new Date(t.expiresAt) : null),
   };
+
+  private readonly askDiscard = discardChangesQuestion();
 
   openCreateTokenModal(): void {
     this.model.set({ ...FRESH });

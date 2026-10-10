@@ -68,7 +68,6 @@ export class ProfileChannelsCardComponent {
   private readonly i18n = inject(I18nService);
   private readonly profile = inject(ProfileApi);
   private readonly toast = inject(ToastService);
-  private readonly askDiscard = discardChangesQuestion();
   private readonly injector = inject(Injector);
 
   readonly isLoadingChannels = input(false);
@@ -164,6 +163,8 @@ export class ProfileChannelsCardComponent {
     created: (c: UserChannel) => new Date(c.createdAt),
     status: (c: UserChannel) => this.channelStatus(c),
   };
+
+  private readonly askDiscard = discardChangesQuestion();
 
   channelLabel(channel: string): string {
     return this.i18n.translate(this.getChannelLabelKey(channel));

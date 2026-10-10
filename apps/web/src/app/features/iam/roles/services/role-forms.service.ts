@@ -43,7 +43,6 @@ export class RoleFormsService {
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
-  private readonly askDiscard = discardChangesQuestion();
 
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly isEditModalOpen = signal<boolean>(false);
@@ -60,6 +59,7 @@ export class RoleFormsService {
   deletingRole: Role | null = null;
 
   private editInitial: EditRoleForm = { name: '', state: 'A', orderNo: 0 };
+  private readonly askDiscard = discardChangesQuestion();
 
   private readonly nameRequired = () => this.uiI18n.translate('iam.roles.editor.enter_role_name');
 

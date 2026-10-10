@@ -84,7 +84,6 @@ export class LoginResetModalComponent {
   private readonly passwordApi = inject(PasswordApi);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
-  private readonly askDiscard = discardChangesQuestion();
 
   readonly isOpen = input(false);
 
@@ -102,6 +101,8 @@ export class LoginResetModalComponent {
     required(path.email, { message: () => this.i18n.translate('auth.reset_request.email_required') });
     email(path.email);
   });
+
+  private readonly askDiscard = discardChangesQuestion();
 
   constructor() {
     // Every opening starts from an empty, untouched form.

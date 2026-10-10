@@ -110,9 +110,7 @@ export class CustomFieldsComponent {
   private readonly permService = inject(PermissionService);
   private readonly uiI18n = inject(I18nService);
   private readonly formService = inject(CustomFieldsFormService);
-
   private readonly modal = inject(SMTModalService);
-  private readonly askDiscard = discardChangesQuestion();
   private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly selectedEntity = signal('ALL');
@@ -177,6 +175,7 @@ export class CustomFieldsComponent {
   );
   /** The values the dialog opened with: closing asks only when they changed. */
   private initialData: CustomFieldFormData = this.formData();
+  private readonly askDiscard = discardChangesQuestion();
 
   /** The definitions; a failed load says so and keeps the table on screen. */
   private readonly fieldsRead = rxResource({
@@ -374,9 +373,7 @@ export class CustomFieldsComponent {
               this.toast.success(t('iam.custom_fields.deleted'));
               this.loadFields();
             }),
-            finalize(() => {
-              this.isDeleting.set(false);
-            }),
+            finalize(() => this.isDeleting.set(false)),
           );
         },
         actionError: (error) => problemText(error) || t('iam.custom_fields.delete_failed'),
