@@ -43,7 +43,7 @@ export class EntityPageContext {
     params: () => this.code(),
     stream: ({ params: code }) => (ENTITY_CODE.test(code) ? this.forms.get(code) : of(null)),
   });
-  readonly title = entityTitle(this.code);
+  readonly title = entityTitle(this.code, this.meta);
 
   /** The form, for a page drawn under `smt-entity-page`, which draws nothing until it has come. */
   formMeta(): FormMeta {
@@ -91,7 +91,6 @@ export class EntityPageContext {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        padding: 24px;
         min-width: 0;
       }
     `,

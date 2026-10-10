@@ -26,7 +26,7 @@ import { RolePermissionsMatrixComponent } from './components/role-permissions-ma
 import {
   ModuleGroup,
   MODULE_ICON_MAP,
-  MODULE_NAME_KEY_MAP,
+  moduleDisplayName,
   buildModuleGroups,
   filterRoles,
   filterModuleGroups,
@@ -253,8 +253,7 @@ export class RolesComponent implements OnInit {
   }
 
   getModuleDisplayName(mod: string): string {
-    const key = MODULE_NAME_KEY_MAP[mod];
-    return key ? this.uiI18n.translate(key) : this.uiI18n.translate('iam.module_named', { name: mod.toUpperCase() });
+    return moduleDisplayName(mod, this.uiI18n);
   }
 
   totalActionsCount(): number {

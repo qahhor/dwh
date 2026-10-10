@@ -15147,6 +15147,9 @@
               "$ref" : "#/components/schemas/FormTabMeta"
             }
           },
+          "titleKey" : {
+            "type" : "string"
+          },
           "workflow" : {
             "$ref" : "#/components/schemas/FormWorkflowMeta"
           }

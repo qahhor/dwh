@@ -4507,6 +4507,7 @@ export interface components {
             layout?: components["schemas"]["FormSectionMeta"][];
             listCode?: string;
             tabs?: components["schemas"]["FormTabMeta"][];
+            titleKey?: string;
             workflow?: components["schemas"]["FormWorkflowMeta"];
         };
         FormSectionMeta: {

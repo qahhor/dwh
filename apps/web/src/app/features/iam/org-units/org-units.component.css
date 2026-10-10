@@ -3,7 +3,6 @@
   min-width: 0;
 }
 .page {
-  padding: 20px;
   color: var(--text-main);
 }
 h2 {
@@ -55,8 +54,5 @@ dd {
 @media (max-width: 720px) {
   .columns {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .page {
-    padding: 12px;
   }
 }

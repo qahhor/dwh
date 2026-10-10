@@ -101,9 +101,12 @@ public class FormMetaController {
     /**
      * An entity's form. A document also gives its collections with the fields of a row, its process and the tabs of
      * its card (ADR-0032, 9; plan 10/10, item 5.7); an entity without them answers without these properties.
+     * {@code titleKey} is the dictionary key of the entity's name (ADR-0031): its menu label, else the name of its
+     * right, so a screen never names the entity by its code.
      */
     public record FormMeta(
             String code,
+            @Nullable String titleKey,
             @Nullable String listCode,
             List<FormFieldMeta> fields,
             List<FormSectionMeta> layout,
@@ -145,6 +148,7 @@ public class FormMetaController {
         Set<String> readonly = EntityFieldRights.readonly(entity);
         return new FormMeta(
                 entity.code(),
+                titleKey(entity),
                 entity.listCode(),
                 entity.fields().stream()
                         .filter(field -> !hidden.contains(field.key()))
@@ -167,6 +171,12 @@ public class FormMetaController {
                 FormDocumentMetas.collections(entity, enumItems),
                 FormDocumentMetas.workflow(entity),
                 FormDocumentMetas.tabs(entity, viewable));
+    }
+
+    /** The dictionary key of the entity's name: its menu label, else the name of its right; null without either. */
+    public static @Nullable String titleKey(EntityDefinition entity) {
+        if (entity.menu() != null) return entity.menu().labelKey();
+        return entity.rights() != null ? entity.rights().nameKey() : null;
     }
 
     /**

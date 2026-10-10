@@ -96,8 +96,24 @@ describe('the general entity list /e/:code', () => {
     expect(root.querySelector('ui-export-button')).toBeNull();
     expect(root.querySelector('ui-list-views')).toBeNull();
     expect(root.querySelector('input[type="checkbox"]')).toBeNull();
-    // Without a menu item the entity is named by its code.
+    // Without a menu item and a title key the entity is named by its code.
     expect(root.querySelector('ui-page-header')?.textContent).toContain(CODE);
+  });
+
+  it('names the entity on its list by the title key of its form', async () => {
+    const meta: FormMeta = { ...META, titleKey: 'tasks.rights.form' };
+    const { root } = await renderEntityScreen(`/e/${CODE}`, { meta, list: LIST, records: ORDERS });
+    expect(root.querySelector('ui-page-header h1')?.textContent?.trim()).toBe(translateTest('tasks.rights.form'));
+  });
+
+  it('names the entity of a new record by its title, never by its code', async () => {
+    const meta: FormMeta = { ...META, titleKey: 'tasks.rights.form' };
+    const { root } = await renderEntityScreen(`/e/${CODE}/new`, { meta, list: LIST, records: ORDERS });
+    const header = root.querySelector('ui-page-header');
+    expect(header?.querySelector('.view-header__eyebrow')?.textContent?.trim()).toBe(
+      translateTest('tasks.rights.form'),
+    );
+    expect(header?.textContent).not.toContain(CODE);
   });
 
   it('starts with the filter a link gives, leaving out conditions on fields the list does not have', async () => {

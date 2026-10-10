@@ -128,7 +128,7 @@
           [id]="textareaId"
           class="md-textarea"
           [rows]="rows()"
-          [placeholder]="placeholder() || ('ui.markdown_editor.placeholder' | t)"
+          [placeholder]="placeholder()"
           [value]="value()"
           (input)="onTextInput($event)"
           (focus)="isFocused = true"
