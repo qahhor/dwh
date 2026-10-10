@@ -183,6 +183,56 @@ try {
     if ($streamMax -le $serverCap) { throw 'clamd StreamMaxLength must exceed the server scanner stream cap.' }
     if ($fileMax -lt $streamMax) { throw 'clamd MaxFileSize must not be below StreamMaxLength.' }
     if ($scanMax -lt $fileMax) { throw 'clamd MaxScanSize must not be below MaxFileSize.' }
+
+    # docs/ops/slo.md, section 7: the optional exporters overlay. The production file alone starts no exporter; with
+    # the overlay both are pinned by digest, unprivileged, unpublished, on internal networks only, and the monitoring
+    # role's password comes from a secret file.
+    foreach ($service in @('node-exporter', 'postgres-exporter')) {
+        if ($config.services.PSObject.Properties.Name -contains $service) {
+            throw "Production Compose must not start '$service' without the observability overlay."
+        }
+    }
+    $observabilityPath = Join-Path $repoRoot 'deploy/observability/docker-compose.observability.yml'
+    $previousMonitorPasswordFile = $env:MONITOR_DB_PASSWORD_FILE
+    $env:MONITOR_DB_PASSWORD_FILE = $unusedSecret
+    try {
+        $observedJsonText = & docker compose -f $composePath -f $observabilityPath --env-file $envPath config --format json
+        if ($LASTEXITCODE -ne 0) { throw 'Production Compose with the observability overlay failed config validation.' }
+    }
+    finally {
+        $env:MONITOR_DB_PASSWORD_FILE = $previousMonitorPasswordFile
+    }
+    $observed = $observedJsonText | ConvertFrom-Json
+    if (-not $observed.networks.monitoring.internal) { throw 'The monitoring network of the exporters must be internal.' }
+    if ($observed.services.server.networks.PSObject.Properties.Name -notcontains 'monitoring') {
+        throw 'The server must join the monitoring network so Prometheus scrapes it without the backend network.'
+    }
+    $exporterNetworks = @{ 'node-exporter' = @('monitoring'); 'postgres-exporter' = @('backend', 'monitoring') }
+    foreach ($service in $exporterNetworks.Keys) {
+        $exporter = $observed.services.$service
+        if ($null -eq $exporter) { throw "The observability overlay is missing '$service'." }
+        if ("$($exporter.image)" -notmatch ':v\d+\.\d+\.\d+@sha256:[a-f0-9]{64}$') { throw "'$service' must pin its image by version and digest." }
+        if ($null -ne $exporter.ports -and @($exporter.ports).Count -gt 0) { throw "'$service' must not publish a host port." }
+        if (-not $exporter.read_only) { throw "'$service' must run with a read-only root file system." }
+        if (@($exporter.cap_drop) -notcontains 'ALL') { throw "'$service' must drop all capabilities." }
+        if (@($exporter.security_opt) -notcontains 'no-new-privileges:true') { throw "'$service' must set no-new-privileges." }
+        if ("$($exporter.user)" -match '^0(:|$)|^root') { throw "'$service' must not run as root." }
+        $networks = @($exporter.networks.PSObject.Properties.Name | Sort-Object)
+        if (($networks -join ',') -ne ($exporterNetworks[$service] -join ',')) {
+            throw "'$service' must join only $($exporterNetworks[$service] -join ' and '), got $($networks -join ', ')."
+        }
+    }
+    foreach ($volume in @($observed.services.'node-exporter'.volumes)) {
+        if (-not $volume.read_only) { throw "node-exporter must mount the host path $($volume.source) read-only." }
+    }
+    $exporterEnv = $observed.services.'postgres-exporter'.environment
+    if ("$($exporterEnv.DATA_SOURCE_PASS_FILE)" -ne '/run/secrets/monitor_database_password') {
+        throw 'postgres-exporter must read the monitoring password from its secret file.'
+    }
+    foreach ($name in @('DATA_SOURCE_NAME', 'DATA_SOURCE_PASS')) {
+        if ($exporterEnv.PSObject.Properties.Name -contains $name) { throw "postgres-exporter must not take $name inline." }
+    }
+    if ("$($exporterEnv.DATA_SOURCE_URI)" -match '@') { throw 'postgres-exporter DATA_SOURCE_URI must not carry credentials.' }
 }
 finally {
     $env:DB_PASSWORD_FILE = $previousDbPasswordFile

@@ -111,7 +111,6 @@ export interface TaskComment {
   userId: number;
   userName: string | null;
   userLogin: string | null;
-  commentMarkdown?: string;
   textMarkdown?: string;
   createdAt: string;
   modifiedAt?: string;

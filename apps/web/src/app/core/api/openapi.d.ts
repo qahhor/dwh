@@ -3692,7 +3692,6 @@ export interface components {
             userId?: number;
         };
         AddCommentRequest: {
-            commentMarkdown?: string;
             fileIds?: string[];
             textMarkdown?: string;
         };

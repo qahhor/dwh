@@ -2,7 +2,7 @@
 
 **Версия:** 1.0
 
-**Обновлено:** 2026-10-07
+**Обновлено:** 2026-10-10
 
 **Алерты:** `SmartupcmsDbPoolStarved`, `SmartupcmsDiskSpaceCritical` (critical);
 `SmartupcmsDbPoolSaturated`, `SmartupcmsDiskSpaceLow` (warning) —
@@ -51,7 +51,9 @@
   миграцией); перезапуск `server` освобождает соединения, но не лечит причину.
 - Диск: увеличьте том; удаляйте только то, что разрешено политикой хранения
   (старые архивы журналов). Не удаляйте файлы хранилища и тома PostgreSQL.
-  Диски хоста и PostgreSQL сервер не видит — для них нужен node_exporter.
+  Диски хоста и PostgreSQL сервер не видит: их показывают необязательные
+  экспортеры, разбор — [RB-10](RB-10-host-disk.md) и
+  [RB-11](RB-11-postgresql-health.md).
 
 ## Эскалация и закрытие
 

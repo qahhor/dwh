@@ -1,0 +1,130 @@
+# Host and PostgreSQL rules over the optional exporters (ADR-0009, section 4; docs/ops/slo.md, section 7):
+# node-exporter (job smartupcms-node) and postgres-exporter (job smartupcms-postgres) of
+# deploy/observability/docker-compose.observability.yml. Without the overlay these series are absent and nothing
+# fires. Every alert has a promtool unit test in tests/infrastructure.yml and a runbook in docs/runbooks.
+groups:
+  - name: smartupcms-host-recording
+    interval: 30s
+    rules:
+      - record: smc:host_filesystem_avail_bytes
+        expr: max by (application, instance, device, mountpoint) (node_filesystem_avail_bytes{job="smartupcms-node"})
+      - record: smc:host_filesystem_free:ratio
+        expr: |
+          smc:host_filesystem_avail_bytes
+            / on (application, instance, device, mountpoint)
+          max by (application, instance, device, mountpoint) (node_filesystem_size_bytes{job="smartupcms-node"})
+
+  - name: smartupcms-postgres-recording
+    interval: 30s
+    rules:
+      - record: smc:pg_connections:ratio
+        expr: |
+          sum by (application, instance) (pg_stat_activity_count{job="smartupcms-postgres"})
+            / on (application, instance)
+          max by (application, instance) (pg_settings_max_connections{job="smartupcms-postgres"})
+      - record: smc:pg_database_size_bytes
+        expr: max by (application, instance, datname) (pg_database_size_bytes{job="smartupcms-postgres"})
+      - record: smc:pg_dead_tuples:ratio
+        expr: |
+          max by (application, instance, datname, schemaname, relname) (pg_stat_user_tables_n_dead_tup{job="smartupcms-postgres"})
+            / on (application, instance, datname, schemaname, relname)
+          clamp_min(
+            max by (application, instance, datname, schemaname, relname) (pg_stat_user_tables_n_dead_tup{job="smartupcms-postgres"})
+              + on (application, instance, datname, schemaname, relname)
+            max by (application, instance, datname, schemaname, relname) (pg_stat_user_tables_n_live_tup{job="smartupcms-postgres"}),
+            1)
+
+  - name: smartupcms-host
+    rules:
+      - alert: SmartupcmsHostExporterDown
+        expr: up{job="smartupcms-node"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "node-exporter on {{ $labels.instance }} is not scraped"
+          description: "Prometheus has not reached node-exporter for 10 minutes: host disk alerts are blind."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-10-host-disk.md"
+      - alert: SmartupcmsHostDiskSpaceLow
+        expr: smc:host_filesystem_free:ratio < 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Less than 20 % space left on {{ $labels.mountpoint }} of {{ $labels.instance }}"
+          description: "{{ $value | humanizePercentage }} of the host file system {{ $labels.mountpoint }} ({{ $labels.device }}) is free."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-10-host-disk.md"
+      - alert: SmartupcmsHostDiskSpaceCritical
+        expr: smc:host_filesystem_free:ratio < 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Less than 10 % space left on {{ $labels.mountpoint }} of {{ $labels.instance }}"
+          description: "{{ $value | humanizePercentage }} of {{ $labels.mountpoint }} is free: PostgreSQL, backups and uploads stop when it is full."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-10-host-disk.md"
+      - alert: SmartupcmsHostDiskFillingUp
+        expr: |
+          predict_linear(smc:host_filesystem_avail_bytes[6h], 24 * 3600) < 0
+            and on (application, instance, device, mountpoint)
+          smc:host_filesystem_free:ratio < 0.4
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.mountpoint }} of {{ $labels.instance }} fills up within a day"
+          description: "At the rate of the last six hours the host file system {{ $labels.mountpoint }} is full in less than 24 hours."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-10-host-disk.md"
+
+  - name: smartupcms-postgres
+    rules:
+      - alert: SmartupcmsPostgresExporterDown
+        expr: up{job="smartupcms-postgres"} == 0 or pg_up{job="smartupcms-postgres"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "postgres-exporter on {{ $labels.instance }} cannot read PostgreSQL"
+          description: "The exporter is not scraped or cannot sign in to PostgreSQL for 10 minutes: database alerts are blind."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-11-postgresql-health.md"
+      - alert: SmartupcmsPostgresConnectionsHigh
+        expr: smc:pg_connections:ratio > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL uses more than 80 % of max_connections"
+          description: "{{ $value | humanizePercentage }} of max_connections on {{ $labels.instance }} have been taken for 10 minutes."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-11-postgresql-health.md"
+      - alert: SmartupcmsPostgresConnectionsExhausted
+        expr: smc:pg_connections:ratio > 0.95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is about to refuse new connections"
+          description: "{{ $value | humanizePercentage }} of max_connections on {{ $labels.instance }} are taken: new sessions, migrations and backups fail."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-11-postgresql-health.md"
+      - alert: SmartupcmsPostgresDatabaseGrowthHigh
+        expr: |
+          (smc:pg_database_size_bytes - smc:pg_database_size_bytes offset 1d) / smc:pg_database_size_bytes offset 1d > 0.5
+            and smc:pg_database_size_bytes > 1073741824
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database {{ $labels.datname }} grew by more than half in a day"
+          description: "{{ $labels.datname }} on {{ $labels.instance }} grew by {{ $value | humanizePercentage }} within 24 hours."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-11-postgresql-health.md"
+      - alert: SmartupcmsPostgresDeadTuplesHigh
+        expr: |
+          smc:pg_dead_tuples:ratio > 0.2
+            and on (application, instance, datname, schemaname, relname)
+          max by (application, instance, datname, schemaname, relname) (pg_stat_user_tables_n_dead_tup{job="smartupcms-postgres"}) > 100000
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Table {{ $labels.schemaname }}.{{ $labels.relname }} carries many dead rows"
+          description: "{{ $value | humanizePercentage }} of the rows of {{ $labels.datname }}.{{ $labels.schemaname }}.{{ $labels.relname }} are dead for an hour: autovacuum does not keep up."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-11-postgresql-health.md"

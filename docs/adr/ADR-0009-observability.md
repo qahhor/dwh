@@ -14,9 +14,19 @@
 > Prometheus (recording и alerting) с юнит-тестами promtool и дашбордами
 > Grafana в JSON (`deploy/observability`); сбор, Alertmanager и Grafana
 > разворачивает оператор. SLO доступности — утверждённые 99.9 %, пороги
-> задержки — предложение до утверждения установкой (`NFR-PERF-02`). У каждого
+> задержки API — утверждённые владельцем продукта 2026-10-10 p95 ≤ 300 мс и
+> p99 ≤ 1 с (`NFR-PERF-02`). У каждого
 > алерта есть runbook в `docs/runbooks`. Описание —
 > [SLO, метрики и алерты](../ops/slo.md).
+>
+> **Экспортеры хоста и PostgreSQL (2026-10-10, решение владельца продукта).**
+> node_exporter и postgres_exporter раздела 4 поставляются необязательным
+> overlay `deploy/observability/docker-compose.observability.yml` (образы
+> `prom/node-exporter` и `prometheuscommunity/postgres-exporter` по digest,
+> read-only, без capabilities, внутренняя сеть `monitoring`, роль
+> мониторинга с `pg_monitor`). Алерты диска хоста (80/90 % раздела 4 и
+> прогноз заполнения) и PostgreSQL — `rules/infrastructure.yml`, runbook
+> RB-10 и RB-11; описание — [SLO, метрики и алерты](../ops/slo.md), раздел 7.
 
 ---
 

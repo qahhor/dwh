@@ -12982,9 +12982,6 @@
       "AddCommentRequest" : {
         "type" : "object",
         "properties" : {
-          "commentMarkdown" : {
-            "type" : "string"
-          },
           "fileIds" : {
             "type" : "array",
             "items" : {
