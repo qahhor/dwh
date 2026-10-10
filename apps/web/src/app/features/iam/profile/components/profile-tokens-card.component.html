@@ -5,14 +5,7 @@
       <h4 class="section-title">{{ 'iam.profile.tokens.title' | t }}</h4>
       <span class="badge-count">{{ tokens().length }}</span>
     </div>
-    <button
-      smt-button
-      type="button"
-      smtVariant="primary"
-      smtSize="sm"
-      smtIcon="add"
-      (click)="openCreateTokenModal.emit()"
-    >
+    <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="openCreateTokenModal()">
       {{ 'iam.profile.tokens.issue' | t }}
     </button>
   </div>
@@ -68,56 +61,49 @@
   [open]="isCreateTokenModalOpen()"
   [smtTitle]="'iam.profile.tokens.issue_title' | t"
   smtSize="sm"
-  (closed)="closeCreateTokenModal.emit()"
+  [dismissible]="!isCreatingToken()"
+  (closed)="requestCloseCreate()"
 >
   <ng-template smtDialogContent>
-    <div body class="token-form">
-      <div class="form-group">
-        <label class="form-label" for="profile-token-name"
-          >{{ 'iam.profile.tokens.token_name' | t }} <span class="req">*</span></label
-        >
+    <form
+      body
+      id="profile-token-form"
+      class="token-form"
+      uiFocusFirstInvalid
+      novalidate
+      (submit)="$event.preventDefault(); createTokenSubmit()"
+    >
+      <smt-control [smtLabel]="'iam.profile.tokens.token_name' | t" [smtError]="nameError()">
         <smt-input
           smtFieldId="profile-token-name"
-          name="profileTokenName"
-          required
-          [smtInvalid]="isTokenSubmitted() && !newTokenName().trim()"
-          [smtDescribedBy]="isTokenSubmitted() && !newTokenName().trim() ? 'profile-token-name-error' : null"
-          [value]="newTokenName()"
-          (valueChange)="nameChange.emit($event === null ? '' : '' + $event)"
+          smtFocusInitial
+          [formField]="tokenForm.name"
           [placeholder]="'iam.profile.tokens.name_placeholder' | t"
+          (edited)="clearErrors()"
         />
-        @if (isTokenSubmitted() && !newTokenName().trim()) {
-          <span id="profile-token-name-error" class="field-error">
-            {{ 'iam.profile.token_name_placeholder' | t }}
-          </span>
-        }
-      </div>
+      </smt-control>
 
-      <smt-control class="mt-3" [smtLabel]="'iam.profile.tokens.expiry' | t">
+      <smt-control [smtLabel]="'iam.profile.tokens.expiry' | t">
         <smt-radio-group
           smtAppearance="cards"
           smtOrientation="horizontal"
           [options]="expirationItems()"
-          [value]="selectedTokenExpiration()"
+          [value]="model().expiration"
           (valueChange)="onExpirationChosen($event)"
         />
       </smt-control>
-    </div>
-    <div footer>
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreateTokenModal.emit()">
-        {{ 'common.cancel' | t }}
-      </button>
-      <button
-        smt-button
-        type="button"
-        smtVariant="primary"
-        smtSize="md"
-        [smtLoading]="isCreatingToken()"
-        (click)="createTokenSubmit.emit()"
-      >
-        {{ 'iam.profile.tokens.generate' | t }}
-      </button>
-    </div>
+
+      @if (createError()) {
+        <smt-alert smtTone="danger">{{ createError() }}</smt-alert>
+      }
+    </form>
+    <ui-form-actions
+      footer
+      form="profile-token-form"
+      [submitLabel]="'iam.profile.tokens.generate' | t"
+      [submitting]="isCreatingToken()"
+      (cancelled)="requestCloseCreate()"
+    />
   </ng-template>
 </smt-dialog>
 
@@ -126,7 +112,7 @@
   [open]="isTokenSecretModalOpen()"
   [smtTitle]="'iam.profile.tokens.created' | t"
   smtSize="md"
-  (closed)="closeSecretModal.emit()"
+  (closed)="closeSecretModal()"
 >
   <ng-template smtDialogContent>
     <div body class="secret-reveal-body">
@@ -142,12 +128,12 @@
           [smtVariant]="copiedSecret() ? 'primary' : 'secondary'"
           smtSize="sm"
           [smtIcon]="copiedSecret() ? 'check' : 'content_copy'"
-          (click)="copySecret.emit()"
+          (click)="copySecret()"
         >
           {{ (copiedSecret() ? 'iam.profile.tokens.copied' : 'iam.profile.tokens.copy') | t }}
         </button>
       </div>
-      <button smt-button type="button" smtVariant="primary" smtSize="md" class="mt-4" (click)="closeSecretModal.emit()">
+      <button smt-button type="button" smtVariant="primary" smtSize="md" class="mt-4" (click)="closeSecretModal()">
         {{ 'iam.profile.tokens.saved_confirm' | t }}
       </button>
     </div>

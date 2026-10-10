@@ -1,8 +1,13 @@
 import { TestBed } from '@angular/core/testing';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+import { ToastService } from '@core/services/toast.service';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { tickInZone } from '@shared/ui-kit/testing/zone-tick';
 import { buttonText } from '@testing/button-text';
 import { inScreen } from '@testing/in-screen';
-import { ApiToken, TokenExpirationOption } from '../profile.models';
+import { ProfileApi } from '../profile.api';
+import { ApiToken, CreatedTokenResponse } from '../profile.models';
 import { ProfileTokensCardComponent } from './profile-tokens-card.component';
 
 describe('ProfileTokensCardComponent', () => {
@@ -21,120 +26,177 @@ describe('ProfileTokensCardComponent', () => {
     tokenPrefix: 'smt_cd34',
     createdAt: '2026-09-02T10:00:00Z',
   };
-  const lifetimes: TokenExpirationOption[] = [
-    { value: '30', labelKey: 'iam.profile.expiry_30_days' },
-    { value: '90', labelKey: 'iam.profile.expiry_90_days' },
-    { value: 'never', labelKey: 'iam.profile.no_expiry' },
-  ];
 
-  function setup(inputs: Record<string, unknown> = {}) {
+  function setup(create: () => Observable<CreatedTokenResponse> = () => of(created()), discard = true) {
+    const profile = { createToken: vi.fn(create) };
+    const toast = { success: vi.fn() };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ProfileApi, useValue: profile },
+        { provide: ToastService, useValue: toast },
+      ],
+    });
+    const confirmDialog = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(discard));
     const fixture = TestBed.createComponent(ProfileTokensCardComponent);
     fixture.componentRef.setInput('tokens', [deploy, sync]);
-    fixture.componentRef.setInput('tokenExpirationOptions', lifetimes);
-    for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
     const component = fixture.componentInstance;
-    const asked = {
-      open: vi.fn(),
-      close: vi.fn(),
-      create: vi.fn(),
-      name: vi.fn(),
-      expiration: vi.fn(),
-      closeSecret: vi.fn(),
-      copy: vi.fn(),
-      revoke: vi.fn(),
-    };
-    component.openCreateTokenModal.subscribe(asked.open);
-    component.closeCreateTokenModal.subscribe(asked.close);
-    component.createTokenSubmit.subscribe(asked.create);
-    component.nameChange.subscribe(asked.name);
-    component.expirationChange.subscribe(asked.expiration);
-    component.closeSecretModal.subscribe(asked.closeSecret);
-    component.copySecret.subscribe(asked.copy);
+    const asked = { changed: vi.fn(), revoke: vi.fn() };
+    component.changed.subscribe(asked.changed);
     component.requestRevoke.subscribe(asked.revoke);
+    document.body.appendChild(fixture.nativeElement);
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
     const screen = inScreen(host);
+    const settle = async () => {
+      tickInZone();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
     const byText = (text: string) =>
       (Array.from(screen.querySelectorAll('button')) as HTMLButtonElement[]).find((item) => buttonText(item) === text)!;
-    return { fixture, host, screen, byText, asked };
+    const typeName = async (value: string) => {
+      const name = screen.querySelector('#profile-token-name') as HTMLInputElement;
+      name.value = value;
+      name.dispatchEvent(new Event('input'));
+      await settle();
+      return name;
+    };
+    const open = async () => {
+      byText('Выпустить токен').click();
+      await settle();
+    };
+    return { fixture, component, host, screen, byText, typeName, open, settle, asked, profile, toast, confirmDialog };
+  }
+
+  function created(): CreatedTokenResponse {
+    return { record: deploy, rawSecretToken: 'smt_secret' } as CreatedTokenResponse;
   }
 
   it('lists the tokens by name and prefix, with no end date shown as never', () => {
     const { host } = setup();
 
-    expect(host.querySelector('.badge-count')?.textContent?.trim()).toBe('2');
     const rows = Array.from(host.querySelectorAll('.smt-data-row')) as HTMLElement[];
+    expect(rows).toHaveLength(2);
     expect(rows[0].textContent).toContain('CI deploy');
     expect(rows[0].textContent).toContain('smt_ab12...');
-    expect(rows[0].textContent).toContain('01.12.2026');
     expect(rows[1].textContent).toContain('Бессрочно');
   });
 
-  it('asks the page to issue a token and to revoke one by its named button', () => {
-    const { host, byText, asked } = setup();
+  it('asks the page to revoke a token by its named button', () => {
+    const { host, asked } = setup();
 
-    byText('Выпустить токен').click();
     (host.querySelector('button[aria-label="Отозвать API-токен Kafka sync"]') as HTMLButtonElement).click();
 
-    expect(asked.open).toHaveBeenCalledTimes(1);
     expect(asked.revoke).toHaveBeenCalledWith(sync);
   });
 
   it('says when there are no tokens', () => {
-    const { host } = setup({ tokens: [] });
+    const { fixture, host } = setup();
+    fixture.componentRef.setInput('tokens', []);
+    fixture.detectChanges();
 
     expect(host.querySelector('.empty-cell')?.textContent?.trim()).toBe('Нет созданных API токенов');
   });
 
-  it('passes the name and the chosen lifetime of a new token to the page', () => {
-    const { fixture, screen, asked } = setup({ isCreateTokenModalOpen: true, selectedTokenExpiration: '90' });
+  it('issues a token with the typed name and the chosen lifetime and shows its secret once', async () => {
+    const { component, screen, open, typeName, byText, settle, profile, asked } = setup();
+    await open();
     expect(screen.querySelector('.smt-modal__title').textContent).toBe('Выпуск нового API Токена');
     const radios = Array.from(screen.querySelectorAll('[role="radio"]')) as HTMLElement[];
-    expect(radios.map((radio) => radio.textContent?.trim())).toEqual(['30 дней', '90 дней', 'Бессрочно']);
-    expect(radios.map((radio) => radio.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
+    expect(radios.map((radio) => radio.textContent?.trim())).toEqual(['30 дней', '90 дней', '1 год', 'Бессрочно']);
+    expect(radios.map((radio) => radio.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false']);
 
-    const name = screen.querySelector('#profile-token-name') as HTMLInputElement;
-    name.value = 'Nightly export';
-    name.dispatchEvent(new Event('input'));
-    radios[2].click();
-    fixture.detectChanges();
+    await typeName('  Nightly export ');
+    radios[3].click();
+    await settle();
+    byText('Сгенерировать').click();
+    await settle();
 
-    expect(asked.name).toHaveBeenLastCalledWith('Nightly export');
-    expect(asked.expiration).toHaveBeenCalledWith('never');
-  });
-
-  it('asks for a name only after an attempt without one, and submits or cancels on request', () => {
-    const fresh = setup({ isCreateTokenModalOpen: true });
-    expect(fresh.screen.querySelector('#profile-token-name-error')).toBeNull();
-    fresh.byText('Сгенерировать').click();
-    fresh.byText('Отмена').click();
-    expect(fresh.asked.create).toHaveBeenCalledTimes(1);
-    expect(fresh.asked.close).toHaveBeenCalledTimes(1);
-    fresh.fixture.destroy();
-
-    const tried = setup({ isCreateTokenModalOpen: true, isTokenSubmitted: true, newTokenName: '  ' });
-    expect(tried.screen.querySelector('#profile-token-name-error').textContent).toContain(
-      'Введите название API-токена',
-    );
-    expect(tried.screen.querySelector('#profile-token-name').getAttribute('aria-describedby')).toBe(
-      'profile-token-name-error',
-    );
-  });
-
-  it('shows the new secret once, with a copy button that says when it has copied', () => {
-    const { fixture, screen, byText, asked } = setup({
-      isTokenSecretModalOpen: true,
-      createdTokenSecret: 'smt_secret',
-    });
+    expect(profile.createToken).toHaveBeenCalledWith('Nightly export', null);
+    expect(component.isCreateTokenModalOpen()).toBe(false);
     expect(screen.querySelector('.token-secret-box code').textContent).toBe('smt_secret');
+    expect(asked.changed).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the name required, explains an empty one under the field and focuses it', async () => {
+    const { screen, open, byText, settle, profile } = setup();
+    await open();
+    const name = screen.querySelector('#profile-token-name') as HTMLInputElement;
+    expect(name.getAttribute('aria-required')).toBe('true');
+    expect(name.hasAttribute('cdkFocusInitial')).toBe(true);
+    expect(screen.querySelector('.smt-control__error')).toBeNull();
+
+    byText('Сгенерировать').click();
+    await settle();
+    await settle();
+
+    expect(profile.createToken).not.toHaveBeenCalled();
+    expect(screen.querySelector('.smt-control__error').textContent).toContain('Введите название API-токена');
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(name);
+  });
+
+  it('issues one token while the first request runs, and shows a refusal in the dialog', async () => {
+    const pending = new Subject<CreatedTokenResponse>();
+    const { screen, open, typeName, byText, settle, profile } = setup(() => pending);
+    await open();
+    await typeName('Nightly');
+
+    byText('Сгенерировать').click();
+    byText('Сгенерировать').click();
+    expect(profile.createToken).toHaveBeenCalledTimes(1);
+
+    pending.error({ status: 500, detail: 'Сервер недоступен' });
+    await settle();
+    expect(screen.querySelector('[role="dialog"] [role="alert"]')?.textContent).toContain('Сервер недоступен');
+  });
+
+  it('puts the server word on the name under the field', async () => {
+    const { screen, open, typeName, byText, settle } = setup(() =>
+      throwError(() => ({ status: 422, errors: [{ field: 'name', code: 'X', message: 'Имя занято' }] })),
+    );
+    await open();
+    await typeName('Nightly');
+
+    byText('Сгенерировать').click();
+    await settle();
+
+    expect(screen.querySelector('.smt-control__error').textContent).toContain('Имя занято');
+  });
+
+  it('asks before a typed token is lost and closes an untouched one at once', async () => {
+    const { component, open, typeName, byText, settle, confirmDialog } = setup(undefined, false);
+    await open();
+    byText('Отмена').click();
+    expect(confirmDialog).not.toHaveBeenCalled();
+    expect(component.isCreateTokenModalOpen()).toBe(false);
+
+    await open();
+    await typeName('Nightly');
+    byText('Отмена').click();
+    await settle();
+    expect(confirmDialog).toHaveBeenCalledTimes(1);
+    expect(component.isCreateTokenModalOpen()).toBe(true);
+  });
+
+  it('shows the new secret with a copy button that says when it has copied', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const { fixture, component, byText, settle, toast } = setup();
+    component.createdTokenSecret.set('smt_secret');
+    component.isTokenSecretModalOpen.set(true);
+    await settle();
 
     byText('Скопировать').click();
-    fixture.componentRef.setInput('copiedSecret', true);
     fixture.detectChanges();
+    expect(writeText).toHaveBeenCalledWith('smt_secret');
+    expect(toast.success).toHaveBeenCalled();
     expect(byText('Скопировано!')).toBeTruthy();
     byText('Я сохранил токен').click();
+    await settle();
 
-    expect(asked.copy).toHaveBeenCalledTimes(1);
-    expect(asked.closeSecret).toHaveBeenCalledTimes(1);
+    expect(component.isTokenSecretModalOpen()).toBe(false);
+    expect(component.createdTokenSecret()).toBe('');
   });
 });

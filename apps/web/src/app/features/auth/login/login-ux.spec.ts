@@ -185,16 +185,14 @@ describe('Login form interactions', () => {
   it('puts a refusal the server ties to a field under that field', async () => {
     fillCredentials();
     submit();
-    http
-      .expectOne('/api/v1/auth/login')
-      .flush(
-        {
-          status: 422,
-          code: 'validation_failed',
-          errors: [{ field: 'login', code: 'NotBlank', message: 'Логин пуст' }],
-        },
-        { status: 422, statusText: 'Unprocessable Entity' },
-      );
+    http.expectOne('/api/v1/auth/login').flush(
+      {
+        status: 422,
+        code: 'validation_failed',
+        errors: [{ field: 'login', code: 'NotBlank', message: 'Логин пуст' }],
+      },
+      { status: 422, statusText: 'Unprocessable Entity' },
+    );
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();

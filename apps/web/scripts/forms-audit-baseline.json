@@ -43,23 +43,6 @@
     "dialog-footer": 1,
     "module-button-key": 2
   },
-  "features/iam/profile/components/profile-channels-card.component.html": {
-    "raw-label": 3,
-    "manual-required": 3,
-    "manual-error": 2,
-    "dialog-footer": 2
-  },
-  "features/iam/profile/components/profile-password-card.component.html": {
-    "raw-label": 3,
-    "manual-required": 3,
-    "manual-error": 3
-  },
-  "features/iam/profile/components/profile-tokens-card.component.html": {
-    "raw-label": 1,
-    "manual-required": 1,
-    "manual-error": 1,
-    "dialog-footer": 1
-  },
   "features/notes/note-form-dialog.component.html": {
     "dialog-footer": 1
   },

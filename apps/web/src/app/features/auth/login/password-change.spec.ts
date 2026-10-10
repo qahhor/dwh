@@ -7,7 +7,7 @@ import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
-import { ProfileComponent } from '@features/iam/profile/profile.component';
+import { ProfilePasswordCardComponent } from '@features/iam/profile/components/profile-password-card.component';
 import { LoginComponent } from './login.component';
 
 describe('Password change ends the old authenticated session', () => {
@@ -41,7 +41,7 @@ describe('Password change ends the old authenticated session', () => {
     response = new Subject<void>();
     api.post.mockImplementation(() => response.asObservable());
     await TestBed.configureTestingModule({
-      imports: [LoginComponent, ProfileComponent],
+      imports: [LoginComponent, ProfilePasswordCardComponent],
       providers: [
         AuthService,
         PermissionService,
@@ -127,41 +127,41 @@ describe('Password change ends the old authenticated session', () => {
   });
 
   it('clears profile password fields and local authentication only after a successful change', () => {
-    const fixture = TestBed.createComponent(ProfileComponent);
+    const fixture = TestBed.createComponent(ProfilePasswordCardComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    component.passwordForm.set({
+    component.model.set({
       oldPassword: 'Before-Change-2026!',
       newPassword: 'After-Change-2026!',
       confirmPassword: 'After-Change-2026!',
     });
-    component.submitChangePassword(new Event('submit'));
+    component.submit();
     expect(auth.isAuthenticated()).toBe(true);
     toast.error('Earlier failed password attempt');
 
     response.next();
     response.complete();
 
-    expect(component.passwordForm()).toEqual({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    expect(component.isChangingPassword()).toBe(false);
+    expect(component.model()).toEqual({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    expect(component.saving()).toBe(false);
     assertSignedOut();
   });
 
   it('preserves profile session and draft when changing the password fails', () => {
-    const fixture = TestBed.createComponent(ProfileComponent);
+    const fixture = TestBed.createComponent(ProfilePasswordCardComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    component.passwordForm.set({
+    component.model.set({
       oldPassword: 'Before-Change-2026!',
       newPassword: 'After-Change-2026!',
       confirmPassword: 'After-Change-2026!',
     });
-    component.submitChangePassword(new Event('submit'));
+    component.submit();
 
     response.error({ error: { detail: 'Не удалось сохранить пароль' } });
 
-    expect(component.passwordForm().newPassword).toBe('After-Change-2026!');
-    expect(component.isChangingPassword()).toBe(false);
+    expect(component.model().newPassword).toBe('After-Change-2026!');
+    expect(component.saving()).toBe(false);
     expect(auth.isAuthenticated()).toBe(true);
     expect(permissions.hasPermission('tasks.items', 'view')).toBe(true);
     expect(router.navigate).not.toHaveBeenCalled();
@@ -175,14 +175,14 @@ describe('Password change ends the old authenticated session', () => {
       api.get.mockReturnValueOnce(previousSession.asObservable());
       const observed = vi.fn();
       auth[method]().subscribe(observed);
-      const fixture = TestBed.createComponent(ProfileComponent);
+      const fixture = TestBed.createComponent(ProfilePasswordCardComponent);
       const component = fixture.componentInstance;
-      component.passwordForm.set({
+      component.model.set({
         oldPassword: 'Before-Change-2026!',
         newPassword: 'After-Change-2026!',
         confirmPassword: 'After-Change-2026!',
       });
-      component.submitChangePassword(new Event('submit'));
+      component.submit();
       response.next();
       response.complete();
       expect(auth.isAuthenticated()).toBe(false);
