@@ -1421,6 +1421,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "ui.control.max_length": "Максимальная длина — {count}",
   "ui.control.min": "Минимальное значение — {value}",
   "ui.control.max": "Максимальное значение — {value}",
+  "ui.form.error_summary": "Исправьте ошибки в форме: {count}",
   "ui.date.placeholder": "дд.мм.гггг",
   "ui.date.open_calendar": "Открыть календарь",
   "ui.date.dialog_label": "Выбор даты",

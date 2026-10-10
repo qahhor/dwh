@@ -1419,6 +1419,7 @@
   "ui.control.max_length": "Maximum length is {count}",
   "ui.control.min": "Must be at least {value}",
   "ui.control.max": "Must be at most {value}",
+  "ui.form.error_summary": "Fix the errors in the form: {count}",
   "ui.date.placeholder": "mm/dd/yyyy",
   "ui.date.open_calendar": "Open calendar",
   "ui.date.dialog_label": "Choose a date",

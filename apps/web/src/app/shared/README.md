@@ -60,6 +60,17 @@ Plan 10/10, item 2.8; ESLint refuses `FormsModule`, `ReactiveFormsModule` and
   `[(value)]="query"` or `[value]` + `(valueChange)`; `(edited)` fires on every
   keystroke when the screen needs that.
 
+The look and behaviour of every form follow
+`docs/guidelines/forms-ux-standard.md` (`npm run forms:audit`, part of
+`npm run lint`, checks its mechanical rules). Its building blocks:
+
+| Task                                                        | Block                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------ |
+| Button row: Cancel, then the primary action; spinner; guard | `ui-form-actions` (`footer` in a dialog)               |
+| Errors collected above the form (3 and more, or unplaced)   | `ui-form-error-summary`                                |
+| Focus the first invalid field on submit                     | `form[uiFocusFirstInvalid]`, `focusFirstInvalid()`     |
+| Field errors of a refused request by form field             | `problemFieldErrors()` (`shared/ui/problem-fields.ts`) |
+
 ## Requests
 
 A component asks its feature's typed data service (`<feature>.api.ts`), not
