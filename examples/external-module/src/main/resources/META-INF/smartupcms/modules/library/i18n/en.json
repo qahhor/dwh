@@ -1,4 +1,6 @@
 {
+  "library.module.name": "Library",
+  "library.module.description": "Books and lending them to readers",
   "nav.library_books": "Books",
   "library.books.rights.form": "Library books",
   "library.books.rights.view": "View books",

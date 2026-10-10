@@ -42,7 +42,7 @@ cms migration diff                           # что схема не знает
 
 | Команда | Что пишет |
 |---|---|
-| `module new <код>` | пакет с `package-info.java`, область права в `PermissionAreas` (код из одного сегмента — сам область, `ms.probe` — именованная область `probe`; ADR-0028), модуль в `ModuleBoundariesTest.MODULES` и владельца префикса таблиц в `ownerOf`, строку в `module-map.md`, манифест `apps/server/src/main/resources/META-INF/smartupcms/modules/<область>.json` ровно с полями ADR-0033, §6.2 (`code` — код модуля в реестре, он же область; `name`, `version` и `minPlatform` — плейсхолдеры версий сборки, зависимость `iam`) |
+| `module new <код>` | пакет с `package-info.java`, область права в `PermissionAreas` (код из одного сегмента — сам область, `ms.probe` — именованная область `probe`; ADR-0028), модуль в `ModuleBoundariesTest.MODULES` и владельца префикса таблиц в `ownerOf`, строку в `module-map.md`, манифест `apps/server/src/main/resources/META-INF/smartupcms/modules/<область>.json` ровно с полями ADR-0033, §6.2 (`code` — код модуля в реестре, он же область; `version` и `minPlatform` — плейсхолдеры версий сборки, зависимость `iam`) и название модуля `<область>.module.name` в каталогах ru/uz/en (`--title`, `--title-en`, `--title-uz`) с `i18n:sync-ru` |
 | `entity new <модуль> <сущность>` | объявление `<Модуль><Сущность>Entity` (поля `name`, `code`, `modifiedAt`, скоуп `all()`, архив, история, выгрузка, виды, массовые действия), при `--hooks` — хуки `…Hooks`, тест контракта `…ContractTest` (наследник кита), миграцию таблицы по ADR-0020 и §14.1 ADR-0032 (ревизия, `attributes` с проверкой, `archived_at`/`archived_by`, частичный уникальный индекс, индекс на каждый FK) и миграцию прав и реестра модулей, ключи ru/uz/en (`nav.<область>_<сущность>`, `<код>.col.*`, `<код>.rights.*`) с `i18n:sync-ru`, иконку пункта меню и модуля в реестре (`--icon`; без него — иконка уже объявленной сущности модуля, иначе `box`), таблицу в списке `SchemaOrderTest.attributesAreObjects`, строку порога покрытия и точку входа в строке модуля карты |
 | `entity add-field <код> <поле> --type <тип>` | поле в объявлении (импорт, константа вариантов, ключ в секции `main`), миграцию колонки (обязательное поле обязательно в форме, колонка допускает `null`, чтобы таблица с данными приняла миграцию), ключи подписи и вариантов. Типы: `text`, `textarea`, `markdown`, `email`, `phone`, `url`, `number`, `date`, `datetime`, `time`, `bool`, `select`, `money`, `ref` (`--target <код сущности>`; обязательную ссылку кит не придумает — значение в `fixture(...)`) |
 | `migration diff [--write <имя>]` | DDL того, чего схема не знает из объявлений: недостающая таблица — по соглашению §14.1, недостающая колонка — с типом поля и именами ADR-0020; колонку, которой нет в объявлении, не удаляет (удаление пишется руками) |
@@ -443,12 +443,15 @@ records, …})` рисует страницу настоящим роутеро�
    `@Bean`), в тестах — `com.smartup24.cms:platform-testkit` с
    `<type>pom</type>`. Ничего из `com.smartup24.cms.instance..` модуль не
    импортирует (`LibraryModuleBoundaryTest`).
-2. Манифест `META-INF/smartupcms/modules/<код>.json`: `code`, `name`,
+2. Манифест `META-INF/smartupcms/modules/<код>.json`: `code`,
    `version`, `minPlatform` (наименьшая версия API, на которой модуль
    работает), `dependencies`, `configuration` (класс `@Configuration` с бинами
    `EntityDefinition`, `EntityHooks`, `EntityActionHandler`), `migrations`
    (`db/modules/<код>`, свои номера `V`, история `flyway_module_<код>`),
-   `messages` (каталог `ru.json`, `uz.json`, `en.json` с ключами модуля),
+   `messages` (каталог `ru.json`, `uz.json`, `en.json` с ключами модуля;
+   название модуля — ключ `<код>.module.name` в каждом из трёх, описание —
+   `<код>.module.description`; без названия в каком-либо языке платформа не
+   стартует),
    `areas` (области прав, которые модуль держит кроме своего кода; обычно не
    нужно: код модуля и есть его область, ADR-0028).
    Неизвестное поле, модуль для более новой или другой MAJOR-версии API и

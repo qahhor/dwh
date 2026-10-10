@@ -1,6 +1,5 @@
 {
   "code": "audit",
-  "name": "Журнал аудита",
   "version": "${project.version}",
   "minPlatform": "${platform-api.version}",
   "dependencies": [

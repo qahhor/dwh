@@ -15587,6 +15587,9 @@
           "description" : {
             "type" : "string"
           },
+          "descriptionKey" : {
+            "type" : "string"
+          },
           "icon" : {
             "type" : "string"
           },
@@ -15615,6 +15618,9 @@
             "format" : "int32"
           },
           "status" : {
+            "type" : "string"
+          },
+          "titleKey" : {
             "type" : "string"
           },
           "version" : {

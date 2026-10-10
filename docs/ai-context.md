@@ -236,9 +236,11 @@ Observatory A+ — шаг релиза; строки журнала при ст�
 - **Фаза 6, 6.3 и 6.4** (ADR-0033): публичный API — `libs/platform-api`
   (`com.smartup24.cms.platform.api..`, `@PlatformApi`, japicmp против 1.0.0,
   `scripts/api/test-platform-api-compat.ps1`); манифест модуля
-  `META-INF/smartupcms/modules/<код>.json` (поля `code`, `name`, `version`,
-  `minPlatform`, `dependencies`, `configuration`, `migrations`, `messages`;
-  неизвестное поле останавливает старт); версия модуля — из манифеста, колонки
+  `META-INF/smartupcms/modules/<код>.json` (поля `code`, `version`,
+  `minPlatform`, `dependencies`, `areas`, `configuration`, `migrations`,
+  `messages`; неизвестное поле останавливает старт; название модуля — ключи
+  `<код>.module.name` (обязателен в ru/uz/en) и `<код>.module.description`
+  в каталогах, 2026-10-11); версия модуля — из манифеста, колонки
   `md_installed_modules.version` нет (V196); сравнение объявлений со схемой —
   `common.entity.EntitySchemaCheck` (`EntitySchemaGate` при старте,
   `EntitySchemaContractTest` в сборке); кит — артефакт `platform-testkit`;

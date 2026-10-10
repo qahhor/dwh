@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.springframework.cache.annotation.CacheEvict;
@@ -27,22 +28,32 @@ public class ModuleRegistryService {
     private final ModuleRegistryRepository moduleRepository;
     private final AuditLogService auditLogService;
     private final ModuleCatalog modules;
+    private final MdI18nCatalog catalog;
 
     public ModuleRegistryService(
-            ModuleRegistryRepository moduleRepository, AuditLogService auditLogService, ModuleCatalog modules) {
+            ModuleRegistryRepository moduleRepository,
+            AuditLogService auditLogService,
+            ModuleCatalog modules,
+            MdI18nCatalog catalog) {
         this.moduleRepository = moduleRepository;
         this.auditLogService = auditLogService;
         this.modules = modules;
+        this.catalog = catalog;
     }
 
     /**
      * A registered module; its version, the least platform API version it needs and its dependencies come from its
      * manifest (ADR-0033, 6.4) and are null or empty for a module registered through the API without code behind it.
+     * {@code titleKey} and {@code descriptionKey} are the catalog keys of the module's name and description in every
+     * language (ADR-0033, 6.2): the screen shows them instead of the registry's {@code name} and {@code description},
+     * which stay for a module without a manifest.
      */
     public record InstalledModuleView(
             String code,
             String name,
             String description,
+            @Nullable String titleKey,
+            @Nullable String descriptionKey,
             @Nullable String version,
             @Nullable String minPlatform,
             List<ModuleDependencyView> dependencies,
@@ -57,11 +68,15 @@ public class ModuleRegistryService {
             long revision)
             implements Revisioned {
         public static InstalledModuleView from(
-                ModuleRegistryRepository.InstalledModuleRecord r, @Nullable ModuleManifest manifest) {
+                ModuleRegistryRepository.InstalledModuleRecord r,
+                @Nullable ModuleManifest manifest,
+                @Nullable String descriptionKey) {
             return new InstalledModuleView(
                     r.code(),
                     r.name(),
                     r.description(),
+                    manifest == null ? null : manifest.titleKey(),
+                    descriptionKey,
                     manifest == null ? null : manifest.version().toString(),
                     manifest == null ? null : manifest.minPlatform().toString(),
                     manifest == null
@@ -87,13 +102,21 @@ public class ModuleRegistryService {
     public record ModuleDependencyView(String code, String version) {}
 
     private InstalledModuleView view(ModuleRegistryRepository.InstalledModuleRecord record) {
-        return InstalledModuleView.from(record, modules.find(record.code()).orElse(null));
+        ModuleManifest manifest = modules.find(record.code()).orElse(null);
+        String descriptionKey =
+                manifest != null && russian(manifest.descriptionKey()) != null ? manifest.descriptionKey() : null;
+        return InstalledModuleView.from(record, manifest, descriptionKey);
+    }
+
+    private @Nullable String russian(String key) {
+        return catalog.bundled("ru").get(key);
     }
 
     /**
      * Gives a module whose manifest is on the classpath a row in the registry, switched on and not a system one, when
      * it has none yet (ADR-0033, 6.4): a module outside the monorepo is installed by putting its jar on the classpath.
-     * The row of a module that has one already stays as it is. Answers the codes registered now.
+     * The row of a module that has one already stays as it is; the row's name and description are the Russian texts
+     * of the module's catalog keys. Answers the codes registered now.
      */
     @Transactional
     @Caching(
@@ -105,7 +128,15 @@ public class ModuleRegistryService {
     public List<String> registerManifests() {
         List<String> registered = new ArrayList<>();
         for (ModuleManifest manifest : modules.manifests()) {
-            var record = registration(manifest.code(), manifest.name(), "", null, null, 100, Map.of());
+            String description = russian(manifest.descriptionKey());
+            var record = registration(
+                    manifest.code(),
+                    Objects.requireNonNullElse(russian(manifest.titleKey()), manifest.code()),
+                    description != null ? description : "",
+                    null,
+                    null,
+                    100,
+                    Map.of());
             if (moduleRepository.insertModule(record).isPresent()) {
                 auditRegistration(record);
                 registered.add(manifest.code());

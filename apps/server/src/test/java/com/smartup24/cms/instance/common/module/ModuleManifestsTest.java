@@ -26,7 +26,6 @@ class ModuleManifestsTest {
                 .toList();
         return new ModuleManifest(
                 code,
-                code,
                 PlatformVersion.parse(version),
                 PlatformVersion.parse(minPlatform),
                 dependencies,
@@ -40,7 +39,7 @@ class ModuleManifestsTest {
     @Test
     void readsAManifest() {
         ModuleManifest manifest = parse("library.json", """
-                {"code": "library", "name": "Library", "version": "1.2.0", "minPlatform": "1.0.0",
+                {"code": "library", "version": "1.2.0", "minPlatform": "1.0.0",
                  "dependencies": [{"code": "iam", "version": "1.0.0"}],
                  "configuration": "com.acme.library.LibraryModule", "migrations": "db/modules/library",
                  "messages": "META-INF/smartupcms/modules/library/i18n"}
@@ -51,30 +50,34 @@ class ModuleManifestsTest {
                 .containsExactly(new ModuleManifest.Dependency("iam", PlatformVersion.parse("1.0.0")));
         assertThat(manifest.configuration()).isEqualTo("com.acme.library.LibraryModule");
         assertThat(manifest.historyTable()).isEqualTo("flyway_module_library");
+        assertThat(manifest.titleKey()).isEqualTo("library.module.name");
+        assertThat(manifest.descriptionKey()).isEqualTo("library.module.description");
     }
 
     @Test
     void refusesAMalformedManifestNamingItsFile() {
         assertThatThrownBy(() -> parse("library.json", """
-                        {"code": "library", "name": "L", "version": "1.2.0", "minPlatfrom": "1.0.0"}
+                        {"code": "library", "version": "1.2.0", "minPlatfrom": "1.0.0"}
                         """))
                 .isInstanceOf(ModuleManifestException.class)
                 .hasMessageContaining("test:library.json")
                 .hasMessageContaining("unknown field minPlatfrom");
         assertThatThrownBy(() -> parse("other.json", """
-                        {"code": "library", "name": "L", "version": "1.2.0", "minPlatform": "1.0.0"}
+                        {"code": "library", "version": "1.2.0", "minPlatform": "1.0.0"}
                         """)).hasMessageContaining("named library.json");
         assertThatThrownBy(() -> parse("library.json", """
-                        {"code": "library", "name": "L", "version": "1.2", "minPlatform": "1.0.0"}
+                        {"code": "library", "version": "1.2", "minPlatform": "1.0.0"}
                         """)).hasMessageContaining("MAJOR.MINOR.PATCH");
         assertThatThrownBy(() -> parse("library.json", "[1]")).hasMessageContaining("JSON object");
         assertThatThrownBy(() -> parse("library.json", """
-                        {"code": "library", "name": "L", "version": "1.0.0", "minPlatform": "1.0.0",
+                        {"code": "library", "version": "1.0.0", "minPlatform": "1.0.0",
                          "dependencies": [{"code": "iam"}]}
                         """)).hasMessageContaining("no version");
         assertThatThrownBy(() -> parse("library.json", """
-                        {"code": "library", "name": 7, "version": "1.0.0", "minPlatform": "1.0.0"}
-                        """)).hasMessageContaining("name is a string");
+                        {"code": "library", "name": "Library", "version": "1.0.0", "minPlatform": "1.0.0"}
+                        """))
+                .as("ADR-0033, 6.2: the name lives in the catalogs under library.module.name")
+                .hasMessageContaining("unknown field name");
         assertThatThrownBy(() -> module("library", "1.0.0", "1.0.0", "library@1.0.0"))
                 .hasMessageContaining("depends on itself");
     }
@@ -121,18 +124,18 @@ class ModuleManifestsTest {
     @Test
     void readsThePermissionAreasAndRefusesOneHeldTwice() {
         ModuleManifest iam = parse("iam.json", """
-                {"code": "iam", "name": "IAM", "version": "1.0.0", "minPlatform": "1.0.0", "areas": ["md"]}
+                {"code": "iam", "version": "1.0.0", "minPlatform": "1.0.0", "areas": ["md"]}
                 """);
         assertThat(iam.areas()).containsExactly("md");
         assertThat(iam.holds("md")).isTrue();
         assertThat(iam.holds("iam")).isTrue();
         assertThat(iam.holds("tasks")).isFalse();
         assertThatThrownBy(() -> parse("iam.json", """
-                        {"code": "iam", "name": "IAM", "version": "1.0.0", "minPlatform": "1.0.0", "areas": ["Md"]}
+                        {"code": "iam", "version": "1.0.0", "minPlatform": "1.0.0", "areas": ["Md"]}
                         """)).hasMessageContaining("bad permission area Md");
 
         ModuleManifest other = parse("crm.json", """
-                {"code": "crm", "name": "CRM", "version": "1.0.0", "minPlatform": "1.0.0", "areas": ["md"]}
+                {"code": "crm", "version": "1.0.0", "minPlatform": "1.0.0", "areas": ["md"]}
                 """);
         assertThat(ModuleManifests.problems(List.of(iam, other), PLATFORM))
                 .containsExactly("permission area md of module crm is held by module iam");

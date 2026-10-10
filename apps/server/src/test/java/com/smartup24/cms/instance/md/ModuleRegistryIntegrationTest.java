@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.common.module.ModuleCatalog;
 import com.smartup24.cms.instance.common.module.ModuleManifest;
 import com.smartup24.cms.instance.common.module.ModuleManifests;
 import com.smartup24.cms.instance.md.repository.ModuleRegistryRepository;
+import com.smartup24.cms.instance.md.service.MdI18nCatalog;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.platform.api.PlatformVersion;
@@ -35,6 +36,10 @@ class ModuleRegistryIntegrationTest {
     static ModuleCatalog catalog;
     static ModuleManifest newModule;
     static ModuleRegistryService withNewModule;
+    static MdI18nCatalog libraryTexts;
+
+    /** The messages of the test's library module: its name and description in ru, uz and en (ADR-0033, 6.2). */
+    private static final String LIBRARY_MESSAGES = "test-modules/library/i18n";
 
     @BeforeAll
     static void setup() {
@@ -46,26 +51,23 @@ class ModuleRegistryIntegrationTest {
         var auditService = new AuditLogService(auditRepo, null, new AuditDataRedactor());
         catalog = new ModuleCatalog(
                 PlatformVersion.current(), ModuleManifests.read(ModuleRegistryIntegrationTest.class.getClassLoader()));
-        moduleService = new ModuleRegistryService(repo, auditService, catalog);
+        moduleService = new ModuleRegistryService(repo, auditService, catalog, new MdI18nCatalog(mapper, catalog));
         newModule = new ModuleManifest(
                 "library",
-                "Library",
                 PlatformVersion.parse("1.2.0"),
                 PlatformVersion.parse("1.0.0"),
                 List.of(new ModuleManifest.Dependency("iam", PlatformVersion.parse("1.0.0"))),
                 List.of(),
                 "com.acme.library.LibraryModule",
                 null,
-                null,
+                LIBRARY_MESSAGES,
                 "test");
-        withNewModule = new ModuleRegistryService(
-                repo,
-                auditService,
-                new ModuleCatalog(
-                        PlatformVersion.current(),
-                        ModuleManifests.inDependencyOrder(
-                                Stream.concat(catalog.manifests().stream(), Stream.of(newModule))
-                                        .toList())));
+        var withLibrary = new ModuleCatalog(
+                PlatformVersion.current(),
+                ModuleManifests.inDependencyOrder(Stream.concat(catalog.manifests().stream(), Stream.of(newModule))
+                        .toList()));
+        libraryTexts = new MdI18nCatalog(mapper, withLibrary);
+        withNewModule = new ModuleRegistryService(repo, auditService, withLibrary, libraryTexts);
     }
 
     @Test
@@ -82,8 +84,13 @@ class ModuleRegistryIntegrationTest {
                 .as("every module the migrations register has a manifest")
                 .filteredOn(module -> MIGRATED.contains(module.code()))
                 .hasSize(MIGRATED.size())
-                .allSatisfy(
-                        module -> assertThat(module.version()).as(module.code()).isNotNull());
+                .allSatisfy(module -> {
+                    assertThat(module.version()).as(module.code()).isNotNull();
+                    assertThat(module.titleKey()).as(module.code()).isEqualTo(module.code() + ".module.name");
+                    assertThat(module.descriptionKey())
+                            .as(module.code())
+                            .isEqualTo(module.code() + ".module.description");
+                });
     }
 
     @Test
@@ -96,7 +103,13 @@ class ModuleRegistryIntegrationTest {
         var library = withNewModule.getModule("library").orElseThrow();
         assertThat(library.status()).isEqualTo("ACTIVE");
         assertThat(library.isSystem()).isFalse();
-        assertThat(library.name()).isEqualTo("Library");
+        assertThat(library.name())
+                .as("the row takes the Russian name of the module's catalog key")
+                .isEqualTo(libraryTexts.bundled("ru").get("library.module.name"))
+                .isNotBlank();
+        assertThat(library.description()).isEqualTo(libraryTexts.bundled("ru").get("library.module.description"));
+        assertThat(library.titleKey()).isEqualTo("library.module.name");
+        assertThat(library.descriptionKey()).isEqualTo("library.module.description");
         assertThat(library.version()).isEqualTo("1.2.0");
         assertThat(library.minPlatform()).isEqualTo("1.0.0");
         assertThat(library.dependencies())
@@ -173,6 +186,10 @@ class ModuleRegistryIntegrationTest {
                 .as("a module without a manifest has no version")
                 .isNull();
         assertThat(registered.name()).isEqualTo("Управление складом");
+        assertThat(registered.titleKey())
+                .as("a module without a manifest is shown by the registry's own name")
+                .isNull();
+        assertThat(registered.descriptionKey()).isNull();
 
         var found = moduleService.getModule("inventory");
         assertThat(found).isPresent();

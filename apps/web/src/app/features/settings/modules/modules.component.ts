@@ -8,6 +8,7 @@ import { ToastService } from '@core/services/toast.service';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
+import { moduleDescription, moduleTitle } from '@core/services/module.service';
 import { InstalledModule, ModuleFilterTab } from './modules.models';
 import { ModulesStatsComponent } from './components/modules-stats.component';
 import { ModulesToolbarComponent } from './components/modules-toolbar.component';
@@ -139,9 +140,9 @@ export class ModulesComponent {
       list = list.filter((m) => {
         const code = (m.code || m.moduleCode || '').toLowerCase();
         return (
-          m.name.toLowerCase().includes(q) ||
+          this.title(m).toLowerCase().includes(q) ||
           code.includes(q) ||
-          (m.description && m.description.toLowerCase().includes(q))
+          moduleDescription(m, this.translate).toLowerCase().includes(q)
         );
       });
     }
@@ -159,6 +160,8 @@ export class ModulesComponent {
         }),
       ),
   });
+
+  private readonly translate = (key: string) => this.i18n.translate(key);
 
   canManage(): boolean {
     return this.permissions.canManage('md.modules');
@@ -195,7 +198,9 @@ export class ModulesComponent {
           ),
         );
         this.toast.success(
-          this.i18n.translate(targetActive ? 'modules.msg.activated' : 'modules.msg.deactivated', { name: mod.name }),
+          this.i18n.translate(targetActive ? 'modules.msg.activated' : 'modules.msg.deactivated', {
+            name: this.title(mod),
+          }),
         );
       },
       error: () => {
@@ -208,5 +213,9 @@ export class ModulesComponent {
 
   trackByModuleCode(_index: number, item: InstalledModule): string {
     return item.code || item.moduleCode || '';
+  }
+
+  private title(mod: InstalledModule): string {
+    return moduleTitle(mod, this.translate);
   }
 }

@@ -55,9 +55,9 @@ public class LibraryModule {
 | Часть | Где |
 |---|---|
 | Зависимости | `platform-api` и `spring-context` — `provided`; `platform-testkit` (`<type>pom</type>`) — `test` |
-| Манифест | `META-INF/smartupcms/modules/<код>.json`: `code`, `name`, `version`, `minPlatform`, `dependencies`, `configuration`, `migrations`, `messages` |
+| Манифест | `META-INF/smartupcms/modules/<код>.json`: `code`, `version`, `minPlatform`, `dependencies`, `configuration`, `migrations`, `messages` |
 | Миграции | `db/modules/<код>`, свои номера `V`, история `flyway_module_<код>` |
-| Ключи | `META-INF/smartupcms/modules/<код>/i18n/{ru,uz,en}.json` |
+| Ключи | `META-INF/smartupcms/modules/<код>/i18n/{ru,uz,en}.json`; название модуля `<код>.module.name` обязательно в каждом языке, описание `<код>.module.description` — по желанию |
 | Отказ хука | `EntityRefusal` (сторонний модуль не видит `ApiException`) |
 
 ## Тест

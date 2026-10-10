@@ -37,6 +37,7 @@ import {
   fieldKeys,
   fieldMigration,
   moduleManifest,
+  moduleKeys,
   moduleMapRow,
   packageInfo,
   rightsMigration,
@@ -47,7 +48,10 @@ import {
 
 const ICON = /^[a-z][a-z0-9_-]{0,40}$/;
 
-/** `cms module new <code>`: the package with its purpose, the permission area, the module lists and the manifest. */
+/**
+ * `cms module new <code>`: the package with its purpose, the permission area, the module lists, the manifest and the
+ * module's name in the catalogs.
+ */
 export function moduleNew(plan, code, values) {
   if (!code) throw new CliError('Usage: cms module new <code> [--title <ru>] [--title-en <en>] [--title-uz <uz>]');
   if (values.external) {
@@ -58,6 +62,7 @@ export function moduleNew(plan, code, values) {
 
   plan.create(`${module.javaDir}/package-info.java`, packageInfo(module), 'the module and its purpose');
   plan.create(module.manifest, moduleManifest(module), 'module manifest');
+  planKeys(plan, moduleKeys(module), { sync: !values['no-sync'] });
   plan.patch(PATHS.permissionAreas, (text) => addPermissionArea(text, module), `area ${module.area} -> ${module.code}`);
   plan.patch(PATHS.moduleBoundaries, (text) => addBoundaryModule(text, module), `module ${module.code}`);
   plan.patch(PATHS.moduleMap, (text) => addModuleMapRow(text, module, moduleMapRow(module)), `row ${module.code}`);

@@ -30,15 +30,7 @@ public final class ModuleManifests {
 
     private static final String PATTERN = "classpath*:" + LOCATION + "*.json";
     private static final Set<String> FIELDS = Set.of(
-            "code",
-            "name",
-            "version",
-            "minPlatform",
-            "dependencies",
-            "areas",
-            "configuration",
-            "migrations",
-            "messages");
+            "code", "version", "minPlatform", "dependencies", "areas", "configuration", "migrations", "messages");
     private static final Set<String> DEPENDENCY_FIELDS = Set.of("code", "version");
     private static final JsonMapper JSON = JsonMapper.shared();
 
@@ -104,7 +96,6 @@ public final class ModuleManifests {
             }
             return new ModuleManifest(
                     code,
-                    required(root, "name"),
                     PlatformVersion.parse(required(root, "version")),
                     PlatformVersion.parse(required(root, "minPlatform")),
                     dependencies,

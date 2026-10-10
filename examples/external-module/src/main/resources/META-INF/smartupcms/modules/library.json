@@ -1,6 +1,5 @@
 {
   "code": "library",
-  "name": "Библиотека",
   "version": "1.2.0",
   "minPlatform": "1.0.0",
   "dependencies": [

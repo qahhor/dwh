@@ -13,6 +13,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { moduleTitle } from '@core/services/module.service';
 import { InstalledModule } from '../modules.models';
 
 /**
@@ -36,9 +37,9 @@ import { InstalledModule } from '../modules.models';
 
     <ng-template #moduleCell let-mod>
       <div class="module-info">
-        <span class="module-name">{{ mod.name }}</span>
-        @if (mod.description) {
-          <span class="module-desc">{{ mod.description }}</span>
+        <span class="module-name">{{ mod.titleKey ? (mod.titleKey | t) : mod.name }}</span>
+        @if (mod.descriptionKey || mod.description) {
+          <span class="module-desc">{{ mod.descriptionKey ? (mod.descriptionKey | t) : mod.description }}</span>
         }
       </div>
     </ng-template>
@@ -70,7 +71,10 @@ import { InstalledModule } from '../modules.models';
           [checked]="mod.isActive"
           [disabled]="mod.isSystem || togglingCode() === mod.code"
           [title]="mod.isSystem ? ('modules.system_cannot_disable' | t) : ''"
-          [smtAriaLabel]="(mod.isActive ? 'modules.action.disable' : 'modules.action.enable') | t: { name: mod.name }"
+          [smtAriaLabel]="
+            (mod.isActive ? 'modules.action.disable' : 'modules.action.enable')
+              | t: { name: mod.titleKey ? (mod.titleKey | t) : mod.name }
+          "
           (smtUserChange)="moduleToggle.emit({ module: mod, enabled: $event })"
         />
         @if (mod.isSystem) {
@@ -138,7 +142,7 @@ export class ModulesTableComponent {
   });
 
   readonly sortValues = {
-    module: (mod: InstalledModule) => mod.name,
+    module: (mod: InstalledModule) => moduleTitle(mod, (key) => this.i18n.translate(key)),
     code: (mod: InstalledModule) => mod.code,
     version: (mod: InstalledModule) => mod.version ?? '',
     type: (mod: InstalledModule) => (mod.isSystem ? 0 : 1),
