@@ -41,27 +41,15 @@
         <p role="alert">{{ saveError.detail || ('iam.data_scope.save_error' | t) }}</p>
       }
       @if (can('assign')) {
-        <div class="actions">
-          <button
-            smt-button
-            type="button"
-            smtVariant="secondary"
-            [disabled]="pending() || !dirty"
-            (click)="cancelEdits()"
-          >
-            {{ 'iam.org_units.cancel' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            data-action="save-rule"
-            [smtLoading]="pending()"
-            [disabled]="!dirty || confirmationOpen()"
-            (click)="save()"
-          >
-            {{ 'iam.org_units.save' | t }}
-          </button>
-        </div>
+        <!-- Nothing to save until a rule is chosen: the explicit "Save" of an editor (forms standard, section 6). -->
+        <ui-form-actions
+          class="actions"
+          data-rule-actions
+          [submitting]="pending()"
+          [submitDisabled]="!dirty || confirmationOpen()"
+          (submitted)="save()"
+          (cancelled)="cancelEdits()"
+        />
       }
     }
   }
@@ -82,27 +70,26 @@
         </p>
         <p>{{ 'iam.data_scope.widest_rule_warning' | t }}</p>
       </div>
-      <div footer class="actions">
-        <button smt-button type="button" smtVariant="secondary" [disabled]="pending()" (click)="closeConfirmation()">
-          {{ 'iam.org_units.cancel' | t }}
-        </button>
-        <button smt-button type="button" [smtLoading]="pending()" (click)="confirmSave()">
-          {{ 'iam.org_units.confirm_save' | t }}
-        </button>
-      </div>
+      <ui-form-actions
+        footer
+        [submitLabel]="'iam.org_units.confirm_save' | t"
+        [submitting]="pending()"
+        (submitted)="confirmSave()"
+        (cancelled)="closeConfirmation()"
+      />
     </ng-template>
   </smt-dialog>
   <smt-dialog [open]="discard.open()" [smtTitle]="'iam.data_scope.discard_title' | t" (closed)="discard.cancel()">
     <ng-template smtDialogContent>
       <p body>{{ 'iam.data_scope.discard_warning' | t }}</p>
-      <div footer class="actions">
-        <button smt-button type="button" smtVariant="secondary" (click)="discard.cancel()">
-          {{ 'iam.org_units.keep_editing' | t }}
-        </button>
-        <button smt-button type="button" smtVariant="danger" (click)="discard.confirm()">
-          {{ 'iam.org_units.discard' | t }}
-        </button>
-      </div>
+      <ui-form-actions
+        footer
+        submitVariant="danger"
+        [cancelLabel]="'iam.org_units.keep_editing' | t"
+        [submitLabel]="'iam.org_units.discard' | t"
+        (submitted)="discard.confirm()"
+        (cancelled)="discard.cancel()"
+      />
     </ng-template>
   </smt-dialog>
 }

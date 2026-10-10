@@ -28,3 +28,16 @@ export function discardChangesQuestion(): DiscardChangesQuestion {
         })
       : of(true);
 }
+
+/** Whether a form's values differ from the ones it opened with; text is compared without outer spaces. */
+export function formChanged<T extends object>(initial: T, current: T): boolean {
+  const keys = new Set([...Object.keys(initial), ...Object.keys(current)]) as Set<keyof T>;
+  for (const key of keys) {
+    const before = initial[key];
+    const after = current[key];
+    const same =
+      typeof before === 'string' && typeof after === 'string' ? before.trim() === after.trim() : before === after;
+    if (!same) return true;
+  }
+  return false;
+}

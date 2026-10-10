@@ -17,6 +17,7 @@ import { loginToInstance } from '../../../support/auth.js';
 import { loadE2eEnv } from '../../../support/env.mjs';
 import { clearSecret, fillSecret } from '../../../support/secret.js';
 import { inviteUser, runUserAction } from '../../../support/users.js';
+import { fieldName } from '../../../support/fields.js';
 
 const environment = loadE2eEnv();
 const desktopViewport = { width: 1366, height: 900 } as const;
@@ -72,7 +73,7 @@ async function expectLoginSurface(page: Page): Promise<void> {
   await expect(page).toHaveTitle('SmartupCMS');
   await expect(page).toHaveURL(/\/login(?:\?.*)?$/u);
   await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
-  await expect(page.getByLabel('Пароль', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel(fieldName('Пароль'))).toHaveValue('');
   await expect.poll(() => page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
@@ -86,7 +87,7 @@ async function expectLoginSurface(page: Page): Promise<void> {
 async function submitCredentials(page: Page, login: string, passwordValue: string, expectedAlert?: RegExp): Promise<LoginOutcome> {
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(login);
-  const password = page.getByLabel('Пароль', { exact: true });
+  const password = page.getByLabel(fieldName('Пароль'));
   try {
     await fillSecret(password, passwordValue);
     await page.getByRole('button', { name: 'Войти в систему' }).click();
@@ -195,8 +196,8 @@ test.describe.serial('authentication generation password-change acceptance', () 
     );
 
     if (initialOutcome === 'mandatory-change') {
-      const next = page.getByLabel('Новый пароль', { exact: true });
-      const confirmation = page.getByLabel('Повторите новый пароль', { exact: true });
+      const next = page.getByLabel(fieldName('Новый пароль'));
+      const confirmation = page.getByLabel(fieldName('Повторите новый пароль'));
       try {
         await fillSecret(next, rotatedInstancePassword);
         await fillSecret(confirmation, rotatedInstancePassword);

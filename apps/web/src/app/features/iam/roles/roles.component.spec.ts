@@ -205,7 +205,7 @@ describe('RolesComponent', () => {
     const { fixture, page, first, panel } = await withRole([role(1, 'Первая'), third]);
     api().post.mockReturnValue(created.asObservable());
     panel.selectRule('SELF');
-    page.roleForms.newRoleForm = { name: third.name, orderNo: 0 };
+    page.roleForms.newRole.set({ name: third.name, orderNo: 0 });
     page.submitCreateRole();
 
     created.next(third);
@@ -321,7 +321,7 @@ describe('RolesComponent', () => {
     api().get.mockImplementation((path: string) => roleResponse(path, renamed));
 
     page.roleForms.openEditRoleModal(page.matrix.selectedRole()!);
-    page.roleForms.editRoleForm.name = 'Переименована';
+    page.roleForms.editRole.update((value) => ({ ...value, name: 'Переименована' }));
     page.submitEditRole();
 
     expect(api().patch.mock.calls[0][2]).toEqual(expect.objectContaining({ ifMatch: 3 }));

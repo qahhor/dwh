@@ -143,7 +143,11 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     const action = () => fixture.nativeElement.querySelector('#select-grant-action') as HTMLButtonElement;
 
     expect(form.getAttribute('role')).toBe('combobox');
-    expect(fixture.nativeElement.querySelector('label[for="select-grant-form"]')).not.toBeNull();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('label[for="select-grant-form"]')?.textContent).toContain(
+      'iam.users.permissions.form',
+    );
     expect(fixture.nativeElement.querySelector('label[for="select-grant-action"]')).not.toBeNull();
     expect(action().disabled).toBe(true);
 
@@ -172,6 +176,32 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     expect(component.selectedFormCode()).toBe('');
     expect(component.selectedAction()).toBe('');
     expect(action().disabled).toBe(true);
+  });
+
+  it('keeps the add button enabled and says which picker is still empty', async () => {
+    const { fixture } = await createFixture({ canAssign: true });
+    const component = fixture.componentInstance;
+    const add = fixture.nativeElement.querySelector('.grant-add') as HTMLButtonElement;
+    const errors = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.add-grant-form .smt-control__error')).map((node) =>
+        (node as HTMLElement).textContent?.trim(),
+      );
+
+    expect(add.disabled).toBe(false);
+    add.click();
+    fixture.detectChanges();
+    expect(errors()).toEqual(['iam.users.permissions.form_required']);
+    expect(component.personalGrants()).toHaveLength(1);
+
+    component.onFormSelect('md.users');
+    fixture.detectChanges();
+    expect(errors()).toEqual(['iam.users.permissions.action_required']);
+
+    component.selectedAction.set('update');
+    add.click();
+    fixture.detectChanges();
+    expect(errors()).toEqual([]);
+    expect(component.personalGrants()).toContainEqual({ form: 'md.users', action: 'update' });
   });
 
   it('saves personal grants via PUT /iam/users/{userId}/permissions and displays success toast', async () => {

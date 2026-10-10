@@ -7,6 +7,7 @@ import { loadE2eEnv } from '../../../support/env.mjs';
 import { Mailbox, oneTimeCode, resetToken } from '../../../support/mailpit.js';
 import { clearSecret, fillSecret } from '../../../support/secret.js';
 import { runUserAction } from '../../../support/users.js';
+import { fieldName } from '../../../support/fields.js';
 
 // Plan 10/10, item 0.8: delivery by real SMTP. The stack sends to Mailpit (scripts/dev/e2e-mail.compose.yml); every
 // code and link below is read from a mailed message and typed into the UI the way a person would, never printed.
@@ -51,7 +52,7 @@ async function readJson<T>(response: APIResponse, expected: number, operation: s
 async function submitPassword(page: Page, login: string, password: string): Promise<'tasks' | 'otp'> {
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(login);
-  const field = page.getByLabel('Пароль', { exact: true });
+  const field = page.getByLabel(fieldName('Пароль'));
   try {
     await fillSecret(field, password);
     await page.getByRole('button', { name: 'Войти в систему' }).click();

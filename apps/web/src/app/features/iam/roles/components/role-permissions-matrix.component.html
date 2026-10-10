@@ -97,9 +97,9 @@
 <div class="matrix-toolbar-box">
   <div class="search-and-expand-row">
     <div class="matrix-search-field">
-      <label class="sr-only" for="permission-search">{{ 'iam.roles.matrix.search' | t }}</label>
       <smt-input
         smtFieldId="permission-search"
+        [smtAriaLabel]="'iam.roles.matrix.search' | t"
         name="permissionSearch"
         type="search"
         smtIcon="search"

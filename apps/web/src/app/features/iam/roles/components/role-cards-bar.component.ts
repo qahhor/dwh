@@ -13,9 +13,9 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
       <div class="roles-strip-header">
         <span class="strip-title">{{ 'iam.roles.select_role_hint' | t }}</span>
         <div class="search-field">
-          <label class="sr-only" for="role-search">{{ 'iam.roles.search' | t }}</label>
           <smt-input
             smtFieldId="role-search"
+            [smtAriaLabel]="'iam.roles.search' | t"
             name="roleSearch"
             type="search"
             smtIcon="search"

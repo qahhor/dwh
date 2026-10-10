@@ -1,65 +1,31 @@
-<form [id]="formId" (submit)="$event.preventDefault(); submit()">
-  @if (error(); as error) {
-    <p role="alert">{{ error.detail || ('iam.org_units.save_error' | t) }}</p>
+<form [id]="formId" uiFocusFirstInvalid novalidate (submit)="$event.preventDefault(); submit()">
+  @if (formError()) {
+    <smt-alert smtTone="danger">{{ formError() }}</smt-alert>
   }
-  @if (attempted && !valid) {
-    <p role="alert">{{ 'iam.org_units.validation' | t }}</p>
-  }
-  <fieldset [disabled]="pending() || impactOpen">
+  <fieldset>
     <legend class="sr-only">{{ 'iam.org_units.details' | t }}</legend>
-    <label [for]="formId + '-code'">{{ 'iam.org_units.code' | t }}</label>
-    <smt-input
-      [smtFieldId]="formId + '-code'"
-      name="code"
-      [(value)]="draft.code"
-      required
-      [readonly]="editing"
-      [smtInvalid]="!!fieldError('code')"
-      [smtDescribedBy]="fieldError('code') ? formId + '-code-error' : null"
-    />
-    @if (fieldError('code'); as message) {
-      <small [id]="formId + '-code-error'">{{ message }}</small>
-    }
-    <label [for]="formId + '-name'">{{ 'iam.org_units.name' | t }}</label>
-    <smt-input
-      [smtFieldId]="formId + '-name'"
-      name="name"
-      [(value)]="draft.name"
-      required
-      [smtInvalid]="!!fieldError('name')"
-      [smtDescribedBy]="fieldError('name') ? formId + '-name-error' : null"
-    />
-    @if (fieldError('name'); as message) {
-      <small [id]="formId + '-name-error'">{{ message }}</small>
-    }
-    <label [for]="formId + '-kind'">{{ 'iam.org_units.kind' | t }}</label>
-    <smt-select
-      [smtTriggerId]="formId + '-kind'"
-      name="kind"
-      [(value)]="draft.kind"
-      required
-      [allowClear]="false"
-      [options]="kindOptions()"
-      [smtInvalid]="!!fieldError('kind')"
-      [smtDescribedBy]="fieldError('kind') ? formId + '-kind-error' : null"
-    />
-    @if (fieldError('kind'); as message) {
-      <small [id]="formId + '-kind-error'">{{ message }}</small>
-    }
-    @if (editing && original.parentId !== null) {
-      <label [for]="formId + '-parent'">{{ 'iam.org_units.parent' | t }}</label>
-      <smt-tree-select
-        [smtTriggerId]="formId + '-parent'"
-        name="parentId"
-        [(value)]="draft.parentId"
-        [nodes]="parentTree"
-        [invalid]="!!fieldError('parentId')"
-        [smtDescribedBy]="fieldError('parentId') ? formId + '-parent-error' : null"
+    <smt-control
+      [smtLabel]="'iam.org_units.code' | t"
+      [smtHint]="editing ? ('iam.org_units.code_readonly' | t) : ''"
+      [smtError]="serverError('code')"
+    >
+      <smt-input [smtFieldId]="formId + '-code'" [smtFocusInitial]="!editing" [formField]="unitForm.code" />
+    </smt-control>
+    <smt-control [smtLabel]="'iam.org_units.name' | t" [smtError]="serverError('name')">
+      <smt-input [smtFieldId]="formId + '-name'" [smtFocusInitial]="editing" [formField]="unitForm.name" />
+    </smt-control>
+    <smt-control [smtLabel]="'iam.org_units.kind' | t" [smtError]="serverError('kind')">
+      <smt-select
+        [smtTriggerId]="formId + '-kind'"
+        [formField]="unitForm.kind"
+        [allowClear]="false"
+        [options]="kindOptions()"
       />
-
-      @if (fieldError('parentId'); as message) {
-        <small [id]="formId + '-parent-error'">{{ message }}</small>
-      }
+    </smt-control>
+    @if (editing && original.parentId !== null) {
+      <smt-control [smtLabel]="'iam.org_units.parent' | t" [smtError]="serverError('parentId')">
+        <smt-tree-select [smtTriggerId]="formId + '-parent'" [formField]="unitForm.parentId" [nodes]="parentTree" />
+      </smt-control>
     } @else {
       <p>
         {{ (original.parentId === null ? 'iam.org_units.root' : 'iam.org_units.parent') | t
@@ -67,60 +33,43 @@
       </p>
     }
     @if (editing) {
-      <label [for]="formId + '-state'">{{ 'iam.org_units.state' | t }}</label>
-      <smt-select
-        [smtTriggerId]="formId + '-state'"
-        name="state"
-        [(value)]="draft.state"
-        [allowClear]="false"
-        [options]="stateOptions()"
-        [smtInvalid]="!!fieldError('state')"
-        [smtDescribedBy]="fieldError('state') ? formId + '-state-error' : null"
+      <smt-control [smtLabel]="'iam.org_units.state' | t" [smtError]="serverError('state')">
+        <smt-select
+          [smtTriggerId]="formId + '-state'"
+          [formField]="unitForm.state"
+          [allowClear]="false"
+          [options]="stateOptions()"
+        />
+      </smt-control>
+    }
+    <smt-control [smtLabel]="'iam.org_units.order' | t" [smtError]="serverError('orderNo')">
+      <smt-input
+        [smtFieldId]="formId + '-order'"
+        type="number"
+        [smtStep]="1"
+        [smtMin]="-2147483648"
+        [smtMax]="2147483647"
+        [formField]="unitForm.orderNo"
       />
-      @if (fieldError('state'); as message) {
-        <small [id]="formId + '-state-error'">{{ message }}</small>
-      }
-    }
-    <label [for]="formId + '-order'">{{ 'iam.org_units.order' | t }}</label>
-    <smt-input
-      [smtFieldId]="formId + '-order'"
-      name="orderNo"
-      type="number"
-      [smtStep]="1"
-      [smtMin]="-2147483648"
-      [smtMax]="2147483647"
-      [(value)]="draft.orderNo"
-      required
-      [smtInvalid]="!!fieldError('orderNo')"
-      [smtDescribedBy]="fieldError('orderNo') ? formId + '-order-error' : null"
-    />
-    @if (fieldError('orderNo'); as message) {
-      <small [id]="formId + '-order-error'">{{ message }}</small>
-    }
+    </smt-control>
   </fieldset>
-  <div class="actions">
-    <button
-      smt-button
-      type="button"
-      smtVariant="secondary"
-      [disabled]="pending() || impactOpen"
-      (click)="cancelEdit.emit()"
-    >
-      {{ 'iam.org_units.cancel' | t }}
-    </button>
-    <button smt-button type="submit" [smtLoading]="pending()" [disabled]="!dirty || !valid || impactOpen">
-      {{ 'iam.org_units.save' | t }}
-    </button>
-  </div>
+  <ui-form-actions
+    class="actions"
+    [form]="formId"
+    [submitting]="pending()"
+    [submitDisabled]="impactOpen() || (editing && !dirty)"
+    (cancelled)="cancelEdit.emit()"
+  />
 </form>
-<smt-dialog [open]="impactOpen" [smtTitle]="'iam.org_units.impact_title' | t" (closed)="impactOpen = false">
+<smt-dialog [open]="impactOpen()" [smtTitle]="'iam.org_units.impact_title' | t" (closed)="impactOpen.set(false)">
   <ng-template smtDialogContent>
     <p body>{{ 'iam.org_units.impact_warning' | t }}</p>
-    <div footer class="actions">
-      <button smt-button type="button" smtVariant="secondary" (click)="impactOpen = false">
-        {{ 'iam.org_units.cancel' | t }}
-      </button>
-      <button smt-button type="button" (click)="confirmImpact()">{{ 'iam.org_units.confirm_save' | t }}</button>
-    </div>
+    <ui-form-actions
+      footer
+      [submitLabel]="'iam.org_units.confirm_save' | t"
+      [submitting]="pending()"
+      (submitted)="confirmImpact()"
+      (cancelled)="impactOpen.set(false)"
+    />
   </ng-template>
 </smt-dialog>

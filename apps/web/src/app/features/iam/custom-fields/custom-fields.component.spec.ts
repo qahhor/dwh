@@ -7,6 +7,7 @@ import { ToastService } from '@core/services/toast.service';
 import { CustomField } from '@core/models/custom-field.models';
 import { CustomFieldsComponent } from './custom-fields.component';
 import { inScreen } from '@testing/in-screen';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 
 describe('CustomFieldsComponent', () => {
   async function createFixture(initialFields: CustomField[] = []) {
@@ -39,6 +40,8 @@ describe('CustomFieldsComponent', () => {
       button.textContent?.includes('Добавить поле'),
     ) as HTMLButtonElement;
     addButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.componentInstance.showModal()).toBe(true);
@@ -394,16 +397,54 @@ describe('CustomFieldsComponent', () => {
     expect(fixture.componentInstance.formData().code).toBe('my_code_');
   });
 
-  it('validates reserved codes and rejects them', async () => {
-    const { fixture, toast } = await createFixture();
+  it('validates reserved codes under the code field and sends nothing', async () => {
+    const { fixture, toast, api } = await createFixture();
     fixture.detectChanges();
 
     fixture.componentInstance.openCreateModal();
     fixture.componentInstance.formData.update((data) => ({ ...data, code: 'status', name: 'Test' }));
     fixture.componentInstance.saveField();
 
-    expect(fixture.componentInstance.formError()).not.toBe('');
-    expect(toast.error).toHaveBeenCalled();
+    const code = fixture.componentInstance.fieldForm.code();
+    expect(code.touched()).toBe(true);
+    expect(code.errors()[0].message).toBe('Этот код поля зарезервирован системой');
+    expect(api.post).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('puts the field messages of a refused create under the fields instead of a toast', async () => {
+    const { fixture, toast, api } = await createFixture();
+    api.post.mockReturnValueOnce(
+      throwError(() => ({ status: 422, errors: [{ field: 'options', code: 'X', message: 'Пустой список' }] })),
+    );
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+    page.openCreateModal();
+    page.formData.update((data) => ({ ...data, code: 'kind', name: 'Тип', fieldType: 'select', optionsText: 'a' }));
+
+    page.saveField();
+
+    expect(page.serverErrors()).toEqual({ fields: { optionsText: 'Пустой список' }, other: [] });
+    expect(page.showModal()).toBe(true);
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('closes an untouched dialog at once and asks before changes are lost', async () => {
+    const { fixture } = await createFixture();
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+
+    page.openCreateModal();
+    page.requestCloseModal();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(page.showModal()).toBe(false);
+
+    page.openCreateModal();
+    page.formData.update((data) => ({ ...data, name: 'Бюджет' }));
+    page.requestCloseModal();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(page.showModal()).toBe(true);
   });
 
   it('toggles sort direction on repeated column click', async () => {

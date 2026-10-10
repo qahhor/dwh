@@ -1,7 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+import { ToastService } from '@core/services/toast.service';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { tickInZone } from '@shared/ui-kit/testing/zone-tick';
 import { buttonText } from '@testing/button-text';
 import { inScreen } from '@testing/in-screen';
+import { ProfileApi } from '../profile.api';
 import { UserChannel } from '../profile.models';
 import { ProfileChannelsCardComponent } from './profile-channels-card.component';
 
@@ -23,29 +28,69 @@ describe('ProfileChannelsCardComponent', () => {
     createdAt: '2026-09-02T10:00:00Z',
   };
 
-  function setup(inputs: { channels?: UserChannel[]; canManageChannels?: boolean } = {}) {
+  function setup(
+    inputs: { channels?: UserChannel[]; canManageChannels?: boolean } = {},
+    api: {
+      bind?: () => Observable<{ verifyToken: string }>;
+      confirm?: () => Observable<void>;
+      discard?: boolean;
+    } = {},
+  ) {
+    const profile = {
+      bindChannel: vi.fn(api.bind ?? (() => of({ verifyToken: 'token-1' }))),
+      confirmChannel: vi.fn(api.confirm ?? (() => of(undefined))),
+    };
+    const toast = { success: vi.fn(), info: vi.fn(), error: vi.fn() };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ProfileApi, useValue: profile },
+        { provide: ToastService, useValue: toast },
+      ],
+    });
+    const confirmDialog = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(api.discard ?? true));
     const fixture = TestBed.createComponent(ProfileChannelsCardComponent);
     fixture.componentRef.setInput('channels', inputs.channels ?? [mail, telegram]);
     fixture.componentRef.setInput('canManageChannels', inputs.canManageChannels ?? true);
     const component = fixture.componentInstance;
-    const asked = { bind: vi.fn(), confirm: vi.fn(), unbind: vi.fn() };
-    component.bindChannel.subscribe(asked.bind);
-    component.confirmChannel.subscribe(asked.confirm);
+    const asked = { changed: vi.fn(), unbind: vi.fn() };
+    component.changed.subscribe(asked.changed);
     component.unbindChannel.subscribe(asked.unbind);
+    document.body.appendChild(fixture.nativeElement);
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
     const screen = inScreen(host);
+    const settle = async () => {
+      tickInZone();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
     const button = (label: string) => screen.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement | null;
     const byText = (text: string) =>
       (Array.from(screen.querySelectorAll('button')) as HTMLButtonElement[]).find((item) => buttonText(item) === text)!;
-    const type = (id: string, value: string) => {
+    const type = async (id: string, value: string) => {
       const field = screen.querySelector(`#${id}`) as HTMLInputElement;
       field.value = value;
       field.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
+      await settle();
       return field;
     };
-    return { fixture, component, host, screen, button, byText, type, asked };
+    const errorText = () => screen.querySelector('[role="dialog"] .smt-control__error')?.textContent?.trim();
+    return {
+      fixture,
+      component,
+      host,
+      screen,
+      button,
+      byText,
+      type,
+      settle,
+      asked,
+      profile,
+      toast,
+      confirmDialog,
+      errorText,
+    };
   }
 
   it('lists the channels with their kind and whether each is confirmed', () => {
@@ -66,15 +111,27 @@ describe('ProfileChannelsCardComponent', () => {
     expect(host.querySelector('.empty-cell')?.textContent).toContain('Каналы связи не привязаны');
   });
 
-  it('offers confirming only an unconfirmed channel and unbinding any, and asks the page for both', () => {
-    const { button, asked } = setup();
+  it('sends a new code to an unconfirmed channel and asks the page to unbind any', async () => {
+    const { button, asked, profile, component, settle } = setup();
 
     expect(button('Подтвердить anna@example.test кодом')).toBeNull();
     button('Подтвердить @anna кодом')!.click();
     button('Отвязать anna@example.test')!.click();
+    await settle();
 
-    expect(asked.bind).toHaveBeenCalledWith({ channel: 'telegram', address: '@anna' });
+    expect(profile.bindChannel).toHaveBeenCalledWith('telegram', '@anna');
+    expect(component.isConfirmModalOpen()).toBe(true);
+    expect(asked.changed).toHaveBeenCalledTimes(1);
     expect(asked.unbind).toHaveBeenCalledWith(mail);
+  });
+
+  it('reports a refused new code of a listed channel in one toast', async () => {
+    const { button, toast, settle } = setup({}, { bind: () => throwError(() => ({ detail: 'Слишком часто' })) });
+
+    button('Подтвердить @anna кодом')!.click();
+    await settle();
+
+    expect(toast.error).toHaveBeenCalledWith('Слишком часто');
   });
 
   it('offers no channel changes to a viewer who may not manage them', () => {
@@ -85,43 +142,117 @@ describe('ProfileChannelsCardComponent', () => {
     expect(button('Отвязать anna@example.test')).toBeNull();
   });
 
-  it('asks for an address before sending the code, then sends it trimmed', () => {
-    const { fixture, screen, byText, type, asked } = setup();
+  it('explains an empty address under the field, then sends it trimmed and opens the code dialog', async () => {
+    const { screen, byText, type, settle, profile, errorText, component } = setup();
     byText('Привязать канал').click();
-    fixture.detectChanges();
+    await settle();
     expect(screen.querySelector('.smt-modal__title').textContent).toBe('Привязка канала связи');
-    expect(screen.querySelector('label[for="profile-channel-address"]')).not.toBeNull();
-
-    byText('Отправить код').click();
-    fixture.detectChanges();
     const address = screen.querySelector('#profile-channel-address') as HTMLInputElement;
-    expect(asked.bind).not.toHaveBeenCalled();
-    expect(screen.querySelector('#profile-channel-address-error').textContent).toContain('Адрес канала обязателен');
-    expect(address.getAttribute('aria-describedby')).toBe('profile-channel-address-error');
+    expect(screen.querySelector('label[for="profile-channel-address"]')).not.toBeNull();
+    expect(address.getAttribute('aria-required')).toBe('true');
+    expect(address.hasAttribute('cdkFocusInitial')).toBe(true);
 
-    type('profile-channel-address', '  anna@work.test ');
     byText('Отправить код').click();
+    await settle();
+    await settle();
+    expect(profile.bindChannel).not.toHaveBeenCalled();
+    expect(errorText()).toBe('Адрес канала обязателен');
+    expect(address.getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(address);
 
-    expect(asked.bind).toHaveBeenCalledWith({ channel: 'email', address: 'anna@work.test' });
+    await type('profile-channel-address', '  anna@work.test ');
+    byText('Отправить код').click();
+    await settle();
+
+    expect(profile.bindChannel).toHaveBeenCalledWith('email', 'anna@work.test');
+    expect(component.isBindModalOpen()).toBe(false);
+    expect(component.isConfirmModalOpen()).toBe(true);
+    expect(component.activeVerifyToken()).toBe('token-1');
   });
 
-  it('confirms a channel only with a six-digit code', () => {
-    const { fixture, component, screen, byText, type, asked } = setup();
+  it('puts the server word on the address under the field and other refusals in an alert', async () => {
+    let answer: Observable<{ verifyToken: string }> = throwError(() => ({
+      status: 422,
+      errors: [{ field: 'address', code: 'X', message: 'Неверный адрес' }],
+    }));
+    const { screen, byText, type, settle, errorText } = setup({}, { bind: () => answer });
+    byText('Привязать канал').click();
+    await settle();
+    await type('profile-channel-address', 'anna');
+
+    byText('Отправить код').click();
+    await settle();
+    expect(errorText()).toBe('Неверный адрес');
+
+    answer = throwError(() => ({ status: 409, detail: 'Этот адрес уже привязан' }));
+    byText('Отправить код').click();
+    await settle();
+    expect(screen.querySelector('[role="dialog"] [role="alert"]')?.textContent).toContain('Этот адрес уже привязан');
+  });
+
+  it('sends one code request while the first is running', async () => {
+    const pending = new Subject<{ verifyToken: string }>();
+    const { byText, type, settle, profile } = setup({}, { bind: () => pending });
+    byText('Привязать канал').click();
+    await settle();
+    await type('profile-channel-address', 'anna@work.test');
+
+    byText('Отправить код').click();
+    byText('Отправить код').click();
+
+    expect(profile.bindChannel).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks before a typed address is lost', async () => {
+    const { byText, type, settle, confirmDialog, component } = setup({}, { discard: false });
+    byText('Привязать канал').click();
+    await settle();
+    byText('Отмена').click();
+    expect(confirmDialog).not.toHaveBeenCalled();
+    expect(component.isBindModalOpen()).toBe(false);
+
+    byText('Привязать канал').click();
+    await settle();
+    await type('profile-channel-address', 'anna@work.test');
+    byText('Отмена').click();
+    expect(confirmDialog).toHaveBeenCalledTimes(1);
+    expect(component.isBindModalOpen()).toBe(true);
+  });
+
+  it('confirms a channel only with a six-digit code', async () => {
+    const { component, screen, byText, type, settle, profile, asked, errorText } = setup();
     component.openConfirmModal('token-1', '@anna');
-    fixture.detectChanges();
+    await settle();
     expect(screen.querySelector('.confirm-info-text').textContent).toContain('@anna');
 
-    type('profile-channel-code', '123');
+    await type('profile-channel-code', '123');
     byText('Подтвердить').click();
-    fixture.detectChanges();
-    expect(asked.confirm).not.toHaveBeenCalled();
-    expect(screen.querySelector('#profile-channel-code-error').textContent).toContain(
-      'Код должен содержать ровно 6 цифр',
+    await settle();
+    expect(profile.confirmChannel).not.toHaveBeenCalled();
+    expect(errorText()).toBe('Код должен содержать ровно 6 цифр');
+
+    await type('profile-channel-code', '123456');
+    byText('Подтвердить').click();
+    await settle();
+
+    expect(profile.confirmChannel).toHaveBeenCalledWith('token-1', '123456');
+    expect(component.isConfirmModalOpen()).toBe(false);
+    expect(asked.changed).toHaveBeenCalledTimes(1);
+  });
+
+  it('puts a wrong code under the code field', async () => {
+    const { component, byText, type, settle, errorText } = setup(
+      {},
+      { confirm: () => throwError(() => ({ code: 'otp_invalid', detail: 'Неверный код' })) },
     );
+    component.openConfirmModal('token-1', '@anna');
+    await settle();
+    await type('profile-channel-code', '123456');
 
-    type('profile-channel-code', '123456');
     byText('Подтвердить').click();
+    await settle();
 
-    expect(asked.confirm).toHaveBeenCalledWith({ verifyToken: 'token-1', code: '123456' });
+    expect(errorText()).toBe('Неверный код');
+    expect(component.isConfirmModalOpen()).toBe(true);
   });
 });

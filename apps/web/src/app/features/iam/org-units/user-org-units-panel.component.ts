@@ -27,6 +27,7 @@ import { TreeRow } from '@shared/ui-kit/components/tree-table/tree.utils';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { OrgUnitTreeRows, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
 import { isRevisionConflict, SaveErrorNotifier } from '@shared/ui/save-errors';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import {
   emptyScopeKey,
   latestRevision,
@@ -49,6 +50,7 @@ import { OrgUnit, UserScope } from './org-units.models';
     SMTDialogContentDirective,
     SMTTreeTableComponent,
     SMTInputComponent,
+    UiFormActionsComponent,
   ],
   templateUrl: './user-org-units-panel.component.html',
   styleUrl: './user-org-units-panel.component.css',

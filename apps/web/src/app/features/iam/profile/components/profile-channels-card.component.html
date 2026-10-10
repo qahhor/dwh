@@ -56,7 +56,7 @@
         smtSize="sm"
         smtIcon="verified"
         [attr.aria-label]="'iam.confirm_channel_named' | t: { address: c.address }"
-        [smtLoading]="isConfirmingChannel()"
+        [smtLoading]="isBindingChannel() && activeVerifyAddress() === c.address"
         (click)="requestConfirm(c)"
       >
         {{ 'iam.profile.channels.confirm_with_code' | t }}
@@ -86,60 +86,48 @@
   [open]="isBindModalOpen()"
   [smtTitle]="'iam.profile.channels.bind_title' | t"
   smtSize="sm"
-  (closed)="closeBindModal()"
+  [dismissible]="!isBindingChannel()"
+  (closed)="requestCloseBind()"
 >
   <ng-template smtDialogContent>
-    <div body class="channel-form">
-      <div class="form-group">
-        <label class="form-label" for="profile-channel-type">
-          {{ 'iam.profile.channels.channel_type' | t }} <span class="req">*</span>
-        </label>
+    <form
+      body
+      id="profile-channel-bind-form"
+      class="channel-form"
+      uiFocusFirstInvalid
+      novalidate
+      (submit)="$event.preventDefault(); submitBind()"
+    >
+      <smt-control [smtLabel]="'iam.profile.channels.channel_type' | t">
         <smt-select
           smtTriggerId="profile-channel-type"
-          name="channelType"
-          [(value)]="selectedChannelType"
+          [formField]="bindForm.channel"
           [options]="channelTypeOptions()"
           [allowClear]="false"
         />
-      </div>
+      </smt-control>
 
-      <div class="form-group">
-        <label class="form-label" for="profile-channel-address">
-          {{ 'iam.profile.channels.address_or_account' | t }} <span class="req">*</span>
-        </label>
+      <smt-control [smtLabel]="'iam.profile.channels.address_or_account' | t" [smtError]="bindFieldError()">
         <smt-input
           smtFieldId="profile-channel-address"
-          name="channelAddress"
-          required
+          smtFocusInitial
           [placeholder]="getChannelPlaceholder()"
-          [(value)]="newAddress"
-          [smtInvalid]="isBindSubmitted() && !newAddress().trim()"
-          [smtDescribedBy]="isBindSubmitted() && !newAddress().trim() ? 'profile-channel-address-error' : null"
-          (keydown.enter)="submitBind()"
+          [formField]="bindForm.address"
+          (edited)="clearBindErrors()"
         />
-        @if (isBindSubmitted() && !newAddress().trim()) {
-          <span id="profile-channel-address-error" class="field-error">
-            {{ 'iam.profile.channels.channel_address_required' | t }}
-          </span>
-        }
-      </div>
-    </div>
-    <div footer class="modal-actions">
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeBindModal()">
-        {{ 'common.cancel' | t }}
-      </button>
-      <button
-        smt-button
-        type="button"
-        smtVariant="primary"
-        smtSize="md"
-        smtIcon="send"
-        [smtLoading]="isBindingChannel()"
-        (click)="submitBind()"
-      >
-        {{ 'iam.profile.channels.send_code' | t }}
-      </button>
-    </div>
+      </smt-control>
+
+      @if (bindError()) {
+        <smt-alert smtTone="danger">{{ bindError() }}</smt-alert>
+      }
+    </form>
+    <ui-form-actions
+      footer
+      form="profile-channel-bind-form"
+      [submitLabel]="'iam.profile.channels.send_code' | t"
+      [submitting]="isBindingChannel()"
+      (cancelled)="requestCloseBind()"
+    />
   </ng-template>
 </smt-dialog>
 
@@ -148,55 +136,47 @@
   [open]="isConfirmModalOpen()"
   [smtTitle]="'iam.profile.channels.verify_title' | t"
   smtSize="sm"
-  (closed)="closeConfirmModal()"
+  [dismissible]="!isConfirmingChannel()"
+  (closed)="requestCloseConfirm()"
 >
   <ng-template smtDialogContent>
-    <div body class="channel-form">
-      <p class="confirm-info-text">
+    <form
+      body
+      id="profile-channel-confirm-form"
+      class="channel-form"
+      uiFocusFirstInvalid
+      novalidate
+      (submit)="$event.preventDefault(); submitConfirm()"
+    >
+      <p id="profile-channel-code-sent" class="confirm-info-text">
         {{ 'iam.profile.verification_code_sent' | t: { address: activeVerifyAddress() } }}
       </p>
 
-      <div class="form-group">
-        <label class="form-label" for="profile-channel-code">
-          {{ 'iam.profile.channels.code_label' | t }} <span class="req">*</span>
-        </label>
+      <smt-control [smtLabel]="'iam.profile.channels.code_label' | t" [smtError]="codeFieldError()">
         <smt-input
           class="font-mono otp-input"
           smtFieldId="profile-channel-code"
-          name="confirmCode"
-          [maxLength]="6"
+          smtFocusInitial
           inputmode="numeric"
+          autocomplete="one-time-code"
           smtPattern="[0-9]*"
           placeholder="000000"
-          [(value)]="verificationCode"
-          [smtInvalid]="isConfirmSubmitted() && verificationCode().trim().length !== 6"
-          [smtDescribedBy]="
-            isConfirmSubmitted() && verificationCode().trim().length !== 6 ? 'profile-channel-code-error' : null
-          "
-          (keydown.enter)="submitConfirm()"
+          smtDescribedBy="profile-channel-code-sent"
+          [formField]="confirmForm.code"
+          (edited)="clearConfirmErrors()"
         />
-        @if (isConfirmSubmitted() && verificationCode().trim().length !== 6) {
-          <span id="profile-channel-code-error" class="field-error">
-            {{ 'iam.profile.channels.code_format' | t }}
-          </span>
-        }
-      </div>
-    </div>
-    <div footer class="modal-actions">
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeConfirmModal()">
-        {{ 'common.cancel' | t }}
-      </button>
-      <button
-        smt-button
-        type="button"
-        smtVariant="primary"
-        smtSize="md"
-        smtIcon="check"
-        [smtLoading]="isConfirmingChannel()"
-        (click)="submitConfirm()"
-      >
-        {{ 'common.confirm' | t }}
-      </button>
-    </div>
+      </smt-control>
+
+      @if (confirmError()) {
+        <smt-alert smtTone="danger">{{ confirmError() }}</smt-alert>
+      }
+    </form>
+    <ui-form-actions
+      footer
+      form="profile-channel-confirm-form"
+      [submitLabel]="'common.confirm' | t"
+      [submitting]="isConfirmingChannel()"
+      (cancelled)="requestCloseConfirm()"
+    />
   </ng-template>
 </smt-dialog>

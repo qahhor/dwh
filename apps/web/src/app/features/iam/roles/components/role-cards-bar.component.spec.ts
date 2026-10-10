@@ -101,7 +101,7 @@ describe('RoleCardsBarComponent', () => {
     const { host, asked } = setup({ searchQuery: 'ана' });
     const field = host.querySelector('#role-search') as HTMLInputElement;
 
-    expect(host.querySelector('label[for="role-search"]')?.textContent?.trim()).toBe('Поиск ролей');
+    expect(field.getAttribute('aria-label')).toBe('Поиск ролей');
     expect(field.value).toBe('ана');
     field.value = 'адм';
     field.dispatchEvent(new Event('input'));

@@ -38,8 +38,6 @@ audit.view_change_number
 audit.view_security_event_number
 auth.caps_lock_on
 auth.change_password
-auth.enter_and_confirm_new_password
-auth.enter_login_and_password
 auth.enter_six_digit_code
 auth.login
 auth.login_btn

@@ -92,7 +92,7 @@ describe('RoleScopePanelComponent', () => {
     grantOnly.panel.save();
     grantOnly.panel.confirmSave();
     expect(grantOnly.api.saveRoleRule).not.toHaveBeenCalled();
-    expect(inScreen(grantOnly.fixture.nativeElement).querySelector('[data-action="save-rule"]')).toBeNull();
+    expect(inScreen(grantOnly.fixture.nativeElement).querySelector('[data-rule-actions]')).toBeNull();
   });
 
   it('saves from the newest revision of the role it knows and hands the raised one to the host', () => {

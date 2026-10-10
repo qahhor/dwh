@@ -62,8 +62,12 @@
           </div>
 
           <div class="add-grant-form">
-            <div class="form-group">
-              <label for="select-grant-form" class="sr-only">{{ 'iam.users.permissions.form' | t }}</label>
+            <smt-control
+              class="grant-field"
+              [smtLabel]="'iam.users.permissions.form' | t"
+              [required]="true"
+              [smtError]="grantTried() && !selectedFormCode() ? ('iam.users.permissions.form_required' | t) : ''"
+            >
               <smt-select
                 smtTriggerId="select-grant-form"
                 class="grant-select"
@@ -73,10 +77,19 @@
                 [placeholder]="'iam.users.permissions.select_form' | t"
                 [emptyLabel]="'iam.users.permissions.select_form' | t"
               />
-            </div>
+            </smt-control>
 
-            <div class="form-group">
-              <label for="select-grant-action" class="sr-only">{{ 'iam.users.permissions.action' | t }}</label>
+            <smt-control
+              class="grant-field"
+              [smtLabel]="'iam.users.permissions.action' | t"
+              [required]="true"
+              [smtHint]="selectedFormCode() ? '' : ('iam.users.permissions.action_hint' | t)"
+              [smtError]="
+                grantTried() && selectedFormCode() && !selectedAction()
+                  ? ('iam.users.permissions.action_required' | t)
+                  : ''
+              "
+            >
               <smt-select
                 smtTriggerId="select-grant-action"
                 class="grant-select"
@@ -87,7 +100,7 @@
                 [placeholder]="'iam.users.permissions.select_action' | t"
                 [emptyLabel]="'iam.users.permissions.select_action' | t"
               />
-            </div>
+            </smt-control>
 
             <button
               smt-button
@@ -95,7 +108,7 @@
               smtVariant="secondary"
               smtSize="sm"
               smtIcon="add"
-              [disabled]="!selectedFormCode() || !selectedAction()"
+              class="grant-add"
               (click)="addPersonalGrant()"
             >
               {{ 'common.add' | t }}
