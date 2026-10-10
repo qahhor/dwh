@@ -55,16 +55,7 @@
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   gap: 1rem;
 }
-.upl-field-error {
-  display: block;
-  margin-top: 0.25rem;
-  color: var(--danger);
-  font-size: 0.8125rem;
-}
 .upl-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
   margin-top: 1.25rem;
 }
 .upl-empty {

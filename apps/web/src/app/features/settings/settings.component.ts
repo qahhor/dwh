@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, HostListener, OnInit, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, Injector, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { RecordNavigationPage } from '@core/guards/record-navigation.guard';
 
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -17,6 +19,14 @@ import { WebhooksSettingsComponent } from './webhooks/webhooks-settings.componen
 import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
+import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
+
+/** The panel that holds each validated system setting. */
+const SETTING_TAB: Readonly<Record<string, SettingsTab>> = {
+  'security.session_lifetime_hours': 'security',
+  'storage.default_user_quota_mb': 'storage',
+};
 
 @Component({
   selector: 'app-settings',
@@ -39,7 +49,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.css',
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent implements OnInit, RecordNavigationPage {
   /** System and personal settings; the template reads it directly. */
   readonly store = inject(SettingsStore);
   /** The languages tab; the template reads it directly. */
@@ -48,12 +58,11 @@ export class SettingsComponent implements OnInit {
   readonly i18n = inject(I18nService);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
+  private readonly injector = inject(Injector);
 
   readonly activeTab = signal<SettingsTab>('general');
 
-  newLangCode = '';
-  newLangName = '';
-  newLangJson = '';
+  private readonly askDiscard = discardChangesQuestion();
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<SettingsTab>[]>();
 
@@ -72,15 +81,23 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  openAddLangModal() {
-    this.newLangCode = '';
-    this.newLangName = '';
-    this.newLangJson = '';
-    this.languageStore.isAddLangModalOpen.set(true);
+  /**
+   * Saves the system settings; a refused value is shown under its field, on its panel, with focus on it
+   * (forms standard, section 4), even when the save came from another panel or from Ctrl+S.
+   */
+  saveSystemSettings(): void {
+    this.store.saveSystemSettings();
+    const first = Object.keys(this.store.systemErrors())[0];
+    if (!first) return;
+    const tab = SETTING_TAB[first];
+    if (tab && tab !== this.activeTab()) this.setTab(tab);
+    const panel = document.getElementById(`settings-${tab ?? this.activeTab()}-panel`);
+    if (panel) focusFirstInvalid(panel, this.injector);
   }
 
-  saveNewLanguage() {
-    this.languageStore.saveNewLanguage(this.newLangCode, this.newLangName, this.newLangJson);
+  /** Unsaved settings make leaving the screen ask first (forms standard, section 8). */
+  canLeaveRecordPage(): boolean | Observable<boolean> {
+    return this.store.dirty() ? this.askDiscard(true) : true;
   }
 
   isTabAvailable(tab: string): tab is SettingsTab {
@@ -122,7 +139,7 @@ export class SettingsComponent implements OnInit {
       event.preventDefault();
       if (['general', 'security', 'storage'].includes(this.activeTab())) {
         if (this.store.canUpdateSystemSettings() && !this.store.isSaving()) {
-          this.store.saveSystemSettings();
+          this.saveSystemSettings();
         }
       } else if (this.activeTab() === 'preferences') {
         if (!this.store.isSaving()) {

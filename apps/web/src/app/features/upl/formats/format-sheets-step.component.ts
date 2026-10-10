@@ -7,6 +7,7 @@ import { UPL_DATA_TYPES, UplColumn, UplDataType, UplFormatDraftRequest, UplSheet
 import { UPL_DATA_TYPE_KEY } from '../upl-labels';
 import { UplFieldError, uplCellError, uplFieldErrorText, uplSheetError, uplSheetHasErrors } from './upl-format-errors';
 import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './upl-format-model';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
@@ -19,7 +20,14 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
 @Component({
   selector: 'app-upl-format-sheets-step',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTCheckboxComponent, SMTInputComponent, SMTSelectComponent, TranslatePipe, SMTButtonComponent],
+  imports: [
+    SMTCheckboxComponent,
+    SMTControlComponent,
+    SMTInputComponent,
+    SMTSelectComponent,
+    TranslatePipe,
+    SMTButtonComponent,
+  ],
   templateUrl: './format-sheets-step.component.html',
   styleUrl: './format-sheets-step.component.css',
 })
@@ -101,6 +109,12 @@ export class FormatSheetsStepComponent {
     return uplSheetError(this.errors(), sheet, field);
   }
 
+  /** The server's error of a sheet field as words, or nothing; smt-control shows it under the field. */
+  sheetErrorText(sheet: number, field: string): string {
+    const problem = this.sheetError(sheet, field);
+    return problem === null ? '' : this.errorText(problem);
+  }
+
   sheetHasErrors(sheet: number): boolean {
     return uplSheetHasErrors(this.errors(), sheet);
   }
@@ -130,7 +144,7 @@ export class FormatSheetsStepComponent {
         title: this.text('upl.format.remove_sheet'),
         message: this.text('upl.format.remove_sheet_confirm', { count: columns.toString() }),
         yesLabel: this.text('upl.format.remove_sheet'),
-        noLabel: this.text('upl.common.cancel'),
+        noLabel: this.text('common.cancel'),
         destructive: true,
       })
       .subscribe((confirmed) => {

@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { TranslatePipe } from '@core/services/i18n.service';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
@@ -43,7 +45,14 @@ function withCurrent(
 @Component({
   selector: 'app-settings-general-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTSelectComponent, TranslatePipe, SMTButtonComponent],
+  imports: [
+    SMTControlComponent,
+    SMTInputComponent,
+    SMTSelectComponent,
+    TranslatePipe,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
+  ],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -59,9 +68,14 @@ function withCurrent(
         }
       </div>
 
-      <div class="form-grid">
-        <div class="form-group full-width">
-          <label class="form-label" for="settings-company-name">{{ 'settings.company_name' | t }}</label>
+      <form
+        id="settings-general-form"
+        class="form-grid"
+        uiFocusFirstInvalid
+        novalidate
+        (submit)="$event.preventDefault(); onSubmit()"
+      >
+        <smt-control class="form-group full-width" [smtLabel]="'settings.company_name' | t">
           <smt-input
             smtFieldId="settings-company-name"
             name="settingsCompanyName"
@@ -70,10 +84,9 @@ function withCurrent(
             (valueChange)="changeSetting('system.company_name', $event)"
             placeholder="SmartupCMS"
           />
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="settings-default-language">{{ 'settings.default_language' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'settings.default_language' | t">
           <smt-select
             smtTriggerId="settings-default-language"
             name="settingsDefaultLanguage"
@@ -83,10 +96,9 @@ function withCurrent(
             [value]="systemSettings()['system.default_language']"
             (valueChange)="changeSetting('system.default_language', $event)"
           />
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="settings-default-timezone">{{ 'settings.default_timezone' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'settings.default_timezone' | t">
           <smt-select
             smtTriggerId="settings-default-timezone"
             name="settingsDefaultTimezone"
@@ -96,10 +108,9 @@ function withCurrent(
             [value]="systemSettings()['system.default_timezone']"
             (valueChange)="changeSetting('system.default_timezone', $event)"
           />
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="settings-date-format">{{ 'settings.date_format' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'settings.date_format' | t">
           <smt-select
             smtTriggerId="settings-date-format"
             name="settingsDateFormat"
@@ -109,15 +120,16 @@ function withCurrent(
             [value]="systemSettings()['system.date_format']"
             (valueChange)="changeSetting('system.date_format', $event)"
           />
-        </div>
-      </div>
+        </smt-control>
+      </form>
 
       @if (canUpdateSystemSettings()) {
-        <div class="card-footer-actions">
-          <button smt-button type="button" [smtLoading]="isSaving()" (click)="save.emit()">
-            {{ 'common.save' | t }}
-          </button>
-        </div>
+        <ui-form-actions
+          class="card-footer-actions"
+          form="settings-general-form"
+          [showCancel]="false"
+          [submitting]="isSaving()"
+        />
       }
     </div>
   `,
@@ -144,6 +156,11 @@ export class SettingsGeneralPanelComponent {
   private readonly timezoneMemo = optionsMemo<readonly SMTSelectOption<string>[]>();
 
   private readonly dateFormatMemo = optionsMemo<readonly SMTSelectOption<string>[]>();
+
+  /** Enter in a field and the Save button both save; nothing is sent twice while a save runs. */
+  onSubmit(): void {
+    if (!this.isSaving()) this.save.emit();
+  }
 
   /** The settings keep text; a select gives null only when cleared, which these do not allow. */
   changeSetting(key: string, value: SMTInputValue): void {

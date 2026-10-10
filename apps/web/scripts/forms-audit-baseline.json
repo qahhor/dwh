@@ -88,51 +88,6 @@
   "features/notes/note-form-dialog.component.html": {
     "dialog-footer": 1
   },
-  "features/notifications/components/notification-preferences-modal.component.ts": {
-    "dialog-footer": 1
-  },
-  "features/notifications/components/notifications-list.component.ts": {
-    "manual-error": 1
-  },
-  "features/settings/components/settings-general-panel.component.ts": {
-    "raw-label": 4
-  },
-  "features/settings/components/settings-languages-panel.component.html": {
-    "raw-label": 3,
-    "dialog-footer": 1,
-    "disabled-invalid": 1
-  },
-  "features/settings/components/settings-preferences-panel.component.ts": {
-    "raw-label": 2
-  },
-  "features/settings/components/settings-security-panel.component.ts": {
-    "raw-label": 2
-  },
-  "features/settings/components/settings-storage-panel.component.ts": {
-    "raw-label": 1
-  },
-  "features/settings/language-editor.component.html": {
-    "raw-label": 3
-  },
-  "features/settings/navigation/components/navigation-settings-modal.component.ts": {
-    "raw-label": 8,
-    "dialog-footer": 1,
-    "disabled-invalid": 1
-  },
-  "features/settings/search/search-settings.component.html": {
-    "raw-label": 8,
-    "manual-error": 2,
-    "dialog-footer": 1,
-    "disabled-invalid": 1
-  },
-  "features/settings/settings.component.html": {
-    "manual-error": 1
-  },
-  "features/settings/webhooks/webhooks-settings.component.html": {
-    "raw-label": 3,
-    "dialog-footer": 2,
-    "disabled-invalid": 1
-  },
   "features/tasks/components/task-create-modal.component.html": {
     "dialog-footer": 1
   },
@@ -166,33 +121,6 @@
   },
   "features/tasks/projects/components/project-modals.component.html": {
     "dialog-footer": 5
-  },
-  "features/upl/formats/format-editor.component.html": {
-    "raw-label": 1,
-    "manual-error": 1,
-    "dialog-footer": 2,
-    "module-button-key": 2
-  },
-  "features/upl/formats/format-file-step.component.ts": {
-    "raw-label": 4
-  },
-  "features/upl/formats/format-sheets-step.component.html": {
-    "raw-label": 3,
-    "manual-error": 3
-  },
-  "features/upl/sources/source-card.component.html": {
-    "dialog-footer": 1,
-    "module-button-key": 3
-  },
-  "features/upl/sources/sources-list.component.html": {
-    "dialog-footer": 1,
-    "module-button-key": 2
-  },
-  "layout/app-shell/components/idle-lock-dialog.component.ts": {
-    "dialog-footer": 1
-  },
-  "layout/command-palette/components/command-palette-footer.component.ts": {
-    "module-button-key": 1
   },
   "shared/entity/report/smt-entity-report-builder.component.ts": {
     "raw-label": 4

@@ -123,7 +123,7 @@
             [disabled]="!store.isDirty()"
             (click)="store.save()"
           >
-            {{ 'upl.format.save' | t }}
+            {{ 'common.save' | t }}
           </button>
         }
         @if (store.canPublish()) {
@@ -159,64 +159,39 @@
       (closed)="store.closePublish()"
     >
       <ng-template smtDialogContent>
-        <div body>
-          <div class="form-group">
-            <label class="form-label" for="upl-valid-from">{{ 'upl.version.valid_from' | t }}</label>
+        <form
+          body
+          id="upl-publish"
+          class="upl-publish-form"
+          uiFocusFirstInvalid
+          novalidate
+          (submit)="$event.preventDefault(); store.confirmPublish()"
+        >
+          <smt-control
+            class="form-group"
+            data-testid="upl-valid-from-control"
+            [smtLabel]="'upl.version.valid_from' | t"
+            [smtHint]="previousValidFromHint()"
+            [smtError]="publishDateErrorText()"
+            [required]="true"
+          >
             <smt-date-picker
               smtInputId="upl-valid-from"
               data-testid="upl-valid-from"
               [value]="store.validFrom()"
               (valueChange)="store.validFrom.set($event ?? '')"
             />
-            @if (store.previousValidFrom(); as previous) {
-              <span class="upl-hint">{{ text('upl.version.prev_valid_from', { date: previous }) }}</span>
-            }
-            @if (store.publishDateError(); as problem) {
-              <span class="upl-field-error" data-testid="upl-publish-date-error">{{ problem | t }}</span>
-            }
-          </div>
+          </smt-control>
           <p>{{ 'upl.version.publish_note' | t }}</p>
-        </div>
-        <div footer class="upl-modal-actions">
-          <button smt-button type="button" smtVariant="secondary" (click)="store.closePublish()">
-            {{ 'upl.common.cancel' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            smtVariant="primary"
-            data-testid="upl-publish-confirm"
-            [smtLoading]="store.isPublishing()"
-            (click)="store.confirmPublish()"
-          >
-            {{ 'upl.format.publish' | t }}
-          </button>
-        </div>
-      </ng-template>
-    </smt-dialog>
-
-    <smt-dialog
-      [open]="isLeaveOpen()"
-      [smtTitle]="'upl.format.leave_title' | t"
-      smtSize="sm"
-      (closed)="settleLeave(false)"
-    >
-      <ng-template smtDialogContent>
-        <p body>{{ 'upl.format.leave_confirm' | t }}</p>
-        <div footer class="upl-modal-actions">
-          <button smt-button type="button" smtVariant="secondary" (click)="settleLeave(false)">
-            {{ 'upl.format.stay' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            smtVariant="danger"
-            data-testid="upl-leave-confirm"
-            (click)="settleLeave(true)"
-          >
-            {{ 'upl.format.leave' | t }}
-          </button>
-        </div>
+        </form>
+        <ui-form-actions
+          footer
+          form="upl-publish"
+          data-testid="upl-publish-actions"
+          [submitLabel]="'upl.format.publish' | t"
+          [submitting]="store.isPublishing()"
+          (cancelled)="store.closePublish()"
+        />
       </ng-template>
     </smt-dialog>
   }

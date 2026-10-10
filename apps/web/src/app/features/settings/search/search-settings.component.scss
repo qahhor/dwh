@@ -104,7 +104,7 @@ small {
   align-items: end;
 }
 
-label,
+smt-control,
 .profile-choice {
   display: grid;
   gap: 6px;
@@ -275,7 +275,7 @@ td small {
   font-family: var(--font-mono, monospace);
 }
 
-.error-text {
+.job-error {
   color: var(--danger);
 }
 

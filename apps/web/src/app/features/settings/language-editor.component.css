@@ -87,13 +87,6 @@
 .search-field {
   flex: 1 1 280px;
 }
-.search-field > label {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--text-main);
-  font-size: 12px;
-  font-weight: 600;
-}
 .missing-filter {
   display: flex;
   align-items: center;
@@ -122,11 +115,8 @@
   color: var(--on-primary);
   background: var(--primary);
 }
-.import-action input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
+.import-file {
+  display: none;
 }
 .primary-action:disabled,
 .secondary-action:disabled {

@@ -37,9 +37,7 @@ describe('SettingsSecurityPanelComponent', () => {
     // The length is the password policy: shown, not edited.
     expect(host.querySelector('#settings-password-length')?.tagName).toBe('SPAN');
     expect(host.querySelector('input[name="settingsPasswordLength"]')).toBeNull();
-    expect(host.querySelector('label[for="settings-session-lifetime"] .unit-badge')?.textContent?.trim()).toBe(
-      '720 ч. (30 дн.)',
-    );
+    expect(host.querySelector('[data-testid="session-lifetime-unit"]')?.textContent?.trim()).toBe('720 ч. (30 дн.)');
     expect(field('settings-session-lifetime').value).toBe('720');
     expect(field('settings-idle-lock').value).toBe('15');
   });
@@ -47,7 +45,7 @@ describe('SettingsSecurityPanelComponent', () => {
   it('shows no lifetime badge while the stored value is not a positive number', () => {
     const { host } = render({ settings: { 'security.session_lifetime_hours': '0' } });
 
-    expect(host.querySelector('label[for="settings-session-lifetime"] .unit-badge')).toBeNull();
+    expect(host.querySelector('[data-testid="session-lifetime-unit"]')).toBeNull();
   });
 
   it('sends typed numbers up as text, and an emptied field as an empty value', () => {
@@ -95,5 +93,29 @@ describe('SettingsSecurityPanelComponent', () => {
     fixture.componentRef.setInput('isSaving', true);
     fixture.detectChanges();
     expect(field('settings-session-lifetime').disabled).toBe(true);
+  });
+
+  it('saves from the form (Enter or the Save button), once while saving, and shows a refused value under its field', () => {
+    const { fixture, host, asked } = render();
+    const form = host.querySelector('form#settings-security-form') as HTMLFormElement;
+    const save = host.querySelector('[data-testid="form-submit"]') as HTMLButtonElement;
+    expect(save.getAttribute('form')).toBe('settings-security-form');
+    expect(host.querySelector('[data-testid="form-cancel"]')).toBeNull();
+
+    form.requestSubmit();
+    expect(asked).toEqual(['save']);
+    fixture.componentRef.setInput('isSaving', true);
+    fixture.detectChanges();
+    form.requestSubmit();
+    expect(asked).toEqual(['save']);
+
+    fixture.componentRef.setInput('errors', {
+      'security.session_lifetime_hours': 'settings.validation.session_lifetime',
+    });
+    fixture.detectChanges();
+    TestBed.tick();
+    expect(host.querySelector('#settings-session-lifetime')?.getAttribute('aria-invalid')).toBe('true');
+    expect(host.querySelector('.smt-control__error')?.textContent).toBeTruthy();
+    expect(host.querySelector('label[for="settings-session-lifetime"] .smt-control__required')).not.toBeNull();
   });
 });

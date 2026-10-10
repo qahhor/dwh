@@ -4,12 +4,21 @@ import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 
 @Component({
   selector: 'app-settings-preferences-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTSwitchComponent, SMTSelectComponent, TranslatePipe, SMTButtonComponent],
+  imports: [
+    SMTControlComponent,
+    SMTSwitchComponent,
+    SMTSelectComponent,
+    TranslatePipe,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
+  ],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -22,11 +31,14 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
         </div>
       </div>
 
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label" for="settings-interface-language">{{
-            'settings.common.interface_language' | t
-          }}</label>
+      <form
+        id="settings-preferences-form"
+        class="form-grid"
+        uiFocusFirstInvalid
+        novalidate
+        (submit)="$event.preventDefault(); onSubmit()"
+      >
+        <smt-control class="form-group" [smtLabel]="'settings.common.interface_language' | t">
           <smt-select
             smtTriggerId="settings-interface-language"
             [options]="languageOptions()"
@@ -35,10 +47,9 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
             [value]="currentLang()"
             (valueChange)="$event && changeLanguage.emit($event)"
           />
-        </div>
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="settings-theme">{{ 'settings.theme' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'settings.theme' | t">
           <smt-select
             smtTriggerId="settings-theme"
             [options]="themeOptions()"
@@ -47,7 +58,7 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
             [value]="userThemePreference()"
             (valueChange)="$event && themeChange.emit($event)"
           />
-        </div>
+        </smt-control>
 
         <div class="form-group full-width">
           <div class="toggle-row">
@@ -69,13 +80,14 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
             />
           </div>
         </div>
-      </div>
+      </form>
 
-      <div class="card-footer-actions">
-        <button smt-button type="button" [smtLoading]="isSaving()" (click)="save.emit()">
-          {{ 'common.save' | t }}
-        </button>
-      </div>
+      <ui-form-actions
+        class="card-footer-actions"
+        form="settings-preferences-form"
+        [showCancel]="false"
+        [submitting]="isSaving()"
+      />
     </div>
   `,
   styleUrl: './settings-preferences-panel.component.css',
@@ -102,6 +114,11 @@ export class SettingsPreferencesPanelComponent {
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   private readonly themeMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  /** Enter in a field and the Save button both save; nothing is sent twice while a save runs. */
+  onSubmit(): void {
+    if (!this.isSaving()) this.save.emit();
+  }
 
   languageOptions(): SMTSelectOption<string>[] {
     return this.languageMemo([this.languages()], () =>

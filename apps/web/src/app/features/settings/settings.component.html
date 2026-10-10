@@ -18,7 +18,7 @@
   @if (store.loadError()) {
     <div class="load-error-banner" role="alert">
       <span class="material-symbols-outlined" aria-hidden="true">error</span>
-      <span class="load-error-text">{{ store.loadError() }}</span>
+      <span class="load-error-message">{{ store.loadError() }}</span>
       <button smt-button smtVariant="secondary" smtSize="sm" type="button" (click)="store.loadAllSettings()">
         {{ 'common.retry' | t }}
       </button>
@@ -65,7 +65,7 @@
         [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
         [isSaving]="store.isSaving()"
         [languages]="i18n.languages()"
-        (save)="store.saveSystemSettings()"
+        (save)="saveSystemSettings()"
         (settingChange)="store.setSystemSetting($event.key, $event.value)"
       />
     </div>
@@ -78,7 +78,8 @@
         [systemSettings]="store.systemSettings()"
         [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
         [isSaving]="store.isSaving()"
-        (save)="store.saveSystemSettings()"
+        [errors]="store.systemErrors()"
+        (save)="saveSystemSettings()"
         (settingChange)="store.setSystemSetting($event.key, $event.value)"
         (toggleRequire2fa)="store.toggleRequire2fa($event)"
       />
@@ -92,7 +93,8 @@
         [systemSettings]="store.systemSettings()"
         [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
         [isSaving]="store.isSaving()"
-        (save)="store.saveSystemSettings()"
+        [errors]="store.systemErrors()"
+        (save)="saveSystemSettings()"
         (settingChange)="store.setSystemSetting($event.key, $event.value)"
       />
     </div>
@@ -125,20 +127,15 @@
         [currentLang]="i18n.currentLang()"
         [isAddLangModalOpen]="languageStore.isAddLangModalOpen()"
         [isAddingLang]="languageStore.isAddingLang()"
-        [newLangCode]="newLangCode"
-        [newLangName]="newLangName"
-        [newLangJson]="newLangJson"
+        [addServerErrors]="languageStore.addLanguageErrors()"
         (openLanguageEditor)="languageStore.openLanguageEditor($event)"
         (closeLanguageEditor)="languageStore.editingLanguageCode.set(null)"
         (languageSaved)="languageStore.onLanguageSaved()"
-        (openAddLangModal)="openAddLangModal()"
+        (openAddLangModal)="languageStore.openAddLanguage()"
         (closeAddLangModal)="languageStore.isAddLangModalOpen.set(false)"
-        (saveNewLanguage)="saveNewLanguage()"
+        (saveNewLanguage)="languageStore.saveNewLanguage($event)"
         (exportLangJson)="languageStore.exportLangJson($event)"
         (switchLanguage)="languageStore.switchLanguage($event)"
-        (newLangCodeChange)="newLangCode = $event"
-        (newLangNameChange)="newLangName = $event"
-        (newLangJsonChange)="newLangJson = $event"
       />
     </div>
   }

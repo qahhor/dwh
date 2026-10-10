@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { NEVER, Observable, of, throwError } from 'rxjs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
@@ -10,6 +10,7 @@ import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { UplApiService, UplFormatVersion, UplSource, UplVersionItem } from '../upl.api';
 import { SourceCardComponent } from './source-card.component';
 import { inScreen } from '@testing/in-screen';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 
 /** The error smt-control shows for a field, found the way assistive technology finds it: through aria-describedby. */
 function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
@@ -23,6 +24,8 @@ function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
 }
 
 describe('SourceCardComponent', () => {
+  // Dialogs render into the CDK overlay on document.body; each test starts without the last one's.
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove()));
   const source: UplSource = {
     id: 7,
     code: 'sqb_output',
@@ -139,6 +142,13 @@ describe('SourceCardComponent', () => {
     return inScreen(fixture.nativeElement).querySelector(`[data-testid="${testid}"]`);
   }
 
+  /** Submits a form as its primary button or Enter does. */
+  function submit(fixture: ComponentFixture<SourceCardComponent>, formId: string): void {
+    fixture.debugElement.query(By.css('#' + formId)).triggerEventHandler('submit', new Event('submit'));
+    fixture.detectChanges();
+    TestBed.tick();
+  }
+
   function clickUiButton(fixture: ComponentFixture<SourceCardComponent>, testid: string): void {
     const button = fixture.debugElement.query(By.css(`[data-testid="${testid}"]`));
     expect(button).not.toBeNull();
@@ -188,14 +198,14 @@ describe('SourceCardComponent', () => {
     const { fixture } = await createFixture({ canEdit: false });
     expect((el(fixture, 'upl-field-name') as HTMLInputElement).disabled).toBe(true);
     expect((el(fixture, 'upl-field-slaDays') as HTMLInputElement).disabled).toBe(true);
-    expect(el(fixture, 'upl-save-source')).toBeNull();
+    expect(el(fixture, 'upl-requisites-actions')).toBeNull();
     expect(el(fixture, 'upl-new-draft')).toBeNull();
   });
 
   it('saves requisites with lockVersion and unchanged code', async () => {
     const { fixture, api, toast } = await createFixture();
     setInput(fixture, 'upl-field-name', 'Source B');
-    clickUiButton(fixture, 'upl-save-source');
+    submit(fixture, 'upl-source-requisites');
     expect(api.updateSource).toHaveBeenCalledWith(
       '7',
       expect.objectContaining({
@@ -218,7 +228,7 @@ describe('SourceCardComponent', () => {
       },
     });
     setInput(fixture, 'upl-field-name', 'Edited TEST');
-    clickUiButton(fixture, 'upl-save-source');
+    submit(fixture, 'upl-source-requisites');
     expect(el(fixture, 'upl-conflict')).not.toBeNull();
     expect((el(fixture, 'upl-field-name') as HTMLInputElement).value).toBe('Edited TEST');
     clickUiButton(fixture, 'upl-conflict-refresh');
@@ -228,9 +238,55 @@ describe('SourceCardComponent', () => {
   it('does not send the request when name is empty', async () => {
     const { fixture, api } = await createFixture();
     setInput(fixture, 'upl-field-name', '');
-    clickUiButton(fixture, 'upl-save-source');
+    submit(fixture, 'upl-source-requisites');
     expect(api.updateSource).not.toHaveBeenCalled();
     expect(fieldError(fixture.nativeElement, 'upl-source-name')).not.toBeNull();
+  });
+
+  it('saves from the common "Save" button of the form, marks required fields and sends one request at a time', async () => {
+    const { fixture, api } = await createFixture();
+    const actions = el(fixture, 'upl-requisites-actions')!;
+    const save = actions.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!;
+    expect(save.textContent?.trim()).toBe(PACKAGED_RUSSIAN['common.save']);
+    expect(save.getAttribute('form')).toBe('upl-source-requisites');
+    expect(actions.querySelector('[data-testid="form-cancel"]')).toBeNull();
+    TestBed.tick();
+    const root = inScreen(fixture.nativeElement);
+    expect(root.querySelector('label[for="upl-source-name"] .smt-control__required')).not.toBeNull();
+    expect(root.querySelector('label[for="upl-source-owner-org"] .smt-control__required')).not.toBeNull();
+
+    api.updateSource.mockReturnValue(NEVER);
+    submit(fixture, 'upl-source-requisites');
+    submit(fixture, 'upl-source-requisites');
+    expect(api.updateSource).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks before leaving the card with unsaved requisites and lets an unchanged card go', async () => {
+    const { fixture } = await createFixture();
+    expect(fixture.componentInstance.canLeaveRecordPage()).toBe(true);
+
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+    setInput(fixture, 'upl-field-name', 'Edited TEST');
+    let allowed: boolean | null = null;
+    (fixture.componentInstance.canLeaveRecordPage() as Observable<boolean>).subscribe((value) => (allowed = value));
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
+    expect(allowed).toBe(false);
+  });
+
+  it('moves focus to the first field the server refused', async () => {
+    const { fixture } = await createFixture({
+      updateError: {
+        status: 422,
+        code: 'validation_failed',
+        detail: 'VALIDATION_FAILED: ownerOrg',
+        errors: [{ field: 'ownerOrg', code: 'Size', message: 'x' }],
+      },
+    });
+    document.body.appendChild(fixture.nativeElement);
+    submit(fixture, 'upl-source-requisites');
+    await fixture.whenStable();
+    expect(document.activeElement?.id).toBe('upl-source-owner-org');
+    fixture.nativeElement.remove();
   });
 
   it('offers open draft instead of new draft when a draft exists', async () => {
@@ -244,14 +300,14 @@ describe('SourceCardComponent', () => {
     clickUiButton(copy.fixture, 'upl-new-draft');
     (el(copy.fixture, 'upl-draft-mode') as HTMLElement).querySelectorAll<HTMLElement>('[role="radio"]')[1].click();
     copy.fixture.detectChanges();
-    clickUiButton(copy.fixture, 'upl-create-draft');
+    submit(copy.fixture, 'upl-new-draft');
     expect(copy.api.createDraft).toHaveBeenCalledWith('7', 2);
     expect(copy.navigate).toHaveBeenCalledWith(['/upl/sources', '7', 'formats', 3]);
 
     TestBed.resetTestingModule();
     const empty = await createFixture();
     clickUiButton(empty.fixture, 'upl-new-draft');
-    clickUiButton(empty.fixture, 'upl-create-draft');
+    submit(empty.fixture, 'upl-new-draft');
     expect(empty.api.createDraft).toHaveBeenCalledWith('7', undefined);
   });
 
@@ -265,7 +321,7 @@ describe('SourceCardComponent', () => {
       },
     });
     clickUiButton(fixture, 'upl-new-draft');
-    clickUiButton(fixture, 'upl-create-draft');
+    submit(fixture, 'upl-new-draft');
     expect(el(fixture, 'upl-open-existing-draft')).not.toBeNull();
   });
 
@@ -299,7 +355,7 @@ describe('SourceCardComponent', () => {
     expect(openDraft).not.toBeNull();
     expect(openDraft!.getAttribute('href')).toBe('/upl/sources/7/formats/3');
     expect(el(fixture, 'upl-new-draft')).toBeNull();
-    expect(el(fixture, 'upl-save-source')).toBeNull();
+    expect(el(fixture, 'upl-requisites-actions')).toBeNull();
   });
 
   it('ignores newDraft=1 without the edit right', async () => {
@@ -317,7 +373,7 @@ describe('SourceCardComponent', () => {
       },
     });
     setInput(fixture, 'upl-field-name', 'Edited TEST');
-    clickUiButton(fixture, 'upl-save-source');
+    submit(fixture, 'upl-source-requisites');
     expect(fieldError(fixture.nativeElement, 'upl-source-name')).not.toBeNull();
     expect(fieldError(fixture.nativeElement, 'upl-source-name')?.textContent).toContain(
       PACKAGED_RUSSIAN['upl.err.Size'],
@@ -337,7 +393,7 @@ describe('SourceCardComponent', () => {
       },
     });
     setInput(fixture, 'upl-field-name', 'Edited TEST');
-    clickUiButton(fixture, 'upl-save-source');
+    submit(fixture, 'upl-source-requisites');
     const shown = fieldError(fixture.nativeElement, 'upl-source-owner-org')?.textContent ?? '';
     expect(shown).toContain('srv (UPL_SOMETHING_NEW)');
     expect(shown).not.toContain('upl.err.');
@@ -348,7 +404,7 @@ describe('SourceCardComponent', () => {
       updateError: { status: 403, code: 'permission_denied', detail: 'PERMISSION_DENIED' },
     });
     setInput(denied.fixture, 'upl-field-name', 'Edited TEST');
-    clickUiButton(denied.fixture, 'upl-save-source');
+    submit(denied.fixture, 'upl-source-requisites');
     expect(el(denied.fixture, 'upl-save-error')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.PERMISSION_DENIED']);
     expect(denied.toast.success).not.toHaveBeenCalled();
 
@@ -357,7 +413,7 @@ describe('SourceCardComponent', () => {
       updateError: { status: 400, code: 'bad_request', detail: 'UPL_SOMETHING_NEW' },
     });
     setInput(unknown.fixture, 'upl-field-name', 'Edited TEST');
-    clickUiButton(unknown.fixture, 'upl-save-source');
+    submit(unknown.fixture, 'upl-source-requisites');
     expect(el(unknown.fixture, 'upl-save-error')?.textContent).toContain('UPL_SOMETHING_NEW (bad_request)');
   });
 });

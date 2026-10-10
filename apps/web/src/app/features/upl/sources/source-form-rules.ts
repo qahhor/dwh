@@ -1,4 +1,12 @@
-import { PathKind, SchemaPath, SchemaPathRules, ValidationError, maxLength, validate } from '@angular/forms/signals';
+import {
+  PathKind,
+  SchemaPath,
+  SchemaPathRules,
+  ValidationError,
+  maxLength,
+  required,
+  validate,
+} from '@angular/forms/signals';
 
 /** The longest source name the server accepts. */
 export const UPL_SOURCE_NAME_MAX_LENGTH = 200;
@@ -21,16 +29,15 @@ export interface UplSourceRequisitePaths {
 export type UplRuleMessage = (key: string) => ValidationError.WithoutFieldTree;
 
 /**
- * Name and owner are required once trimmed (a built-in `required` would accept spaces), the name fits the
+ * Name and owner are required (smt-control marks them "*"), and a text of spaces counts as empty; the name fits the
  * server's limit, and the SLA is a whole number of days within a year.
  */
 export function uplSourceRequisiteRules(path: UplSourceRequisitePaths, message: UplRuleMessage): void {
-  validate(path.name, ({ value }) => {
-    const name = value().trim();
-    if (name.length === 0) return message('upl.source.err.required');
-    return name.length > UPL_SOURCE_NAME_MAX_LENGTH ? message('upl.source.err.name_length') : null;
-  });
-  validate(path.ownerOrg, ({ value }) => (value().trim().length === 0 ? message('upl.source.err.required') : null));
+  uplRequiredText(path.name, message);
+  uplRequiredText(path.ownerOrg, message);
+  validate(path.name, ({ value }) =>
+    value().trim().length > UPL_SOURCE_NAME_MAX_LENGTH ? message('upl.source.err.name_length') : null,
+  );
   validate(path.slaDays, ({ value }) => {
     const raw = value();
     const days = Number(raw);
@@ -38,6 +45,14 @@ export function uplSourceRequisiteRules(path: UplSourceRequisitePaths, message: 
       ? message('upl.source.err.sla_range')
       : null;
   });
+}
+
+/** A required text: the built-in rule (empty, and the "*" mark) plus a check that a text of spaces is empty too. */
+export function uplRequiredText(path: ChildPath<string>, message: UplRuleMessage): void {
+  required(path, { error: () => message('upl.source.err.required') });
+  validate(path, ({ value }) =>
+    value().length > 0 && value().trim().length === 0 ? message('upl.source.err.required') : null,
+  );
 }
 
 /**

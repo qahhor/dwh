@@ -20,14 +20,6 @@
 .upl-input-small {
   max-width: 7rem;
 }
-.upl-hint {
-  color: var(--text-light);
-  font-size: 0.75rem;
-}
-.upl-field-error {
-  color: var(--danger);
-  font-size: 0.75rem;
-}
 .upl-tabs {
   display: flex;
   flex-wrap: wrap;

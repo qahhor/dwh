@@ -1,14 +1,24 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavigationSettingsComponent } from './navigation-settings.component';
 import { NavigationService } from '@core/services/navigation.service';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
 import { translateTest } from '@testing/i18n-test.stub';
 import { CustomNavigationItem } from '@core/models/navigation.models';
+import { ComponentFixture } from '@angular/core/testing';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { NavigationItemForm } from './navigation-item-form';
+
+/** Types into the dialog's model, as the bound fields do. */
+function edit(fixture: ComponentFixture<NavigationSettingsComponent>, values: Partial<NavigationItemForm>): void {
+  fixture.componentInstance.itemModel.update((item) => ({ ...item, ...values }));
+}
 
 describe('NavigationSettingsComponent', () => {
+  // Dialogs render into the CDK overlay on document.body; each test starts without the last one's.
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove()));
   const sampleItems: CustomNavigationItem[] = [
     {
       id: 1,
@@ -104,8 +114,8 @@ describe('NavigationSettingsComponent', () => {
     fixture.componentInstance.openCreateModal();
     expect(fixture.componentInstance.isModalOpen()).toBe(true);
     expect(fixture.componentInstance.editingItem()).toBeNull();
-    expect(fixture.componentInstance.formTargetType).toBe('EMBEDDED_IFRAME');
-    expect(fixture.componentInstance.formSortOrder).toBe(30);
+    expect(fixture.componentInstance.itemModel().targetType).toBe('EMBEDDED_IFRAME');
+    expect(fixture.componentInstance.itemModel().sortOrder).toBe(30);
   });
 
   it('opens edit modal and populates form fields with item data', () => {
@@ -116,9 +126,13 @@ describe('NavigationSettingsComponent', () => {
 
     expect(fixture.componentInstance.isModalOpen()).toBe(true);
     expect(fixture.componentInstance.editingItem()).toEqual(sampleItems[0]);
-    expect(fixture.componentInstance.formCode).toBe('superset-sales');
-    expect(fixture.componentInstance.formTitle).toBe('Отчет по продажам (Superset)');
-    expect(fixture.componentInstance.formUrl).toBe('https://superset.example.com/sales');
+    expect(fixture.componentInstance.itemModel()).toEqual(
+      expect.objectContaining({
+        code: 'superset-sales',
+        title: 'Отчет по продажам (Superset)',
+        url: 'https://superset.example.com/sales',
+      }),
+    );
   });
 
   it('creates new navigation item and notifies success', () => {
@@ -126,10 +140,12 @@ describe('NavigationSettingsComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.openCreateModal();
-    fixture.componentInstance.formTitle = 'Финансовый дашборд';
-    fixture.componentInstance.formCode = 'finance-bi';
-    fixture.componentInstance.formUrl = 'https://bi.corp.com/dash';
-    fixture.componentInstance.formTargetType = 'EMBEDDED_IFRAME';
+    edit(fixture, {
+      title: 'Финансовый дашборд',
+      code: 'finance-bi',
+      url: 'https://bi.corp.com/dash',
+      targetType: 'EMBEDDED_IFRAME',
+    });
 
     fixture.componentInstance.saveItem();
 
@@ -149,7 +165,7 @@ describe('NavigationSettingsComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.openEditModal(sampleItems[0]);
-    fixture.componentInstance.formTitle = 'Обновленный отчет';
+    edit(fixture, { title: 'Обновленный отчет' });
 
     fixture.componentInstance.saveItem();
 
@@ -188,7 +204,7 @@ describe('NavigationSettingsComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.openEditModal(sampleItems[0]);
-    expect(fixture.componentInstance.formRequiredPermission).toBe('md.navigation.manage');
+    expect(fixture.componentInstance.itemModel().requiredPermission).toBe('md.navigation.manage');
     fixture.componentInstance.saveItem();
 
     expect(navService.updateItem).toHaveBeenCalledWith(
@@ -207,16 +223,82 @@ describe('NavigationSettingsComponent', () => {
 
     expect(navService.loadPermissionChoices).toHaveBeenCalled();
     fixture.componentInstance.openCreateModal();
-    expect(fixture.componentInstance.formRequiredPermission).toBeNull();
-    fixture.componentInstance.formTitle = 'Tasks board';
-    fixture.componentInstance.formCode = 'tasks-board';
-    fixture.componentInstance.formUrl = '/tasks';
-    fixture.componentInstance.formRequiredPermission = 'tasks.items.view';
+    expect(fixture.componentInstance.itemModel().requiredPermission).toBeNull();
+    edit(fixture, { title: 'Tasks board', code: 'tasks-board', url: '/tasks', requiredPermission: 'tasks.items.view' });
     fixture.componentInstance.saveItem();
 
     expect(navService.createItem).toHaveBeenCalledWith(
       expect.objectContaining({ requiredPermission: 'tasks.items.view' }),
     );
+  });
+
+  it("shows the required fields' errors on save, sends nothing and focuses the first one", async () => {
+    const { fixture, navService } = setup();
+    fixture.detectChanges();
+    document.body.appendChild(fixture.nativeElement);
+    fixture.componentInstance.openCreateModal();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    (document.getElementById('nav-item-form') as HTMLFormElement).requestSubmit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(navService.createItem).not.toHaveBeenCalled();
+    for (const id of ['nav-title', 'nav-code', 'nav-url']) {
+      expect(document.getElementById(id)?.getAttribute('aria-invalid')).toBe('true');
+    }
+    expect(document.activeElement?.id).toBe('nav-title');
+    fixture.nativeElement.remove();
+  });
+
+  it('derives the code of a new item from its title, and keeps the code of an existing one', () => {
+    const { fixture } = setup();
+    fixture.detectChanges();
+
+    fixture.componentInstance.openCreateModal();
+    fixture.componentInstance.onTitleChange('Продажи');
+    expect(fixture.componentInstance.itemModel().code).not.toBe('');
+    const derived = fixture.componentInstance.itemModel().code;
+
+    fixture.componentInstance.openEditModal(sampleItems[0]);
+    fixture.componentInstance.onTitleChange('Другое');
+    expect(fixture.componentInstance.itemModel().code).toBe('superset-sales');
+    expect(derived).not.toBe('superset-sales');
+  });
+
+  it("puts the server's field errors under the fields instead of a toast", () => {
+    const { fixture, navService, toast } = setup();
+    fixture.detectChanges();
+    navService.createItem.mockReturnValueOnce(
+      throwError(() => ({ status: 422, errors: [{ field: 'code', message: 'Код уже занят' }] })),
+    );
+
+    fixture.componentInstance.openCreateModal();
+    edit(fixture, { title: 'A', code: 'a', url: '/a' });
+    fixture.componentInstance.saveItem();
+
+    expect(fixture.componentInstance.store.fieldErrors()).toEqual({ code: 'Код уже занят' });
+    expect(toast.show).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.isModalOpen()).toBe(true);
+  });
+
+  it('closes an untouched dialog at once and asks before dropping a changed one', () => {
+    const { fixture } = setup();
+    fixture.detectChanges();
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+
+    fixture.componentInstance.openEditModal(sampleItems[0]);
+    fixture.componentInstance.requestCloseModal();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.isModalOpen()).toBe(false);
+
+    fixture.componentInstance.openEditModal(sampleItems[0]);
+    edit(fixture, { title: 'Changed' });
+    fixture.componentInstance.requestCloseModal();
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
+    expect(fixture.componentInstance.isModalOpen()).toBe(true);
   });
 
   it('toggles item state and refreshes list', () => {

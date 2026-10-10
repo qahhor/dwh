@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { AuthService } from '@core/services/auth.service';
 import { IdleLockService } from '@core/services/idle-lock.service';
 import { TranslatePipe } from '@core/services/i18n.service';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 
 /**
@@ -13,7 +13,7 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/co
 @Component({
   selector: 'app-idle-lock-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective],
+  imports: [TranslatePipe, UiFormActionsComponent, SMTDialogComponent, SMTDialogContentDirective],
   template: `
     <smt-dialog
       [open]="idle.warningSeconds() !== null"
@@ -25,28 +25,14 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/co
         <p body class="idle-text" role="alert" data-testid="idle-warning">
           {{ 'auth.idle.message' | t: { seconds: idle.warningSeconds() ?? 0 } }}
         </p>
-        <div footer class="idle-actions">
-          <button
-            smt-button
-            type="button"
-            smtVariant="secondary"
-            smtSize="md"
-            data-testid="idle-sign-out"
-            (click)="auth.logout()"
-          >
-            {{ 'auth.idle.sign_out' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            smtVariant="primary"
-            smtSize="md"
-            data-testid="idle-keep"
-            (click)="idle.keepWorking()"
-          >
-            {{ 'auth.idle.keep' | t }}
-          </button>
-        </div>
+        <ui-form-actions
+          footer
+          data-testid="idle-actions"
+          [submitLabel]="'auth.idle.keep' | t"
+          [cancelLabel]="'auth.idle.sign_out' | t"
+          (submitted)="idle.keepWorking()"
+          (cancelled)="auth.logout()"
+        />
       </ng-template>
     </smt-dialog>
   `,
@@ -57,10 +43,7 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/co
         font-size: 14px;
         color: var(--text-main);
       }
-      .idle-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
+      ui-form-actions {
         width: 100%;
       }
     `,

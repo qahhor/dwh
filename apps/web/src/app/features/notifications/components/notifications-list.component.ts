@@ -21,7 +21,7 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
     @if (loadError() && !isLoading()) {
       <div class="notif-error" role="alert">
         <span class="material-symbols-outlined error-icon" aria-hidden="true">error</span>
-        <span class="error-text">{{ loadError() }}</span>
+        <span class="notif-error-message">{{ loadError() }}</span>
         <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="retry.emit()">
           {{ 'notifications.inbox.retry' | t }}
         </button>

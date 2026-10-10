@@ -1,26 +1,37 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { FieldTree, FormField } from '@angular/forms/signals';
 
 import { CustomNavigationItem, NavigationPermissionChoice, NavigationTargetType } from '@core/models/navigation.models';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
+import { NavigationItemForm } from '../navigation-item-form';
 
+/**
+ * The menu item dialog. The screen owns the form (its model, rules and saving); this draws it by the forms standard:
+ * smt-control labels, "*" on the required fields, errors on blur and on save, server errors under their fields,
+ * Enter saves, and closing only asks the screen, which asks again when something changed.
+ */
 @Component({
   selector: 'app-navigation-settings-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    FormField,
+    SMTControlComponent,
     SMTInputComponent,
     SMTSelectComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
-    SMTButtonComponent,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
     TranslatePipe,
   ],
   template: `
-    <!-- Create/Edit Modal -->
     @if (isModalOpen()) {
       <smt-dialog
         [open]="isModalOpen()"
@@ -28,138 +39,136 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
         (closed)="closeModal.emit()"
       >
         <ng-template smtDialogContent>
-          <div class="modal-form">
+          <form
+            id="nav-item-form"
+            class="modal-form"
+            uiFocusFirstInvalid
+            novalidate
+            (submit)="$event.preventDefault(); saveItem.emit()"
+          >
             <div class="form-row">
-              <div class="form-group flex-2">
-                <label class="form-label" for="nav-title">{{ 'nav.settings.field_title' | t }} *</label>
+              <smt-control
+                class="form-group flex-2"
+                [smtLabel]="'nav.settings.field_title' | t"
+                [smtError]="serverErrors()['title'] ?? ''"
+              >
                 <!-- (edited) reports every keystroke: each one derives the code from the title again. -->
                 <smt-input
                   smtFieldId="nav-title"
-                  [value]="formTitle()"
-                  (edited)="formTitleChange.emit(asText($event)); titleChange.emit()"
+                  smtFocusInitial
+                  [formField]="itemForm().title"
+                  (edited)="titleChange.emit(asText($event))"
                   [placeholder]="'nav.settings.title_placeholder' | t"
                 />
-              </div>
-              <div class="form-group flex-1">
-                <label class="form-label" for="nav-code">{{ 'nav.settings.field_code' | t }} *</label>
-                <smt-input
-                  smtFieldId="nav-code"
-                  [value]="formCode()"
-                  (valueChange)="formCodeChange.emit(asText($event))"
-                  placeholder="superset-sales"
-                />
-              </div>
+              </smt-control>
+              <smt-control
+                class="form-group flex-1"
+                [smtLabel]="'nav.settings.field_code' | t"
+                [smtError]="serverErrors()['code'] ?? ''"
+              >
+                <smt-input smtFieldId="nav-code" [formField]="itemForm().code" placeholder="superset-sales" />
+              </smt-control>
             </div>
 
             <div class="form-row">
-              <div class="form-group flex-1">
-                <label class="form-label" for="nav-type">{{ 'nav.settings.field_type' | t }}</label>
+              <smt-control class="form-group flex-1" [smtLabel]="'nav.settings.field_type' | t">
                 <smt-select
                   smtTriggerId="nav-type"
                   [options]="targetTypeOptions()"
                   [allowClear]="false"
-                  [value]="formTargetType()"
-                  (valueChange)="$event && formTargetTypeChange.emit($event)"
+                  [formField]="itemForm().targetType"
                 />
-              </div>
-              <div class="form-group flex-1">
-                <label class="form-label" for="nav-section">{{ 'nav.settings.field_section' | t }}</label>
+              </smt-control>
+              <smt-control class="form-group flex-1" [smtLabel]="'nav.settings.field_section' | t">
                 <smt-select
                   smtTriggerId="nav-section"
                   [options]="sectionOptions()"
                   [allowClear]="false"
-                  [value]="formSectionId()"
-                  (valueChange)="$event && formSectionIdChange.emit($event)"
+                  [formField]="itemForm().sectionId"
                 />
-              </div>
-              <div class="form-group flex-1">
-                <label class="form-label" for="nav-order">{{ 'nav.settings.field_order' | t }}</label>
-                <smt-input
-                  smtFieldId="nav-order"
-                  type="number"
-                  [value]="formSortOrder()"
-                  (valueChange)="formSortOrderChange.emit(asNumber($event))"
-                />
-              </div>
+              </smt-control>
+              <smt-control
+                class="form-group flex-1"
+                [smtLabel]="'nav.settings.field_order' | t"
+                [smtError]="serverErrors()['sortOrder'] ?? ''"
+              >
+                <smt-input smtFieldId="nav-order" type="number" [formField]="itemForm().sortOrder" />
+              </smt-control>
             </div>
 
-            @if (formTargetType() === 'EMBEDDED_IFRAME') {
+            @if (itemForm().targetType().value() === 'EMBEDDED_IFRAME') {
               <div class="type-hint-box">
                 <span class="material-symbols-outlined hint-icon" aria-hidden="true">info</span>
                 <span>{{ 'nav.settings.iframe_type_hint' | t }}</span>
               </div>
             }
 
-            <div class="form-group">
-              <label class="form-label" for="nav-url">{{ 'nav.settings.field_url' | t }} *</label>
+            <smt-control
+              class="form-group"
+              [smtLabel]="'nav.settings.field_url' | t"
+              [smtHint]="'nav.settings.url_hint' | t"
+              [smtError]="serverErrors()['url'] ?? ''"
+            >
               <smt-input
                 smtFieldId="nav-url"
-                [value]="formUrl()"
-                (valueChange)="formUrlChange.emit(asText($event))"
+                [formField]="itemForm().url"
                 (touch)="urlBlur.emit()"
                 placeholder="https://bi.company.uz/superset/dashboard/123/"
               />
-              <span class="form-hint">{{ 'nav.settings.url_hint' | t }}</span>
-            </div>
+            </smt-control>
 
-            <div class="form-group">
-              <label class="form-label" for="nav-permission">{{ 'nav.settings.field_permission' | t }}</label>
+            <smt-control
+              class="form-group"
+              [smtLabel]="'nav.settings.field_permission' | t"
+              [smtHint]="'nav.settings.permission_hint' | t"
+              [smtError]="serverErrors()['requiredPermission'] ?? ''"
+            >
               <smt-select
                 smtTriggerId="nav-permission"
                 [options]="permissionOptions()"
                 [allowClear]="true"
-                smtDescribedBy="nav-permission-hint"
                 [placeholder]="'nav.settings.permission_everyone' | t"
-                [value]="formRequiredPermission()"
-                (valueChange)="formRequiredPermissionChange.emit($event ?? null)"
+                [formField]="itemForm().requiredPermission"
               />
-              <span class="form-hint" id="nav-permission-hint">{{ 'nav.settings.permission_hint' | t }}</span>
-            </div>
+            </smt-control>
 
-            <div class="form-group">
-              <label class="form-label" for="nav-icon">{{ 'nav.settings.field_icon' | t }}</label>
+            <smt-control class="form-group" [smtLabel]="'nav.settings.field_icon' | t">
               <div class="icon-selector-row">
                 <smt-input
                   smtFieldId="nav-icon"
                   class="icon-input"
-                  [value]="formIcon()"
-                  (valueChange)="formIconChange.emit(asText($event))"
+                  [formField]="itemForm().icon"
                   placeholder="analytics"
                 />
                 <span class="material-symbols-outlined icon-preview" aria-hidden="true">{{
-                  formIcon() || 'bar_chart'
+                  itemForm().icon().value() || 'bar_chart'
                 }}</span>
               </div>
-              <div class="icon-quick-chips">
-                @for (ic of popularIcons(); track ic) {
-                  <button
-                    type="button"
-                    class="chip-btn"
-                    [class.active]="formIcon() === ic"
-                    (click)="formIconChange.emit(ic)"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">{{ ic }}</span>
-                  </button>
-                }
-              </div>
+            </smt-control>
+            <div class="icon-quick-chips" role="group" [attr.aria-label]="'nav.settings.field_icon' | t">
+              @for (ic of popularIcons(); track ic) {
+                <button
+                  type="button"
+                  class="chip-btn"
+                  [class.active]="itemForm().icon().value() === ic"
+                  [attr.aria-label]="ic"
+                  [attr.aria-pressed]="itemForm().icon().value() === ic"
+                  (click)="itemForm().icon().value.set(ic)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">{{ ic }}</span>
+                </button>
+              }
             </div>
-          </div>
+          </form>
 
-          <div footer class="modal-footer-btns">
-            <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">
-              {{ 'common.cancel' | t }}
-            </button>
-            <button
-              smt-button
-              type="button"
-              smtVariant="primary"
-              [smtLoading]="isSubmitting()"
-              (click)="saveItem.emit()"
-              [disabled]="!isFormValid()"
-            >
-              {{ 'common.save' | t }}
-            </button>
-          </div>
+          <ui-form-actions
+            footer
+            form="nav-item-form"
+            data-testid="nav-item-actions"
+            [submitLabel]="(editingItem() ? 'common.save' : 'common.create') | t"
+            [submitting]="isSubmitting()"
+            (cancelled)="closeModal.emit()"
+          />
         </ng-template>
       </smt-dialog>
     }
@@ -169,36 +178,20 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
 export class NavigationSettingsModalComponent {
   private readonly i18n = inject(I18nService);
 
+  /** The item form the screen owns. */
+  readonly itemForm = input.required<FieldTree<NavigationItemForm>>();
   readonly editingItem = input<CustomNavigationItem | null>(null);
   readonly isSubmitting = input(false);
-  readonly isFormValid = input(false);
-
-  readonly formTitle = input('');
-  readonly formCode = input('');
-  readonly formTargetType = input<NavigationTargetType>('EMBEDDED_IFRAME');
-  readonly formSectionId = input('custom');
-  /** Null while the order field is empty, as the number field gives it. */
-  readonly formSortOrder = input<number | null>(10);
-  readonly formUrl = input('');
-  readonly formIcon = input('analytics');
   readonly popularIcons = input<string[]>([]);
-
   readonly isModalOpen = input(false);
-  /** `form.action` pair the item is limited to; null shows it to everyone. */
-  readonly formRequiredPermission = input<string | null>(null);
   readonly permissionChoices = input<NavigationPermissionChoice[]>([]);
+  /** The server's refusal by form field, already in words. */
+  readonly serverErrors = input<Readonly<Record<string, string>>>({});
 
-  readonly formTitleChange = output<string>();
-  readonly formCodeChange = output<string>();
-  readonly formTargetTypeChange = output<NavigationTargetType>();
-  readonly formSectionIdChange = output<string>();
-  readonly formSortOrderChange = output<number | null>();
-  readonly formUrlChange = output<string>();
-  readonly formIconChange = output<string>();
-  readonly formRequiredPermissionChange = output<string | null>();
-
-  readonly titleChange = output<void>();
+  /** The title as typed, on every keystroke. */
+  readonly titleChange = output<string>();
   readonly urlBlur = output<void>();
+  /** Escape, the backdrop, the cross or "Cancel": the screen decides. */
   readonly closeModal = output<void>();
   readonly saveItem = output<void>();
 
@@ -213,19 +206,14 @@ export class NavigationSettingsModalComponent {
     return value === null ? '' : String(value);
   }
 
-  /** The order field gives a number, or null when it is emptied. */
-  asNumber(value: SMTInputValue): number | null {
-    return value === null || value === '' ? null : Number(value);
-  }
-
   /** Catalog pairs by name; a stored pair missing from the list stays visible by its key. */
   permissionOptions(): SMTSelectOption<string>[] {
-    return this.permissionMemo([this.permissionChoices(), this.formRequiredPermission()], () => {
+    const stored = this.itemForm().requiredPermission().value();
+    return this.permissionMemo([this.permissionChoices(), stored], () => {
       const options = this.permissionChoices().map((choice) => ({
         id: choice.permission,
         label: `${choice.formName} — ${choice.actionName}`,
       }));
-      const stored = this.formRequiredPermission();
       return stored && !options.some((option) => option.id === stored)
         ? [{ id: stored, label: stored }, ...options]
         : options;

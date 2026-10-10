@@ -11,6 +11,7 @@ import {
 } from '../upl.api';
 import { UPL_ENCODING_KEY, UPL_FILE_KIND_KEY, UPL_MATCH_BY_KEY } from '../upl-labels';
 import { isFilled } from './upl-format-model';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
@@ -19,12 +20,11 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
 @Component({
   selector: 'app-upl-format-file-step',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTSelectComponent, TranslatePipe],
+  imports: [SMTControlComponent, SMTInputComponent, SMTSelectComponent, TranslatePipe],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.file' | t }}</h2>
     <div class="upl-row">
-      <div class="form-group">
-        <label class="form-label" for="upl-file-kind">{{ 'upl.format.field.file_kind' | t }}</label>
+      <smt-control class="form-group" [smtLabel]="'upl.format.field.file_kind' | t">
         <smt-select
           class="upl-select"
           smtTriggerId="upl-file-kind"
@@ -35,10 +35,9 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
           [value]="model().fileKind"
           (valueChange)="onFileKindChange($event)"
         ></smt-select>
-      </div>
+      </smt-control>
       @if (model().fileKind === 'csv') {
-        <div class="form-group">
-          <label class="form-label" for="upl-encoding">{{ 'upl.format.field.encoding' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'upl.format.field.encoding' | t">
           <smt-select
             class="upl-select"
             smtTriggerId="upl-encoding"
@@ -48,9 +47,8 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
             [allowClear]="false"
             [(value)]="model().encoding"
           ></smt-select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="upl-delimiter">{{ 'upl.format.field.delimiter' | t }}</label>
+        </smt-control>
+        <smt-control class="form-group" [smtLabel]="'upl.format.field.delimiter' | t">
           <smt-input
             class="upl-input-tiny"
             smtFieldId="upl-delimiter"
@@ -58,10 +56,9 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
             [disabled]="!editable()"
             [(value)]="model().delimiter"
           />
-        </div>
+        </smt-control>
       }
-      <div class="form-group">
-        <label class="form-label" for="upl-match-by">{{ 'upl.format.field.match_by' | t }}</label>
+      <smt-control class="form-group" [smtLabel]="'upl.format.field.match_by' | t">
         <smt-select
           class="upl-select"
           smtTriggerId="upl-match-by"
@@ -71,7 +68,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
           [allowClear]="false"
           [(value)]="model().matchColumnsBy"
         ></smt-select>
-      </div>
+      </smt-control>
     </div>
   `,
   styles: [

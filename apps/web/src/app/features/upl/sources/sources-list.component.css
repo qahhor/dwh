@@ -66,16 +66,3 @@ ui-page-header {
   color: var(--text-muted);
   font-size: 0.8125rem;
 }
-
-.upl-field-error {
-  display: block;
-  margin-top: 0.25rem;
-  color: var(--danger);
-  font-size: 0.8125rem;
-}
-
-.upl-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}

@@ -171,6 +171,14 @@ function click(fixture: Fixture, action: string): void {
   fixture.detectChanges();
 }
 
+/** Confirms the rebuild or rollback dialog with its primary button. */
+function confirmMaintenance(fixture: Fixture): void {
+  (
+    find(fixture, '[data-testid="search-maintenance-actions"] [data-testid="form-submit"]') as HTMLButtonElement
+  ).click();
+  fixture.detectChanges();
+}
+
 /** The smt-select whose trigger has the given id. */
 function picker(fixture: Fixture, triggerId: string): SMTSelectComponent<string> {
   return fixture.debugElement
@@ -390,6 +398,24 @@ describe('SearchSettingsComponent', () => {
     expect(previewAlert?.textContent).toContain('Preview unavailable');
   });
 
+  it('keeps the preview button enabled and asks for a query under the field instead of sending an empty one', async () => {
+    const { fixture, management } = await createFixture(VIEW);
+
+    const previewButton = button(fixture, 'preview-search-settings')!;
+    expect(previewButton.disabled).toBe(false);
+    previewButton.click();
+    fixture.detectChanges();
+    TestBed.tick();
+
+    expect(management['preview']).not.toHaveBeenCalled();
+    expect(find(fixture, '#search-preview-query')?.getAttribute('aria-invalid')).toBe('true');
+    expect(fixture.nativeElement.textContent).toContain(translateTest('settings.search.preview.query_required'));
+
+    type(fixture, '#search-preview-query', 'report');
+    TestBed.tick();
+    expect(find(fixture, '#search-preview-query')?.getAttribute('aria-invalid')).toBeNull();
+  });
+
   it('emits the canonical numTypos field after editing a real typo control', async () => {
     const save = vi.fn((_request: SearchSettingsSnapshot) => new Subject<SearchSettingsSnapshot>());
     const { fixture, management } = await createFixture(ADMIN, {
@@ -397,7 +423,9 @@ describe('SearchSettingsComponent', () => {
       save,
     });
     const typoInputs = Array.from(
-      inScreen(fixture.nativeElement).querySelectorAll('.field-grid:not(.field-grid-head) label:nth-of-type(2) input'),
+      inScreen(fixture.nativeElement).querySelectorAll(
+        '.field-grid:not(.field-grid-head) smt-input:nth-of-type(2) input',
+      ),
     ) as HTMLInputElement[];
     const editedValues = [1, 2, 2, 2, 2, 2, 2, 0, 0, 0];
     typoInputs.forEach((input, index) => {
@@ -428,7 +456,7 @@ describe('SearchSettingsComponent', () => {
 
     click(fixture, 'start-rebuild');
     expect(startJob).not.toHaveBeenCalled();
-    click(fixture, 'confirm-search-maintenance');
+    confirmMaintenance(fixture);
     expect(startJob).toHaveBeenCalledWith(expect.objectContaining({ action: 'REBUILD' }));
     click(fixture, 'retry-uncertain-mutation');
 
@@ -453,7 +481,7 @@ describe('SearchSettingsComponent', () => {
     expect(find(fixture, 'button[data-action*="delete"], input[name*="generation"]')).toBeNull();
     (find(fixture, 'button[data-generation-id="retained-1"]') as HTMLButtonElement).click();
     fixture.detectChanges();
-    button(fixture, 'confirm-search-maintenance')!.click();
+    confirmMaintenance(fixture);
 
     expect(startJob).toHaveBeenCalledWith(expect.objectContaining({ action: 'ROLLBACK', generationId: 'retained-1' }));
   });

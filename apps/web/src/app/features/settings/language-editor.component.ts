@@ -18,12 +18,13 @@ import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-language-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTSwitchComponent, SMTInputComponent, TranslatePipe],
+  imports: [SMTSwitchComponent, SMTInputComponent, SMTControlComponent, TranslatePipe],
   templateUrl: './language-editor.component.html',
   styleUrl: './language-editor.component.css',
 })

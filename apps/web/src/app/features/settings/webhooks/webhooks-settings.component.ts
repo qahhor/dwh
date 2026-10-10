@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  Injector,
   Signal,
   TemplateRef,
   inject,
@@ -10,7 +11,7 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormField, form, maxLength, required } from '@angular/forms/signals';
+import { FormField, form, maxLength, required, validate } from '@angular/forms/signals';
 import { WebhooksApi } from './webhooks.api';
 import { ToastService } from '@core/services/toast.service';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
@@ -33,22 +34,34 @@ import {
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
 import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective, focusFirstInvalid } from '@shared/ui/focus-first-invalid';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
+import { problemFieldErrors } from '@shared/ui/problem-fields';
 
-/** What the person types in the create dialog. */
+/** What the person types and picks in the create dialog. */
 interface WebhookCreateModel {
   name: string;
   targetUrl: string;
+  /** Event codes; `*` is every event. */
+  events: string[];
 }
 
-const EMPTY_CREATE: WebhookCreateModel = { name: '', targetUrl: '' };
+function emptyCreate(): WebhookCreateModel {
+  return { name: '', targetUrl: '', events: ['*'] };
+}
 
 @Component({
   selector: 'app-webhooks-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTCheckboxComponent,
+    SMTControlComponent,
     SMTInputComponent,
     FormField,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
@@ -66,6 +79,7 @@ export class WebhooksSettingsComponent {
   private readonly permService = inject(PermissionService);
   private readonly modal = inject(SMTModalService);
   private readonly saveErrors = inject(SaveErrorNotifier);
+  private readonly injector = inject(Injector);
 
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -80,7 +94,9 @@ export class WebhooksSettingsComponent {
   readonly createdSecretModalOpen = signal<boolean>(false);
   readonly recentlyCreatedSubscription = signal<CreatedWebhookSubscription | null>(null);
 
-  readonly createModel = signal<WebhookCreateModel>({ ...EMPTY_CREATE });
+  readonly createModel = signal<WebhookCreateModel>(emptyCreate());
+  /** The server's refusal of the new subscription by field, already in words. */
+  readonly serverErrors = signal<Readonly<Record<string, string>>>({});
   readonly availableEvents = signal<WebhookEventOption[]>(AVAILABLE_WEBHOOK_EVENTS);
 
   readonly tableConfig = computed<TableConfig<WebhookSubscription>>(() => {
@@ -127,6 +143,8 @@ export class WebhooksSettingsComponent {
 
   readonly canManageWebhooks = computed(() => this.permService.hasPermission('webhook.subscriptions', 'manage'));
 
+  private readonly askDiscard = discardChangesQuestion();
+
   /** Every subscription is loaded, so a header click sorts the whole list. */
   readonly sortValues = {
     id: (sub: WebhookSubscription) => sub.id,
@@ -135,17 +153,26 @@ export class WebhooksSettingsComponent {
     status: (sub: WebhookSubscription) => (sub.state === 'A' ? 0 : 1),
   };
 
-  /** Both fields are required (the kit marks a blank one once it was left); maxLength also caps the typing. */
+  /**
+   * Name, address and at least one event are required; a text of spaces counts as empty. Errors show once a field
+   * is left or a save is tried (forms standard, section 4); maxLength also caps the typing.
+   */
   readonly createForm = form(this.createModel, (path) => {
     required(path.name);
     maxLength(path.name, 100);
     required(path.targetUrl);
     maxLength(path.targetUrl, 500);
+    for (const text of [path.name, path.targetUrl]) {
+      validate(text, ({ value }) => (value().length > 0 && !value().trim() ? { kind: 'required' } : null));
+    }
+    validate(path.events, ({ value }) =>
+      value().length === 0
+        ? { kind: 'events', message: this.uiI18n.translate('settings.webhooks.events_required') }
+        : null,
+    );
   });
 
   private readonly subscriptionsResource = rxResource({ stream: () => this.webhooks.list() });
-
-  selectedEvents = new Set<string>(['*']);
 
   constructor() {
     this.webhooks
@@ -167,8 +194,8 @@ export class WebhooksSettingsComponent {
 
   openCreateModal(): void {
     // A new dialog starts blank and untouched, so no field shows an error before it is used.
-    this.createForm().reset({ ...EMPTY_CREATE });
-    this.selectedEvents = new Set(['*']);
+    this.createForm().reset(emptyCreate());
+    this.serverErrors.set({});
     this.isCreateModalOpen.set(true);
   }
 
@@ -176,45 +203,56 @@ export class WebhooksSettingsComponent {
     this.isCreateModalOpen.set(false);
   }
 
+  /** Escape, the backdrop, the cross and "Cancel" ask before typed values are dropped (forms standard, 8). */
+  requestCloseCreate(): void {
+    if (this.isSaving()) return;
+    const dirty = JSON.stringify(this.createModel()) !== JSON.stringify(emptyCreate());
+    this.askDiscard(dirty).subscribe((discard) => {
+      if (discard) this.closeCreateModal();
+    });
+  }
+
+  /** "Pick at least one event", once the events were touched or a save was tried. */
+  eventsError(): string {
+    const events = this.createForm.events();
+    return events.touched() && events.invalid()
+      ? (events.errors()[0]?.message ?? '')
+      : (this.serverErrors()['events'] ?? '');
+  }
+
   onEventCheck(code: string, checked: boolean): void {
-    if (checked) {
-      this.selectedEvents.add(code);
-    } else {
-      this.selectedEvents.delete(code);
-    }
-  }
-
-  isAllEventsSelected(): boolean {
-    return this.selectedEvents.size === this.availableEvents().length;
-  }
-
-  toggleAllEvents(): void {
-    if (this.isAllEventsSelected()) {
-      this.selectedEvents.clear();
-    } else {
-      for (const ev of this.availableEvents()) {
-        this.selectedEvents.add(ev.code);
-      }
-    }
-  }
-
-  isCreateValid(): boolean {
-    const { name, targetUrl } = this.createModel();
-    // Blank text passes required(), so the trimmed check stays.
-    return (
-      this.createForm().valid() && name.trim().length > 0 && targetUrl.trim().length > 0 && this.selectedEvents.size > 0
+    this.setEvents(
+      checked
+        ? [...new Set([...this.createModel().events, code])]
+        : this.createModel().events.filter((event) => event !== code),
     );
   }
 
+  isAllEventsSelected(): boolean {
+    return this.createModel().events.length === this.availableEvents().length;
+  }
+
+  toggleAllEvents(): void {
+    this.setEvents(this.isAllEventsSelected() ? [] : this.availableEvents().map((event) => event.code));
+  }
+
+  isCreateValid(): boolean {
+    return this.createForm().valid();
+  }
+
+  /** Enter and the primary button land here; one request while a save runs. */
   submitCreate(): void {
+    if (this.isSaving()) return;
     markSMTFormFieldsTouched(this.createForm);
     if (!this.isCreateValid()) return;
     this.isSaving.set(true);
+    this.serverErrors.set({});
 
+    const model = this.createModel();
     const body: CreateWebhookSubscriptionDto = {
-      name: this.createModel().name.trim(),
-      targetUrl: this.createModel().targetUrl.trim(),
-      subscribedEvents: Array.from(this.selectedEvents),
+      name: model.name.trim(),
+      targetUrl: model.targetUrl.trim(),
+      subscribedEvents: [...model.events],
     };
 
     this.webhooks.create(body).subscribe({
@@ -228,7 +266,18 @@ export class WebhooksSettingsComponent {
       },
       error: (err: unknown) => {
         this.isSaving.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('common.error'));
+        const { fields, other } = problemFieldErrors(err, {
+          known: ['name', 'targetUrl', 'events'],
+          rename: { subscribedEvents: 'events' },
+        });
+        this.serverErrors.set(fields);
+        if (Object.keys(fields).length > 0) {
+          const formElement = document.getElementById('webhook-create');
+          if (formElement) focusFirstInvalid(formElement, this.injector);
+        }
+        if (Object.keys(fields).length === 0 || other.length > 0) {
+          this.toast.error(other[0] ?? (problemText(err) || this.uiI18n.translate('common.error')));
+        }
       },
     });
   }
@@ -280,5 +329,11 @@ export class WebhooksSettingsComponent {
         actionError: problemText,
       })
       .subscribe();
+  }
+
+  private setEvents(events: string[]): void {
+    const field = this.createForm.events();
+    field.value.set(events);
+    field.markAsTouched();
   }
 }

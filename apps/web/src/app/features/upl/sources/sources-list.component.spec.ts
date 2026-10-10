@@ -12,6 +12,7 @@ import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { UplApiService, UplSource, UplSourceItem } from '../upl.api';
 import { SourcesListComponent } from './sources-list.component';
 import { ListViewsApi, SavedListView } from '@shared/list-views/list-views';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { inScreen } from '@testing/in-screen';
 import { metaField } from '@testing/registry-meta';
 
@@ -155,7 +156,86 @@ async function openCreateForm(
 }
 
 describe('SourcesListComponent', () => {
-  afterEach(() => localStorage.clear());
+  afterEach(() => {
+    localStorage.clear();
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
+  });
+
+  async function openDialog(fixture: ComponentFixture<SourcesListComponent>): Promise<void> {
+    fixture.componentInstance.openCreate();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  it('окно создания: «*» у обязательных полей, фокус на коде, кнопки «Отмена» и «Создать»', async () => {
+    const { fixture } = await createFixture();
+    await openDialog(fixture);
+
+    const required = (id: string) => document.querySelector(`label[for="${id}"] .smt-control__required`) !== null;
+    expect(['upl-source-code', 'upl-source-name', 'upl-source-owner-org'].map(required)).toEqual([true, true, true]);
+    expect(required('upl-source-owner-contact')).toBe(false);
+    // The CDK focus trap moves focus to the field marked cdkFocusInitial when the dialog opens.
+    expect(document.getElementById('upl-source-code')?.hasAttribute('cdkFocusInitial')).toBe(true);
+    const actions = document.querySelector('[data-testid="upl-create-actions"]')!;
+    expect(actions.querySelector('[data-testid="form-submit"]')?.textContent?.trim()).toBe(
+      PACKAGED_RUSSIAN['common.create'],
+    );
+    expect(actions.querySelector('[data-testid="form-cancel"]')?.textContent?.trim()).toBe(
+      PACKAGED_RUSSIAN['common.cancel'],
+    );
+  });
+
+  it('ошибка поля появляется после ухода с поля, а при сохранении — у всех полей с фокусом на первом', async () => {
+    const { fixture, api } = await createFixture();
+    await openDialog(fixture);
+
+    expect(fieldError(document.body, 'upl-source-name')).toBeNull();
+    const name = document.getElementById('upl-source-name') as HTMLInputElement;
+    name.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(fieldError(document.body, 'upl-source-name')?.textContent).toContain(
+      PACKAGED_RUSSIAN['upl.source.err.required'],
+    );
+
+    (document.getElementById('upl-source-create') as HTMLFormElement).requestSubmit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(api.createSource).not.toHaveBeenCalled();
+    expect(fieldError(document.body, 'upl-source-code')).not.toBeNull();
+    expect(fieldError(document.body, 'upl-source-owner-org')).not.toBeNull();
+    expect(document.activeElement?.id).toBe('upl-source-code');
+  });
+
+  it('пока идёт сохранение, повторное нажатие не отправляет второй запрос', async () => {
+    const { fixture, api } = await createFixture({ createResults: [NEVER] });
+
+    await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
+    submitPrefilled(fixture, {});
+
+    expect(api.createSource).toHaveBeenCalledTimes(1);
+    expect(fixture.componentInstance.isSaving()).toBe(true);
+  });
+
+  it('закрытие изменённого окна спрашивает, нетронутое закрывается сразу', async () => {
+    const { fixture } = await createFixture();
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+
+    await openDialog(fixture);
+    fixture.componentInstance.closeCreate();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.isCreateOpen()).toBe(false);
+
+    await openDialog(fixture);
+    fixture.componentInstance.createModel.update((model) => ({ ...model, code: 'x' }));
+    fixture.componentInstance.closeCreate();
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
+    expect(fixture.componentInstance.isCreateOpen()).toBe(true);
+
+    confirm.mockReturnValue(of(true));
+    fixture.componentInstance.closeCreate();
+    expect(fixture.componentInstance.isCreateOpen()).toBe(false);
+  });
 
   it('строит колонки по метаданным списка и показывает строки со ссылкой на карточку и бейджем черновика', async () => {
     const { fixture, queryMeta, api } = await createFixture();
@@ -478,6 +558,8 @@ describe('SourcesListComponent', () => {
       'true',
     );
     expect(testId(fixture, 'upl-create-error')).toHaveLength(1);
+    await fixture.whenStable();
+    expect(document.activeElement?.id).toBe('upl-source-name');
   });
 
   it('кнопка «Новый источник», и в пустом списке тоже, есть только при праве create', async () => {

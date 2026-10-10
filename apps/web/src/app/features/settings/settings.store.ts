@@ -37,6 +37,21 @@ export class SettingsStore {
     computation: (loaded, previous) => (loaded ? { ...loaded } : (previous?.value ?? {})),
   });
   readonly isSaving = signal<boolean>(false);
+  /** Why the last save of the system settings was refused, by setting key (i18n keys); an edit of a field clears it. */
+  readonly systemErrors = signal<Readonly<Record<string, string>>>({});
+
+  /** What the server holds, to tell an edit that leaving the screen would lose (forms standard, section 8). */
+  private readonly savedSystem = linkedSignal<SettingsValues | undefined, SettingsValues>({
+    source: () => loadedValue(this.systemResource)?.values,
+    computation: (loaded, previous) => loaded ?? previous?.value ?? {},
+  });
+  private readonly savedUser = linkedSignal<SettingsValues | undefined, SettingsValues>({
+    source: () => loadedValue(this.userResource),
+    computation: (loaded, previous) => loaded ?? previous?.value ?? {},
+  });
+  readonly dirty = computed(
+    () => !sameValues(this.systemSettings(), this.savedSystem()) || !sameValues(this.userSettings(), this.savedUser()),
+  );
 
   readonly isLoading = computed(() => this.systemResource.isLoading() || this.userResource.isLoading());
   /** Hidden while a retry runs, so the banner only reports a finished load. */
@@ -97,34 +112,24 @@ export class SettingsStore {
     this.userResource.reload();
   }
 
+  /**
+   * Saves the system settings as a whole. A value out of range is not sent: its error goes under its field
+   * ({@link systemErrors}) instead of a toast, and the screen shows the panel that holds it.
+   */
   saveSystemSettings(): void {
-    if (!this.canUpdateSystemSettings()) return;
+    if (!this.canUpdateSystemSettings() || this.isSaving()) return;
 
-    const sessionStr = this.systemSettings()['security.session_lifetime_hours'];
-    if (sessionStr !== undefined) {
-      const trimmed = String(sessionStr).trim();
-      const sessionLifetime = trimmed === '' ? NaN : Number(trimmed);
-      if (!Number.isFinite(sessionLifetime) || sessionLifetime < 1 || sessionLifetime > 8760) {
-        this.toast.error(this.i18n.translate('settings.validation.session_lifetime'));
-        return;
-      }
-    }
-
-    const quotaStr = this.systemSettings()['storage.default_user_quota_mb'];
-    if (quotaStr !== undefined) {
-      const trimmed = String(quotaStr).trim();
-      const quota = trimmed === '' ? NaN : Number(trimmed);
-      if (!Number.isFinite(quota) || quota < 100 || quota > 102400) {
-        this.toast.error(this.i18n.translate('settings.validation.quota'));
-        return;
-      }
-    }
+    const errors = systemSettingErrors(this.systemSettings());
+    this.systemErrors.set(errors);
+    if (Object.keys(errors).length > 0) return;
 
     this.isSaving.set(true);
     const revision = this.systemRevision();
-    this.settingsApi.saveSystemSettings(this.systemSettings(), revision).subscribe({
+    const sent = { ...this.systemSettings() };
+    this.settingsApi.saveSystemSettings(sent, revision).subscribe({
       next: () => {
         this.isSaving.set(false);
+        this.savedSystem.set(sent);
         // The save raised the revision of the set by one: the next save names the new one (plan item 3.6).
         if (revision !== undefined) this.systemRevision.set(revision + 1);
         this.toast.success(this.i18n.translate('common.saved'));
@@ -140,10 +145,13 @@ export class SettingsStore {
   }
 
   saveUserSettings(): void {
+    if (this.isSaving()) return;
     this.isSaving.set(true);
-    this.settingsApi.saveUserSettings(this.userSettings()).subscribe({
+    const sent = { ...this.userSettings() };
+    this.settingsApi.saveUserSettings(sent).subscribe({
       next: () => {
         this.isSaving.set(false);
+        this.savedUser.set(sent);
         this.applyTheme(this.userSettings()['user.theme']);
         this.toast.success(this.i18n.translate('common.saved'));
       },
@@ -153,13 +161,20 @@ export class SettingsStore {
 
   changePersonalLang(lang: string): void {
     this.i18n.setLanguage(lang).subscribe({
-      next: () => this.userSettings.update((settings) => ({ ...settings, 'user.language': lang })),
+      // The language is stored by the switch itself, so it is no unsaved edit.
+      next: () => {
+        this.userSettings.update((settings) => ({ ...settings, 'user.language': lang }));
+        this.savedUser.update((settings) => ({ ...settings, 'user.language': lang }));
+      },
     });
   }
 
   /** A panel edited one setting; it is kept here and saved with the others. */
   setSystemSetting(key: string, value: string): void {
     this.systemSettings.update((settings) => ({ ...settings, [key]: value }));
+    if (key in this.systemErrors()) {
+      this.systemErrors.update(({ [key]: _fixed, ...rest }) => rest);
+    }
   }
 
   toggleRequire2fa(enabled: boolean): void {
@@ -181,6 +196,30 @@ export class SettingsStore {
       this.themeService.setTheme(theme);
     }
   }
+}
+
+/** The limits of the numeric system settings; the server checks them again. */
+const RANGES: Readonly<Record<string, { min: number; max: number; key: string }>> = {
+  'security.session_lifetime_hours': { min: 1, max: 8760, key: 'settings.validation.session_lifetime' },
+  'storage.default_user_quota_mb': { min: 100, max: 102400, key: 'settings.validation.quota' },
+};
+
+/** The settings whose value is out of range, with the i18n key of the error. */
+export function systemSettingErrors(values: SettingsValues): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const [setting, range] of Object.entries(RANGES)) {
+    const raw = values[setting];
+    if (raw === undefined) continue;
+    const trimmed = String(raw).trim();
+    const value = trimmed === '' ? NaN : Number(trimmed);
+    if (!Number.isFinite(value) || value < range.min || value > range.max) errors[setting] = range.key;
+  }
+  return errors;
+}
+
+function sameValues(left: SettingsValues, right: SettingsValues): boolean {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  return [...keys].every((key) => (left[key] ?? '') === (right[key] ?? ''));
 }
 
 /** The loaded answer, or undefined while loading, idle or failed. */

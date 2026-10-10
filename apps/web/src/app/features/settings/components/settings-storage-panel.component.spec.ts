@@ -17,7 +17,7 @@ function render(quota: string | undefined, canUpdate = true) {
   fixture.detectChanges();
   const host = fixture.nativeElement as HTMLElement;
   const field = () => host.querySelector('#settings-user-quota') as HTMLInputElement;
-  const badge = () => host.querySelector('label[for="settings-user-quota"] .unit-badge')?.textContent?.trim();
+  const badge = () => host.querySelector('[data-testid="user-quota-unit"]')?.textContent?.trim();
   return { fixture, host, changes, saves: () => saves, field, badge };
 }
 
