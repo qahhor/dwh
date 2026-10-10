@@ -32,11 +32,11 @@ export function focusFirstInvalid(root: HTMLElement, injector: Injector): void {
   host: { '(submit)': 'onSubmit()' },
 })
 export class UiFocusFirstInvalidDirective {
-  private readonly host = inject<ElementRef<HTMLFormElement>>(ElementRef).nativeElement;
+  private readonly host = inject<ElementRef<HTMLFormElement>>(ElementRef);
 
   private readonly injector = inject(Injector);
 
   onSubmit(): void {
-    focusFirstInvalid(this.host, this.injector);
+    focusFirstInvalid(this.host.nativeElement, this.injector);
   }
 }
