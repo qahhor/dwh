@@ -33,8 +33,10 @@ services:
       - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tmpfs|tracefs)$$
       - --web.listen-address=:9100
       - --web.disable-exporter-metrics
+    # Without mount propagation (rslave fails where / is a private mount, as on Docker Desktop): a file system
+    # mounted on the host after the exporter started appears after its restart.
     volumes:
-      - /:/host/root:ro,rslave
+      - /:/host/root:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
     networks: [monitoring]
