@@ -1419,6 +1419,7 @@
   "ui.control.max_length": "Maksimal uzunlik — {count}",
   "ui.control.min": "Minimal qiymat — {value}",
   "ui.control.max": "Maksimal qiymat — {value}",
+  "ui.form.error_summary": "Shakldagi xatolarni tuzating: {count}",
   "ui.date.placeholder": "kk.oo.yyyy",
   "ui.date.open_calendar": "Taqvimni ochish",
   "ui.date.dialog_label": "Sanani tanlash",
