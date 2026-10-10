@@ -27,15 +27,21 @@ describe('SMTEntityEditPageComponent', () => {
   it('titles a new record and a change by the record name', async () => {
     const created = await renderEntityScreen(`/e/${CODE}/new`, { meta: META });
     expect(created.root.querySelector('h1')?.textContent?.trim()).toBe(translateTest('ui.entity_page.create_title'));
-    expect(created.root.querySelector('a[href="/e/test.orders"]')).not.toBeNull();
+    expect(created.root.querySelector('[data-testid="form-submit"]')?.textContent?.trim()).toBe('Создать');
+    (created.root.querySelector('[data-testid="form-cancel"]') as HTMLButtonElement).click();
+    await created.settle();
+    expect(created.router.url).toBe('/e/test.orders');
+    expect(created.confirm).not.toHaveBeenCalled();
   });
 
   it('titles a change by the record name and leads back to the record', async () => {
-    const { root } = await renderEntityScreen(`/e/${CODE}/4/edit`, { meta: META, records: [ORDER] });
+    const { root, router, settle } = await renderEntityScreen(`/e/${CODE}/4/edit`, { meta: META, records: [ORDER] });
     expect(root.querySelector('h1')?.textContent?.trim()).toBe(
       translateTest('ui.entity_page.edit_title', { name: 'ЗК-4' }),
     );
-    expect(root.querySelector(`a[href="/e/${CODE}/4"]`)).not.toBeNull();
+    (root.querySelector('[data-testid="form-cancel"]') as HTMLButtonElement).click();
+    await settle();
+    expect(router.url).toBe(`/e/${CODE}/4`);
   });
 
   it('refuses a new record to a viewer who may not create', async () => {

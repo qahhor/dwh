@@ -217,15 +217,16 @@ test('dirty create Cancel and Escape preserve or discard the draft with trapped 
   await nameInput.fill(discardedName);
 
   await createDialog.getByRole('button', { name: 'Отмена', exact: true }).click();
-  const discardDialog = page.getByRole('dialog', { name: 'Отменить создание проекта?', exact: true });
+  // The common question of every form (common.discard.*).
+  const discardDialog = page.getByRole('alertdialog', { name: 'Отменить изменения?', exact: true });
   await expect(discardDialog).toBeVisible();
-  await discardDialog.getByRole('button', { name: 'Отмена', exact: true }).click();
+  await discardDialog.getByRole('button', { name: 'Продолжить редактирование', exact: true }).click();
   await expect(discardDialog).toBeHidden();
   await expect(nameInput).toHaveValue(discardedName);
 
   await page.keyboard.press('Escape');
   await expect(discardDialog).toBeVisible();
-  await discardDialog.getByRole('button', { name: 'Удалить черновик', exact: true }).click();
+  await discardDialog.getByRole('button', { name: 'Не сохранять', exact: true }).click();
   await expect(createDialog).toBeHidden();
   await expect(opener).toBeFocused();
   expect(mutations).toHaveLength(0);
@@ -308,16 +309,16 @@ test('dirty edit Cancel and Escape preserve or discard the draft and return focu
   await editName.fill(discardedName);
 
   await editDialog.getByRole('button', { name: 'Отмена', exact: true }).click();
-  const discardDialog = page.getByRole('dialog', { name: 'Отменить изменения проекта?', exact: true });
+  const discardDialog = page.getByRole('alertdialog', { name: 'Отменить изменения?', exact: true });
   await expect(discardDialog).toBeVisible();
-  await discardDialog.getByRole('button', { name: 'Отмена', exact: true }).click();
+  await discardDialog.getByRole('button', { name: 'Продолжить редактирование', exact: true }).click();
   await expect(discardDialog).toBeHidden();
   await expect(editName).toHaveValue(discardedName);
 
   await page.keyboard.press('Escape');
   await expect(discardDialog).toBeVisible();
   const opener = projectEditButton(page, originalName);
-  await discardDialog.getByRole('button', { name: 'Отменить изменения', exact: true }).click();
+  await discardDialog.getByRole('button', { name: 'Не сохранять', exact: true }).click();
   await expect(editDialog).toBeHidden();
   await expect(opener).toBeFocused();
   expect(mutations).toHaveLength(0);

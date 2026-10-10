@@ -11,6 +11,22 @@ import { AuthService } from '../services/auth.service';
 import { TasksComponent } from '@features/tasks/tasks.component';
 import { ProjectsComponent } from '@features/tasks/projects/projects.component';
 
+/** The open "discard changes?" question (common.discard.title), or null. */
+const discardQuestion = () =>
+  [...document.querySelectorAll<HTMLElement>('[role="alertdialog"]')].find((node) =>
+    node.textContent?.includes('Отменить изменения?'),
+  ) ?? null;
+
+/** Answers the open question: leave (common.discard.confirm) or stay (common.discard.keep). */
+function answerDiscard(leave: boolean) {
+  const label = leave ? 'Не сохранять' : 'Продолжить редактирование';
+  const button = [...(discardQuestion()?.querySelectorAll('button') ?? [])].find(
+    (node) => node.textContent?.trim() === label,
+  );
+  if (!button) throw new Error('no discard question open');
+  button.click();
+}
+
 describe('Record routes with the actual router and actual templates', () => {
   async function setup() {
     const requests = new Map<string, Subject<any>>();
@@ -121,9 +137,10 @@ describe('Record routes with the actual router and actual templates', () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(settled).toBe(false);
-    expect(page.isCreateDiscardConfirmationOpen()).toBe(true);
-    page.confirmDiscardCreate();
+    expect(discardQuestion()).not.toBeNull();
+    answerDiscard(true);
     expect(await navigation).toBe(true);
+    expect(page.isCreateModalOpen()).toBe(false);
   });
 
   it('preserves a task draft on list-to-detail cancel and settles superseded confirmations', async () => {
@@ -133,8 +150,8 @@ describe('Record routes with the actual router and actual templates', () => {
     page.createForm.title = 'unsaved task';
     const first = router.navigateByUrl('/tasks/items/123');
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(page.isEditDiscardConfirmationOpen()).toBe(true);
-    page.cancelDiscardEdit();
+    expect(discardQuestion()).not.toBeNull();
+    answerDiscard(false);
     expect(await first).toBe(false);
     expect(router.url).toBe('/tasks');
     expect(page.createForm.title).toBe('unsaved task');
@@ -145,8 +162,9 @@ describe('Record routes with the actual router and actual templates', () => {
     const replacement = router.navigateByUrl('/tasks/projects');
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(await replaced).toBe(false);
-    expect(page.isEditDiscardConfirmationOpen()).toBe(true);
-    page.confirmDiscardEdit();
+    // The replaced navigation and its replacement share one question: one dialog, not two.
+    expect(document.querySelectorAll('[role="alertdialog"]')).toHaveLength(1);
+    answerDiscard(true);
     expect(await replacement).toBe(true);
     expect(router.url).toBe('/tasks/projects');
   });
@@ -169,8 +187,8 @@ describe('Record routes with the actual router and actual templates', () => {
     page.editForm.title = 'Unsaved';
     const cancelled = router.navigateByUrl('/tasks/items/124');
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(page.isEditDiscardConfirmationOpen()).toBe(true);
-    page.cancelDiscardEdit();
+    expect(discardQuestion()).not.toBeNull();
+    answerDiscard(false);
     expect(await cancelled).toBe(false);
     expect(page.editForm.title).toBe('Unsaved');
     page.submitEditTask();
@@ -192,13 +210,13 @@ describe('Record routes with the actual router and actual templates', () => {
     page.editForm.name = 'Unsaved project';
     const cancelled = router.navigateByUrl('/tasks/projects/42');
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(page.isEditDiscardConfirmationOpen()).toBe(true);
-    page.cancelNavigationDiscard('edit');
+    expect(discardQuestion()).not.toBeNull();
+    answerDiscard(false);
     expect(await cancelled).toBe(false);
     expect(page.editForm.name).toBe('Unsaved project');
     const confirmed = router.navigateByUrl('/tasks/projects/42');
     await new Promise((resolve) => setTimeout(resolve, 0));
-    page.confirmDiscardEdit();
+    answerDiscard(true);
     expect(await confirmed).toBe(true);
     expect(router.url).toBe('/tasks/projects/42');
     expect(page.isEditModalOpen()).toBe(false);
@@ -288,13 +306,13 @@ describe('Record routes with the actual router and actual templates', () => {
     page.createForm.name = 'Draft';
     const authenticated = router.navigateByUrl('/login');
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(page.isCreateDiscardConfirmationOpen()).toBe(true);
-    page.cancelNavigationDiscard('create');
+    expect(discardQuestion()).not.toBeNull();
+    answerDiscard(false);
     expect(await authenticated).toBe(false);
 
     const pending = router.navigateByUrl('/tasks/items/123');
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(page.isCreateDiscardConfirmationOpen()).toBe(true);
+    expect(discardQuestion()).not.toBeNull();
     auth.currentUser.set(null);
     let exited = false;
     const exit = router.navigateByUrl('/login?reason=expired#session').then((value) => {
@@ -306,7 +324,8 @@ describe('Record routes with the actual router and actual templates', () => {
     expect(await pending).toBe(false);
     expect(await exit).toBe(true);
     expect(router.url).toBe('/login?reason=expired#session');
-    expect(page.isCreateDiscardConfirmationOpen()).toBe(false);
+    // Nobody asks again after the exit, so the question closes by itself instead of covering the login screen.
+    await vi.waitFor(() => expect(discardQuestion()).toBeNull());
   });
 
   it('allows a completed session exit without asking about a dirty task', async () => {
@@ -323,7 +342,7 @@ describe('Record routes with the actual router and actual templates', () => {
     // The exit completes by itself, without asking (the router takes a few turns since 22.2).
     await vi.waitFor(() => expect(exited).toBe(true));
     expect(await exit).toBe(true);
-    expect(page.isEditDiscardConfirmationOpen()).toBe(false);
+    expect(discardQuestion()).toBeNull();
   });
 
   it.each([

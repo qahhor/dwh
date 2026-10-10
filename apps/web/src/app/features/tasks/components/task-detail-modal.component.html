@@ -210,19 +210,19 @@
 
               @if (canCommentTask()) {
                 <div class="add-comment-box">
-                  <label class="sr-only" for="task-comment-draft">{{
-                    'tasks.comment_task_aria' | t: { id: t.id }
-                  }}</label>
-                  <smt-textarea
-                    class="comment-textarea"
-                    smtFieldId="task-comment-draft"
-                    [rows]="2"
-                    [placeholder]="'tasks.detail.comment_placeholder' | t"
-                    [value]="commentDraft()"
-                    (valueChange)="commentDraftChange.emit($event)"
-                    [disabled]="isCommentSubmitting()"
-                    (keydown.ctrl.enter)="submitComment.emit()"
-                  />
+                  <!-- The box speaks for itself on screen; the label names it for assistive technology only. -->
+                  <smt-control class="comment-control" [smtLabel]="'tasks.comment_task_aria' | t: { id: t.id }">
+                    <smt-textarea
+                      class="comment-textarea"
+                      smtFieldId="task-comment-draft"
+                      [rows]="2"
+                      [placeholder]="'tasks.detail.comment_placeholder' | t"
+                      [value]="commentDraft()"
+                      (valueChange)="commentDraftChange.emit($event)"
+                      [disabled]="isCommentSubmitting()"
+                      (keydown.ctrl.enter)="submitComment.emit()"
+                    />
+                  </smt-control>
                   <button
                     smt-button
                     type="button"
@@ -448,10 +448,12 @@
       </div>
     }
 
-    <div footer>
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
-        {{ 'audit.common.close' | t }}
-      </button>
-    </div>
+    <ui-form-actions
+      footer
+      data-testid="task-detail-actions"
+      [showCancel]="false"
+      [submitLabel]="'common.close' | t"
+      (submitted)="closeModal.emit()"
+    />
   </ng-template>
 </smt-dialog>

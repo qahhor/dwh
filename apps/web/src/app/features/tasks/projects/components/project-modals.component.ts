@@ -13,6 +13,10 @@ import { Project } from '@core/models/task.models';
 import { CustomField } from '@core/models/custom-field.models';
 import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../projects.models';
 import { RecordAttributes } from '@features/tasks/tasks.models';
+import { ProblemFieldErrors } from '@shared/ui/problem-fields';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
+import { NO_PROJECT_ERRORS, PROJECT_CREATE_FORM_ID, PROJECT_EDIT_FORM_ID } from '../services/project-forms.service';
 
 @Component({
   selector: 'app-project-modals',
@@ -27,6 +31,8 @@ import { RecordAttributes } from '@features/tasks/tasks.models';
     SMTDialogContentDirective,
     SMTButtonComponent,
     UiCustomFieldsComponent,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
   ],
   templateUrl: './project-modals.component.html',
   styleUrl: './project-modals.component.css',
@@ -42,12 +48,13 @@ export class ProjectModalsComponent {
   // Create Modal
   readonly isCreateModalOpen = input(false);
   readonly isCreateSubmitted = input(false);
-  readonly isCreateDiscardConfirmationOpen = input(false);
+  /** The server's field errors of the last create; refusals without a field come as `createSaveError`. */
+  readonly createErrors = input<ProblemFieldErrors>(NO_PROJECT_ERRORS);
 
   // Edit Modal
   readonly isEditModalOpen = input(false);
   readonly isEditSubmitted = input(false);
-  readonly isEditDiscardConfirmationOpen = input(false);
+  readonly editErrors = input<ProblemFieldErrors>(NO_PROJECT_ERRORS);
   readonly editLoading = input(false);
   readonly editLoadError = input(false);
   readonly editingProject = input<Project | null>(null);
@@ -66,26 +73,42 @@ export class ProjectModalsComponent {
   readonly closeRecordView = output<void>();
   readonly loadRecordView = output<string | null>();
   readonly requestCloseCreate = output<void>();
-  readonly confirmDiscardCreate = output<void>();
   readonly submitCreateProject = output<void>();
   readonly requestCloseEdit = output<void>();
-  readonly confirmDiscardEdit = output<void>();
   readonly submitEditProject = output<void>();
   readonly retryEditLoad = output<void>();
 
-  // Discard helper
-  readonly cancelNavigationDiscard = output<'create' | 'edit'>();
-
-  /**
-   * The new project's name was visited this opening (a new form object is a new opening). ngModel's required
-   * validator used to make smt-control say "required" for an empty visited field; the template now does.
-   */
+  /** The new project's name was visited this opening (a new form object is a new opening). */
   readonly createNameTouched = linkedSignal({ source: this.createForm, computation: () => false });
 
   /** The same for the edited project's name. */
   readonly editNameTouched = linkedSignal({ source: this.editForm, computation: () => false });
 
+  readonly createFormId = PROJECT_CREATE_FORM_ID;
+  readonly editFormId = PROJECT_EDIT_FORM_ID;
+
   private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
+
+  /** "Name the project" after a submit, "required" once an empty name was left, else the server's word on it. */
+  createNameError(): string {
+    return this.nameError(
+      this.createForm().name,
+      this.isCreateSubmitted(),
+      this.createNameTouched(),
+      'projects.editor.name_required_hint',
+      this.createErrors(),
+    );
+  }
+
+  editNameError(): string {
+    return this.nameError(
+      this.editForm().name,
+      this.isEditSubmitted(),
+      this.editNameTouched(),
+      'projects.editor.name_not_empty',
+      this.editErrors(),
+    );
+  }
 
   /** Project states for the edit form; translated again when the language changes. */
   stateOptions(): SMTSelectOption<'A' | 'P'>[] {
@@ -125,5 +148,17 @@ export class ProjectModalsComponent {
       }
       return { key: keyLabel, value: valueStr };
     });
+  }
+
+  private nameError(
+    name: string,
+    submitted: boolean,
+    touched: boolean,
+    emptyKey: string,
+    server: ProblemFieldErrors,
+  ): string {
+    if (submitted && !name.trim()) return this.uiI18n.translate(emptyKey);
+    if (touched && !name) return this.uiI18n.translate('ui.control.required');
+    return server.fields['name'] ?? '';
   }
 }

@@ -73,8 +73,3 @@
 .font-mono {
   font-family: ui-monospace, monospace;
 }
-.dictionary-delete-body {
-  padding: 10px 0;
-  font-size: 13px;
-  color: var(--text-main);
-}

@@ -7,6 +7,60 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Forms UX standard (2026-10-10)
+
+The standard for every web form, approved by the product owner on 2026-10-10
+(`docs/guidelines/forms-ux-standard.md`), and three waves that bring all forms
+to it. No REST change.
+
+#### Added
+
+- `docs/guidelines/forms-ux-standard.md`: layout grid and dialog sizes, labels
+  and required marks through `smt-control`, hints, inline errors on blur and
+  submit, error summary, focus on the first invalid field, server 422 errors
+  under their fields, button order, Save never disabled for invalid data,
+  Enter and Escape behaviour, "Discard changes?" rules, i18n key patterns.
+- Shared blocks in `apps/web/src/app/shared/ui`: `ui-form-actions` (button
+  order, submitting state, double-submit guard), `ui-form-error-summary`,
+  `focus-first-invalid.ts`, `problem-fields.ts` (maps problem+json field
+  errors), `discard-changes.ts` (`discardChangesQuestion()`, `formChanged()`,
+  keys `common.discard.*`), `leave-question.ts` (one question for replaced
+  navigations).
+- `npm run lint` runs `scripts/forms-audit.mjs`: raw controls and labels,
+  manual required marks and errors, dialog footers, buttons disabled for
+  invalid data, module copies of common button texts; the shrink-only
+  baseline went 231 → 0.
+- e2e helpers `e2e/support/fields.ts` (`fieldName()`).
+
+#### Changed
+
+- Sign-in, 2FA, password change and reset, roles, profile (password,
+  channels, tokens), custom fields and org units follow the standard; the
+  password reset request shows an error on an empty submit and focuses the
+  Email field on open (wave 1).
+- Settings (general, security, storage, preferences, languages, navigation,
+  search, webhooks), UPL sources and formats, notification preferences and the
+  idle-lock dialog follow the standard; leaving settings or a UPL source card
+  with unsaved changes asks first (wave 2).
+- Tasks, projects, announcements, notes, saved reports and list views follow
+  the standard; server 422 errors of tasks and projects appear under the
+  fields instead of a toast. The general entity form (`/e/<code>/new`,
+  `/e/<code>/<id>/edit`) shows an error summary, focuses the first invalid
+  field, asks before leaving with unsaved changes and offers "Create" for a
+  new record (wave 3).
+- Close-only dialogs (audit, file upload, bulk result, import) use
+  `ui-form-actions` with `common.close`.
+
+#### Removed
+
+- Module copies of common button texts and replaced dialog keys:
+  `upl.common.cancel|create|save`, `upl.format.save`, `upl.source.create`,
+  `search.shortcuts.close`, `iam.org_units.save|cancel|delete`,
+  `projects.discard_*`, `tasks.discard_*`, `audit.common.close`,
+  `ui.views.save_button` and form texts that became unused.
+- The `data-testid` values `entity-save`, `save-draft` and
+  `report-name-submit` (the footer uses `form-submit` / `form-cancel`).
+
 ### Owner decisions of 2026-10-10
 
 The decisions of the product owner of 2026-10-10; branch `claude/leftovers`.

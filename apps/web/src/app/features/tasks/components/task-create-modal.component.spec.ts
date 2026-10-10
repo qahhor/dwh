@@ -33,8 +33,8 @@ const titleError = (screen: Screen) =>
   text(screen.querySelector('smt-control:has(#task-create-title) .smt-control__error'));
 const footerButton = (screen: Screen, label: string) =>
   [...screen.querySelectorAll('[footer] button')].find((node: Element) => text(node) === label) as HTMLButtonElement;
-const radios = (screen: Screen, groupName: string) =>
-  [...screen.querySelectorAll(`[role="radiogroup"][aria-label="${groupName}"] [role="radio"]`)] as HTMLElement[];
+const radios = (screen: Screen, groupId: string) =>
+  [...screen.querySelectorAll(`[role="radiogroup"]#${groupId} [role="radio"]`)] as HTMLElement[];
 
 function click(fixture: ComponentFixture<TaskCreateModalComponent>, node: HTMLElement) {
   node.click();
@@ -57,12 +57,12 @@ describe('TaskCreateModalComponent', () => {
 
     title.value = 'Сверить остатки';
     title.dispatchEvent(new Event('input'));
-    click(fixture, radios(screen, 'Тип задачи')[1]);
-    click(fixture, radios(screen, 'Приоритет задачи')[3]);
+    click(fixture, radios(screen, 'task-create-type')[1]);
+    click(fixture, radios(screen, 'task-create-priority')[3]);
 
-    expect(radios(screen, 'Приоритет задачи').map(text)).toEqual(['Низкий', 'Средний', 'Высокий', 'Критический']);
+    expect(radios(screen, 'task-create-priority').map(text)).toEqual(['Низкий', 'Средний', 'Высокий', 'Критический']);
     expect(form).toEqual(expect.objectContaining({ title: 'Сверить остатки', taskType: 'bug', priority: 'critical' }));
-    expect(radios(screen, 'Тип задачи')[1].getAttribute('aria-checked')).toBe('true');
+    expect(radios(screen, 'task-create-type')[1].getAttribute('aria-checked')).toBe('true');
   });
 
   it('says the title is required once a person leaves it empty, and asks for it after a submit', () => {
@@ -111,16 +111,47 @@ describe('TaskCreateModalComponent', () => {
     const project = screen.querySelector('#task-create-project') as HTMLElement;
 
     expect(screen.querySelector(`label[for="${title.id}"]`)).not.toBeNull();
-    expect(title.required).toBe(true);
     expect(title.getAttribute('aria-required')).toBe('true');
     expect(title.getAttribute('aria-invalid')).toBe('true');
     expect(text(screen.querySelector(`label[for="${description.id}"]`))).toBe('Описание');
     expect(project.getAttribute('role')).toBe('combobox');
     expect(text(screen.querySelector('label[for="task-create-project"]'))).toContain('Проект');
-    for (const name of ['Ответственный', 'Родительская задача']) {
-      expect(screen.querySelector(`smt-select button[aria-label="${name}"]`)).not.toBeNull();
+    for (const [id, name] of [
+      ['task-create-responsible', 'Ответственный'],
+      ['task-create-parent', 'Родительская задача'],
+    ]) {
+      expect(text(screen.querySelector(`label[for="${id}"]`))).toBe(name);
+    }
+    for (const id of ['task-create-type', 'task-create-priority']) {
+      const group = screen.querySelector(`#${id}`) as HTMLElement;
+      expect(screen.querySelector(`#${group.getAttribute('aria-labelledby')}`)).not.toBeNull();
     }
     expect(screen.querySelector('smt-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
+  });
+
+  it('shows the server field errors under their fields, and the others in the summary', () => {
+    const { fixture, screen } = render({
+      serverErrors: { fields: { endTime: 'Срок в прошлом' }, other: ['Бюджет: не число'] },
+    });
+    TestBed.tick();
+    fixture.detectChanges();
+    expect(text(screen.querySelector('smt-control:has(#task-create-deadline) .smt-control__error'))).toBe(
+      'Срок в прошлом',
+    );
+    const summary = text(screen.querySelector('[data-testid="form-error-summary"]'));
+    expect(summary).toContain('Срок сдачи (Дедлайн): Срок в прошлом');
+    expect(summary).toContain('Бюджет: не число');
+  });
+
+  it('moves focus to the empty title when a submit finds it missing', async () => {
+    const { fixture, screen } = render();
+    const form = screen.querySelector('form#task-create-form') as HTMLFormElement;
+    fixture.componentInstance.submitForm.subscribe(() => fixture.componentRef.setInput('isCreateSubmitted', true));
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    TestBed.tick();
+    expect(document.activeElement?.id).toBe('task-create-title');
   });
 
   it('points to the custom fields menu when the tasks have none, and shows the fields when they do', () => {

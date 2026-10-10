@@ -81,7 +81,8 @@ test('an order is created with three lines, posted and its history shows it', as
     await expect(page).toHaveURL(/\/edit$/u);
     await expect(page.getByRole('textbox', { name: 'Клиент' })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Добавить строку' })).toHaveCount(0);
-    await page.getByRole('link', { name: 'Отмена' }).click();
+    // Untouched, so going back asks nothing (forms standard, section 8).
+    await page.getByRole('button', { name: 'Отмена', exact: true }).click();
 
     // History: the creation with its lines, then the posting.
     await page.getByRole('tab', { name: 'История' }).click();

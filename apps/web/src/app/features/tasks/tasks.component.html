@@ -276,6 +276,7 @@
   [createForm]="createForm"
   [isSubmitting]="formsService.isSubmitting()"
   [isCreateSubmitted]="formsService.isCreateSubmitted"
+  [serverErrors]="formsService.createErrors()"
   [taskTypes]="taskTypes()"
   [taskCustomFields]="list.customFields()"
   (closeModal)="requestCloseCreate()"
@@ -293,14 +294,12 @@
   [editLoadError]="formsService.editLoadError()"
   [isSubmitting]="formsService.isSubmitting()"
   [isEditSubmitted]="formsService.isEditSubmitted"
-  [isEditDiscardConfirmationOpen]="isEditDiscardConfirmationOpen()"
+  [serverErrors]="formsService.editErrors()"
   [taskTypes]="taskTypes()"
   [taskCustomFields]="list.customFields()"
   (closeModal)="requestCloseEdit()"
   (submitForm)="submitEditTask()"
   (retryEditLoad)="retryEditLoad()"
-  (cancelDiscard)="cancelDiscardEdit()"
-  (confirmDiscard)="confirmDiscardEdit()"
 ></app-task-edit-modal>
 
 <!-- ======================================================================= -->
@@ -310,6 +309,8 @@
   [isOpen]="dictService.isSettingsModalOpen()"
   [taskTypes]="taskTypes()"
   [statuses]="statuses()"
+  [typeAdd]="dictService.typeAdd"
+  [statusAdd]="dictService.statusAdd"
   (closeModal)="dictService.isSettingsModalOpen.set(false)"
   (createType)="dictService.handleCreateType($event)"
   (createStatus)="dictService.handleCreateStatus($event)"

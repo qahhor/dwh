@@ -1,15 +1,28 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { Subscription, Observable, map, of, switchMap } from 'rxjs';
+import { Injectable, Injector, WritableSignal, inject, signal } from '@angular/core';
+import { Subscription, Observable, map, of, switchMap, tap } from 'rxjs';
 import { EntitiesApi, EntityRecord } from '@shared/entity/entities.api';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
-import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
 import { safeNumericRecordId } from '@core/services/search-target';
 import { SaveErrorNotifier, isRevisionConflict } from '@shared/ui/save-errors';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
+import { leaveQuestion } from '@shared/ui/leave-question';
+import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
+import { ProblemFieldErrors, problemFieldErrors } from '@shared/ui/problem-fields';
 import { Project } from '@core/models/task.models';
 import { ProjectCreateForm, ProjectEditForm } from '../projects.models';
 import { PROJECTS, toProject } from '../projects.api';
+
+/** The form ids of the project dialogs, so a server refusal can focus its first field. */
+export const PROJECT_CREATE_FORM_ID = 'project-create-form';
+export const PROJECT_EDIT_FORM_ID = 'project-edit-form';
+
+/** No field errors: a form before a save and after a successful one. */
+export const NO_PROJECT_ERRORS: ProblemFieldErrors = { fields: {}, other: [] };
+
+/** The project fields the dialogs draw under smt-control; errors of other fields go to the dialog's alert. */
+const PROJECT_FIELDS = ['name', 'description', 'state'];
 
 @Injectable()
 export class ProjectFormsService {
@@ -18,19 +31,23 @@ export class ProjectFormsService {
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
+  private readonly injector = inject(Injector);
 
   readonly isSubmitting = signal<boolean>(false);
   readonly editLoading = signal<boolean>(false);
   readonly editLoadError = signal<boolean>(false);
+  /** A refusal that names no field: shown as an alert inside the dialog (forms standard, section 4). */
   readonly createSaveError = signal<string | null>(null);
   readonly editSaveError = signal<string | null>(null);
+  /** The server's field errors of the last save (forms standard, section 5). */
+  readonly createErrors = signal<ProblemFieldErrors>(NO_PROJECT_ERRORS);
+  readonly editErrors = signal<ProblemFieldErrors>(NO_PROJECT_ERRORS);
 
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly isEditModalOpen = signal<boolean>(false);
-  readonly isCreateDiscardConfirmationOpen = signal<boolean>(false);
-  readonly isEditDiscardConfirmationOpen = signal<boolean>(false);
 
-  private readonly navigationDecision = new RecordNavigationDecision();
+  private readonly askDiscard = discardChangesQuestion();
+  private readonly askLeave = leaveQuestion();
 
   private editDetailRequest?: Subscription;
   private createSaveRequest?: Subscription;
@@ -54,7 +71,6 @@ export class ProjectFormsService {
   onProjectUpdated?: () => void;
 
   destroy() {
-    this.navigationDecision.settle(false);
     this.destroyed = true;
     this.editDetailRequestId++;
     this.createSaveRequestId++;
@@ -78,54 +94,41 @@ export class ProjectFormsService {
       !this.canCreateProject() ||
       this.isSubmitting() ||
       this.isCreateModalOpen() ||
-      this.isEditModalOpen() ||
-      this.isCreateDiscardConfirmationOpen() ||
-      this.isEditDiscardConfirmationOpen()
+      this.isEditModalOpen()
     )
       return;
     this.isCreateSubmitted = false;
     this.createForm = { name: '', description: '' };
     this.createFormBaseline = { ...this.createForm };
     this.createSaveError.set(null);
-    this.isCreateDiscardConfirmationOpen.set(false);
+    this.createErrors.set(NO_PROJECT_ERRORS);
     this.isCreateModalOpen.set(true);
   }
 
+  /** Escape, the backdrop, the cross and "Cancel" ask before a changed draft is dropped (forms standard, 8). */
   requestCloseCreate() {
     if (this.destroyed || this.isSubmitting() || !this.isCreateModalOpen()) return;
-    if (this.isCreateDraftDirty()) {
-      this.isCreateDiscardConfirmationOpen.set(true);
-      return;
-    }
-    this.closeCreateModal();
+    this.askDiscard(this.isCreateDraftDirty()).subscribe((discard) => {
+      if (discard && this.isCreateModalOpen() && !this.isSubmitting()) this.closeCreateModal();
+    });
   }
 
-  confirmDiscardCreate() {
-    if (this.destroyed || this.isSubmitting() || !this.isCreateModalOpen() || !this.isCreateDiscardConfirmationOpen())
-      return;
-    this.closeCreateModal();
-    this.navigationDecision.settle(true);
-  }
-
+  /** An empty name shows its error under the field; the dialog's form moves focus to it. */
   submitCreateProject() {
     if (
       this.destroyed ||
       !this.canCreateProject() ||
       !this.isCreateModalOpen() ||
       this.isEditModalOpen() ||
-      this.isCreateDiscardConfirmationOpen() ||
-      this.isEditDiscardConfirmationOpen() ||
       this.isSubmitting()
     )
       return;
     this.isCreateSubmitted = true;
-    if (!this.createForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('projects.editor.name_input_placeholder'));
-      return;
-    }
+    if (!this.createForm.name.trim()) return;
 
     const requestId = ++this.createSaveRequestId;
     this.createSaveError.set(null);
+    this.createErrors.set(NO_PROJECT_ERRORS);
     this.isSubmitting.set(true);
     const payload: { name: string; description: string; attributes?: Record<string, unknown> } = {
       name: this.createForm.name.trim(),
@@ -160,7 +163,13 @@ export class ProjectFormsService {
           )
             return;
           this.isSubmitting.set(false);
-          this.createSaveError.set(err?.detail || this.uiI18n.translate('projects.create_save_error'));
+          this.showRefusal(
+            err,
+            this.createErrors,
+            this.createSaveError,
+            PROJECT_CREATE_FORM_ID,
+            'projects.create_save_error',
+          );
         },
       });
   }
@@ -172,9 +181,7 @@ export class ProjectFormsService {
       !this.canUpdateProject() ||
       this.isSubmitting() ||
       this.isCreateModalOpen() ||
-      this.isEditModalOpen() ||
-      this.isCreateDiscardConfirmationOpen() ||
-      this.isEditDiscardConfirmationOpen()
+      this.isEditModalOpen()
     )
       return;
     this.isEditSubmitted = false;
@@ -182,7 +189,7 @@ export class ProjectFormsService {
     this.editingProject = null;
     this.editFormBaseline = null;
     this.editSaveError.set(null);
-    this.isEditDiscardConfirmationOpen.set(false);
+    this.editErrors.set(NO_PROJECT_ERRORS);
     this.isEditModalOpen.set(true);
     this.loadEditDetails(p.id);
   }
@@ -194,28 +201,18 @@ export class ProjectFormsService {
       this.editLoading() ||
       !this.isEditModalOpen() ||
       this.isCreateModalOpen() ||
-      this.isCreateDiscardConfirmationOpen() ||
-      this.isEditDiscardConfirmationOpen() ||
       this.editTargetId == null
     )
       return;
     this.loadEditDetails(this.editTargetId);
   }
 
+  /** A changed edit asks the common "discard changes?" question first; an unchanged one closes at once. */
   requestCloseEdit() {
     if (this.destroyed || this.isSubmitting() || !this.isEditModalOpen()) return;
-    if (this.isEditDraftDirty()) {
-      this.isEditDiscardConfirmationOpen.set(true);
-      return;
-    }
-    this.closeEditModal();
-  }
-
-  confirmDiscardEdit() {
-    if (this.destroyed || this.isSubmitting() || !this.isEditModalOpen() || !this.isEditDiscardConfirmationOpen())
-      return;
-    this.closeEditModal();
-    this.navigationDecision.settle(true);
+    this.askDiscard(this.isEditDraftDirty()).subscribe((discard) => {
+      if (discard && this.isEditModalOpen() && !this.isSubmitting()) this.closeEditModal();
+    });
   }
 
   submitEditProject() {
@@ -224,8 +221,6 @@ export class ProjectFormsService {
       !this.canUpdateProject() ||
       !this.isEditModalOpen() ||
       this.isCreateModalOpen() ||
-      this.isCreateDiscardConfirmationOpen() ||
-      this.isEditDiscardConfirmationOpen() ||
       !this.editingProject ||
       !this.editFormBaseline ||
       this.editLoading() ||
@@ -234,10 +229,7 @@ export class ProjectFormsService {
     )
       return;
     this.isEditSubmitted = true;
-    if (!this.editForm.name.trim()) {
-      this.toast.warning(this.uiI18n.translate('projects.editor.name_required'));
-      return;
-    }
+    if (!this.editForm.name.trim()) return;
 
     const payload: Record<string, unknown> = {};
     const name = this.editForm.name.trim();
@@ -256,6 +248,7 @@ export class ProjectFormsService {
     const editedProjectId = this.editingProject.id;
     const requestId = ++this.editSaveRequestId;
     this.editSaveError.set(null);
+    this.editErrors.set(NO_PROJECT_ERRORS);
     this.isSubmitting.set(true);
     this.editSaveRequest = this.saveEdit(editedProjectId, payload, archive, this.editingProject.revision).subscribe({
       next: () => {
@@ -291,7 +284,7 @@ export class ProjectFormsService {
           });
           return;
         }
-        this.editSaveError.set(err?.detail || this.uiI18n.translate('projects.edit_save_error'));
+        this.showRefusal(err, this.editErrors, this.editSaveError, PROJECT_EDIT_FORM_ID, 'projects.edit_save_error');
       },
     });
   }
@@ -318,8 +311,8 @@ export class ProjectFormsService {
     this.createSaveRequestId++;
     this.createSaveRequest?.unsubscribe();
     this.isCreateModalOpen.set(false);
-    this.isCreateDiscardConfirmationOpen.set(false);
     this.createSaveError.set(null);
+    this.createErrors.set(NO_PROJECT_ERRORS);
     this.createForm = { name: '', description: '' };
     this.createFormBaseline = { ...this.createForm };
   }
@@ -330,36 +323,57 @@ export class ProjectFormsService {
     this.editDetailRequest?.unsubscribe();
     this.editSaveRequest?.unsubscribe();
     this.isEditModalOpen.set(false);
-    this.isEditDiscardConfirmationOpen.set(false);
     this.editLoading.set(false);
     this.editLoadError.set(false);
     this.editSaveError.set(null);
+    this.editErrors.set(NO_PROJECT_ERRORS);
     this.editingProject = null;
     this.editTargetId = null;
     this.editFormBaseline = null;
   }
 
-  cancelNavigationDiscard(kind: 'create' | 'edit') {
-    (kind === 'create' ? this.isCreateDiscardConfirmationOpen : this.isEditDiscardConfirmationOpen).set(false);
-    this.navigationDecision.settle(false);
-  }
-
+  /** Leaving the page with a changed dialog asks once; on "discard" the dialogs close. */
   canLeaveRecordPage(): boolean | Observable<boolean> | Promise<boolean> {
     if (this.isSubmitting()) return false;
-    const dialog =
-      this.isCreateModalOpen() && this.isCreateDraftDirty()
-        ? this.isCreateDiscardConfirmationOpen
-        : this.isEditModalOpen() && this.isEditDraftDirty()
-          ? this.isEditDiscardConfirmationOpen
-          : null;
-    if (dialog)
-      return this.navigationDecision.request(
-        () => dialog.set(true),
-        () => dialog.set(false),
+    const dirty =
+      (this.isCreateModalOpen() && this.isCreateDraftDirty()) || (this.isEditModalOpen() && this.isEditDraftDirty());
+    if (dirty) {
+      return this.askLeave().pipe(
+        tap((leave) => {
+          if (leave) this.closeDialogs();
+        }),
       );
+    }
+    this.closeDialogs();
+    return true;
+  }
+
+  private closeDialogs() {
     if (this.isCreateModalOpen()) this.closeCreateModal();
     if (this.isEditModalOpen()) this.closeEditModal();
-    return true;
+  }
+
+  /**
+   * Field errors of a refusal go under the dialog's fields and focus the first; the rest, or a refusal that names no
+   * field, is the dialog's alert (the server's words before our own).
+   */
+  private showRefusal(
+    err: unknown,
+    fieldErrors: WritableSignal<ProblemFieldErrors>,
+    alert: WritableSignal<string | null>,
+    formId: string,
+    fallbackKey: string,
+  ) {
+    const errors = problemFieldErrors(err, { known: PROJECT_FIELDS });
+    fieldErrors.set(errors);
+    const hasFields = Object.keys(errors.fields).length > 0;
+    if (hasFields) {
+      const form = document.getElementById(formId);
+      if (form) focusFirstInvalid(form, this.injector);
+    }
+    const detail = (err as { detail?: unknown } | null)?.detail;
+    if (errors.other.length > 0) alert.set(errors.other.join(' '));
+    else if (!hasFields) alert.set(typeof detail === 'string' && detail ? detail : this.uiI18n.translate(fallbackKey));
   }
 
   /**
@@ -389,6 +403,7 @@ export class ProjectFormsService {
     this.editLoading.set(true);
     this.editLoadError.set(false);
     this.editSaveError.set(null);
+    this.editErrors.set(NO_PROJECT_ERRORS);
     this.editingProject = null;
     this.editFormBaseline = null;
 

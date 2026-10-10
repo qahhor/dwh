@@ -2,9 +2,9 @@
   <!-- Filter Toolbar -->
   <div class="filter-toolbar">
     <div class="filter-group">
-      <label class="sr-only" for="audit-table-filter">{{ 'audit.logs.filter_by_table' | t }}</label>
       <smt-select
         smtTriggerId="audit-table-filter"
+        [ariaLabel]="'audit.logs.filter_by_table' | t"
         class="filter-select"
         [options]="tableOptions()"
         [placeholder]="'audit.logs.all_tables' | t"
@@ -13,9 +13,9 @@
         (valueChange)="tableFilterChange.emit($event ?? ''); applyFilters.emit()"
       />
 
-      <label class="sr-only" for="audit-event-filter">{{ 'audit.logs.filter_by_action' | t }}</label>
       <smt-select
         smtTriggerId="audit-event-filter"
+        [ariaLabel]="'audit.logs.filter_by_action' | t"
         class="filter-select"
         [options]="eventOptions()"
         [placeholder]="'audit.logs.all_actions' | t"
@@ -24,8 +24,7 @@
         (valueChange)="eventFilterChange.emit($event ?? ''); applyFilters.emit()"
       />
 
-      <div class="compact-filter">
-        <label for="audit-row-pk-filter">{{ 'audit.row_pk' | t }}</label>
+      <smt-control class="compact-filter" [smtLabel]="'audit.row_pk' | t">
         <smt-input
           smtFieldId="audit-row-pk-filter"
           name="auditRowPkFilter"
@@ -35,10 +34,9 @@
           (valueChange)="rowPkFilterChange.emit(filterText($event))"
           (keyup.enter)="applyFilters.emit()"
         />
-      </div>
+      </smt-control>
 
-      <div class="compact-filter compact-filter-narrow">
-        <label for="audit-user-filter">{{ 'audit.user_id' | t }}</label>
+      <smt-control class="compact-filter compact-filter-narrow" [smtLabel]="'audit.user_id' | t">
         <smt-input
           smtFieldId="audit-user-filter"
           name="auditUserFilter"
@@ -50,7 +48,7 @@
           (valueChange)="auditUserFilterChange.emit(filterText($event))"
           (keyup.enter)="applyFilters.emit()"
         />
-      </div>
+      </smt-control>
 
       <div class="compact-filter compact-filter-period">
         <span class="compact-filter-label" aria-hidden="true">{{ 'audit.period_utc' | t }}</span>

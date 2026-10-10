@@ -12,10 +12,10 @@ import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/form
   imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe],
   template: `
     <div class="toolbar">
-      <label class="sr-only" for="project-search">{{ 'projects.list.search' | t }}</label>
       <smt-input
         class="search-field"
         smtFieldId="project-search"
+        [smtAriaLabel]="'projects.list.search' | t"
         name="projectSearch"
         type="search"
         smtIcon="search"

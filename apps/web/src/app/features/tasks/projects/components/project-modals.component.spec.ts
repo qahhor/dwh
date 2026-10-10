@@ -168,28 +168,28 @@ describe('ProjectModalsComponent', () => {
     expect(saved).toHaveBeenCalledTimes(1);
   });
 
-  it('asks before dropping a draft or unsaved changes and reports which answer was given', () => {
-    const { fixture, screen } = render({ isCreateDiscardConfirmationOpen: true });
-    const kept = vi.fn();
-    const droppedDraft = vi.fn();
-    const droppedEdit = vi.fn();
-    fixture.componentInstance.cancelNavigationDiscard.subscribe(kept);
-    fixture.componentInstance.confirmDiscardCreate.subscribe(droppedDraft);
-    fixture.componentInstance.confirmDiscardEdit.subscribe(droppedEdit);
-
-    expect(text(screen.querySelector('.smt-modal__title'))).toBe('Отменить создание проекта?');
-    click(fixture, button(screen, 'Отмена'));
-    click(fixture, button(screen, 'Удалить черновик'));
-
-    fixture.componentRef.setInput('isCreateDiscardConfirmationOpen', false);
-    fixture.componentRef.setInput('isEditDiscardConfirmationOpen', true);
+  it('shows the server field errors of a save under the fields', () => {
+    const { fixture, screen } = render({
+      isEditModalOpen: true,
+      editingProject: PROJECT,
+      editForm: { name: 'Склад', description: '', state: 'A', attributes: {} },
+      editErrors: { fields: { name: 'Имя занято', description: 'Слишком длинное' }, other: [] },
+    });
+    TestBed.tick();
     fixture.detectChanges();
-    expect(text(screen.querySelector('.smt-modal__title'))).toBe('Отменить изменения проекта?');
-    click(fixture, button(screen, 'Отмена'));
-    click(fixture, button(screen, 'Отменить изменения'));
+    expect(nameError(screen, 'project-edit-name')).toBe('Имя занято');
+    expect(text(screen.querySelector('smt-control:has(#project-edit-description) .smt-control__error'))).toBe(
+      'Слишком длинное',
+    );
+    expect(screen.querySelector('#project-edit-name')?.getAttribute('aria-invalid')).toBe('true');
+  });
 
-    expect(kept.mock.calls).toEqual([['create'], ['edit']]);
-    expect(droppedDraft).toHaveBeenCalledTimes(1);
-    expect(droppedEdit).toHaveBeenCalledTimes(1);
+  it('closes a dialog that could not load its project with one Close button', () => {
+    const { fixture, screen } = render({ isEditModalOpen: true, editLoadError: true });
+    const closed = vi.fn();
+    fixture.componentInstance.requestCloseEdit.subscribe(closed);
+    click(fixture, button(screen, 'Закрыть'));
+    expect(closed).toHaveBeenCalledTimes(1);
+    expect(button(screen, 'Отмена')).toBeUndefined();
   });
 });

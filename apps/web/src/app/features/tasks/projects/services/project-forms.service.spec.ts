@@ -1,11 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Mock, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Project } from '@core/models/task.models';
 import { ApiService } from '@core/services/api.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
-import { ProjectFormsService } from './project-forms.service';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { NO_PROJECT_ERRORS, ProjectFormsService } from './project-forms.service';
 
 const project = (id: number, name = `Project ${id}`, description = ''): Project => ({
   id,
@@ -30,6 +31,8 @@ describe('ProjectFormsService', () => {
     show: ReturnType<typeof vi.fn>;
   };
   let forms: ProjectFormsService;
+  /** The common "discard changes?" question; answers "keep editing" unless a test says otherwise. */
+  let confirm: Mock<(config: unknown) => Observable<boolean>>;
 
   function setup(permissions = ['*.*']) {
     api = {
@@ -51,6 +54,8 @@ describe('ProjectFormsService', () => {
       ],
     });
     TestBed.inject(PermissionService).setPermissions(permissions);
+    confirm = vi.fn((_config: unknown) => of(false));
+    vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockImplementation(confirm);
     forms = TestBed.inject(ProjectFormsService);
   }
 
@@ -58,26 +63,44 @@ describe('ProjectFormsService', () => {
     reads = {};
   });
 
-  it('closes a pristine create draft directly and asks before dropping a changed one', () => {
+  it('closes a pristine create draft directly and asks the common question before dropping a changed one', () => {
     setup();
     forms.openCreateModal();
     forms.requestCloseCreate();
+    expect(confirm).not.toHaveBeenCalled();
     expect(forms.isCreateModalOpen()).toBe(false);
 
     forms.openCreateModal();
     forms.createForm.name = 'Unsaved project';
     forms.requestCloseCreate();
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Отменить изменения?', destructive: true }));
     expect(forms.isCreateModalOpen()).toBe(true);
-    expect(forms.isCreateDiscardConfirmationOpen()).toBe(true);
+    expect(forms.createForm.name).toBe('Unsaved project');
+
+    confirm.mockReturnValue(of(true));
+    forms.requestCloseCreate();
+    expect(forms.isCreateModalOpen()).toBe(false);
+  });
+
+  it('needs a name to create, shows it under the field without a toast, and maps server field errors', () => {
+    setup();
+    api.post.mockReturnValue(
+      throwError(() => ({ status: 422, errors: [{ field: 'name', message: 'Имя занято' }], detail: 'Invalid' })),
+    );
+    forms.openCreateModal();
     forms.submitCreateProject();
+    expect(forms.isCreateSubmitted).toBe(true);
+    expect(toast.warning).not.toHaveBeenCalled();
     expect(api.post).not.toHaveBeenCalled();
 
-    forms.cancelNavigationDiscard('create');
-    expect(forms.createForm.name).toBe('Unsaved project');
-    forms.requestCloseCreate();
-    forms.confirmDiscardCreate();
-    expect(forms.isCreateModalOpen()).toBe(false);
-    expect(forms.isCreateDiscardConfirmationOpen()).toBe(false);
+    forms.createForm.name = 'Taken';
+    forms.submitCreateProject();
+    expect(forms.createErrors().fields).toEqual({ name: 'Имя занято' });
+    expect(forms.createSaveError()).toBeNull();
+    expect(forms.isCreateModalOpen()).toBe(true);
+
+    forms.closeCreateModal();
+    expect(forms.createErrors()).toBe(NO_PROJECT_ERRORS);
   });
 
   it('creates once while pending, keeps a failed draft with the server reason, and succeeds on retry', () => {
@@ -111,15 +134,6 @@ describe('ProjectFormsService', () => {
     retry.next(project(10));
     expect(forms.isCreateModalOpen()).toBe(false);
     expect(created).toHaveBeenCalledWith(project(10));
-  });
-
-  it('needs a name to create a project', () => {
-    setup();
-    forms.openCreateModal();
-    forms.createForm.name = '   ';
-    forms.submitCreateProject();
-    expect(toast.warning).toHaveBeenCalled();
-    expect(api.post).not.toHaveBeenCalled();
   });
 
   it('reads a fresh project before editing and exposes mismatch, error and retry states', () => {
@@ -176,16 +190,13 @@ describe('ProjectFormsService', () => {
     forms.editForm.name = 'Current ';
 
     forms.requestCloseEdit();
-    expect(forms.isEditDiscardConfirmationOpen()).toBe(true);
-    forms.submitEditProject();
-    expect(api.patch).not.toHaveBeenCalled();
-    forms.cancelNavigationDiscard('edit');
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(forms.isEditModalOpen()).toBe(true);
     expect(forms.editForm.name).toBe('Current ');
 
+    confirm.mockReturnValue(of(true));
     forms.requestCloseEdit();
-    forms.confirmDiscardEdit();
     expect(forms.isEditModalOpen()).toBe(false);
-    expect(forms.isEditDiscardConfirmationOpen()).toBe(false);
   });
 
   it('sends only the changed normalized fields and closes an unchanged edit without a PATCH', () => {
@@ -229,8 +240,8 @@ describe('ProjectFormsService', () => {
 
     forms.submitEditProject();
     forms.submitEditProject();
+    confirm.mockReturnValue(of(true));
     forms.requestCloseEdit();
-    forms.confirmDiscardEdit();
     expect(api.patch).toHaveBeenCalledTimes(1);
     expect(forms.isEditModalOpen()).toBe(true);
 
@@ -242,7 +253,6 @@ describe('ProjectFormsService', () => {
     const lateCreate = new Subject<Project>();
     api.post.mockReturnValue(lateCreate);
     forms.requestCloseEdit();
-    forms.confirmDiscardEdit();
     forms.openCreateModal();
     forms.createForm.name = 'Late';
     forms.submitCreateProject();

@@ -29,3 +29,7 @@
 .entity-json {
   font-family: var(--font-mono, monospace);
 }
+/* The summary takes no gap of the column until it has something to say. */
+.entity-error-summary:empty {
+  display: none;
+}

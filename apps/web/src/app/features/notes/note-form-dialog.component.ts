@@ -2,11 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
   inject,
+  Injector,
   input,
   linkedSignal,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { finalize } from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
@@ -22,7 +25,10 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { SMTEntityFormComponent } from '@shared/entity/smt-entity-form.component';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { sameFormValues } from '@shared/entity/entity-values';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
+import { focusFirstInvalid, UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { UiRecordHistoryComponent } from '@shared/ui/ui-record-history.component';
 import { Note, NotesApi } from './notes.api';
@@ -38,11 +44,12 @@ const NEW_NOTE = { color: 'default', isPinned: false };
   selector: 'app-note-form-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTEntityFormComponent,
     TranslatePipe,
+    UiFocusFirstInvalidDirective,
+    UiFormActionsComponent,
     UiRecordHistoryComponent,
   ],
   templateUrl: './note-form-dialog.component.html',
@@ -53,8 +60,10 @@ export class NoteFormDialogComponent {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
+  private readonly injector = inject(Injector);
 
   readonly meta = input.required<FormMeta>();
+
   /** The note to edit; null creates one. */
   readonly note = input<Note | null>(null);
 
@@ -62,16 +71,26 @@ export class NoteFormDialogComponent {
   readonly closed = output<void>();
   readonly saved = output<Note>();
 
+  private readonly noteForm = viewChild<ElementRef<HTMLFormElement>>('noteForm');
+
   /** The note as last read: the one given, or the one read again after a save was refused over a newer revision. */
   readonly record = linkedSignal(() => this.note());
   /** The fields by key, starting from the record. */
   readonly values = linkedSignal(() => recordValues(this.meta(), { ...(this.record() ?? NEW_NOTE) }));
   readonly problems = signal<FormProblems>({});
   readonly saving = signal(false);
+
   readonly showHistory = computed(() => hasCapability(this.meta(), 'history'));
 
+  private readonly askDiscard = discardChangesQuestion();
+
+  /** Escape, the backdrop, the cross and "Cancel" ask before a changed note is dropped (forms standard, 8). */
   close(): void {
-    if (!this.saving()) this.closed.emit();
+    if (this.saving()) return;
+    const initial = recordValues(this.meta(), { ...(this.record() ?? NEW_NOTE) });
+    this.askDiscard(!sameFormValues(this.values(), initial)).subscribe((discard) => {
+      if (discard && !this.saving()) this.closed.emit();
+    });
   }
 
   /** Checked by the note's declared rules first; the server checks them again and names the fields it rejects. */
@@ -94,7 +113,11 @@ export class NoteFormDialogComponent {
         },
         error: (problem: ProblemDetail) => {
           this.problems.set(serverProblems(meta, problem?.errors, translate));
-          if (Object.keys(this.problems()).length > 0) return;
+          if (Object.keys(this.problems()).length > 0) {
+            const form = this.noteForm()?.nativeElement;
+            if (form) focusFirstInvalid(form, this.injector);
+            return;
+          }
           this.saveErrors.show(problem, {
             fallbackKey: note ? 'notes.save_error' : 'notes.create_error',
             reload: note ? () => this.reload(note.id) : undefined,

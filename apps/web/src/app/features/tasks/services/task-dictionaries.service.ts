@@ -1,4 +1,4 @@
-import { Injectable, ResourceRef, inject, signal, untracked } from '@angular/core';
+import { Injectable, ResourceRef, WritableSignal, inject, signal, untracked } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
@@ -8,6 +8,7 @@ import { PermissionService } from '@core/services/permission.service';
 import { Observable, catchError, map, of, tap } from 'rxjs';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
+import { problemFieldErrors } from '@shared/ui/problem-fields';
 import { EntitiesApi, EntityRecord } from '@shared/entity/entities.api';
 
 /** The reference entities of the task types and statuses on the general runtime (ADR-0032 8). */
@@ -34,6 +35,19 @@ export function movedItem<T extends { id: number }>(before: T[], after: T[]): T 
   return null;
 }
 
+/** One add form of the dictionaries dialog, as the dialog reads it. */
+export interface DictionaryAddState {
+  readonly saving: WritableSignal<boolean>;
+  /** The server's refusal by field (`code`, `name`, `color`). */
+  readonly errors: WritableSignal<Readonly<Record<string, string>>>;
+  /** Items added since the page opened: each success clears the form. */
+  readonly added: WritableSignal<number>;
+}
+
+export function newAddState(): DictionaryAddState {
+  return { saving: signal(false), errors: signal({}), added: signal(0) };
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -45,6 +59,10 @@ export class TaskDictionariesService {
   private readonly permissions = inject(PermissionService);
 
   readonly isSettingsModalOpen = signal<boolean>(false);
+
+  /** The add forms of the dialog: running, the server's field errors, how many items were added. */
+  readonly typeAdd: DictionaryAddState = newAddState();
+  readonly statusAdd: DictionaryAddState = newAddState();
 
   // A failed read answers with the list already on screen, so a reload that fails keeps it.
   private readonly statusesResource: ResourceRef<TaskStatus[]> = rxResource({
@@ -108,30 +126,30 @@ export class TaskDictionariesService {
     this.isSettingsModalOpen.set(true);
   }
 
-  /** A new type goes after the last one; the server puts it there. */
+  /** A new type goes after the last one; the server puts it there. One request at a time. */
   handleCreateType(event: { code: string; name: string; icon: string; color: string }): void {
-    this.entities
-      .create(TASK_TYPES, { code: event.code, name: event.name, icon: event.icon, color: event.color })
-      .subscribe({
-        next: () => {
-          this.toast.success(this.uiI18n.translate('tasks.dictionaries.type_added'));
-          this.loadTypes();
-        },
-        error: (err) =>
-          this.toast.error(problemText(err) || this.uiI18n.translate('tasks.dictionaries.type_add_failed')),
-      });
+    if (this.typeAdd.saving()) return;
+    this.addItem(
+      this.typeAdd,
+      this.entities.create(TASK_TYPES, { code: event.code, name: event.name, icon: event.icon, color: event.color }),
+      ['code', 'name', 'color'],
+      'tasks.dictionaries.type_added',
+      'tasks.dictionaries.type_add_failed',
+      () => this.loadTypes(),
+    );
   }
 
   /** A new status gets its code from the server and goes after the last one. */
   handleCreateStatus(event: { name: string; color: string; terminal: boolean }): void {
-    this.entities.create(TASK_STATUSES, { name: event.name, color: event.color, terminal: event.terminal }).subscribe({
-      next: () => {
-        this.toast.success(this.uiI18n.translate('tasks.dictionaries.status_added'));
-        this.loadStatuses();
-      },
-      error: (err) =>
-        this.toast.error(problemText(err) || this.uiI18n.translate('tasks.dictionaries.status_add_failed')),
-    });
+    if (this.statusAdd.saving()) return;
+    this.addItem(
+      this.statusAdd,
+      this.entities.create(TASK_STATUSES, { name: event.name, color: event.color, terminal: event.terminal }),
+      ['name', 'color'],
+      'tasks.dictionaries.status_added',
+      'tasks.dictionaries.status_add_failed',
+      () => this.loadStatuses(),
+    );
   }
 
   /**
@@ -177,6 +195,38 @@ export class TaskDictionariesService {
     const before = this.statuses();
     this.statuses.set(list);
     this.persistOrder(TASK_STATUSES, before, list, 'tasks.dictionaries.status_order_saved', () => this.loadStatuses());
+  }
+
+  /**
+   * Sends one add form: a refusal about its fields goes under them (forms standard, section 5), any other is a
+   * toast; a success counts in `added`, which clears the form.
+   */
+  private addItem(
+    state: DictionaryAddState,
+    request: Observable<unknown>,
+    known: string[],
+    addedKey: string,
+    failedKey: string,
+    reload: () => void,
+  ): void {
+    state.saving.set(true);
+    state.errors.set({});
+    request.subscribe({
+      next: () => {
+        state.saving.set(false);
+        state.added.update((count) => count + 1);
+        this.toast.success(this.uiI18n.translate(addedKey));
+        reload();
+      },
+      error: (err: unknown) => {
+        state.saving.set(false);
+        const { fields, other } = problemFieldErrors(err, { known });
+        state.errors.set(fields);
+        if (Object.keys(fields).length === 0 || other.length > 0) {
+          this.toast.error(other[0] ?? (problemText(err) || this.uiI18n.translate(failedKey)));
+        }
+      },
+    });
   }
 
   /**

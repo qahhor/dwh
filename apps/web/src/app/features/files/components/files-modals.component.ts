@@ -2,14 +2,20 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 
 import { TaskFile } from '@core/models/task.models';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { UiFileUploadComponent } from '@shared/ui/ui-file-upload.component';
 import { TranslatePipe } from '@core/services/i18n.service';
 
 @Component({
   selector: 'app-files-modals',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, UiFileUploadComponent, TranslatePipe],
+  imports: [
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    UiFormActionsComponent,
+    UiFileUploadComponent,
+    TranslatePipe,
+  ],
   template: `
     <!-- Upload Modal -->
     <smt-dialog
@@ -28,11 +34,13 @@ import { TranslatePipe } from '@core/services/i18n.service';
             (fileRemoved)="batchFileRemoved.emit($event)"
           ></ui-file-upload>
         </div>
-        <div footer class="modal-footer-actions">
-          <button smt-button type="button" smtVariant="secondary" (click)="closeUpload.emit()">
-            {{ 'audit.common.close' | t }}
-          </button>
-        </div>
+        <ui-form-actions
+          footer
+          data-testid="files-upload-actions"
+          [showCancel]="false"
+          [submitLabel]="'common.close' | t"
+          (submitted)="closeUpload.emit()"
+        />
       </ng-template>
     </smt-dialog>
   `,
@@ -44,13 +52,6 @@ import { TranslatePipe } from '@core/services/i18n.service';
 
       .upload-modal-body {
         padding: 8px 0;
-      }
-
-      .modal-footer-actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 8px;
       }
     `,
   ],

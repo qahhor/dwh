@@ -157,7 +157,8 @@ const screens: Screen[] = [
     path: '/e/ms.notes/new',
     open: async page => {
       await expect(page.getByRole('textbox', { name: 'Заголовок' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Сохранить' })).toBeVisible();
+      // A new record is created: the primary button of the form says so (forms standard, section 6).
+      await expect(page.getByRole('button', { name: 'Создать', exact: true })).toBeVisible();
     },
   },
   {

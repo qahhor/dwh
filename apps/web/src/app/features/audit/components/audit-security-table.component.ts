@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
 import { DateRange, SMTDateRangePickerComponent } from '@shared/ui-kit/components/forms/date-picker';
@@ -29,6 +30,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
+    SMTControlComponent,
     TranslatePipe,
     SMTButtonComponent,
     UiServerTableComponent,

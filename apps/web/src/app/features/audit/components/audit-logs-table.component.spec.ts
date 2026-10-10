@@ -124,9 +124,12 @@ describe('AuditLogsTableComponent', () => {
   it('names every filter, the UTC period picker and the reset action', () => {
     const { host } = render();
 
-    for (const id of ['audit-table-filter', 'audit-row-pk-filter', 'audit-user-filter']) {
-      expect(host.querySelector(`label[for="${id}"]`)).not.toBeNull();
+    // Each filter has a name: a visible smt-control label or, where the toolbar shows none, its own aria-label.
+    for (const id of ['audit-row-pk-filter', 'audit-user-filter']) {
+      expect(host.querySelector(`smt-control:has(#${id}) .smt-control__label`)).not.toBeNull();
     }
+    expect(host.querySelector('#audit-table-filter')?.getAttribute('aria-label')).toBeTruthy();
+    expect(host.querySelector('#audit-event-filter')?.getAttribute('aria-label')).toBeTruthy();
     expect(host.querySelector('#audit-table-filter')?.getAttribute('role')).toBe('combobox');
     expect(host.querySelector('#audit-event-filter')?.getAttribute('role')).toBe('combobox');
     expect(

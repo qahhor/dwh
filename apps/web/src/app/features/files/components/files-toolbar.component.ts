@@ -24,10 +24,10 @@ import { I18nService } from '@core/services/i18n.service';
 
         <!-- Search Input -->
         <div class="search-box">
-          <label class="sr-only" for="file-search">{{ 'files.list.search_files' | t }}</label>
           <smt-input
             class="search-field"
             smtFieldId="file-search"
+            [smtAriaLabel]="'files.list.search_files' | t"
             name="fileSearch"
             type="search"
             smtIcon="search"

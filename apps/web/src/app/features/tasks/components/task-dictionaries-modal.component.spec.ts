@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { TaskStatus, TaskType } from '@core/models/task.models';
 import { inScreen, Screen } from '@testing/in-screen';
+import { newAddState } from '../services/task-dictionaries.service';
 import { TaskDictionariesModalComponent } from './task-dictionaries-modal.component';
 
 const TYPES: TaskType[] = [
@@ -73,20 +74,49 @@ describe('TaskDictionariesModalComponent', () => {
     expect(deleted).toHaveBeenCalledWith({ kind: 'type', id: 2, name: 'Документ' });
   });
 
-  it('adds a type from the trimmed code and name with the default icon, then empties the form', () => {
+  it('adds a type from the trimmed code and name with the default icon, and empties the form once it is added', () => {
     const { fixture, screen } = render();
+    const state = newAddState();
+    fixture.componentRef.setInput('typeAdd', state);
     const created = vi.fn();
     fixture.componentInstance.createType.subscribe(created);
 
     type(fixture, screen, 'task-type-code', '  bug ');
     press(fixture, screen, 'add Добавить тип');
     expect(created).not.toHaveBeenCalled();
+    expect(text(screen.querySelector('smt-control:has(#task-type-name) .smt-control__error'))).toBe(
+      'Обязательное поле',
+    );
 
     type(fixture, screen, 'task-type-name', ' Ошибка ');
     press(fixture, screen, 'add Добавить тип');
     expect(created).toHaveBeenCalledWith({ code: 'bug', name: 'Ошибка', icon: 'task_alt', color: '#2563eb' });
+    // Kept while the server answers, so a refusal does not lose what was typed.
+    expect((screen.querySelector('#task-type-code') as HTMLInputElement).value).toBe('  bug ');
+
+    state.added.set(1);
+    fixture.detectChanges();
     expect((screen.querySelector('#task-type-code') as HTMLInputElement).value).toBe('');
     expect((screen.querySelector('#task-type-name') as HTMLInputElement).value).toBe('');
+    expect(text(screen.querySelector('smt-control:has(#task-type-name) .smt-control__error'))).toBe('');
+  });
+
+  it('shows the server refusal of a new type under its field and sends nothing while a save runs', () => {
+    const { fixture, screen } = render();
+    const state = newAddState();
+    fixture.componentRef.setInput('typeAdd', state);
+    const created = vi.fn();
+    fixture.componentInstance.createType.subscribe(created);
+
+    state.errors.set({ code: 'Код уже занят' });
+    fixture.detectChanges();
+    expect(text(screen.querySelector('smt-control:has(#task-type-code) .smt-control__error'))).toBe('Код уже занят');
+
+    state.saving.set(true);
+    type(fixture, screen, 'task-type-code', 'bug');
+    type(fixture, screen, 'task-type-name', 'Ошибка');
+    fixture.componentInstance.submitType();
+    expect(created).not.toHaveBeenCalled();
   });
 
   it('shows the statuses on their tab, marking the final and the basic one, with delete only for the rest', () => {

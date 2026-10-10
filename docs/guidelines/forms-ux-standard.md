@@ -1,6 +1,6 @@
 # Стандарт UI/UX форм
 
-**Версия:** 1.0
+**Версия:** 1.1
 
 **Обновлено:** 2026-10-10
 
@@ -36,6 +36,7 @@ ADR-0019 и ADR-0032 (форма сущности из `form-meta`), ADR-0021 (�
 | Ошибки сервера по полям | `problemFieldErrors()`; для сущности — `serverProblems()` | общий тост с текстом 422 |
 | Диалог | `smt-dialog` (`[smtSize]`: `sm`, `md`, `lg`, `xl`) | своё модальное окно |
 | Вопрос «вы уверены?» | `SMTModalService.confirm()` (`destructive: true` для удаления) | отдельный `smt-dialog` с текстом и двумя кнопками |
+| Вопрос «Отменить изменения?» | `discardChangesQuestion()` (`shared/ui/discard-changes.ts`) для диалога; `leaveQuestion()` (`shared/ui/leave-question.ts`) в `canLeaveRecordPage()` страницы | свой диалог подтверждения и свои ключи модуля |
 
 Фильтр списка, строка поиска и одиночная настройка без кнопки «Сохранить»
 не считаются формой: контрол кита привязывается напрямую
@@ -205,11 +206,15 @@ ADR-0019 и ADR-0032 (форма сущности из `form-meta`), ADR-0021 (�
 - **Несохранённые изменения:** если форма изменена (значение отличается от
   исходного), закрытие диалога (Escape, фон, крестик, «Отмена») и уход со
   страницы спрашивают `SMTModalService.confirm({ destructive: true })`:
-  «Отменить изменения?» — «Изменения будут потеряны». Общий вопрос —
-  `discardChangesQuestion()` из `shared/ui/discard-changes.ts` (тексты
-  `common.discard.*`); `formChanged()` оттуда же сравнивает значения с
-  исходными. Страница — через `canDeactivate: [recordNavigationGuard]`.
-  Нетронутая форма закрывается без вопроса.
+  «Отменить изменения?» — «Изменения будут потеряны». Вопрос один на все
+  формы: `discardChangesQuestion()` из `shared/ui/discard-changes.ts`
+  (ключи `common.discard.title|message|confirm|keep`); `formChanged()` оттуда
+  же сравнивает значения с исходными. Страница — через
+  `canDeactivate: [recordNavigationGuard]` и `canLeaveRecordPage()`, который
+  возвращает `leaveQuestion()`: вытесненный переход и тот, что его заменил,
+  получают один открытый вопрос, а вопрос, который больше никто не ждёт
+  (выход по истёкшей сессии), закрывается сам. Нетронутая форма закрывается
+  без вопроса.
 - После успешного сохранения диалог закрывается, фокус возвращается к
   элементу, который его открыл (это делает `SMTModalService`).
 
@@ -258,7 +263,8 @@ ADR-0019 и ADR-0032 (форма сущности из `form-meta`), ADR-0021 (�
 | `literal-label` | статический текст в `[smtLabel]` / `[smtHint]` / `[smtTitle]` |
 
 Нарушения на 2026-10-10 записаны по файлам в
-`apps/web/scripts/forms-audit-baseline.json` (231 в 57 файлах); счётчики
+`apps/web/scripts/forms-audit-baseline.json` (231 в 57 файлах; после волн 2 и
+3 — 86, все в файлах волны 1); счётчики
 только уменьшаются: превышение роняет `lint` со строками, уменьшение требует
 `node scripts/forms-audit.mjs --shrink`. Составные контролы, которые сами
 оборачивают нативный элемент (деньги, markdown, командная палитра),
@@ -271,10 +277,13 @@ ADR-0019 и ADR-0032 (форма сущности из `form-meta`), ADR-0021 (�
 - Общих пайпов форматирования даты, числа и денег нет: вывод идёт через
   функции `entity-values.ts`. Пайпы — отдельная задача.
 - Общий вопрос об отмене изменений (`common.discard.*`,
-  `shared/ui/discard-changes.ts`) есть, но свои диалоги с ключами модулей
-  ещё остаются: `projects.discard_*`, `tasks.discard_edit_*`,
-  `iam.org_units.*discard*`, `iam.data_scope.discard_*`. Они переводятся на
-  общий вопрос отдельно.
+  `discardChangesQuestion()`) используют все три волны; ключи
+  `projects.discard_*` и `tasks.discard_*` удалены. Свои диалоги
+  подтверждения ещё остаются в `iam.org_units.*discard*` и
+  `iam.data_scope.discard_*` — их перевод на общий вопрос отдельной задачей.
+- Ошибки правил формы сущности (`smt-entity-form`) по-прежнему появляются
+  только после попытки сохранить, а не при уходе с поля: `form-meta`
+  проверяется `formProblems()` целиком, отметки «поле тронуто» у неё нет.
 - `smt-dialog` при открытии ставит фокус на крестик (первый элемент
   ловушки CDK), если форма не отметила поле `[smtFocusInitial]`.
 
@@ -286,7 +295,7 @@ ADR-0019 и ADR-0032 (форма сущности из `form-meta`), ADR-0021 (�
 
 | Форма | Файл | Вид | Отклонения |
 |---|---|---|---|
-| Форма сущности (задачи, пользователи, заметки, документы) | `shared/entity/smt-entity-form.component.html`, `page/smt-entity-edit-page.component.ts` | страница / диалог | эталон; нет фокуса на первой ошибке, сводки и вопроса о несохранённых изменениях; ошибки правил показываются только после сохранения |
+| Форма сущности (задачи, пользователи, заметки, документы) | `shared/entity/smt-entity-form.component.html`, `page/smt-entity-edit-page.component.ts` | страница / диалог | эталон (волна 3: сводка ошибок со ссылками на поля, фокус на первой ошибке, вопрос об уходе со страницы); ошибки правил показываются только после сохранения |
 | Источник UPL: создание | `features/upl/sources/sources-list.component.html` | диалог md | эталон; кнопки — свой футер и `upl.common.*` |
 | Источник UPL: изменение | `features/upl/sources/source-card.component.html` | диалог | свой футер, копии общих ключей |
 | Формат и загрузка UPL | `features/upl/formats/*`, `features/upl/packages/*` | страница, мастер | свои подписи и ошибки ячеек, копии ключей |
@@ -302,13 +311,13 @@ ADR-0019 и ADR-0032 (форма сущности из `form-meta`), ADR-0021 (�
 | Навигация | `features/settings/navigation/components/navigation-settings-modal.component.ts` | диалог | 8 своих подписей, кнопка отключена `!isFormValid()` |
 | Поиск | `features/settings/search/search-settings.component.html` | страница, диалог | свои подписи и ошибки, отключённая кнопка |
 | Вебхуки | `features/settings/webhooks/webhooks-settings.component.html` | диалоги | Signal Forms, но свои подписи и отключённая кнопка `!isCreateValid()` |
-| Задачи: создание, изменение, справочники, детали | `features/tasks/components/*` | диалоги | `smt-control` есть; свой футер, копии ключей, ошибки сервера — тостом |
-| Проекты, участники | `features/tasks/projects/components/*` | диалоги | свой футер (5), «*» вручную; вопрос об отмене есть (`projects.discard_*`) |
-| Объявления | `features/announcements/components/announcements-modals.component.ts` | диалог | свои подписи и «*», кнопка отключена `!isDraftValid()` |
-| Файлы, аудит, уведомления | `features/files/*`, `features/audit/*`, `features/notifications/*` | диалоги просмотра, фильтры | футер «Закрыть» своей разметкой, `audit.common.close`, подписи фильтров |
-| Отчёты: конструктор и сохранённые | `shared/entity/report/*` | панель, диалог | свои подписи, свой футер |
-| Импорт записей | `shared/entity/smt-entity-import.component.ts` | диалог | свой футер, кнопка отключена до выбора файла (допустимо: файл не выбран — не ошибка поля) |
-| Фильтры и виды списков | `shared/ui/ui-filter-panel.component.html`, `ui-list-views.component.ts` | панель, диалог | свои подписи условий, `ui.views.save_button` = «Сохранить» |
+| Задачи: создание, изменение, справочники, детали | `features/tasks/components/*` | диалоги | волна 3: соответствует; ошибки сервера под полями и в сводке |
+| Проекты, участники | `features/tasks/projects/components/*` | диалоги | волна 3: соответствует; общий вопрос об отмене вместо `projects.discard_*` |
+| Объявления | `features/announcements/components/announcements-modals.component.ts` | диалог | волна 3: соответствует; «Сохранить черновик» не отключается |
+| Файлы, аудит, уведомления | `features/files/*`, `features/audit/*`, `features/notifications/*` | диалоги просмотра, фильтры | волны 2–3: соответствует (`ui-form-actions` с `common.close`, подписи фильтров — `smt-control` или `aria-label`) |
+| Отчёты: конструктор и сохранённые | `shared/entity/report/*` | панель, диалог | волна 3: соответствует |
+| Импорт записей | `shared/entity/smt-entity-import.component.ts` | диалог | волна 3: `ui-form-actions`; «Применить» ждёт загруженного файла (`submitDisabled`: файл не выбран — не ошибка поля) |
+| Фильтры и виды списков | `shared/ui/ui-filter-panel.component.html`, `ui-list-views.component.ts` | панель, диалог | волна 3: соответствует; `ui.views.save_button` удалён |
 | Блокировка сессии | `layout/app-shell/components/idle-lock-dialog.component.ts` | диалог | свой футер |
 
 ## Приложение B. План внедрения волнами
@@ -318,11 +327,11 @@ ADR-0019 и ADR-0032 (форма сущности из `form-meta`), ADR-0021 (�
 доработка блока идёт отдельной веткой до волн. Каждая волна завершается
 `node scripts/forms-audit.mjs --shrink` и снижением счётчиков в baseline.
 
-| Волна | Область и файлы | Нарушений | Оценка |
-|---|---|---|---|
-| 1. IAM, вход, профиль | `features/iam/**` (роли, подразделения, профиль, пользовательские поля, права пользователя), `features/auth/**` — 15 файлов | 86 | 2–3 дня |
-| 2. Настройки, UPL, уведомления | `features/settings/**`, `features/upl/**`, `features/notifications/**`, `layout/**` — 19 файлов | 73 | 2–3 дня |
-| 3. Задачи, общие блоки, остальное | `features/tasks/**`, `features/announcements/**`, `features/audit/**`, `features/files/**`, `features/notes/**`, `shared/entity/**`, `shared/ui/**` (кроме `ui-form-*`) — 23 файла | 72 | 2–3 дня |
+| Волна | Область и файлы | Нарушений | Оценка | Состояние |
+|---|---|---|---|---|
+| 1. IAM, вход, профиль | `features/iam/**` (роли, подразделения, профиль, пользовательские поля, права пользователя), `features/auth/**` — 15 файлов | 86 | 2–3 дня | выполнено |
+| 2. Настройки, UPL, уведомления | `features/settings/**`, `features/upl/**`, `features/notifications/**`, `layout/**` — 19 файлов | 73 | 2–3 дня | выполнена (слита в `main`): 73 → 0; общий вопрос `discardChangesQuestion()` |
+| 3. Задачи, общие блоки, остальное | `features/tasks/**`, `features/announcements/**`, `features/audit/**`, `features/files/**`, `features/notes/**`, `shared/entity/**`, `shared/ui/**` (кроме `ui-form-*`) — 23 файла | 72 | 2–3 дня | выполнена: 72 → 0; `leaveQuestion()`, сводка и фокус формы сущности, вопрос об уходе с `/e/<код>/new` и `/e/<код>/<id>/edit` |
 
 Порядок внутри волны: (1) футеры → `ui-form-actions` и общие ключи кнопок
 (удалить ставшие ненужными ключи модулей из ru/uz/en); (2) подписи, «*» и

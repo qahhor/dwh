@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
+import { ProblemFieldErrors } from '@shared/ui/problem-fields';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFormErrorSummaryComponent } from '@shared/ui/ui-form-error-summary.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
+import { NO_FIELD_ERRORS, TASK_CREATE_FORM_ID } from '../services/task-forms.service';
+import { taskErrorSummary } from '../task-form-errors';
 
 import { SMTDataSelectComponent, SMTMultiDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
 import { TaskLookupsService } from '../services/task-lookups.service';
@@ -8,7 +14,6 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiMarkdownEditorComponent } from '@shared/ui/ui-markdown-editor.component';
 import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
 import { CustomField } from '@core/models/custom-field.models';
@@ -24,8 +29,10 @@ import { TaskCreateFormValue, createDefaultTaskCreateForm } from '../tasks.model
     TranslatePipe,
     SMTDialogComponent,
     SMTDialogContentDirective,
-    SMTButtonComponent,
     SMTDataSelectComponent,
+    UiFormActionsComponent,
+    UiFormErrorSummaryComponent,
+    UiFocusFirstInvalidDirective,
     SMTRadioGroupComponent,
     SMTMultiDataSelectComponent,
     SMTInputComponent,
@@ -47,17 +54,35 @@ export class TaskCreateModalComponent {
   readonly createForm = input<TaskCreateFormValue>(createDefaultTaskCreateForm());
   readonly taskCustomFields = input<CustomField[]>([]);
 
+  /** The server's refusal of the last save by field; `other` goes to the error summary. */
+  readonly serverErrors = input<ProblemFieldErrors>(NO_FIELD_ERRORS);
+
   readonly closeModal = output<void>();
   readonly submitForm = output<void>();
 
-  /**
-   * The title was visited this opening (a new form object is a new opening). ngModel's required
-   * validator used to make smt-control say "required" for an empty visited field; the template now does.
-   */
+  /** The title was visited this opening (a new form object is a new opening). */
   readonly titleTouched = linkedSignal({ source: this.createForm, computation: () => false });
+
+  readonly summary = computed(() => {
+    this.i18n.currentLang();
+    return taskErrorSummary(this.serverErrors(), 'task-create', (key) => this.i18n.translate(key));
+  });
+
+  readonly formId = TASK_CREATE_FORM_ID;
 
   private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
   private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
+
+  /**
+   * "Name the task" after a submit with an empty title, "required" once an empty title was left, else the server's
+   * word on the title (forms standard, section 4). Read in the template, so the plain form object is seen fresh.
+   */
+  titleError(): string {
+    const title = this.createForm().title;
+    if (this.isCreateSubmitted() && !title.trim()) return this.i18n.translate('tasks.editor.title_required_hint');
+    if (this.titleTouched() && !title) return this.i18n.translate('ui.control.required');
+    return this.serverErrors().fields['title'] ?? '';
+  }
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
   typeOptions(): SMTRadioOption<string>[] {

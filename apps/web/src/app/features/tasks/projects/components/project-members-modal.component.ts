@@ -28,6 +28,9 @@ import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/form
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 
 @Component({
   selector: 'app-project-members-modal',
@@ -41,7 +44,10 @@ import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
     SMTDialogContentDirective,
     SMTButtonComponent,
     SMTBadgeComponent,
+    SMTControlComponent,
     UiLocalTableComponent,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
   ],
   templateUrl: './project-members-modal.component.html',
   styleUrl: './project-members-modal.component.css',
@@ -63,6 +69,8 @@ export class ProjectMembersModalComponent {
 
   readonly members = input<ProjectMember[]>([]);
   readonly canUpdateProject = input<boolean>(false);
+  /** The server's refusal of the last added member, by field (`userId`, `accessKind`). */
+  readonly addErrors = input<Readonly<Record<string, string>>>({});
 
   readonly closeModal = output<void>();
   /** Asks for the next page of members. */
@@ -83,6 +91,9 @@ export class ProjectMembersModalComponent {
   private readonly emailCell = viewChild.required<TemplateRef<unknown>>('memberEmailCell');
   private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('memberActionCell');
+
+  /** "Add" was pressed since the last added member, so an empty person field shows its error. */
+  readonly addTried = signal(false);
 
   readonly foundUsers = signal<User[]>([]);
   readonly isUserDropdownOpen = signal(false);
@@ -209,10 +220,20 @@ export class ProjectMembersModalComponent {
     return this.members().some((m) => m.userId === userId);
   }
 
+  /** "Required" after a press without a chosen person, else the server's word on the person. */
+  userError(): string {
+    if (this.addTried() && !this.selectedUser()) return this.i18n.translate('ui.control.required');
+    return this.addErrors()['userId'] ?? '';
+  }
+
+  /** Enter and "Add" land here; without a chosen person the field says so and takes the focus. */
   submitAddMember(): void {
+    if (this.isAddingMember()) return;
     const project = this.project();
     const user = this.selectedUser();
+    this.addTried.set(true);
     if (!project || !user) return;
+    this.addTried.set(false);
     this.addMember.emit({
       projectId: project.id,
       userId: user.id,

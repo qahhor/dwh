@@ -108,21 +108,24 @@ describe('ui-list-views', () => {
     fixture.detectChanges();
 
     const submit = () => {
-      (document.querySelector('button[data-testid="views-name-submit"]') as HTMLButtonElement).click();
+      (
+        document.querySelector('[data-testid="views-save-as-actions"] [data-testid="form-submit"]') as HTMLButtonElement
+      ).click();
       fixture.detectChanges();
     };
     submit();
-    expect(document.querySelector('[data-testid="views-name-error"]')?.textContent).toContain(
-      PACKAGED_RUSSIAN['ui.views.name_required'],
-    );
+    expect(
+      document.querySelector('smt-control:has([data-testid="views-name"]) .smt-control__error')?.textContent,
+    ).toContain(PACKAGED_RUSSIAN['ui.views.name_required']);
 
     const input = document.querySelector('[data-testid="views-name"]') as HTMLInputElement;
     input.value = 'Месячные';
     input.dispatchEvent(new Event('input'));
     submit();
-    expect(document.querySelector('[data-testid="views-name-error"]')?.textContent).toContain(
-      PACKAGED_RUSSIAN['ui.views.name_taken'],
-    );
+    expect(
+      document.querySelector('smt-control:has([data-testid="views-name"]) .smt-control__error')?.textContent,
+    ).toContain(PACKAGED_RUSSIAN['ui.views.name_taken']);
+    TestBed.tick();
     expect(input.getAttribute('aria-invalid')).toBe('true');
 
     api.create.mockReturnValueOnce(of({ ...monthly, id: 2, name: 'Годовые', isDefault: false }));

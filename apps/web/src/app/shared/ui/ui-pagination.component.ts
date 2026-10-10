@@ -30,10 +30,11 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
           <!-- Page Size Selector -->
           @if (showPageSize()) {
             <div class="page-size-picker">
-              <label class="size-label" [for]="pageSizeSelectId">{{ 'ui.pagination.rows_label' | t }}</label>
+              <span class="size-label" aria-hidden="true">{{ 'ui.pagination.rows_label' | t }}</span>
               <smt-select
                 class="size-select"
                 [smtTriggerId]="pageSizeSelectId"
+                [ariaLabel]="'ui.pagination.rows_label' | t"
                 [options]="pageSizeChoices()"
                 [allowClear]="false"
                 [disabled]="disabled()"

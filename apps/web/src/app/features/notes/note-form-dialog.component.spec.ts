@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { ToastService } from '@core/services/toast.service';
 import { FormMeta } from '@core/models/form-meta.models';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { NoteFormDialogComponent } from './note-form-dialog.component';
 import { Note } from './notes.api';
 import { inScreen } from '@testing/in-screen';
@@ -216,5 +217,34 @@ describe('NoteFormDialogComponent', () => {
     component.saving.set(false);
     component.close();
     expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks the common question before dropping a changed note, and closes an untouched one at once', () => {
+    const { component, closed, form } = setup();
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+
+    component.close();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(closed).toHaveBeenCalledTimes(1);
+
+    form.fill('title', 'Черновик');
+    component.close();
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Отменить изменения?', destructive: true }));
+    expect(closed).toHaveBeenCalledTimes(1);
+
+    confirm.mockReturnValue(of(true));
+    component.close();
+    expect(closed).toHaveBeenCalledTimes(2);
+  });
+
+  it('saves through the footer button of its form and shows the button busy while saving', () => {
+    const { fixture, screen, api, form } = setup();
+    form.fill('title', 'Новая');
+    (screen.querySelector('[data-testid="form-submit"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect((screen.querySelector('[data-testid="form-submit"]') as HTMLButtonElement).getAttribute('form')).toBe(
+      'noteForm',
+    );
   });
 });

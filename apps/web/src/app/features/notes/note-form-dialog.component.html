@@ -6,22 +6,28 @@
   (closed)="close()"
 >
   <ng-template smtDialogContent>
-    <form ngNoForm class="modal-form" novalidate id="noteForm" (submit)="$event.preventDefault(); save()">
+    <form
+      #noteForm
+      ngNoForm
+      class="modal-form"
+      novalidate
+      id="noteForm"
+      uiFocusFirstInvalid
+      (submit)="$event.preventDefault(); save()"
+    >
       <smt-entity-form [meta]="meta()" [(value)]="values" [problems]="problems()" [disabled]="saving()" />
       @if (showHistory() && note(); as current) {
         <ui-record-history [kind]="meta().code" [recordId]="current.id" [meta]="meta()" />
       }
     </form>
 
-    <div footer>
-      <div class="modal-footer-actions">
-        <button smt-button type="button" smtVariant="secondary" [disabled]="saving()" (click)="close()">
-          {{ 'common.cancel' | t }}
-        </button>
-        <button smt-button smtVariant="primary" type="submit" form="noteForm" [smtLoading]="saving()">
-          {{ 'common.save' | t }}
-        </button>
-      </div>
-    </div>
+    <ui-form-actions
+      footer
+      form="noteForm"
+      data-testid="note-form-actions"
+      [submitLabel]="(note() ? 'common.save' : 'common.create') | t"
+      [submitting]="saving()"
+      (cancelled)="close()"
+    />
   </ng-template>
 </smt-dialog>

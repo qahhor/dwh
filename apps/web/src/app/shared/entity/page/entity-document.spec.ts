@@ -153,7 +153,7 @@ describe('a document on the general form', () => {
     lines(root)[0].querySelector<HTMLButtonElement>('[data-testid="entity-line-remove"]')!.click();
     await settle();
 
-    click(root, '[data-testid="entity-save"]');
+    click(root, '[data-testid="form-submit"]');
     await settle();
 
     expect(api.post).toHaveBeenCalledWith(
@@ -187,7 +187,7 @@ describe('a document on the general form', () => {
       },
     });
 
-    click(root, '[data-testid="entity-save"]');
+    click(root, '[data-testid="form-submit"]');
     await settle();
 
     expect(lines(root)[0].querySelector('[data-field="qty"]')?.textContent).toContain(
@@ -207,11 +207,30 @@ describe('a document on the general form', () => {
 
     expect(root.querySelector<HTMLInputElement>('smt-entity-form [data-field="customer"] input')!.disabled).toBe(true);
     expect(root.querySelector('[data-testid="entity-line-add"]')).toBeNull();
-    click(root, '[data-testid="entity-save"]');
+    click(root, '[data-testid="form-submit"]');
     await settle();
 
     const body = api.patch.mock.calls[0][1] as Record<string, unknown>;
     expect('lines' in body).toBe(false);
+  });
+
+  it('leaves an untouched document with lines and money without asking, and asks once a line changes', async () => {
+    const { root, router, confirm, settle } = await renderEntityScreen(`/e/${CODE}/1/edit`, {
+      meta: META,
+      records: [draft()],
+    });
+    await router.navigateByUrl(`/e/${CODE}`);
+    await settle();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(router.url).toBe(`/e/${CODE}`);
+
+    await router.navigateByUrl(`/e/${CODE}/1/edit`);
+    await settle();
+    click(root, '[data-testid="entity-line-add"]');
+    await settle();
+    await router.navigateByUrl(`/e/${CODE}`);
+    await settle();
+    expect(confirm).toHaveBeenCalledTimes(1);
   });
 });
 

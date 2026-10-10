@@ -5,6 +5,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
+import { problemFieldErrors } from '@shared/ui/problem-fields';
 import { KeysetPager } from '@shared/paging/keyset-pager';
 import { ProjectsApi } from '../projects.api';
 import { ProjectMember } from '../projects.models';
@@ -23,6 +24,8 @@ export class ProjectMembersService {
   readonly selectedProjectForMembers = signal<Project | null>(null);
   readonly isAddingMember = signal<boolean>(false);
   readonly removingMemberId = signal<number | null>(null);
+  /** The server's refusal of the last added member, by field (`userId`, `accessKind`). */
+  readonly addErrors = signal<Readonly<Record<string, string>>>({});
 
   readonly projectMembers = computed(() => this.pager.items());
   readonly isLoadingMembers = computed(() => this.pager.loading());
@@ -47,6 +50,7 @@ export class ProjectMembersService {
 
   openMembersModal(project: Project): void {
     this.selectedProjectForMembers.set(project);
+    this.addErrors.set({});
     this.pager.items.set([]);
     this.pager.first();
   }
@@ -62,7 +66,9 @@ export class ProjectMembersService {
   }
 
   onAddProjectMember(event: { projectId: number; userId: number; accessKind: string }): void {
+    if (this.isAddingMember()) return;
     this.isAddingMember.set(true);
+    this.addErrors.set({});
     this.projectsApi.addMember(event.projectId, event.userId, event.accessKind).subscribe({
       next: () => {
         this.isAddingMember.set(false);
@@ -71,7 +77,12 @@ export class ProjectMembersService {
       },
       error: (err: unknown) => {
         this.isAddingMember.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('projects.members.add_failed'));
+        // A refusal about the person or the access level goes under that field (forms standard, section 5).
+        const { fields, other } = problemFieldErrors(err, { known: ['userId', 'accessKind'] });
+        this.addErrors.set(fields);
+        if (Object.keys(fields).length === 0 || other.length > 0) {
+          this.toast.error(other[0] ?? (problemText(err) || this.uiI18n.translate('projects.members.add_failed')));
+        }
       },
     });
   }

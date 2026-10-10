@@ -208,7 +208,7 @@ describe('TaskDetailModalComponent', () => {
       'Удалённый пользователь',
     ]);
     const draft = screen.querySelector('#task-comment-draft') as HTMLTextAreaElement;
-    expect(text(screen.querySelector('label[for="task-comment-draft"]'))).toBe('Комментарий к задаче #7');
+    expect(text(screen.querySelector('.comment-control .smt-control__label'))).toBe('Комментарий к задаче #7');
     draft.value = 'Принято';
     draft.dispatchEvent(new Event('input'));
     click(fixture, button(screen, 'Отправить'));

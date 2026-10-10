@@ -292,12 +292,6 @@ projects.create_save_error
 projects.created_at
 projects.custom_fields
 projects.description_missing
-projects.discard_create_action
-projects.discard_create_message
-projects.discard_create_title
-projects.discard_edit_action
-projects.discard_edit_message
-projects.discard_edit_title
 projects.edit_load_error
 projects.edit_loading
 projects.edit_named
@@ -426,9 +420,6 @@ tasks.delete_status
 tasks.delete_task_type
 tasks.detail_load_error
 tasks.detail_loading
-tasks.discard_edit_action
-tasks.discard_edit_message
-tasks.discard_edit_title
 tasks.edit_load_error
 tasks.edit_loading
 tasks.edit_task_number

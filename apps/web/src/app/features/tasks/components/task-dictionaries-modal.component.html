@@ -48,11 +48,21 @@
           </smt-sortable-list>
 
           <!-- Add New Type Form -->
-          <div class="add-dict-box">
+          <form
+            id="task-type-add"
+            class="add-dict-box"
+            uiFocusFirstInvalid
+            novalidate
+            (submit)="$event.preventDefault(); submitType()"
+          >
             <h5 class="add-dict-title">{{ 'tasks.dictionaries.add_new_task_type' | t }}</h5>
             <div class="form-grid-3">
-              <div class="dict-form-field">
-                <label class="clean-label" for="task-type-code">{{ 'tasks.dictionaries.type_code' | t }}</label>
+              <smt-control
+                class="dict-form-field"
+                [smtLabel]="'tasks.dictionaries.type_code' | t"
+                [smtError]="typeError('code')"
+                [required]="true"
+              >
                 <smt-input
                   smtFieldId="task-type-code"
                   name="taskTypeCode"
@@ -60,9 +70,13 @@
                   [value]="newTypeForm().code"
                   (valueChange)="patchTypeForm({ code: text($event) })"
                 />
-              </div>
-              <div class="dict-form-field">
-                <label class="clean-label" for="task-type-name">{{ 'tasks.dictionaries.type_name' | t }}</label>
+              </smt-control>
+              <smt-control
+                class="dict-form-field"
+                [smtLabel]="'tasks.dictionaries.type_name' | t"
+                [smtError]="typeError('name')"
+                [required]="true"
+              >
                 <smt-input
                   smtFieldId="task-type-name"
                   name="taskTypeName"
@@ -70,8 +84,12 @@
                   [value]="newTypeForm().name"
                   (valueChange)="patchTypeForm({ name: text($event) })"
                 />
-              </div>
-              <smt-control class="color-field" [smtLabel]="'tasks.dictionaries.type_color' | t">
+              </smt-control>
+              <smt-control
+                class="color-field"
+                [smtLabel]="'tasks.dictionaries.type_color' | t"
+                [smtError]="typeAdd().errors()['color'] ?? ''"
+              >
                 <smt-color-input
                   smtFieldId="task-type-color"
                   name="taskTypeColor"
@@ -81,11 +99,19 @@
               </smt-control>
             </div>
             <div class="add-dict-actions">
-              <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="add" (click)="submitType()">
+              <button
+                smt-button
+                type="submit"
+                smtVariant="secondary"
+                smtSize="sm"
+                smtIcon="add"
+                data-testid="task-type-add"
+                [smtLoading]="typeAdd().saving()"
+              >
                 {{ 'tasks.dictionaries.add_type' | t }}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       }
 
@@ -127,11 +153,21 @@
           </smt-sortable-list>
 
           <!-- Add New Status Form -->
-          <div class="add-dict-box">
+          <form
+            id="task-status-add"
+            class="add-dict-box"
+            uiFocusFirstInvalid
+            novalidate
+            (submit)="$event.preventDefault(); submitStatus()"
+          >
             <h5 class="add-dict-title">{{ 'tasks.dictionaries.add_new_status' | t }}</h5>
             <div class="form-grid-3">
-              <div class="dict-form-field">
-                <label class="clean-label" for="task-status-name">{{ 'tasks.dictionaries.status_name' | t }}</label>
+              <smt-control
+                class="dict-form-field"
+                [smtLabel]="'tasks.dictionaries.status_name' | t"
+                [smtError]="statusError('name')"
+                [required]="true"
+              >
                 <smt-input
                   smtFieldId="task-status-name"
                   name="taskStatusName"
@@ -139,8 +175,12 @@
                   [value]="newStatusForm().name"
                   (valueChange)="patchStatusForm({ name: text($event) })"
                 />
-              </div>
-              <smt-control class="color-field" [smtLabel]="'tasks.dictionaries.status_color' | t">
+              </smt-control>
+              <smt-control
+                class="color-field"
+                [smtLabel]="'tasks.dictionaries.status_color' | t"
+                [smtError]="statusAdd().errors()['color'] ?? ''"
+              >
                 <smt-color-input
                   smtFieldId="task-status-color"
                   name="taskStatusColor"
@@ -161,23 +201,26 @@
             <div class="add-dict-actions">
               <button
                 smt-button
-                type="button"
+                type="submit"
                 smtVariant="secondary"
                 smtSize="sm"
                 smtIcon="add"
-                (click)="submitStatus()"
+                data-testid="task-status-add"
+                [smtLoading]="statusAdd().saving()"
               >
                 {{ 'tasks.dictionaries.add_status' | t }}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       }
     </div>
-    <div footer>
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
-        {{ 'audit.common.close' | t }}
-      </button>
-    </div>
+    <ui-form-actions
+      footer
+      data-testid="task-dictionaries-actions"
+      [showCancel]="false"
+      [submitLabel]="'common.close' | t"
+      (submitted)="closeModal.emit()"
+    />
   </ng-template>
 </smt-dialog>

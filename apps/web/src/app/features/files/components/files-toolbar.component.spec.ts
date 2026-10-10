@@ -42,7 +42,7 @@ describe('FilesToolbarComponent', () => {
 
   it('passes the typed text on and searches on Enter', () => {
     const { field, host, asked } = render();
-    expect(host.querySelector('label[for="file-search"]')?.textContent).toBe('Поиск файлов');
+    expect(host.querySelector('#file-search')?.getAttribute('aria-label')).toBe('Поиск файлов');
 
     field().value = 'отчёт';
     field().dispatchEvent(new Event('input'));

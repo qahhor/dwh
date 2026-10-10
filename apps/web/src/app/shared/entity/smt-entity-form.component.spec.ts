@@ -157,4 +157,22 @@ describe('SMTEntityFormComponent', () => {
     expect(host.values()['color']).toBe('red');
     expect(root.querySelector('[data-field="title"] input')).not.toBeNull();
   });
+
+  it('lists three problems above the sections, each linked to its control, and none while there are fewer', async () => {
+    const { fixture, root, host } = await render((h) => h.problems.set({ title: 'Укажите название' }));
+    expect(root.querySelector('[data-testid="form-error-summary"]')).toBeNull();
+
+    host.problems.set({ title: 'Укажите название', contentMd: 'Слишком длинный текст', color: 'Неизвестный цвет' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const summary = root.querySelector('[data-testid="form-error-summary"]') as HTMLElement;
+    expect(summary).not.toBeNull();
+    expect(summary.textContent).toContain('Укажите название');
+    const titleLink = summary.querySelector('a') as HTMLAnchorElement;
+    const title = root.querySelector('[data-field="title"] input') as HTMLInputElement;
+    expect(titleLink.getAttribute('href')).toBe(`#${title.id}`);
+    titleLink.click();
+    expect(document.activeElement).toBe(title);
+  });
 });

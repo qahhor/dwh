@@ -13,6 +13,8 @@ import { groupMembersByRole, GroupedTaskMembers, TaskProjectRef } from '../tasks
 import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 import { RecordAttributes } from '../tasks.models';
 
@@ -30,6 +32,8 @@ import { RecordAttributes } from '../tasks.models';
     UiMarkdownViewComponent,
     UiFileUploadComponent,
     UiRecordHistoryComponent,
+    SMTControlComponent,
+    UiFormActionsComponent,
     DatePipe,
   ],
   templateUrl: './task-detail-modal.component.html',

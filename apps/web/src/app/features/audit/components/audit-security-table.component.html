@@ -2,9 +2,9 @@
   <!-- Filter Toolbar -->
   <div class="filter-toolbar">
     <div class="filter-group">
-      <label class="sr-only" for="security-event-filter">{{ 'audit.security.filter_label' | t }}</label>
       <smt-select
         smtTriggerId="security-event-filter"
+        [ariaLabel]="'audit.security.filter_label' | t"
         class="filter-select"
         [options]="eventTypeOptions()"
         [placeholder]="'audit.security.all_events' | t"
@@ -14,9 +14,9 @@
       />
 
       <div class="search-box">
-        <label class="sr-only" for="security-ip-search">{{ 'audit.security.search_events_by_ip' | t }}</label>
         <smt-input
           smtFieldId="security-ip-search"
+          [smtAriaLabel]="'audit.security.search_events_by_ip' | t"
           name="securityIpSearch"
           type="text"
           smtIcon="search"
@@ -28,8 +28,7 @@
         />
       </div>
 
-      <div class="compact-filter compact-filter-narrow">
-        <label for="security-user-filter">{{ 'audit.user_id' | t }}</label>
+      <smt-control class="compact-filter compact-filter-narrow" [smtLabel]="'audit.user_id' | t">
         <smt-input
           smtFieldId="security-user-filter"
           name="securityUserFilter"
@@ -41,7 +40,7 @@
           (valueChange)="securityUserFilterChange.emit(filterText($event))"
           (keyup.enter)="applyFilters.emit()"
         />
-      </div>
+      </smt-control>
 
       <div class="compact-filter compact-filter-period">
         <span class="compact-filter-label" aria-hidden="true">{{ 'audit.period_utc' | t }}</span>

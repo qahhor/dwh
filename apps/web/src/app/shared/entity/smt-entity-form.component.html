@@ -1,3 +1,6 @@
+@if (summary()) {
+  <ui-form-error-summary class="entity-error-summary" [errors]="errorItems()" />
+}
 @for (drawn of drawnSections(); track drawn.section.key) {
   <fieldset class="entity-section" [attr.data-section]="drawn.section.key">
     @if (drawnSections().length > 1) {

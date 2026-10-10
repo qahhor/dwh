@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { BulkResult, failedItems } from '../bulk/bulk';
-import { SMTButtonComponent } from '../ui-kit/components/button';
+import { UiFormActionsComponent } from './ui-form-actions.component';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/components/modal';
 
 /**
@@ -12,7 +12,7 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/compone
 @Component({
   selector: 'ui-bulk-result',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent],
+  imports: [TranslatePipe, SMTDialogComponent, SMTDialogContentDirective, UiFormActionsComponent],
   template: `
     <smt-dialog [open]="!!result()" [smtTitle]="'ui.bulk.result_title' | t" smtSize="md" (closed)="closed.emit()">
       <ng-template smtDialogContent>
@@ -32,11 +32,13 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/compone
             </ul>
           }
         </div>
-        <div footer class="bulk-result-footer">
-          <button smt-button type="button" smtVariant="primary" (click)="closed.emit()">
-            {{ 'common.close' | t }}
-          </button>
-        </div>
+        <ui-form-actions
+          footer
+          data-testid="bulk-result-actions"
+          [showCancel]="false"
+          [submitLabel]="'common.close' | t"
+          (submitted)="closed.emit()"
+        />
       </ng-template>
     </smt-dialog>
   `,
@@ -76,10 +78,6 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/compone
       }
       .bulk-result-reason {
         font-size: 13px;
-      }
-      .bulk-result-footer {
-        display: flex;
-        justify-content: flex-end;
       }
     `,
   ],

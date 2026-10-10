@@ -141,6 +141,8 @@
   <app-announcements-modals
     [isEditorOpen]="store.isEditorOpen()"
     [editingId]="store.editingId()"
+    [draftErrors]="store.draftErrors()"
+    [draftError]="store.draftError()"
     [isSaving]="store.isSaving()"
     [draftTitles]="store.draftTitles()"
     (draftTitlesChange)="store.draftTitles.set($event)"

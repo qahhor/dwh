@@ -170,8 +170,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   readonly isCreateModalOpen = this.forms.isCreateModalOpen;
   readonly isEditModalOpen = this.forms.isEditModalOpen;
-  readonly isCreateDiscardConfirmationOpen = this.forms.isCreateDiscardConfirmationOpen;
-  readonly isEditDiscardConfirmationOpen = this.forms.isEditDiscardConfirmationOpen;
   readonly isSubmitting = this.forms.isSubmitting;
   readonly editLoading = this.forms.editLoading;
   readonly editLoadError = this.forms.editLoadError;
@@ -236,9 +234,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   requestCloseCreate() {
     this.forms.requestCloseCreate();
   }
-  confirmDiscardCreate() {
-    this.forms.confirmDiscardCreate();
-  }
   submitCreateProject() {
     this.forms.submitCreateProject();
   }
@@ -252,16 +247,10 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   requestCloseEdit() {
     this.forms.requestCloseEdit();
   }
-  confirmDiscardEdit() {
-    this.forms.confirmDiscardEdit();
-  }
   submitEditProject() {
     this.forms.submitEditProject();
   }
 
-  cancelNavigationDiscard(kind: 'create' | 'edit') {
-    this.forms.cancelNavigationDiscard(kind);
-  }
   canLeaveRecordPage(): boolean | Observable<boolean> | Promise<boolean> {
     return this.forms.canLeaveRecordPage();
   }

@@ -11,7 +11,7 @@
             <p>{{ (recordNotFound() ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
             @if (!recordNotFound()) {
               <button smt-button type="button" smtVariant="secondary" (click)="loadRecordView.emit(routeRecordId())">
-                {{ 'audit.retry' | t }}
+                {{ 'common.retry' | t }}
               </button>
             }
           </div>
@@ -36,11 +36,13 @@
           </div>
         }
       </div>
-      <div footer>
-        <button smt-button type="button" smtVariant="secondary" (click)="closeRecordView.emit()">
-          {{ 'search.back_to_list' | t }}
-        </button>
-      </div>
+      <ui-form-actions
+        footer
+        data-testid="project-record-actions"
+        [showCancel]="false"
+        [submitLabel]="'search.back_to_list' | t"
+        (submitted)="closeRecordView.emit()"
+      />
     </ng-template>
   </smt-dialog>
 }
@@ -54,30 +56,34 @@
   (closed)="requestCloseCreate.emit()"
 >
   <ng-template smtDialogContent>
-    <form body id="project-create-form" novalidate (submit)="$event.preventDefault(); submitCreateProject.emit()">
+    <form
+      [id]="createFormId"
+      uiFocusFirstInvalid
+      novalidate
+      (submit)="$event.preventDefault(); submitCreateProject.emit()"
+    >
       <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting()">
         <smt-control
           class="form-group"
           [smtLabel]="'projects.common.project_name' | t"
-          [smtError]="
-            isCreateSubmitted() && !createForm().name.trim()
-              ? ('projects.editor.name_required_hint' | t)
-              : createNameTouched() && !createForm().name
-                ? ('ui.control.required' | t)
-                : ''
-          "
+          [smtError]="createNameError()"
+          [required]="true"
         >
           <smt-input
             smtFieldId="project-create-name"
+            smtFocusInitial
             name="projectCreateName"
-            required
             [value]="createForm().name"
             (valueChange)="createForm().name = $event?.toString() ?? ''"
             (touch)="createNameTouched.set(true)"
             [placeholder]="'projects.editor.name_placeholder' | t"
           />
         </smt-control>
-        <smt-control class="form-group" [smtLabel]="'projects.editor.project_description' | t">
+        <smt-control
+          class="form-group"
+          [smtLabel]="'projects.editor.project_description' | t"
+          [smtError]="createErrors().fields['description'] ?? ''"
+        >
           <smt-textarea
             smtFieldId="project-create-description"
             name="projectCreateDescription"
@@ -102,55 +108,14 @@
         }
       </fieldset>
     </form>
-    <div footer>
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="md"
-        [disabled]="isSubmitting()"
-        (click)="requestCloseCreate.emit()"
-      >
-        {{ 'common.cancel' | t }}
-      </button>
-      <button
-        smt-button
-        type="submit"
-        form="project-create-form"
-        smtVariant="primary"
-        smtSize="md"
-        [smtLoading]="isSubmitting()"
-      >
-        {{ 'projects.editor.create_project' | t }}
-      </button>
-    </div>
-  </ng-template>
-</smt-dialog>
-
-<smt-dialog
-  [open]="isCreateDiscardConfirmationOpen()"
-  [smtTitle]="'projects.discard_create_title' | t"
-  smtSize="sm"
-  (closed)="cancelNavigationDiscard.emit('create')"
->
-  <ng-template smtDialogContent>
-    <div body>
-      <p>{{ 'projects.discard_create_message' | t }}</p>
-    </div>
-    <div footer>
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="md"
-        (click)="cancelNavigationDiscard.emit('create')"
-      >
-        {{ 'common.cancel' | t }}
-      </button>
-      <button smt-button type="button" smtVariant="danger" smtSize="md" (click)="confirmDiscardCreate.emit()">
-        {{ 'projects.discard_create_action' | t }}
-      </button>
-    </div>
+    <ui-form-actions
+      footer
+      [form]="createFormId"
+      data-testid="project-create-actions"
+      [submitLabel]="'projects.editor.create_project' | t"
+      [submitting]="isSubmitting()"
+      (cancelled)="requestCloseCreate.emit()"
+    />
   </ng-template>
 </smt-dialog>
 
@@ -184,29 +149,33 @@
       </div>
     }
     @if (editingProject(); as p) {
-      <form body id="project-edit-form" novalidate (submit)="$event.preventDefault(); submitEditProject.emit()">
+      <form
+        [id]="editFormId"
+        uiFocusFirstInvalid
+        novalidate
+        (submit)="$event.preventDefault(); submitEditProject.emit()"
+      >
         <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting()">
           <smt-control
             class="form-group"
             [smtLabel]="'projects.common.project_name' | t"
-            [smtError]="
-              isEditSubmitted() && !editForm().name.trim()
-                ? ('projects.editor.name_not_empty' | t)
-                : editNameTouched() && !editForm().name
-                  ? ('ui.control.required' | t)
-                  : ''
-            "
+            [smtError]="editNameError()"
+            [required]="true"
           >
             <smt-input
               smtFieldId="project-edit-name"
+              smtFocusInitial
               name="projectEditName"
-              required
               [value]="editForm().name"
               (valueChange)="editForm().name = $event?.toString() ?? ''"
               (touch)="editNameTouched.set(true)"
             />
           </smt-control>
-          <smt-control class="form-group" [smtLabel]="'iam.common.activity_status' | t">
+          <smt-control
+            class="form-group"
+            [smtLabel]="'iam.common.activity_status' | t"
+            [smtError]="editErrors().fields['state'] ?? ''"
+          >
             <smt-select
               smtTriggerId="project-edit-state"
               name="projectEditState"
@@ -216,7 +185,11 @@
               [allowClear]="false"
             ></smt-select>
           </smt-control>
-          <smt-control class="form-group" [smtLabel]="'projects.common.description' | t">
+          <smt-control
+            class="form-group"
+            [smtLabel]="'projects.common.description' | t"
+            [smtError]="editErrors().fields['description'] ?? ''"
+          >
             <smt-textarea
               smtFieldId="project-edit-description"
               name="projectEditDescription"
@@ -240,57 +213,22 @@
           }
         </fieldset>
       </form>
+      <ui-form-actions
+        footer
+        [form]="editFormId"
+        data-testid="project-edit-actions"
+        [submitting]="isSubmitting()"
+        (cancelled)="requestCloseEdit.emit()"
+      />
+    } @else {
+      <!-- Nothing to save while the project loads or failed to load: the only action closes the dialog. -->
+      <ui-form-actions
+        footer
+        data-testid="project-edit-actions"
+        [showCancel]="false"
+        [submitLabel]="'common.close' | t"
+        (submitted)="requestCloseEdit.emit()"
+      />
     }
-    <div footer>
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="md"
-        [disabled]="isSubmitting()"
-        (click)="requestCloseEdit.emit()"
-      >
-        {{ 'common.cancel' | t }}
-      </button>
-      @if (editingProject()) {
-        <button
-          smt-button
-          type="submit"
-          form="project-edit-form"
-          smtVariant="primary"
-          smtSize="md"
-          [smtLoading]="isSubmitting()"
-        >
-          {{ 'common.save' | t }}
-        </button>
-      }
-    </div>
-  </ng-template>
-</smt-dialog>
-
-<smt-dialog
-  [open]="isEditDiscardConfirmationOpen()"
-  [smtTitle]="'projects.discard_edit_title' | t"
-  smtSize="sm"
-  (closed)="cancelNavigationDiscard.emit('edit')"
->
-  <ng-template smtDialogContent>
-    <div body>
-      <p>{{ 'projects.discard_edit_message' | t }}</p>
-    </div>
-    <div footer>
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="md"
-        (click)="cancelNavigationDiscard.emit('edit')"
-      >
-        {{ 'common.cancel' | t }}
-      </button>
-      <button smt-button type="button" smtVariant="danger" smtSize="md" (click)="confirmDiscardEdit.emit()">
-        {{ 'projects.discard_edit_action' | t }}
-      </button>
-    </div>
   </ng-template>
 </smt-dialog>

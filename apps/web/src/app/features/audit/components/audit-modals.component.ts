@@ -9,7 +9,7 @@ import {
   output,
 } from '@angular/core';
 import { NgClass, JsonPipe, DatePipe } from '@angular/common';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
@@ -29,7 +29,7 @@ interface DiffRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
-    SMTButtonComponent,
+    UiFormActionsComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     UiLocalTableComponent,
@@ -102,11 +102,13 @@ interface DiffRow {
             }
           </div>
         }
-        <div footer class="modal-footer-actions">
-          <button smt-button type="button" smtVariant="secondary" (click)="closeAuditModal.emit()">
-            {{ 'audit.common.close' | t }}
-          </button>
-        </div>
+        <ui-form-actions
+          footer
+          data-testid="audit-change-actions"
+          [showCancel]="false"
+          [submitLabel]="'common.close' | t"
+          (submitted)="closeAuditModal.emit()"
+        />
       </ng-template>
     </smt-dialog>
 
@@ -153,11 +155,13 @@ interface DiffRow {
             <pre class="json-details-viewer">{{ ev.details | json }}</pre>
           </div>
         }
-        <div footer class="modal-footer-actions">
-          <button smt-button type="button" smtVariant="secondary" (click)="closeSecModal.emit()">
-            {{ 'audit.common.close' | t }}
-          </button>
-        </div>
+        <ui-form-actions
+          footer
+          data-testid="audit-security-actions"
+          [showCancel]="false"
+          [submitLabel]="'common.close' | t"
+          (submitted)="closeSecModal.emit()"
+        />
       </ng-template>
     </smt-dialog>
   `,

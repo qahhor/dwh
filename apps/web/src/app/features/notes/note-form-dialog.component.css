@@ -3,8 +3,3 @@
   flex-direction: column;
   gap: 16px;
 }
-.modal-footer-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}

@@ -24,7 +24,7 @@ describe('ProjectFilterBarComponent', () => {
     const search = el(fixture).querySelector('#project-search') as HTMLInputElement;
 
     expect(search.value).toBe('склад');
-    expect(el(fixture).querySelector('label[for="project-search"]')?.textContent?.trim()).toBe('Поиск проектов');
+    expect(search.getAttribute('aria-label')).toBe('Поиск проектов');
   });
 
   it('reports every edit of the search, and an emptied field as a cleared search', () => {
