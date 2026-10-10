@@ -8,6 +8,7 @@ import { ToastService } from '@core/services/toast.service';
 import { ModulesComponent, InstalledModule } from './modules.component';
 
 describe('ModulesComponent', () => {
+  // As the server answers: `status`, no `isActive` (the API derives it).
   const mockModules: InstalledModule[] = [
     {
       code: 'iam',
@@ -17,7 +18,6 @@ describe('ModulesComponent', () => {
       version: '1.0.0',
       isSystem: true,
       status: 'ACTIVE',
-      isActive: true,
       createdAt: '2026-09-08T00:00:00Z',
       modifiedAt: '2026-09-08T00:00:00Z',
     },
@@ -29,7 +29,6 @@ describe('ModulesComponent', () => {
       version: '1.0.0',
       isSystem: false,
       status: 'ACTIVE',
-      isActive: true,
       createdAt: '2026-09-08T00:00:00Z',
       modifiedAt: '2026-09-08T00:00:00Z',
     },
@@ -38,7 +37,7 @@ describe('ModulesComponent', () => {
   async function createFixture(canManage = true) {
     const apiMock = {
       get: vi.fn(() => of(mockModules)),
-      put: vi.fn((_url: string, _body: any) => of({ ...mockModules[1], status: 'DISABLED', isActive: false })),
+      put: vi.fn((_url: string, _body: any) => of({ ...mockModules[1], status: 'DISABLED' })),
     };
 
     await TestBed.configureTestingModule({
