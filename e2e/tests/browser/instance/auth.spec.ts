@@ -135,7 +135,8 @@ test('administrator can create and anonymise a user and upload and delete a file
   const createResponse = page.waitForResponse(response =>
     response.request().method() === 'POST' && /\/api\/v1\/entities\/md\.users$/u.test(response.url())
   );
-  await page.getByRole('button', { name: 'Сохранить' }).click();
+  // A new record: the primary button of the general form says "Создать" (forms standard, section 6).
+  await page.getByRole('button', { name: 'Создать', exact: true }).click();
   const createdUser = await createResponse;
   expect(createdUser.status()).toBe(201);
   expect(new URL(createdUser.url()).origin).toBe(origin);
