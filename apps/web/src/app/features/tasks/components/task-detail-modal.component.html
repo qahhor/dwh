@@ -183,7 +183,7 @@
                         <span class="comment-time tabular-nums">{{ c.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
                       </div>
                       <div class="comment-text">
-                        <ui-markdown-view [content]="c.textMarkdown || c.commentMarkdown"></ui-markdown-view>
+                        <ui-markdown-view [content]="c.textMarkdown"></ui-markdown-view>
                       </div>
                     </div>
                   }

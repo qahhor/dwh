@@ -7,6 +7,18 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Owner decisions of 2026-10-10
+
+The decisions of the product owner of 2026-10-10; branch `claude/leftovers`.
+One breaking REST change (the comment request).
+
+#### Changed
+
+- **Breaking (REST):** `POST /api/v1/tasks/{taskId}/comments` takes the
+  text only as `textMarkdown`; the older name `commentMarkdown` of
+  `AddCommentRequest` is gone (no client installations exist before the
+  final release). The web model `TaskComment` loses the same unused field.
+
 ### Open items after phase 7 (2026-10-09)
 
 The open items of the deep review after phase 7; integrated by the branch
