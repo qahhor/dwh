@@ -544,6 +544,11 @@
             }
           </div>
         }
+        @if (store.pollDelayed() && !store.pollError()) {
+          <p class="notice" data-state="poll-delayed" role="status" aria-live="polite">
+            {{ 'settings.search.jobs.poll_delayed' | t }}
+          </p>
+        }
         @if (store.pollError(); as error) {
           <div class="notice notice-error" role="alert">
             <span>{{ error.detail }} · {{ store.activeJobId() }}</span

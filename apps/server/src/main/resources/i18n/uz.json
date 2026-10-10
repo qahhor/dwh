@@ -185,6 +185,7 @@
   "settings.search.jobs.empty": "Kvest tarixi bo'sh.",
   "settings.search.jobs.scroll_label": "Qidiruv tarixini gorizontal aylantirish",
   "settings.search.jobs.load_more": "Oldingi topshiriqlarni yuklang",
+  "settings.search.jobs.poll_delayed": "Topshiriq holati yangilanmoqda…",
   "settings.search.error.request_failed": "Qidiruvni boshqarish so‘rovi bajarilmadi.",
   "settings.search.error.dependency_unavailable": "Qidiruvga bog'liqlik mavjud emas.",
   "settings.search.error.collection_missing": "To'plamlardan biri yo'qolgan.",

@@ -185,6 +185,7 @@
   "settings.search.jobs.empty": "The quest history is empty.",
   "settings.search.jobs.scroll_label": "Horizontal scrolling of search history",
   "settings.search.jobs.load_more": "Load previous assignments",
+  "settings.search.jobs.poll_delayed": "Updating the job state…",
   "settings.search.error.request_failed": "The search control request failed.",
   "settings.search.error.dependency_unavailable": "The search dependency is not available.",
   "settings.search.error.collection_missing": "One of the collections is missing.",

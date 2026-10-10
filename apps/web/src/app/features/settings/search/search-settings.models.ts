@@ -72,6 +72,30 @@ export function toProblemDetail(error: unknown, fallbackTitle: string, fallbackD
   };
 }
 
+/** The pace of job polls while nothing goes wrong. */
+export const SEARCH_POLL_INTERVAL_MS = 10_000;
+/** Polls retried in a row before the screen reports the failure and offers to resume by hand. */
+export const SEARCH_POLL_MAX_RETRIES = 6;
+const SEARCH_POLL_MAX_BACKOFF_MS = 60_000;
+const TRANSIENT_STATUSES = new Set([0, 502, 503, 504]);
+
+/**
+ * When to ask again after a failed job poll, or null to stop: a busy server (429) is asked no sooner than its
+ * Retry-After, a lost answer or an unavailable server after a pause that doubles from the poll interval up to a
+ * minute; any other failure is final. Never sooner than the regular pace, so a retry cannot hammer the server.
+ */
+export function searchPollRetryDelayMs(failure: ProblemDetail, attempt: number): number | null {
+  const backoff = Math.min(SEARCH_POLL_INTERVAL_MS * 2 ** Math.max(0, attempt - 1), SEARCH_POLL_MAX_BACKOFF_MS);
+  if (failure.status === 429) return Math.max(backoff, (failure.retryAfterSeconds ?? 0) * 1000);
+  return TRANSIENT_STATUSES.has(failure.status) ? backoff : null;
+}
+
+/** When to repeat a read the server refused as too frequent (429), or null for any other failure. */
+export function rateLimitedRetryDelayMs(failure: ProblemDetail): number | null {
+  if (failure.status !== 429) return null;
+  return Math.max(1, failure.retryAfterSeconds ?? 1) * 1000;
+}
+
 export function formatBytes(value: number | null | undefined, unknownLabel: string): string {
   if (value === null || value === undefined) return unknownLabel;
   if (value < 1024) return `${value} B`;
