@@ -4665,6 +4665,7 @@ export interface components {
             createdAt?: string;
             dependencies?: components["schemas"]["ModuleDependencyView"][];
             description?: string;
+            descriptionKey?: string;
             icon?: string;
             isSystem?: boolean;
             minPlatform?: string;
@@ -4677,6 +4678,7 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             status?: string;
+            titleKey?: string;
             version?: string;
         };
         JobPage: {

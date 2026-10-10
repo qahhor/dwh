@@ -48,7 +48,7 @@ describe('form-meta helpers', () => {
     const problems = formProblems(META, { title: 'x'.repeat(256), color: 'orange', cfBudget: null }, translateTest);
 
     expect(problems).toEqual({
-      title: translateTest('ui.entity_form.too_long', { n: 255 }),
+      title: translateTest('ui.entity_form.too_long', { count: 255 }),
       color: translateTest('ui.entity_form.invalid'),
       cfBudget: translateTest('ui.entity_form.required'),
     });
@@ -70,7 +70,7 @@ describe('form-meta helpers', () => {
     );
 
     expect(problems).toEqual({
-      title: translateTest('ui.entity_form.too_long', { n: 255 }),
+      title: translateTest('ui.entity_form.too_long', { count: 255 }),
       cfBudget: 'Поле Бюджет должно быть числом',
     });
   });

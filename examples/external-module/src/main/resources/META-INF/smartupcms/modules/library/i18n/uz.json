@@ -1,4 +1,6 @@
 {
+  "library.module.name": "Kutubxona",
+  "library.module.description": "Kitoblar va ularni oʻquvchilarga berish",
   "nav.library_books": "Kitoblar",
   "library.books.rights.form": "Kutubxona kitoblari",
   "library.books.rights.view": "Kitoblarni ko'rish",

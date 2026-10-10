@@ -53,6 +53,26 @@ function render(
 }
 
 describe('ModulesTableComponent', () => {
+  it('names a module with a manifest by its catalog keys, not by the registry row (ADR-0033, 6.2)', () => {
+    const tasks: InstalledModule = {
+      ...NOTES,
+      code: 'tasks',
+      name: 'stale registry name',
+      description: 'stale registry description',
+      titleKey: 'tasks.module.name',
+      descriptionKey: 'tasks.module.description',
+    };
+    const { rows, switchOf } = render({ modules: [tasks, REPORTS] });
+
+    expect(rows()[0].querySelector('.module-name')?.textContent?.trim()).toBe('Задачи и проекты');
+    expect(rows()[0].querySelector('.module-desc')?.textContent?.trim()).toBe(
+      'Управление задачами, проектами, статусами и комментариями',
+    );
+    expect(switchOf(0).getAttribute('aria-label')).toContain('Задачи и проекты');
+    // A module registered without a manifest keeps the registry's own name.
+    expect(rows()[1].querySelector('.module-name')?.textContent?.trim()).toBe('Reports');
+  });
+
   it('shows one row per module with its name, description, code, version, type and status', () => {
     const { host, rows } = render();
 

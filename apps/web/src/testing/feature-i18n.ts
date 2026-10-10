@@ -75,6 +75,40 @@ function mentioned(key: string, sources: Iterable<string>): boolean {
   return false;
 }
 
+/** Plural forms of a key used with a numeric `count` (I18nService.translate): `<key>.one` … `<key>.other`. */
+const PLURAL_FORM = /^(.+)\.(one|few|many|other)$/;
+
+/** The key a source names for a plural form, when the catalog holds the group; else the key itself. */
+function pluralGroupOf(key: string, ru: Record<string, string>): string {
+  const form = PLURAL_FORM.exec(key);
+  return form && `${form[1]}.one` in ru ? form[1] : key;
+}
+
+/** The catalog keys of a module's name and description, which the server names from the module's manifest. */
+const MODULE_TEXT = /^([a-z][a-z0-9_]*)\.module\.(name|description)$/;
+const MANIFEST_ROOT = path.resolve(
+  WEB_ROOT,
+  '..',
+  'server',
+  'src',
+  'main',
+  'resources',
+  'META-INF',
+  'smartupcms',
+  'modules',
+);
+
+function namedByManifest(key: string): boolean {
+  const text = MODULE_TEXT.exec(key);
+  if (!text) return false;
+  try {
+    readFileSync(path.join(MANIFEST_ROOT, `${text[1]}.json`));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Everything wrong with the feature's keys; empty when the contract holds. */
 export function featureI18nProblems(feature: FeatureI18n): string[] {
   const loaded = load();
@@ -89,7 +123,7 @@ export function featureI18nProblems(feature: FeatureI18n): string[] {
   if (featureSources.length === 0) return [`${feature.dir}: no source files`];
   for (const [file, source] of featureSources) {
     for (const key of usedKeys(source)) {
-      if (!(key in ru))
+      if (!(key in ru) && !(`${key}.one` in ru))
         problems.push(`${path.relative(WEB_ROOT, file).split(path.sep).join('/')}: '${key}' is missing from ru.json`);
     }
   }
@@ -99,7 +133,7 @@ export function featureI18nProblems(feature: FeatureI18n): string[] {
   const everywhere = [...sources.values()];
   for (const key of Object.keys(ru).filter(own).sort()) {
     if (feature.english && !(key in en)) problems.push(`'${key}' is missing from en.json`);
-    if (!dynamic.has(key) && !mentioned(key, everywhere))
+    if (!dynamic.has(key) && !namedByManifest(key) && !mentioned(pluralGroupOf(key, ru), everywhere))
       problems.push(`'${key}' is not used: remove it, or declare it as a run-time key`);
   }
   return [...new Set(problems)];

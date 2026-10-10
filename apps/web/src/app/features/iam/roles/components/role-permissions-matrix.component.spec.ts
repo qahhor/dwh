@@ -93,7 +93,7 @@ describe('RolePermissionsMatrixComponent', () => {
     const { host } = setup();
 
     expect(host.querySelector('.role-name-text')?.textContent?.trim()).toBe('Аналитик');
-    expect(host.querySelector('.meter-text')?.textContent).toContain('Разрешено 1 из 3 действий');
+    expect(host.querySelector('.meter-text')?.textContent).toContain('Разрешено действий: 1 из 3');
     const meter = host.querySelector('[role="progressbar"]') as HTMLElement;
     expect(meter.getAttribute('aria-label')).toBe('Доля разрешённых действий');
     expect(meter.getAttribute('aria-valuenow')).toBe('33');
@@ -156,6 +156,22 @@ describe('RolePermissionsMatrixComponent', () => {
 
     expect(asked.expand).toHaveBeenCalledWith(tasks);
     expect(asked.moduleAll).toHaveBeenCalledWith({ mod: users, select: true });
+  });
+
+  it('counts the forms of a module group in the agreeing Russian form: 1 форма, 2 формы, 5 форм', () => {
+    const withForms = (count: number): ModuleGroup => ({
+      ...users,
+      forms: Array.from({ length: count }, (_, index) => ({ ...users.forms[0], formCode: `md.form_${index}` })),
+    });
+    const counts = (count: number) =>
+      setup({ visibleModuleGroups: [withForms(count)] })
+        .host.querySelector('.mod-count')
+        ?.textContent?.trim();
+
+    expect(counts(1)).toBe('(1 форма)');
+    expect(counts(2)).toBe('(2 формы)');
+    expect(counts(5)).toBe('(5 форм)');
+    expect(counts(21)).toBe('(21 форма)');
   });
 
   it('shows a failed load with a way to reload the role', () => {

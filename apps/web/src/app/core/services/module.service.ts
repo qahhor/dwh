@@ -4,8 +4,13 @@ import { ApiService } from './api.service';
 
 export interface InstalledModule {
   code: string;
+  /** The registry's own name: shown only for a module without a manifest (no `titleKey`). */
   name: string;
   description?: string | null;
+  /** The catalog key of the module's name in every language, from its manifest (ADR-0033, 6.2). */
+  titleKey?: string | null;
+  /** The catalog key of the module's description, when the module has one. */
+  descriptionKey?: string | null;
   /** The module's version from its manifest (ADR-0033, 6.4); null for a module registered without code. */
   version: string | null;
   /** The least platform API version the module runs on, from its manifest. */
@@ -22,6 +27,18 @@ export interface InstalledModule {
   modifiedAt?: string;
   isActive?: boolean;
   moduleCode?: string;
+}
+
+type Translate = (key: string, params?: Record<string, string | number>) => string;
+
+/** The module's name in the current language: its catalog key when it has a manifest, else the registry's name. */
+export function moduleTitle(module: InstalledModule, translate: Translate): string {
+  return module.titleKey ? translate(module.titleKey) : module.name;
+}
+
+/** The module's description in the current language, or the registry's own one. */
+export function moduleDescription(module: InstalledModule, translate: Translate): string {
+  return module.descriptionKey ? translate(module.descriptionKey) : (module.description ?? '');
 }
 
 /** A module as the server may send it: older answers name the code `moduleCode` and carry `isActive`, not `status`. */

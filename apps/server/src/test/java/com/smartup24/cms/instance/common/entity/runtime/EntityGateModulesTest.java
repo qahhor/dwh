@@ -141,6 +141,6 @@ class EntityGateModulesTest {
     }
 
     private static ModuleManifest manifest(String code, List<String> areas) {
-        return new ModuleManifest(code, code, V1, V1, List.of(), areas, null, null, null, "test:" + code);
+        return new ModuleManifest(code, V1, V1, List.of(), areas, null, null, null, "test:" + code);
     }
 }

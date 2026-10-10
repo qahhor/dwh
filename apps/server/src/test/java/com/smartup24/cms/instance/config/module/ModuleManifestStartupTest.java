@@ -46,7 +46,7 @@ class ModuleManifestStartupTest {
     @Test
     void aModuleNeedingANewerPlatformStopsTheStartNamingIt() throws IOException {
         ClassLoader loader = moduleOnClasspath("""
-                {"code": "shelf", "name": "Shelf", "version": "2.1.0", "minPlatform": "99.0.0",
+                {"code": "shelf", "version": "2.1.0", "minPlatform": "99.0.0",
                  "configuration": "%s"}
                 """.formatted(ShelfModule.class.getName()));
         new ApplicationContextRunner()
@@ -69,7 +69,7 @@ class ModuleManifestStartupTest {
     @Test
     void aModuleMissingADependencyStopsTheStart() throws IOException {
         ClassLoader loader = moduleOnClasspath("""
-                {"code": "shelf", "name": "Shelf", "version": "1.0.0", "minPlatform": "1.0.0",
+                {"code": "shelf", "version": "1.0.0", "minPlatform": "1.0.0",
                  "dependencies": [{"code": "library", "version": "1.0.0"}]}
                 """);
         new ApplicationContextRunner()
@@ -82,7 +82,7 @@ class ModuleManifestStartupTest {
     @Test
     void aModuleThatFitsHasItsConfigurationImported() throws IOException {
         ClassLoader loader = moduleOnClasspath("""
-                {"code": "shelf", "name": "Shelf", "version": "1.0.0", "minPlatform": "1.0.0",
+                {"code": "shelf", "version": "1.0.0", "minPlatform": "1.0.0",
                  "dependencies": [{"code": "iam", "version": "1.0.0"}], "configuration": "%s"}
                 """.formatted(ShelfModule.class.getName()));
         new ApplicationContextRunner()

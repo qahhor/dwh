@@ -1,6 +1,5 @@
 {
   "code": "example",
-  "name": "Эталон: документ со строками",
   "version": "${project.version}",
   "minPlatform": "${platform-api.version}",
   "dependencies": [

@@ -1,11 +1,7 @@
 # Translation keys that predate ADR-0031 and do not follow <module>.<screen>.<element> (plan 10/10, item 4.5).
 # The list only shrinks: a renamed or removed key must leave it (npm run i18n:audit says which).
 # Rename with scripts/i18n-rename-keys.mjs and a new mapping file plus a migration for stored overrides.
-analytics.active_count
-analytics.active_users_count
-analytics.completed_count
 analytics.completed_last_7d
-analytics.created_count
 analytics.created_vs_completed_range
 analytics.login
 announcements.announcement
@@ -209,7 +205,6 @@ iam.edit_field
 iam.edit_named
 iam.edit_role_named
 iam.email
-iam.forms_count
 iam.forms_not_found_for
 iam.invalid_code_slug
 iam.login

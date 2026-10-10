@@ -1,6 +1,5 @@
 {
   "code": "files",
-  "name": "Файловое хранилище",
   "version": "${project.version}",
   "minPlatform": "${platform-api.version}",
   "dependencies": [

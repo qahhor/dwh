@@ -1,8 +1,14 @@
 package com.smartup24.cms.instance.md;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.instance.common.module.ModuleCatalog;
+import com.smartup24.cms.instance.common.module.ModuleManifest;
+import com.smartup24.cms.instance.common.module.ModuleManifests;
 import com.smartup24.cms.instance.md.service.MdI18nCatalog;
+import com.smartup24.cms.platform.api.PlatformVersion;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
@@ -35,5 +41,45 @@ class MdI18nCatalogTest {
                         .isFalse();
             });
         }
+    }
+
+    @Test
+    @DisplayName("ADR-0033, 6.2: every built-in module has its name in ru, uz and en")
+    void everyBuiltInModuleIsNamedInEveryLanguage() {
+        var manifests = ModuleManifests.read(getClass().getClassLoader());
+        var catalog = new MdI18nCatalog(new ObjectMapper(), new ModuleCatalog(PlatformVersion.current(), manifests));
+
+        assertThat(manifests).isNotEmpty();
+        for (String code : SUPPORTED) {
+            for (ModuleManifest manifest : manifests) {
+                assertThat(catalog.bundled(code))
+                        .as("name of module %s in %s", manifest.code(), code)
+                        .containsKey(manifest.titleKey());
+                assertThat(catalog.bundled(code))
+                        .as("description of module %s in %s", manifest.code(), code)
+                        .containsKey(manifest.descriptionKey());
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("ADR-0033, 6.2: a module whose messages miss its name in one language refuses the start")
+    void aModuleWithoutItsNameInALanguageRefuses() {
+        var shelf = new ModuleManifest(
+                "shelf",
+                PlatformVersion.current(),
+                PlatformVersion.current(),
+                List.of(),
+                List.of(),
+                "com.acme.shelf.ShelfModule",
+                null,
+                "test-modules/shelf/i18n",
+                "test:shelf");
+        var modules = new ModuleCatalog(PlatformVersion.current(), List.of(shelf));
+
+        assertThatThrownBy(() -> new MdI18nCatalog(new ObjectMapper(), modules))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Module shelf has no name in the catalog uz")
+                .hasMessageContaining("shelf.module.name");
     }
 }

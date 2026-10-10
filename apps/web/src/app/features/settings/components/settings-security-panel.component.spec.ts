@@ -33,7 +33,7 @@ describe('SettingsSecurityPanelComponent', () => {
   it('states the password policy and reads the session lifetime in days as well as hours', () => {
     const { host, field } = render();
 
-    expect(host.textContent).toContain(`От ${PASSWORD_POLICY.min} до ${PASSWORD_POLICY.max} символов`);
+    expect(host.textContent).toContain(`Символов: от ${PASSWORD_POLICY.min} до ${PASSWORD_POLICY.max}`);
     // The length is the password policy: shown, not edited.
     expect(host.querySelector('#settings-password-length')?.tagName).toBe('SPAN');
     expect(host.querySelector('input[name="settingsPasswordLength"]')).toBeNull();

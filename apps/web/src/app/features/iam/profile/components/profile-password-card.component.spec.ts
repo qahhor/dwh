@@ -62,7 +62,7 @@ describe('ProfilePasswordCardComponent', () => {
 
     expect(errors()).toEqual([
       'Введите текущий пароль',
-      'Пароль должен содержать от 8 до 20 символов',
+      'Символов в пароле должно быть от 8 до 20',
       'Подтвердите новый пароль',
     ]);
     expect(field('profile-current-password').getAttribute('aria-invalid')).toBe('true');
@@ -88,7 +88,7 @@ describe('ProfilePasswordCardComponent', () => {
     const said = Array.from(host.querySelectorAll('.check-item .sr-only')).map((item) => item.textContent?.trim());
     expect(said).toEqual(['Выполнено', 'Выполнено', 'Выполнено']);
     // The length requirement reads the policy the check uses (8 to 20), not a number of its own.
-    expect(host.querySelector('.check-item')?.textContent).toContain('От 8 до 20 символов');
+    expect(host.querySelector('.check-item')?.textContent).toContain('Символов: от 8 до 20');
     expect(host.querySelector('.match-ok')?.textContent).toContain('Пароли совпадают');
   });
 

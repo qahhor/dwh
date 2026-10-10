@@ -9,8 +9,22 @@ describe('I18nService', () => {
     { code: 'ru', name: 'Русский', builtin: true, active: true, revision: 1, translated: 2, total: 2, coverage: 100 },
     { code: 'de', name: 'Deutsch', builtin: true, active: true, revision: 1, translated: 2, total: 2, coverage: 100 },
   ];
-  const ru = { 'common.save': 'Сохранить', 'welcome.user': 'Здравствуйте, {name}!' };
-  const de = { 'common.save': 'Speichern', 'welcome.user': 'Hallo, {name}!' };
+  const ru = {
+    'common.save': 'Сохранить',
+    'welcome.user': 'Здравствуйте, {name}!',
+    'iam.roles.forms.one': '{count} форма',
+    'iam.roles.forms.few': '{count} формы',
+    'iam.roles.forms.many': '{count} форм',
+    'iam.roles.forms.other': '{count} формы',
+  };
+  const de = {
+    'common.save': 'Speichern',
+    'welcome.user': 'Hallo, {name}!',
+    'iam.roles.forms.one': '{count} Formular',
+    'iam.roles.forms.few': '{count} Formulare',
+    'iam.roles.forms.many': '{count} Formulare',
+    'iam.roles.forms.other': '{count} Formulare',
+  };
 
   beforeEach(() => localStorage.clear());
 
@@ -39,6 +53,27 @@ describe('I18nService', () => {
     expect(service.currentLang()).toBe('de');
     expect(service.translate('common.save')).toBe('Speichern');
     expect(service.translate('welcome.user', { name: 'Anna' })).toBe('Hallo, Anna!');
+  });
+
+  it('picks the plural form of a numeric count by the rules of the current language', async () => {
+    const { service } = createService();
+    await service.initialize();
+
+    const forms = (count: number) => service.translate('iam.roles.forms', { count });
+    expect([1, 2, 5, 11, 21, 22, 25].map(forms)).toEqual([
+      '1 форма',
+      '2 формы',
+      '5 форм',
+      '11 форм',
+      '21 форма',
+      '22 формы',
+      '25 форм',
+    ]);
+    // A count passed as text picks no form: the group has no text of its own.
+    expect(service.translate('iam.roles.forms', { count: '5' })).toBe('iam.roles.forms');
+
+    await firstValueFrom(service.setLanguage('de', false));
+    expect([1, 2, 5].map(forms)).toEqual(['1 Formular', '2 Formulare', '5 Formulare']);
   });
 
   it('falls back to Russian when the saved language is unavailable', async () => {

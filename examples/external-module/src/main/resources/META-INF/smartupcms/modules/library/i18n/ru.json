@@ -1,4 +1,6 @@
 {
+  "library.module.name": "Библиотека",
+  "library.module.description": "Книги и их выдача читателям",
   "nav.library_books": "Книги",
   "library.books.rights.form": "Книги библиотеки",
   "library.books.rights.view": "Просмотр книг",

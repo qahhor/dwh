@@ -104,9 +104,9 @@ describe('the rows of a document on the form', () => {
       ],
     };
     const problems = formProblems(DOC, values, translateTest, true);
-    expect(problems['lines[1].product']).toBe(translateTest('ui.entity_form.too_long', { n: 10 }));
+    expect(problems['lines[1].product']).toBe(translateTest('ui.entity_form.too_long', { count: 10 }));
     expect(problems['lines[1].qty']).toBe(translateTest('ui.entity_form.required'));
-    expect(problems['lines']).toBe(translateTest('ui.entity_lines.too_many', { n: 2 }));
+    expect(problems['lines']).toBe(translateTest('ui.entity_lines.too_many', { count: 2 }));
     expect(problems['lines[0].product']).toBeUndefined();
   });
 

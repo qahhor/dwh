@@ -17,8 +17,8 @@ export function titles(values, fallback) {
 
 /**
  * A module created by `cms module new` (or by hand), read back from where its names live: the permission area from
- * PermissionAreas (ADR-0028), the table prefix from the owner rule of ModuleBoundariesTest, the name from its manifest
- * (ADR-0033, 6.2), and the menu icon from `icon`, else from a declaration of the module, else `box`.
+ * PermissionAreas (ADR-0028), the table prefix from the owner rule of ModuleBoundariesTest, the name from the catalogs
+ * (`<area>.module.name`, ADR-0033, 6.2), and the menu icon from `icon`, else from a declaration of the module, else `box`.
  */
 export function loadModule(root, code, icon) {
   const segments = String(code ?? '').split('.');
@@ -36,10 +36,16 @@ export function loadModule(root, code, icon) {
   const boundaries = readText(root, PATHS.moduleBoundaries) ?? '';
   const owner = new RegExp(`table\\.startsWith\\("([a-z0-9_]+)_"\\)\\) return Optional\\.of\\("${quoted}"\\)`).exec(boundaries);
   const names = moduleNames(code, { area, ...(owner ? { tablePrefix: owner[1] } : {}) });
-  const manifestText = readText(root, names.manifest);
-  const name = manifestText ? JSON.parse(manifestText).name : null;
-  const title = name ?? pascal(code);
-  return { ...names, icon: icon ?? declaredIcon(root, javaDir) ?? 'box', title: { ru: title, en: title, uz: title } };
+  const title = Object.fromEntries(
+    LANGUAGES.map((language) => [language, catalogText(root, language, `${area}.module.name`) ?? pascal(code)]),
+  );
+  return { ...names, icon: icon ?? declaredIcon(root, javaDir) ?? 'box', title };
+}
+
+/** The text of a key in one catalog, or null. */
+function catalogText(root, language, key) {
+  const text = readText(root, `${PATHS.catalogs}/${language}.json`);
+  return text ? (JSON.parse(text)[key] ?? null) : null;
 }
 
 /** The menu icon a declaration of the module already uses, so its entities share one. */

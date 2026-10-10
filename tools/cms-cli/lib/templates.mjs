@@ -60,13 +60,13 @@ package ${module.package};
 /**
  * The module manifest (ADR-0033, 6.2): exactly the fields ModuleManifests accepts, an unknown one stops the start.
  * The code is the module's code in the registry (its permission area); the build writes the application's and the
- * platform API's versions in place of the placeholders, and every module of the monorepo needs iam.
+ * platform API's versions in place of the placeholders, and every module of the monorepo needs iam. The module's name
+ * is no field: it lives in the catalogs under moduleTitleKey (moduleKeys).
  */
 export function moduleManifest(module) {
   return `${JSON.stringify(
     {
       code: module.area,
-      name: module.title.ru,
       version: '${project.version}',
       minPlatform: '${platform-api.version}',
       dependencies: [{ code: 'iam', version: '${project.version}' }],
@@ -74,6 +74,16 @@ export function moduleManifest(module) {
     null,
     2,
   )}\n`;
+}
+
+/** The catalog key of a module's name, which the platform requires in ru, uz and en (ADR-0033, 6.2). */
+export function moduleTitleKey(code) {
+  return `${code}.module.name`;
+}
+
+/** The catalog keys `cms module new` adds: the module's name in every language. */
+export function moduleKeys(module) {
+  return { [moduleTitleKey(module.area)]: module.title };
 }
 
 export function moduleMapRow(module) {
@@ -661,7 +671,6 @@ export function externalModuleManifest(module, platform = PLATFORM_DEFAULTS) {
   return `${JSON.stringify(
     {
       code: module.code,
-      name: module.title.ru,
       version: '1.0.0',
       minPlatform: platform.apiVersion,
       dependencies: [{ code: 'iam', version: '1.0.0' }],
@@ -867,6 +876,7 @@ export function externalKeys(module, title) {
   const code = module.code;
   return {
     ru: {
+      [moduleTitleKey(code)]: title.ru,
       [`nav.${code}_items`]: title.ru,
       [`${code}.items.rights.form`]: title.ru,
       [`${code}.items.rights.view`]: 'Просмотр',
@@ -878,6 +888,7 @@ export function externalKeys(module, title) {
       [`${code}.items.col.modified_at`]: 'Изменено',
     },
     uz: {
+      [moduleTitleKey(code)]: title.uz,
       [`nav.${code}_items`]: title.uz,
       [`${code}.items.rights.form`]: title.uz,
       [`${code}.items.rights.view`]: 'Koʻrish',
@@ -889,6 +900,7 @@ export function externalKeys(module, title) {
       [`${code}.items.col.modified_at`]: 'Oʻzgartirilgan',
     },
     en: {
+      [moduleTitleKey(code)]: title.en,
       [`nav.${code}_items`]: title.en,
       [`${code}.items.rights.form`]: title.en,
       [`${code}.items.rights.view`]: 'View',

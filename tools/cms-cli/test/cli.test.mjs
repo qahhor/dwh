@@ -114,12 +114,16 @@ describe('cms module new', () => {
     // Exactly the fields of ADR-0033, 6.2: ModuleManifests refuses an unknown one at start.
     assert.deepEqual(JSON.parse(read(`${PATHS.moduleManifests}/inventory.json`)), {
       code: 'inventory',
-      name: 'Склад',
       version: '${project.version}',
       minPlatform: '${platform-api.version}',
       dependencies: [{ code: 'iam', version: '${project.version}' }],
     });
     assert.equal(PATHS.moduleManifests, 'apps/server/src/main/resources/META-INF/smartupcms/modules');
+    // The name lives in the catalogs, in every language (ADR-0033, 6.2): the platform refuses a module without it.
+    for (const language of ['ru', 'uz', 'en']) {
+      assert.ok(JSON.parse(read(`${PATHS.catalogs}/${language}.json`))['inventory.module.name'], language);
+    }
+    assert.equal(JSON.parse(read(`${PATHS.catalogs}/ru.json`))['inventory.module.name'], 'Склад');
     assert.match(read(PATHS.permissionAreas), /"inventory",\n\s+"jobs"/);
     assert.match(read(PATHS.moduleBoundaries), /"inventory",\n\s+"jobs"/);
     assert.match(read(PATHS.moduleBoundaries), /table\.startsWith\("inventory_"\)\) return Optional\.of\("inventory"\)/);
@@ -133,7 +137,7 @@ describe('cms module new', () => {
     assert.equal(JSON.parse(read(`${PATHS.moduleManifests}/probe.json`)).code, 'probe');
   });
 
-  test('an entity reads the module back: named area, own table prefix, manifest name, shared icon', () => {
+  test('an entity reads the module back: named area, own table prefix, catalog name, shared icon', () => {
     run((plan) => moduleNew(plan, 'ms.probe', { ...MODULE, 'table-prefix': 'prb' }));
     run((plan) => entityNew(plan, 'ms.probe', 'items', ENTITY));
     run((plan) => entityNew(plan, 'ms.probe', 'parts', { ...ENTITY, icon: undefined }));
@@ -162,9 +166,11 @@ describe('cms module new', () => {
     assert.equal(manifest.configuration, 'com.example.library.LibraryModule');
     assert.equal(manifest.migrations, 'db/modules/library');
     assert.equal(manifest.messages, 'META-INF/smartupcms/modules/library/i18n');
+    assert.equal(manifest.name, undefined, 'the name lives in the messages (ADR-0033, 6.2)');
 
     for (const lang of ['ru', 'uz', 'en']) {
       const i18n = JSON.parse(read(`modules/library/src/main/resources/META-INF/smartupcms/modules/library/i18n/${lang}.json`));
+      assert.ok(i18n['library.module.name'], lang);
       assert.ok(i18n['nav.library_items']);
       assert.ok(i18n['library.items.col.name']);
     }

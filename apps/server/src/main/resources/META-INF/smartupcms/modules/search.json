@@ -1,6 +1,5 @@
 {
   "code": "search",
-  "name": "Глобальный поиск",
   "version": "${project.version}",
   "minPlatform": "${platform-api.version}",
   "dependencies": [

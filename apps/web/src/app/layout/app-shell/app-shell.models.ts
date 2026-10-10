@@ -76,7 +76,8 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
     .map((mod) => ({
       id: `module-${mod.code}`,
       route: mod.route!,
-      label: mod.name,
+      // A module with a manifest is named by its catalog key (ADR-0033, 6.2).
+      ...(mod.titleKey ? { labelKey: mod.titleKey } : { label: mod.name }),
       icon: mod.icon || 'extension',
       permission: () => true,
     }));

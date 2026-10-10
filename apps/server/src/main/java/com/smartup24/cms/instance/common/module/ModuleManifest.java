@@ -8,12 +8,11 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * What a module says about itself in {@code META-INF/smartupcms/modules/<code>.json} (ADR-0033, 6.2; plan 10/10, item
- * 6.4): its code in the registry, name, version, the least version of the platform's API it runs on, the modules it
- * needs, and — for a module outside the monorepo — the configuration the platform imports, its migrations and its
- * messages.
+ * 6.4): its code in the registry, version, the least version of the platform's API it runs on, the modules it needs,
+ * and — for a module outside the monorepo — the configuration the platform imports, its migrations and its messages.
+ * Its name is no field: the catalogs hold it in every language under {@link #titleKey()} (ADR-0033, 6.2).
  *
  * @param code          the module's code in {@code md_installed_modules}
- * @param name          its name in the registry
  * @param version       its version
  * @param minPlatform   the least version of the platform's API it runs on
  * @param dependencies  the modules it needs, with their least versions
@@ -26,7 +25,6 @@ import org.jspecify.annotations.Nullable;
  */
 public record ModuleManifest(
         String code,
-        String name,
         PlatformVersion version,
         PlatformVersion minPlatform,
         List<Dependency> dependencies,
@@ -55,9 +53,6 @@ public record ModuleManifest(
 
     public ModuleManifest {
         requireCode(code);
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Module " + code + " has no name");
-        }
         Objects.requireNonNull(version, "version");
         Objects.requireNonNull(minPlatform, "minPlatform");
         dependencies = List.copyOf(dependencies);
@@ -82,6 +77,16 @@ public record ModuleManifest(
         requireLocation(code, "migrations", migrations);
         requireLocation(code, "messages", messages);
         Objects.requireNonNull(source, "source");
+    }
+
+    /** The catalog key of the module's name, required in ru, uz and en (ADR-0033, 6.2). */
+    public String titleKey() {
+        return code + ".module.name";
+    }
+
+    /** The catalog key of the module's one-line description, optional. */
+    public String descriptionKey() {
+        return code + ".module.description";
     }
 
     /** Whether an entity whose form lies in the permission area belongs to this module: its code or a listed area. */

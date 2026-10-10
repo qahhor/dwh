@@ -163,13 +163,14 @@ function checkGenerated() {
   }
   for (const language of ['ru', 'uz', 'en']) {
     const catalog = JSON.parse(read(`${PATHS.catalogs}/${language}.json`));
-    for (const key of ['nav.probe_items', 'probe.items.col.name', 'probe.items.col.due_on', 'probe.items.stage.ready']) {
+    const keys = ['probe.module.name', 'nav.probe_items', 'probe.items.col.name', 'probe.items.col.due_on'];
+    for (const key of [...keys, 'probe.items.stage.ready']) {
       check(catalog[key], `${language}.json has ${key}`);
     }
   }
   const manifest = JSON.parse(read(`${PATHS.moduleManifests}/probe.json`));
   check(
-    manifest.code === 'probe' && Object.keys(manifest).join() === 'code,name,version,minPlatform,dependencies',
+    manifest.code === 'probe' && Object.keys(manifest).join() === 'code,version,minPlatform,dependencies',
     'the module manifest has the ADR-0033 fields and the registry code',
   );
   check(read(PATHS.coverageFloors).includes('ms.probe,'), 'the module has a coverage floor');
@@ -221,6 +222,10 @@ function checkExternal() {
   check(!pom.includes('<parent>'), 'a module outside the repository has no parent pom');
   check(pom.includes(`<platform-api.version>${platform.apiVersion}</platform-api.version>`), 'the pom names the API version');
   check(pom.includes(`<smartupcms.version>${platform.appVersion}</smartupcms.version>`), 'the pom names the platform');
+  for (const language of ['ru', 'uz', 'en']) {
+    const messages = path.join(dir, 'src/main/resources/META-INF/smartupcms/modules/stock/i18n', `${language}.json`);
+    check(JSON.parse(fs.readFileSync(messages, 'utf8'))['stock.module.name'], `the ${language} messages name the module`);
+  }
 
   const log = path.join(work, 'smoke-external.log');
   console.log(`Building the external module standalone in ${dir}; log ${log}`);

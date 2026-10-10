@@ -227,7 +227,7 @@ export function formProblems(meta: FormMeta, values: FormValues, translate: Tran
     if (locked.has(collection.key)) continue;
     const rows = rowsOf(values, collection.key);
     if (rows.length > collection.maxRows) {
-      problems[collection.key] = translate('ui.entity_lines.too_many', { n: collection.maxRows });
+      problems[collection.key] = translate('ui.entity_lines.too_many', { count: collection.maxRows });
     }
     rows.forEach((row, index) => {
       for (const field of collection.fields) {
@@ -280,7 +280,7 @@ function rowProblem(meta: FormMeta, error: FieldErrorItem, translate: Translate)
     case 'required':
       return [error.field, translate('ui.entity_lines.required')];
     case 'too_many':
-      return [error.field, translate('ui.entity_lines.too_many', { n: collection.maxRows })];
+      return [error.field, translate('ui.entity_lines.too_many', { count: collection.maxRows })];
     case 'readonly':
       return [error.field, translate('ui.entity_form.readonly')];
     default:
@@ -302,15 +302,15 @@ function fieldProblem(field: FormFieldMeta, value: unknown): string | null {
 function problemText(code: string, field: FormFieldMeta, translate: Translate): string {
   switch (code) {
     case 'too_short':
-      return translate('ui.entity_form.too_short', { n: field.minLength ?? 0 });
+      return translate('ui.entity_form.too_short', { count: field.minLength ?? 0 });
     case 'too_long':
-      return translate('ui.entity_form.too_long', { n: field.maxLength ?? 0 });
+      return translate('ui.entity_form.too_long', { count: field.maxLength ?? 0 });
     case 'out_of_range':
       return translate('ui.entity_form.out_of_range');
     case 'invalid':
       return translate('ui.entity_form.invalid');
     case 'too_many':
-      return translate('ui.entity_form.too_many', { n: field.maxItems ?? 100 });
+      return translate('ui.entity_form.too_many', { count: field.maxItems ?? 100 });
     case 'readonly':
       return translate('ui.entity_form.readonly');
     default:

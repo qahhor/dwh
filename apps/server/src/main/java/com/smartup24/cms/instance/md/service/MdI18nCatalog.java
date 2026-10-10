@@ -64,6 +64,7 @@ public class MdI18nCatalog {
         Set<String> canonicalKeys = new LinkedHashSet<>(russian.keySet());
         for (var language : loaded.entrySet()) {
             validate(language.getKey(), language.getValue(), canonicalKeys);
+            requireModuleNames(language.getKey(), language.getValue(), modules);
         }
 
         dictionaries = Collections.unmodifiableMap(loaded);
@@ -116,6 +117,17 @@ public class MdI18nCatalog {
                         "Module " + module.code() + " brings the key " + key + " the catalog " + language + " has");
             }
         });
+    }
+
+    /** Every module is named in every bundled language (ADR-0033, 6.2): a module without its name refuses the start. */
+    private static void requireModuleNames(
+            String language, Map<String, String> dictionary, List<ModuleManifest> modules) {
+        for (ModuleManifest module : modules) {
+            if (!dictionary.containsKey(module.titleKey())) {
+                throw new IllegalStateException("Module " + module.code() + " has no name in the catalog " + language
+                        + ": add the key " + module.titleKey() + " to its messages");
+            }
+        }
     }
 
     private void validate(String code, Map<String, String> dictionary, Set<String> canonicalKeys) {

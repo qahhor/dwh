@@ -56,7 +56,7 @@ describe('upl package error codes', () => {
     );
     expect(uplPackageCodeText('UPL_PKG_STRUCTURE', { count: 2 }, translate)).toContain('2');
     expect(uplPackageCodeText('UPL_PKG_RECONCILIATION', { fileRows: 10, rawRows: 9 }, translate)).toBe(
-      'Сверка не сошлась: в файле 10 строк, в базе 9. Загрузите файл заново',
+      'Сверка не сошлась: строк в файле — 10, в базе — 9. Загрузите файл заново',
     );
   });
 
