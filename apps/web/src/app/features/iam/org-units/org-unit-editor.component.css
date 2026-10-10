@@ -2,27 +2,26 @@
   display: block;
   min-width: 0;
 }
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* The forms standard grid (section 2.1): two columns in the md dialog, one on a phone. */
 fieldset {
   border: 0;
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
   min-width: 0;
 }
-label {
-  margin-top: 8px;
-  font-weight: 500;
-}
-small,
-[role='alert'] {
-  color: var(--danger);
+fieldset > p {
+  grid-column: 1 / -1;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 .actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
+  margin-top: 4px;
 }
