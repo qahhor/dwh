@@ -496,7 +496,7 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         sendGet(admin, BASE + "/" + UUID.randomUUID(), 404);
         var badPeriod = sendGet(admin, "/api/v1/upl/overview?days=5", 422);
         assertThat((String) read(badPeriod, "$.messageKey")).isEqualTo("error.upl.overview_period_invalid");
-        assertThat((String) read(badPeriod, "$.detail")).isEqualTo("Выберите период из списка: 7, 30, 90 дней");
+        assertThat((String) read(badPeriod, "$.detail")).isEqualTo("Выберите период из списка, дней: 7, 30, 90");
         assertThat((List<String>) read(badPeriod, "$.errors[*].code")).containsExactly("UPL_OVERVIEW_PERIOD_INVALID");
         sendGet(login(strangerLogin), "/api/v1/upl/overview", 403);
     }

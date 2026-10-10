@@ -113,7 +113,7 @@ describe('field values', () => {
         { tags: [1, 2] },
         translateTest,
       ),
-    ).toEqual({ tags: translateTest('ui.entity_form.too_many', { n: 1 }) });
+    ).toEqual({ tags: translateTest('ui.entity_form.too_many', { count: 1 }) });
   });
 
   it('tells when a field is shown and when it can be changed', () => {

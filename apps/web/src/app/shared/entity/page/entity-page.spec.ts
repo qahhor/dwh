@@ -293,7 +293,7 @@ describe('the general entity form /e/:code/new and /e/:code/:id/edit', () => {
     root.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!.click();
     await settle();
 
-    expect(form.problem('number')).toBe(translateTest('ui.entity_form.too_long', { n: 32 }));
+    expect(form.problem('number')).toBe(translateTest('ui.entity_form.too_long', { count: 32 }));
   });
 
   it('changes a record from the revision it read, and offers to read it again after a conflict', async () => {

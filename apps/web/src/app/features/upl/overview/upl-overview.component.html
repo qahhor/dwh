@@ -36,7 +36,7 @@
     <ui-dashboard-card
       data-testid="overview-totals"
       [title]="'upl.overview.totals.title' | t"
-      [subtitle]="'upl.overview.days_long' | t: { n: days() }"
+      [subtitle]="'upl.overview.days_long' | t: { count: days() }"
       [loading]="loading() && !data()"
       [failed]="failed()"
       [empty]="data()?.totals?.uploads === 0"
@@ -81,7 +81,7 @@
       class="overview__wide"
       data-testid="overview-daily"
       [title]="'upl.overview.daily.title' | t"
-      [subtitle]="'upl.overview.days_long' | t: { n: days() }"
+      [subtitle]="'upl.overview.days_long' | t: { count: days() }"
       [loading]="loading() && !data()"
       [failed]="failed()"
       [empty]="data()?.totals?.uploads === 0"
@@ -91,7 +91,7 @@
       <ui-bar-chart
         [series]="chartSeries()"
         [points]="chartPoints()"
-        [caption]="'upl.overview.daily.caption' | t: { n: days() }"
+        [caption]="'upl.overview.daily.caption' | t: { count: days() }"
         [axisLabel]="'upl.overview.daily.day' | t"
       />
     </ui-dashboard-card>

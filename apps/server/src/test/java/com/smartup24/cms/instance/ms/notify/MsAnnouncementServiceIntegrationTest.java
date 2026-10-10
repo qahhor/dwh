@@ -194,7 +194,7 @@ class MsAnnouncementServiceIntegrationTest {
                         draft(Map.of("ru", "Заголовок"), Map.of("ru", "x".repeat(10_001)), "INFO", null), authorId))
                 .isInstanceOfSatisfying(ApiException.class, error -> {
                     assertThat(error.getMessageKey()).isEqualTo("error.notify.announcement_body_too_long");
-                    assertThat(russian(error)).isEqualTo("Значение поля текст не должно превышать 10000 символов");
+                    assertThat(russian(error)).isEqualTo("Текст: символов — не больше 10000");
                 });
     }
 
@@ -216,7 +216,7 @@ class MsAnnouncementServiceIntegrationTest {
         assertThatThrownBy(() -> service.create(draft(tooMany, Map.of("ru", "Текст"), "INFO", null), authorId))
                 .isInstanceOfSatisfying(ApiException.class, error -> {
                     assertThat(error.getParams()).containsEntry("max", 20);
-                    assertThat(russian(error)).isEqualTo("Для поля заголовок допускается не более 20 языков");
+                    assertThat(russian(error)).isEqualTo("Заголовок: языков — не больше 20");
                 });
         assertThatThrownBy(() -> service.update(999_999L, draft(Map.of("ru", "З"), Map.of("ru", "Т"), "INFO", 0L)))
                 .isInstanceOfSatisfying(

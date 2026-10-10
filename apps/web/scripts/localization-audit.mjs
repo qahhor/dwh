@@ -91,7 +91,51 @@ for (const file of await filesUnder(appRoot)) {
   });
 }
 
-const missing = [...usedKeys].filter((key) => !nonTranslationIdentifiers.has(key) && !russianKeys.has(key)).sort();
+/**
+ * Plural forms (I18nService.translate): a key used with a numeric `count` resolves to `<key>.<category>` by the
+ * language's plural rules, so a group holds one, few, many and other in every catalog (ru needs all four; uz and en
+ * repeat a text where their rules do not tell the forms apart) and each form shows the number.
+ */
+const PLURAL_CATEGORIES = ['one', 'few', 'many', 'other'];
+const pluralGroups = new Set(
+  Object.keys(catalogs.ru)
+    .filter((key) => key.endsWith('.one'))
+    .map((key) => key.slice(0, -'.one'.length)),
+);
+const pluralProblems = [...pluralGroups].flatMap((group) => [
+  ...(russianKeys.has(group) ? [`ru:${group}: a plural group has no text of its own`] : []),
+  ...supported.flatMap((code) =>
+    PLURAL_CATEGORIES.flatMap((category) => {
+      const value = catalogs[code][`${group}.${category}`];
+      if (value === undefined) return [`${code}:${group}.${category}: missing`];
+      return value.includes('{count}') ? [] : [`${code}:${group}.${category}: shows no {count}`];
+    }),
+  ),
+]);
+/**
+ * A number glued to a Russian noun ("{count} форм") agrees only with some numbers: such a text is a plural group or
+ * puts the number after a label ("Найдено форм: {count}"). Prepositions, abbreviations with a dot and upper-case units
+ * do not agree with the number.
+ */
+const NUMBER_BEFORE_WORD =
+  /\{(count|n|m|max|min|total|shown|found|returned|translated|active|done|days|hours|minutes|seconds|limit|fileRows|rawRows|megabytes|periods|succeeded|failed|created|updated|added|changed|removed|accepted|rejected)\}\s+([А-Яа-яЁё]+)(\.?)/g;
+// Prepositions and conjunctions, then unit abbreviations written without a dot.
+const NEUTRAL_WORDS = new Set(['из', 'до', 'за', 'к', 'на', 'и', 'или', 'по', 'с', 'ч', 'мин', 'д', 'дн']);
+const NUMBER_WORD_ALLOWED = new Map([
+  ['projects.closed_ratio', 'a ratio "3 / 4 закрыто": the impersonal predicate fits any pair of numbers'],
+]);
+const unagreedNumbers = Object.entries(catalogs.ru).flatMap(([key, value]) => {
+  const group = key.slice(0, key.lastIndexOf('.'));
+  if (pluralGroups.has(group) || NUMBER_WORD_ALLOWED.has(key)) return [];
+  const words = [...value.matchAll(NUMBER_BEFORE_WORD)]
+    .filter(([, , word, dot]) => !dot && !NEUTRAL_WORDS.has(word.toLowerCase()) && word !== word.toUpperCase())
+    .map(([match]) => match);
+  return words.length ? [`${key}: ${words.join(', ')}`] : [];
+});
+
+const missing = [...usedKeys]
+  .filter((key) => !nonTranslationIdentifiers.has(key) && !russianKeys.has(key) && !pluralGroups.has(key))
+  .sort();
 const unknownByLanguage = supported.slice(1).flatMap((code) =>
   Object.keys(catalogs[code])
     .filter((key) => !russianKeys.has(key))
@@ -171,12 +215,26 @@ if (
   process.exit(1);
 }
 
-if (rawCopy.length || missing.length || unknownByLanguage.length || invalidValues.length || internalReferences.length) {
+if (
+  rawCopy.length ||
+  missing.length ||
+  unknownByLanguage.length ||
+  invalidValues.length ||
+  internalReferences.length ||
+  pluralProblems.length ||
+  unagreedNumbers.length
+) {
   if (rawCopy.length) process.stderr.write(`Unlocalized Cyrillic UI copy:\n${rawCopy.join('\n')}\n`);
   if (missing.length) process.stderr.write(`Translation keys missing from ru.json:\n${missing.join('\n')}\n`);
   if (unknownByLanguage.length)
     process.stderr.write(`Non-Russian catalog keys absent from ru.json:\n${unknownByLanguage.join('\n')}\n`);
   if (invalidValues.length) process.stderr.write(`Invalid translation values:\n${invalidValues.join('\n')}\n`);
+  if (pluralProblems.length) process.stderr.write(`Incomplete plural groups:\n${pluralProblems.join('\n')}\n`);
+  if (unagreedNumbers.length)
+    process.stderr.write(
+      `A number next to a Russian noun that agrees with some numbers only: use a plural group or a label:\n` +
+        `${unagreedNumbers.join('\n')}\n`,
+    );
   if (internalReferences.length)
     process.stderr.write(
       `Internal references (ADR, FR, plan items, work-item ids) in user-facing texts:\n${internalReferences.join('\n')}\n`,
@@ -186,5 +244,6 @@ if (rawCopy.length || missing.length || unknownByLanguage.length || invalidValue
 
 process.stdout.write(
   `Localization audit passed: ${usedKeys.size} referenced keys, ${russianKeys.size} Russian catalog keys; ` +
-    `no transliterated, hash-suffixed or truncated key, ${baseline.size} older keys outside the convention.\n`,
+    `no transliterated, hash-suffixed or truncated key, ${baseline.size} older keys outside the convention; ` +
+    `${pluralGroups.size} complete plural groups, no number glued to a noun.\n`,
 );

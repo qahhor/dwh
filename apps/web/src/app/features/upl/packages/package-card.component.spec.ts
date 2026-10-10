@@ -456,7 +456,7 @@ describe('PackageCardComponent', () => {
     const { fixture } = await createFixture(item({ status: 'applied', loadId: 9, rowsTotal: 10, rawRows: 10 }));
 
     expect(testId(fixture, 'upl-pkg-reconciliation')[0].querySelector('.smt-alert__content')?.textContent?.trim()).toBe(
-      'В файле 10 строк = в базе 10 строк',
+      'Строк в файле: 10 = в базе: 10',
     );
   });
 
@@ -479,7 +479,7 @@ describe('PackageCardComponent', () => {
     const { fixture } = await createFixture(rejected);
 
     expect(testId(fixture, 'upl-pkg-rejected')[0].textContent).toContain(
-      'Сверка не сошлась: в файле 10 строк, в базе 9',
+      'Сверка не сошлась: строк в файле — 10, в базе — 9',
     );
     expect(testId(fixture, 'upl-pkg-reconciliation')).toHaveLength(0);
   });

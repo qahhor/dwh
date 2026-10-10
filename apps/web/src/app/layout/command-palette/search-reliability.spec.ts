@@ -195,7 +195,7 @@ describe('Reliable search through the real HTTP adapter and template', () => {
       ],
     });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.palette-count')?.textContent).toContain('Показано: 1 из 4');
+    expect(fixture.nativeElement.querySelector('.palette-count')?.textContent).toContain('Показано совпадений: 1 из 4');
     expect(fixture.nativeElement.querySelector('.palette-count')?.textContent).toContain('Есть ещё результаты');
     expect(fixture.nativeElement.querySelector('.result-desc')?.textContent).toContain('<img src=x onerror=alert(1)>');
     expect(fixture.nativeElement.querySelector('.result-desc img')).toBeNull();

@@ -37,7 +37,8 @@ function literals(texts: string[], pattern: RegExp): string[] {
 function missingKeys(texts: string[], dictionary: Readonly<Record<string, string>>): string[] {
   const keys = literals(texts, KEY_LITERAL).filter((key) => !NOT_KEYS.has(key));
   const codes = literals(texts, CODE_LITERAL).map((code) => `upl.err.${code}`);
-  return [...keys, ...codes].filter((key) => !(key in dictionary));
+  // A key used with a numeric count resolves to its plural forms `<key>.one` … `<key>.other` (I18nService.translate).
+  return [...keys, ...codes].filter((key) => !(key in dictionary) && !(`${key}.one` in dictionary));
 }
 
 describe('upl dictionary keys (Р-10)', () => {

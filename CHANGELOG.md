@@ -7,6 +7,32 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### UI leftovers: plural forms and module names (2026-10-11)
+
+#### Changed
+
+- Counts agree with their nouns in ru, uz and en: a key used with a numeric
+  `count` is a plural group `<key>.one|few|many|other`, and `I18nService`
+  picks the form by `Intl.PluralRules` ("1 форма, 2 формы, 5 форм" instead of
+  "1 форм"). Groups: `iam.roles.matrix.forms_count` (was `iam.forms_count`),
+  `ui.entity_form.too_short|too_long|too_many`, `ui.entity_lines.too_many`,
+  `ui.filter.max`, `analytics.active_count|completed_count|created_count|active_users_count`,
+  `upl.overview.days_long`, `upl.overview.daily.caption`; their parameter is
+  `count` (was `n` for some). Texts with two numbers and server error texts
+  put the number after a label instead ("Разрешено действий: 1 из 3",
+  "Символов — не больше 255"). `npm run i18n:audit` checks that every plural
+  group is complete and refuses a number glued to an agreeing Russian noun
+  (ADR-0031, 2.1).
+- A module's name is no longer a manifest field: the manifest field `name` is
+  removed (an old manifest with it refuses the start as an unknown field), and
+  the name lives in the catalogs under `<code>.module.name`, required in ru, uz
+  and en (a module without it refuses the start), with an optional
+  `<code>.module.description` (ADR-0033, 6.2). `GET /api/v1/modules` answers
+  `titleKey` and `descriptionKey` for a module with a manifest, and the
+  "Модули" screen and the custom module menu show their translation;
+  `cms module new` writes the name key, `--external` puts it in the module's
+  messages, and the `library` example carries it.
+
 ### Dependabot updates of 2026-10-11
 
 #### Changed

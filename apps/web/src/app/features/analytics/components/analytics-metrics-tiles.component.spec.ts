@@ -40,8 +40,24 @@ describe('AnalyticsMetricsTilesComponent', () => {
     const { note } = render(SUMMARY);
 
     expect(note(0)).toBe('7 активных · 5 завершено');
-    expect(note(1)).toBe('+3 за 7 дней · 4 создано');
+    expect(note(1)).toBe('+3 за 7 дней · 4 созданы');
     expect(note(3)).toBe('9 активных пользователей');
+  });
+
+  it('agrees each noun with its number: 1, 2 and 5 take their own Russian forms', () => {
+    const one = render({ ...SUMMARY, activeTasks: 1, completedTasks: 1, createdLast7d: 1, activeUsersCount: 1 });
+    expect(one.note(0)).toBe('1 активная · 1 завершена');
+    expect(one.note(1)).toBe('+3 за 7 дней · 1 создана');
+    expect(one.note(3)).toBe('1 активный пользователь');
+
+    const two = render({ ...SUMMARY, activeTasks: 2, completedTasks: 2, createdLast7d: 2, activeUsersCount: 2 });
+    expect(two.note(0)).toBe('2 активные · 2 завершены');
+    expect(two.note(3)).toBe('2 активных пользователя');
+
+    const five = render({ ...SUMMARY, activeTasks: 5, completedTasks: 5, createdLast7d: 5, activeUsersCount: 21 });
+    expect(five.note(0)).toBe('5 активных · 5 завершено');
+    expect(five.note(1)).toBe('+3 за 7 дней · 5 создано');
+    expect(five.note(3)).toBe('21 активный пользователь');
   });
 
   it('raises the alert on overdue deadlines and asks for attention', () => {
