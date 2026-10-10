@@ -92,3 +92,42 @@ test('compact administration actions preserve a 28px minimum hit target', async 
     expect(box!.height).toBeGreaterThanOrEqual(28);
   }
 });
+
+test('the permission matrix names every area in words, never by its code', async ({ page }) => {
+  await loginToInstance(page);
+  await page.goto('/iam/roles');
+  const chips = page.locator('.module-filter [role="radio"]');
+  await expect(chips.first()).toBeVisible();
+  const labels = await chips.allInnerTexts();
+  expect(labels.length).toBeGreaterThan(3);
+  for (const label of labels) {
+    // "Модуль: UPL" is the fallback of an area without a name; "(IAM)" the old code suffix.
+    expect(label).not.toMatch(/Модуль:|\([A-Z]{2,}\)|\b[A-Z]{3,}\b/u);
+  }
+  await expect(page.locator('.admin-notice')).not.toContainText(/I-P\d|инвариант/u);
+});
+
+test('a new record names its entity, not its code', async ({ page }) => {
+  await loginToInstance(page);
+  await page.goto('/e/ms.tasks/new');
+  const header = page.locator('ui-page-header');
+  await expect(header.locator('.view-header__eyebrow')).toHaveText('Задачи');
+  await expect(header).not.toContainText(/ms\.tasks/iu);
+});
+
+for (const height of [700, 600]) {
+  test(`the side menu scrolls instead of clipping its groups at 1366x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height });
+    await loginToInstance(page);
+    await expect(page.locator('.nav-section-content').first()).toBeVisible();
+    // A group that shrank inside the scrolling menu hides its last items behind overflow: hidden.
+    await expect.poll(() => page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>('.nav-section-content:not(.collapsed)'))
+        .filter(group => group.scrollHeight > group.clientHeight + 1)
+        .map(group => group.id)
+    )).toEqual([]);
+    const last = page.locator('.sidebar-nav a.nav-item').last();
+    await last.scrollIntoViewIfNeeded();
+    await expect(last).toBeInViewport({ ratio: 1 });
+  });
+}
