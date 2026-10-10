@@ -9,6 +9,8 @@ global:
 rule_files:
   - rules/recording.yml
   - rules/alerts.yml
+  # Host and PostgreSQL rules; they stay silent without the exporters below.
+  - rules/infrastructure.yml
 
 scrape_configs:
   - job_name: smartupcms
@@ -16,6 +18,20 @@ scrape_configs:
     static_configs:
       # One entry per server instance; replace with the installation's addresses.
       - targets: ["server:9090"]
+
+  # Optional exporters of deploy/observability/docker-compose.observability.yml (ADR-0009, section 4), reached over
+  # its internal network "monitoring". The rules of rules/infrastructure.yml expect these job names and the
+  # application label.
+  - job_name: smartupcms-node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          application: smartupcms
+  - job_name: smartupcms-postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          application: smartupcms
 
 # alerting:
 #   alertmanagers:

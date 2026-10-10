@@ -204,6 +204,8 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [RB-07 database pool and disk](runbooks/RB-07-database-pool-and-disk.md)
 - [RB-08 maintenance tasks](runbooks/RB-08-maintenance-tasks.md)
 - [RB-09 search delivery](runbooks/RB-09-search-delivery.md)
+- [RB-10 host disk](runbooks/RB-10-host-disk.md)
+- [RB-11 PostgreSQL health](runbooks/RB-11-postgresql-health.md)
 - [Threat model and personal-data inventory](security/threat-model.md)
 
 These documents govern execution for a concrete installation but cannot supply

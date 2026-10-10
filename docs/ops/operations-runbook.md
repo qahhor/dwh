@@ -2,7 +2,7 @@
 
 **Version:** 2.0
 
-**Updated:** 2026-10-07
+**Updated:** 2026-10-10
 
 **Audience:** the operator responsible for one SmartupCMS installation.
 
@@ -39,6 +39,8 @@ screen is successful and younger than the accepted RPO, disk usage is below the
 operator threshold, TLS is valid, and error/dead-letter alerts are quiet.
 The metrics, SLOs, Prometheus alert rules and Grafana dashboards, and the
 runbook of each alert, are described in [SLO, metrics and alerts](slo.md).
+Host disks and PostgreSQL are watched by the optional exporters (see
+[Host and PostgreSQL exporters](#host-and-postgresql-exporters)).
 
 ## Service is unavailable
 
@@ -281,6 +283,41 @@ SmartupCMS enforces strict role separation across database operations:
 - **`smartupcms_backup`**: Read-only user (`SELECT` on public tables + `pg_read_all_data`) used by `backup-loop.sh`.
 
 If an application feature reports `permission denied for table ...` or fails with DDL errors at runtime, confirm the runtime is connecting as `smartupcms` and that Flyway was successfully run by `smartupcms_migrator`.
+
+## Host and PostgreSQL exporters
+
+The server sees neither the host disks nor PostgreSQL internals. The optional
+overlay `deploy/observability/docker-compose.observability.yml` adds
+`node-exporter` (host file systems, disks, memory, load and CPU; host paths
+mounted read-only) and `postgres-exporter` (connections, database sizes, dead
+rows). Both images are pinned by digest, run read-only without capabilities
+and publish no host port; with the server they join the internal network
+`<project>_monitoring`, which the operator's Prometheus joins to scrape them
+(`deploy/observability/prometheus/prometheus.yml`, jobs `smartupcms-node`
+and `smartupcms-postgres`).
+
+1. Create the monitoring role once, with the SQL of
+   [SLO, metrics and alerts](slo.md), section 7: `smartupcms_monitor`, a
+   member of `pg_monitor` and nothing else, three connections at most.
+2. Put its password in a secret file readable by UID 65534 (the exporter's
+   user; Compose bind-mounts the file with its host owner and mode), for
+   example `chown root:65534` and `chmod 0640`, and set
+   `MONITOR_DB_PASSWORD_FILE` (and `MONITOR_DB_USER` when the role has another
+   name) in the environment file.
+3. Start the exporters with both Compose files:
+
+   ```bash
+   docker compose -f deploy/compose/docker-compose.prod.yml \
+     -f deploy/observability/docker-compose.observability.yml \
+     --env-file .env.production up -d node-exporter postgres-exporter
+   ```
+
+4. Load `rules/infrastructure.yml` with the other rule files; the alerts and
+   their runbooks are [RB-10](../runbooks/RB-10-host-disk.md) and
+   [RB-11](../runbooks/RB-11-postgresql-health.md).
+
+Every later Compose command of this installation names both files, otherwise
+Compose reports the exporters as orphans.
 
 ## Audit partition maintenance
 

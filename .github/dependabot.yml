@@ -147,3 +147,19 @@ updates:
       # Node: the LTS line of .node-version; a new major waits for its LTS.
       - dependency-name: node
         update-types: [version-update:semver-major]
+
+  # The optional host and PostgreSQL exporters (docs/ops/slo.md, section 7), pinned by tag and digest in the
+  # observability Compose overlay; the production file takes the release's own images from its environment.
+  - package-ecosystem: docker-compose
+    directory: /deploy/observability
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Tashkent
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: build(deps)
+    groups:
+      exporters:
+        update-types: [minor, patch]

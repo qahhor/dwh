@@ -12,6 +12,34 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The decisions of the product owner of 2026-10-10; branch `claude/leftovers`.
 One breaking REST change (the comment request).
 
+#### Added
+
+- Optional host and PostgreSQL exporters (ADR-0009, section 4):
+  `deploy/observability/docker-compose.observability.yml`, off by default,
+  adds `prom/node-exporter:v1.12.1` (filesystem, diskstats, meminfo,
+  loadavg and cpu collectors only; host paths read-only) and
+  `prometheuscommunity/postgres-exporter:v0.20.1`, both pinned by digest,
+  read-only, `cap_drop: ALL`, `no-new-privileges`, UID 65534, no published
+  port, on the internal network `monitoring` that the server joins too. The
+  exporter signs in as a monitoring role with `pg_monitor` only, created by
+  the operator (SQL in `docs/ops/slo.md`, section 7; no Flyway migration);
+  its password comes from the secret file `MONITOR_DB_PASSWORD_FILE`.
+- Prometheus scrape jobs `smartupcms-node` and `smartupcms-postgres`;
+  `rules/infrastructure.yml` with alerts `SmartupcmsHostDiskSpaceLow`,
+  `SmartupcmsHostDiskSpaceCritical`, `SmartupcmsHostDiskFillingUp`,
+  `SmartupcmsHostExporterDown`, `SmartupcmsPostgresConnectionsHigh`,
+  `SmartupcmsPostgresConnectionsExhausted`,
+  `SmartupcmsPostgresDatabaseGrowthHigh`, `SmartupcmsPostgresDeadTuplesHigh`,
+  `SmartupcmsPostgresExporterDown`, each with a promtool unit test; runbooks
+  RB-10 (host disk) and RB-11 (PostgreSQL health); host and PostgreSQL panels
+  in the dashboards "database and disk" and "overview"; an operations
+  runbook section. `test-release-config.ps1` validates the production file
+  together with the overlay; Dependabot watches the overlay
+  (`docker-compose` ecosystem). Trivy 0.74.0 on both images: no CRITICAL,
+  HIGH findings in the upstream Go binaries with fixes in newer Go and
+  `golang.org/x/*` releases (13 in node-exporter, 16 in postgres-exporter);
+  no exception is recorded.
+
 #### Changed
 
 - The API latency thresholds p95 ≤ 300 ms and p99 ≤ 1 s are approved by

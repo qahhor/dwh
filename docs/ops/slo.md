@@ -25,6 +25,9 @@
 | Свежесть бэкапа | `SMC_BACKUP_MAX_AGE`, без него 26 ч | значение установки (RPO, `AC-12`) |
 | Диск | 20 % свободно (предупреждение), 10 % (инцидент) | ADR-0009 |
 | Пул соединений | занят > 90 % 10 мин; ожидание соединения 5 мин | значение по умолчанию |
+| Диск хоста (node-exporter) | 20 % свободно (предупреждение), 10 % (инцидент); заполнение меньше чем за сутки при свободных < 40 % | ADR-0009; прогноз — значение по умолчанию |
+| Соединения PostgreSQL (postgres-exporter) | занято > 80 % `max_connections` 10 мин (предупреждение), > 95 % 5 мин (инцидент) | значение по умолчанию |
+| Рост базы, мёртвые строки (postgres-exporter) | база > 1 ГиБ выросла > 50 % за сутки; > 100 000 и > 20 % мёртвых строк таблицы 1 ч | значение по умолчанию |
 
 Утверждённые пороги (доступность 99.9 %, задержка API p95 ≤ 300 мс и
 p99 ≤ 1 с) едины для всех установок и меняются только новым решением
@@ -111,6 +114,14 @@ p99 ≤ 1 с) едины для всех установок и меняются 
 | `SmartupcmsDbPoolSaturated`, `SmartupcmsDiskSpaceLow` | warning | [RB-07](../runbooks/RB-07-database-pool-and-disk.md) |
 | `SmartupcmsAuditArchiveFailed`, `SmartupcmsRetentionFailed` | warning | [RB-08](../runbooks/RB-08-maintenance-tasks.md) |
 | `SmartupcmsSearchDeliveryLagHigh` | warning | [RB-09](../runbooks/RB-09-search-delivery.md) |
+| `SmartupcmsHostDiskSpaceCritical` | critical | [RB-10](../runbooks/RB-10-host-disk.md) |
+| `SmartupcmsHostDiskSpaceLow`, `SmartupcmsHostDiskFillingUp`, `SmartupcmsHostExporterDown` | warning | [RB-10](../runbooks/RB-10-host-disk.md) |
+| `SmartupcmsPostgresConnectionsExhausted` | critical | [RB-11](../runbooks/RB-11-postgresql-health.md) |
+| `SmartupcmsPostgresConnectionsHigh`, `SmartupcmsPostgresDatabaseGrowthHigh`, `SmartupcmsPostgresDeadTuplesHigh`, `SmartupcmsPostgresExporterDown` | warning | [RB-11](../runbooks/RB-11-postgresql-health.md) |
+
+Алерты хоста и PostgreSQL (`rules/infrastructure.yml`) читают метрики
+необязательных экспортеров (раздел 7); без них ряды отсутствуют и алерты
+молчат.
 
 Провал миграции (ADR-0009) — не метрика: его видно по коду выхода сервиса
 `migrate`, разбор — [RB-04](../runbooks/RB-04-migration-failure-triage.md).
@@ -119,9 +130,11 @@ p99 ≤ 1 с) едины для всех установок и меняются 
 
 | Путь | Содержимое |
 |---|---|
-| `deploy/observability/prometheus/prometheus.yml` | пример конфигурации: job `smartupcms`, `/actuator/prometheus` на порту управления 9090 |
+| `deploy/observability/prometheus/prometheus.yml` | пример конфигурации: job `smartupcms`, `/actuator/prometheus` на порту управления 9090; jobs `smartupcms-node` и `smartupcms-postgres` экспортеров |
 | `deploy/observability/prometheus/rules/recording.yml` | recording rules SLI |
-| `deploy/observability/prometheus/rules/alerts.yml` | алерты |
+| `deploy/observability/prometheus/rules/alerts.yml` | алерты по метрикам сервера |
+| `deploy/observability/prometheus/rules/infrastructure.yml` | recording rules и алерты хоста и PostgreSQL по метрикам экспортеров |
+| `deploy/observability/docker-compose.observability.yml` | необязательный overlay Compose с node-exporter и postgres-exporter (раздел 7) |
 | `deploy/observability/prometheus/tests/*.yml` | юнит-тесты promtool, по тесту на каждый алерт |
 | `deploy/observability/grafana/dashboards/*.json` | дашборды: обзор, API и SLO, задания и outbox, база данных и диск |
 
@@ -129,12 +142,12 @@ p99 ≤ 1 с) едины для всех установок и меняются 
    мониторинга; наружу порт не публикуется.
 2. Возьмите `prometheus.yml` за основу: имя job `smartupcms` ожидают правила
    `SmartupcmsInstanceDown` и `SmartupcmsScrapeTargetMissing`.
-3. Подключите оба файла правил и настройте Alertmanager: маршрут
+3. Подключите файлы правил и настройте Alertmanager: маршрут
    `severity="critical"` — дежурному, `warning` — в рабочий канал.
 4. Импортируйте дашборды в Grafana; при импорте выберите источник данных
    Prometheus (переменная `datasource`).
-5. Диски хоста и PostgreSQL сервер не видит: для них оператор добавляет
-   node_exporter и postgres_exporter (ADR-0009, раздел 4).
+5. Диски хоста и PostgreSQL сервер не видит: для них оператор включает
+   overlay экспортеров (раздел 7, ADR-0009, раздел 4).
 
 ## 6. Проверки
 
@@ -147,5 +160,55 @@ p99 ≤ 1 с) едины для всех установок и меняются 
   `severity` и `runbook_url` на существующий файл `docs/runbooks/RB-*.md`, на
   каждый runbook ссылается алерт (кроме RB-04) и индекс документации.
 - `PrometheusScrapeIntegrationTest`: `/actuator/prometheus` отдаёт гистограмму
-  `http_server_requests_seconds` с корзинами SLO, и каждая метрика, которую
-  читают правила и дашборды, сервер действительно экспортирует.
+  `http_server_requests_seconds` с корзинами SLO, и каждая метрика сервера,
+  которую читают правила и дашборды, сервер действительно экспортирует
+  (метрики экспортеров `node_*` и `pg_*` в эту проверку не входят).
+- `scripts/prod/test-release-config.ps1`: production-файл вместе с overlay
+  экспортеров проходит `docker compose config`; экспортеры закреплены по
+  digest, без прав и портов, только во внутренних сетях, пароль роли
+  мониторинга — из файла секрета.
+
+## 7. Хост и PostgreSQL: необязательные экспортеры
+
+Решение владельца продукта 2026-10-10: диски хоста и PostgreSQL наблюдают
+`prom/node-exporter` и `prometheuscommunity/postgres-exporter` из overlay
+`deploy/observability/docker-compose.observability.yml`. Overlay выключен по
+умолчанию: production-файл без него экспортеры не запускает.
+
+| Экспортер | Образ | Что отдаёт | Права и сеть |
+|---|---|---|---|
+| `node-exporter:9100` | `prom/node-exporter:v1.12.1`, по digest | только коллекторы `filesystem`, `diskstats`, `meminfo`, `loadavg`, `cpu` | `/`, `/proc`, `/sys` хоста только на чтение; UID 65534, read-only, `cap_drop: ALL`, `no-new-privileges`; сеть `monitoring` |
+| `postgres-exporter:9187` | `prometheuscommunity/postgres-exporter:v0.20.1`, по digest | `pg_up`, `pg_stat_activity_count`, `pg_settings_*`, `pg_database_size_bytes`, `pg_stat_user_tables_*` и другие коллекторы по умолчанию | роль мониторинга с `pg_monitor`; пароль из файла секрета `MONITOR_DB_PASSWORD_FILE`; UID 65534, read-only, `cap_drop: ALL`, `no-new-privileges`; сети `backend` и `monitoring` |
+
+Сеть `monitoring` внутренняя (`internal: true`), в неё же overlay добавляет
+`server`; Prometheus оператора подключается к `<project>_monitoring` и не
+получает доступа к сети `backend` с PostgreSQL. Порты на хост не
+публикуются.
+
+Роль мониторинга создаёт оператор один раз (Flyway-миграция не нужна: роли
+вне схемы приложения создаёт администратор, как и `backup-bootstrap`).
+Пароль подставьте из файла секрета, в журнал команд его не пишите:
+
+```sql
+CREATE ROLE smartupcms_monitor LOGIN PASSWORD '<пароль из MONITOR_DB_PASSWORD_FILE>'
+  NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION CONNECTION LIMIT 3;
+GRANT pg_monitor TO smartupcms_monitor;
+```
+
+`INHERIT` нужен, чтобы роль пользовалась правами `pg_monitor` (чтение
+статистики и настроек, без доступа к данным таблиц). Подключение к базе
+`smartupcms` даёт право `CONNECT` роли `PUBLIC` по умолчанию. Файл секрета
+должен читаться пользователем контейнера (UID 65534): Compose монтирует
+файловый секрет с владельцем и правами хоста.
+
+Алерты, recording rules и их юнит-тесты лежат в `rules/infrastructure.yml` и
+`tests/infrastructure.yml`, панели — в дашбордах «database and disk» и
+«overview». Репликации в поставке нет, поэтому алертов отставания реплики
+нет; свежесть бэкапа контролирует сервер (`SmartupcmsBackup*`).
+
+Сканирование Trivy 0.74.0 (2026-10-10, HIGH и CRITICAL): CRITICAL нет; в
+обоих образах есть HIGH с исправлением в новых версиях Go stdlib и
+`golang.org/x/*` (node-exporter — 13, postgres-exporter — 16). Это
+бинарники upstream последних релизов; исключений не заведено, образы
+обновляются Dependabot (экосистема `docker-compose`, каталог
+`/deploy/observability`) после выхода пересобранных релизов.
