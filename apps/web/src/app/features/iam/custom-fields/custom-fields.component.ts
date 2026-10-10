@@ -123,12 +123,6 @@ export class CustomFieldsComponent {
   /** What the server said about the fields of a refused save: messages by field, and the others. */
   readonly serverErrors = signal<ProblemFieldErrors>({ fields: {}, other: [] });
   readonly formData = signal<CustomFieldFormData>(this.formService.createInitialFormData('USER', 0));
-  readonly fieldForm = form(
-    this.formData,
-    this.formService.schema(() => !!this.editingField()),
-  );
-  /** The values the dialog opened with: closing asks only when they changed. */
-  private initialData: CustomFieldFormData = this.formData();
 
   // --- Non-signal UI state ---
   readonly isLoading = computed(() => this.fieldsRead.isLoading());
@@ -175,6 +169,13 @@ export class CustomFieldsComponent {
     });
     return result;
   });
+
+  readonly fieldForm = form(
+    this.formData,
+    this.formService.schema(() => !!this.editingField()),
+  );
+  /** The values the dialog opened with: closing asks only when they changed. */
+  private initialData: CustomFieldFormData = this.formData();
 
   /** The definitions; a failed load says so and keeps the table on screen. */
   private readonly fieldsRead = rxResource({
@@ -355,22 +356,6 @@ export class CustomFieldsComponent {
     }
   }
 
-  private openWith(data: CustomFieldFormData): void {
-    this.formData.set(data);
-    this.initialData = data;
-    this.fieldForm().reset();
-    this.serverErrors.set({ fields: {}, other: [] });
-    this.showModal.set(true);
-  }
-
-  /** Puts the server's field messages under the fields; false when the refusal named no field. */
-  private showFieldErrors(err: unknown): boolean {
-    const errors = problemFieldErrors(err, { known: FIELD_NAMES, rename: { options: 'optionsText' } });
-    if (Object.keys(errors.fields).length === 0 && errors.other.length === 0) return false;
-    this.serverErrors.set(errors);
-    return true;
-  }
-
   /** Asks before deleting; the dialog stays open until the server answers and shows why it refused. */
   requestDeleteField(field: CustomField) {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
@@ -396,5 +381,21 @@ export class CustomFieldsComponent {
         actionError: (error) => problemText(error) || t('iam.custom_fields.delete_failed'),
       })
       .subscribe();
+  }
+
+  private openWith(data: CustomFieldFormData): void {
+    this.formData.set(data);
+    this.initialData = data;
+    this.fieldForm().reset();
+    this.serverErrors.set({ fields: {}, other: [] });
+    this.showModal.set(true);
+  }
+
+  /** Puts the server's field messages under the fields; false when the refusal named no field. */
+  private showFieldErrors(err: unknown): boolean {
+    const errors = problemFieldErrors(err, { known: FIELD_NAMES, rename: { options: 'optionsText' } });
+    if (Object.keys(errors.fields).length === 0 && errors.other.length === 0) return false;
+    this.serverErrors.set(errors);
+    return true;
   }
 }

@@ -103,13 +103,6 @@ export class ProfileTokensCardComponent {
 
   readonly model = signal({ ...FRESH });
 
-  readonly tokenForm = form(this.model, (path) => {
-    const message = () => this.i18n.translate('iam.profile.token_name_placeholder');
-    required(path.name, { message });
-    validate(path.name, ({ value }) => (!value() || value().trim() ? null : { kind: 'required', message: message() }));
-    maxLength(path.name, TOKEN_NAME_MAX);
-  });
-
   readonly rows = computed<ApiToken[]>(() => this.tokens() ?? []);
 
   readonly config = computed<TableConfig<ApiToken>>(() => {
@@ -143,6 +136,13 @@ export class ProfileTokensCardComponent {
   readonly expirationItems = computed<SMTRadioOption<string>[]>(() => {
     this.i18n.currentLang();
     return TOKEN_EXPIRATIONS.map((option) => ({ value: option.value, label: this.i18n.translate(option.labelKey) }));
+  });
+
+  readonly tokenForm = form(this.model, (path) => {
+    const message = () => this.i18n.translate('iam.profile.token_name_placeholder');
+    required(path.name, { message });
+    validate(path.name, ({ value }) => (!value() || value().trim() ? null : { kind: 'required', message: message() }));
+    maxLength(path.name, TOKEN_NAME_MAX);
   });
 
   readonly sortValues = {

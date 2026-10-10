@@ -68,12 +68,13 @@ export class RoleModalsComponent {
   private readonly i18n = inject(I18nService);
   private readonly injector = inject(Injector);
 
-  readonly isCreateModalOpen = input(false);
   readonly createForm = input.required<FieldTree<NewRoleForm>>();
+  readonly editForm = input.required<FieldTree<EditRoleForm>>();
+
+  readonly isCreateModalOpen = input(false);
   readonly createErrors = input<RoleFormErrors>(NO_ERRORS);
 
   readonly isEditModalOpen = input(false);
-  readonly editForm = input.required<FieldTree<EditRoleForm>>();
   readonly editErrors = input<RoleFormErrors>(NO_ERRORS);
   readonly editingRole = input<Role | null>(null);
 

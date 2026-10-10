@@ -86,18 +86,31 @@ export class OrgUnitEditorComponent implements OnInit {
     orderNo: 0,
     state: 'A',
   });
+  readonly impactOpen = signal(false);
+  private readonly editingState = signal(false);
+
+  /** The server's field messages of the last refused save. */
+  readonly serverErrors = computed(() => problemFieldErrors(this.error(), { known: FIELDS }));
+
+  /** A refusal of no field: its text above the fields. */
+  readonly formError = computed(() => {
+    const error = this.error();
+    if (!error) return '';
+    const { fields, other } = this.serverErrors();
+    if (Object.keys(fields).length > 0) return other.join(' ');
+    return error.detail || this.i18n.translate('iam.org_units.save_error');
+  });
+
   private static nextId = 0;
   readonly formId = `org-unit-form-${OrgUnitEditorComponent.nextId++}`;
   readonly kindKeys = orgUnitKindKeys;
   readonly kinds = Object.keys(orgUnitKindKeys);
   original!: OrgUnit | OrgUnitCreate;
-  private readonly editingState = signal(false);
   private parentTreeCache: {
     units: OrgUnit[];
     original: OrgUnit | OrgUnitCreate;
     tree: SMTTreeOption<number>[];
   } | null = null;
-  readonly impactOpen = signal(false);
   private readonly kindMemo = optionsMemo<SMTSelectOption<string>[]>();
   private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
@@ -122,18 +135,6 @@ export class OrgUnitEditorComponent implements OnInit {
         ? null
         : { kind: 'parent', message: this.i18n.translate('iam.org_units.parent_invalid') },
     );
-  });
-
-  /** The server's field messages of the last refused save. */
-  readonly serverErrors = computed(() => problemFieldErrors(this.error(), { known: FIELDS }));
-
-  /** A refusal of no field: its text above the fields. */
-  readonly formError = computed(() => {
-    const error = this.error();
-    if (!error) return '';
-    const { fields, other } = this.serverErrors();
-    if (Object.keys(fields).length > 0) return other.join(' ');
-    return error.detail || this.i18n.translate('iam.org_units.save_error');
   });
 
   constructor() {

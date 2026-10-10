@@ -45,14 +45,29 @@ export class ProfilePasswordCardComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
 
-  readonly passwordPolicy = PASSWORD_POLICY;
-
   readonly model = signal<PasswordForm>({ ...EMPTY });
   readonly saving = signal(false);
   /** Refusals the server tied to a field; shown under it until it is edited. */
   readonly serverErrors = signal<Readonly<Record<string, string>>>({});
   /** A refusal of no field, shown above the button. */
   readonly formError = signal('');
+
+  readonly strength = computed(() => passwordStrengthOf(this.model().newPassword));
+  readonly hasMinLength = computed(() => fitsPasswordPolicy(this.model().newPassword));
+  readonly hasLettersAndNumbers = computed(() => {
+    const value = this.model().newPassword;
+    return /[a-zA-ZЀ-ӿ]/.test(value) && /\d/.test(value);
+  });
+  readonly hasMixedCase = computed(() => {
+    const value = this.model().newPassword;
+    return /[a-z\u0430-\u044f]/.test(value) && /[A-Z\u0410-\u042f]/.test(value);
+  });
+  readonly passwordsMatch = computed(() => {
+    const { newPassword, confirmPassword } = this.model();
+    return !!newPassword && newPassword === confirmPassword;
+  });
+
+  readonly passwordPolicy = PASSWORD_POLICY;
 
   private readonly message = (key: string, params?: Record<string, string | number>) => () =>
     this.i18n.translate(key, params);
@@ -72,21 +87,6 @@ export class ProfilePasswordCardComponent {
         ? null
         : { kind: 'mismatch', message: this.i18n.translate('iam.passwords_do_not_match') },
     );
-  });
-
-  readonly strength = computed(() => passwordStrengthOf(this.model().newPassword));
-  readonly hasMinLength = computed(() => fitsPasswordPolicy(this.model().newPassword));
-  readonly hasLettersAndNumbers = computed(() => {
-    const value = this.model().newPassword;
-    return /[a-zA-ZЀ-ӿ]/.test(value) && /\d/.test(value);
-  });
-  readonly hasMixedCase = computed(() => {
-    const value = this.model().newPassword;
-    return /[a-z\u0430-\u044f]/.test(value) && /[A-Z\u0410-\u042f]/.test(value);
-  });
-  readonly passwordsMatch = computed(() => {
-    const { newPassword, confirmPassword } = this.model();
-    return !!newPassword && newPassword === confirmPassword;
   });
 
   serverError(field: keyof PasswordForm): string {

@@ -52,12 +52,13 @@ export class RoleFormsService {
   readonly isSubmittingRole = signal<boolean>(false);
 
   readonly editingRole = signal<Role | null>(null);
-  deletingRole: Role | null = null;
 
   readonly newRole = signal<NewRoleForm>({ name: '', orderNo: 0 });
   readonly editRole = signal<EditRoleForm>({ name: '', state: 'A', orderNo: 0 });
   readonly createErrors = signal<RoleFormErrors>(NO_ERRORS);
   readonly editErrors = signal<RoleFormErrors>(NO_ERRORS);
+
+  deletingRole: Role | null = null;
 
   private editInitial: EditRoleForm = { name: '', state: 'A', orderNo: 0 };
 

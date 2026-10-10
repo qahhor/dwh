@@ -104,25 +104,6 @@ export class ProfileChannelsCardComponent {
   readonly activeVerifyToken = signal('');
   readonly activeVerifyAddress = signal('');
 
-  readonly bindForm = form(this.bindModel, (path) => {
-    required(path.channel);
-    required(path.address, { message: () => this.i18n.translate('iam.profile.channels.channel_address_required') });
-    validate(path.address, ({ value }) =>
-      !value() || value().trim()
-        ? null
-        : { kind: 'required', message: this.i18n.translate('iam.profile.channels.channel_address_required') },
-    );
-  });
-
-  readonly confirmForm = form(this.confirmModel, (path) => {
-    const format = () => this.i18n.translate('iam.profile.channels.code_format');
-    required(path.code, { message: format });
-    validate(path.code, ({ value }) =>
-      !value() || /^[0-9]{6}$/.test(value().trim()) ? null : { kind: 'code_format', message: format() },
-    );
-    maxLength(path.code, 6);
-  });
-
   readonly rows = computed<UserChannel[]>(() => this.channels() ?? []);
 
   readonly config = computed<TableConfig<UserChannel>>(() => {
@@ -155,6 +136,25 @@ export class ProfileChannelsCardComponent {
       { id: 'telegram', label: this.i18n.translate('iam.profile.channels.type_telegram') },
       { id: 'sms', label: this.i18n.translate('iam.profile.channels.type_sms') },
     ];
+  });
+
+  readonly bindForm = form(this.bindModel, (path) => {
+    required(path.channel);
+    required(path.address, { message: () => this.i18n.translate('iam.profile.channels.channel_address_required') });
+    validate(path.address, ({ value }) =>
+      !value() || value().trim()
+        ? null
+        : { kind: 'required', message: this.i18n.translate('iam.profile.channels.channel_address_required') },
+    );
+  });
+
+  readonly confirmForm = form(this.confirmModel, (path) => {
+    const format = () => this.i18n.translate('iam.profile.channels.code_format');
+    required(path.code, { message: format });
+    validate(path.code, ({ value }) =>
+      !value() || /^[0-9]{6}$/.test(value().trim()) ? null : { kind: 'code_format', message: format() },
+    );
+    maxLength(path.code, 6);
   });
 
   /** A person has only a few channels and all are shown, so a header click sorts them all. */

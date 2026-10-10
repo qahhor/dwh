@@ -75,6 +75,7 @@ export class CustomFieldsModalsComponent {
   readonly codeInput = output<Event>();
 
   private readonly entityMemo = optionsMemo<SMTSelectOption<string>[]>();
+  private readonly fieldTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   constructor() {
     // A refused save marks fields invalid from the server's answer: focus goes to the first of them.
@@ -106,7 +107,6 @@ export class CustomFieldsModalsComponent {
       ...other.map((message) => ({ message })),
     ];
   }
-  private readonly fieldTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   entityOptions(): SMTSelectOption<string>[] {
     return this.entityMemo([this.i18n.currentLang()], () =>
