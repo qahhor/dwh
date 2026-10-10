@@ -53,7 +53,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   template: `
     <div class="audit-page">
       <!-- Page Header -->
-      <ui-page-header [title]="'nav.audit' | t" [count]="'WORM Log'">
+      <ui-page-header [title]="'nav.audit' | t">
         <button
           smt-button
           smtVariant="secondary"

@@ -1,12 +1,20 @@
 .notes-view {
-  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
+/* The list tools under the header, as a table's toolbar: the search on the left, views and export on the right. */
+.notes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 .search-box {
-  width: 220px;
+  width: 280px;
+  max-width: 100%;
 }
 .notes-grid {
   display: grid;
