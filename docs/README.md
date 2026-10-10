@@ -165,6 +165,8 @@ Historical, fully superseded decisions are retained for traceability only:
 - [Monorepo structure](architecture/monorepo-structure.md)
 - [Database migration guidelines](guidelines/database-migrations.md)
 - [Module development guide](guidelines/module-development-guide.md)
+- [Forms UX standard](guidelines/forms-ux-standard.md) — layout, labels,
+  errors, buttons and unsaved changes of every form; `npm run forms:audit`.
 - [Cookbook](cookbook/README.md) — recipes on the reference modules; the docs
   contract (`scripts/docs/test-docs-contract.mjs`) keeps their code in sync.
 - [Testing strategy](guidelines/testing-strategy.md)

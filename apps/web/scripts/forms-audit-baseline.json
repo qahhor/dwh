@@ -38,16 +38,20 @@
   "features/iam/org-units/org-unit-editor.component.html": {
     "raw-label": 6,
     "dialog-footer": 1,
-    "disabled-invalid": 1
+    "disabled-invalid": 1,
+    "module-button-key": 3
   },
   "features/iam/org-units/org-units.component.html": {
-    "dialog-footer": 2
+    "dialog-footer": 2,
+    "module-button-key": 3
   },
   "features/iam/org-units/role-scope-panel.component.html": {
-    "dialog-footer": 2
+    "dialog-footer": 2,
+    "module-button-key": 3
   },
   "features/iam/org-units/user-org-units-panel.component.html": {
-    "dialog-footer": 1
+    "dialog-footer": 1,
+    "module-button-key": 2
   },
   "features/iam/profile/components/profile-channels-card.component.html": {
     "raw-label": 3,
@@ -167,7 +171,7 @@
     "raw-label": 1,
     "manual-error": 1,
     "dialog-footer": 2,
-    "module-button-key": 1
+    "module-button-key": 2
   },
   "features/upl/formats/format-file-step.component.ts": {
     "raw-label": 4
@@ -182,14 +186,13 @@
   },
   "features/upl/sources/sources-list.component.html": {
     "dialog-footer": 1,
-    "module-button-key": 1
+    "module-button-key": 2
   },
   "layout/app-shell/components/idle-lock-dialog.component.ts": {
     "dialog-footer": 1
   },
-  "layout/command-palette/command-palette.component.html": {
-    "raw-control": 1,
-    "raw-label": 1
+  "layout/command-palette/components/command-palette-footer.component.ts": {
+    "module-button-key": 1
   },
   "shared/entity/report/smt-entity-report-builder.component.ts": {
     "raw-label": 4
@@ -201,9 +204,6 @@
   "shared/entity/smt-entity-import.component.ts": {
     "dialog-footer": 1
   },
-  "shared/entity/smt-money-field.component.ts": {
-    "raw-control": 1
-  },
   "shared/ui/ui-bulk-result.component.ts": {
     "dialog-footer": 1
   },
@@ -212,11 +212,8 @@
   },
   "shared/ui/ui-list-views.component.ts": {
     "raw-label": 1,
-    "dialog-footer": 1
-  },
-  "shared/ui/ui-markdown-editor.component.html": {
-    "raw-control": 1,
-    "raw-label": 1
+    "dialog-footer": 1,
+    "module-button-key": 1
   },
   "shared/ui/ui-pagination.component.ts": {
     "raw-label": 1

@@ -13,6 +13,7 @@ import { pathToFileURL } from 'node:url';
 export const DOCUMENTS = [
   'docs/cookbook',
   'docs/guidelines/module-development-guide.md',
+  'docs/guidelines/forms-ux-standard.md',
   'CODE_STYLE.md',
   'docs/adr/ADR-0012-ui-foundation.md',
 ];

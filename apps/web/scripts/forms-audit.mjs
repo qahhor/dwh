@@ -16,6 +16,7 @@
 // Today's violations are counted per file in forms-audit-baseline.json; the counts only go down. A count above
 // the baseline fails with the lines to fix; a count below it fails until the baseline is lowered with
 // `node scripts/forms-audit.mjs --shrink` (which never raises a count). `npm run lint` runs this audit.
+import { existsSync } from 'node:fs';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -25,6 +26,17 @@ const webRoot = process.cwd();
 const appRoot = path.join(webRoot, 'src', 'app');
 const baselinePath = path.join(webRoot, 'scripts', 'forms-audit-baseline.json');
 const SCOPES = ['features', 'layout', 'shared/entity', 'shared/ui'];
+
+/**
+ * Controls of their own outside the kit: they wrap the native element and name it themselves, so the two
+ * native-element rules do not apply to them. Debt goes to the baseline, never here.
+ */
+const OWN_CONTROLS = {
+  'shared/entity/smt-money-field.component.ts': 'the money control: amount input beside the currency select',
+  'shared/ui/ui-markdown-editor.component.html': 'the markdown control: its textarea with a visually hidden label',
+  'layout/command-palette/command-palette.component.html': 'the palette combobox: its search input and hidden label',
+};
+const NATIVE_RULES = new Set(['raw-control', 'raw-label']);
 
 const RULES = {
   'raw-control': 'native control: use the kit control (smt-input, smt-select, smt-textarea, ...)',
@@ -47,8 +59,20 @@ const LONE_STAR = /<span\b[^>]*>\s*\*\s*<\/span>/g;
 const FOOTER_ATTRIBUTE = /\s(footer|modal-footer|slot\s*=\s*"footer")(?=[\s>=]|$)/;
 const DISABLED_BINDING = /\[disabled\]\s*=\s*"([^"]*)"/;
 const INVALID_EXPRESSION = /valid|\.trim\(\)/i;
-const MODULE_BUTTON_KEY = /'([a-z_]+)\.common\.(save|cancel|create|close|delete)'/g;
+const KEY_LITERAL = /'([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)'/gi;
 const LITERAL_LABEL = /(?:^|\s)(smtLabel|smtHint|smtTitle)\s*=\s*"[^"]*[A-Za-zЀ-ӿ]/;
+const COMMON_BUTTONS = ['save', 'cancel', 'create', 'close', 'delete'].map((name) => `common.${name}`);
+
+/**
+ * Keys outside `common.` whose Russian text is the text of a common button (`upl.common.cancel`,
+ * `iam.org_units.save`): copies that drift apart. Read from the source catalog, so a new copy is found too.
+ */
+function buttonCopies(catalog) {
+  const texts = new Set(COMMON_BUTTONS.map((key) => catalog[key]).filter(Boolean));
+  return new Set(Object.keys(catalog).filter((key) => !key.startsWith('common.') && texts.has(catalog[key])));
+}
+
+let copies = new Set();
 
 async function files(directory) {
   const found = [];
@@ -104,7 +128,7 @@ export function templateViolations(text) {
   }
   // A lone "*" in a span already counted by its class "req" is the same mark.
   for (const match of text.matchAll(LONE_STAR)) if (!REQ_CLASS.test(match[0])) add('manual-required', match.index);
-  for (const match of text.matchAll(MODULE_BUTTON_KEY)) add('module-button-key', match.index);
+  for (const match of text.matchAll(KEY_LITERAL)) if (copies.has(match[1])) add('module-button-key', match.index);
   return found;
 }
 
@@ -121,6 +145,7 @@ async function collect() {
       if (!template) continue;
       const relative = path.relative(appRoot, file).split(path.sep).join('/');
       for (const { rule, index } of templateViolations(template.text)) {
+        if (OWN_CONTROLS[relative] && NATIVE_RULES.has(rule)) continue;
         const byRule = result.get(relative) ?? new Map();
         const lines = byRule.get(rule) ?? [];
         lines.push(lineOf(source, template.start + index));
@@ -194,6 +219,10 @@ async function main() {
     return;
   }
   const problems = [...grown];
+  for (const file of Object.keys(OWN_CONTROLS)) {
+    if (!existsSync(path.join(appRoot, file)))
+      problems.push(`scripts/forms-audit.mjs: OWN_CONTROLS names ${file}, gone`);
+  }
   if (shrunk.length) {
     problems.push(
       `scripts/forms-audit-baseline.json is above today's count; lower it with \`node scripts/forms-audit.mjs --shrink\`:`,
@@ -236,6 +265,10 @@ function selfCheck() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const catalogPath = path.resolve(webRoot, '..', 'server', 'src', 'main', 'resources', 'i18n', 'ru.json');
+  const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
+  copies = new Set(['upl.common.cancel']);
   selfCheck();
+  copies = buttonCopies(catalog);
   await main();
 }
