@@ -178,9 +178,10 @@ test('task edit round-trips and clears a local deadline while retaining observer
   const titleInput = editDialog.getByLabel('Название задачи');
   await titleInput.fill(editedTitle);
   await editDialog.getByRole('button', { name: 'Отмена' }).click();
-  const discardDialog = page.getByRole('dialog', { name: 'Отменить редактирование?' });
+  // The common question of every form (common.discard.*).
+  const discardDialog = page.getByRole('alertdialog', { name: 'Отменить изменения?' });
   await expect(discardDialog).toBeVisible();
-  await discardDialog.getByRole('button', { name: 'Отмена' }).click();
+  await discardDialog.getByRole('button', { name: 'Продолжить редактирование' }).click();
   await expect(editDialog).toBeVisible();
   await expect(titleInput).toHaveValue(editedTitle);
 

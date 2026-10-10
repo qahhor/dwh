@@ -61,7 +61,8 @@ export function entityPage(page: Page, code: string): EntityPage {
         const path = new URL(response.url()).pathname;
         return (method === 'POST' || method === 'PATCH') && entities.test(path) && !path.includes('/actions/');
       });
-      await page.getByRole('button', { name: 'Сохранить' }).click();
+      // The primary button of the form: "Создать" for a new record, "Сохранить" for a change.
+      await page.locator('smt-entity-edit-page').getByTestId('form-submit').click();
       return answered;
     },
     async runAction(action) {
