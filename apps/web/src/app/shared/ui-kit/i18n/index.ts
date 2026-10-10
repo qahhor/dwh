@@ -164,7 +164,7 @@ export class SMTI18nService {
         this.i18n.translate('ui.columns.moved', { name, position: String(position), total: String(total) }),
     },
     select: {
-      placeholder: this.i18n.translate('ui.searchable_select.select_from_list'),
+      placeholder: this.i18n.translate('ui.searchable_select.placeholder'),
       name: this.i18n.translate('ui.searchable_select.dialog_label'),
       search: this.i18n.translate('ui.searchable_select.search_options'),
       clearSearch: this.i18n.translate('ui.searchable_select.clear_search'),

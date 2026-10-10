@@ -8,14 +8,12 @@
       [smtAriaLabel]="'notes.title' | t"
       (valueChange)="$event && setTab($event)"
     />
-    <smt-entity-toolbar
-      [meta]="meta()"
-      [views]="views"
-      [listMeta]="listMeta()"
-      [search]="search()"
-      [(selected)]="selectedIds"
-      (bulkDone)="firstPage.reload()"
-    />
+    @if (canCreate()) {
+      <ng-container [ngTemplateOutlet]="createButton" />
+    }
+  </ui-page-header>
+
+  <div class="notes-toolbar">
     <smt-input
       class="search-box"
       type="search"
@@ -27,10 +25,16 @@
       [value]="search()"
       (valueChange)="search.set($any($event) ?? '')"
     />
-    @if (canCreate()) {
-      <ng-container [ngTemplateOutlet]="createButton" />
-    }
-  </ui-page-header>
+    <smt-entity-toolbar
+      class="notes-tools"
+      [meta]="meta()"
+      [views]="views"
+      [listMeta]="listMeta()"
+      [search]="search()"
+      [(selected)]="selectedIds"
+      (bulkDone)="firstPage.reload()"
+    />
+  </div>
 
   @if (meta(); as form) {
     @if (list().items.length > 0) {

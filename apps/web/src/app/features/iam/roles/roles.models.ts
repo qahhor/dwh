@@ -20,27 +20,35 @@ export interface ModuleGroup {
 }
 
 export const MODULE_ICON_MAP: Record<string, string> = {
-  md: 'admin_panel_settings',
-  iam: 'security',
-  'ms.task': 'task_alt',
-  'ms.notify': 'notifications',
-  platform: 'hub',
+  analytics: 'monitoring',
   audit: 'history',
+  example: 'receipt_long',
+  md: 'admin_panel_settings',
   mf: 'folder_open',
+  'ms.note': 'description',
+  'ms.notify': 'notifications',
+  'ms.task': 'task_alt',
+  search: 'search',
+  upl: 'table_view',
   webhook: 'webhook',
 };
 
-export const MODULE_NAME_KEY_MAP: Record<string, string> = {
-  md: 'iam.roles.module_users_security',
-  iam: 'iam.roles.module_accounts_profile',
-  'ms.task': 'iam.roles.module_tasks',
-  'ms.notify': 'iam.roles.module_notifications',
-  platform: 'iam.roles.module_platform',
-  audit: 'iam.roles.module_audit',
-  mf: 'iam.roles.module_files',
-  webhook: 'settings.webhooks.tab',
-  warehouse: 'iam.roles.module_warehouse',
-};
+/**
+ * The catalog key of a permission area's name (ADR-0028, ADR-0031): `ms.task` — `iam.roles.area.ms_task`. The
+ * server's `EntityTitleContractTest` requires the key in every bundled catalog for each area the application declares.
+ */
+export function moduleNameKey(moduleCode: string): string {
+  return `iam.roles.area.${moduleCode.replace(/\./g, '_')}`;
+}
+
+/** A permission area's name in the viewer's language; an area of a module that brings no name keeps its code. */
+export function moduleDisplayName(
+  moduleCode: string,
+  i18n: { hasKey(key: string): boolean; translate(key: string, params?: Record<string, string>): string },
+): string {
+  const key = moduleNameKey(moduleCode);
+  return i18n.hasKey(key) ? i18n.translate(key) : i18n.translate('iam.module_named', { name: moduleCode });
+}
 
 export function buildModuleGroups(items: FormTreeItem[], getModuleName: (modCode: string) => string): ModuleGroup[] {
   const groupedMap = new Map<string, Map<string, GroupedForm>>();

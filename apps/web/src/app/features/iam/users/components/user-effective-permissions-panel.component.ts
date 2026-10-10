@@ -18,7 +18,7 @@ import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { FormTreeItem, namedCatalog } from '@core/models/rbac.models';
-import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '@features/iam/roles/roles.models';
+import { MODULE_ICON_MAP, moduleDisplayName } from '@features/iam/roles/roles.models';
 import { EffectivePermissionItem, PersonalGrant } from '../users.models';
 import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
@@ -173,8 +173,7 @@ export class UserEffectivePermissionsPanelComponent {
       }
       forms.sort((a, b) => a.formName.localeCompare(b.formName));
 
-      const nameKey = MODULE_NAME_KEY_MAP[modCode];
-      const moduleName = nameKey ? this.uiI18n.translate(nameKey) : modCode.toUpperCase();
+      const moduleName = moduleDisplayName(modCode, this.uiI18n);
       const icon = MODULE_ICON_MAP[modCode] || 'widgets';
 
       result.push({ moduleCode: modCode, moduleName, icon, forms });

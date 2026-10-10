@@ -97,6 +97,24 @@ const unknownByLanguage = supported.slice(1).flatMap((code) =>
     .filter((key) => !russianKeys.has(key))
     .map((key) => `${code}:${key}`),
 );
+/**
+ * References of the project's own working documents in a text the user reads (ADR-0031): an ADR, an FR/NFR id, a
+ * plan or roadmap item, an invariant or work-item id ("I-P4"), a migration name. They mean nothing to the user and
+ * belong in code comments; the catalog says what happens instead.
+ */
+const INTERNAL_REFERENCES = [
+  /\b(?:ADR|N?FR|I|P|W|M)-[A-Z]{0,8}-?\d+(?:\.\d+)*\b/,
+  /\bplan 10\/10\b|план 10\/10/i,
+  /\b(?:roadmap|plan) item\b|пункт плана/i,
+  /инвариант|invariant/i,
+  /(?:^|\s)вариант[уа]? [A-ZА-Я](?:$|[\s.,)])/,
+  /\bV\d{2,3}__/,
+];
+const internalReferences = supported.flatMap((code) =>
+  Object.entries(catalogs[code])
+    .filter(([, value]) => typeof value === 'string' && INTERNAL_REFERENCES.some((pattern) => pattern.test(value)))
+    .map(([key, value]) => `${code}:${key}: ${value}`),
+);
 const invalidValues = supported.flatMap((code) =>
   Object.entries(catalogs[code])
     .filter(([key, value]) => !key.trim() || typeof value !== 'string' || !value.trim() || value.length > 4000)
@@ -153,12 +171,16 @@ if (
   process.exit(1);
 }
 
-if (rawCopy.length || missing.length || unknownByLanguage.length || invalidValues.length) {
+if (rawCopy.length || missing.length || unknownByLanguage.length || invalidValues.length || internalReferences.length) {
   if (rawCopy.length) process.stderr.write(`Unlocalized Cyrillic UI copy:\n${rawCopy.join('\n')}\n`);
   if (missing.length) process.stderr.write(`Translation keys missing from ru.json:\n${missing.join('\n')}\n`);
   if (unknownByLanguage.length)
     process.stderr.write(`Non-Russian catalog keys absent from ru.json:\n${unknownByLanguage.join('\n')}\n`);
   if (invalidValues.length) process.stderr.write(`Invalid translation values:\n${invalidValues.join('\n')}\n`);
+  if (internalReferences.length)
+    process.stderr.write(
+      `Internal references (ADR, FR, plan items, work-item ids) in user-facing texts:\n${internalReferences.join('\n')}\n`,
+    );
   process.exit(1);
 }
 

@@ -50,7 +50,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     };
 
     const toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn(), show: vi.fn() };
-    const i18n = { translate: vi.fn((key: string) => key), currentLang: signal('ru') };
+    const i18n = { translate: vi.fn((key: string) => key), hasKey: vi.fn(() => true), currentLang: signal('ru') };
 
     await TestBed.configureTestingModule({
       imports: [UserEffectivePermissionsPanelComponent],

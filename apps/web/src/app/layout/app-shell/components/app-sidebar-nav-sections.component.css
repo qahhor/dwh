@@ -4,6 +4,7 @@
 
 .nav-section-header {
   width: 100%;
+  flex-shrink: 0;
   background: transparent;
   border: none;
   display: flex;
@@ -48,9 +49,12 @@
   transform: rotate(-90deg);
 }
 
+/* The groups sit in the scrolling .sidebar-nav column: a group with overflow: hidden would shrink there and clip
+   its last items instead of letting the column scroll, so it keeps its own height. */
 .nav-section-content {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   gap: 2px;
   overflow: hidden;
   transition:

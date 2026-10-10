@@ -4,6 +4,8 @@
 //   sibling .html) and inline styles at most 50 lines (longer ones move to a sibling .css).
 // - Every component has its own spec beside it (<name>.component.spec.ts).
 // - A screen's title is the <h1> of ui-page-header: no other template writes its own <h1>.
+// - The element that wraps a screen's ui-page-header adds no padding of its own: the shell's .page-content gives every
+//   screen the same gutter, and a second one indents that screen's title and actions against the others.
 //
 // An exception is named in ALLOWED below with its reason; the list only shrinks. `npm run lint` runs this audit.
 import { readdir, readFile } from 'node:fs/promises';
@@ -25,6 +27,7 @@ const ALLOWED = {
   template: {},
   styles: {},
   spec: {},
+  padding: {},
   h1: {
     // The heading block itself.
     'shared/ui/ui-page-header.component.ts': 'the page header renders the screen title',
@@ -76,6 +79,44 @@ const allowed = (rule, relative) => {
 };
 
 const H1 = /<h1[\s>]/g;
+
+/** The classes of the first element of a template, when that element wraps the screen's ui-page-header. */
+function pageWrapperClasses(markup) {
+  const text = markup.replace(/<!--[\s\S]*?-->/g, '');
+  const header = text.indexOf('<ui-page-header');
+  if (header < 0) return [];
+  const first = /<([a-z][\w-]*)\b([^>]*)>/.exec(text);
+  if (!first || first.index >= header || first[1] === 'ui-page-header') return [];
+  // A sibling before the header (a loading placeholder) closes before it; only an element still open wraps it.
+  const closed = text.indexOf(`</${first[1]}>`, first.index);
+  if (closed >= 0 && closed < header && !text.slice(first.index + first[0].length, closed).includes(`<${first[1]}`))
+    return [];
+  const classes = /\sclass="([^"]+)"/.exec(first[2]);
+  return classes ? classes[1].trim().split(/\s+/) : [];
+}
+
+/** The declarations of the rules whose selector is exactly `.name`. */
+function ruleBodies(css, name) {
+  const rule = new RegExp(`(?:^|[}\\s,])\\.${name.replace(/-/g, '\\-')}\\s*\\{([^}]*)\\}`, 'g');
+  return [...css.matchAll(rule)].map((match) => match[1]);
+}
+
+/** A quoted text bound straight to what the page header shows, not through the catalog. */
+const LITERAL_HEADER = /<ui-page-header\b[^>]*?\[(?:title|eyebrow|subtitle|count)\]="('[^']*')"/g;
+
+/** A padding other than zero that moves the header: on every side, at the top or the sides (not room at the bottom). */
+const OWN_PADDING =
+  /(?:^|[;\s])padding(?:-(?:top|left|right|inline|inline-start|block-start))?\s*:(?!\s*0(?:px)?\s*(?:;|$))/;
+
+/** The styles of a component: its .css file and its inline styles. */
+async function componentStyles(componentFile, componentSource) {
+  const cssFile = componentFile.replace(/\.ts$/, '.css');
+  const inline = /\bstyles:\s*\[?\s*(?=`)/.exec(componentSource);
+  return [
+    existsSync(cssFile) ? await readFile(cssFile, 'utf8') : '',
+    inline ? (literalAt(componentSource, inline.index + inline[0].length)?.text ?? '') : '',
+  ].join('\n');
+}
 const all = await files(appRoot);
 for (const file of all) {
   const relative = path.relative(appRoot, file).split(path.sep).join('/');
@@ -94,6 +135,21 @@ for (const file of all) {
     if (allowed('h1', owner)) continue;
     const line = lineOf(source, markup.start + 1 + match.index);
     problems.push(`${shown}:${line} own <h1>: give the screen its title through ui-page-header`);
+  }
+  for (const match of markup ? markup.text.matchAll(LITERAL_HEADER) : []) {
+    const line = lineOf(source, markup.start + 1 + match.index);
+    problems.push(`${shown}:${line} ui-page-header shows the literal ${match[1]}: give it a catalog key ( | t)`);
+  }
+  const owner = isTemplate ? relative.replace(/\.html$/, '.ts') : relative;
+  const wrapper = markup ? pageWrapperClasses(markup.text) : [];
+  if (wrapper.length && !allowed('padding', owner)) {
+    const ownerFile = path.join(appRoot, owner);
+    const css = await componentStyles(ownerFile, isTemplate ? await readFile(ownerFile, 'utf8') : source);
+    for (const name of wrapper.filter((candidate) =>
+      ruleBodies(css, candidate).some((body) => OWN_PADDING.test(body)),
+    )) {
+      problems.push(`${shown} .${name} wraps ui-page-header and pads it: the shell's .page-content gives the gutter`);
+    }
   }
   if (!isComponent) continue;
 

@@ -41,7 +41,7 @@ const FIRST_RANGE = '7d';
   template: `
     <div class="analytics-container">
       <!-- Header -->
-      <ui-page-header [title]="'analytics.dashboard.title' | t" [count]="'PostgreSQL 18 Analytics'">
+      <ui-page-header [title]="'analytics.dashboard.title' | t">
         <!-- Time Range Selector -->
         <smt-radio-group
           smtAppearance="segmented"

@@ -163,6 +163,8 @@ export interface FormSectionMeta {
 /** `GET /api/v1/form-meta/{code}`: the form, and the actions the viewer may take on the entity. */
 export interface FormMeta {
   code: string;
+  /** Catalog key of the entity's name (ADR-0031): its menu label, else the name of its right. */
+  titleKey?: string | null;
   listCode?: string | null;
   fields: FormFieldMeta[];
   layout: FormSectionMeta[];

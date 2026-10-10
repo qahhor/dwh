@@ -44,11 +44,14 @@
   font-weight: 600;
   color: var(--text-muted);
 }
+/* The actions stay at the right edge, also when they wrap under a long title. */
 .view-header__actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 12px;
+  margin-left: auto;
 }
 .view-header__actions:empty {
   display: none;

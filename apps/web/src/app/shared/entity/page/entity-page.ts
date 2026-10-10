@@ -13,14 +13,18 @@ export function recordIdOf(value: string | null | undefined): number | null {
 }
 
 /**
- * The entity's name on its general screen: the label of its menu item (`GET /entities/menu`, ADR-0032 7.1), read
- * again when the language changes; an entity without a menu item is named by its code.
+ * The entity's name on its general screen, read again when the language changes: the key `form-meta` names it by
+ * (`titleKey` — its menu label or the name of its right, ADR-0031), else the label of its menu item
+ * (`GET /entities/menu`, ADR-0032 7.1). The server's `EntityTitleContractTest` gives every declared entity one, so
+ * the code is shown only for an entity of a module that names it nowhere.
  */
-export function entityTitle(code: Signal<string>): Signal<string> {
+export function entityTitle(code: Signal<string>, meta: Signal<FormMeta | null>): Signal<string> {
   const navigation = inject(NavigationService);
   const i18n = inject(I18nService);
   return computed(() => {
     i18n.currentLang();
+    const titleKey = meta()?.titleKey;
+    if (titleKey) return i18n.translate(titleKey);
     const item = navigation.entityItems().find((candidate) => candidate.code === code());
     return item ? i18n.translate(item.labelKey) : code();
   });

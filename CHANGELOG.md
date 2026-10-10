@@ -7,6 +7,44 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### UI polish after the visual check (2026-10-10)
+
+#### Changed
+
+- `GET /api/v1/form-meta/{code}` answers `titleKey`, the dictionary key of the
+  entity's name (its menu label, else the name of its right, ADR-0031). The
+  pages `/e/<code>`, `/e/<code>/new` and `/e/<code>/<id>/edit` name the entity
+  by it ("Задачи" instead of "MS.TASKS").
+- The role matrix and the user permissions panel name a permission area by the
+  key `iam.roles.area.<area>` (`ms.task` → `iam.roles.area.ms_task`), without
+  the code in parentheses. Removed keys: `iam.roles.module_*`,
+  `ui.markdown_editor.placeholder`; `ui.searchable_select.select_from_list`
+  is now `ui.searchable_select.placeholder` ("Не выбрано").
+- The notes page keeps the title, tabs and "Новая заметка" in the page header
+  and moves search, views and export to a toolbar row, like the other lists;
+  page header actions stay at the right edge when they wrap.
+
+#### Fixed
+
+- The permission matrix showed "Модуль: ANALYTICS", "Модуль: MS.NOTE",
+  "Модуль: UPL" and other raw codes next to translated names; every area the
+  application declares has a name in ru, uz and en, checked by
+  `EntityTitleContractTest` together with the entity titles.
+- The super administrator note no longer cites an internal work item
+  ("I-P4"); `npm run i18n:audit` fails on ADR, FR/NFR, plan item, invariant
+  and work-item references in catalog values.
+- The side menu clipped the last item of a group ("Уведомления") on short
+  windows: a group shrank inside the scrolling menu instead of the menu
+  scrolling.
+- Entity pages, notes, exports, the UPL overview, the navigation settings and
+  the org units page added a second page padding, so their title and actions
+  stood indented against the other screens; analytics and audit showed
+  literal badges ("PostgreSQL 18 Analytics", "WORM Log"). `npm run lint`
+  (component audit) fails on a wrapper that pads `ui-page-header` and on a
+  literal text bound to it.
+- The markdown editor showed "Напишите текст задачи…" as the placeholder of
+  every markdown field (notes too); it has no default placeholder now.
+
 ### Search job polling under the rate limit (2026-10-10)
 
 No REST change.
