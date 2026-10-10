@@ -1,9 +1,11 @@
 import { Routes } from '@angular/router';
+import { recordNavigationGuard } from '@core/guards/record-navigation.guard';
 import { SMTEntityPageComponent } from './smt-entity-page.component';
 
 /**
  * The general screen of every declared entity (ADR-0032 7.1): its list, a new record, a record, a record's change.
- * `smt-entity-page` reads the entity's form once for the page under it.
+ * `smt-entity-page` reads the entity's form once for the page under it. Leaving a changed new record or change asks
+ * first (docs/guidelines/forms-ux-standard.md, section 8).
  */
 export const ENTITY_ROUTES: Routes = [
   {
@@ -16,6 +18,7 @@ export const ENTITY_ROUTES: Routes = [
       },
       {
         path: 'new',
+        canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./smt-entity-edit-page.component').then((m) => m.SMTEntityEditPageComponent),
       },
       {
@@ -24,6 +27,7 @@ export const ENTITY_ROUTES: Routes = [
       },
       {
         path: ':id/edit',
+        canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./smt-entity-edit-page.component').then((m) => m.SMTEntityEditPageComponent),
       },
     ],

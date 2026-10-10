@@ -81,7 +81,7 @@ test('task types are imported from a file: template, dry run, load, report', asy
   expect(await typesNamed(page, name)).toHaveLength(0);
 
   // The load creates the valid row; the report of the refused one can be downloaded.
-  await dialog.getByTestId('entity-import-apply').click();
+  await dialog.getByTestId('form-submit').click();
   await expect(dialog.getByTestId('entity-import-summary')).toContainText('Загружено: создано 1', {
     timeout: 30_000,
   });

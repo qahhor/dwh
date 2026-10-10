@@ -126,13 +126,46 @@ describe('SMTEntityReportSavedComponent', () => {
     expect(toast.success).toHaveBeenCalled();
   });
 
-  it('shows the problem of a refused save under the name', async () => {
+  it('shows a refusal about the name under it, and any other refusal as the dialog alert', async () => {
     const { saved } = render();
-    reports.save.mockReturnValue(throwError(() => ({ detail: 'Такое имя уже есть' })));
+    reports.save.mockReturnValue(
+      throwError(() => ({ status: 422, errors: [{ field: 'name', message: 'Такое имя уже есть' }] })),
+    );
+    saved.openSaveAs();
     saved.name.set('Все');
     saved.submitSaveAs();
     expect(saved.error()).toBe('Такое имя уже есть');
+    expect(saved.saveError()).toBe('');
     expect(saved.busy()).toBe(false);
+
+    reports.save.mockReturnValue(throwError(() => ({ detail: 'Сервис недоступен' })));
+    saved.submitSaveAs();
+    expect(saved.error()).toBe('');
+    expect(saved.saveError()).toBe('Сервис недоступен');
+    expect(saved.saveAsOpen()).toBe(true);
+  });
+
+  it('sends one save at a time and asks before dropping a typed name', async () => {
+    const { saved } = render();
+    const pending = new Subject<SavedReport>();
+    reports.save.mockReturnValue(pending.asObservable());
+    saved.openSaveAs();
+    saved.name.set('Новый');
+    saved.submitSaveAs();
+    saved.submitSaveAs();
+    expect(reports.save).toHaveBeenCalledTimes(1);
+    saved.closeSaveAs();
+    expect(saved.saveAsOpen()).toBe(true);
+    pending.next(report(9, 'Новый'));
+    pending.complete();
+
+    modal.confirm.mockClear();
+    modal.confirm.mockReturnValueOnce(of(false));
+    saved.openSaveAs();
+    saved.name.set('Черновик');
+    saved.closeSaveAs();
+    expect(modal.confirm).toHaveBeenCalledTimes(1);
+    expect(saved.saveAsOpen()).toBe(true);
   });
 
   it('writes the state on screen into a report, and moves it on and off the dashboard', async () => {

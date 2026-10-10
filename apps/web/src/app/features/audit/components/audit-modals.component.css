@@ -170,10 +170,3 @@
   max-height: 250px;
   margin: 0;
 }
-
-.modal-footer-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}

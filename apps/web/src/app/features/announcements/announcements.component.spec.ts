@@ -102,6 +102,8 @@ describe('AnnouncementsComponent', () => {
       inScreen(fixture.nativeElement).querySelector('button[aria-label="Создать объявление"]') as HTMLButtonElement
     ).click();
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
 
     expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).not.toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('label[for="announcement-title-ru"]')).not.toBeNull();
@@ -110,22 +112,24 @@ describe('AnnouncementsComponent', () => {
     expect(inScreen(fixture.nativeElement).querySelector('#announcement-banner-type')?.getAttribute('role')).toBe(
       'combobox',
     );
+    // Save stays enabled: a press names the empty fields instead (forms standard, section 6).
     expect(
-      (inScreen(fixture.nativeElement).querySelector('[data-testid="save-draft"]') as HTMLButtonElement).disabled,
-    ).toBe(true);
+      (inScreen(fixture.nativeElement).querySelector('[data-testid="form-submit"]') as HTMLButtonElement).disabled,
+    ).toBe(false);
   });
 
   it('surfaces optimistic-lock conflicts and offers a refresh', async () => {
     const { fixture, api } = await createFixture({ putError: true });
     (inScreen(fixture.nativeElement).querySelector('.edit-action') as HTMLButtonElement).click();
     fixture.detectChanges();
-    (inScreen(fixture.nativeElement).querySelector('[data-testid="save-draft"]') as HTMLButtonElement).click();
+    (inScreen(fixture.nativeElement).querySelector('[data-testid="form-submit"]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(api.put).toHaveBeenCalledWith('/announcements/7', expect.objectContaining({ lockVersion: 3 }));
-    expect(inScreen(fixture.nativeElement).querySelector('[role="alert"]')?.textContent).toContain(
-      'объявление уже изменено другим пользователем',
-    );
+    // Inside the editor, which would hide the page's alert, and on the page with its refresh.
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[data-testid="announcement-save-error"]')?.textContent,
+    ).toContain('объявление уже изменено другим пользователем');
     expect(
       inScreen(fixture.nativeElement).querySelector('button[aria-label="Обновить список объявлений"]'),
     ).not.toBeNull();

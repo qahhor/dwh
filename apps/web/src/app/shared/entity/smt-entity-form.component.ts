@@ -1,13 +1,16 @@
 import {
+  afterRenderEffect,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
   contentChildren,
   Directive,
+  ElementRef,
   inject,
   input,
   model,
+  signal,
   TemplateRef,
   type Type,
 } from '@angular/core';
@@ -26,6 +29,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownEditorComponent } from '../ui/ui-markdown-editor.component';
 import { UiMarkdownViewComponent } from '../ui/ui-markdown-view.component';
+import { UiFormErrorSummaryComponent, type UiFormErrorItem } from '../ui/ui-form-error-summary.component';
 import { SMTControlComponent } from '../ui-kit/components/forms/control/control.component';
 import { SMTMultiDataSelectComponent } from '../ui-kit/components/forms/data-select/multi-data-select.component';
 import { SMTTextareaComponent } from '../ui-kit/components/forms/textarea/textarea.component';
@@ -119,6 +123,7 @@ interface DrawnSection {
     SMTMoneyFieldComponent,
     SMTMultiDataSelectComponent,
     SMTTextareaComponent,
+    UiFormErrorSummaryComponent,
     UiMarkdownEditorComponent,
     UiMarkdownViewComponent,
   ],
@@ -128,6 +133,8 @@ interface DrawnSection {
 })
 export class SMTEntityFormComponent {
   private readonly i18n = inject(I18nService);
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly refLookups = inject(RefLookups);
 
@@ -153,6 +160,26 @@ export class SMTEntityFormComponent {
   /** The record's values by field key. */
   readonly value = model<FormValues>({});
 
+  /**
+   * Whether the form shows the summary of its problems above the sections (docs/guidelines/forms-ux-standard.md,
+   * section 4): from three problems, or a problem of a field the form does not draw (a row of a document's lines).
+   */
+  readonly summary = input(true, { transform: booleanAttribute });
+
+  /** The id of each field's control that has a problem, read from the page once drawn, so the summary links to it. */
+  private readonly problemFieldIds = signal<Readonly<Record<string, string>>>({});
+
+  /** The problems as the summary lists them: the field's label and message, linked to its control when drawn. */
+  readonly errorItems = computed<UiFormErrorItem[]>(() => {
+    this.i18n.currentLang();
+    const translate = (key: string, params?: Record<string, string | number>) => this.i18n.translate(key, params);
+    const labels = new Map(this.meta().fields.map((field) => [field.key, fieldLabel(field, translate)]));
+    const ids = this.problemFieldIds();
+    return Object.entries(this.problems())
+      .filter(([, message]) => !!message)
+      .map(([key, message]) => ({ fieldId: ids[key], label: labels.get(key), message }));
+  });
+
   private readonly replacements = contentChildren(SMTEntityFieldDirective);
 
   /** Sections and their fields, rebuilt when the form or the language changes — not on every keystroke. */
@@ -177,6 +204,30 @@ export class SMTEntityFormComponent {
 
   /** One setter per field, so the control's input keeps its identity between checks. */
   private readonly setters = new Map<string, (value: unknown) => void>();
+
+  constructor() {
+    afterRenderEffect(() => {
+      const ids: Record<string, string> = {};
+      for (const key of Object.keys(this.problems())) {
+        const id = this.controlIdOf(key);
+        if (id) ids[key] = id;
+      }
+      const current = this.problemFieldIds();
+      const same =
+        Object.keys(ids).length === Object.keys(current).length &&
+        Object.entries(ids).every(([key, id]) => current[key] === id);
+      if (!same) this.problemFieldIds.set(ids);
+    });
+  }
+
+  /** The id of the control drawn for a field (smt-control gives every field one); none when it is not drawn. */
+  private controlIdOf(key: string): string | undefined {
+    const box = [...this.host.nativeElement.querySelectorAll<HTMLElement>('.entity-field[data-field]')].find(
+      (element) => element.dataset['field'] === key,
+    );
+    const control = box?.querySelector<HTMLElement>(ENTITY_FIELD_CONTROL);
+    return control?.id || undefined;
+  }
 
   set(key: string, value: unknown): void {
     this.value.update((values) => ({ ...values, [key]: value }));
@@ -285,6 +336,17 @@ export class SMTEntityFormComponent {
     return { meta: field, control, def, label, source };
   }
 }
+
+/** The focusable control of a field, as smt-control finds it. */
+const ENTITY_FIELD_CONTROL = [
+  'input:not([type="hidden"])',
+  'select',
+  'textarea',
+  '[role="combobox"]',
+  '[role="radiogroup"]',
+  '[role="switch"]',
+  '[contenteditable="true"]',
+].join(', ');
 
 function isDynamic(control: SMTEntityControl): control is SMTDynamicFieldType {
   return (

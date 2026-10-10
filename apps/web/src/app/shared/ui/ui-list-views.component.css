@@ -102,18 +102,9 @@
   flex-direction: column;
   gap: 8px;
 }
-.views-error {
-  color: var(--danger-text);
-  font-size: 12px;
-}
 .views-default-choice {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-}
-.views-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }

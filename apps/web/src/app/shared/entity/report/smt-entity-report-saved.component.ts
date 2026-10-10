@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  Injector,
   input,
   linkedSignal,
   output,
@@ -13,6 +14,11 @@ import { catchError, of } from 'rxjs';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { problemText } from '@shared/ui/problem-text';
+import { problemFieldErrors } from '@shared/ui/problem-fields';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
+import { focusFirstInvalid, UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
@@ -35,16 +41,18 @@ let nextSavedId = 0;
   imports: [
     SMTButtonComponent,
     SMTCheckboxComponent,
+    SMTControlComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTInputComponent,
     SMTSelectComponent,
     TranslatePipe,
+    UiFocusFirstInvalidDirective,
+    UiFormActionsComponent,
   ],
   template: `
     <div class="saved" data-testid="report-saved">
-      <div class="saved-field">
-        <label [for]="ids + '-pick'">{{ 'ui.report.saved' | t }}</label>
+      <smt-control class="saved-field" [smtLabel]="'ui.report.saved' | t">
         <smt-select
           [smtTriggerId]="ids + '-pick'"
           [options]="options()"
@@ -52,7 +60,7 @@ let nextSavedId = 0;
           [value]="activeId()"
           (valueChange)="pick($event)"
         />
-      </div>
+      </smt-control>
       @if (active(); as report) {
         <button
           smt-button
@@ -98,42 +106,41 @@ let nextSavedId = 0;
       [open]="saveAsOpen()"
       [smtTitle]="'ui.report.save_as' | t"
       smtSize="sm"
-      (closed)="saveAsOpen.set(false)"
+      [dismissible]="!busy()"
+      (closed)="closeSaveAs()"
     >
       <ng-template smtDialogContent>
-        <form body class="saved-form" (submit)="$event.preventDefault(); submitSaveAs()" novalidate>
-          <label class="form-label" [for]="ids + '-name'">{{ 'ui.report.name' | t }}</label>
-          <smt-input
-            smtTestId="report-name"
-            [smtFieldId]="ids + '-name'"
-            [maxLength]="nameMax"
-            [value]="name()"
-            (valueChange)="name.set($event === null ? '' : '' + $event)"
-            [smtInvalid]="!!error()"
-            [smtDescribedBy]="error() ? ids + '-error' : null"
-          />
-          @if (error(); as text) {
-            <span class="saved-error" [id]="ids + '-error'" data-testid="report-name-error">{{ text }}</span>
+        <form
+          class="saved-form"
+          [id]="ids + '-form'"
+          uiFocusFirstInvalid
+          (submit)="$event.preventDefault(); submitSaveAs()"
+          novalidate
+        >
+          @if (saveError(); as text) {
+            <div class="saved-alert" role="alert" data-testid="report-save-error">{{ text }}</div>
           }
+          <smt-control [smtLabel]="'ui.report.name' | t" [smtError]="error()" [required]="true">
+            <smt-input
+              smtTestId="report-name"
+              smtFocusInitial
+              [smtFieldId]="ids + '-name'"
+              [maxLength]="nameMax"
+              [value]="name()"
+              (valueChange)="name.set($event === null ? '' : '' + $event)"
+            />
+          </smt-control>
           <div smt-checkbox data-testid="report-widget" [checked]="asWidget()" (checkedChange)="asWidget.set($event)">
             {{ 'ui.report.show_on_dashboard' | t }}
           </div>
         </form>
-        <div footer class="saved-footer">
-          <button smt-button type="button" smtVariant="secondary" (click)="saveAsOpen.set(false)">
-            {{ 'common.cancel' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            smtVariant="primary"
-            data-testid="report-name-submit"
-            [smtLoading]="busy()"
-            (click)="submitSaveAs()"
-          >
-            {{ 'common.save' | t }}
-          </button>
-        </div>
+        <ui-form-actions
+          footer
+          [form]="ids + '-form'"
+          data-testid="report-save-as-actions"
+          [submitting]="busy()"
+          (cancelled)="closeSaveAs()"
+        />
       </ng-template>
     </smt-dialog>
   `,
@@ -151,24 +158,18 @@ let nextSavedId = 0;
         gap: 4px;
         min-width: 220px;
       }
-      .saved-field label {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--text-muted);
-      }
       .saved-form {
         display: flex;
         flex-direction: column;
         gap: 10px;
       }
-      .saved-error {
-        color: var(--danger-text, var(--danger));
-        font-size: 12px;
-      }
-      .saved-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
+      .saved-alert {
+        padding: 8px 10px;
+        border: 1px solid var(--danger-border);
+        border-radius: var(--radius-md);
+        background: var(--danger-bg);
+        color: var(--danger-text);
+        font-size: 13px;
       }
     `,
   ],
@@ -178,6 +179,8 @@ export class SMTEntityReportSavedComponent {
   private readonly toast = inject(ToastService);
   private readonly modal = inject(SMTModalService);
   private readonly reports = inject(EntityReportsApi);
+  private readonly injector = inject(Injector);
+  private readonly askDiscard = discardChangesQuestion();
 
   readonly listCode = input.required<string>();
   /** What is on screen now: what a save writes. */
@@ -193,7 +196,10 @@ export class SMTEntityReportSavedComponent {
   readonly saveAsOpen = signal(false);
   readonly name = signal('');
   readonly asWidget = signal(false);
+  /** The error under the name: empty, or the server's word on it. */
   readonly error = signal('');
+  /** A refusal of the save that names no field: an alert at the top of the dialog. */
+  readonly saveError = signal('');
 
   readonly active = computed(() => this.saved().find((report) => report.id === this.activeId()) ?? null);
   readonly options = computed<SMTSelectOption<number>[]>(() => {
@@ -225,15 +231,28 @@ export class SMTEntityReportSavedComponent {
     this.name.set('');
     this.asWidget.set(false);
     this.error.set('');
+    this.saveError.set('');
     this.saveAsOpen.set(true);
   }
 
+  /** Escape, the backdrop, the cross and "Cancel" ask before a typed name is dropped (forms standard, 8). */
+  closeSaveAs(): void {
+    if (this.busy()) return;
+    this.askDiscard(!!this.name().trim() || this.asWidget()).subscribe((discard) => {
+      if (discard) this.saveAsOpen.set(false);
+    });
+  }
+
+  /** Enter and "Save" land here; one request while a save runs; an empty name says so and takes the focus. */
   submitSaveAs(): void {
+    if (this.busy()) return;
     const name = this.name().trim();
+    this.saveError.set('');
     if (!name) {
       this.error.set(this.i18n.translate('ui.report.name_required'));
       return;
     }
+    this.error.set('');
     this.busy.set(true);
     this.reports.save(this.listCode(), name, this.asWidget() ? 'widget' : 'report', this.state()).subscribe({
       next: (report) => {
@@ -245,7 +264,16 @@ export class SMTEntityReportSavedComponent {
       },
       error: (failure: unknown) => {
         this.busy.set(false);
-        this.error.set(problemText(failure) || this.i18n.translate('ui.report.save_failed'));
+        // The server's word on the name goes under it (forms standard, section 5); anything else is the alert.
+        const { fields, other } = problemFieldErrors(failure, { known: ['name'] });
+        if (fields['name']) {
+          this.error.set(fields['name']);
+          const form = document.getElementById(`${this.ids}-form`);
+          if (form) focusFirstInvalid(form, this.injector);
+        }
+        if (!fields['name'] || other.length > 0) {
+          this.saveError.set(other[0] ?? (problemText(failure) || this.i18n.translate('ui.report.save_failed')));
+        }
       },
     });
   }

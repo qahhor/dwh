@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, output, signal } from '@angular/core';
 
 import { A11yModule } from '@angular/cdk/a11y';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
 import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
@@ -17,7 +19,9 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
     SMTTabBarComponent,
     A11yModule,
     TranslatePipe,
-    SMTButtonComponent,
+    SMTControlComponent,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTInputComponent,
@@ -31,16 +35,20 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
       [open]="isEditorOpen()"
       [smtTitle]="(editingId() === null ? 'announcements.new_announcement' : 'announcements.edit_announcement') | t"
       smtSize="lg"
+      [dismissible]="!isSaving()"
       (closed)="closeEditor.emit()"
     >
       <ng-template smtDialogContent>
         <form
-          body
           id="announcement-editor"
           class="editor-form"
+          uiFocusFirstInvalid
           (submit)="$event.preventDefault(); onSaveDraft()"
           novalidate
         >
+          @if (draftError()) {
+            <div class="editor-alert" role="alert" data-testid="announcement-save-error">{{ draftError() }}</div>
+          }
           <!-- Language selector tabs for multilingual content -->
           <div class="lang-selector-row">
             <span class="lang-selector-label">{{ 'announcements.editor.content_language' | t }}:</span>
@@ -55,60 +63,51 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
 
           <!-- Russian language inputs (Authoritative primary fields) -->
           @if (selectedLang() === 'ru') {
-            <div class="field-group">
-              <div class="field-header">
-                <label for="announcement-title-ru"
-                  >{{ 'announcements.editor.title_ru' | t }} <span aria-hidden="true">*</span></label
-                >
-                <span class="char-count"
-                  >{{ titleRu.length }} / 10 000 {{ 'announcements.editor.characters' | t }}</span
-                >
-              </div>
+            <smt-control
+              class="field-group"
+              [smtLabel]="'announcements.editor.title_ru' | t"
+              [smtHint]="'announcements.editor.title_placeholder' | t"
+              [smtError]="titleRuError()"
+              [required]="true"
+            >
               <smt-input
                 smtFieldId="announcement-title-ru"
                 name="announcementTitleRu"
                 type="text"
                 [maxLength]="10000"
-                required
                 smtFocusInitial
                 [value]="titleRu"
                 (valueChange)="onDraftTitleChange('ru', $event)"
-                smtDescribedBy="announcement-title-hint"
               />
-              <span id="announcement-title-hint" class="field-hint">{{
-                'announcements.editor.title_placeholder' | t
-              }}</span>
-            </div>
-            <div class="field-group">
-              <div class="field-header">
-                <label for="announcement-body-ru"
-                  >{{ 'announcements.editor.body_ru' | t }} <span aria-hidden="true">*</span></label
-                >
-              </div>
+            </smt-control>
+            <span class="char-count" aria-live="polite"
+              >{{ titleRu.length }} / 10 000 {{ 'announcements.editor.characters' | t }}</span
+            >
+            <smt-control
+              class="field-group"
+              [smtLabel]="'announcements.editor.body_ru' | t"
+              [smtHint]="'announcements.editor.body_hint' | t"
+              [smtError]="bodyRuError()"
+              [required]="true"
+            >
               <smt-textarea
                 smtFieldId="announcement-body-ru"
                 name="announcementBodyRu"
-                smtDescribedBy="announcement-body-hint"
                 [rows]="7"
                 [maxRows]="20"
                 [maxLength]="10000"
-                required
                 [value]="bodyRu"
                 (valueChange)="onDraftBodyChange('ru', $event)"
               />
-              <span id="announcement-body-hint" class="field-hint">{{ 'announcements.editor.body_hint' | t }}</span>
-            </div>
+            </smt-control>
           }
 
           <!-- Non-Russian language inputs -->
           @if (selectedLang() !== 'ru') {
-            <div class="field-group">
-              <div class="field-header">
-                <label for="announcement-title-other"
-                  >{{ 'task.title' | t }} ({{ selectedLang().toUpperCase() }})</label
-                >
-                <span class="char-count">{{ (draftTitles()[selectedLang()] || '').length }} / 10 000</span>
-              </div>
+            <smt-control
+              class="field-group"
+              [smtLabel]="('task.title' | t) + ' (' + selectedLang().toUpperCase() + ')'"
+            >
               <smt-input
                 smtFieldId="announcement-title-other"
                 name="announcementTitleOther"
@@ -117,13 +116,12 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 [value]="draftTitles()[selectedLang()]"
                 (valueChange)="onDraftTitleChange(selectedLang(), $event)"
               />
-            </div>
-            <div class="field-group">
-              <div class="field-header">
-                <label for="announcement-body-other"
-                  >{{ 'announcements.empty_body' | t }} ({{ selectedLang().toUpperCase() }})</label
-                >
-              </div>
+            </smt-control>
+            <span class="char-count">{{ (draftTitles()[selectedLang()] || '').length }} / 10 000</span>
+            <smt-control
+              class="field-group"
+              [smtLabel]="('announcements.empty_body' | t) + ' (' + selectedLang().toUpperCase() + ')'"
+            >
               <smt-textarea
                 smtFieldId="announcement-body-other"
                 name="announcementBodyOther"
@@ -133,11 +131,14 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 [value]="draftBodies()[selectedLang()]"
                 (valueChange)="onDraftBodyChange(selectedLang(), $event)"
               />
-            </div>
+            </smt-control>
           }
 
-          <div class="field-group">
-            <label for="announcement-banner-type">{{ 'announcements.editor.level' | t }}</label>
+          <smt-control
+            class="field-group"
+            [smtLabel]="'announcements.editor.level' | t"
+            [smtError]="draftErrors()['bannerType'] ?? ''"
+          >
             <smt-select
               smtTriggerId="announcement-banner-type"
               [options]="bannerTypeOptions()"
@@ -145,22 +146,16 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
               [value]="bannerType()"
               (valueChange)="$event && bannerTypeChange.emit($event)"
             />
-          </div>
-          <div class="form-actions">
-            <button smt-button type="button" smtVariant="secondary" (click)="closeEditor.emit()">
-              {{ 'common.cancel' | t }}
-            </button>
-            <button
-              type="submit"
-              class="primary-button"
-              data-testid="save-draft"
-              [disabled]="!isDraftValid() || isSaving()"
-              [attr.aria-busy]="isSaving()"
-            >
-              {{ (isSaving() ? 'common.saving' : 'announcements.save_draft') | t }}
-            </button>
-          </div>
+          </smt-control>
         </form>
+        <ui-form-actions
+          footer
+          form="announcement-editor"
+          data-testid="announcement-editor-actions"
+          [submitLabel]="'announcements.save_draft' | t"
+          [submitting]="isSaving()"
+          (cancelled)="closeEditor.emit()"
+        />
       </ng-template>
     </smt-dialog>
   `,
@@ -179,6 +174,10 @@ export class AnnouncementsModalsComponent {
   readonly bannerType = input.required<AnnouncementBannerType>();
 
   readonly editingId = input<number | null>(null);
+  /** The server's refusal of the draft by field (`titleRu`, `bodyRu`, `bannerType`). */
+  readonly draftErrors = input<Readonly<Record<string, string>>>({});
+  /** A refusal that names no field, shown at the top of the editor. */
+  readonly draftError = input<string | null>(null);
 
   readonly closeEditor = output<void>();
   readonly saveDraft = output<void>();
@@ -187,6 +186,9 @@ export class AnnouncementsModalsComponent {
   readonly draftBodiesChange = output<Record<string, string>>();
 
   readonly selectedLang = signal('ru');
+
+  /** A save was tried in this opening of the editor, so the empty required fields show their errors. */
+  readonly saveTried = linkedSignal({ source: this.isEditorOpen, computation: () => false });
 
   readonly availableLanguages = () => this.uiI18n.languages().filter((l) => l.active);
 
@@ -220,10 +222,29 @@ export class AnnouncementsModalsComponent {
     );
   }
 
+  /** "Required" after a save with an empty Russian title, else the server's word on it (forms standard, 4). */
+  titleRuError(): string {
+    if (this.saveTried() && !this.titleRu.trim()) return this.uiI18n.translate('ui.control.required');
+    return this.draftErrors()['titleRu'] ?? '';
+  }
+
+  bodyRuError(): string {
+    if (this.saveTried() && !this.bodyRu.trim()) return this.uiI18n.translate('ui.control.required');
+    return this.draftErrors()['bodyRu'] ?? '';
+  }
+
+  /**
+   * Enter and "Save draft" land here; one request while a save runs. The Russian fields are the required ones, so an
+   * invalid draft switches to them and the form moves focus to the first empty one.
+   */
   onSaveDraft(): void {
-    if (this.isDraftValid() && !this.isSaving()) {
-      this.saveDraft.emit();
+    if (this.isSaving()) return;
+    this.saveTried.set(true);
+    if (!this.isDraftValid()) {
+      this.selectedLang.set('ru');
+      return;
     }
+    this.saveDraft.emit();
   }
 
   localizedValue(values: Record<string, string> | null | undefined): string {

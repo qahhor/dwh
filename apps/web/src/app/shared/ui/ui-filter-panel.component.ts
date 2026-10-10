@@ -28,6 +28,7 @@ import { DateRange, SMTDatePickerComponent, SMTDateRangePickerComponent } from '
 import { SMTTimePickerComponent } from '../ui-kit/components/forms/time-picker';
 import { SMTButtonComponent } from '../ui-kit/components/button';
 import { SMTInputComponent, SMTInputValue } from '../ui-kit/components/forms/input';
+import { SMTControlComponent } from '../ui-kit/components/forms/control';
 import { SMTCheckboxComponent } from '../ui-kit/components/forms/checkbox';
 import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
 import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-options';
@@ -61,6 +62,7 @@ let nextPanelId = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
+    SMTControlComponent,
     SMTCheckboxComponent,
     SMTSelectComponent,
     TranslatePipe,

@@ -113,6 +113,7 @@ describe('ui-filter-panel', () => {
 
     button(fixture, 'filter-add').click();
     fixture.detectChanges();
+    TestBed.tick(); // smt-control links its label to the field after render
 
     const row = all(fixture, 'filter-row')[0];
     expect(row.tagName).toBe('FIELDSET');

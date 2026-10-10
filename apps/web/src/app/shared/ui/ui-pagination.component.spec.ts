@@ -25,18 +25,17 @@ describe('UiPaginationComponent', () => {
     expect(nextPage.querySelector('[aria-hidden="true"]')).not.toBeNull();
   });
 
-  it('associates the page-size label and announces the visible range', async () => {
+  it('names the page-size select and announces the visible range', async () => {
     await TestBed.configureTestingModule({ imports: [UiPaginationComponent] }).compileComponents();
     const fixture = TestBed.createComponent(UiPaginationComponent);
     fixture.componentRef.setInput('totalItems', 25);
     fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector('smt-select button[role="combobox"]') as HTMLButtonElement;
-    const label = fixture.nativeElement.querySelector(`label[for="${select.id}"]`) as HTMLLabelElement;
     const range = fixture.nativeElement.querySelector('[role="status"][aria-live="polite"]') as HTMLElement;
 
     expect(select.id).not.toBe('');
-    expect(label.textContent).toContain('Строк');
+    expect(select.getAttribute('aria-label')).toContain('Строк');
     expect(select.textContent).toContain('10');
     expect(range.textContent).toContain('1–10');
   });

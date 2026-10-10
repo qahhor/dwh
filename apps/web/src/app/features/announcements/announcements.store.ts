@@ -5,6 +5,8 @@ import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
+import { problemFieldErrors } from '@shared/ui/problem-fields';
 import { AnnouncementsApi } from './announcements.api';
 import {
   AnnouncementAdminRecord,
@@ -28,6 +30,7 @@ export class AnnouncementsStore {
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
+  private readonly askDiscard = discardChangesQuestion();
 
   /** A failed read keeps the list on screen; a save or a transition updates it here without a new request. */
   readonly announcements = linkedSignal<AnnouncementAdminRecord[] | null | undefined, AnnouncementAdminRecord[]>({
@@ -45,6 +48,12 @@ export class AnnouncementsStore {
   readonly draftTitles = signal<Record<string, string>>({ ru: '' });
   readonly draftBodies = signal<Record<string, string>>({ ru: '' });
   readonly editingId = signal<number | null>(null);
+  /** The server's refusal of the draft by field (`titleRu`, `bodyRu`, `bannerType`), shown under the fields. */
+  readonly draftErrors = signal<Readonly<Record<string, string>>>({});
+  /** A refusal of the draft that names no field: an alert inside the editor, so it is not hidden behind it. */
+  readonly draftError = signal<string | null>(null);
+  /** The draft as it was opened, to tell a changed one when the editor is closed. */
+  private draftBaseline = '';
 
   /** Bumped to read the list again; a new value cancels a read still in flight. */
   private readonly listRevision = signal(0);
@@ -122,7 +131,7 @@ export class AnnouncementsStore {
     this.draftBodies.set({ ru: '' });
     this.bannerType.set('INFO');
     this.operationError.set(null);
-    this.isEditorOpen.set(true);
+    this.openEditor();
   }
 
   openEdit(item: AnnouncementAdminRecord): void {
@@ -136,13 +145,27 @@ export class AnnouncementsStore {
     this.draftBodies.set(bodies);
     this.bannerType.set(item.bannerType);
     this.operationError.set(null);
+    this.openEditor();
+  }
+
+  /** Escape, the backdrop, the cross and "Cancel" ask before a changed draft is dropped (forms standard, 8). */
+  closeEditor(): void {
+    if (this.isSaving()) return;
+    this.askDiscard(this.draftSnapshot() !== this.draftBaseline).subscribe((discard) => {
+      if (discard && !this.isSaving()) this.isEditorOpen.set(false);
+    });
+  }
+
+  private openEditor(): void {
+    this.draftErrors.set({});
+    this.draftError.set(null);
+    this.draftBaseline = this.draftSnapshot();
     this.isEditorOpen.set(true);
   }
 
-  closeEditor(): void {
-    if (!this.isSaving()) {
-      this.isEditorOpen.set(false);
-    }
+  private draftSnapshot(): string {
+    const filled = (values: Record<string, string>) => Object.entries(values).filter(([, value]) => value.trim());
+    return JSON.stringify([filled(this.draftTitles()), filled(this.draftBodies()), this.bannerType()]);
   }
 
   isDraftValid(): boolean {
@@ -174,6 +197,8 @@ export class AnnouncementsStore {
     };
     this.isSaving.set(true);
     this.operationError.set(null);
+    this.draftErrors.set({});
+    this.draftError.set(null);
     this.announcementsApi.save(this.editingId(), payload).subscribe({
       next: (saved) => {
         this.upsert(saved);
@@ -187,9 +212,24 @@ export class AnnouncementsStore {
       },
       error: (problem: ApiProblem) => {
         this.isSaving.set(false);
-        this.handleMutationError(problem);
+        this.handleDraftError(problem);
       },
     });
+  }
+
+  /**
+   * A refusal about the draft's fields goes under them (forms standard, section 5): the Russian title and text are
+   * the ones the editor checks. Anything else is an alert inside the editor and, as before, on the page.
+   */
+  private handleDraftError(problem: ApiProblem): void {
+    const { fields, other } = problemFieldErrors(problem, {
+      known: ['titleRu', 'bodyRu', 'bannerType'],
+      rename: { titleJson: 'titleRu', 'titleJson.ru': 'titleRu', bodyJson: 'bodyRu', 'bodyJson.ru': 'bodyRu' },
+    });
+    this.draftErrors.set(fields);
+    if (Object.keys(fields).length > 0 && other.length === 0) return;
+    this.handleMutationError(problem);
+    this.draftError.set(other[0] ?? this.operationError());
   }
 
   requestConfirmation(action: Confirmation['action'], announcement: AnnouncementAdminRecord): void {

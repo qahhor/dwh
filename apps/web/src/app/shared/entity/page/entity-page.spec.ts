@@ -178,7 +178,7 @@ describe('the general entity form /e/:code/new and /e/:code/:id/edit', () => {
     expect(form.keys()).toEqual(['number', 'customer', 'status', 'comment']);
     form.fill('number', 'ЗК-7');
     await settle();
-    root.querySelector<HTMLButtonElement>('[data-testid="entity-save"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!.click();
     await settle();
 
     expect(api.post).toHaveBeenCalledWith(
@@ -197,11 +197,65 @@ describe('the general entity form /e/:code/new and /e/:code/:id/edit', () => {
       () => undefined,
     );
 
-    root.querySelector<HTMLButtonElement>('[data-testid="entity-save"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!.click();
     await settle();
 
     expect(form.problem('number')).toBe(translateTest('ui.entity_form.required'));
     expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('focuses the first field with a problem after a failed check and after a refused save', async () => {
+    const { root, settle } = await renderEntityScreen(`/e/${CODE}/new`, {
+      meta: META,
+      changes: {
+        [`POST /entities/${CODE}`]: () =>
+          throwError(() => problem(422, { errors: [{ field: 'customer', code: 'too_long', message: '' }] })),
+      },
+    });
+    const form = new EntityFormHarness(
+      root,
+      () => META,
+      () => undefined,
+    );
+    root.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!.click();
+    await settle();
+    expect(document.activeElement?.closest('[data-field]')?.getAttribute('data-field')).toBe('number');
+
+    form.fill('number', 'ЗК-2');
+    await settle();
+    root.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!.click();
+    await settle();
+    expect(document.activeElement?.closest('[data-field]')?.getAttribute('data-field')).toBe('customer');
+  });
+
+  it('asks before leaving a changed form, and leaves an untouched one or a saved one without asking', async () => {
+    const created = entityRecord(8, { number: 'ЗК-8' });
+    const { root, router, confirm, settle } = await renderEntityScreen(`/e/${CODE}/new`, {
+      meta: META,
+      answers: { [`/entities/${CODE}/8`]: created },
+      changes: { [`POST /entities/${CODE}`]: () => of(created) },
+    });
+    const form = new EntityFormHarness(
+      root,
+      () => META,
+      () => undefined,
+    );
+    form.fill('number', 'ЗК-8');
+    await settle();
+    await router.navigateByUrl('/tasks');
+    await settle();
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Отменить изменения?' }));
+    expect(router.url).toBe('/tasks');
+
+    confirm.mockClear();
+    await router.navigateByUrl(`/e/${CODE}/new`);
+    await settle();
+    form.fill('number', 'ЗК-8');
+    await settle();
+    root.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!.click();
+    await settle();
+    expect(router.url).toBe(`/e/${CODE}/8`);
+    expect(confirm).not.toHaveBeenCalled();
   });
 
   it('puts the 422 of the server under its fields', async () => {
@@ -220,7 +274,7 @@ describe('the general entity form /e/:code/new and /e/:code/:id/edit', () => {
     form.fill('number', 'ЗК-1');
     await settle();
 
-    root.querySelector<HTMLButtonElement>('[data-testid="entity-save"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!.click();
     await settle();
 
     expect(form.problem('number')).toBe(translateTest('ui.entity_form.too_long', { n: 32 }));
@@ -242,7 +296,7 @@ describe('the general entity form /e/:code/new and /e/:code/:id/edit', () => {
     expect(root.querySelector<HTMLInputElement>('[data-field="number"] input')!.value).toBe('ЗК-1');
     form.fill('customer', 'Магазин 9');
     await settle();
-    root.querySelector<HTMLButtonElement>('[data-testid="entity-save"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!.click();
     await settle();
 
     expect(api.patch).toHaveBeenCalledWith(

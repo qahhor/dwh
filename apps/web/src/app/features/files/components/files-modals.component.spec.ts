@@ -80,7 +80,7 @@ describe('FilesModalsComponent', () => {
   it('asks to close from its close button', async () => {
     const { host, screen, settle } = await render();
 
-    (screen.querySelector('[role="dialog"] .modal-footer-actions button') as HTMLButtonElement).click();
+    (screen.querySelector('[role="dialog"] [data-testid="form-submit"]') as HTMLButtonElement).click();
     await settle();
 
     expect(host.closes).toBe(1);

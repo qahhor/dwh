@@ -6,6 +6,7 @@ import { canDo, hasCapability } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { problemText } from '../ui/problem-text';
 import { SMTButtonComponent } from '../ui-kit/components/button';
+import { UiFormActionsComponent } from '../ui/ui-form-actions.component';
 import { SMTDropzoneComponent } from '../ui-kit/components/dropzone';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/components/modal';
 import { EntitiesApi } from './entities.api';
@@ -36,7 +37,14 @@ const MAX_BYTES = 50 * 1024 * 1024;
 @Component({
   selector: 'smt-entity-import',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, SMTButtonComponent, SMTDropzoneComponent, SMTDialogComponent, SMTDialogContentDirective],
+  imports: [
+    TranslatePipe,
+    SMTButtonComponent,
+    SMTDropzoneComponent,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    UiFormActionsComponent,
+  ],
   host: { class: 'smt-entity-import' },
   template: `
     @if (offered()) {
@@ -153,8 +161,16 @@ const MAX_BYTES = 50 * 1024 * 1024;
               </section>
             }
           </div>
-          <div footer class="entity-import-actions">
-            <button smt-button type="button" smtVariant="ghost" (click)="close()">{{ 'common.close' | t }}</button>
+          <!-- Nothing to start before a file is uploaded: that is no field error, so the buttons wait for it. -->
+          <ui-form-actions
+            footer
+            data-testid="entity-import-actions"
+            [cancelLabel]="'common.close' | t"
+            [submitLabel]="'ui.entity_import.apply' | t"
+            [submitDisabled]="!fileId() || busy()"
+            (cancelled)="close()"
+            (submitted)="start('apply')"
+          >
             <button
               smt-button
               type="button"
@@ -166,18 +182,7 @@ const MAX_BYTES = 50 * 1024 * 1024;
             >
               {{ 'ui.entity_import.dry_run' | t }}
             </button>
-            <button
-              smt-button
-              type="button"
-              smtVariant="primary"
-              smtIcon="upload"
-              data-testid="entity-import-apply"
-              [disabled]="!fileId() || busy()"
-              (click)="start('apply')"
-            >
-              {{ 'ui.entity_import.apply' | t }}
-            </button>
-          </div>
+          </ui-form-actions>
         </ng-template>
       </smt-dialog>
     }

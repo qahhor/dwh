@@ -139,7 +139,7 @@ describe('the report tab of the general entity list', () => {
     name.dispatchEvent(new Event('input'));
     (screen.querySelector('[data-testid="report-widget"] [role="checkbox"]') as HTMLElement).click();
     await settle();
-    (screen.querySelector('[data-testid="report-name-submit"]') as HTMLButtonElement).click();
+    (screen.querySelector('[data-testid="form-submit"]') as HTMLButtonElement).click();
     await settle();
 
     expect(api.post).toHaveBeenCalledWith(

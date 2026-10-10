@@ -8,6 +8,7 @@ import type { ListViewState } from '@shared/list-views/list-views';
 import { problemText } from '@shared/ui/problem-text';
 import { UiFilterBarComponent } from '@shared/ui/ui-filter-bar.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTRadioGroupComponent, type SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { SMTSelectComponent, type SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import {
@@ -52,6 +53,7 @@ interface ReportRun {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTButtonComponent,
+    SMTControlComponent,
     SMTEntityReportComponent,
     SMTEntityReportSavedComponent,
     SMTRadioGroupComponent,
@@ -75,8 +77,7 @@ interface ReportRun {
       />
       <div class="builder-controls">
         @for (slot of groupSlots(); track $index; let i = $index) {
-          <div class="builder-field">
-            <label [for]="ids + '-group-' + i">{{ (i === 0 ? 'ui.report.group_by' : 'ui.report.then_by') | t }}</label>
+          <smt-control class="builder-field" [smtLabel]="(i === 0 ? 'ui.report.group_by' : 'ui.report.then_by') | t">
             <smt-select
               [smtTriggerId]="ids + '-group-' + i"
               [options]="groupOptions()"
@@ -84,10 +85,9 @@ interface ReportRun {
               [value]="slot?.field ?? null"
               (valueChange)="setGroup(i, $event)"
             />
-          </div>
+          </smt-control>
           @if (slot && isDated(slot.field)) {
-            <div class="builder-field">
-              <label [for]="ids + '-trunc-' + i">{{ 'ui.report.bucket' | t }}</label>
+            <smt-control class="builder-field" [smtLabel]="'ui.report.bucket' | t">
               <smt-select
                 [smtTriggerId]="ids + '-trunc-' + i"
                 [options]="truncOptions()"
@@ -95,7 +95,7 @@ interface ReportRun {
                 [value]="slot.trunc ?? 'month'"
                 (valueChange)="setTrunc(i, $event)"
               />
-            </div>
+            </smt-control>
           }
         }
       </div>
@@ -103,8 +103,7 @@ interface ReportRun {
         @for (measure of measures(); track $index; let i = $index) {
           <fieldset class="builder-measure" [attr.data-testid]="'report-measure-' + i">
             <legend class="sr-only">{{ 'ui.report.measure_n' | t: { n: i + 1 } }}</legend>
-            <div class="builder-field">
-              <label [for]="ids + '-op-' + i">{{ 'ui.report.measure' | t }}</label>
+            <smt-control class="builder-field" [smtLabel]="'ui.report.measure' | t">
               <smt-select
                 [smtTriggerId]="ids + '-op-' + i"
                 [options]="opOptions()"
@@ -112,10 +111,9 @@ interface ReportRun {
                 [value]="measure.op"
                 (valueChange)="setOp(i, $event)"
               />
-            </div>
+            </smt-control>
             @if (measure.op !== 'count') {
-              <div class="builder-field">
-                <label [for]="ids + '-field-' + i">{{ 'ui.report.of_field' | t }}</label>
+              <smt-control class="builder-field" [smtLabel]="'ui.report.of_field' | t">
                 <smt-select
                   [smtTriggerId]="ids + '-field-' + i"
                   [options]="measureOptions()"
@@ -123,7 +121,7 @@ interface ReportRun {
                   [value]="measure.field ?? null"
                   (valueChange)="setMeasureField(i, $event)"
                 />
-              </div>
+              </smt-control>
             }
             @if (measures().length > 1) {
               <button
@@ -191,11 +189,6 @@ interface ReportRun {
         flex-direction: column;
         gap: 4px;
         min-width: 180px;
-      }
-      .builder-field label {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--text-muted);
       }
       .builder-measure {
         display: flex;

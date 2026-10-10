@@ -29,8 +29,7 @@
         >
           <legend class="filter-legend">{{ 'ui.filter.condition_n' | t: { n: i + 1 } }}</legend>
           <div class="filter-controls">
-            <div class="filter-control">
-              <label class="filter-label" [for]="rowId(i) + '-field'">{{ 'ui.filter.field' | t }}</label>
+            <smt-control class="filter-control" [smtLabel]="'ui.filter.field' | t">
               <smt-select
                 data-testid="filter-field"
                 [smtTriggerId]="rowId(i) + '-field'"
@@ -39,9 +38,8 @@
                 [value]="row.field"
                 (valueChange)="setField(i, $event)"
               />
-            </div>
-            <div class="filter-control">
-              <label class="filter-label" [for]="rowId(i) + '-op'">{{ 'ui.filter.operation' | t }}</label>
+            </smt-control>
+            <smt-control class="filter-control" [smtLabel]="'ui.filter.operation' | t">
               <smt-select
                 data-testid="filter-op"
                 [smtTriggerId]="rowId(i) + '-op'"
@@ -50,13 +48,12 @@
                 [value]="row.op"
                 (valueChange)="setOp(i, $event)"
               />
-            </div>
+            </smt-control>
 
             @if (field && takesValue(row.op)) {
               @switch (editorOf(field, row.op)) {
                 @case ('ref') {
-                  <div class="filter-control">
-                    <label class="filter-label" [for]="rowId(i) + '-ref'">{{ 'ui.filter.value' | t }}</label>
+                  <smt-control class="filter-control" [smtLabel]="'ui.filter.value' | t">
                     <smt-data-select
                       data-testid="filter-ref"
                       [smtTriggerId]="rowId(i) + '-ref'"
@@ -66,11 +63,10 @@
                       (valueChange)="patch(i, { value: String($event ?? '') })"
                       (rowChange)="patch(i, { label: refLabel(field, $event) })"
                     />
-                  </div>
+                  </smt-control>
                 }
                 @case ('choice') {
-                  <div class="filter-control">
-                    <label class="filter-label" [for]="rowId(i) + '-choice'">{{ 'ui.filter.value' | t }}</label>
+                  <smt-control class="filter-control" [smtLabel]="'ui.filter.value' | t">
                     <smt-select
                       data-testid="filter-value"
                       [smtTriggerId]="rowId(i) + '-choice'"
@@ -80,7 +76,7 @@
                       [value]="row.value || null"
                       (valueChange)="patch(i, { value: $event ?? '' })"
                     />
-                  </div>
+                  </smt-control>
                 }
                 @case ('choices') {
                   <div class="filter-control filter-choices" role="group" [attr.aria-labelledby]="rowId(i) + '-values'">
@@ -110,46 +106,45 @@
                       />
                     </div>
                   } @else {
-                    <div class="filter-control">
-                      <label class="filter-label" [for]="rowId(i) + '-from'">{{ 'ui.filter.value' | t }}</label>
+                    <smt-control class="filter-control" [smtLabel]="'ui.filter.value' | t">
                       <smt-date-picker
                         data-testid="filter-date"
                         [smtInputId]="rowId(i) + '-from'"
                         [value]="row.value || null"
                         (valueChange)="patch(i, { value: $event ?? '' })"
                       />
-                    </div>
+                    </smt-control>
                   }
                 }
                 @case ('time') {
-                  <div class="filter-control">
-                    <label class="filter-label" [for]="rowId(i) + '-time'">{{
-                      (row.op === 'between' ? 'ui.filter.from' : 'ui.filter.value') | t
-                    }}</label>
+                  <smt-control
+                    class="filter-control"
+                    [smtLabel]="(row.op === 'between' ? 'ui.filter.from' : 'ui.filter.value') | t"
+                  >
                     <smt-time-picker
                       data-testid="filter-time"
                       [smtFieldId]="rowId(i) + '-time'"
                       [value]="row.value || null"
                       (valueChange)="patch(i, { value: $event ?? '' })"
                     />
-                  </div>
+                  </smt-control>
                   @if (row.op === 'between') {
-                    <div class="filter-control">
-                      <label class="filter-label" [for]="rowId(i) + '-time-to'">{{ 'ui.filter.to' | t }}</label>
+                    <smt-control class="filter-control" [smtLabel]="'ui.filter.to' | t">
                       <smt-time-picker
                         data-testid="filter-time-to"
                         [smtFieldId]="rowId(i) + '-time-to'"
                         [value]="row.valueTo || null"
                         (valueChange)="patch(i, { valueTo: $event ?? '' })"
                       />
-                    </div>
+                    </smt-control>
                   }
                 }
                 @default {
-                  <label class="filter-control">
-                    <span class="filter-label">{{
-                      (row.op === 'between' ? 'ui.filter.from' : 'ui.filter.value') | t
-                    }}</span>
+                  <smt-control
+                    class="filter-control"
+                    [smtLabel]="(row.op === 'between' ? 'ui.filter.from' : 'ui.filter.value') | t"
+                    [smtHint]="row.op === 'in' ? ('ui.filter.comma_hint' | t) : ''"
+                  >
                     <smt-input
                       smtTestId="filter-value"
                       [type]="field.type === 'number' && row.op !== 'in' ? 'number' : 'text'"
@@ -157,20 +152,16 @@
                       [value]="row.value"
                       (valueChange)="patch(i, { value: text($event) })"
                     />
-                    @if (row.op === 'in') {
-                      <span class="filter-hint">{{ 'ui.filter.comma_hint' | t }}</span>
-                    }
-                  </label>
+                  </smt-control>
                   @if (row.op === 'between') {
-                    <label class="filter-control">
-                      <span class="filter-label">{{ 'ui.filter.to' | t }}</span>
+                    <smt-control class="filter-control" [smtLabel]="'ui.filter.to' | t">
                       <smt-input
                         smtTestId="filter-value-to"
                         [type]="field.type === 'number' ? 'number' : 'text'"
                         [value]="row.valueTo"
                         (valueChange)="patch(i, { valueTo: text($event) })"
                       />
-                    </label>
+                    </smt-control>
                   }
                 }
               }

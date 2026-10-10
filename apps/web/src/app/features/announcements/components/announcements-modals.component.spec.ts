@@ -17,6 +17,7 @@ import { AnnouncementsModalsComponent } from './announcements-modals.component';
       [draftBodies]="bodies()"
       [bannerType]="bannerType()"
       [editingId]="editingId()"
+      [draftErrors]="draftErrors()"
       (draftTitlesChange)="titles.set($event)"
       (draftBodiesChange)="bodies.set($event)"
       (bannerTypeChange)="bannerType.set($event)"
@@ -32,6 +33,7 @@ class Host {
   readonly bodies = signal<Record<string, string>>({});
   readonly bannerType = signal<AnnouncementBannerType>('INFO');
   readonly editingId = signal<number | null>(null);
+  readonly draftErrors = signal<Record<string, string>>({});
   saves = 0;
   closes = 0;
 }
@@ -47,7 +49,7 @@ async function render(setup: (host: Host) => void = () => undefined) {
   };
   await settle();
   const screen = inScreen(fixture.nativeElement);
-  const save = () => screen.querySelector('[data-testid="save-draft"]') as HTMLButtonElement;
+  const save = () => screen.querySelector('[data-testid="form-submit"]') as HTMLButtonElement;
   const type = async (selector: string, text: string) => {
     const field = screen.querySelector(selector) as HTMLInputElement | HTMLTextAreaElement;
     field.value = text;
@@ -69,19 +71,35 @@ describe('AnnouncementsModalsComponent', () => {
     );
   });
 
-  it('keeps the draft from being saved until the Russian title and text are filled', async () => {
-    const { host, save, type } = await render();
-    expect(save().disabled).toBe(true);
+  it('keeps Save enabled; a save without the Russian title and text names them and focuses the first', async () => {
+    const { host, screen, settle, save, type } = await render();
+    const error = (id: string) =>
+      screen.querySelector(`smt-control:has(#${id}) .smt-control__error`)?.textContent?.trim();
+    expect(save().disabled).toBe(false);
+    expect(error('announcement-title-ru')).toBeUndefined();
+
+    save().click();
+    await settle();
+    expect(host.saves).toBe(0);
+    expect(error('announcement-title-ru')).toBe('Обязательное поле');
+    expect(error('announcement-body-ru')).toBe('Обязательное поле');
+    expect(document.activeElement?.id).toBe('announcement-title-ru');
 
     await type('#announcement-title-ru', 'Плановые работы');
-    expect(host.titles()).toEqual({ ru: 'Плановые работы' });
-    expect(save().disabled).toBe(true);
-
-    await type('#announcement-body-ru', '   ');
-    expect(save().disabled).toBe(true);
-
     await type('#announcement-body-ru', 'Сервис будет недоступен.');
-    expect(save().disabled).toBe(false);
+    expect(error('announcement-title-ru')).toBeUndefined();
+    save().click();
+    await settle();
+    expect(host.saves).toBe(1);
+  });
+
+  it('shows the server refusal of a field under it', async () => {
+    const { host, screen, settle } = await render((host) => host.titles.set({ ru: 'Релиз' }));
+    host.draftErrors.set({ bodyRu: 'Слишком длинный текст' });
+    await settle();
+    expect(
+      screen.querySelector('smt-control:has(#announcement-body-ru) .smt-control__error')?.textContent?.trim(),
+    ).toBe('Слишком длинный текст');
   });
 
   it('asks to save a valid draft once, and not while a save is running', async () => {
@@ -97,7 +115,9 @@ describe('AnnouncementsModalsComponent', () => {
     host.saving.set(true);
     await settle();
     expect(save().disabled).toBe(true);
-    expect(save().getAttribute('aria-busy')).toBe('true');
+    save().click();
+    await settle();
+    expect(host.saves).toBe(1);
   });
 
   it('counts the characters of the Russian title against the limit', async () => {
@@ -128,7 +148,7 @@ describe('AnnouncementsModalsComponent', () => {
   it('asks to close from the cancel button', async () => {
     const { host, screen, settle } = await render();
 
-    (screen.querySelector('.form-actions button[type="button"]') as HTMLButtonElement).click();
+    (screen.querySelector('[data-testid="form-cancel"]') as HTMLButtonElement).click();
     await settle();
 
     expect(host.closes).toBe(1);

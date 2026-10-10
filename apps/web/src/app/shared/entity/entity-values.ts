@@ -76,3 +76,16 @@ function dateText(iso: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   return match ? `${match[3]}.${match[2]}.${match[1]}` : iso;
 }
+
+/** Empty values (none, an empty text, an empty list) are the same: a control may write one for another untouched. */
+export function sameFormValues(
+  left: Readonly<Record<string, unknown>>,
+  right: Readonly<Record<string, unknown>>,
+): boolean {
+  const normal = (value: unknown) =>
+    value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)
+      ? null
+      : JSON.stringify(value);
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  return [...keys].every((key) => normal(left[key]) === normal(right[key]));
+}

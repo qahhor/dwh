@@ -87,7 +87,7 @@ test('a report of the orders is built, saved as a widget and shown on the dashbo
     await dialog.getByTestId('report-widget').getByRole('checkbox').click();
     const saved = page.waitForResponse(response =>
       response.request().method() === 'POST' && /\/api\/v1\/list-views\/example\.orders$/u.test(response.url()));
-    await dialog.getByTestId('report-name-submit').click();
+    await dialog.getByTestId('form-submit').click();
     const savedResponse = await saved;
     expect(savedResponse.status()).toBe(201);
     const view = await savedResponse.json() as { id: number; kind: string; state: { chart: string } };

@@ -1,7 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  linkedSignal,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize, map, of } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { finalize, map, Observable, of } from 'rxjs';
 import type { ProblemDetail } from '@core/models/common.models';
 import type { FormProblems } from '@core/models/form-meta.models';
 import {
@@ -19,8 +30,12 @@ import { ToastService } from '@core/services/toast.service';
 import { RefLookups } from '@shared/lookups/ref-lookup';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { focusFirstInvalid, UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
+import { leaveQuestion } from '@shared/ui/leave-question';
+import type { RecordNavigationPage } from '@core/guards/record-navigation.guard';
 import { EntitiesApi, EntityRecord } from '../entities.api';
+import { sameFormValues } from '../entity-values';
 import { SMTEntityFormComponent } from '../smt-entity-form.component';
 import { SMTEntityLinesComponent } from '../smt-entity-lines.component';
 import { isNotFound, recordIdOf, recordName } from './entity-page';
@@ -33,17 +48,19 @@ import { EntityPageContext } from './smt-entity-page.component';
  * (If-Match). A 422 puts the server's problems under the fields; a stale revision (409) or a missing one (428) is
  * the shared conflict message with a button that reads the record again. A document's rows are edited under the form
  * and saved with it (ADR-0032 9.1); the fields and rows the state of its process locks are read-only (ADR-0032 9.2).
+ * A failed check focuses the first field with a problem and lists the problems above the form; leaving the page with
+ * unsaved changes asks the common "discard changes?" question (docs/guidelines/forms-ux-standard.md, sections 4, 8).
  */
 @Component({
   selector: 'smt-entity-edit-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    RouterLink,
-    SMTButtonComponent,
     SMTEntityFormComponent,
     SMTEntityLinesComponent,
     SMTEntityPageStateComponent,
     TranslatePipe,
+    UiFocusFirstInvalidDirective,
+    UiFormActionsComponent,
     UiPageHeaderComponent,
   ],
   host: { class: 'smt-entity-edit-page' },
@@ -60,7 +77,15 @@ import { EntityPageContext } from './smt-entity-page.component';
       }
       @case ('ready') {
         <ui-page-header [title]="heading()" [eyebrow]="context.title()" />
-        <form ngNoForm class="entity-edit" novalidate (submit)="$event.preventDefault(); save()">
+        <form
+          #editForm
+          ngNoForm
+          id="entity-edit-form"
+          class="entity-edit"
+          uiFocusFirstInvalid
+          novalidate
+          (submit)="$event.preventDefault(); save()"
+        >
           <smt-entity-form
             [meta]="meta()"
             [recordId]="record()?.id ?? null"
@@ -80,15 +105,14 @@ import { EntityPageContext } from './smt-entity-page.component';
               (rowsChange)="setRows(collection.key, $event)"
             />
           }
-          <div class="entity-edit-actions">
-            <a smt-button smtVariant="secondary" [routerLink]="backLink()" data-testid="entity-cancel">
-              {{ 'common.cancel' | t }}
-            </a>
-            <button smt-button type="submit" smtVariant="primary" [smtLoading]="saving()" data-testid="entity-save">
-              {{ 'common.save' | t }}
-            </button>
-          </div>
         </form>
+        <ui-form-actions
+          class="entity-edit-actions"
+          form="entity-edit-form"
+          [submitLabel]="(creating() ? 'common.create' : 'common.save') | t"
+          [submitting]="saving()"
+          (cancelled)="cancel()"
+        />
       }
       @default {
         <p class="sr-only" role="status">{{ 'common.loading' | t }}</p>
@@ -110,14 +134,12 @@ import { EntityPageContext } from './smt-entity-page.component';
         max-width: 960px;
       }
       .entity-edit-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
+        max-width: 960px;
       }
     `,
   ],
 })
-export class SMTEntityEditPageComponent {
+export class SMTEntityEditPageComponent implements RecordNavigationPage {
   readonly context = inject(EntityPageContext);
   private readonly entities = inject(EntitiesApi);
   private readonly router = inject(Router);
@@ -125,6 +147,11 @@ export class SMTEntityEditPageComponent {
   private readonly i18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
   private readonly refLookups = inject(RefLookups);
+  private readonly injector = inject(Injector);
+  private readonly askLeave = leaveQuestion();
+  private readonly editForm = viewChild<ElementRef<HTMLFormElement>>('editForm');
+  /** Set once a save succeeded, so the navigation to the saved record does not ask about changes. */
+  private saved = false;
 
   /** The record as last read: the loaded one, or the one read again after a save was refused over a newer revision. */
   readonly record = linkedSignal<EntityRecord | null>(() => (this.loaded.hasValue() ? this.loaded.value() : null));
@@ -179,6 +206,14 @@ export class SMTEntityEditPageComponent {
   /** The rows of a collection on the form, for the template. */
   readonly rowsOf = rowsOf;
 
+  /** The values as the record (or a new one) starts, to tell what the person changed. */
+  private readonly initialValues = computed(() =>
+    recordValues(this.meta(), this.record() ? { ...this.record() } : null),
+  );
+
+  /** Whether the person changed the form since it was read. */
+  readonly dirty = computed(() => !sameFormValues(this.values(), this.initialValues()));
+
   constructor() {
     effect(() => {
       const rec = this.record();
@@ -205,18 +240,34 @@ export class SMTEntityEditPageComponent {
       : this.entities.create(code, payload);
     request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (saved) => {
+        this.saved = true;
         this.toast.success(translate(record ? 'ui.entity_page.saved' : 'ui.entity_page.created'));
         void this.router.navigate([this.context.listLink(), saved.id]);
       },
       error: (problem: ProblemDetail) => {
         this.problems.set(serverProblems(meta, problem?.errors, translate));
-        if (Object.keys(this.problems()).length > 0) return;
+        if (Object.keys(this.problems()).length > 0) {
+          const form = this.editForm()?.nativeElement;
+          if (form) focusFirstInvalid(form, this.injector);
+          return;
+        }
         this.saveErrors.show(problem, {
           fallbackKey: record ? 'ui.entity_page.save_failed' : 'ui.entity_page.create_failed',
           reload: record ? () => this.reload(record.id) : undefined,
         });
       },
     });
+  }
+
+  /** "Cancel" goes back to the record or the list; the route guard asks first when something was changed. */
+  cancel(): void {
+    void this.router.navigateByUrl(this.backLink());
+  }
+
+  /** Unsaved changes make leaving the page ask the common question (forms standard, section 8). */
+  canLeaveRecordPage(): boolean | Observable<boolean> {
+    if (this.saving()) return false;
+    return this.saved || this.state() !== 'ready' || !this.dirty() ? true : this.askLeave();
   }
 
   /** The rows of a collection as the lines edit them. */

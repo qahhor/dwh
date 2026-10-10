@@ -1,18 +1,4 @@
 {
-  "features/announcements/components/announcements-modals.component.ts": {
-    "raw-label": 5,
-    "manual-required": 2
-  },
-  "features/audit/components/audit-logs-table.component.html": {
-    "raw-label": 4
-  },
-  "features/audit/components/audit-modals.component.ts": {
-    "dialog-footer": 2,
-    "module-button-key": 2
-  },
-  "features/audit/components/audit-security-table.component.html": {
-    "raw-label": 3
-  },
   "features/auth/login/components/login-reset-modal.component.ts": {
     "raw-label": 1,
     "dialog-footer": 1
@@ -22,13 +8,6 @@
   },
   "features/auth/reset-password/reset-password.component.ts": {
     "raw-label": 2
-  },
-  "features/files/components/files-modals.component.ts": {
-    "dialog-footer": 1,
-    "module-button-key": 1
-  },
-  "features/files/components/files-toolbar.component.ts": {
-    "raw-label": 1
   },
   "features/iam/custom-fields/components/custom-fields-modals.component.html": {
     "raw-label": 7,
@@ -84,32 +63,5 @@
   },
   "features/iam/users/components/user-effective-permissions-panel.component.html": {
     "raw-label": 2
-  },
-  "features/notes/note-form-dialog.component.html": {
-    "dialog-footer": 1
-  },
-  "shared/entity/report/smt-entity-report-builder.component.ts": {
-    "raw-label": 4
-  },
-  "shared/entity/report/smt-entity-report-saved.component.ts": {
-    "raw-label": 2,
-    "dialog-footer": 1
-  },
-  "shared/entity/smt-entity-import.component.ts": {
-    "dialog-footer": 1
-  },
-  "shared/ui/ui-bulk-result.component.ts": {
-    "dialog-footer": 1
-  },
-  "shared/ui/ui-filter-panel.component.html": {
-    "raw-label": 9
-  },
-  "shared/ui/ui-list-views.component.ts": {
-    "raw-label": 1,
-    "dialog-footer": 1,
-    "module-button-key": 1
-  },
-  "shared/ui/ui-pagination.component.ts": {
-    "raw-label": 1
   }
 }

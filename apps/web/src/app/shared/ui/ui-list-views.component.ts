@@ -1,12 +1,16 @@
 import { CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, CdkMenuTrigger } from '@angular/cdk/menu';
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, Injector, input, signal } from '@angular/core';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { ListViewState, SavedListView } from '../list-views/list-views';
 import { SMTInputComponent } from '../ui-kit/components/forms/input';
 import { SMTModalService } from '../ui-kit/components/modal';
-import { SMTButtonComponent } from '../ui-kit/components/button';
+import { SMTControlComponent } from '../ui-kit/components/forms/control';
+import { discardChangesQuestion } from './discard-changes';
+import { focusFirstInvalid, UiFocusFirstInvalidDirective } from './focus-first-invalid';
+import { problemFieldErrors } from './problem-fields';
+import { UiFormActionsComponent } from './ui-form-actions.component';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/components/modal';
 import { SMTCheckboxComponent } from '../ui-kit/components/forms/checkbox';
 
@@ -34,7 +38,9 @@ const NAME_MAX = 80;
     TranslatePipe,
     SMTDialogComponent,
     SMTDialogContentDirective,
-    SMTButtonComponent,
+    SMTControlComponent,
+    UiFocusFirstInvalidDirective,
+    UiFormActionsComponent,
   ],
   template: `
     <button
@@ -133,23 +139,31 @@ const NAME_MAX = 80;
       </div>
     </ng-template>
 
-    <smt-dialog [open]="saveAsOpen()" [smtTitle]="'ui.views.save_as_title' | t" smtSize="sm" (closed)="closeSaveAs()">
+    <smt-dialog
+      [open]="saveAsOpen()"
+      [smtTitle]="'ui.views.save_as_title' | t"
+      smtSize="sm"
+      [dismissible]="!state().busy()"
+      (closed)="closeSaveAs()"
+    >
       <ng-template smtDialogContent>
-        <form body class="views-form" (submit)="$event.preventDefault(); submitSaveAs()" novalidate>
-          <label class="form-label" [for]="nameId">{{ 'ui.views.name' | t }}</label>
-          <smt-input
-            #nameInput
-            smtTestId="views-name"
-            [smtFieldId]="nameId"
-            [maxLength]="nameMax"
-            [value]="name()"
-            (valueChange)="name.set($event === null ? '' : '' + $event)"
-            [smtInvalid]="!!nameError()"
-            [smtDescribedBy]="nameError() ? nameId + '-error' : null"
-          />
-          @if (nameError(); as error) {
-            <span class="views-error" [id]="nameId + '-error'" data-testid="views-name-error">{{ error | t }}</span>
-          }
+        <form
+          class="views-form"
+          [id]="nameId + '-form'"
+          uiFocusFirstInvalid
+          (submit)="$event.preventDefault(); submitSaveAs()"
+          novalidate
+        >
+          <smt-control [smtLabel]="'ui.views.name' | t" [smtError]="nameErrorText()" [required]="true">
+            <smt-input
+              smtTestId="views-name"
+              smtFocusInitial
+              [smtFieldId]="nameId"
+              [maxLength]="nameMax"
+              [value]="name()"
+              (valueChange)="name.set($event === null ? '' : '' + $event)"
+            />
+          </smt-control>
           <div
             smt-checkbox
             class="views-default-choice"
@@ -160,21 +174,13 @@ const NAME_MAX = 80;
             {{ 'ui.views.open_by_default' | t }}
           </div>
         </form>
-        <div footer class="views-footer">
-          <button smt-button type="button" smtVariant="secondary" (click)="closeSaveAs()">
-            {{ 'common.cancel' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            smtVariant="primary"
-            data-testid="views-name-submit"
-            [smtLoading]="state().busy()"
-            (click)="submitSaveAs()"
-          >
-            {{ 'ui.views.save_button' | t }}
-          </button>
-        </div>
+        <ui-form-actions
+          footer
+          [form]="nameId + '-form'"
+          data-testid="views-save-as-actions"
+          [submitting]="state().busy()"
+          (cancelled)="closeSaveAs()"
+        />
       </ng-template>
     </smt-dialog>
   `,
@@ -187,13 +193,23 @@ export class UiListViewsComponent {
 
   readonly state = input.required<ListViewState>();
 
-  private readonly nameInput = viewChild<SMTInputComponent>('nameInput');
+  private readonly injector = inject(Injector);
+  private readonly askDiscard = discardChangesQuestion();
 
   readonly saveAsOpen = signal(false);
   readonly name = signal('');
   readonly makeDefault = signal(false);
   /** An i18n key shown under the name field. */
   readonly nameError = signal<string | null>(null);
+  /** The server's own words on the name, when it names the field without a known key. */
+  readonly nameProblem = signal('');
+
+  /** The error under the name: ours by key, or the server's words. */
+  readonly nameErrorText = computed(() => {
+    this.i18n.currentLang();
+    const key = this.nameError();
+    return key ? this.i18n.translate(key) : this.nameProblem();
+  });
 
   readonly activeName = computed(() => this.state().active()?.name ?? this.i18n.translate('ui.views.standard'));
 
@@ -206,16 +222,23 @@ export class UiListViewsComponent {
     this.name.set('');
     this.makeDefault.set(false);
     this.nameError.set(null);
+    this.nameProblem.set('');
     this.saveAsOpen.set(true);
-    setTimeout(() => this.nameInput()?.focus());
   }
 
+  /** Escape, the backdrop, the cross and "Cancel" ask before a typed name is dropped (forms standard, 8). */
   closeSaveAs(): void {
-    this.saveAsOpen.set(false);
+    if (this.state().busy()) return;
+    this.askDiscard(!!this.name().trim() || this.makeDefault()).subscribe((discard) => {
+      if (discard) this.saveAsOpen.set(false);
+    });
   }
 
+  /** Enter and "Save" land here; one request while a save runs; an empty name says so and takes the focus. */
   submitSaveAs(): void {
+    if (this.state().busy()) return;
     const name = this.name().trim();
+    this.nameProblem.set('');
     if (name.length === 0) {
       this.nameError.set('ui.views.name_required');
       return;
@@ -229,9 +252,16 @@ export class UiListViewsComponent {
           this.toast.success(this.i18n.translate('ui.views.saved'));
         },
         error: (problem: ProblemDetail) => {
+          const { fields } = problemFieldErrors(problem, { known: ['name'] });
           if (problem?.messageKey === 'error.md.list_view_name_taken') this.nameError.set('ui.views.name_taken');
           else if (problem?.messageKey === 'error.md.list_view_limit') this.nameError.set('ui.views.limit');
-          else this.toast.error(this.i18n.translate('ui.views.save_error'));
+          else if (fields['name']) this.nameProblem.set(fields['name']);
+          else {
+            this.toast.error(this.i18n.translate('ui.views.save_error'));
+            return;
+          }
+          const form = document.getElementById(`${this.nameId}-form`);
+          if (form) focusFirstInvalid(form, this.injector);
         },
       });
   }

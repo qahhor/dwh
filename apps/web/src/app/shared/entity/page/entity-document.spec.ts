@@ -153,7 +153,7 @@ describe('a document on the general form', () => {
     lines(root)[0].querySelector<HTMLButtonElement>('[data-testid="entity-line-remove"]')!.click();
     await settle();
 
-    click(root, '[data-testid="entity-save"]');
+    click(root, '[data-testid="form-submit"]');
     await settle();
 
     expect(api.post).toHaveBeenCalledWith(
@@ -187,7 +187,7 @@ describe('a document on the general form', () => {
       },
     });
 
-    click(root, '[data-testid="entity-save"]');
+    click(root, '[data-testid="form-submit"]');
     await settle();
 
     expect(lines(root)[0].querySelector('[data-field="qty"]')?.textContent).toContain(
@@ -207,7 +207,7 @@ describe('a document on the general form', () => {
 
     expect(root.querySelector<HTMLInputElement>('smt-entity-form [data-field="customer"] input')!.disabled).toBe(true);
     expect(root.querySelector('[data-testid="entity-line-add"]')).toBeNull();
-    click(root, '[data-testid="entity-save"]');
+    click(root, '[data-testid="form-submit"]');
     await settle();
 
     const body = api.patch.mock.calls[0][1] as Record<string, unknown>;

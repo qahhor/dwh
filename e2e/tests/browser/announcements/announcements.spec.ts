@@ -32,7 +32,7 @@ test('administrator creates, publishes, and archives a local announcement', asyn
   const createResponse = page.waitForResponse(response =>
     response.request().method() === 'POST' && response.url().endsWith('/api/v1/announcements')
   );
-  await editor.getByTestId('save-draft').click();
+  await editor.getByTestId('form-submit').click();
   const created = await createResponse;
   expect(created.ok()).toBe(true);
   expect(new URL(created.url()).origin).toBe(origin);
