@@ -60,21 +60,6 @@
     "manual-error": 1,
     "dialog-footer": 1
   },
-  "features/iam/roles/components/role-cards-bar.component.ts": {
-    "raw-label": 1
-  },
-  "features/iam/roles/components/role-modals.component.html": {
-    "raw-label": 5,
-    "manual-required": 2,
-    "manual-error": 2,
-    "dialog-footer": 4
-  },
-  "features/iam/roles/components/role-permissions-matrix.component.html": {
-    "raw-label": 1
-  },
-  "features/iam/users/components/user-effective-permissions-panel.component.html": {
-    "raw-label": 2
-  },
   "features/notes/note-form-dialog.component.html": {
     "dialog-footer": 1
   },

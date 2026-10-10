@@ -3,54 +3,48 @@
   [open]="isCreateModalOpen()"
   [smtTitle]="'iam.roles.editor.create_title' | t"
   smtSize="sm"
+  [dismissible]="!isSubmittingRole()"
   (closed)="closeCreate.emit()"
 >
   <ng-template smtDialogContent>
-    <div body class="modal-body-form">
-      <div class="modal-field">
-        <label class="modal-label" for="role-create-name"
-          >{{ 'iam.roles.editor.role_name' | t }} <span class="req">*</span></label
-        >
+    <form
+      body
+      id="role-create-form"
+      class="modal-body-form"
+      uiFocusFirstInvalid
+      novalidate
+      (submit)="$event.preventDefault(); submitCreate.emit()"
+    >
+      <ui-form-error-summary [errors]="summary(createErrors(), 'role-create')" />
+      <smt-control [smtLabel]="'iam.roles.editor.role_name' | t" [smtError]="createErrors().fields['name'] ?? ''">
         <smt-input
           smtFieldId="role-create-name"
-          name="roleCreateName"
-          required
-          [smtInvalid]="isCreateSubmitted() && !newRoleForm().name.trim()"
-          [smtDescribedBy]="isCreateSubmitted() && !newRoleForm().name.trim() ? 'role-create-name-error' : null"
-          [(value)]="newRoleForm().name"
+          smtFocusInitial
+          [formField]="createForm().name"
           [placeholder]="'iam.roles.editor.name_placeholder' | t"
         />
-        @if (isCreateSubmitted() && !newRoleForm().name.trim()) {
-          <span id="role-create-name-error" class="field-error">{{ 'iam.roles.editor.enter_role_name' | t }}</span>
-        }
-      </div>
-      <div class="modal-field">
-        <label class="modal-label" for="role-create-order">{{ 'iam.roles.editor.display_order' | t }}</label>
+      </smt-control>
+      <smt-control
+        [smtLabel]="'iam.roles.editor.display_order' | t"
+        [smtError]="createErrors().fields['orderNo'] ?? ''"
+      >
         <smt-input
           smtFieldId="role-create-order"
-          name="roleCreateOrder"
           type="number"
           class="font-mono"
-          [(value)]="newRoleForm().orderNo"
+          [smtStep]="1"
+          [formField]="createForm().orderNo"
           placeholder="0"
         />
-      </div>
-    </div>
-    <div footer>
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreate.emit()">
-        {{ 'common.cancel' | t }}
-      </button>
-      <button
-        smt-button
-        type="button"
-        smtVariant="primary"
-        smtSize="md"
-        [smtLoading]="isSubmittingRole()"
-        (click)="submitCreate.emit()"
-      >
-        {{ 'common.create' | t }}
-      </button>
-    </div>
+      </smt-control>
+    </form>
+    <ui-form-actions
+      footer
+      form="role-create-form"
+      [submitLabel]="'common.create' | t"
+      [submitting]="isSubmittingRole()"
+      (cancelled)="closeCreate.emit()"
+    />
   </ng-template>
 </smt-dialog>
 
@@ -59,68 +53,50 @@
   [open]="isEditModalOpen()"
   [smtTitle]="'iam.roles.editor.edit_title' | t"
   smtSize="sm"
+  [dismissible]="!isSubmittingRole()"
   (closed)="closeEdit.emit()"
 >
   <ng-template smtDialogContent>
     @if (editingRole(); as r) {
-      <div body class="modal-body-form">
-        <div class="modal-field">
-          <label class="modal-label" for="role-edit-name"
-            >{{ 'iam.roles.editor.role_name' | t }} <span class="req">*</span></label
-          >
-          <smt-input
-            smtFieldId="role-edit-name"
-            name="roleEditName"
-            required
-            [smtInvalid]="isEditSubmitted() && !editRoleForm().name.trim()"
-            [smtDescribedBy]="isEditSubmitted() && !editRoleForm().name.trim() ? 'role-edit-name-error' : null"
-            [(value)]="editRoleForm().name"
-          />
-          @if (isEditSubmitted() && !editRoleForm().name.trim()) {
-            <span id="role-edit-name-error" class="field-error">{{ 'iam.roles.editor.enter_role_name' | t }}</span>
-          }
-        </div>
-        <div class="modal-field">
-          <label class="modal-label" for="role-edit-state">{{ 'iam.common.activity_status' | t }}</label>
+      <form
+        body
+        id="role-edit-form"
+        class="modal-body-form"
+        uiFocusFirstInvalid
+        novalidate
+        (submit)="$event.preventDefault(); submitEdit.emit()"
+      >
+        <ui-form-error-summary [errors]="summary(editErrors(), 'role-edit')" />
+        <smt-control [smtLabel]="'iam.roles.editor.role_name' | t" [smtError]="editErrors().fields['name'] ?? ''">
+          <smt-input smtFieldId="role-edit-name" smtFocusInitial [formField]="editForm().name" />
+        </smt-control>
+        <smt-control
+          [smtLabel]="'iam.common.activity_status' | t"
+          [smtHint]="r.pcode === 'admin' ? ('iam.roles.editor.super_admin_always_active' | t) : ''"
+          [smtError]="editErrors().fields['state'] ?? ''"
+        >
           <smt-select
             smtTriggerId="role-edit-state"
-            name="roleEditState"
-            [(value)]="editRoleForm().state"
+            [formField]="editForm().state"
             [options]="stateOptions()"
             [allowClear]="false"
-            [disabled]="r.pcode === 'admin'"
           />
-          @if (r.pcode === 'admin') {
-            <span class="modal-help">{{ 'iam.roles.editor.super_admin_always_active' | t }}</span>
-          }
-        </div>
-        <div class="modal-field">
-          <label class="modal-label" for="role-edit-order">{{ 'iam.roles.editor.display_order' | t }}</label>
+        </smt-control>
+        <smt-control
+          [smtLabel]="'iam.roles.editor.display_order' | t"
+          [smtError]="editErrors().fields['orderNo'] ?? ''"
+        >
           <smt-input
             smtFieldId="role-edit-order"
-            name="roleEditOrder"
             type="number"
             class="font-mono"
-            [(value)]="editRoleForm().orderNo"
+            [smtStep]="1"
+            [formField]="editForm().orderNo"
           />
-        </div>
-      </div>
+        </smt-control>
+      </form>
     }
-    <div footer>
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeEdit.emit()">
-        {{ 'common.cancel' | t }}
-      </button>
-      <button
-        smt-button
-        type="button"
-        smtVariant="primary"
-        smtSize="md"
-        [smtLoading]="isSubmittingRole()"
-        (click)="submitEdit.emit()"
-      >
-        {{ 'common.save' | t }}
-      </button>
-    </div>
+    <ui-form-actions footer form="role-edit-form" [submitting]="isSubmittingRole()" (cancelled)="closeEdit.emit()" />
   </ng-template>
 </smt-dialog>
 
@@ -142,28 +118,14 @@
         <span class="delete-desc">{{ 'iam.roles.editor.delete_warning' | t }}</span>
       </div>
     }
-    <div footer>
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="md"
-        [disabled]="isSubmittingRole()"
-        (click)="closeDelete.emit()"
-      >
-        {{ 'common.cancel' | t }}
-      </button>
-      <button
-        smt-button
-        type="button"
-        smtVariant="danger"
-        smtSize="md"
-        [smtLoading]="isSubmittingRole()"
-        (click)="confirmDelete.emit()"
-      >
-        {{ 'common.delete' | t }}
-      </button>
-    </div>
+    <ui-form-actions
+      footer
+      submitVariant="danger"
+      [submitLabel]="'common.delete' | t"
+      [submitting]="isSubmittingRole()"
+      (submitted)="confirmDelete.emit()"
+      (cancelled)="closeDelete.emit()"
+    />
   </ng-template>
 </smt-dialog>
 
@@ -183,37 +145,22 @@
         </p>
       </div>
     }
-    <div footer>
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="md"
-        [disabled]="isSaving()"
-        (click)="closeDiscard.emit()"
-      >
-        {{ 'common.cancel' | t }}
-      </button>
+    <ui-form-actions
+      footer
+      [submitLabel]="'iam.roles.editor.save_and_switch' | t"
+      [submitting]="isSaving()"
+      (submitted)="saveAndSwitch.emit()"
+      (cancelled)="closeDiscard.emit()"
+    >
       <button
         smt-button
         type="button"
         smtVariant="danger"
-        smtSize="md"
         [disabled]="isSaving()"
         (click)="confirmDiscardAndSwitch.emit()"
       >
         {{ 'iam.roles.editor.discard_and_switch' | t }}
       </button>
-      <button
-        smt-button
-        type="button"
-        smtVariant="primary"
-        smtSize="md"
-        [smtLoading]="isSaving()"
-        (click)="saveAndSwitch.emit()"
-      >
-        {{ 'iam.roles.editor.save_and_switch' | t }}
-      </button>
-    </div>
+    </ui-form-actions>
   </ng-template>
 </smt-dialog>
