@@ -56,6 +56,26 @@ test('invalid credentials keep the user on login and show an alert', async ({ pa
   await expect(page.getByLabel(fieldName('Пароль'))).toBeFocused();
 });
 
+test('empty sign-in and reset request explain each field instead of doing nothing', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Войти в систему' }).click();
+  await expect(page.getByText('Укажите логин или email', { exact: true })).toBeVisible();
+  await expect(page.getByText('Укажите пароль', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Логин или Email')).toBeFocused();
+  await expect(page.getByLabel('Логин или Email')).toHaveAttribute('aria-required', 'true');
+
+  await page.getByRole('button', { name: 'Забыли пароль?', exact: true }).click();
+  const resetDialog = page.getByRole('dialog', { name: 'Восстановление пароля' });
+  const email = resetDialog.getByLabel(fieldName('Email'));
+  await expect(email).toBeFocused();
+  await resetDialog.getByRole('button', { name: 'Отправить ссылку', exact: true }).click();
+  await expect(resetDialog.getByText('Укажите email', { exact: true })).toBeVisible();
+  await expect(email).toHaveAttribute('aria-invalid', 'true');
+  await expect(email).toBeFocused();
+  await resetDialog.getByRole('button', { name: 'Отмена', exact: true }).click();
+  await expect(resetDialog).toBeHidden();
+});
+
 test('admin can navigate principal areas without browser errors and can log out', async ({ page }) => {
   await loginToInstance(page);
   const assertNoPageErrors = collectPageErrors(page);
