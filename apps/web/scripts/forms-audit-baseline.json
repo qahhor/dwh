@@ -20,11 +20,6 @@
   "features/files/components/files-toolbar.component.ts": {
     "raw-label": 1
   },
-  "features/iam/custom-fields/components/custom-fields-modals.component.html": {
-    "raw-label": 7,
-    "manual-required": 5,
-    "dialog-footer": 1
-  },
   "features/iam/org-units/org-unit-editor.component.html": {
     "raw-label": 6,
     "dialog-footer": 1,

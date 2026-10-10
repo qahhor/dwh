@@ -3,163 +3,121 @@
   <smt-dialog
     [open]="showModal()"
     [smtTitle]="(editingField() ? 'iam.edit_field' : 'iam.new_custom_field') | t"
+    [dismissible]="!saving()"
     (closed)="closeModal.emit()"
   >
     <ng-template smtDialogContent>
-      <form id="customFieldForm" body class="modal-form" (submit)="$event.preventDefault(); saveField.emit()">
-        <!-- Entity Target (only in creation) -->
-        @if (!editingField()) {
-          <div class="form-group">
-            <label class="form-label" for="custom-field-entity">
-              {{ 'iam.custom_fields.editor.target_entity' | t }} <span class="req" aria-hidden="true">*</span>
-            </label>
-            <smt-select
-              smtTriggerId="custom-field-entity"
-              name="entityType"
-              [(value)]="formData().entityType"
-              [options]="entityOptions()"
-              [allowClear]="false"
-              required
-            />
-          </div>
-        }
+      <form
+        id="customFieldForm"
+        body
+        class="modal-form"
+        uiFocusFirstInvalid
+        novalidate
+        (submit)="$event.preventDefault(); saveField.emit()"
+      >
+        <ui-form-error-summary [errors]="summary()" />
 
-        <!-- Code & Name -->
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label class="form-label" for="custom-field-code">
-              {{ 'iam.custom_fields.editor.field_code_slug' | t }} <span class="req" aria-hidden="true">*</span>
-            </label>
-            <!-- The native input event bubbles from the inner field; the page cleans the code from it. -->
+        <div class="form-grid">
+          <!-- Entity Target (only in creation) -->
+          @if (!editingField()) {
+            <smt-control
+              [smtLabel]="'iam.custom_fields.editor.target_entity' | t"
+              [smtError]="serverError('entityType')"
+            >
+              <smt-select
+                smtTriggerId="custom-field-entity"
+                [formField]="fieldForm().entityType"
+                [options]="entityOptions()"
+                [allowClear]="false"
+              />
+            </smt-control>
+          }
+
+          <!-- The native input event bubbles from the inner field; the page cleans the code from it. -->
+          <smt-control
+            [smtLabel]="'iam.custom_fields.editor.field_code_slug' | t"
+            [smtHint]="
+              (editingField() ? 'iam.custom_fields.editor.code_readonly' : 'iam.custom_fields.editor.code_hint') | t
+            "
+            [smtError]="serverError('code')"
+          >
             <smt-input
               #codeField
               class="font-mono"
               smtFieldId="custom-field-code"
-              name="code"
-              [(value)]="formData().code"
+              [smtFocusInitial]="!editingField()"
+              [formField]="fieldForm().code"
               (input)="onCodeInput($event, codeField)"
-              [disabled]="!!editingField()"
               [placeholder]="'iam.custom_fields.editor.code_placeholder' | t"
-              [maxLength]="64"
               autocomplete="off"
-              [smtInvalid]="!!formError()"
-              [smtDescribedBy]="formError() ? 'custom-field-form-error' : null"
-              required
             />
-            @if (!editingField()) {
-              <span class="form-hint">{{ 'iam.custom_fields.editor.code_hint' | t }}</span>
-            }
-            @if (editingField()) {
-              <span class="form-hint readonly-hint">{{ 'iam.custom_fields.editor.code_readonly' | t }}</span>
-            }
-          </div>
+          </smt-control>
 
-          <div class="form-group flex-1">
-            <label class="form-label" for="custom-field-name">
-              {{ 'iam.custom_fields.editor.field_name' | t }} <span class="req" aria-hidden="true">*</span>
-            </label>
+          <smt-control [smtLabel]="'iam.custom_fields.editor.field_name' | t" [smtError]="serverError('name')">
             <smt-input
               smtFieldId="custom-field-name"
-              name="name"
-              [(value)]="formData().name"
+              [smtFocusInitial]="!!editingField()"
+              [formField]="fieldForm().name"
               [placeholder]="'iam.custom_fields.editor.name_placeholder' | t"
-              [maxLength]="100"
-              [smtInvalid]="!!formError()"
-              [smtDescribedBy]="formError() ? 'custom-field-form-error' : null"
-              required
             />
-          </div>
-        </div>
+          </smt-control>
 
-        <!-- Type, Default Value & Order -->
-        <div class="form-row">
           @if (!editingField()) {
-            <div class="form-group flex-1">
-              <label class="form-label" for="custom-field-type">
-                {{ 'iam.custom_fields.data_type' | t }} <span class="req" aria-hidden="true">*</span>
-              </label>
+            <smt-control [smtLabel]="'iam.custom_fields.data_type' | t" [smtError]="serverError('fieldType')">
               <smt-select
                 smtTriggerId="custom-field-type"
-                name="fieldType"
-                [(value)]="formData().fieldType"
+                [formField]="fieldForm().fieldType"
                 [options]="fieldTypeOptions()"
                 [allowClear]="false"
-                required
               />
-            </div>
+            </smt-control>
           }
 
-          <div class="form-group flex-1">
-            <label class="form-label" for="custom-field-default">
-              {{ 'iam.custom_fields.default_value' | t }}
-            </label>
-            <smt-input
-              smtFieldId="custom-field-default"
-              name="defaultValue"
-              [(value)]="formData().defaultValue"
-              [placeholder]="'iam.custom_fields.editor.optional' | t"
-              [maxLength]="255"
-            />
-          </div>
+          <smt-control [smtLabel]="'iam.custom_fields.default_value' | t" [smtError]="serverError('defaultValue')">
+            <smt-input smtFieldId="custom-field-default" [formField]="fieldForm().defaultValue" />
+          </smt-control>
 
-          <div class="form-group order-input-group">
-            <label class="form-label" for="custom-field-order">
-              {{ 'iam.custom_fields.editor.sort_order' | t }}
-            </label>
+          <smt-control [smtLabel]="'iam.custom_fields.editor.sort_order' | t" [smtError]="serverError('orderNo')">
             <smt-input
               class="font-mono"
               smtFieldId="custom-field-order"
-              name="orderNo"
               type="number"
-              [(value)]="formData().orderNo"
-              [placeholder]="'iam.custom_fields.editor.sort_order_hint' | t"
+              [formField]="fieldForm().orderNo"
               [smtMin]="0"
               [smtMax]="99999"
+              [smtStep]="1"
+              placeholder="10"
             />
+          </smt-control>
+
+          <!-- Options for select type -->
+          @if (fieldForm().fieldType().value() === 'select') {
+            <smt-control
+              class="form-wide"
+              [smtLabel]="'iam.custom_fields.editor.list_options' | t"
+              [smtHint]="'iam.custom_fields.editor.options_hint' | t"
+              [smtError]="serverError('optionsText')"
+            >
+              <smt-textarea smtFieldId="custom-field-options" [formField]="fieldForm().optionsText" [rows]="4" />
+            </smt-control>
+          }
+
+          <!-- Required flag, saved with the form -->
+          <div class="form-wide checkbox-group">
+            <div smt-checkbox [formField]="fieldForm().isRequired">
+              {{ 'iam.custom_fields.editor.required' | t }}
+            </div>
           </div>
         </div>
-
-        <!-- Options for select type -->
-        @if (formData().fieldType === 'select') {
-          <div class="form-group">
-            <label class="form-label" for="custom-field-options">
-              {{ 'iam.custom_fields.editor.list_options' | t }} <span class="req" aria-hidden="true">*</span>
-            </label>
-            <smt-textarea
-              smtFieldId="custom-field-options"
-              name="optionsText"
-              [(value)]="formData().optionsText"
-              [rows]="4"
-              [placeholder]="'iam.custom_fields.editor.one_option_per_line' | t"
-              [smtInvalid]="!!formError()"
-              [smtDescribedBy]="formError() ? 'custom-field-form-error' : ''"
-              required
-            />
-            <span class="form-hint">{{ 'iam.custom_fields.editor.options_hint' | t }}</span>
-          </div>
-        }
-
-        <!-- Required flag, saved with the form -->
-        <div class="form-group checkbox-group">
-          <div smt-checkbox name="isRequired" [(checked)]="formData().isRequired">
-            {{ 'iam.custom_fields.editor.required' | t }}
-          </div>
-        </div>
-
-        @if (formError()) {
-          <p id="custom-field-form-error" class="form-error" role="alert">{{ formError() }}</p>
-        }
       </form>
 
-      <div footer class="modal-footer-actions">
-        <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">
-          {{ 'common.cancel' | t }}
-        </button>
-        <!-- The click asks the page, which checks the fields; Enter in a field submits the form instead. -->
-        <button smt-button type="button" smtVariant="primary" [smtLoading]="saving()" (click)="saveField.emit()">
-          {{ 'common.save' | t }}
-        </button>
-      </div>
+      <ui-form-actions
+        footer
+        form="customFieldForm"
+        [submitLabel]="(editingField() ? 'common.save' : 'common.create') | t"
+        [submitting]="saving()"
+        (cancelled)="closeModal.emit()"
+      />
     </ng-template>
   </smt-dialog>
 }

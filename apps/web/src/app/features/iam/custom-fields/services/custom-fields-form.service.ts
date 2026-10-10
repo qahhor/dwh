@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { disabled, maxLength, required, SchemaFn, validate } from '@angular/forms/signals';
 import { I18nService } from '@core/services/i18n.service';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
 
@@ -23,16 +24,6 @@ export const RESERVED_CODES = new Set<string>([
   'options',
   'values',
 ]);
-
-export interface FormValidationResult {
-  isValid: boolean;
-  errorMessage?: string;
-  fieldErrors: {
-    code?: string;
-    name?: string;
-    optionsText?: string;
-  };
-}
 
 @Injectable({
   providedIn: 'root',
@@ -74,44 +65,50 @@ export class CustomFieldsFormService {
       .replace(/_+/g, '_');
   }
 
-  validateForm(formData: CustomFieldFormData, isEditing: boolean): FormValidationResult {
-    const fieldErrors: FormValidationResult['fieldErrors'] = {};
+  /**
+   * The rules of the field dialog (docs/guidelines/forms-ux-standard.md, section 4): name and code are required, a
+   * new code is a slug outside the reserved words, a drop-down needs at least one value. The code of an edited field
+   * cannot change, so it is not checked.
+   */
+  schema(isEditing: () => boolean): SchemaFn<CustomFieldFormData> {
+    const t = (key: string) => () => this.uiI18n.translate(key);
+    return (path) => {
+      required(path.entityType);
+      required(path.fieldType);
+      required(path.name, { message: t('iam.custom_fields.editor.enter_field_name') });
+      validate(path.name, ({ value }) =>
+        !value() || value().trim()
+          ? null
+          : { kind: 'required', message: this.uiI18n.translate('iam.custom_fields.editor.enter_field_name') },
+      );
+      maxLength(path.name, 100);
+      disabled(path.code, isEditing);
+      required(path.code, { message: t('iam.custom_fields.editor.enter_field_code') });
+      validate(path.code, ({ value }) => {
+        const key = this.codeProblem(value());
+        return key ? { kind: 'code', message: this.uiI18n.translate(key) } : null;
+      });
+      maxLength(path.code, 64);
+      maxLength(path.defaultValue, 255);
+      required(path.optionsText, {
+        when: ({ valueOf }) => valueOf(path.fieldType) === 'select',
+        message: t('iam.custom_fields.editor.options_required'),
+      });
+      validate(path.optionsText, ({ value, valueOf }) =>
+        valueOf(path.fieldType) !== 'select' || !value() || this.parseOptionsText(value()).length > 0
+          ? null
+          : { kind: 'required', message: this.uiI18n.translate('iam.custom_fields.editor.options_required') },
+      );
+    };
+  }
 
-    const name = (formData.name || '').trim();
-    if (!name) {
-      fieldErrors.name = this.uiI18n.translate('iam.custom_fields.editor.enter_field_name');
-    }
-
-    const code = (formData.code || '').trim();
-    if (!code) {
-      fieldErrors.code = this.uiI18n.translate('iam.custom_fields.editor.enter_field_code');
-    } else if (!isEditing) {
-      const codePattern = /^[a-z][a-z0-9_]{1,63}$/;
-      if (!codePattern.test(code)) {
-        fieldErrors.code = this.uiI18n.translate('iam.invalid_code_slug');
-      } else if (RESERVED_CODES.has(code.toLowerCase())) {
-        fieldErrors.code = this.uiI18n.translate('iam.custom_fields.editor.code_reserved');
-      }
-    }
-
-    if (formData.fieldType === 'select') {
-      const options = this.parseOptionsText(formData.optionsText);
-      if (options.length === 0) {
-        fieldErrors.optionsText = this.uiI18n.translate('iam.custom_fields.editor.options_required');
-      }
-    }
-
-    const isValid = Object.keys(fieldErrors).length === 0;
-    let errorMessage: string | undefined;
-    if (!isValid) {
-      errorMessage =
-        fieldErrors.name ||
-        fieldErrors.code ||
-        fieldErrors.optionsText ||
-        this.uiI18n.translate('iam.common.fill_required_fields');
-    }
-
-    return { isValid, errorMessage, fieldErrors };
+  /** The catalog key of what is wrong with a typed code, or null when it is a free slug (or empty). */
+  codeProblem(value: string): string | null {
+    const code = (value || '').trim();
+    if (!code) return null;
+    if (!/^[a-z][a-z0-9_]{1,63}$/.test(code)) return 'iam.invalid_code_slug';
+    if (RESERVED_CODES.has(code.toLowerCase())) return 'iam.custom_fields.editor.code_reserved';
+    return null;
   }
 
   parseOptionsText(value: string | undefined): Array<string | { value: string; label: string }> {
