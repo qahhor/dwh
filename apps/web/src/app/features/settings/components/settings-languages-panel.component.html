@@ -97,63 +97,57 @@
   <smt-dialog
     [open]="isAddLangModalOpen()"
     [smtTitle]="'settings.languages.add_title' | t"
-    [smtAriaLabel]="'settings.languages.add_title' | t"
-    (closed)="closeAddLangModal.emit()"
+    (closed)="requestCloseAdd()"
   >
     <ng-template smtDialogContent>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label" for="new-lang-code">{{ 'settings.languages.code_iso' | t }}</label>
-          <smt-input
-            smtFieldId="new-lang-code"
-            [value]="newLangCode()"
-            (valueChange)="newLangCodeChange.emit($event === null ? '' : '' + $event)"
-            placeholder="kk, ky, tg, de, tr"
-            [maxLength]="10"
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="new-lang-name">{{ 'settings.languages.language_name' | t }}</label>
+      <form
+        id="settings-add-language"
+        class="form-grid"
+        uiFocusFirstInvalid
+        novalidate
+        (submit)="$event.preventDefault(); submitAdd()"
+      >
+        <smt-control
+          class="form-group"
+          [smtLabel]="'settings.languages.code_iso' | t"
+          [smtHint]="'settings.languages.code_hint' | t"
+          [smtError]="addServerErrors()['code'] ?? ''"
+        >
+          <smt-input smtFieldId="new-lang-code" smtFocusInitial [formField]="addForm.code" placeholder="kk" />
+        </smt-control>
+        <smt-control
+          class="form-group"
+          [smtLabel]="'settings.languages.language_name' | t"
+          [smtError]="addServerErrors()['name'] ?? ''"
+        >
           <smt-input
             smtFieldId="new-lang-name"
-            [value]="newLangName()"
-            (valueChange)="newLangNameChange.emit($event === null ? '' : '' + $event)"
+            [formField]="addForm.name"
             [placeholder]="'settings.languages.name_placeholder' | t"
           />
-        </div>
-        <div class="form-group full-width">
-          <label class="form-label" for="new-lang-json">{{ 'settings.languages.json_dictionary_optional' | t }}</label>
+        </smt-control>
+        <smt-control
+          class="form-group full-width"
+          [smtLabel]="'settings.languages.json_dictionary_optional' | t"
+          [smtError]="addServerErrors()['json'] ?? ''"
+        >
           <smt-textarea
             class="mono"
             smtFieldId="new-lang-json"
             [rows]="6"
-            [value]="newLangJson()"
-            (valueChange)="newLangJsonChange.emit($event)"
+            [formField]="addForm.json"
             [placeholder]="'settings.translation_json_example' | t"
           />
-        </div>
-      </div>
-      <div modal-footer class="modal-footer-btns">
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          (click)="closeAddLangModal.emit()"
-          [disabled]="isAddingLang()"
-        >
-          {{ 'common.cancel' | t }}
-        </button>
-        <button
-          smt-button
-          type="button"
-          smtVariant="primary"
-          [smtLoading]="isAddingLang()"
-          (click)="saveNewLanguage.emit()"
-          [disabled]="!newLangCode().trim() || !newLangName().trim()"
-        >
-          {{ 'settings.languages.save_language' | t }}
-        </button>
-      </div>
+        </smt-control>
+      </form>
+      <ui-form-actions
+        footer
+        form="settings-add-language"
+        data-testid="add-language-actions"
+        [submitLabel]="'settings.languages.save_language' | t"
+        [submitting]="isAddingLang()"
+        (cancelled)="requestCloseAdd()"
+      />
     </ng-template>
   </smt-dialog>
 }

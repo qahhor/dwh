@@ -82,6 +82,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
+        canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/settings/settings.component').then((m) => m.SettingsComponent),
       },
       {
@@ -125,6 +126,7 @@ export const routes: Routes = [
       {
         matcher: uplSourceMatcher,
         canActivate: [moduleActiveGuard('upl'), permissionGuard('upl.sources', 'view')],
+        canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/upl/sources/source-card.component').then((m) => m.SourceCardComponent),
       },
       {

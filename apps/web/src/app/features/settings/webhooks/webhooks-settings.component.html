@@ -140,21 +140,34 @@
     [open]="isCreateModalOpen()"
     [smtTitle]="'settings.webhooks.add' | t"
     smtSize="md"
-    (closed)="closeCreateModal()"
+    (closed)="requestCloseCreate()"
   >
     <ng-template smtDialogContent>
-      <div body class="create-form-body">
-        <div class="form-row">
-          <label for="webhook-name" class="form-lbl">{{ 'settings.webhooks.name' | t }} *</label>
+      <form
+        id="webhook-create"
+        class="create-form-body"
+        uiFocusFirstInvalid
+        novalidate
+        (submit)="$event.preventDefault(); submitCreate()"
+      >
+        <smt-control
+          class="form-row"
+          [smtLabel]="'settings.webhooks.name' | t"
+          [smtError]="serverErrors()['name'] ?? ''"
+        >
           <smt-input
             smtFieldId="webhook-name"
+            smtFocusInitial
             [placeholder]="'settings.webhooks.name_placeholder' | t"
             [formField]="createForm.name"
           />
-        </div>
+        </smt-control>
 
-        <div class="form-row">
-          <label for="webhook-url" class="form-lbl">{{ 'settings.webhooks.target_url' | t }} *</label>
+        <smt-control
+          class="form-row"
+          [smtLabel]="'settings.webhooks.target_url' | t"
+          [smtError]="serverErrors()['targetUrl'] ?? ''"
+        >
           <smt-input
             class="font-mono"
             smtFieldId="webhook-url"
@@ -162,21 +175,21 @@
             [placeholder]="'settings.webhooks.url_placeholder' | t"
             [formField]="createForm.targetUrl"
           />
-        </div>
+        </smt-control>
 
-        <div class="form-row">
-          <div class="events-header">
-            <span class="form-lbl" id="webhook-events-label">{{ 'settings.webhooks.events' | t }} *</span>
-            <button type="button" class="link-btn text-xs" (click)="toggleAllEvents()">
-              {{ isAllEventsSelected() ? ('iam.common.clear_all' | t) : ('iam.common.select_all' | t) }}
-            </button>
-          </div>
-          <div class="events-grid" role="group" aria-labelledby="webhook-events-label">
+        <smt-control
+          class="form-row"
+          data-testid="webhook-events-control"
+          [smtLabel]="'settings.webhooks.events' | t"
+          [smtError]="eventsError()"
+          [required]="true"
+        >
+          <div class="events-grid" role="group">
             @for (opt of availableEvents(); track opt.code) {
               <div
                 smt-checkbox
                 class="event-checkbox-label"
-                [checked]="selectedEvents.has(opt.code)"
+                [checked]="createModel().events.includes(opt.code)"
                 [smtHint]="opt.descKey ? (opt.descKey | t) : opt.nameKey ? (opt.nameKey | t) : ''"
                 (smtCheckedChange)="onEventCheck(opt.code, $event)"
               >
@@ -184,24 +197,21 @@
               </div>
             }
           </div>
-        </div>
-      </div>
-      <div footer>
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreateModal()">
-          {{ 'common.cancel' | t }}
-        </button>
-        <button
-          smt-button
-          type="button"
-          smtVariant="primary"
-          smtSize="md"
-          [disabled]="!isCreateValid()"
-          [smtLoading]="isSaving()"
-          (click)="submitCreate()"
-        >
-          {{ 'common.save' | t }}
-        </button>
-      </div>
+          <div class="events-header">
+            <button type="button" class="link-btn text-xs" (click)="toggleAllEvents()">
+              {{ isAllEventsSelected() ? ('iam.common.clear_all' | t) : ('iam.common.select_all' | t) }}
+            </button>
+          </div>
+        </smt-control>
+      </form>
+      <ui-form-actions
+        footer
+        form="webhook-create"
+        data-testid="webhook-create-actions"
+        [submitLabel]="'common.create' | t"
+        [submitting]="isSaving()"
+        (cancelled)="requestCloseCreate()"
+      />
     </ng-template>
   </smt-dialog>
 
@@ -220,15 +230,13 @@
             <p>{{ 'settings.webhooks.secret_modal_warning' | t }}</p>
           </div>
 
-          <div class="secret-field-box">
-            <label class="form-lbl" for="webhook-secret">{{ 'settings.webhooks.secret_modal_title' | t }}</label>
+          <smt-control class="secret-field-box" [smtLabel]="'settings.webhooks.secret_modal_title' | t">
             <div class="secret-input-row">
               <smt-input
                 smtFieldId="webhook-secret"
                 class="font-mono secret-input"
                 [value]="sub.secretToken"
                 readonly
-                smtAriaLabel="Secret token"
               />
               <button
                 smt-button
@@ -241,7 +249,7 @@
                 {{ 'settings.webhooks.copy_secret' | t }}
               </button>
             </div>
-          </div>
+          </smt-control>
 
           <div class="hmac-info-box">
             <span class="text-xs text-muted">
@@ -251,11 +259,13 @@
           </div>
         </div>
       }
-      <div footer>
-        <button smt-button type="button" smtVariant="primary" smtSize="md" (click)="closeSecretModal()">
-          {{ 'common.confirm' | t }}
-        </button>
-      </div>
+      <ui-form-actions
+        footer
+        data-testid="webhook-secret-actions"
+        [showCancel]="false"
+        [submitLabel]="'common.close' | t"
+        (submitted)="closeSecretModal()"
+      />
     </ng-template>
   </smt-dialog>
 </div>

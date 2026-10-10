@@ -11,7 +11,9 @@ import { I18nService } from '@core/services/i18n.service';
 import { NavigationService } from '@core/services/navigation.service';
 import { ToastService } from '@core/services/toast.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { problemFieldErrors } from '@shared/ui/problem-fields';
 import { problemText } from '@shared/ui/problem-text';
+import { NAVIGATION_ITEM_FIELDS } from './navigation-item-form';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
 
 /**
@@ -32,6 +34,8 @@ export class NavigationSettingsStore {
     computation: (loaded, previous) => loaded ?? previous?.value ?? [],
   });
   readonly isSubmitting = signal<boolean>(false);
+  /** The server's refusal of the item dialog by field (forms standard, section 5); a new opening clears it. */
+  readonly fieldErrors = signal<Readonly<Record<string, string>>>({});
 
   readonly isLoading = computed(() => this.itemsResource.isLoading());
   readonly activeCount = computed(() => this.items().filter((i) => i.state === 'A').length);
@@ -112,7 +116,9 @@ export class NavigationSettingsStore {
   }
 
   private submit(request: Observable<unknown>, onSaved: () => void, reload?: () => void): void {
+    if (this.isSubmitting()) return;
     this.isSubmitting.set(true);
+    this.fieldErrors.set({});
     request.subscribe({
       next: () => {
         this.toast.success(this.i18n.translate('common.saved'));
@@ -121,8 +127,13 @@ export class NavigationSettingsStore {
         this.loadItems();
       },
       error: (err: unknown) => {
-        this.saveErrors.show(err, { fallbackKey: 'common.error', reload });
         this.isSubmitting.set(false);
+        const { fields, other } = problemFieldErrors(err, { known: NAVIGATION_ITEM_FIELDS });
+        this.fieldErrors.set(fields);
+        // Errors of drawn fields stay under them; anything else (a conflict, a hidden field) is a toast.
+        if (Object.keys(fields).length === 0 || other.length > 0) {
+          this.saveErrors.show(err, { fallbackKey: 'common.error', reload });
+        }
       },
     });
   }

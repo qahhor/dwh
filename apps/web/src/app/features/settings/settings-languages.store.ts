@@ -2,7 +2,10 @@ import { Injectable, inject, signal } from '@angular/core';
 import { finalize } from 'rxjs';
 import { I18nService } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
+import { problemFieldErrors } from '@shared/ui/problem-fields';
+import { problemText } from '@shared/ui/problem-text';
 import { SettingsApi } from './settings.api';
+import { NewLanguage } from './settings.models';
 
 /**
  * The languages tab of the settings screen: adding a language, its editor and
@@ -17,6 +20,13 @@ export class SettingsLanguagesStore {
   readonly isAddLangModalOpen = signal<boolean>(false);
   readonly isAddingLang = signal<boolean>(false);
   readonly editingLanguageCode = signal<string | null>(null);
+  /** The server's refusal of a new language by dialog field (`code`, `name`, `json`). */
+  readonly addLanguageErrors = signal<Readonly<Record<string, string>>>({});
+
+  openAddLanguage(): void {
+    this.addLanguageErrors.set({});
+    this.isAddLangModalOpen.set(true);
+  }
 
   openLanguageEditor(code: string): void {
     this.editingLanguageCode.set(code);
@@ -26,37 +36,31 @@ export class SettingsLanguagesStore {
     this.i18n.refreshLanguages().subscribe();
   }
 
-  saveNewLanguage(code: string, name: string, json: string): void {
-    const rawCode = code.trim().toLowerCase();
-    const rawName = name.trim();
-    if (!rawCode || !rawName) return;
-
-    if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(rawCode)) {
-      this.toast.error(this.i18n.translate('settings.validation.lang_code'));
-      return;
-    }
-
-    let dict: Record<string, string> = {};
-    if (json) {
-      try {
-        dict = JSON.parse(json);
-      } catch {
-        this.toast.error(this.i18n.translate('settings.languages.invalid_json_format'));
-        return;
-      }
-    }
-
+  /**
+   * Registers a language the dialog has checked. A refusal about a field goes under that field (forms standard,
+   * section 5); any other keeps the dialog open with the server's words in a toast.
+   */
+  saveNewLanguage(language: NewLanguage): void {
+    if (this.isAddingLang()) return;
+    this.addLanguageErrors.set({});
     this.isAddingLang.set(true);
     this.i18n
-      .registerLanguage(rawCode, rawName, dict)
+      .registerLanguage(language.code, language.name, language.dictionary)
       .pipe(finalize(() => this.isAddingLang.set(false)))
       .subscribe({
         next: () => {
           this.isAddLangModalOpen.set(false);
-          this.toast.success(this.i18n.translate('settings.language_added', { name: rawName }));
+          this.toast.success(this.i18n.translate('settings.language_added', { name: language.name }));
         },
-        error: () => {
-          this.toast.error(this.i18n.translate('common.error'));
+        error: (error: unknown) => {
+          const { fields, other } = problemFieldErrors(error, {
+            known: ['code', 'name', 'json'],
+            rename: { translations: 'json' },
+          });
+          this.addLanguageErrors.set(fields);
+          if (Object.keys(fields).length === 0 || other.length > 0) {
+            this.toast.error(other[0] ?? (problemText(error) || this.i18n.translate('common.error')));
+          }
         },
       });
   }

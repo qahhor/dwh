@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
-import { NEVER, of, throwError } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { NEVER, Observable, of, throwError } from 'rxjs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
@@ -10,6 +10,7 @@ import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { UplApiService, UplFormatVersion, UplSource, UplVersionItem } from '../upl.api';
 import { SourceCardComponent } from './source-card.component';
 import { inScreen } from '@testing/in-screen';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 
 /** The error smt-control shows for a field, found the way assistive technology finds it: through aria-describedby. */
 function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
@@ -23,6 +24,8 @@ function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
 }
 
 describe('SourceCardComponent', () => {
+  // Dialogs render into the CDK overlay on document.body; each test starts without the last one's.
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove()));
   const source: UplSource = {
     id: 7,
     code: 'sqb_output',
@@ -256,6 +259,18 @@ describe('SourceCardComponent', () => {
     submit(fixture, 'upl-source-requisites');
     submit(fixture, 'upl-source-requisites');
     expect(api.updateSource).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks before leaving the card with unsaved requisites and lets an unchanged card go', async () => {
+    const { fixture } = await createFixture();
+    expect(fixture.componentInstance.canLeaveRecordPage()).toBe(true);
+
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+    setInput(fixture, 'upl-field-name', 'Edited TEST');
+    let allowed: boolean | null = null;
+    (fixture.componentInstance.canLeaveRecordPage() as Observable<boolean>).subscribe((value) => (allowed = value));
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
+    expect(allowed).toBe(false);
   });
 
   it('moves focus to the first field the server refused', async () => {

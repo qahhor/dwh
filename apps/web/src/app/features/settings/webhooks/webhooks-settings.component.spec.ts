@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { NEVER, of, throwError } from 'rxjs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -10,8 +10,11 @@ import { WebhookSubscription, CreatedWebhookSubscription } from './webhooks-sett
 import { translateTest } from '@testing/i18n-test.stub';
 import { inScreen, redraw } from '@testing/in-screen';
 import { By } from '@angular/platform-browser';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 
 describe('WebhooksSettingsComponent', () => {
+  // Dialogs render into the CDK overlay on document.body; each test starts without the last one's.
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove()));
   const mockSubscriptions: WebhookSubscription[] = [
     {
       id: 1,
@@ -74,6 +77,7 @@ describe('WebhooksSettingsComponent', () => {
 
     const i18nService = {
       translate: translateTest,
+      currentLang: () => 'ru',
     };
 
     await TestBed.configureTestingModule({
@@ -150,8 +154,11 @@ describe('WebhooksSettingsComponent', () => {
     component.openCreateModal();
     expect(component.isCreateModalOpen()).toBe(true);
 
-    component.createModel.set({ name: 'New CRM Webhook', targetUrl: 'https://crm.corp/hook' });
-    component.selectedEvents = new Set(['task.created', 'task.completed']);
+    component.createModel.set({
+      name: 'New CRM Webhook',
+      targetUrl: 'https://crm.corp/hook',
+      events: ['task.created', 'task.completed'],
+    });
 
     expect(component.isCreateValid()).toBe(true);
 
@@ -201,15 +208,74 @@ describe('WebhooksSettingsComponent', () => {
     name.value = 'CRM';
     name.dispatchEvent(new Event('input'));
     redraw(fixture);
-    expect(component.createModel()).toEqual({ name: 'CRM', targetUrl: 'https://crm.corp/hook' });
+    expect(component.createModel()).toEqual({ name: 'CRM', targetUrl: 'https://crm.corp/hook', events: ['*'] });
     expect(component.isCreateValid()).toBe(true);
 
     component.closeCreateModal();
     component.openCreateModal();
     redraw(fixture);
-    expect(component.createModel()).toEqual({ name: '', targetUrl: '' });
+    expect(component.createModel()).toEqual({ name: '', targetUrl: '', events: ['*'] });
     expect(component.createForm.name().touched()).toBe(false);
     expect(fixture.debugElement.query(By.css('smt-input.smt-input--invalid'))).toBeNull();
+  });
+
+  it('shows every error on save, under its field, and sends nothing until they are fixed', async () => {
+    const { fixture, component, api } = await createFixture();
+    component.openCreateModal();
+    redraw(fixture);
+    component.toggleAllEvents();
+    component.toggleAllEvents();
+    expect(component.createModel().events).toEqual([]);
+
+    (inScreen(fixture.nativeElement).querySelector('form#webhook-create') as HTMLFormElement).requestSubmit();
+    redraw(fixture);
+    TestBed.tick();
+
+    expect(api.post).not.toHaveBeenCalled();
+    const root = inScreen(fixture.nativeElement);
+    expect(root.querySelector('#webhook-name')?.getAttribute('aria-invalid')).toBe('true');
+    expect(root.querySelector('#webhook-url')?.getAttribute('aria-invalid')).toBe('true');
+    expect(root.querySelector('[data-testid="webhook-events-control"] .smt-control__error')?.textContent).toContain(
+      translateTest('settings.webhooks.events_required'),
+    );
+    const save = root.querySelector('[data-testid="webhook-create-actions"] [data-testid="form-submit"]');
+    expect((save as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("sends one request while a save runs and puts the server's field errors under the fields", async () => {
+    const { component, api, toast } = await createFixture();
+    component.openCreateModal();
+    component.createModel.set({ name: 'CRM', targetUrl: 'https://crm.corp/hook', events: ['*'] });
+
+    api.post.mockReturnValueOnce(NEVER);
+    component.submitCreate();
+    component.submitCreate();
+    expect(api.post).toHaveBeenCalledTimes(1);
+
+    component.isSaving.set(false);
+    api.post.mockReturnValueOnce(
+      throwError(() => ({ status: 422, errors: [{ field: 'targetUrl', message: 'Адрес должен быть https' }] })),
+    );
+    component.submitCreate();
+    expect(component.serverErrors()).toEqual({ targetUrl: 'Адрес должен быть https' });
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(component.isCreateModalOpen()).toBe(true);
+  });
+
+  it('closes an untouched create dialog at once and asks before dropping typed values', async () => {
+    const { component } = await createFixture();
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+
+    component.openCreateModal();
+    component.requestCloseCreate();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(component.isCreateModalOpen()).toBe(false);
+
+    component.openCreateModal();
+    component.createModel.update((model) => ({ ...model, name: 'CRM' }));
+    component.requestCloseCreate();
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
+    expect(component.isCreateModalOpen()).toBe(true);
   });
 
   it('should handle delete confirmation and deletion', async () => {

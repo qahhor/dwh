@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
@@ -201,6 +201,8 @@ const visibleSteps = (fixture: ComponentFixture<FormatEditorComponent>) =>
   ['file', 'sheets', 'publish'].filter((id) => !(one(fixture, `upl-step-${id}`) as HTMLElement).hidden);
 
 describe('FormatEditorComponent', () => {
+  // Dialogs render into the CDK overlay on document.body; each test starts without the last one's.
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove()));
   it('loads source, version, versions and units by the route and shows the sheets with their columns', async () => {
     const { fixture, api } = await createFixture();
 

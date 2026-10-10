@@ -3,6 +3,9 @@ import { DatePipe } from '@angular/common';
 import { FormField } from '@angular/forms/signals';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Observable } from 'rxjs';
+import { RecordNavigationPage } from '@core/guards/record-navigation.guard';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
@@ -56,7 +59,7 @@ import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
   templateUrl: './source-card.component.html',
   styleUrl: './source-card.component.css',
 })
-export class SourceCardComponent {
+export class SourceCardComponent implements RecordNavigationPage {
   /** The source, its versions and the card's flows; the template reads it directly. */
   readonly store = inject(SourceCardStore);
   private readonly i18n = inject(I18nService);
@@ -100,6 +103,8 @@ export class SourceCardComponent {
   readonly copyFromOptions = computed<SMTSelectOption<number>[]>(() =>
     this.store.copyCandidates().map((v) => ({ id: v.version, label: String(v.version) })),
   );
+
+  private readonly askDiscard = discardChangesQuestion();
   private readonly periodicityMemo = optionsMemo<SMTSelectOption<UplPeriodicity>[]>();
   private readonly strictnessMemo = optionsMemo<SMTSelectOption<UplStrictness>[]>();
   readonly versionStatusKey = UPL_VERSION_STATUS_KEY;
@@ -158,5 +163,10 @@ export class SourceCardComponent {
       return 'success';
     }
     return status === 'draft' ? 'blue' : 'gray';
+  }
+
+  /** Unsaved requisites make leaving the card ask first. */
+  canLeaveRecordPage(): boolean | Observable<boolean> {
+    return this.store.dirty() ? this.askDiscard(true) : true;
   }
 }

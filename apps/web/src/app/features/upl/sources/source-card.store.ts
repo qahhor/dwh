@@ -96,6 +96,12 @@ export class SourceCardStore {
     computation: (source, previous) => (source ? formOf(source) : (previous?.value ?? emptyForm())),
   });
 
+  /** The requisites differ from the source as saved: leaving the card asks first (forms standard, section 8). */
+  readonly dirty = computed(() => {
+    const source = this.source();
+    return source !== null && this.canEdit() && JSON.stringify(this.form()) !== JSON.stringify(formOf(source));
+  });
+
   /** True until the first answer, and again while a reload is on its way. */
   readonly isLoading = computed(() => !this.sourceId() || this.loaded.isLoading());
   readonly notFound = computed(() => this.problem()?.status === 404);

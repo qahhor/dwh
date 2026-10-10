@@ -122,7 +122,6 @@ export class SourcesListComponent implements OnInit {
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
-  private readonly askDiscard = discardChangesQuestion();
 
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -138,8 +137,6 @@ export class SourcesListComponent implements OnInit {
   readonly createError = signal<string | null>(null);
 
   readonly createModel = signal<SourceCreateForm>(emptyForm());
-  /** The window as it was opened (a name may come prefilled): closing asks only when something changed since. */
-  private openedWith = JSON.stringify(emptyForm());
 
   readonly tableConfig = computed<TableConfig<UplSourceItem> | null>(() => {
     const meta = this.meta();
@@ -156,6 +153,10 @@ export class SourcesListComponent implements OnInit {
       },
     });
   });
+
+  private readonly askDiscard = discardChangesQuestion();
+  /** The window as it was opened (a name may come prefilled): closing asks only when something changed since. */
+  private openedWith = JSON.stringify(emptyForm());
 
   /** Where to go back after creating from another form's field; only known places, never a URL from the address bar. */
   private returnTo: 'packages' | null = null;

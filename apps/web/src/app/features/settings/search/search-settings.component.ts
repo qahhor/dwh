@@ -8,6 +8,7 @@ import {
   computed,
   signal,
   inject,
+  Injector,
   viewChild,
 } from '@angular/core';
 import {
@@ -25,6 +26,9 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/co
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
 import { formatBytes, formatJobError } from './search-settings.models';
 import { SearchSettingsStore } from './search-settings.store';
 
@@ -40,6 +44,8 @@ import { SearchSettingsStore } from './search-settings.store';
     SMTSelectComponent,
     SMTInputComponent,
     SMTCheckboxComponent,
+    SMTControlComponent,
+    UiFormActionsComponent,
     DatePipe,
   ],
   providers: [SearchSettingsStore],
@@ -50,6 +56,7 @@ export class SearchSettingsComponent implements OnInit {
   /** The screen's state and requests; the template reads it directly. */
   readonly store = inject(SearchSettingsStore);
   private readonly i18n = inject(I18nService);
+  private readonly injector = inject(Injector);
 
   private readonly generationIdCell = viewChild.required<TemplateRef<unknown>>('generationIdCell');
   private readonly generationStateCell = viewChild.required<TemplateRef<unknown>>('generationStateCell');
@@ -63,6 +70,8 @@ export class SearchSettingsComponent implements OnInit {
 
   /** Typed text for the preview; a signal, so the OnPush button follows it. */
   readonly previewQuery = signal('');
+  /** "Enter a query", after a preview was asked without one; typing clears it. */
+  readonly previewQueryError = signal('');
 
   readonly generationsConfig = computed<TableConfig<SearchGenerationStatus>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -147,6 +156,27 @@ export class SearchSettingsComponent implements OnInit {
     storage: (g: SearchGenerationStatus) => g.storageBytes,
     queue: (g: SearchGenerationStatus) => g.pendingDeliveries,
   };
+
+  /** A policy rule's error under its field once a save was tried (forms standard, section 4). */
+  policyError(key: string): string {
+    return this.store.saveAttempted() && this.store.policyErrors().includes(key) ? this.i18n.translate(key) : '';
+  }
+
+  setPreviewQuery(query: string): void {
+    this.previewQuery.set(query);
+    if (query.trim()) this.previewQueryError.set('');
+  }
+
+  /** The preview button stays enabled: without a query it says so under the field and focuses it. */
+  runPreview(): void {
+    if (!this.previewQuery().trim()) {
+      this.previewQueryError.set(this.i18n.translate('settings.search.preview.query_required'));
+      const field = document.getElementById('search-preview-query')?.closest('smt-control');
+      if (field instanceof HTMLElement) focusFirstInvalid(field, this.injector);
+      return;
+    }
+    this.store.preview(this.previewQuery(), this.previewEntity);
+  }
 
   /** Every entity the search indexes, in the order the server names them (ADR-0032, 10.3). */
   get displayedEntities(): SearchEntityType[] {

@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, inject, input, output } from '@angu
 
 import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 import { PASSWORD_POLICY } from '@core/security/password-policy';
 import { formatSessionHours } from '../settings-format';
@@ -11,7 +13,14 @@ import { SettingChange } from '../settings.models';
 @Component({
   selector: 'app-settings-security-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTSwitchComponent, TranslatePipe, SMTButtonComponent],
+  imports: [
+    SMTControlComponent,
+    SMTInputComponent,
+    SMTSwitchComponent,
+    TranslatePipe,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
+  ],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -27,21 +36,25 @@ import { SettingChange } from '../settings.models';
         }
       </div>
 
-      <div class="form-grid">
+      <form
+        id="settings-security-form"
+        class="form-grid"
+        uiFocusFirstInvalid
+        novalidate
+        (submit)="$event.preventDefault(); onSubmit()"
+      >
         <div class="form-group">
           <span class="form-label" id="settings-password-length">{{ 'settings.password_length' | t }}</span>
           <p class="hint-text">{{ 'password.policy.hint' | t: passwordPolicy }}</p>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="settings-session-lifetime">
-            {{ 'settings.session_lifetime' | t }}
-            @if (formatSessionHours(systemSettings()['security.session_lifetime_hours']); as sessionBadge) {
-              <span class="unit-badge">
-                {{ sessionBadge }}
-              </span>
-            }
-          </label>
+        <smt-control
+          class="form-group"
+          [smtLabel]="'settings.session_lifetime' | t"
+          [smtHint]="'settings.security.session_ttl_hint' | t"
+          [smtError]="errorOf('security.session_lifetime_hours')"
+          [required]="true"
+        >
           <smt-input
             smtFieldId="settings-session-lifetime"
             name="settingsSessionLifetime"
@@ -49,17 +62,15 @@ import { SettingChange } from '../settings.models';
             [smtMin]="1"
             [smtMax]="8760"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            smtDescribedBy="settings-session-lifetime-hint"
             [value]="systemSettings()['security.session_lifetime_hours']"
             (valueChange)="changeSetting('security.session_lifetime_hours', $event)"
           />
-          <span id="settings-session-lifetime-hint" class="hint-text">{{
-            'settings.security.session_ttl_hint' | t
-          }}</span>
-        </div>
+          @if (sessionUnit(); as unit) {
+            <span class="unit-badge" data-testid="session-lifetime-unit">{{ unit }}</span>
+          }
+        </smt-control>
 
-        <div class="form-group">
-          <label class="form-label" for="settings-idle-lock">{{ 'settings.idle_lock' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'settings.idle_lock' | t" [smtHint]="'settings.idle_lock_hint' | t">
           <smt-input
             smtFieldId="settings-idle-lock"
             name="settingsIdleLock"
@@ -67,12 +78,10 @@ import { SettingChange } from '../settings.models';
             [smtMin]="0"
             [smtMax]="1440"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            smtDescribedBy="settings-idle-lock-hint"
             [value]="systemSettings()['security.idle_lock_minutes']"
             (valueChange)="changeSetting('security.idle_lock_minutes', $event)"
           />
-          <span id="settings-idle-lock-hint" class="hint-text">{{ 'settings.idle_lock_hint' | t }}</span>
-        </div>
+        </smt-control>
 
         <div class="form-group full-width">
           <div class="toggle-row">
@@ -92,14 +101,15 @@ import { SettingChange } from '../settings.models';
             />
           </div>
         </div>
-      </div>
+      </form>
 
       @if (canUpdateSystemSettings()) {
-        <div class="card-footer-actions">
-          <button smt-button type="button" [smtLoading]="isSaving()" (click)="save.emit()">
-            {{ 'common.save' | t }}
-          </button>
-        </div>
+        <ui-form-actions
+          class="card-footer-actions"
+          form="settings-security-form"
+          [showCancel]="false"
+          [submitting]="isSaving()"
+        />
       }
     </div>
   `,
@@ -112,6 +122,8 @@ export class SettingsSecurityPanelComponent {
   readonly isSaving = input(false);
 
   readonly systemSettings = input<Record<string, string>>({});
+  /** The store's refusals by setting key (i18n keys), shown under the fields. */
+  readonly errors = input<Record<string, string>>({});
 
   readonly save = output<void>();
   /** The settings object belongs to the store, so an edit goes up and the store keeps it. */
@@ -127,5 +139,21 @@ export class SettingsSecurityPanelComponent {
 
   formatSessionHours(hours: string | number | undefined): string {
     return formatSessionHours(hours, (key) => this.i18n.translate(key));
+  }
+
+  /** The lifetime read in hours and days beside the field; nothing while it is not a positive number. */
+  sessionUnit(): string {
+    return this.formatSessionHours(this.systemSettings()['security.session_lifetime_hours']);
+  }
+
+  /** Enter in a field and the Save button both save; nothing is sent twice while a save runs. */
+  onSubmit(): void {
+    if (!this.isSaving()) this.save.emit();
+  }
+
+  /** The store's refusal of a setting as words under its field (forms standard, section 4). */
+  errorOf(key: string): string {
+    const message = this.errors()[key];
+    return message ? this.i18n.translate(message) : '';
   }
 }

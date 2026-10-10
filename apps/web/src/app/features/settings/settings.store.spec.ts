@@ -102,23 +102,39 @@ describe('SettingsStore', () => {
     expect(theme.setTheme).toHaveBeenCalledWith('system');
   });
 
-  it('refuses out-of-range, empty and non-numeric session lifetimes and quotas before sending anything', () => {
+  it('refuses out-of-range, empty and non-numeric session lifetimes and quotas under their fields, sending nothing', () => {
     const { store, toast, api } = setup();
-    const refused: Record<string, string>[] = [
-      { 'security.session_lifetime_hours': '10000' },
-      { 'storage.default_user_quota_mb': '50' },
-      { 'security.session_lifetime_hours': '   ' },
-      { 'security.session_lifetime_hours': 'letters' },
-      { 'security.session_lifetime_hours': '720', 'storage.default_user_quota_mb': 'not-a-number' },
+    const refused: [Record<string, string>, Record<string, string>][] = [
+      [
+        { 'security.session_lifetime_hours': '10000' },
+        { 'security.session_lifetime_hours': 'settings.validation.session_lifetime' },
+      ],
+      [{ 'storage.default_user_quota_mb': '50' }, { 'storage.default_user_quota_mb': 'settings.validation.quota' }],
+      [
+        { 'security.session_lifetime_hours': '   ' },
+        { 'security.session_lifetime_hours': 'settings.validation.session_lifetime' },
+      ],
+      [
+        { 'security.session_lifetime_hours': 'letters' },
+        { 'security.session_lifetime_hours': 'settings.validation.session_lifetime' },
+      ],
+      [
+        { 'security.session_lifetime_hours': '720', 'storage.default_user_quota_mb': 'not-a-number' },
+        { 'storage.default_user_quota_mb': 'settings.validation.quota' },
+      ],
     ];
 
-    for (const settings of refused) {
-      toast.error.mockClear();
+    for (const [settings, errors] of refused) {
       store.systemSettings.set(settings);
       store.saveSystemSettings();
-      expect(toast.error).toHaveBeenCalled();
+      expect(store.systemErrors()).toEqual(errors);
     }
+    expect(toast.error).not.toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
+
+    // Fixing the field clears its error at once.
+    store.setSystemSetting('storage.default_user_quota_mb', '2048');
+    expect(store.systemErrors()).toEqual({});
 
     store.systemSettings.set({ 'security.session_lifetime_hours': '720', 'storage.default_user_quota_mb': '2048' });
     store.saveSystemSettings();

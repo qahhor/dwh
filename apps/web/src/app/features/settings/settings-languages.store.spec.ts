@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
@@ -30,20 +30,41 @@ function setup(get: (path: string) => unknown = () => ({})) {
 }
 
 describe('SettingsLanguagesStore', () => {
-  it('refuses a malformed language code or dictionary and registers a valid language', () => {
+  it('registers a language the dialog checked and closes the dialog', () => {
     const { store, toast, i18n } = setup();
 
-    store.saveNewLanguage('invalid_123_toolongformat', 'Test', '');
-    store.saveNewLanguage('kk', 'Қазақша', '{bad json');
-    expect(toast.error).toHaveBeenCalledTimes(2);
-    expect(i18n.registerLanguage).not.toHaveBeenCalled();
-
-    store.isAddLangModalOpen.set(true);
-    store.saveNewLanguage(' KK ', ' Қазақша ', '{"common.save":"Сақтау"}');
+    store.openAddLanguage();
+    store.saveNewLanguage({ code: 'kk', name: 'Қазақша', dictionary: { 'common.save': 'Сақтау' } });
     expect(i18n.registerLanguage).toHaveBeenCalledWith('kk', 'Қазақша', { 'common.save': 'Сақтау' });
     expect(store.isAddLangModalOpen()).toBe(false);
     expect(store.isAddingLang()).toBe(false);
     expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('sends one request while a save runs', () => {
+    const { store, i18n } = setup();
+    i18n.registerLanguage.mockReturnValue(NEVER);
+
+    store.saveNewLanguage({ code: 'kk', name: 'Қазақша', dictionary: {} });
+    store.saveNewLanguage({ code: 'kk', name: 'Қазақша', dictionary: {} });
+    expect(i18n.registerLanguage).toHaveBeenCalledTimes(1);
+  });
+
+  it('puts a refusal about a field under it and keeps the dialog open; any other refusal is a toast', () => {
+    const { store, toast, i18n } = setup();
+    store.openAddLanguage();
+    i18n.registerLanguage.mockReturnValueOnce(
+      throwError(() => ({ status: 422, errors: [{ field: 'code', message: 'Язык kk уже есть' }] })),
+    );
+    store.saveNewLanguage({ code: 'kk', name: 'Қазақша', dictionary: {} });
+    expect(store.addLanguageErrors()).toEqual({ code: 'Язык kk уже есть' });
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(store.isAddLangModalOpen()).toBe(true);
+
+    i18n.registerLanguage.mockReturnValueOnce(throwError(() => ({ status: 500, detail: 'Сбой' })));
+    store.saveNewLanguage({ code: 'kk', name: 'Қазақша', dictionary: {} });
+    expect(store.addLanguageErrors()).toEqual({});
+    expect(toast.error).toHaveBeenCalledWith('Сбой');
   });
 
   it('refreshes the languages after the editor saved one', () => {

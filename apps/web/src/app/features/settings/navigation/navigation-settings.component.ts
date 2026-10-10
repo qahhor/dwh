@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, effect, inject, signal } from '@angular/core';
+import { form } from '@angular/forms/signals';
 
 import { RouterModule } from '@angular/router';
 import {
@@ -7,6 +8,15 @@ import {
   UpdateNavigationItemPayload,
   NavigationTargetType,
 } from '@core/models/navigation.models';
+import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
+import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
+import {
+  NavigationItemForm,
+  blankNavigationItem,
+  navigationItemForm,
+  navigationItemRules,
+} from './navigation-item-form';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
@@ -35,9 +45,22 @@ import { NavigationSettingsStore } from './navigation-settings.store';
 export class NavigationSettingsComponent {
   /** The menu items, loaded as the screen opens, and their requests; the template reads it directly. */
   readonly store = inject(NavigationSettingsStore);
+  private readonly injector = inject(Injector);
 
   readonly isModalOpen = signal<boolean>(false);
   readonly editingItem = signal<CustomNavigationItem | null>(null);
+
+  /** The item the dialog edits; Signal Forms bind its fields (forms standard, section 1). */
+  readonly itemModel = signal<NavigationItemForm>(blankNavigationItem(100));
+
+  /** The server's field errors are drawn first; then focus goes to the first of them. */
+  private readonly focusServerErrors = effect(() => {
+    if (Object.keys(this.store.fieldErrors()).length === 0) return;
+    const formElement = document.getElementById('nav-item-form');
+    if (formElement) focusFirstInvalid(formElement, this.injector);
+  });
+
+  private readonly askDiscard = discardChangesQuestion();
 
   searchQuery = '';
 
@@ -53,16 +76,9 @@ export class NavigationSettingsComponent {
     'language',
     'open_in_new',
   ];
-
-  formCode = '';
-  formTitle = '';
-  formTargetType: NavigationTargetType = 'EMBEDDED_IFRAME';
-  formSectionId = 'custom';
-  formUrl = '';
-  formIcon = 'analytics';
-  /** Null while the person has emptied the order field. */
-  formSortOrder: number | null = 100;
-  formRequiredPermission: string | null = null;
+  readonly itemForm = form(this.itemModel, navigationItemRules);
+  /** The item as the dialog opened, so closing asks only when something changed. */
+  private openedWith = JSON.stringify(this.itemModel());
 
   filteredItems(): CustomNavigationItem[] {
     const q = this.searchQuery.trim().toLowerCase();
@@ -78,9 +94,10 @@ export class NavigationSettingsComponent {
       );
   }
 
-  onTitleChange(): void {
-    if (!this.editingItem() && this.formTitle) {
-      this.formCode = transliterateToCode(this.formTitle);
+  /** A new item takes its code from the title as it is typed; an existing one keeps its code. */
+  onTitleChange(title: string): void {
+    if (!this.editingItem() && title) {
+      this.itemModel.update((item) => ({ ...item, code: transliterateToCode(title) }));
     }
   }
 
@@ -97,39 +114,28 @@ export class NavigationSettingsComponent {
   }
 
   onUrlBlur(): void {
-    if (this.formUrl) {
-      this.formUrl = this.normalizeUrl(this.formUrl, this.formTargetType);
+    const { url, targetType } = this.itemModel();
+    if (url) {
+      this.itemModel.update((item) => ({ ...item, url: this.normalizeUrl(url, targetType) }));
     }
-  }
-
-  isFormValid(): boolean {
-    return !!(this.formTitle.trim() && this.formCode.trim() && this.formUrl.trim());
   }
 
   openCreateModal(): void {
     this.editingItem.set(null);
-    this.formCode = '';
-    this.formTitle = '';
-    this.formTargetType = 'EMBEDDED_IFRAME';
-    this.formSectionId = 'custom';
-    this.formUrl = '';
-    this.formIcon = 'analytics';
-    this.formSortOrder = (this.store.items().length + 1) * 10;
-    this.formRequiredPermission = null;
-    this.isModalOpen.set(true);
+    this.openWith(blankNavigationItem((this.store.items().length + 1) * 10));
   }
 
   openEditModal(item: CustomNavigationItem): void {
     this.editingItem.set(item);
-    this.formCode = item.code;
-    this.formTitle = item.title;
-    this.formTargetType = item.targetType;
-    this.formSectionId = item.sectionId;
-    this.formUrl = item.url;
-    this.formIcon = item.icon;
-    this.formSortOrder = item.sortOrder;
-    this.formRequiredPermission = item.requiredPermission ?? null;
-    this.isModalOpen.set(true);
+    this.openWith(navigationItemForm(item));
+  }
+
+  /** Escape, the backdrop, the cross and "Cancel" ask before a changed item is dropped (forms standard, 8). */
+  requestCloseModal(): void {
+    if (this.store.isSubmitting()) return;
+    this.askDiscard(JSON.stringify(this.itemModel()) !== this.openedWith).subscribe((discard) => {
+      if (discard) this.closeModal();
+    });
   }
 
   closeModal(): void {
@@ -147,22 +153,26 @@ export class NavigationSettingsComponent {
     }
   }
 
+  /** Enter and the primary button land here; errors show under the fields, and one request runs at a time. */
   saveItem(): void {
-    if (!this.isFormValid()) return;
+    if (this.store.isSubmitting()) return;
+    markSMTFormFieldsTouched(this.itemForm);
+    const item = this.itemModel();
+    if (!this.itemForm().valid() || !item.title.trim() || !item.code.trim() || !item.url.trim()) return;
 
-    const finalUrl = this.normalizeUrl(this.formUrl, this.formTargetType);
-    const finalCode = transliterateToCode(this.formCode.trim()) || this.formCode.trim().toLowerCase();
+    const finalUrl = this.normalizeUrl(item.url, item.targetType);
+    const finalCode = transliterateToCode(item.code.trim()) || item.code.trim().toLowerCase();
     const payload: CreateNavigationItemPayload = {
       code: finalCode,
-      title: this.formTitle.trim(),
-      targetType: this.formTargetType,
-      sectionId: this.formSectionId,
+      title: item.title.trim(),
+      targetType: item.targetType,
+      sectionId: item.sectionId,
       url: finalUrl,
-      icon: this.formIcon.trim() || 'bar_chart',
+      icon: item.icon.trim() || 'bar_chart',
       // An empty order was sent as null, which the server reads as 0.
-      sortOrder: this.formSortOrder ?? 0,
-      openInIframe: this.formTargetType === 'EMBEDDED_IFRAME',
-      requiredPermission: this.formRequiredPermission,
+      sortOrder: item.sortOrder ?? 0,
+      openInIframe: item.targetType === 'EMBEDDED_IFRAME',
+      requiredPermission: item.requiredPermission,
     };
 
     const editing = this.editingItem();
@@ -178,5 +188,13 @@ export class NavigationSettingsComponent {
     } else {
       this.store.createItem(payload, () => this.closeModal());
     }
+  }
+
+  private openWith(item: NavigationItemForm): void {
+    // A new opening starts untouched, so no field shows an error before it is used.
+    this.itemForm().reset(item);
+    this.openedWith = JSON.stringify(item);
+    this.store.fieldErrors.set({});
+    this.isModalOpen.set(true);
   }
 }

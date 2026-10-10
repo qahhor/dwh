@@ -50,8 +50,7 @@
 
   @if (editor()) {
     <div class="editor-toolbar">
-      <div class="search-field">
-        <label for="translation-search">{{ 'settings.languages.search_translation' | t }}</label>
+      <smt-control class="search-field" [smtLabel]="'settings.languages.search_translation' | t">
         <smt-input
           smtFieldId="translation-search"
           type="search"
@@ -61,7 +60,7 @@
           (valueChange)="search.set($event === null ? '' : '' + $event)"
           [placeholder]="'settings.languages.search_placeholder' | t"
         />
-      </div>
+      </smt-control>
       <smt-switch
         class="missing-filter"
         [checked]="missingOnly()"
@@ -69,11 +68,19 @@
         [smtLabel]="'settings.languages.only_untranslated' | t"
       />
       @if (canEdit) {
-        <label class="import-action">
+        <button type="button" class="import-action" data-testid="language-import" (click)="importInput.click()">
           <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
           <span>{{ 'settings.import_json' | t }}</span>
-          <input type="file" accept="application/json,.json" (change)="importFile($event)" />
-        </label>
+        </button>
+        <input
+          #importInput
+          class="import-file"
+          type="file"
+          accept="application/json,.json"
+          tabindex="-1"
+          aria-hidden="true"
+          (change)="importFile($event)"
+        />
       }
       <button type="button" class="secondary-action" (click)="exportDraft()">
         <span class="material-symbols-outlined" aria-hidden="true">download</span>
@@ -104,12 +111,10 @@
             {{ languageCode() === 'ru' ? entry.bundledValue : entry.russianValue }}
           </div>
           <div class="target-value" [attr.data-label]="'settings.translation' | t">
-            <label class="sr-only" [for]="inputId(entry.key)">{{
-              'settings.translation_for_key' | t: { key: entry.key }
-            }}</label>
             <!-- (edited) reports every keystroke, not only a new value: typing clears a save error. -->
             <smt-input
               [smtFieldId]="inputId(entry.key)"
+              [smtAriaLabel]="'settings.translation_for_key' | t: { key: entry.key }"
               type="text"
               [disabled]="!canEdit"
               [value]="valueFor(entry.key)"

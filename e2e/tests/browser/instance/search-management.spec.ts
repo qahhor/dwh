@@ -400,7 +400,7 @@ test('[controlled visual] dark Search settings keeps text, notices and enabled a
   await rebuild.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  const confirmSelector = '[role="dialog"] button[data-action="confirm-search-maintenance"]';
+  const confirmSelector = '[role="dialog"] [data-testid="search-maintenance-actions"] [data-testid="form-submit"]';
   const confirm = page.locator(confirmSelector);
   ratios.confirmDefault = await contrast(confirmSelector);
   await confirm.hover(); ratios.confirmHover = await contrast(confirmSelector);
@@ -493,7 +493,7 @@ test('real search management save/preview/check/rebuild exposes the current acti
     await expect(page.getByRole('dialog')).toBeVisible();
     const rebuildResponse = page.waitForResponse(response => response.request().method() === 'POST'
       && new URL(response.url()).pathname === '/api/v1/search/jobs');
-    await page.locator('button[data-action="confirm-search-maintenance"]').click();
+    await page.getByTestId('search-maintenance-actions').getByTestId('form-submit').click();
     const rebuildReceipt = await rebuildResponse;
     expect(rebuildReceipt.status()).toBe(202);
     const rebuildId = (await bodyOf<{ id: string }>(rebuildReceipt)).id;

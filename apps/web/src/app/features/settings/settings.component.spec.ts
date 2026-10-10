@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Observable, of, Subject } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -10,6 +10,7 @@ import { SearchManagementService } from '@core/services/search-management.servic
 import { ToastService } from '@core/services/toast.service';
 import { ThemeService } from '@core/services/theme.service';
 import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { SettingsComponent } from './settings.component';
 import { translateTest } from '@testing/i18n-test.stub';
 import { inScreen, redraw } from '@testing/in-screen';
@@ -17,6 +18,8 @@ import { inScreen, redraw } from '@testing/in-screen';
 // Each panel has its own spec, and the stores keep their rules in settings.store.spec.ts and
 // settings-languages.store.spec.ts; this spec pins the tabs and how the screen wires them together.
 describe('SettingsComponent UI contracts', () => {
+  // Dialogs render into the CDK overlay on document.body; each test starts without the last one's.
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove()));
   async function createFixture(
     api: object = { get: vi.fn(() => of({})), patch: vi.fn(() => of({})) },
     hasPermission: (form: string, action: string) => boolean = () => true,
@@ -245,7 +248,7 @@ describe('SettingsComponent UI contracts', () => {
     redraw(fixture);
 
     expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();
-    fixture.componentInstance.openAddLangModal();
+    fixture.componentInstance.languageStore.openAddLanguage();
     redraw(fixture);
 
     const modal = inScreen(fixture.nativeElement).querySelector('[role="dialog"]');
@@ -267,5 +270,48 @@ describe('SettingsComponent UI contracts', () => {
     expect(panel).not.toBeNull();
     const webhooksCmp = panel.querySelector('app-webhooks-settings');
     expect(webhooksCmp).not.toBeNull();
+  });
+
+  it('shows a value refused on save on its own panel, even when Save was pressed on another one', async () => {
+    const api = {
+      get: vi.fn((path: string) =>
+        of(path === '/settings/system' ? { values: { 'storage.default_user_quota_mb': '1024' }, revision: 1 } : {}),
+      ),
+      patch: vi.fn(() => of({})),
+    };
+    const fixture = await createFixture(api, () => true);
+    fixture.componentInstance.store.setSystemSetting('storage.default_user_quota_mb', '10');
+    redraw(fixture);
+
+    fixture.componentInstance.saveSystemSettings();
+    redraw(fixture);
+
+    expect(api.patch).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.activeTab()).toBe('storage');
+    expect(inScreen(fixture.nativeElement).querySelector('#settings-user-quota')).not.toBeNull();
+    expect(fixture.componentInstance.store.systemErrors()).toEqual({
+      'storage.default_user_quota_mb': 'settings.validation.quota',
+    });
+  });
+
+  it('asks before leaving the screen with unsaved settings, and lets an untouched one go', async () => {
+    const api = {
+      get: vi.fn((path: string) =>
+        of(path === '/settings/system' ? { values: { 'system.company_name': 'Old' }, revision: 1 } : {}),
+      ),
+      patch: vi.fn(() => of({})),
+    };
+    const fixture = await createFixture(api, () => true);
+    expect(fixture.componentInstance.canLeaveRecordPage()).toBe(true);
+
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(true));
+    fixture.componentInstance.store.setSystemSetting('system.company_name', 'New');
+    let allowed: boolean | null = null;
+    (fixture.componentInstance.canLeaveRecordPage() as Observable<boolean>).subscribe((value) => (allowed = value));
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
+    expect(allowed).toBe(true);
+
+    fixture.componentInstance.store.saveSystemSettings();
+    expect(fixture.componentInstance.canLeaveRecordPage()).toBe(true);
   });
 });

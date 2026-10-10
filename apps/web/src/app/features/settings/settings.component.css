@@ -29,7 +29,7 @@
   border: 1px solid var(--danger);
 }
 
-.load-error-text {
+.load-error-message {
   flex: 1;
   font-size: 14px;
 }
