@@ -485,10 +485,9 @@ test('real search management save/preview/check/rebuild exposes the current acti
     await terminalJobFromUi(page, checkId, 'CHECK');
     expect((await checkRefresh).status()).toBe(200);
 
+    // Job polls, history and settings reads take the user budget (ADR-0008, 2.2), so the
+    // rebuild follows the check at once: no pause for the expensive family to refill.
     await expect(page.locator('button[data-action="start-rebuild"]')).toBeEnabled();
-    // The real CHECK consumed the shared management family. One full refill
-    // interval leaves room for both the next mutation and its immediate poll.
-    await page.waitForTimeout(6_100);
     await page.locator('button[data-action="start-rebuild"]').click();
     await expect(page.getByRole('dialog')).toBeVisible();
     const rebuildResponse = page.waitForResponse(response => response.request().method() === 'POST'

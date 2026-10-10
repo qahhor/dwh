@@ -225,26 +225,43 @@ class RateLimitFilterTest {
     }
 
     @Test
-    @DisplayName("Reading the searchable entities takes the user budget, not the search management one")
-    void searchCategoriesUseTheUserBudget() throws Exception {
+    @DisplayName("Search management database reads and job polls take the user budget, not the expensive family")
+    void searchManagementReadsUseTheUserBudget() throws Exception {
         mockAuthenticatedUser(18L, "session-18");
+        String[] reads = {
+            "/api/v1/search/entities",
+            "/api/v1/search/settings",
+            "/api/v1/search/jobs",
+            "/api/v1/search/jobs/6f1c2a4e-8d3b-4c5a-9e7f-0a1b2c3d4e5f"
+        };
 
-        for (int i = 0; i < 3; i++) {
-            mvc.perform(get("/api/v1/search/entities")
-                            .with(r -> {
-                                r.setRemoteAddr("10.9.9.18");
-                                return r;
-                            })
-                            .cookie(new Cookie("SMC_SESSION", "session-18")))
-                    .andExpect(status().isNotFound());
+        // The expensive family allows one request a minute here; a job poll repeats far more often.
+        for (int round = 0; round < 3; round++) {
+            for (String read : reads) {
+                mvc.perform(get(read)
+                                .with(r -> {
+                                    r.setRemoteAddr("10.9.9.18");
+                                    return r;
+                                })
+                                .cookie(new Cookie("SMC_SESSION", "session-18")))
+                        .andExpect(status().isNotFound());
+            }
         }
-        mvc.perform(get("/api/v1/search/rebuild")
+        mvc.perform(get("/api/v1/search/status")
                         .with(r -> {
                             r.setRemoteAddr("10.9.9.18");
                             return r;
                         })
                         .cookie(new Cookie("SMC_SESSION", "session-18")))
                 .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/search/status")
+                        .with(r -> {
+                            r.setRemoteAddr("10.9.9.18");
+                            return r;
+                        })
+                        .cookie(new Cookie("SMC_SESSION", "session-18")))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists("Retry-After"));
     }
 
     @Test

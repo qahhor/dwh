@@ -7,6 +7,31 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Search job polling under the rate limit (2026-10-10)
+
+No REST change.
+
+#### Fixed
+
+- The search settings screen lost a running check or rebuild with
+  "Превышен лимит запросов, повторите через N с": its job poll, the job
+  history and the settings reads shared the expensive family
+  `/api/v1/search/**` (10 requests a minute) with the job triggers, and the
+  first refused poll stopped polling for good. `GET /api/v1/search/settings`,
+  `GET /api/v1/search/jobs`, `GET /api/v1/search/jobs/{id}` and
+  `GET /api/v1/search/entities` now take the user budget; the status (it asks
+  the search engine), settings changes and job start, cancel and retry stay
+  in the expensive family (ADR-0008 §2.2). `smc.rate-limit.*` is unchanged.
+- The screen retries a refused (`429`) or lost job poll instead of stopping:
+  no sooner than `Retry-After` and the regular 10 s pace, with a pause that
+  doubles up to a minute, at most six times in a row; meanwhile it shows
+  "Обновляем состояние задания…" (`settings.search.jobs.poll_delayed`)
+  instead of an error. Polls now follow each answer by 10 s, so they never
+  overlap. A status refresh refused as too frequent is repeated after its
+  `Retry-After` (at most twice).
+- The real search management e2e no longer sleeps 6 s between the check and
+  the rebuild.
+
 ### Forms UX standard (2026-10-10)
 
 The standard for every web form, approved by the product owner on 2026-10-10

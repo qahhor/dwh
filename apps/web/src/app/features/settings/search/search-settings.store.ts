@@ -1,6 +1,19 @@
 import { DestroyRef, Injectable, computed, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { Observable, Subscription, catchError, exhaustMap, map, of, tap, timer } from 'rxjs';
+import {
+  Observable,
+  Subscription,
+  catchError,
+  defer,
+  map,
+  of,
+  repeat,
+  retry,
+  switchMap,
+  tap,
+  throwError,
+  timer,
+} from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
 import { SearchCategory } from '@core/models/search.models';
 import {
@@ -20,7 +33,11 @@ import {
   Loaded,
   MaintenanceConfirmation,
   PendingMutation,
+  SEARCH_POLL_INTERVAL_MS,
+  SEARCH_POLL_MAX_RETRIES,
   cloneSearchPolicy,
+  rateLimitedRetryDelayMs,
+  searchPollRetryDelayMs,
   cloneSearchSnapshot,
   toProblemDetail,
   validateSearchPolicy,
@@ -76,6 +93,8 @@ export class SearchSettingsStore {
   readonly activeJob = signal<SearchJobStatus | null>(null);
   readonly activeJobId = signal<string | null>(null);
   readonly pollError = signal<ProblemDetail | null>(null);
+  /** A poll the server refused or lost is asked again later; the screen says it is updating, not that it failed. */
+  readonly pollDelayed = signal(false);
   readonly confirmation = signal<MaintenanceConfirmation | null>(null);
   readonly historyRetryNextPage = signal(false);
   /** The names of the entities and their fields; an entity the administrator may not view keeps its code. */
@@ -122,7 +141,7 @@ export class SearchSettingsStore {
   private readonly statusResource = rxResource({
     params: () => (this.canSearch() ? this.statusRequests() : undefined),
     stream: () =>
-      this.loaded(this.management.status()).pipe(
+      this.loaded(this.retryRateLimited(() => this.management.status())).pipe(
         tap((loaded) => {
           if (loaded.value) this.restoreActiveOperation(loaded.value);
         }),
@@ -475,26 +494,62 @@ export class SearchSettingsStore {
     });
   }
 
-  /** Polls at once and then every ten seconds; exhaustMap keeps a slow answer from overlapping the next poll. */
+  /**
+   * Polls at once and then ten seconds after each answer, so a slow answer, or a poll waiting to be retried, never
+   * overlaps the next one. A refused or lost poll is retried with a growing pause that honours Retry-After; only a
+   * final failure stops polling and offers to resume it.
+   */
   private startPolling(jobId: string): void {
     if (this.activeJobId() === jobId && this.pollRequest) return;
     this.pollRequest?.unsubscribe();
     this.pollRequest = undefined;
     this.activeJobId.set(jobId);
     this.pollError.set(null);
-    this.pollRequest = timer(0, 10_000)
-      .pipe(exhaustMap(() => this.management.job(jobId)))
+    this.pollDelayed.set(false);
+    // The first poll leaves this call first, so the subscription is kept before any answer can end it; each
+    // retry and each repeat asks the service again rather than replaying the last answer.
+    this.pollRequest = timer(0)
+      .pipe(
+        switchMap(() =>
+          defer(() => this.management.job(jobId)).pipe(
+            retry({ count: SEARCH_POLL_MAX_RETRIES, delay: (error, attempt) => this.pollRetry(error, attempt) }),
+            repeat({ delay: SEARCH_POLL_INTERVAL_MS }),
+          ),
+        ),
+      )
       .subscribe({
         next: (job) => {
+          this.pollDelayed.set(false);
           this.activeJob.set(job);
           if (this.isTerminal(job)) this.finishPolling();
         },
         error: (error) => {
+          this.pollDelayed.set(false);
           this.pollError.set(this.problem(error));
           this.pollRequest?.unsubscribe();
           this.pollRequest = undefined;
         },
       });
+  }
+
+  private pollRetry(error: unknown, attempt: number): Observable<number> {
+    const delay = searchPollRetryDelayMs(this.problem(error), attempt);
+    if (delay === null) return throwError(() => error);
+    this.pollDelayed.set(true);
+    return timer(delay);
+  }
+
+  /** A read refused as too frequent is repeated once its Retry-After has passed, at most twice. */
+  private retryRateLimited<T>(request: () => Observable<T>): Observable<T> {
+    return defer(request).pipe(
+      retry({
+        count: 2,
+        delay: (error: unknown) => {
+          const delay = rateLimitedRetryDelayMs(this.problem(error));
+          return delay === null ? throwError(() => error) : timer(delay);
+        },
+      }),
+    );
   }
 
   private finishPolling(): void {

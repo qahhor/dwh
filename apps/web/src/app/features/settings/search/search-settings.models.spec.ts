@@ -1,6 +1,25 @@
 import { describe, expect, it } from 'vitest';
+import { ProblemDetail } from '@core/models/common.models';
 import { SearchQueryPolicy } from '@core/models/search-management.models';
-import { formatBytes, formatJobError, toProblemDetail, validateSearchPolicy } from './search-settings.models';
+import {
+  formatBytes,
+  formatJobError,
+  rateLimitedRetryDelayMs,
+  searchPollRetryDelayMs,
+  toProblemDetail,
+  validateSearchPolicy,
+} from './search-settings.models';
+
+/** A failed request as the API reports it, with the Retry-After it carried. */
+function failure(status: number, retryAfterSeconds?: number): ProblemDetail {
+  return {
+    title: 'Problem',
+    status,
+    code: 'X',
+    detail: 'Failed',
+    ...(retryAfterSeconds === undefined ? {} : { retryAfterSeconds }),
+  };
+}
 
 const ENTITIES = ['ms.tasks', 'ms.projects', 'md.users'];
 
@@ -78,5 +97,27 @@ describe('search settings rules', () => {
     expect(formatJobError(null, translate)).toBe('');
     expect(formatJobError('COLLECTION_MISSING', translate)).toBe('t:settings.search.error.collection_missing');
     expect(formatJobError('RAW_DOWNSTREAM_SECRET', translate)).toBe('t:settings.search.error.generic_job');
+  });
+
+  it('retries a job poll no sooner than the regular pace, Retry-After or the doubled pause, and stops on a final failure', () => {
+    expect(searchPollRetryDelayMs(failure(429, 5), 1)).toBe(10_000);
+    expect(searchPollRetryDelayMs(failure(429, 45), 1)).toBe(45_000);
+    expect(searchPollRetryDelayMs(failure(429), 2)).toBe(20_000);
+    expect([1, 2, 3, 4, 9].map((attempt) => searchPollRetryDelayMs(failure(503), attempt))).toEqual([
+      10_000, 20_000, 40_000, 60_000, 60_000,
+    ]);
+    expect(searchPollRetryDelayMs(failure(0), 1)).toBe(10_000);
+    expect(searchPollRetryDelayMs(failure(502), 1)).toBe(10_000);
+    expect(searchPollRetryDelayMs(failure(504), 1)).toBe(10_000);
+    expect(searchPollRetryDelayMs(failure(403), 1)).toBeNull();
+    expect(searchPollRetryDelayMs(failure(404), 1)).toBeNull();
+    expect(searchPollRetryDelayMs(failure(500), 1)).toBeNull();
+  });
+
+  it('repeats only a read refused as too frequent, after its Retry-After or a second', () => {
+    expect(rateLimitedRetryDelayMs(failure(429, 7))).toBe(7_000);
+    expect(rateLimitedRetryDelayMs(failure(429))).toBe(1_000);
+    expect(rateLimitedRetryDelayMs(failure(429, 0))).toBe(1_000);
+    expect(rateLimitedRetryDelayMs(failure(503, 7))).toBeNull();
   });
 });

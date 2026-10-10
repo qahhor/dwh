@@ -521,6 +521,29 @@ describe('SearchSettingsComponent', () => {
     expect(cancel).toHaveBeenCalledTimes(1);
   });
 
+  it('shows a calm updating notice, not an error, while a refused poll waits for its Retry-After', async () => {
+    vi.useFakeTimers();
+    const pollCall = vi
+      .fn()
+      .mockReturnValueOnce(throwError(() => ({ ...problem('Too many requests', 429), retryAfterSeconds: 5 })))
+      .mockReturnValueOnce(of(job({ state: 'RUNNING', processedCount: 2 })));
+    const { fixture } = await createFixture(ADMIN, { job: pollCall });
+
+    click(fixture, 'start-check');
+    vi.advanceTimersByTime(0);
+    fixture.detectChanges();
+    const delayed = find(fixture, '[data-state="poll-delayed"]');
+    expect(delayed?.getAttribute('role')).toBe('status');
+    expect(delayed?.textContent?.trim()).toBe(translateTest('settings.search.jobs.poll_delayed'));
+    expect(find(fixture, '[data-action="resume-job-polling"]')).toBeNull();
+
+    vi.advanceTimersByTime(10_000);
+    fixture.detectChanges();
+    expect(pollCall).toHaveBeenCalledTimes(2);
+    expect(find(fixture, '[data-state="poll-delayed"]')).toBeNull();
+    expect(find(fixture, '[data-action="resume-job-polling"]')).toBeNull();
+  });
+
   it('keeps maintenance closed for a job running at entry, offers to resume a failed poll and reopens at its end', async () => {
     vi.useFakeTimers();
     const running = job({ id: 'job-reentry', action: 'REBUILD', generationId: 'generation-2', state: 'RUNNING' });
@@ -531,7 +554,8 @@ describe('SearchSettingsComponent', () => {
     const resumedPoll = new Subject<SearchJobStatus>();
     const pollCall = vi
       .fn()
-      .mockReturnValueOnce(throwError(() => problem('Polling failed')))
+      // A final failure (403) stops polling; a busy or lost poll would be retried by itself.
+      .mockReturnValueOnce(throwError(() => problem('Polling failed', 403)))
       .mockReturnValueOnce(resumedPoll);
     const { fixture, management } = await createFixture(ADMIN, { status: statusCall, job: pollCall });
     type(fixture, '#search-global-limit', '12');

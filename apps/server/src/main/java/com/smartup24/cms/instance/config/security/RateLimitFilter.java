@@ -16,6 +16,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -35,6 +37,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     public static final String EVENT_RATE_LIMIT_EXCEEDED = "rate_limit_exceeded";
+
+    /** Search management reads answered from the database alone (ADR-0008, 2.2). */
+    private static final Set<String> SEARCH_MANAGEMENT_READS =
+            Set.of("/api/v1/search/entities", "/api/v1/search/settings", "/api/v1/search/jobs");
+
+    private static final Pattern SEARCH_JOB_READ = Pattern.compile(
+            "/api/v1/search/jobs/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
     private final RateLimitProperties props;
     private final RateLimitService rateLimitService;
@@ -115,8 +124,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 limit = searchBudget.perMinute();
             }
         } else {
-            String expensivePathFamily =
-                    isSearchCategoryRead(request) ? null : findExpensivePathFamily(request.getRequestURI());
+            String expensivePathFamily = isSearchManagementRead(request.getMethod(), request.getRequestURI())
+                    ? null
+                    : findExpensivePathFamily(request.getRequestURI());
             if (expensivePathFamily != null) {
                 key = key + ":exp:" + expensivePathFamily;
                 limit = Math.min(limit, props.expensivePerMinute());
@@ -192,9 +202,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 || ("POST".equalsIgnoreCase(request.getMethod()) && "/api/v1/search/preview".equals(uri));
     }
 
-    /** The searchable entities are read from the registry on every palette open: the user budget (ADR-0032, 10.3). */
-    private static boolean isSearchCategoryRead(HttpServletRequest request) {
-        return "GET".equalsIgnoreCase(request.getMethod()) && "/api/v1/search/entities".equals(request.getRequestURI());
+    /**
+     * A read-only search management request that only reads the database takes the user budget, not the expensive
+     * family (ADR-0008, 2.2): the settings, the job history, the state of one job, which the settings screen polls
+     * while the job runs, and the searchable entities read on every palette open (ADR-0032, 10.3). The status (it
+     * asks the search engine), the queries, the preview and every job trigger stay in the expensive family.
+     */
+    static boolean isSearchManagementRead(String method, String uri) {
+        if (!"GET".equalsIgnoreCase(method) || uri == null) return false;
+        return SEARCH_MANAGEMENT_READS.contains(uri)
+                || SEARCH_JOB_READ.matcher(uri).matches();
     }
 
     private boolean isPublicI18nRead(HttpServletRequest request) {

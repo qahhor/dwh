@@ -185,6 +185,7 @@
   "settings.search.jobs.empty": "История заданий пуста.",
   "settings.search.jobs.scroll_label": "Горизонтальная прокрутка истории поисковых заданий",
   "settings.search.jobs.load_more": "Загрузить предыдущие задания",
+  "settings.search.jobs.poll_delayed": "Обновляем состояние задания…",
   "settings.search.error.request_failed": "Не удалось выполнить запрос к управлению поиском.",
   "settings.search.error.dependency_unavailable": "Поисковая зависимость недоступна.",
   "settings.search.error.collection_missing": "Одна из collections отсутствует.",

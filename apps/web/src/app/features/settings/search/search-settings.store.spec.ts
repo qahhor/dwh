@@ -250,7 +250,8 @@ describe('SearchSettingsStore', () => {
     const running = job({ id: 'job-reentry', action: 'REBUILD' });
     const poll = vi
       .fn()
-      .mockReturnValueOnce(throwError(() => problem('Polling failed')))
+      // A final failure (403) stops polling; a busy or lost poll is retried by itself (below).
+      .mockReturnValueOnce(throwError(() => problem('Polling failed', 403)))
       .mockReturnValueOnce(new Subject());
     const { store, management } = setup({
       status: vi.fn(() => of({ ...structuredClone(status), jobs: [running] })),
@@ -269,6 +270,78 @@ describe('SearchSettingsStore', () => {
     vi.advanceTimersByTime(0);
     expect(poll).toHaveBeenCalledTimes(2);
     expect(store.pollError()).toBeNull();
+  });
+
+  it('waits out a refused poll (429) for its Retry-After, says it is updating and never reports an error', async () => {
+    const poll = vi
+      .fn()
+      .mockReturnValueOnce(throwError(() => ({ ...problem('Too many requests', 429), retryAfterSeconds: 25 })))
+      .mockReturnValueOnce(of(job({ state: 'SUCCEEDED', finishedAt: '' })));
+    const { store, management } = setup({ job: poll });
+    await settle();
+    vi.useFakeTimers();
+
+    store.requestMaintenance('CHECK');
+    vi.advanceTimersByTime(0);
+    expect(poll).toHaveBeenCalledTimes(1);
+    expect(store.pollDelayed()).toBe(true);
+    expect(store.pollError()).toBeNull();
+
+    // The regular ticks at 10 and 20 s neither repeat the refused poll nor start a second one.
+    vi.advanceTimersByTime(24_999);
+    expect(poll).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1);
+    expect(poll).toHaveBeenCalledTimes(2);
+    expect(store.pollDelayed()).toBe(false);
+    expect(store.pollError()).toBeNull();
+    expect(store.activeOperation()).toBe(false);
+    TestBed.tick();
+    expect(management['status']).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries a lost poll with a pause that doubles up to a minute and reports it only when retries run out', async () => {
+    const poll = vi.fn(() => throwError(() => problem('Search unavailable', 503)));
+    const { store } = setup({ job: poll });
+    await settle();
+    vi.useFakeTimers();
+
+    store.requestMaintenance('CHECK');
+    const calls: number[] = [];
+    for (const pause of [10_000, 20_000, 40_000, 60_000, 60_000, 60_000]) {
+      vi.advanceTimersByTime(pause - 1);
+      calls.push(poll.mock.calls.length);
+      vi.advanceTimersByTime(1);
+    }
+    expect(calls).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(poll).toHaveBeenCalledTimes(7);
+    expect(store.pollDelayed()).toBe(false);
+    expect(store.pollError()?.detail).toBe('Search unavailable');
+    expect(store.activeOperation()).toBe(true);
+    vi.advanceTimersByTime(120_000);
+    expect(poll).toHaveBeenCalledTimes(7);
+  });
+
+  it('repeats a status refresh refused as too frequent once its Retry-After has passed', async () => {
+    const statusCall = vi
+      .fn()
+      .mockReturnValueOnce(of(structuredClone(status)))
+      .mockReturnValueOnce(throwError(() => ({ ...problem('Too many requests', 429), retryAfterSeconds: 3 })))
+      .mockReturnValueOnce(of({ ...structuredClone(status), activeProfile: 'RU' }));
+    const { store } = setup({ status: statusCall });
+    await settle();
+    vi.useFakeTimers();
+
+    store.refreshStatus();
+    TestBed.tick();
+    expect(statusCall).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(2_999);
+    expect(statusCall).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(1);
+    vi.useRealTimers();
+    await settle();
+    expect(statusCall).toHaveBeenCalledTimes(3);
+    expect(store.statusError()).toBeNull();
+    expect(store.status()?.activeProfile).toBe('RU');
   });
 
   it('retries an uncertain cancel for the same job while the accepted job stays active', async () => {
