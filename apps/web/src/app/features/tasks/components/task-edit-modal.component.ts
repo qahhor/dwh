@@ -15,6 +15,12 @@ import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
 import { CustomField } from '@core/models/custom-field.models';
 import { Task, TaskType } from '@core/models/task.models';
 import { TaskEditFormValue } from '../tasks.models';
+import { ProblemFieldErrors } from '@shared/ui/problem-fields';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFormErrorSummaryComponent } from '@shared/ui/ui-form-error-summary.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
+import { NO_FIELD_ERRORS, TASK_EDIT_FORM_ID } from '../services/task-forms.service';
+import { taskErrorSummary } from '../task-form-errors';
 
 @Component({
   selector: 'app-task-edit-modal',
@@ -27,6 +33,9 @@ import { TaskEditFormValue } from '../tasks.models';
     SMTDialogContentDirective,
     SMTButtonComponent,
     SMTDataSelectComponent,
+    UiFormActionsComponent,
+    UiFormErrorSummaryComponent,
+    UiFocusFirstInvalidDirective,
     SMTRadioGroupComponent,
     SMTMultiDataSelectComponent,
     SMTInputComponent,
@@ -49,21 +58,32 @@ export class TaskEditModalComponent {
   readonly editLoadError = input(false);
   readonly isSubmitting = input(false);
   readonly isEditSubmitted = input(false);
-  readonly isEditDiscardConfirmationOpen = input(false);
   readonly taskTypes = input<TaskType[]>([]);
   readonly taskCustomFields = input<CustomField[]>([]);
+  /** The server's refusal of the last save by field; `other` goes to the error summary. */
+  readonly serverErrors = input<ProblemFieldErrors>(NO_FIELD_ERRORS);
 
   readonly closeModal = output<void>();
   readonly submitForm = output<void>();
   readonly retryEditLoad = output<void>();
-  readonly cancelDiscard = output<void>();
-  readonly confirmDiscard = output<void>();
 
-  /**
-   * The title was visited this opening (a new form object is a new opening). ngModel's required
-   * validator used to make smt-control say "required" for an empty visited field; the template now does.
-   */
+  readonly formId = TASK_EDIT_FORM_ID;
+
+  /** The title was visited this opening (a new form object is a new opening). */
   readonly titleTouched = linkedSignal({ source: this.editForm, computation: () => false });
+
+  readonly summary = computed(() => {
+    this.i18n.currentLang();
+    return taskErrorSummary(this.serverErrors(), 'task-edit', (key) => this.i18n.translate(key));
+  });
+
+  /** As in the create dialog: the submit's, then the visit's, then the server's word on the title. */
+  titleError(): string {
+    const title = this.editForm().title;
+    if (this.isEditSubmitted() && !title.trim()) return this.i18n.translate('tasks.editor.title_not_empty');
+    if (this.titleTouched() && !title) return this.i18n.translate('ui.control.required');
+    return this.serverErrors().fields['title'] ?? '';
+  }
 
   /** Projects already named: the rows' ones and the edited task's own, so its project shows without a request. */
   readonly knownProjectRows = computed<readonly ProjectRef[]>(() => {

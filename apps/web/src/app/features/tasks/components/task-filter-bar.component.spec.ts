@@ -108,7 +108,7 @@ describe('TaskFilterBarComponent', () => {
     fixture.componentInstance.searchClear.subscribe(cleared);
     fixture.componentInstance.searchApply.subscribe(applied);
 
-    expect(el(fixture).querySelector('label[for="task-search"]')?.textContent?.trim()).toBe('Поиск задач');
+    expect(search.getAttribute('aria-label')).toBe('Поиск задач');
     search.value = 'отчёт';
     search.dispatchEvent(new Event('input'));
     expect(typed).toHaveBeenCalledWith('отчёт');
@@ -139,9 +139,7 @@ describe('TaskFilterBarComponent', () => {
   it('searches projects on the server 20 at a time, labelled for screen readers, never the whole list', () => {
     const fixture = render();
     const trigger = el(fixture).querySelector('#task-project-filter') as HTMLElement;
-    expect(el(fixture).querySelector('label[for="task-project-filter"]')?.textContent?.trim()).toBe(
-      'Фильтр по проекту',
-    );
+    expect(trigger.getAttribute('aria-label')).toBe('Фильтр по проекту');
     expect(trigger.getAttribute('role')).toBe('combobox');
 
     trigger.click();

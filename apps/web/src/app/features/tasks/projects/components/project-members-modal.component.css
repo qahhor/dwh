@@ -55,16 +55,6 @@
   padding-bottom: 1px;
 }
 
-.form-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-main);
-}
-
-.req {
-  color: var(--danger);
-}
-
 .search-input-box {
   position: relative;
   display: flex;

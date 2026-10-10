@@ -20,11 +20,12 @@
     >
       <div bulkActions class="bulk-actions">
         <div class="bulk-field">
-          <label class="bulk-label" for="task-bulk-status">{{ 'tasks.bulk.status' | t }}</label>
+          <span class="bulk-label" aria-hidden="true">{{ 'tasks.bulk.status' | t }}</span>
           <smt-select
             class="bulk-select"
             data-testid="bulk-status"
             smtTriggerId="task-bulk-status"
+            [ariaLabel]="'tasks.bulk.status' | t"
             [disabled]="bulkBusy()"
             [options]="statusOptions()"
             [value]="bulkStatusCode()"
@@ -46,11 +47,12 @@
           {{ 'tasks.bulk.apply' | t }}
         </button>
         <div class="bulk-field">
-          <label class="bulk-label" for="task-bulk-priority">{{ 'common.priority' | t }}</label>
+          <span class="bulk-label" aria-hidden="true">{{ 'common.priority' | t }}</span>
           <smt-select
             class="bulk-select"
             data-testid="bulk-priority"
             smtTriggerId="task-bulk-priority"
+            [ariaLabel]="'common.priority' | t"
             [disabled]="bulkBusy()"
             [options]="priorityOptions()"
             [value]="bulkPriority()"

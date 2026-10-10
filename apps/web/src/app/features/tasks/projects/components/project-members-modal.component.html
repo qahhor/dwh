@@ -14,32 +14,38 @@
             <span class="panel-title">{{ 'projects.members.add_member' | t }}</span>
           </div>
 
-          <div class="add-member-controls">
+          <form
+            id="project-member-add"
+            class="add-member-controls"
+            uiFocusFirstInvalid
+            novalidate
+            (submit)="$event.preventDefault(); submitAddMember()"
+          >
             <!-- User Search / Selector -->
             <div class="user-search-wrapper">
-              <label class="form-label" for="project-member-search">
-                {{ 'projects.members.select_user' | t }} <span class="req">*</span>
-              </label>
-              <div class="search-input-box">
-                <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-                <smt-input
-                  smtFieldId="project-member-search"
-                  [placeholder]="selectedUser()?.name ?? ('projects.members.search_placeholder' | t)"
-                  [value]="userSearchQuery()"
-                  (valueChange)="onSearchInput($event)"
-                  (focusin)="isUserDropdownOpen.set(true)"
-                />
-                @if (selectedUser()) {
-                  <button
-                    type="button"
-                    class="clear-user-btn"
-                    [title]="'common.clear' | t"
-                    (click)="clearSelectedUser()"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                  </button>
-                }
-              </div>
+              <smt-control [smtLabel]="'projects.members.select_user' | t" [smtError]="userError()" [required]="true">
+                <div class="search-input-box">
+                  <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+                  <smt-input
+                    smtFieldId="project-member-search"
+                    [placeholder]="selectedUser()?.name ?? ('projects.members.search_placeholder' | t)"
+                    [value]="userSearchQuery()"
+                    (valueChange)="onSearchInput($event)"
+                    (focusin)="isUserDropdownOpen.set(true)"
+                  />
+                  @if (selectedUser()) {
+                    <button
+                      type="button"
+                      class="clear-user-btn"
+                      [title]="'common.clear' | t"
+                      [attr.aria-label]="'common.clear' | t"
+                      (click)="clearSelectedUser()"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                    </button>
+                  }
+                </div>
+              </smt-control>
 
               <!-- User Search Results Dropdown -->
               @if (isUserDropdownOpen() && foundUsers().length > 0) {
@@ -69,10 +75,12 @@
             </div>
 
             <!-- Role / Access Kind -->
-            <div class="access-kind-wrapper">
-              <label class="form-label" for="project-member-role">
-                {{ 'projects.members.access_level' | t }} <span class="req">*</span>
-              </label>
+            <smt-control
+              class="access-kind-wrapper"
+              [smtLabel]="'projects.members.access_level' | t"
+              [smtError]="addErrors()['accessKind'] ?? ''"
+              [required]="true"
+            >
               <smt-select
                 smtTriggerId="project-member-role"
                 name="accessKind"
@@ -80,26 +88,24 @@
                 (valueChange)="$event && selectedAccessKind.set($event)"
                 [options]="accessKindOptions()"
                 [allowClear]="false"
-                [required]="true"
               ></smt-select>
-            </div>
+            </smt-control>
 
-            <!-- Submit Button -->
+            <!-- Submit Button: never disabled for a missing person, a press says what to pick. -->
             <div class="add-btn-wrapper">
               <button
                 smt-button
-                type="button"
+                type="submit"
                 smtVariant="primary"
                 smtSize="md"
                 smtIcon="add"
-                [disabled]="!selectedUser() || isAddingMember()"
+                data-testid="project-member-add"
                 [smtLoading]="isAddingMember()"
-                (click)="submitAddMember()"
               >
                 {{ 'common.add' | t }}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       }
 
@@ -132,11 +138,13 @@
       }
     </div>
 
-    <div footer class="modal-footer-actions">
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
-        {{ 'common.close' | t }}
-      </button>
-    </div>
+    <ui-form-actions
+      footer
+      data-testid="project-members-actions"
+      [showCancel]="false"
+      [submitLabel]="'common.close' | t"
+      (submitted)="closeModal.emit()"
+    />
   </ng-template>
 </smt-dialog>
 

@@ -28,11 +28,10 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           [smtAriaLabel]="'tasks.filter.quick_filters' | t"
           (valueChange)="onPresetClick($event ?? activePreset())"
         />
-
-        <label class="sr-only" for="task-search">{{ 'tasks.filter.search_tasks' | t }}</label>
         <smt-input
           class="search-field"
           smtFieldId="task-search"
+          [smtAriaLabel]="'tasks.filter.search_tasks' | t"
           name="taskSearch"
           type="search"
           smtIcon="search"
@@ -57,10 +56,10 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
         />
 
         <!-- Project Filter: searched on the server, 20 projects a page (plan 10/10, item 3.5). -->
-        <label class="sr-only" for="task-project-filter">{{ 'tasks.filter.filter_by_project' | t }}</label>
         <smt-data-select
           class="project-filter"
           smtTriggerId="task-project-filter"
+          [ariaLabel]="'tasks.filter.filter_by_project' | t"
           [source]="lookups.projects"
           [knownRows]="lookups.knownProjectRows()"
           [value]="selectedProjectId()"
@@ -71,10 +70,10 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
         />
 
         <!-- Priority Filter -->
-        <label class="sr-only" for="task-priority-filter">{{ 'tasks.filter.filter_by_priority' | t }}</label>
         <smt-select
           class="priority-filter"
           smtTriggerId="task-priority-filter"
+          [ariaLabel]="'tasks.filter.filter_by_priority' | t"
           [value]="selectedPriority() || null"
           (valueChange)="selectedPriorityChange.emit($event ?? '')"
           [options]="priorityOptions()"

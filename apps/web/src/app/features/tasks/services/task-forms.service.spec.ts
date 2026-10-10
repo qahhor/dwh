@@ -4,7 +4,8 @@ import { Mock, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Task, TaskMember } from '@core/models/task.models';
 import { ApiService } from '@core/services/api.service';
 import { ToastService } from '@core/services/toast.service';
-import { TaskFormsService } from './task-forms.service';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { NO_FIELD_ERRORS, TaskFormsService } from './task-forms.service';
 
 const task = (id: number, title = `Task ${id}`, extra: Partial<Task> = {}): Task => ({
   id,
@@ -114,25 +115,25 @@ describe('TaskFormsService', () => {
     expect(forms.editingTask).toBeNull();
   });
 
-  it('asks before discarding a dirty edit but closes an unchanged edit directly, back to the card', () => {
+  it('asks the common question before discarding a dirty edit but closes an unchanged edit directly', () => {
     responses[record(6)] = of(task(6, 'Original'));
     const openDetails = vi.fn();
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
 
     openEdit(task(6), task(6));
     forms.requestCloseEdit(openDetails);
+    expect(confirm).not.toHaveBeenCalled();
     expect(forms.isEditModalOpen()).toBe(false);
     expect(openDetails).toHaveBeenCalledWith(task(6));
 
     openEdit(task(6));
     forms.editForm.title = 'Changed';
     forms.requestCloseEdit(openDetails);
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: 'Отменить изменения?', destructive: true }));
     expect(forms.isEditModalOpen()).toBe(true);
-    expect(forms.isEditDiscardConfirmationOpen()).toBe(true);
-    forms.cancelDiscardEdit();
-    expect(forms.isEditDiscardConfirmationOpen()).toBe(false);
 
+    confirm.mockReturnValue(of(true));
     forms.requestCloseEdit(openDetails);
-    forms.confirmDiscardEdit(openDetails);
     expect(forms.isEditModalOpen()).toBe(false);
   });
 
@@ -149,7 +150,6 @@ describe('TaskFormsService', () => {
 
     expect(api.patch).toHaveBeenCalledTimes(1);
     expect(forms.isEditModalOpen()).toBe(true);
-    expect(forms.isEditDiscardConfirmationOpen()).toBe(false);
     patch.next({});
     expect(forms.isEditModalOpen()).toBe(false);
     expect(saved).toHaveBeenCalledWith(task(8), 8);
@@ -185,7 +185,9 @@ describe('TaskFormsService', () => {
 
     forms.editForm.title = '  ';
     forms.submitEditTask(vi.fn());
-    expect(toast.warning).toHaveBeenCalled();
+    // The dialog shows the error under the title; no toast repeats it.
+    expect(forms.isEditSubmitted).toBe(true);
+    expect(toast.warning).not.toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
 
     forms.editForm.title = 'Named';
@@ -284,5 +286,95 @@ describe('TaskFormsService', () => {
         vi.fn(),
       ),
     ).toBe(false);
+  });
+
+  it('closes the dialogs when the person agrees to leave a dirty page, and stays when they keep editing', () => {
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+    forms.openCreateTaskModal();
+    forms.createForm.title = 'Draft';
+    const answers: boolean[] = [];
+    (
+      forms.canLeaveRecordPage(
+        () => false,
+        () => '',
+        vi.fn(),
+      ) as Observable<boolean>
+    ).subscribe((a) => answers.push(a));
+    expect(forms.isCreateModalOpen()).toBe(true);
+
+    confirm.mockReturnValue(of(true));
+    (
+      forms.canLeaveRecordPage(
+        () => false,
+        () => '',
+        vi.fn(),
+      ) as Observable<boolean>
+    ).subscribe((a) => answers.push(a));
+    expect(answers).toEqual([false, true]);
+    expect(forms.isCreateModalOpen()).toBe(false);
+  });
+
+  it('asks before closing a changed create draft, and closes an untouched one at once', () => {
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+    forms.openCreateTaskModal();
+    forms.requestCloseCreate();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(forms.isCreateModalOpen()).toBe(false);
+
+    forms.openCreateTaskModal();
+    forms.createForm.title = 'Draft';
+    forms.requestCloseCreate();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(forms.isCreateModalOpen()).toBe(true);
+  });
+
+  it('puts a refused create under its fields, by the dialog names, without a toast', () => {
+    responses[`POST ${LIST}`] = new Observable((subscriber) =>
+      subscriber.error({
+        status: 422,
+        detail: 'Invalid',
+        errors: [
+          { field: 'title', message: 'Too long' },
+          { field: 'responsibleId', message: 'Inactive user' },
+          { field: 'attributes.budget', message: 'Not a number' },
+        ],
+      }),
+    );
+    forms.openCreateTaskModal();
+    forms.createForm.title = 'Long';
+    forms.submitCreateTask(vi.fn());
+
+    expect(forms.createErrors()).toEqual({
+      fields: { title: 'Too long', responsibleUserId: 'Inactive user' },
+      other: ['Not a number'],
+    });
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).not.toHaveBeenCalled();
+    expect(forms.isCreateModalOpen()).toBe(true);
+
+    forms.openCreateTaskModal();
+    expect(forms.createErrors()).toBe(NO_FIELD_ERRORS);
+  });
+
+  it('reports a create refused without field errors as a whole, in the server words', () => {
+    responses[`POST ${LIST}`] = new Observable((subscriber) => subscriber.error({ status: 500, detail: 'Down' }));
+    forms.openCreateTaskModal();
+    forms.createForm.title = 'Task';
+    forms.submitCreateTask(vi.fn());
+    expect(forms.createErrors()).toBe(NO_FIELD_ERRORS);
+    expect(toast.error).toHaveBeenCalledWith('Down');
+  });
+
+  it('puts a refused edit under its fields and keeps the dialog open', () => {
+    responses[record(15)] = of(task(15));
+    responses[`PATCH ${record(15)}`] = new Observable((subscriber) =>
+      subscriber.error({ status: 422, errors: [{ field: 'typeCode', message: 'Unknown type' }] }),
+    );
+    openEdit(task(15));
+    forms.submitEditTask(vi.fn());
+    expect(forms.editErrors().fields).toEqual({ taskType: 'Unknown type' });
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(forms.isEditModalOpen()).toBe(true);
+    expect(forms.isSubmitting()).toBe(false);
   });
 });

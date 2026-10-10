@@ -10,209 +10,208 @@
   (closed)="closeModal.emit()"
 >
   <ng-template smtDialogContent>
-    <fieldset body class="modal-form modal-form-fieldset task-create-form" [disabled]="isSubmitting()">
-      <!-- Title Input (Required) -->
-      <smt-control
-        class="form-group"
-        [smtLabel]="'task.title' | t"
-        [smtError]="
-          isCreateSubmitted() && !createForm().title.trim()
-            ? ('tasks.editor.title_required_hint' | t)
-            : titleTouched() && !createForm().title
-              ? ('ui.control.required' | t)
-              : ''
-        "
-      >
-        <smt-input
-          smtFieldId="task-create-title"
-          name="taskCreateTitle"
-          class="title-input"
-          required
-          [value]="createForm().title"
-          (valueChange)="createForm().title = $event?.toString() ?? ''"
-          (touch)="titleTouched.set(true)"
-          [placeholder]="'tasks.editor.title_placeholder' | t"
-        />
-      </smt-control>
-
-      <!-- Visual Type Selector Chips -->
-      <div class="form-group">
-        <div class="label-row">
-          <span class="clean-label">{{ 'tasks.common.task_type' | t }}</span>
-        </div>
-        <smt-radio-group
-          smtAppearance="chips"
-          [options]="typeOptions()"
-          [value]="createForm().taskType"
-          [smtAriaLabel]="'tasks.common.task_type' | t"
-          (valueChange)="createForm().taskType = $event ?? createForm().taskType"
-        />
-      </div>
-
-      <!-- Visual Priority Selector Pills -->
-      <div class="form-group">
-        <div class="label-row">
-          <span class="clean-label">{{ 'common.priority' | t }}</span>
-        </div>
-        <smt-radio-group
-          smtAppearance="segmented"
-          [options]="priorityOptions()"
-          [value]="createForm().priority"
-          [smtAriaLabel]="'tasks.editor.task_priority' | t"
-          (valueChange)="createForm().priority = $event ?? createForm().priority"
-        />
-      </div>
-
-      <div class="form-grid-2">
-        <!-- Project Selector -->
-        <smt-control class="form-group" [smtLabel]="'projects.common.project' | t">
-          <smt-data-select
-            smtTriggerId="task-create-project"
-            [source]="lookups.projects"
-            [knownRows]="lookups.knownProjectRows()"
-            [value]="createForm().projectId"
-            (valueChange)="createForm().projectId = $event"
-            [placeholder]="'tasks.editor.no_project' | t"
-            [searchPlaceholder]="'tasks.search_project' | t"
-            [emptyLabel]="'tasks.editor.no_project' | t"
+    <form
+      [id]="formId"
+      class="task-create-form-wrap"
+      uiFocusFirstInvalid
+      novalidate
+      (submit)="$event.preventDefault(); submitForm.emit()"
+    >
+      <ui-form-error-summary [errors]="summary()" />
+      <fieldset class="modal-form modal-form-fieldset task-create-form" [disabled]="isSubmitting()">
+        <!-- Title Input (Required) -->
+        <smt-control class="form-group" [smtLabel]="'task.title' | t" [smtError]="titleError()" [required]="true">
+          <smt-input
+            smtFieldId="task-create-title"
+            smtFocusInitial
+            name="taskCreateTitle"
+            class="title-input"
+            [value]="createForm().title"
+            (valueChange)="createForm().title = $event?.toString() ?? ''"
+            (touch)="titleTouched.set(true)"
+            [placeholder]="'tasks.editor.title_placeholder' | t"
           />
         </smt-control>
 
-        <!-- Parent Task (Searchable Select) -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'task.parent' | t }}</span>
-          </div>
-          <smt-data-select
-            [source]="lookups.tasks"
-            [knownRows]="lookups.knownParentRows()"
-            [value]="createForm().parentTaskId"
-            [ariaLabel]="'task.parent' | t"
-            (valueChange)="createForm().parentTaskId = $event"
-            [placeholder]="'tasks.editor.no_parent' | t"
-            [searchPlaceholder]="'tasks.editor.parent_search_placeholder' | t"
-            [emptyLabel]="'tasks.without_parent' | t"
+        <!-- Visual Type Selector Chips -->
+        <smt-control
+          class="form-group"
+          [smtLabel]="'tasks.common.task_type' | t"
+          [smtError]="serverErrors().fields['taskType'] ?? ''"
+        >
+          <smt-radio-group
+            smtFieldId="task-create-type"
+            smtAppearance="chips"
+            [options]="typeOptions()"
+            [value]="createForm().taskType"
+            (valueChange)="createForm().taskType = $event ?? createForm().taskType"
           />
-        </div>
-      </div>
+        </smt-control>
 
-      <div class="form-grid-2">
-        <!-- Responsible User (Searchable Select) -->
-        <div class="form-group">
-          <div class="label-row">
-            <span class="clean-label">{{ 'task.responsible' | t }}</span>
-          </div>
-          <smt-data-select
+        <!-- Visual Priority Selector Pills -->
+        <smt-control
+          class="form-group"
+          [smtLabel]="'common.priority' | t"
+          [smtError]="serverErrors().fields['priority'] ?? ''"
+        >
+          <smt-radio-group
+            smtFieldId="task-create-priority"
+            smtAppearance="segmented"
+            [options]="priorityOptions()"
+            [value]="createForm().priority"
+            (valueChange)="createForm().priority = $event ?? createForm().priority"
+          />
+        </smt-control>
+
+        <div class="form-grid-2">
+          <!-- Project Selector -->
+          <smt-control
+            class="form-group"
+            [smtLabel]="'projects.common.project' | t"
+            [smtError]="serverErrors().fields['projectId'] ?? ''"
+          >
+            <smt-data-select
+              smtTriggerId="task-create-project"
+              [source]="lookups.projects"
+              [knownRows]="lookups.knownProjectRows()"
+              [value]="createForm().projectId"
+              (valueChange)="createForm().projectId = $event"
+              [placeholder]="'tasks.editor.no_project' | t"
+              [searchPlaceholder]="'tasks.search_project' | t"
+              [emptyLabel]="'tasks.editor.no_project' | t"
+            />
+          </smt-control>
+
+          <!-- Parent Task (Searchable Select) -->
+          <smt-control
+            class="form-group"
+            [smtLabel]="'task.parent' | t"
+            [smtError]="serverErrors().fields['parentTaskId'] ?? ''"
+          >
+            <smt-data-select
+              smtTriggerId="task-create-parent"
+              [source]="lookups.tasks"
+              [knownRows]="lookups.knownParentRows()"
+              [value]="createForm().parentTaskId"
+              (valueChange)="createForm().parentTaskId = $event"
+              [placeholder]="'tasks.editor.no_parent' | t"
+              [searchPlaceholder]="'tasks.editor.parent_search_placeholder' | t"
+              [emptyLabel]="'tasks.without_parent' | t"
+            />
+          </smt-control>
+        </div>
+
+        <div class="form-grid-2">
+          <!-- Responsible User (Searchable Select) -->
+          <smt-control
+            class="form-group"
+            [smtLabel]="'task.responsible' | t"
+            [smtError]="serverErrors().fields['responsibleUserId'] ?? ''"
+          >
+            <smt-data-select
+              smtTriggerId="task-create-responsible"
+              [source]="lookups.users"
+              [knownRows]="lookups.knownUserRows()"
+              [value]="createForm().responsibleUserId"
+              (valueChange)="createForm().responsibleUserId = $event"
+              [placeholder]="'tasks.editor.select_assignee' | t"
+              [searchPlaceholder]="'tasks.common.employee_search_placeholder' | t"
+              [emptyLabel]="'common.not_assigned' | t"
+            />
+          </smt-control>
+
+          <!-- Deadlines: End Date / Deadline -->
+          <smt-control
+            class="form-group"
+            [smtLabel]="'tasks.editor.due_date' | t"
+            [smtError]="serverErrors().fields['endTime'] ?? ''"
+          >
+            <smt-date-picker
+              smtInputId="task-create-deadline"
+              name="taskCreateDeadline"
+              smtWithTime
+              [value]="createForm().endTime"
+              (valueChange)="createForm().endTime = $event ?? ''"
+            />
+          </smt-control>
+        </div>
+
+        <!-- Executors Searchable Multi-Select Tags Input -->
+        <smt-control
+          class="form-group"
+          [smtLabel]="'tasks.common.co_executors' | t"
+          [smtError]="serverErrors().fields['executorUserIds'] ?? ''"
+        >
+          <smt-multi-data-select
             [source]="lookups.users"
             [knownRows]="lookups.knownUserRows()"
-            [value]="createForm().responsibleUserId"
-            [ariaLabel]="'task.responsible' | t"
-            (valueChange)="createForm().responsibleUserId = $event"
-            [placeholder]="'tasks.editor.select_assignee' | t"
-            [searchPlaceholder]="'tasks.common.employee_search_placeholder' | t"
-            [emptyLabel]="'common.not_assigned' | t"
-          />
-        </div>
-
-        <!-- Deadlines: End Date / Deadline -->
-        <smt-control class="form-group" [smtLabel]="'tasks.editor.due_date' | t">
-          <smt-date-picker
-            smtInputId="task-create-deadline"
-            name="taskCreateDeadline"
-            smtWithTime
-            [value]="createForm().endTime"
-            (valueChange)="createForm().endTime = $event ?? ''"
+            [value]="createForm().executorUserIds"
+            [ariaLabel]="'tasks.common.co_executors' | t"
+            (valueChange)="createForm().executorUserIds = [...$event]"
+            [placeholder]="'tasks.editor.add_co_executors_hint' | t"
+            [searchPlaceholder]="'tasks.editor.employee_search' | t"
           />
         </smt-control>
-      </div>
 
-      <!-- Executors Searchable Multi-Select Tags Input -->
-      <div class="form-group">
-        <div class="label-row">
-          <span class="clean-label">{{ 'tasks.common.co_executors' | t }}</span>
-        </div>
-        <smt-multi-data-select
-          [source]="lookups.users"
-          [knownRows]="lookups.knownUserRows()"
-          [value]="createForm().executorUserIds"
-          [ariaLabel]="'tasks.common.co_executors' | t"
-          (valueChange)="createForm().executorUserIds = [...$event]"
-          [placeholder]="'tasks.editor.add_co_executors_hint' | t"
-          [searchPlaceholder]="'tasks.editor.employee_search' | t"
-        />
-      </div>
+        <!-- Observers Searchable Multi-Select Tags Input -->
+        <smt-control
+          class="form-group"
+          [smtLabel]="'tasks.editor.observers_hint' | t"
+          [smtError]="serverErrors().fields['observerUserIds'] ?? ''"
+        >
+          <smt-multi-data-select
+            [source]="lookups.users"
+            [knownRows]="lookups.knownUserRows()"
+            [value]="createForm().observerUserIds"
+            [ariaLabel]="'tasks.common.observers' | t"
+            (valueChange)="createForm().observerUserIds = [...$event]"
+            [placeholder]="'tasks.editor.add_observers_hint' | t"
+            [searchPlaceholder]="'tasks.editor.employee_search' | t"
+          />
+        </smt-control>
 
-      <!-- Observers Searchable Multi-Select Tags Input -->
-      <div class="form-group">
-        <div class="label-row">
-          <span class="clean-label">{{ 'tasks.editor.observers_hint' | t }}</span>
+        <!-- RichText Markdown Editor for Description: the editor names its own text area. -->
+        <div class="form-group">
+          <div class="label-row">
+            <span class="clean-label" aria-hidden="true">{{ 'projects.common.description' | t }}</span>
+          </div>
+          <ui-markdown-editor
+            [value]="createForm().descriptionMarkdown"
+            [ariaLabel]="'projects.common.description' | t"
+            (valueChange)="createForm().descriptionMarkdown = $event"
+            [placeholder]="'tasks.editor.description_placeholder' | t"
+            [rows]="4"
+          ></ui-markdown-editor>
         </div>
-        <smt-multi-data-select
-          [source]="lookups.users"
-          [knownRows]="lookups.knownUserRows()"
-          [value]="createForm().observerUserIds"
-          [ariaLabel]="'tasks.common.observers' | t"
-          (valueChange)="createForm().observerUserIds = [...$event]"
-          [placeholder]="'tasks.editor.add_observers_hint' | t"
-          [searchPlaceholder]="'tasks.editor.employee_search' | t"
-        />
-      </div>
 
-      <!-- RichText Markdown Editor for Description -->
-      <div class="form-group">
-        <div class="label-row">
-          <span class="clean-label">{{ 'projects.common.description' | t }}</span>
-        </div>
-        <ui-markdown-editor
-          [value]="createForm().descriptionMarkdown"
-          [ariaLabel]="'projects.common.description' | t"
-          (valueChange)="createForm().descriptionMarkdown = $event"
-          [placeholder]="'tasks.editor.description_placeholder' | t"
-          [rows]="4"
-        ></ui-markdown-editor>
-      </div>
+        <!-- Custom Dynamic Fields -->
+        @if (taskCustomFields().length > 0) {
+          <div class="custom-fields-section">
+            <h4 class="custom-fields-title">
+              <span>{{ 'nav.custom_fields' | t }}</span>
+            </h4>
+            <ui-custom-fields [fields]="taskCustomFields()" [(values)]="createForm().attributes"></ui-custom-fields>
+          </div>
+        }
 
-      <!-- Custom Dynamic Fields -->
-      @if (taskCustomFields().length > 0) {
-        <div class="custom-fields-section">
-          <h4 class="custom-fields-title">
-            <span>{{ 'nav.custom_fields' | t }}</span>
-          </h4>
-          <ui-custom-fields [fields]="taskCustomFields()" [(values)]="createForm().attributes"></ui-custom-fields>
-        </div>
-      }
-
-      @if (taskCustomFields().length === 0) {
-        <div class="custom-fields-empty-tip">
-          <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
-          <span class="tip-text"
-            >{{ 'tasks.editor.custom_fields_hint' | t }} <strong>{{ 'nav.custom_fields' | t }}</strong
-            >.</span
-          >
-        </div>
-      }
-    </fieldset>
-    <div footer>
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="md"
-        [disabled]="isSubmitting()"
-        (click)="closeModal.emit()"
-      >
-        {{ 'common.cancel' | t }}
-      </button>
-      <button
-        smt-button
-        type="button"
-        smtVariant="primary"
-        smtSize="md"
-        [smtLoading]="isSubmitting()"
-        (click)="submitForm.emit()"
-      >
-        {{ 'tasks.editor.create_task' | t }}
-      </button>
-    </div>
+        @if (taskCustomFields().length === 0) {
+          <div class="custom-fields-empty-tip">
+            <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
+            <span class="tip-text"
+              >{{ 'tasks.editor.custom_fields_hint' | t }} <strong>{{ 'nav.custom_fields' | t }}</strong
+              >.</span
+            >
+          </div>
+        }
+      </fieldset>
+    </form>
+    <ui-form-actions
+      footer
+      [form]="formId"
+      data-testid="task-create-actions"
+      [submitLabel]="'tasks.editor.create_task' | t"
+      [submitting]="isSubmitting()"
+      (cancelled)="closeModal.emit()"
+    />
   </ng-template>
 </smt-dialog>

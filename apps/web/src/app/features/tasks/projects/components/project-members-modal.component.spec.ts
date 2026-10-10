@@ -145,4 +145,28 @@ describe('ProjectMembersModalComponent', () => {
       fixture.destroy();
     }
   });
+
+  it('asks for a person when Add is pressed without one, and shows the server refusal under its field', async () => {
+    const fixture = await createFixture(true);
+    const added = vi.fn();
+    fixture.componentInstance.addMember.subscribe(added);
+    const add = document.body.querySelector('[data-testid="project-member-add"]') as HTMLButtonElement;
+    const userError = () =>
+      (
+        document.body.querySelector('smt-control:has(#project-member-search) .smt-control__error')?.textContent ?? ''
+      ).trim();
+
+    expect(add.disabled).toBe(false);
+    add.click();
+    fixture.detectChanges();
+    expect(added).not.toHaveBeenCalled();
+    expect(userError()).toBe('Обязательное поле');
+
+    fixture.componentRef.setInput('addErrors', { accessKind: 'Неизвестный уровень' });
+    fixture.detectChanges();
+    expect(
+      document.body.querySelector('smt-control:has(#project-member-role) .smt-control__error')?.textContent?.trim(),
+    ).toBe('Неизвестный уровень');
+    fixture.destroy();
+  });
 });

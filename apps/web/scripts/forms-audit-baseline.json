@@ -88,40 +88,6 @@
   "features/notes/note-form-dialog.component.html": {
     "dialog-footer": 1
   },
-  "features/tasks/components/task-create-modal.component.html": {
-    "dialog-footer": 1
-  },
-  "features/tasks/components/task-detail-modal.component.html": {
-    "raw-label": 1,
-    "dialog-footer": 1,
-    "module-button-key": 1
-  },
-  "features/tasks/components/task-dictionaries-modal.component.html": {
-    "raw-label": 3,
-    "dialog-footer": 1,
-    "module-button-key": 1
-  },
-  "features/tasks/components/task-edit-modal.component.html": {
-    "dialog-footer": 2,
-    "module-button-key": 1
-  },
-  "features/tasks/components/task-filter-bar.component.ts": {
-    "raw-label": 3
-  },
-  "features/tasks/components/task-table-view.component.html": {
-    "raw-label": 2
-  },
-  "features/tasks/projects/components/project-filter-bar.component.ts": {
-    "raw-label": 1
-  },
-  "features/tasks/projects/components/project-members-modal.component.html": {
-    "raw-label": 2,
-    "manual-required": 2,
-    "dialog-footer": 1
-  },
-  "features/tasks/projects/components/project-modals.component.html": {
-    "dialog-footer": 5
-  },
   "shared/entity/report/smt-entity-report-builder.component.ts": {
     "raw-label": 4
   },

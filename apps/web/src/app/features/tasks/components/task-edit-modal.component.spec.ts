@@ -132,18 +132,41 @@ describe('TaskEditModalComponent', () => {
     expect(fixture.componentInstance.notThisTask({ id: 8, title: 'Другая' })).toBe(false);
   });
 
-  it('asks before dropping unsaved changes and reports the answer', () => {
-    const { fixture, screen } = render({ isOpen: false, isEditDiscardConfirmationOpen: true });
-    const kept = vi.fn();
-    const dropped = vi.fn();
-    fixture.componentInstance.cancelDiscard.subscribe(kept);
-    fixture.componentInstance.confirmDiscard.subscribe(dropped);
+  it('shows the server field errors under their fields and lists them with links in the summary', () => {
+    const { fixture, screen } = render({
+      editingTask: TASK,
+      serverErrors: {
+        fields: {
+          title: 'Слишком длинное',
+          projectId: 'Проект закрыт',
+          responsibleUserId: 'Пользователь заблокирован',
+        },
+        other: [],
+      },
+    });
+    TestBed.tick();
+    fixture.detectChanges();
 
-    expect(text(screen.querySelector('.smt-modal__title'))).toBe('Отменить редактирование?');
-    expect(text(screen.querySelector('.dictionary-delete-body'))).toBe('Несохранённые изменения будут потеряны.');
-    click(fixture, footerButton(screen, 'Отмена'));
-    click(fixture, footerButton(screen, 'Не сохранять'));
-    expect(kept).toHaveBeenCalledTimes(1);
-    expect(dropped).toHaveBeenCalledTimes(1);
+    expect(titleError(screen)).toBe('Слишком длинное');
+    expect(text(screen.querySelector('smt-control:has(#task-edit-project) .smt-control__error'))).toBe('Проект закрыт');
+    const summary = screen.querySelector('[data-testid="form-error-summary"]');
+    expect(summary).not.toBeNull();
+    const links = [...summary!.querySelectorAll('a')].map((link) => link.getAttribute('href'));
+    expect(links).toEqual(['#task-edit-title', '#task-edit-project', '#task-edit-responsible']);
+  });
+
+  it('lists an error of a field the dialog does not draw in the summary', () => {
+    const { screen } = render({ editingTask: TASK, serverErrors: { fields: {}, other: ['Бюджет: не число'] } });
+    expect(text(screen.querySelector('[data-testid="form-error-summary"]'))).toContain('Бюджет: не число');
+  });
+
+  it('submits through its form, so Enter in a field saves like the button', () => {
+    const { fixture, screen } = render({ editingTask: TASK });
+    const saved = vi.fn();
+    fixture.componentInstance.submitForm.subscribe(saved);
+    const form = screen.querySelector('form#task-edit-form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(saved).toHaveBeenCalledTimes(1);
+    expect(footerButton(screen, 'Сохранить изменения')?.getAttribute('form')).toBe('task-edit-form');
   });
 });

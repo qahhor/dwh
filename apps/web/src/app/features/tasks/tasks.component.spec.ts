@@ -154,7 +154,7 @@ describe('TasksComponent', () => {
     const search = screen.querySelector('#task-search') as HTMLInputElement;
     const region = screen.querySelector('.table-card[role="region"]') as HTMLElement;
 
-    expect(screen.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
+    expect(search.getAttribute('aria-label')).toBe('Поиск задач');
     expect(screen.querySelector('[role="radiogroup"][aria-label="Режим отображения задач"]')).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица задач');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список задач');
@@ -321,7 +321,7 @@ describe('TasksComponent', () => {
     });
     component.openEditModal(task(61));
     redraw(fixture);
-    const selector = screen.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const selector = screen.querySelector('smt-select button[id$="-responsible"]') as HTMLButtonElement;
     selector.click();
     redraw(fixture);
     expect(selector.getAttribute('aria-expanded')).toBe('true');
@@ -621,8 +621,8 @@ describe('TasksComponent pickers', () => {
     // Let the opened dialog settle before typing.
     await vi.advanceTimersByTimeAsync(0);
     redraw(fixture);
-    const responsible = screen.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
-    const parentTrigger = screen.querySelector('smt-select button[aria-label="Родительская задача"]') as HTMLElement;
+    const responsible = screen.querySelector('smt-select button[id$="-responsible"]') as HTMLButtonElement;
+    const parentTrigger = screen.querySelector('smt-select button[id$="-parent"]') as HTMLElement;
     const observers = screen.querySelector('smt-multi-select button[aria-label="Наблюдатели"]') as HTMLElement;
 
     await pick(fixture, responsible, 'user501', 'Remote User');
@@ -659,7 +659,7 @@ describe('TasksComponent pickers', () => {
     });
     component.openEditModal(task(40));
     redraw(fixture);
-    const responsible = screen.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = screen.querySelector('smt-select button[id$="-responsible"]') as HTMLButtonElement;
     responsible.click();
     await vi.advanceTimersByTimeAsync(300);
     redraw(fixture);
@@ -687,7 +687,7 @@ describe('TasksComponent pickers', () => {
     component.openEditModal(task(60));
     redraw(fixture);
 
-    const responsible = screen.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement;
+    const responsible = screen.querySelector('smt-select button[id$="-responsible"]') as HTMLButtonElement;
     expect(responsible.textContent).toContain('Fresh Name');
     expect(responsible.textContent).not.toContain('Old Name');
   });
@@ -700,7 +700,7 @@ describe('TasksComponent pickers', () => {
     });
     component.openCreateTaskModal();
     redraw(fixture);
-    (screen.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement).click();
+    (screen.querySelector('smt-select button[id$="-responsible"]') as HTMLButtonElement).click();
     await vi.advanceTimersByTimeAsync(300);
     redraw(fixture);
 
@@ -730,7 +730,7 @@ describe('TasksComponent pickers', () => {
     });
     component.openCreateTaskModal();
     redraw(fixture);
-    (screen.querySelector('smt-select button[aria-label="Ответственный"]') as HTMLButtonElement).click();
+    (screen.querySelector('smt-select button[id$="-responsible"]') as HTMLButtonElement).click();
     await vi.advanceTimersByTimeAsync(300);
     redraw(fixture);
     (document.querySelector('.smt-select__more') as HTMLButtonElement).click();

@@ -1,14 +1,46 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { Observable, Subscription, combineLatest, take } from 'rxjs';
+import { Injectable, Injector, WritableSignal, inject, signal } from '@angular/core';
+import { Observable, Subscription, combineLatest, take, tap } from 'rxjs';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
 import { Task, TaskMember } from '@core/models/task.models';
-import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
 import { safeNumericRecordId } from '@core/services/search-target';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
+import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
+import { leaveQuestion } from '@shared/ui/leave-question';
+import { ProblemFieldErrors, problemFieldErrors } from '@shared/ui/problem-fields';
 import { TasksApi } from '../tasks.api';
 import { toLocalDateTime, toTaskInstant } from '../task-form-value';
 import { TaskCreateFormValue, TaskEditFormValue, createDefaultTaskCreateForm, sameIdSet } from '../tasks.models';
+
+/** The form ids of the task dialogs, so a server refusal can focus its first field. */
+export const TASK_CREATE_FORM_ID = 'task-create-form';
+export const TASK_EDIT_FORM_ID = 'task-edit-form';
+
+/** No field errors: the state of a form before a save and after a successful one. */
+export const NO_FIELD_ERRORS: ProblemFieldErrors = { fields: {}, other: [] };
+
+/**
+ * The task fields the dialogs draw under smt-control, by the dialog's names; the server names some of them by the
+ * record's keys (ADR-0032 8). Errors of other fields (description, begin time, custom fields) go to the summary.
+ */
+const TASK_FIELDS = [
+  'title',
+  'taskType',
+  'priority',
+  'projectId',
+  'parentTaskId',
+  'responsibleUserId',
+  'endTime',
+  'executorUserIds',
+  'observerUserIds',
+];
+const TASK_FIELD_RENAME = {
+  typeCode: 'taskType',
+  responsibleId: 'responsibleUserId',
+  executorIds: 'executorUserIds',
+  observerIds: 'observerUserIds',
+};
 
 @Injectable({
   providedIn: 'root',
@@ -18,16 +50,21 @@ export class TaskFormsService {
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
+  private readonly injector = inject(Injector);
+  private readonly askDiscard = discardChangesQuestion();
+  private readonly askLeave = leaveQuestion();
 
   readonly isCreateModalOpen = signal<boolean>(false);
 
   readonly isEditModalOpen = signal<boolean>(false);
-  readonly isEditDiscardConfirmationOpen = signal<boolean>(false);
   readonly editLoading = signal<boolean>(false);
   readonly editLoadError = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
 
-  readonly navigationDecision = new RecordNavigationDecision();
+  /** The server's refusal of the last create or edit save, by field (forms standard, section 5). */
+  readonly createErrors = signal<ProblemFieldErrors>(NO_FIELD_ERRORS);
+  readonly editErrors = signal<ProblemFieldErrors>(NO_FIELD_ERRORS);
+
   isCreateSubmitted = false;
   createForm: TaskCreateFormValue = createDefaultTaskCreateForm();
   createFormBaseline = '';
@@ -70,6 +107,7 @@ export class TaskFormsService {
 
   openCreateTaskModal(defaultType = 'task', projectId: number | null = null): void {
     this.isCreateSubmitted = false;
+    this.createErrors.set(NO_FIELD_ERRORS);
     this.createForm = createDefaultTaskCreateForm(projectId, defaultType);
     this.createFormBaseline = JSON.stringify(this.createForm);
     this.isCreateModalOpen.set(true);
@@ -82,6 +120,7 @@ export class TaskFormsService {
   ): void {
     if (!safeNumericRecordId(parentTask.id)) return;
     this.isCreateSubmitted = false;
+    this.createErrors.set(NO_FIELD_ERRORS);
     this.createForm = {
       title: '',
       taskType: defaultType,
@@ -101,18 +140,21 @@ export class TaskFormsService {
     this.isCreateModalOpen.set(true);
   }
 
+  /** Escape, the backdrop, the cross and "Cancel" ask before a changed draft is dropped (forms standard, 8). */
   requestCloseCreate(): void {
     if (this.isSubmitting()) return;
-    this.isCreateModalOpen.set(false);
+    const dirty = this.createFormBaseline !== JSON.stringify(this.createForm);
+    this.askDiscard(dirty).subscribe((discard) => {
+      if (discard) this.isCreateModalOpen.set(false);
+    });
   }
 
+  /** An empty title shows its error under the field; the dialog's form moves focus to it. */
   submitCreateTask(onSuccess: (parentTaskId: number | null) => void): void {
     if (this.isSubmitting()) return;
     this.isCreateSubmitted = true;
-    if (!this.createForm.title.trim()) {
-      this.toast.warning(this.uiI18n.translate('tasks.editor.title_input_placeholder'));
-      return;
-    }
+    if (!this.createForm.title.trim()) return;
+    this.createErrors.set(NO_FIELD_ERRORS);
 
     // The fields of `ms.tasks` by their keys (ADR-0032 8); the custom fields stay in `attributes`.
     const payload = {
@@ -139,11 +181,25 @@ export class TaskFormsService {
         this.toast.success(this.uiI18n.translate('tasks.editor.created'));
         onSuccess(parentId);
       },
-      error: (err) => {
+      error: (err: unknown) => {
         this.isSubmitting.set(false);
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.editor.save_failed'));
+        if (this.showFieldErrors(err, this.createErrors, TASK_CREATE_FORM_ID)) return;
+        this.saveErrors.show(err, { fallbackKey: 'tasks.editor.save_failed' });
       },
     });
+  }
+
+  /**
+   * Puts a refusal's field errors under the dialog's fields and focuses the first; false when the refusal names no
+   * field, so the caller reports it as a whole.
+   */
+  private showFieldErrors(err: unknown, target: WritableSignal<ProblemFieldErrors>, formId: string): boolean {
+    const errors = problemFieldErrors(err, { known: TASK_FIELDS, rename: TASK_FIELD_RENAME });
+    if (Object.keys(errors.fields).length === 0 && errors.other.length === 0) return false;
+    target.set(errors);
+    const form = document.getElementById(formId);
+    if (form) focusFirstInvalid(form, this.injector);
+    return true;
   }
 
   openEditModal(
@@ -155,7 +211,7 @@ export class TaskFormsService {
     if (!safeNumericRecordId(task.id)) return;
     if (this.isSubmitting() || this.isEditModalOpen()) return;
     this.isEditSubmitted = false;
-    this.isEditDiscardConfirmationOpen.set(false);
+    this.editErrors.set(NO_FIELD_ERRORS);
     this.editReturnTask = closeDetailsIfMatches();
     this.editTargetId = task.id;
     this.editingTask = null;
@@ -236,32 +292,16 @@ export class TaskFormsService {
     this.loadEditDetails(this.editTargetId, retain.member, retain.parent);
   }
 
+  /** A changed edit asks the common "discard changes?" question first; an unchanged one closes back to the card. */
   requestCloseEdit(onOpenDetails: (t: Task) => void): void {
     if (this.isSubmitting()) return;
-    if (this.editingTask && this.editFormBaseline !== this.serializeEditForm()) {
-      this.isEditDiscardConfirmationOpen.set(true);
-      return;
-    }
-    this.closeEditModal(true, onOpenDetails);
+    const dirty = !!this.editingTask && this.editFormBaseline !== this.serializeEditForm();
+    this.askDiscard(dirty).subscribe((discard) => {
+      if (discard && this.isEditModalOpen() && !this.isSubmitting()) this.closeEditModal(true, onOpenDetails);
+    });
   }
 
-  confirmDiscardEdit(onOpenDetails: (t: Task) => void): void {
-    if (this.isSubmitting()) return;
-    if (this.navigationDecision.pending) {
-      this.isCreateModalOpen.set(false);
-      this.closeEditModal(false, onOpenDetails);
-      this.navigationDecision.settle(true);
-      return;
-    }
-    this.isEditDiscardConfirmationOpen.set(false);
-    this.closeEditModal(true, onOpenDetails);
-  }
-
-  cancelDiscardEdit(): void {
-    this.isEditDiscardConfirmationOpen.set(false);
-    this.navigationDecision.settle(false);
-  }
-
+  /** Leaving the page with a changed dialog or comment asks once; on "discard" the dialogs close without a return. */
   canLeaveRecordPage(
     isCommentSubmitting: () => boolean,
     commentDraft: () => string,
@@ -271,9 +311,12 @@ export class TaskFormsService {
     const dirtyEdit = this.isEditModalOpen() && this.editingTask && this.editFormBaseline !== this.serializeEditForm();
     const dirtyCreate = this.isCreateModalOpen() && this.createFormBaseline !== JSON.stringify(this.createForm);
     if (dirtyEdit || dirtyCreate || commentDraft().trim()) {
-      return this.navigationDecision.request(
-        () => this.isEditDiscardConfirmationOpen.set(true),
-        () => this.isEditDiscardConfirmationOpen.set(false),
+      return this.askLeave().pipe(
+        tap((leave) => {
+          if (!leave) return;
+          this.isCreateModalOpen.set(false);
+          if (this.isEditModalOpen()) this.closeEditModal(false, onOpenDetails);
+        }),
       );
     }
     if (this.isEditModalOpen()) this.closeEditModal(false, onOpenDetails);
@@ -286,7 +329,7 @@ export class TaskFormsService {
     this.editRequestId++;
     this.editRequest?.unsubscribe();
     this.isEditModalOpen.set(false);
-    this.isEditDiscardConfirmationOpen.set(false);
+    this.editErrors.set(NO_FIELD_ERRORS);
     this.editLoading.set(false);
     this.editLoadError.set(false);
     this.editingTask = null;
@@ -304,10 +347,8 @@ export class TaskFormsService {
   submitEditTask(onSuccess: (returnTask: Task | null, editedTaskId: number) => void): void {
     if (!this.editingTask || this.isSubmitting() || this.editLoading() || this.editLoadError()) return;
     this.isEditSubmitted = true;
-    if (!this.editForm.title.trim()) {
-      this.toast.warning(this.uiI18n.translate('tasks.editor.title_required'));
-      return;
-    }
+    if (!this.editForm.title.trim()) return;
+    this.editErrors.set(NO_FIELD_ERRORS);
 
     const payload: Record<string, unknown> = {
       title: this.editForm.title.trim(),
@@ -361,6 +402,7 @@ export class TaskFormsService {
       error: (err: unknown) => {
         if (this.editingTask?.id !== editedTask.id) return;
         this.isSubmitting.set(false);
+        if (this.showFieldErrors(err, this.editErrors, TASK_EDIT_FORM_ID)) return;
         this.saveErrors.show(err, {
           fallbackKey: 'tasks.editor.update_failed',
           reload: () => this.reloadEdit(),
@@ -370,7 +412,6 @@ export class TaskFormsService {
   }
 
   cleanup(): void {
-    this.navigationDecision.settle(false);
     this.editRequestId++;
     this.editRequest?.unsubscribe();
     this.editSaveRequest?.unsubscribe();

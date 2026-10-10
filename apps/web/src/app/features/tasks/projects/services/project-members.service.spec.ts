@@ -117,6 +117,20 @@ describe('ProjectMembersService', () => {
     expect(members.isAddingMember()).toBe(false);
   });
 
+  it('puts a refusal about the person or the access level under that field, without a toast', async () => {
+    members.openMembersModal(PROJECT);
+    await settle();
+    api.post.mockReturnValue(
+      throwError(() => ({ status: 422, errors: [{ field: 'accessKind', message: 'Unknown level' }] })),
+    );
+    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'BOSS' });
+    expect(members.addErrors()).toEqual({ accessKind: 'Unknown level' });
+    expect(toast.error).not.toHaveBeenCalled();
+
+    members.openMembersModal(PROJECT);
+    expect(members.addErrors()).toEqual({});
+  });
+
   it('adds the next page below the members shown, and offers more only while the server has them', async () => {
     memberReads = [of(page([member(10, 'Alice')], 'c1')), of(page([member(20, 'Bob')]))];
     members.openMembersModal(PROJECT);

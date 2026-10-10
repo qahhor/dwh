@@ -117,7 +117,6 @@ export class TasksComponent implements OnInit, OnDestroy {
   readonly isCommentSubmitting = this.detailsService.isCommentSubmitting;
 
   readonly isEditModalOpen = this.formsService.isEditModalOpen;
-  readonly isEditDiscardConfirmationOpen = this.formsService.isEditDiscardConfirmationOpen;
 
   detailRecordId(): string | null {
     return this.routeRecordId() ?? (this.selectedTask() ? String(this.selectedTask()!.id) : null);
@@ -327,12 +326,6 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
   requestCloseEdit() {
     this.formsService.requestCloseEdit((t) => this.openTaskDetails(t));
-  }
-  confirmDiscardEdit() {
-    this.formsService.confirmDiscardEdit((t) => this.openTaskDetails(t));
-  }
-  cancelDiscardEdit() {
-    this.formsService.cancelDiscardEdit();
   }
   canLeaveRecordPage() {
     return this.formsService.canLeaveRecordPage(

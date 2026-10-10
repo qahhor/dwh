@@ -110,6 +110,22 @@ describe('TaskDictionariesService', () => {
     expect(toast.success).toHaveBeenCalledTimes(2);
   });
 
+  it('puts a refusal about a field of the new type under that field and counts only the added ones', () => {
+    entities.create.mockReturnValue(
+      throwError(() => ({ status: 422, errors: [{ field: 'code', message: 'Code taken' }] })),
+    );
+    dictionaries.handleCreateType({ code: 't1', name: 'Twice', icon: 'task', color: '#000' });
+    expect(dictionaries.typeAdd.errors()).toEqual({ code: 'Code taken' });
+    expect(dictionaries.typeAdd.added()).toBe(0);
+    expect(dictionaries.typeAdd.saving()).toBe(false);
+    expect(toast.error).not.toHaveBeenCalled();
+
+    entities.create.mockReturnValue(of({ id: 9 }));
+    dictionaries.handleCreateType({ code: 't2', name: 'Fresh', icon: 'task', color: '#000' });
+    expect(dictionaries.typeAdd.errors()).toEqual({});
+    expect(dictionaries.typeAdd.added()).toBe(1);
+  });
+
   it('shows the server message when adding fails', () => {
     entities.create.mockReturnValue(throwError(() => ({ status: 422, error: { detail: 'Code taken' } })));
     dictionaries.handleCreateType({ code: 't1', name: 'Twice', icon: 'task', color: '#000' });

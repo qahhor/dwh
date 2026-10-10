@@ -116,7 +116,7 @@ describe('ProjectsComponent', () => {
     const search = screen.querySelector('#project-search') as HTMLInputElement;
     const region = screen.querySelector('.table-card[role="region"]') as HTMLElement;
 
-    expect(screen.querySelector(`label[for="${search.id}"]`)).not.toBeNull();
+    expect(search.getAttribute('aria-label')).toBe('Поиск проектов');
     expect(screen.querySelector('[role="radiogroup"][aria-label="Режим отображения проектов"]')).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица проектов');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список проектов');
@@ -138,7 +138,7 @@ describe('ProjectsComponent', () => {
     redraw(fixture);
     const name = screen.querySelector('#project-create-name') as HTMLInputElement;
     expect(screen.querySelector(`label[for="${name.id}"]`)).not.toBeNull();
-    expect(name.required).toBe(true);
+    expect(name.getAttribute('aria-required')).toBe('true');
     type(name, '  Native create  ');
     type(screen.querySelector('#project-create-description') as HTMLTextAreaElement, '  Submitted from the form  ');
     redraw(fixture);
@@ -175,12 +175,19 @@ describe('ProjectsComponent', () => {
 
     footerButtons(screen)[0].click();
     redraw(fixture);
-    expect(screen.querySelectorAll('[role="dialog"]')).toHaveLength(2);
+    await settle();
+    // The common question (common.discard.*) opens over the dialog.
+    const confirmation = document.querySelector('[role="alertdialog"]') as HTMLElement;
+    expect(confirmation?.textContent).toContain('Отменить изменения?');
     expect(draft()).toBe('Unsaved project');
 
-    const confirmation = screen.querySelectorAll('[role="dialog"]')[1] as HTMLElement;
-    (confirmation.querySelector('[footer] button') as HTMLButtonElement).click();
+    const keep = [...confirmation.querySelectorAll('button')].find(
+      (node) => node.textContent?.trim() === 'Продолжить редактирование',
+    ) as HTMLButtonElement;
+    keep.click();
     redraw(fixture);
+    await settle();
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
     expect(screen.querySelectorAll('[role="dialog"]')).toHaveLength(1);
     expect(draft()).toBe('Unsaved project');
 
@@ -188,7 +195,8 @@ describe('ProjectsComponent', () => {
     (document.activeElement ?? document.body).dispatchEvent(escape);
     redraw(fixture);
     expect(escape.defaultPrevented).toBe(true);
-    expect(screen.querySelectorAll('[role="dialog"]')).toHaveLength(2);
+    await settle();
+    expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
     expect(draft()).toBe('Unsaved project');
   });
 

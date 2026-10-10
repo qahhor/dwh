@@ -1,4 +1,7 @@
-import { ChangeDetectionStrategy, Component, signal, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, output } from '@angular/core';
+import { DictionaryAddState, newAddState } from '../services/task-dictionaries.service';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 
 import {
   SMTSortableActionsDirective,
@@ -53,6 +56,8 @@ function emptyStatusForm(): NewStatusForm {
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTButtonComponent,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
   ],
   templateUrl: './task-dictionaries-modal.component.html',
   styleUrl: './task-dictionaries-modal.component.css',
@@ -85,9 +90,34 @@ export class TaskDictionariesModalComponent {
   readonly reorderTypes = output<TaskType[]>();
   readonly reorderStatuses = output<TaskStatus[]>();
 
-  /** The new type and status being typed; signals, since the fields' callbacks change them. */
-  readonly newTypeForm = signal<NewTypeForm>(emptyTypeForm());
-  readonly newStatusForm = signal<NewStatusForm>(emptyStatusForm());
+  /** The add forms' state on the page: running, the server's field errors, how many items were added. */
+  readonly typeAdd = input<DictionaryAddState>(newAddState());
+  readonly statusAdd = input<DictionaryAddState>(newAddState());
+
+  /** The new type and status being typed; a successful add clears them, a refused one keeps them. */
+  readonly newTypeForm = linkedSignal<number, NewTypeForm>({
+    source: () => this.typeAdd().added(),
+    computation: () => emptyTypeForm(),
+  });
+  readonly newStatusForm = linkedSignal<number, NewStatusForm>({
+    source: () => this.statusAdd().added(),
+    computation: () => emptyStatusForm(),
+  });
+
+  /** "Add" was pressed on the form since its last success, so its empty required fields show errors. */
+  readonly typeTried = linkedSignal({ source: () => this.typeAdd().added(), computation: () => false });
+  readonly statusTried = linkedSignal({ source: () => this.statusAdd().added(), computation: () => false });
+
+  /** The error under a field: "required" after a press with the field empty, else the server's word. */
+  typeError(field: 'code' | 'name'): string {
+    if (this.typeTried() && !this.newTypeForm()[field].trim()) return this.tabText.translate('ui.control.required');
+    return this.typeAdd().errors()[field] ?? '';
+  }
+
+  statusError(field: 'name'): string {
+    if (this.statusTried() && !this.newStatusForm()[field].trim()) return this.tabText.translate('ui.control.required');
+    return this.statusAdd().errors()[field] ?? '';
+  }
 
   settingsTab: 'types' | 'statuses' = 'types';
 
@@ -111,7 +141,10 @@ export class TaskDictionariesModalComponent {
     return value === null ? '' : String(value);
   }
 
+  /** Enter and "Add type" land here; empty fields show their errors and the form focuses the first. */
   submitType() {
+    if (this.typeAdd().saving()) return;
+    this.typeTried.set(true);
     const form = this.newTypeForm();
     if (!form.code.trim() || !form.name.trim()) return;
     this.createType.emit({
@@ -120,10 +153,11 @@ export class TaskDictionariesModalComponent {
       icon: form.icon.trim() || 'task_alt',
       color: form.color,
     });
-    this.newTypeForm.set(emptyTypeForm());
   }
 
   submitStatus() {
+    if (this.statusAdd().saving()) return;
+    this.statusTried.set(true);
     const form = this.newStatusForm();
     if (!form.name.trim()) return;
     this.createStatus.emit({
@@ -131,7 +165,6 @@ export class TaskDictionariesModalComponent {
       color: form.color,
       terminal: form.terminal,
     });
-    this.newStatusForm.set(emptyStatusForm());
   }
 
   /** Asks the page to delete; the page confirms it first. */
