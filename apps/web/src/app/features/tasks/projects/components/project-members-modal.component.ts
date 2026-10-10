@@ -72,9 +72,6 @@ export class ProjectMembersModalComponent {
   /** The server's refusal of the last added member, by field (`userId`, `accessKind`). */
   readonly addErrors = input<Readonly<Record<string, string>>>({});
 
-  /** "Add" was pressed since the last added member, so an empty person field shows its error. */
-  readonly addTried = signal(false);
-
   readonly closeModal = output<void>();
   /** Asks for the next page of members. */
   readonly loadMore = output<void>();
@@ -94,6 +91,9 @@ export class ProjectMembersModalComponent {
   private readonly emailCell = viewChild.required<TemplateRef<unknown>>('memberEmailCell');
   private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('memberActionCell');
+
+  /** "Add" was pressed since the last added member, so an empty person field shows its error. */
+  readonly addTried = signal(false);
 
   readonly foundUsers = signal<User[]>([]);
   readonly isUserDropdownOpen = signal(false);

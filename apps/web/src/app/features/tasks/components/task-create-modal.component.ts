@@ -60,8 +60,6 @@ export class TaskCreateModalComponent {
   readonly closeModal = output<void>();
   readonly submitForm = output<void>();
 
-  readonly formId = TASK_CREATE_FORM_ID;
-
   /** The title was visited this opening (a new form object is a new opening). */
   readonly titleTouched = linkedSignal({ source: this.createForm, computation: () => false });
 
@@ -69,6 +67,11 @@ export class TaskCreateModalComponent {
     this.i18n.currentLang();
     return taskErrorSummary(this.serverErrors(), 'task-create', (key) => this.i18n.translate(key));
   });
+
+  readonly formId = TASK_CREATE_FORM_ID;
+
+  private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
+  private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
 
   /**
    * "Name the task" after a submit with an empty title, "required" once an empty title was left, else the server's
@@ -80,9 +83,6 @@ export class TaskCreateModalComponent {
     if (this.titleTouched() && !title) return this.i18n.translate('ui.control.required');
     return this.serverErrors().fields['title'] ?? '';
   }
-
-  private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
-  private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
   typeOptions(): SMTRadioOption<string>[] {

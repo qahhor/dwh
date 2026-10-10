@@ -67,8 +67,6 @@ export class TaskEditModalComponent {
   readonly submitForm = output<void>();
   readonly retryEditLoad = output<void>();
 
-  readonly formId = TASK_EDIT_FORM_ID;
-
   /** The title was visited this opening (a new form object is a new opening). */
   readonly titleTouched = linkedSignal({ source: this.editForm, computation: () => false });
 
@@ -77,14 +75,6 @@ export class TaskEditModalComponent {
     return taskErrorSummary(this.serverErrors(), 'task-edit', (key) => this.i18n.translate(key));
   });
 
-  /** As in the create dialog: the submit's, then the visit's, then the server's word on the title. */
-  titleError(): string {
-    const title = this.editForm().title;
-    if (this.isEditSubmitted() && !title.trim()) return this.i18n.translate('tasks.editor.title_not_empty');
-    if (this.titleTouched() && !title) return this.i18n.translate('ui.control.required');
-    return this.serverErrors().fields['title'] ?? '';
-  }
-
   /** Projects already named: the rows' ones and the edited task's own, so its project shows without a request. */
   readonly knownProjectRows = computed<readonly ProjectRef[]>(() => {
     const task = this.editingTask();
@@ -92,10 +82,20 @@ export class TaskEditModalComponent {
     return task?.projectId && task.projectName ? [...known, { id: task.projectId, name: task.projectName }] : known;
   });
 
+  readonly formId = TASK_EDIT_FORM_ID;
+
   private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
   private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
   /** A task cannot be its own parent. */
   readonly notThisTask = (candidate: TaskRef) => candidate.id === this.editingTask()?.id;
+
+  /** As in the create dialog: the submit's, then the visit's, then the server's word on the title. */
+  titleError(): string {
+    const title = this.editForm().title;
+    if (this.isEditSubmitted() && !title.trim()) return this.i18n.translate('tasks.editor.title_not_empty');
+    if (this.titleTouched() && !title) return this.i18n.translate('ui.control.required');
+    return this.serverErrors().fields['title'] ?? '';
+  }
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
   typeOptions(): SMTRadioOption<string>[] {

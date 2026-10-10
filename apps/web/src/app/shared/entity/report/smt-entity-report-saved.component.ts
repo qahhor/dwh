@@ -180,7 +180,6 @@ export class SMTEntityReportSavedComponent {
   private readonly modal = inject(SMTModalService);
   private readonly reports = inject(EntityReportsApi);
   private readonly injector = inject(Injector);
-  private readonly askDiscard = discardChangesQuestion();
 
   readonly listCode = input.required<string>();
   /** What is on screen now: what a save writes. */
@@ -211,6 +210,8 @@ export class SMTEntityReportSavedComponent {
       subLabel: report.kind === 'widget' ? this.i18n.translate('ui.report.on_dashboard') : undefined,
     }));
   });
+
+  private readonly askDiscard = discardChangesQuestion();
 
   /** The person's reports of the list, read again when the list changes; a failed read shows none. */
   private readonly list = rxResource({

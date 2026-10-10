@@ -51,8 +51,6 @@ export class TaskFormsService {
   private readonly uiI18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
   private readonly injector = inject(Injector);
-  private readonly askDiscard = discardChangesQuestion();
-  private readonly askLeave = leaveQuestion();
 
   readonly isCreateModalOpen = signal<boolean>(false);
 
@@ -64,6 +62,9 @@ export class TaskFormsService {
   /** The server's refusal of the last create or edit save, by field (forms standard, section 5). */
   readonly createErrors = signal<ProblemFieldErrors>(NO_FIELD_ERRORS);
   readonly editErrors = signal<ProblemFieldErrors>(NO_FIELD_ERRORS);
+
+  private readonly askDiscard = discardChangesQuestion();
+  private readonly askLeave = leaveQuestion();
 
   isCreateSubmitted = false;
   createForm: TaskCreateFormValue = createDefaultTaskCreateForm();
@@ -187,19 +188,6 @@ export class TaskFormsService {
         this.saveErrors.show(err, { fallbackKey: 'tasks.editor.save_failed' });
       },
     });
-  }
-
-  /**
-   * Puts a refusal's field errors under the dialog's fields and focuses the first; false when the refusal names no
-   * field, so the caller reports it as a whole.
-   */
-  private showFieldErrors(err: unknown, target: WritableSignal<ProblemFieldErrors>, formId: string): boolean {
-    const errors = problemFieldErrors(err, { known: TASK_FIELDS, rename: TASK_FIELD_RENAME });
-    if (Object.keys(errors.fields).length === 0 && errors.other.length === 0) return false;
-    target.set(errors);
-    const form = document.getElementById(formId);
-    if (form) focusFirstInvalid(form, this.injector);
-    return true;
   }
 
   openEditModal(
@@ -415,5 +403,18 @@ export class TaskFormsService {
     this.editRequestId++;
     this.editRequest?.unsubscribe();
     this.editSaveRequest?.unsubscribe();
+  }
+
+  /**
+   * Puts a refusal's field errors under the dialog's fields and focuses the first; false when the refusal names no
+   * field, so the caller reports it as a whole.
+   */
+  private showFieldErrors(err: unknown, target: WritableSignal<ProblemFieldErrors>, formId: string): boolean {
+    const errors = problemFieldErrors(err, { known: TASK_FIELDS, rename: TASK_FIELD_RENAME });
+    if (Object.keys(errors.fields).length === 0 && errors.other.length === 0) return false;
+    target.set(errors);
+    const form = document.getElementById(formId);
+    if (form) focusFirstInvalid(form, this.injector);
+    return true;
   }
 }

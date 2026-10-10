@@ -70,6 +70,10 @@ export class TaskDictionariesModalComponent {
   readonly taskTypes = input<TaskType[]>([]);
   readonly statuses = input<TaskStatus[]>([]);
 
+  /** The add forms' state on the page: running, the server's field errors, how many items were added. */
+  readonly typeAdd = input<DictionaryAddState>(newAddState());
+  readonly statusAdd = input<DictionaryAddState>(newAddState());
+
   readonly closeModal = output<void>();
   readonly createType = output<{
     code: string;
@@ -90,10 +94,6 @@ export class TaskDictionariesModalComponent {
   readonly reorderTypes = output<TaskType[]>();
   readonly reorderStatuses = output<TaskStatus[]>();
 
-  /** The add forms' state on the page: running, the server's field errors, how many items were added. */
-  readonly typeAdd = input<DictionaryAddState>(newAddState());
-  readonly statusAdd = input<DictionaryAddState>(newAddState());
-
   /** The new type and status being typed; a successful add clears them, a refused one keeps them. */
   readonly newTypeForm = linkedSignal<number, NewTypeForm>({
     source: () => this.typeAdd().added(),
@@ -108,6 +108,15 @@ export class TaskDictionariesModalComponent {
   readonly typeTried = linkedSignal({ source: () => this.typeAdd().added(), computation: () => false });
   readonly statusTried = linkedSignal({ source: () => this.statusAdd().added(), computation: () => false });
 
+  settingsTab: 'types' | 'statuses' = 'types';
+
+  /** Rows are kept by id, so a moved row keeps its focus. */
+  readonly byId = (item: { id: number }) => item.id;
+
+  readonly nameOf = (item: { name: string }) => item.name;
+
+  private readonly tabsMemo = optionsMemo<SMTTabItem<'types' | 'statuses'>[]>();
+
   /** The error under a field: "required" after a press with the field empty, else the server's word. */
   typeError(field: 'code' | 'name'): string {
     if (this.typeTried() && !this.newTypeForm()[field].trim()) return this.tabText.translate('ui.control.required');
@@ -118,15 +127,6 @@ export class TaskDictionariesModalComponent {
     if (this.statusTried() && !this.newStatusForm()[field].trim()) return this.tabText.translate('ui.control.required');
     return this.statusAdd().errors()[field] ?? '';
   }
-
-  settingsTab: 'types' | 'statuses' = 'types';
-
-  /** Rows are kept by id, so a moved row keeps its focus. */
-  readonly byId = (item: { id: number }) => item.id;
-
-  readonly nameOf = (item: { name: string }) => item.name;
-
-  private readonly tabsMemo = optionsMemo<SMTTabItem<'types' | 'statuses'>[]>();
 
   patchTypeForm(patch: Partial<NewTypeForm>): void {
     this.newTypeForm.update((form) => ({ ...form, ...patch }));

@@ -191,10 +191,9 @@ export class UiListViewsComponent {
   private readonly toast = inject(ToastService);
   private readonly modal = inject(SMTModalService);
 
-  readonly state = input.required<ListViewState>();
-
   private readonly injector = inject(Injector);
-  private readonly askDiscard = discardChangesQuestion();
+
+  readonly state = input.required<ListViewState>();
 
   readonly saveAsOpen = signal(false);
   readonly name = signal('');
@@ -212,6 +211,8 @@ export class UiListViewsComponent {
   });
 
   readonly activeName = computed(() => this.state().active()?.name ?? this.i18n.translate('ui.views.standard'));
+
+  private readonly askDiscard = discardChangesQuestion();
 
   private static nextId = 0;
 

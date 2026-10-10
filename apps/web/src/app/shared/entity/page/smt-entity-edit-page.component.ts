@@ -148,10 +148,8 @@ export class SMTEntityEditPageComponent implements RecordNavigationPage {
   private readonly saveErrors = inject(SaveErrorNotifier);
   private readonly refLookups = inject(RefLookups);
   private readonly injector = inject(Injector);
-  private readonly askLeave = leaveQuestion();
+
   private readonly editForm = viewChild<ElementRef<HTMLFormElement>>('editForm');
-  /** Set once a save succeeded, so the navigation to the saved record does not ask about changes. */
-  private saved = false;
 
   /** The record as last read: the loaded one, or the one read again after a save was refused over a newer revision. */
   readonly record = linkedSignal<EntityRecord | null>(() => (this.loaded.hasValue() ? this.loaded.value() : null));
@@ -191,6 +189,18 @@ export class SMTEntityEditPageComponent implements RecordNavigationPage {
     return record ? `${this.context.listLink()}/${record.id}` : this.context.listLink();
   });
 
+  /** Whether the person changed the form since it was read. */
+  readonly dirty = computed(() => !sameFormValues(this.values(), this.initialValues()));
+
+  /** The values as the record (or a new one) starts, to tell what the person changed. */
+  private readonly initialValues = computed(() =>
+    recordValues(this.meta(), this.record() ? { ...this.record() } : null),
+  );
+
+  private readonly askLeave = leaveQuestion();
+  /** Set once a save succeeded, so the navigation to the saved record does not ask about changes. */
+  private saved = false;
+
   /** The record's id from the route; none on `/new`. */
   readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('id') ?? undefined)), {
     initialValue: undefined,
@@ -205,14 +215,6 @@ export class SMTEntityEditPageComponent implements RecordNavigationPage {
 
   /** The rows of a collection on the form, for the template. */
   readonly rowsOf = rowsOf;
-
-  /** The values as the record (or a new one) starts, to tell what the person changed. */
-  private readonly initialValues = computed(() =>
-    recordValues(this.meta(), this.record() ? { ...this.record() } : null),
-  );
-
-  /** Whether the person changed the form since it was read. */
-  readonly dirty = computed(() => !sameFormValues(this.values(), this.initialValues()));
 
   constructor() {
     effect(() => {

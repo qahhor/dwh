@@ -78,14 +78,16 @@ export class ProjectModalsComponent {
   readonly submitEditProject = output<void>();
   readonly retryEditLoad = output<void>();
 
-  readonly createFormId = PROJECT_CREATE_FORM_ID;
-  readonly editFormId = PROJECT_EDIT_FORM_ID;
-
   /** The new project's name was visited this opening (a new form object is a new opening). */
   readonly createNameTouched = linkedSignal({ source: this.createForm, computation: () => false });
 
   /** The same for the edited project's name. */
   readonly editNameTouched = linkedSignal({ source: this.editForm, computation: () => false });
+
+  readonly createFormId = PROJECT_CREATE_FORM_ID;
+  readonly editFormId = PROJECT_EDIT_FORM_ID;
+
+  private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
   /** "Name the project" after a submit, "required" once an empty name was left, else the server's word on it. */
   createNameError(): string {
@@ -107,20 +109,6 @@ export class ProjectModalsComponent {
       this.editErrors(),
     );
   }
-
-  private nameError(
-    name: string,
-    submitted: boolean,
-    touched: boolean,
-    emptyKey: string,
-    server: ProblemFieldErrors,
-  ): string {
-    if (submitted && !name.trim()) return this.uiI18n.translate(emptyKey);
-    if (touched && !name) return this.uiI18n.translate('ui.control.required');
-    return server.fields['name'] ?? '';
-  }
-
-  private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
   /** Project states for the edit form; translated again when the language changes. */
   stateOptions(): SMTSelectOption<'A' | 'P'>[] {
@@ -160,5 +148,17 @@ export class ProjectModalsComponent {
       }
       return { key: keyLabel, value: valueStr };
     });
+  }
+
+  private nameError(
+    name: string,
+    submitted: boolean,
+    touched: boolean,
+    emptyKey: string,
+    server: ProblemFieldErrors,
+  ): string {
+    if (submitted && !name.trim()) return this.uiI18n.translate(emptyKey);
+    if (touched && !name) return this.uiI18n.translate('ui.control.required');
+    return server.fields['name'] ?? '';
   }
 }

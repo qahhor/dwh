@@ -32,8 +32,6 @@ export class ProjectFormsService {
   private readonly uiI18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
   private readonly injector = inject(Injector);
-  private readonly askDiscard = discardChangesQuestion();
-  private readonly askLeave = leaveQuestion();
 
   readonly isSubmitting = signal<boolean>(false);
   readonly editLoading = signal<boolean>(false);
@@ -47,6 +45,9 @@ export class ProjectFormsService {
 
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly isEditModalOpen = signal<boolean>(false);
+
+  private readonly askDiscard = discardChangesQuestion();
+  private readonly askLeave = leaveQuestion();
 
   private editDetailRequest?: Subscription;
   private createSaveRequest?: Subscription;

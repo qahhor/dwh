@@ -11,13 +11,13 @@ import { AuthService } from '../services/auth.service';
 import { TasksComponent } from '@features/tasks/tasks.component';
 import { ProjectsComponent } from '@features/tasks/projects/projects.component';
 
-/** The open "discard changes?" question (common.discard.*), or null. */
+/** The open "discard changes?" question (common.discard.title), or null. */
 const discardQuestion = () =>
   [...document.querySelectorAll<HTMLElement>('[role="alertdialog"]')].find((node) =>
     node.textContent?.includes('Отменить изменения?'),
   ) ?? null;
 
-/** Answers the open question: leave ("Не сохранять") or stay ("Продолжить редактирование"). */
+/** Answers the open question: leave (common.discard.confirm) or stay (common.discard.keep). */
 function answerDiscard(leave: boolean) {
   const label = leave ? 'Не сохранять' : 'Продолжить редактирование';
   const button = [...(discardQuestion()?.querySelectorAll('button') ?? [])].find(

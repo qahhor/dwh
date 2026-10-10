@@ -153,38 +153,6 @@ export class TaskDictionariesService {
   }
 
   /**
-   * Sends one add form: a refusal about its fields goes under them (forms standard, section 5), any other is a
-   * toast; a success counts in `added`, which clears the form.
-   */
-  private addItem(
-    state: DictionaryAddState,
-    request: Observable<unknown>,
-    known: string[],
-    addedKey: string,
-    failedKey: string,
-    reload: () => void,
-  ): void {
-    state.saving.set(true);
-    state.errors.set({});
-    request.subscribe({
-      next: () => {
-        state.saving.set(false);
-        state.added.update((count) => count + 1);
-        this.toast.success(this.uiI18n.translate(addedKey));
-        reload();
-      },
-      error: (err: unknown) => {
-        state.saving.set(false);
-        const { fields, other } = problemFieldErrors(err, { known });
-        state.errors.set(fields);
-        if (Object.keys(fields).length === 0 || other.length > 0) {
-          this.toast.error(other[0] ?? (problemText(err) || this.uiI18n.translate(failedKey)));
-        }
-      },
-    });
-  }
-
-  /**
    * Asks before deleting a type or status and deletes from the dialog; a
    * refusal (the item is in use) is shown in the dialog, not as a toast.
    */
@@ -227,6 +195,38 @@ export class TaskDictionariesService {
     const before = this.statuses();
     this.statuses.set(list);
     this.persistOrder(TASK_STATUSES, before, list, 'tasks.dictionaries.status_order_saved', () => this.loadStatuses());
+  }
+
+  /**
+   * Sends one add form: a refusal about its fields goes under them (forms standard, section 5), any other is a
+   * toast; a success counts in `added`, which clears the form.
+   */
+  private addItem(
+    state: DictionaryAddState,
+    request: Observable<unknown>,
+    known: string[],
+    addedKey: string,
+    failedKey: string,
+    reload: () => void,
+  ): void {
+    state.saving.set(true);
+    state.errors.set({});
+    request.subscribe({
+      next: () => {
+        state.saving.set(false);
+        state.added.update((count) => count + 1);
+        this.toast.success(this.uiI18n.translate(addedKey));
+        reload();
+      },
+      error: (err: unknown) => {
+        state.saving.set(false);
+        const { fields, other } = problemFieldErrors(err, { known });
+        state.errors.set(fields);
+        if (Object.keys(fields).length === 0 || other.length > 0) {
+          this.toast.error(other[0] ?? (problemText(err) || this.uiI18n.translate(failedKey)));
+        }
+      },
+    });
   }
 
   /**

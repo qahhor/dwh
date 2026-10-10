@@ -157,14 +157,16 @@ export class SMTEntityFormComponent {
    */
   readonly controls = input<Readonly<Record<string, Type<unknown>>>>({});
 
-  /** The record's values by field key. */
-  readonly value = model<FormValues>({});
-
   /**
    * Whether the form shows the summary of its problems above the sections (docs/guidelines/forms-ux-standard.md,
    * section 4): from three problems, or a problem of a field the form does not draw (a row of a document's lines).
    */
   readonly summary = input(true, { transform: booleanAttribute });
+
+  /** The record's values by field key. */
+  readonly value = model<FormValues>({});
+
+  private readonly replacements = contentChildren(SMTEntityFieldDirective);
 
   /** The id of each field's control that has a problem, read from the page once drawn, so the summary links to it. */
   private readonly problemFieldIds = signal<Readonly<Record<string, string>>>({});
@@ -179,8 +181,6 @@ export class SMTEntityFormComponent {
       .filter(([, message]) => !!message)
       .map(([key, message]) => ({ fieldId: ids[key], label: labels.get(key), message }));
   });
-
-  private readonly replacements = contentChildren(SMTEntityFieldDirective);
 
   /** Sections and their fields, rebuilt when the form or the language changes — not on every keystroke. */
   readonly drawnSections = computed<DrawnSection[]>(() => {
@@ -218,15 +218,6 @@ export class SMTEntityFormComponent {
         Object.entries(ids).every(([key, id]) => current[key] === id);
       if (!same) this.problemFieldIds.set(ids);
     });
-  }
-
-  /** The id of the control drawn for a field (smt-control gives every field one); none when it is not drawn. */
-  private controlIdOf(key: string): string | undefined {
-    const box = [...this.host.nativeElement.querySelectorAll<HTMLElement>('.entity-field[data-field]')].find(
-      (element) => element.dataset['field'] === key,
-    );
-    const control = box?.querySelector<HTMLElement>(ENTITY_FIELD_CONTROL);
-    return control?.id || undefined;
   }
 
   set(key: string, value: unknown): void {
@@ -303,6 +294,15 @@ export class SMTEntityFormComponent {
       problem: this.problemOf(field.key),
       set: (value) => this.set(field.key, value),
     };
+  }
+
+  /** The id of the control drawn for a field (smt-control gives every field one); none when it is not drawn. */
+  private controlIdOf(key: string): string | undefined {
+    const box = [...this.host.nativeElement.querySelectorAll<HTMLElement>('.entity-field[data-field]')].find(
+      (element) => element.dataset['field'] === key,
+    );
+    const control = box?.querySelector<HTMLElement>(ENTITY_FIELD_CONTROL);
+    return control?.id || undefined;
   }
 
   private setterOf(key: string): (value: unknown) => void {

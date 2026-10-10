@@ -61,10 +61,9 @@ export class NoteFormDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
   private readonly injector = inject(Injector);
-  private readonly askDiscard = discardChangesQuestion();
-  private readonly noteForm = viewChild<ElementRef<HTMLFormElement>>('noteForm');
 
   readonly meta = input.required<FormMeta>();
+
   /** The note to edit; null creates one. */
   readonly note = input<Note | null>(null);
 
@@ -72,13 +71,18 @@ export class NoteFormDialogComponent {
   readonly closed = output<void>();
   readonly saved = output<Note>();
 
+  private readonly noteForm = viewChild<ElementRef<HTMLFormElement>>('noteForm');
+
   /** The note as last read: the one given, or the one read again after a save was refused over a newer revision. */
   readonly record = linkedSignal(() => this.note());
   /** The fields by key, starting from the record. */
   readonly values = linkedSignal(() => recordValues(this.meta(), { ...(this.record() ?? NEW_NOTE) }));
   readonly problems = signal<FormProblems>({});
   readonly saving = signal(false);
+
   readonly showHistory = computed(() => hasCapability(this.meta(), 'history'));
+
+  private readonly askDiscard = discardChangesQuestion();
 
   /** Escape, the backdrop, the cross and "Cancel" ask before a changed note is dropped (forms standard, 8). */
   close(): void {
