@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors } from '../../../support/diagnostics.js';
 import { expectNoSeriousAccessibilityViolations } from '../../../support/accessibility.js';
+import { fieldName } from '../../../support/fields.js';
 
 test('protected route redirects to the accessible login form', async ({ page }) => {
   await page.goto('/e/md.users');
@@ -13,7 +14,7 @@ test('protected route redirects to the accessible login form', async ({ page }) 
   await expect(page).toHaveURL(/\/login$/u);
   await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
   await expect(page.getByLabel('Логин или Email')).toBeVisible();
-  await expect(page.getByLabel('Пароль', { exact: true })).toBeVisible();
+  await expect(page.getByLabel(fieldName('Пароль'))).toBeVisible();
 });
 
 test('login page publishes a reachable browser icon', async ({ page, request }) => {
@@ -40,8 +41,8 @@ test('login applies the saved dark theme with accessible mobile controls', async
 test('invalid credentials keep the user on login and show an alert', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(`invalid-${Date.now()}`);
-  await page.getByLabel('Пароль', { exact: true }).fill('Invalid-only-for-E2E-1');
-  await page.getByLabel('Пароль', { exact: true }).dispatchEvent('keyup', { key: 'A', modifierCapsLock: true });
+  await page.getByLabel(fieldName('Пароль')).fill('Invalid-only-for-E2E-1');
+  await page.getByLabel(fieldName('Пароль')).dispatchEvent('keyup', { key: 'A', modifierCapsLock: true });
   await expect(page.getByRole('status')).toContainText('Caps Lock');
   const submit = page.getByRole('button', { name: 'Войти в систему' });
   const bounds = await submit.boundingBox();
@@ -52,7 +53,7 @@ test('invalid credentials keep the user on login and show an alert', async ({ pa
   await expect(page).toHaveURL(/\/login$/u);
   await expect(page.locator('#login-error')).toContainText(/Неверный|ошиб|заблокирован/u);
   await expect(page.getByRole('alert')).toHaveCount(1);
-  await expect(page.getByLabel('Пароль', { exact: true })).toBeFocused();
+  await expect(page.getByLabel(fieldName('Пароль'))).toBeFocused();
 });
 
 test('admin can navigate principal areas without browser errors and can log out', async ({ page }) => {

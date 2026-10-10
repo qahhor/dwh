@@ -30,8 +30,10 @@ describe('LoginComponent', () => {
     }).compileComponents();
   });
 
-  it('starts with an empty login and associated credential labels', () => {
+  it('starts with an empty login and associated credential labels', async () => {
     const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     const login = fixture.nativeElement.querySelector('#login') as HTMLInputElement;
@@ -110,15 +112,14 @@ describe('LoginComponent', () => {
   it('keeps a failed login recoverable with inline feedback', () => {
     authService.login.mockReturnValue(throwError(() => ({ detail: 'Неверный логин или пароль' })));
     const fixture = TestBed.createComponent(LoginComponent);
-    fixture.componentInstance.login.set('user');
-    fixture.componentInstance.password.set('wrong');
+    fixture.componentInstance.credentials.set({ login: 'user', password: 'wrong' });
     fixture.detectChanges();
 
     fixture.componentInstance.onLoginSubmit();
     fixture.detectChanges();
 
-    const error = fixture.nativeElement.querySelector('.form-error[role="alert"]') as HTMLElement;
+    const error = fixture.nativeElement.querySelector('#login-error[role="alert"]') as HTMLElement;
     expect(error.textContent).toContain('Неверный логин или пароль');
-    expect(fixture.componentInstance.password()).toBe('wrong');
+    expect(fixture.componentInstance.credentials().password).toBe('wrong');
   });
 });

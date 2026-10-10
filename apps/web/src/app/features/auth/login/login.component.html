@@ -7,49 +7,39 @@
     <!-- novalidate on each step: the screen shows its own errors instead of the browser's required/minlength bubbles. -->
     @if (step() === 'credentials') {
       <form
+        uiFocusFirstInvalid
         (submit)="$event.preventDefault(); onLoginSubmit()"
         novalidate
         class="login-form"
         [attr.aria-busy]="isLoading()"
       >
-        <div class="form-group">
-          <label class="form-label" for="login">{{ 'auth.username' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'auth.username' | t" [smtError]="serverError('login')">
           <smt-input
             smtFieldId="login"
-            [(value)]="login"
-            (edited)="formError.set('')"
-            name="login"
-            required
+            [formField]="credentialsForm.login"
+            (edited)="edited('login')"
             autocomplete="username"
             autocapitalize="none"
             [spellcheck]="false"
             placeholder="user@company.com"
-            [smtInvalid]="formError() ? 'true' : null"
-            [smtDescribedBy]="formError() ? 'login-error' : null"
-            [disabled]="isLoading()"
           />
-        </div>
+        </smt-control>
 
         <div class="form-group">
-          <div class="password-label-row">
-            <label class="form-label" for="password">{{ 'auth.password' | t }}</label>
-          </div>
-          <smt-input
-            smtFieldId="password"
-            type="password"
-            [(value)]="password"
-            (edited)="formError.set('')"
-            (keydown)="checkCapsLock($event, 'password')"
-            (keyup)="checkCapsLock($event, 'password')"
-            (touch)="capsLockField.set(null)"
-            name="password"
-            required
-            autocomplete="current-password"
-            [spellcheck]="false"
-            [smtInvalid]="!!formError()"
-            [smtDescribedBy]="passwordDescription('password')"
-            [disabled]="isLoading()"
-          />
+          <smt-control [smtLabel]="'auth.password' | t" [smtError]="serverError('password')">
+            <smt-input
+              smtFieldId="password"
+              type="password"
+              [formField]="credentialsForm.password"
+              (edited)="edited('password')"
+              (keydown)="checkCapsLock($event, 'password')"
+              (keyup)="checkCapsLock($event, 'password')"
+              (touch)="capsLockField.set(null)"
+              autocomplete="current-password"
+              [spellcheck]="false"
+              smtDescribedBy="password-caps-lock"
+            />
+          </smt-control>
           <p id="password-caps-lock" class="caps-lock-hint" role="status">
             {{ capsLockField() === 'password' ? ('auth.caps_lock_on' | t) : '' }}
           </p>
@@ -59,7 +49,7 @@
         </div>
 
         @if (formError()) {
-          <p id="login-error" class="form-error" role="alert">{{ formError() }}</p>
+          <smt-alert id="login-error" smtTone="danger">{{ formError() }}</smt-alert>
         }
 
         <button
@@ -79,6 +69,7 @@
     <!-- Step 2: 2FA OTP Code Verification -->
     @if (step() === 'otp') {
       <form
+        uiFocusFirstInvalid
         (submit)="$event.preventDefault(); onOtpSubmit()"
         novalidate
         class="login-form"
@@ -92,27 +83,21 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="otp-code">{{ 'auth.login.otp_code' | t }}</label>
+        <smt-control class="form-group" [smtLabel]="'auth.login.otp_code' | t" [smtError]="serverError('code')">
           <smt-input
             class="otp-input tabular-nums"
             smtFieldId="otp-code"
-            [(value)]="otpCode"
-            (edited)="formError.set('')"
-            name="otpCode"
-            required
-            [maxLength]="6"
+            [formField]="otpForm.code"
+            (edited)="edited('code')"
             inputmode="numeric"
             autocomplete="one-time-code"
             smtPattern="[0-9]{6}"
-            [smtDescribedBy]="formError() ? 'otp-hint otp-error' : 'otp-hint'"
-            [smtInvalid]="formError() ? 'true' : null"
-            [disabled]="isLoading()"
+            smtDescribedBy="otp-hint"
           />
-        </div>
+        </smt-control>
 
         @if (formError()) {
-          <p id="otp-error" class="form-error" role="alert">{{ formError() }}</p>
+          <smt-alert id="otp-error" smtTone="danger">{{ formError() }}</smt-alert>
         }
 
         <div class="otp-actions">
@@ -145,12 +130,13 @@
     <!-- Step 3: Mandatory Password Change on First Login -->
     @if (step() === 'must_change_password') {
       <form
+        uiFocusFirstInvalid
         (submit)="$event.preventDefault(); onChangePasswordSubmit()"
         novalidate
         class="login-form"
         [attr.aria-busy]="isLoading()"
       >
-        <div class="otp-banner" style="background-color: var(--warning-bg); color: var(--warning)">
+        <div class="otp-banner warning-banner">
           <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
           <div>
             <strong>{{ 'auth.login.change_temporary_password' | t }}</strong>
@@ -159,57 +145,47 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="new-password">{{ 'auth.password.new_password' | t }}</label>
-          <smt-input
-            smtFieldId="new-password"
-            type="password"
-            [(value)]="newPassword"
-            (edited)="formError.set('')"
-            (keydown)="checkCapsLock($event, 'new-password')"
-            (keyup)="checkCapsLock($event, 'new-password')"
-            (touch)="capsLockField.set(null)"
-            name="newPassword"
-            required
-            [minLength]="passwordPolicy.min"
-            [maxLength]="passwordPolicy.max"
-            autocomplete="new-password"
-            [spellcheck]="false"
-            [smtInvalid]="!!formError()"
-            [smtDescribedBy]="passwordDescription('new-password')"
-            [disabled]="isLoading()"
-          />
+          <smt-control [smtLabel]="'auth.password.new_password' | t" [smtError]="serverError('newPassword')">
+            <smt-input
+              smtFieldId="new-password"
+              type="password"
+              [formField]="newPasswordForm.newPassword"
+              (edited)="edited('newPassword')"
+              (keydown)="checkCapsLock($event, 'new-password')"
+              (keyup)="checkCapsLock($event, 'new-password')"
+              (touch)="capsLockField.set(null)"
+              autocomplete="new-password"
+              [spellcheck]="false"
+              smtDescribedBy="password-policy-hint new-password-caps-lock"
+            />
+          </smt-control>
           <p id="new-password-caps-lock" class="caps-lock-hint" role="status">
             {{ capsLockField() === 'new-password' ? ('auth.caps_lock_on' | t) : '' }}
           </p>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="confirm-new-password">{{ 'auth.password.repeat_new_password' | t }}</label>
-          <smt-input
-            smtFieldId="confirm-new-password"
-            type="password"
-            [(value)]="confirmNewPassword"
-            (edited)="formError.set('')"
-            (keydown)="checkCapsLock($event, 'confirm-new-password')"
-            (keyup)="checkCapsLock($event, 'confirm-new-password')"
-            (touch)="capsLockField.set(null)"
-            name="confirmNewPassword"
-            required
-            [minLength]="passwordPolicy.min"
-            [maxLength]="passwordPolicy.max"
-            autocomplete="new-password"
-            [spellcheck]="false"
-            [smtInvalid]="!!formError()"
-            [smtDescribedBy]="passwordDescription('confirm-new-password')"
-            [disabled]="isLoading()"
-          />
+          <smt-control [smtLabel]="'auth.password.repeat_new_password' | t" [smtError]="serverError('confirmPassword')">
+            <smt-input
+              smtFieldId="confirm-new-password"
+              type="password"
+              [formField]="newPasswordForm.confirmPassword"
+              (edited)="edited('confirmPassword')"
+              (keydown)="checkCapsLock($event, 'confirm-new-password')"
+              (keyup)="checkCapsLock($event, 'confirm-new-password')"
+              (touch)="capsLockField.set(null)"
+              autocomplete="new-password"
+              [spellcheck]="false"
+              smtDescribedBy="password-policy-hint confirm-new-password-caps-lock"
+            />
+          </smt-control>
           <p id="confirm-new-password-caps-lock" class="caps-lock-hint" role="status">
             {{ capsLockField() === 'confirm-new-password' ? ('auth.caps_lock_on' | t) : '' }}
           </p>
         </div>
 
         @if (formError()) {
-          <p id="password-change-error" class="form-error" role="alert">{{ formError() }}</p>
+          <smt-alert id="password-change-error" smtTone="danger">{{ formError() }}</smt-alert>
         }
 
         <div class="otp-actions">

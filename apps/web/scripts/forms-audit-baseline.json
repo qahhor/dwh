@@ -13,16 +13,6 @@
   "features/audit/components/audit-security-table.component.html": {
     "raw-label": 3
   },
-  "features/auth/login/components/login-reset-modal.component.ts": {
-    "raw-label": 1,
-    "dialog-footer": 1
-  },
-  "features/auth/login/login.component.html": {
-    "raw-label": 5
-  },
-  "features/auth/reset-password/reset-password.component.ts": {
-    "raw-label": 2
-  },
   "features/files/components/files-modals.component.ts": {
     "dialog-footer": 1,
     "module-button-key": 1

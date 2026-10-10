@@ -13,6 +13,7 @@ import {
 import { loginToInstance } from '../../../support/auth.js';
 import { clearSecret, fillSecret } from '../../../support/secret.js';
 import { inviteUser } from '../../../support/users.js';
+import { fieldName } from '../../../support/fields.js';
 
 type ScopeRule = 'UNITS' | 'SUBTREE' | 'SELF';
 type OrgUnit = {
@@ -238,7 +239,7 @@ async function createTask(page: Page, suffix: string, participantId: number): Pr
 async function loginSyntheticUser(page: Page, login: string, passwordValue: string): Promise<void> {
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(login);
-  const password = page.getByLabel('Пароль', { exact: true });
+  const password = page.getByLabel(fieldName('Пароль'));
   try {
     await fillSecret(password, passwordValue);
     await page.getByRole('button', { name: 'Войти в систему', exact: true }).click();
@@ -456,8 +457,8 @@ test.describe.serial('organization structure vertical acceptance', () => {
     await expect(createButton).toBeVisible();
     await createButton.click();
     const editor = page.getByRole('dialog', { name: 'Редактор подразделения', exact: true });
-    await editor.getByLabel('Код', { exact: true }).fill(journeyCode);
-    await editor.getByLabel('Название', { exact: true }).fill(fixtureNames.journey);
+    await editor.getByLabel(fieldName('Код')).fill(journeyCode);
+    await editor.getByLabel(fieldName('Название')).fill(fixtureNames.journey);
     const createdResponse = page.waitForResponse(response => response.request().method() === 'POST'
       && new URL(response.url()).pathname === '/api/v1/iam/org-units');
     await editor.getByRole('button', { name: 'Сохранить', exact: true }).click();
@@ -534,8 +535,8 @@ test.describe.serial('organization structure vertical acceptance', () => {
     const create = page.getByRole('button', { name: 'Создать дочернее подразделение', exact: true });
     await create.click();
     let editor = page.getByRole('dialog', { name: 'Редактор подразделения', exact: true });
-    const name = editor.getByLabel('Название', { exact: true });
-    await editor.getByLabel('Код', { exact: true }).fill(`${runPrefix}-discard`);
+    const name = editor.getByLabel(fieldName('Название'));
+    await editor.getByLabel(fieldName('Код')).fill(`${runPrefix}-discard`);
     await name.fill(`${runPrefix} keyboard draft`);
     await page.keyboard.press('Escape');
     const discard = page.getByRole('dialog', { name: 'Несохранённые изменения', exact: true });
@@ -553,8 +554,8 @@ test.describe.serial('organization structure vertical acceptance', () => {
     await create.click();
     editor = page.getByRole('dialog', { name: 'Редактор подразделения', exact: true });
     const pendingName = `${runPrefix} pending real write`;
-    await editor.getByLabel('Код', { exact: true }).fill(`${runPrefix}-pending`);
-    await editor.getByLabel('Название', { exact: true }).fill(pendingName);
+    await editor.getByLabel(fieldName('Код')).fill(`${runPrefix}-pending`);
+    await editor.getByLabel(fieldName('Название')).fill(pendingName);
     let release!: () => void;
     const gate = new Promise<void>(resolve => release = resolve);
     let intercepted!: () => void;
