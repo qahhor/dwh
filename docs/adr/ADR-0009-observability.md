@@ -14,7 +14,8 @@
 > Prometheus (recording и alerting) с юнит-тестами promtool и дашбордами
 > Grafana в JSON (`deploy/observability`); сбор, Alertmanager и Grafana
 > разворачивает оператор. SLO доступности — утверждённые 99.9 %, пороги
-> задержки — предложение до утверждения установкой (`NFR-PERF-02`). У каждого
+> задержки API — утверждённые владельцем продукта 2026-10-10 p95 ≤ 300 мс и
+> p99 ≤ 1 с (`NFR-PERF-02`). У каждого
 > алерта есть runbook в `docs/runbooks`. Описание —
 > [SLO, метрики и алерты](../ops/slo.md).
 

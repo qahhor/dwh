@@ -14,6 +14,12 @@ One breaking REST change (the comment request).
 
 #### Changed
 
+- The API latency thresholds p95 ≤ 300 ms and p99 ≤ 1 s are approved by
+  the product owner (`NFR-PERF-02` in the technical specification,
+  `docs/ops/slo.md`, ADR-0009 note); the alert rules already used exactly
+  these values. The managed acceptance template carries them
+  (`ACCEPTANCE_MAX_P95_MS=300`, `ACCEPTANCE_MAX_P99_MS=1000`); page-load
+  targets and the queue, outbox and pool thresholds stay defaults.
 - **Breaking (REST):** `POST /api/v1/tasks/{taskId}/comments` takes the
   text only as `textMarkdown`; the older name `commentMarkdown` of
   `AddCommentRequest` is gone (no client installations exist before the
