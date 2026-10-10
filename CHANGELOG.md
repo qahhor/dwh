@@ -7,6 +7,20 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Dependabot updates of 2026-10-11
+
+#### Changed
+
+- Dependencies updated from the open Dependabot pull requests, each checked
+  locally (backend, web, accessibility, E2E, image scans): Maven 3.10.0 in the
+  wrapper, ArchUnit 1.5.1, AWS SDK 2.55.12, japicmp 0.26.3, maven-jar-plugin
+  3.5.1, Angular 22.2.2 (every framework package on the same patch; the
+  Dependabot lockfile left two of them on 22.2.0), @types/node 26.6.4,
+  @vitest/coverage-v8 5.0.3, jsdom 30.1.2, ESLint 10.12.0, typescript-eslint
+  8.71.1, Stylelint 17.16.0, anchore/sbom-action 0.24.3 in the release
+  workflow and a fresh digest of the `eclipse-temurin:25-jre` runtime image.
+  The Jackson pins (3.1.7, 2.21.7) are unchanged.
+
 ### UI polish after the visual check (2026-10-10)
 
 #### Changed

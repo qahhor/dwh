@@ -138,7 +138,7 @@ ADR-0020 (миграции), ADR-0032 (low-code платформа v2: объя�
 
 ### 4.1. japicmp
 
-- Плагин `com.github.siom79.japicmp:japicmp-maven-plugin` **0.26.2** в
+- Плагин `com.github.siom79.japicmp:japicmp-maven-plugin` **0.26.3** в
   `pluginManagement` корневого `pom.xml`, цель `cmp` в фазе `verify` у
   `platform-api` и `provider-spi`: `mvn verify` (CI, задание backend) и
   локальные гейты прогоняют его без отдельной команды.
@@ -377,7 +377,7 @@ EntityContractTestKit` проходит кит. Пакет модуля — `com
 | Что | Где | Проверка |
 |---|---|---|
 | Артефакт `platform-api` 1.0.0 и `provider-spi` 1.0.0, `@PlatformApi` у каждого публичного типа (вложенные включительно) | `libs/platform-api`, `libs/provider-spi` | `PlatformApiContractTest`, `ProviderSpiContractTest` |
-| japicmp 0.26.2, семантическое версионирование, базовые линии 1.0.0 | корневой `pom.xml` (`pluginManagement`), `libs/*/baseline` | `mvn verify`; `scripts/api/test-platform-api-compat.ps1` (CI, задание backend) |
+| japicmp 0.26.3, семантическое версионирование, базовые линии 1.0.0 | корневой `pom.xml` (`pluginManagement`), `libs/*/baseline` | `mvn verify`; `scripts/api/test-platform-api-compat.ps1` (CI, задание backend) |
 | Журнал SPI | `docs/api/spi-changelog.md` | — |
 | Манифест, проверка до бинов, отказ с понятной причиной | `common.module` (`ModuleManifest`, `ModuleManifests`, `ModuleCatalog`, `ModuleMigrations`), `config.module` (`ModuleManifestSelector`, `ModuleManifestFailureAnalyzer`) | `ModuleManifestsTest`, `ModuleManifestStartupTest` |
 | Манифесты встроенных модулей, версии в реестре, V196 | `apps/server/src/main/resources/META-INF/smartupcms/modules`, `ModuleRegistryService`, `ModuleRegistrySynchronizer` | `ModuleRegistryIntegrationTest` |

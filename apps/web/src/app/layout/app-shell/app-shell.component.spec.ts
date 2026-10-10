@@ -118,6 +118,9 @@ describe('AppShellComponent', () => {
   async function openDrawer() {
     const view = create(true);
     const opener = view.find<HTMLButtonElement>('.mobile-menu-btn')!;
+    // jsdom lays out a 1024px window, so the (max-width: 767px) rule that shows the button never applies, and
+    // jsdom 30 does not focus an element that is not rendered: show it as the phone layout does.
+    opener.style.display = 'inline-flex';
     opener.focus();
     opener.click();
     await settle(view.fixture);
