@@ -320,6 +320,8 @@ smc:
     user-per-minute: ${SMC_RATE_LIMIT_USER_PER_MINUTE:600}             # cookie sessions
     token-per-minute: ${SMC_RATE_LIMIT_TOKEN_PER_MINUTE:300}           # Bearer, per token owner
     expensive-per-minute: ${SMC_RATE_LIMIT_EXPENSIVE_PER_MINUTE:10}    # expensive operations (paths below)
+    # Search management reads answered from the database (GET settings, jobs, one job, entities) take the user
+    # budget whatever this list says (ADR-0008, 2.2): the settings screen polls a running job.
     expensive-paths:
       - /api/v1/audit/stats
       - /api/v1/audit/logs
