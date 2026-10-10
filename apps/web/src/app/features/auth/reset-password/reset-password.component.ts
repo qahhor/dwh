@@ -1,9 +1,15 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, Injector, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { disabled, form, FormField, maxLength, required, validate } from '@angular/forms/signals';
 import { PasswordApi } from '../password.api';
+import { passwordProblemFields, problemMessage } from '../password-problem';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
+import { focusFirstInvalid, UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 import { LoginHeaderComponent } from '../login/components/login-header.component';
 import { LoginTopBarComponent } from '../login/components/login-top-bar.component';
 import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
@@ -15,11 +21,24 @@ type ResetState = 'form' | 'done' | 'invalid';
  *
  * The token comes in the URL fragment (`/reset-password#token=...`): a fragment never reaches the server logs or
  * the Referer header. It is read once and removed from the address bar and the history.
+ *
+ * The form follows docs/guidelines/forms-ux-standard.md: each field explains its own error, the policy refusal of
+ * the server goes under the new password, and a refusal of no field is an alert above the button.
  */
 @Component({
   selector: 'app-reset-password',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, SMTButtonComponent, SMTInputComponent, LoginHeaderComponent, LoginTopBarComponent],
+  imports: [
+    TranslatePipe,
+    SMTButtonComponent,
+    SMTAlertComponent,
+    SMTControlComponent,
+    SMTInputComponent,
+    FormField,
+    UiFocusFirstInvalidDirective,
+    LoginHeaderComponent,
+    LoginTopBarComponent,
+  ],
   styleUrl: '../login/login.component.css',
   template: `
     <main class="login-wrapper">
@@ -29,6 +48,7 @@ type ResetState = 'form' | 'done' | 'invalid';
 
         @if (state() === 'form') {
           <form
+            uiFocusFirstInvalid
             (submit)="$event.preventDefault(); submit()"
             novalidate
             class="login-form"
@@ -42,48 +62,39 @@ type ResetState = 'form' | 'done' | 'invalid';
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="reset-new-password">{{ 'auth.password.new_password' | t }}</label>
+            <smt-control
+              class="form-group"
+              [smtLabel]="'auth.password.new_password' | t"
+              [smtError]="serverError('newPassword')"
+            >
               <smt-input
                 smtFieldId="reset-new-password"
                 type="password"
-                [(value)]="newPassword"
-                (edited)="formError.set('')"
-                name="newPassword"
-                required
-                [minLength]="passwordPolicy.min"
-                [maxLength]="passwordPolicy.max"
+                [formField]="resetForm.newPassword"
+                (edited)="edited('newPassword')"
                 autocomplete="new-password"
                 [spellcheck]="false"
-                [smtInvalid]="!!formError()"
                 smtDescribedBy="reset-password-hint"
-                [disabled]="isLoading()"
               />
-            </div>
+            </smt-control>
 
-            <div class="form-group">
-              <label class="form-label" for="reset-confirm-password">{{
-                'auth.password.repeat_new_password' | t
-              }}</label>
+            <smt-control
+              class="form-group"
+              [smtLabel]="'auth.password.repeat_new_password' | t"
+              [smtError]="serverError('confirmPassword')"
+            >
               <smt-input
                 smtFieldId="reset-confirm-password"
                 type="password"
-                [(value)]="confirmPassword"
-                (edited)="formError.set('')"
-                name="confirmPassword"
-                required
-                [minLength]="passwordPolicy.min"
-                [maxLength]="passwordPolicy.max"
+                [formField]="resetForm.confirmPassword"
+                (edited)="edited('confirmPassword')"
                 autocomplete="new-password"
                 [spellcheck]="false"
-                [smtInvalid]="!!formError()"
-                [smtDescribedBy]="formError() ? 'reset-password-error' : null"
-                [disabled]="isLoading()"
               />
-            </div>
+            </smt-control>
 
             @if (formError()) {
-              <p id="reset-password-error" class="form-error" role="alert">{{ formError() }}</p>
+              <smt-alert id="reset-password-error" smtTone="danger">{{ formError() }}</smt-alert>
             }
 
             <button
@@ -123,36 +134,64 @@ export class ResetPasswordComponent {
   private readonly passwordApi = inject(PasswordApi);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
 
   readonly state = signal<ResetState>('form');
   readonly isLoading = signal(false);
+  /** A refusal of no field, shown once above the button. */
   readonly formError = signal('');
-  readonly newPassword = signal('');
-  readonly confirmPassword = signal('');
+  /** Refusals the server tied to a field; shown under it until it is edited. */
+  readonly serverErrors = signal<Readonly<Record<string, string>>>({});
+  readonly model = signal({ newPassword: '', confirmPassword: '' });
 
   readonly passwordPolicy = PASSWORD_POLICY;
   private readonly token = readToken();
+
+  readonly resetForm = form(this.model, (path) => {
+    disabled(path, () => this.isLoading());
+    required(path.newPassword, { message: () => this.i18n.translate('auth.login.new_password_required') });
+    validate(path.newPassword, ({ value }) =>
+      !value() || fitsPasswordPolicy(value())
+        ? null
+        : { kind: 'policy', message: this.i18n.translate('password.policy.length_error', PASSWORD_POLICY) },
+    );
+    maxLength(path.newPassword, PASSWORD_POLICY.max);
+    required(path.confirmPassword, { message: () => this.i18n.translate('auth.login.confirm_password_required') });
+    validate(path.confirmPassword, ({ value, valueOf }) =>
+      !value() || value() === valueOf(path.newPassword)
+        ? null
+        : { kind: 'mismatch', message: this.i18n.translate('auth.password.mismatch') },
+    );
+    maxLength(path.confirmPassword, PASSWORD_POLICY.max);
+  });
 
   constructor() {
     if (!this.token) this.state.set('invalid');
   }
 
+  serverError(field: string): string {
+    return this.serverErrors()[field] ?? '';
+  }
+
+  edited(field: string): void {
+    this.formError.set('');
+    if (field in this.serverErrors()) {
+      this.serverErrors.set(Object.fromEntries(Object.entries(this.serverErrors()).filter(([name]) => name !== field)));
+    }
+  }
+
   submit(): void {
     if (this.isLoading()) return;
-    if (!fitsPasswordPolicy(this.newPassword())) {
-      this.formError.set(this.i18n.translate('password.policy.length_error', PASSWORD_POLICY));
-      return;
-    }
-    if (this.newPassword() !== this.confirmPassword()) {
-      this.formError.set(this.i18n.translate('auth.password.mismatch'));
-      return;
-    }
+    markSMTFormFieldsTouched(this.resetForm);
+    this.formError.set('');
+    this.serverErrors.set({});
+    if (!this.resetForm().valid()) return;
     this.isLoading.set(true);
-    this.passwordApi.confirmReset(this.token, this.newPassword()).subscribe({
+    this.passwordApi.confirmReset(this.token, this.model().newPassword).subscribe({
       next: () => {
         this.isLoading.set(false);
-        this.newPassword.set('');
-        this.confirmPassword.set('');
+        this.model.set({ newPassword: '', confirmPassword: '' });
         this.state.set('done');
       },
       error: (err: unknown) => {
@@ -161,7 +200,13 @@ export class ResetPasswordComponent {
           this.state.set('invalid');
           return;
         }
-        this.formError.set(errorDetail(err) ?? this.i18n.translate('auth.reset.failed'));
+        const fields = passwordProblemFields(err, ['newPassword']).fields;
+        if (Object.keys(fields).length > 0) {
+          this.serverErrors.set(fields);
+          focusFirstInvalid(this.host.nativeElement, this.injector);
+          return;
+        }
+        this.formError.set(problemMessage(err, this.i18n.translate('auth.reset.failed')));
       },
     });
   }
@@ -184,13 +229,4 @@ function readToken(): string {
 function errorCode(error: unknown): string | null {
   const code = error && typeof error === 'object' ? (error as { code?: unknown }).code : null;
   return typeof code === 'string' ? code.toLowerCase() : null;
-}
-
-function errorDetail(error: unknown): string | null {
-  if (error && typeof error === 'object') {
-    const value = error as { detail?: unknown; message?: unknown };
-    if (typeof value.detail === 'string' && value.detail.trim()) return value.detail;
-    if (typeof value.message === 'string' && value.message.trim()) return value.message;
-  }
-  return null;
 }

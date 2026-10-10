@@ -6,6 +6,7 @@ import { expect, type Page } from '@playwright/test';
 
 import { loadE2eEnv } from './env.mjs';
 import { clearSecret, fillSecret } from './secret.js';
+import { fieldName } from './fields.js';
 
 const environment = loadE2eEnv();
 // 20 characters: the longest password the policy accepts (8..20).
@@ -31,7 +32,7 @@ type LoginOutcome = 'tasks' | 'mandatory-change' | 'alert';
 async function submitInstanceCredentials(page: Page, passwordValue: string): Promise<LoginOutcome> {
   await page.goto('/login');
   await page.getByLabel('Логин или Email').fill(environment.instance.login);
-  const password = page.getByLabel('Пароль', { exact: true });
+  const password = page.getByLabel(fieldName('Пароль'));
   try {
     await fillSecret(password, passwordValue);
     await page.getByRole('button', { name: 'Войти в систему' }).click();
@@ -51,15 +52,15 @@ async function submitInstanceCredentials(page: Page, passwordValue: string): Pro
 }
 
 async function completeMandatoryPasswordChange(page: Page): Promise<void> {
-  const newPassword = page.getByLabel('Новый пароль', { exact: true });
-  const confirmation = page.getByLabel('Повторите новый пароль', { exact: true });
+  const newPassword = page.getByLabel(fieldName('Новый пароль'));
+  const confirmation = page.getByLabel(fieldName('Повторите новый пароль'));
   try {
     await fillSecret(newPassword, rotatedInstancePassword);
     await fillSecret(confirmation, rotatedInstancePassword);
     await page.getByRole('button', { name: 'Сменить пароль', exact: true }).click();
     // The toast shows it and the live announcer repeats it for screen readers: the toast is the visible one.
     await expect(page.locator('ui-toast-container').getByText('Пароль изменён. Войдите снова с новым паролем.', { exact: true })).toBeVisible();
-    await expect(page.getByLabel('Пароль', { exact: true })).toBeVisible();
+    await expect(page.getByLabel(fieldName('Пароль'))).toBeVisible();
   } finally {
     await Promise.all([clearSecret(newPassword), clearSecret(confirmation)]);
   }

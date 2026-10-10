@@ -3,7 +3,14 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
+import { ComponentFixture } from '@angular/core/testing';
 import { ResetPasswordComponent } from './reset-password.component';
+
+function errors(fixture: ComponentFixture<ResetPasswordComponent>): string[] {
+  return [...fixture.nativeElement.querySelectorAll('.smt-control__error')].map(
+    (node) => (node as HTMLElement).textContent?.trim() ?? '',
+  );
+}
 
 describe('ResetPasswordComponent', () => {
   const api = { post: vi.fn() };
@@ -33,8 +40,7 @@ describe('ResetPasswordComponent', () => {
     const component = fixture.componentInstance;
 
     expect(window.location.hash).toBe('');
-    component.newPassword.set('New-Password-2026');
-    component.confirmPassword.set('New-Password-2026');
+    component.model.set({ newPassword: 'New-Password-2026', confirmPassword: 'New-Password-2026' });
     component.submit();
 
     expect(api.post).toHaveBeenCalledWith(
@@ -43,7 +49,7 @@ describe('ResetPasswordComponent', () => {
       { notifyError: false },
     );
     expect(component.state()).toBe('done');
-    expect(component.newPassword()).toBe('');
+    expect(component.model().newPassword).toBe('');
   });
 
   it('shows an invalid link without a token and sends nothing', async () => {
@@ -54,19 +60,34 @@ describe('ResetPasswordComponent', () => {
     expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
   });
 
-  it('checks the length and the repeat before sending', async () => {
+  it('marks both fields required and explains an empty submit under each field', async () => {
+    const fixture = await open('#token=link-token');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.smt-control__required')).toHaveLength(2);
+
+    fixture.componentInstance.submit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(errors(fixture)).toEqual(['Введите новый пароль', 'Введите новый пароль ещё раз']);
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('checks the length and the repeat before sending, each under its field', async () => {
     const fixture = await open('#token=link-token');
     const component = fixture.componentInstance;
 
-    component.newPassword.set('short');
-    component.confirmPassword.set('short');
+    component.model.set({ newPassword: 'short', confirmPassword: 'short' });
     component.submit();
-    expect(component.formError()).not.toBe('');
+    fixture.detectChanges();
+    expect(errors(fixture)[0]).toContain('от 8 до 20');
 
-    component.newPassword.set('New-Password-2026');
-    component.confirmPassword.set('Other-Password-2026');
+    component.model.set({ newPassword: 'New-Password-2026', confirmPassword: 'Other-Password-2026' });
     component.submit();
-    expect(component.formError()).not.toBe('');
+    fixture.detectChanges();
+    expect(errors(fixture)).toEqual(['Введенные пароли не совпадают']);
     expect(api.post).not.toHaveBeenCalled();
   });
 
@@ -86,11 +107,11 @@ describe('ResetPasswordComponent', () => {
     type('reset-confirm-password', 'short');
     form.dispatchEvent(new Event('submit', { cancelable: true }));
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('#reset-password-error')).not.toBeNull();
+    expect(errors(fixture)).toHaveLength(1);
 
     type('reset-new-password', 'New-Password-2026');
-    expect(fixture.nativeElement.querySelector('#reset-password-error')).toBeNull();
     type('reset-confirm-password', 'New-Password-2026');
+    expect(errors(fixture)).toEqual([]);
     const submit = new Event('submit', { cancelable: true });
     form.dispatchEvent(submit);
 
@@ -107,23 +128,38 @@ describe('ResetPasswordComponent', () => {
     const fixture = await open('#token=used-token');
     const component = fixture.componentInstance;
 
-    component.newPassword.set('New-Password-2026');
-    component.confirmPassword.set('New-Password-2026');
+    component.model.set({ newPassword: 'New-Password-2026', confirmPassword: 'New-Password-2026' });
     component.submit();
 
     expect(component.state()).toBe('invalid');
   });
 
-  it('keeps the form and shows the reason for any other refusal', async () => {
-    api.post.mockReturnValue(throwError(() => ({ code: 'validation_failed', detail: 'Пароль слишком простой' })));
+  it('keeps the form and shows the reason for a refusal of no field above the button', async () => {
+    api.post.mockReturnValue(throwError(() => ({ code: 'rate_limited', detail: 'Попробуйте позже' })));
     const fixture = await open('#token=link-token');
     const component = fixture.componentInstance;
 
-    component.newPassword.set('New-Password-2026');
-    component.confirmPassword.set('New-Password-2026');
+    component.model.set({ newPassword: 'New-Password-2026', confirmPassword: 'New-Password-2026' });
     component.submit();
+    fixture.detectChanges();
 
     expect(component.state()).toBe('form');
-    expect(component.formError()).toBe('Пароль слишком простой');
+    expect(fixture.nativeElement.querySelector('#reset-password-error').textContent).toContain('Попробуйте позже');
+  });
+
+  it('puts the policy refusal of the server under the new password and focuses it', async () => {
+    api.post.mockReturnValue(throwError(() => ({ code: 'password_policy', detail: 'Пароль слишком простой' })));
+    const fixture = await open('#token=link-token');
+    const component = fixture.componentInstance;
+
+    component.model.set({ newPassword: 'New-Password-2026', confirmPassword: 'New-Password-2026' });
+    component.submit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(errors(fixture)).toEqual(['Пароль слишком простой']);
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#reset-new-password').getAttribute('aria-invalid')).toBe('true');
   });
 });

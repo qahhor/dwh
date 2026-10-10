@@ -133,7 +133,7 @@ describe('OrgUnitsComponent lifecycle', () => {
   });
   it('requires discard on dirty close and route leave, supports canceled navigation', () => {
     const { fixture, page, edit } = setup();
-    edit().draft.name = 'Draft';
+    edit().draft.update((d) => ({ ...d, name: 'Draft' }));
     page.closeEditor();
     fixture.detectChanges();
     expect(page.editorOpen()).toBe(true);
@@ -154,7 +154,7 @@ describe('OrgUnitsComponent lifecycle', () => {
   it('locks repeated save/close/target change while pending; write failure preserves draft', () => {
     const { fixture, page, api, screen, edit } = setup();
     const editor = edit();
-    editor.draft.name = 'Draft';
+    editor.draft.update((d) => ({ ...d, name: 'Draft' }));
     const save = new Subject<undefined>();
     api.update.mockReturnValueOnce(save);
     editor.submit();
@@ -171,7 +171,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(event.defaultPrevented).toBe(true);
     save.error({ detail: 'Write failed', status: 409 });
     fixture.detectChanges();
-    expect(editor.draft.name).toBe('Draft');
+    expect(editor.draft().name).toBe('Draft');
     expect(screen().textContent).toContain('Write failed');
     editor.submit();
     expect(api.update).toHaveBeenCalledTimes(2);
@@ -179,7 +179,7 @@ describe('OrgUnitsComponent lifecycle', () => {
   it('shows a save refused over a newer revision once and reads the tree again from its button', () => {
     const { fixture, page, api, toast, edit } = setup();
     const editor = edit();
-    editor.draft.name = 'Draft';
+    editor.draft.update((d) => ({ ...d, name: 'Draft' }));
     api.update.mockReturnValueOnce(
       throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' })),
     );
@@ -197,7 +197,7 @@ describe('OrgUnitsComponent lifecycle', () => {
   it('reports successful write plus failed refresh without retrying the write', () => {
     const { fixture, page, api, toast, screen, edit } = setup();
     const editor = edit();
-    editor.draft.name = 'New';
+    editor.draft.update((d) => ({ ...d, name: 'New' }));
     api.list.mockReturnValueOnce(throwError(() => ({ detail: 'Refresh failed' })));
     editor.submit();
     fixture.detectChanges();
@@ -229,7 +229,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(dialog.textContent).toContain('CHILD');
     expect(dialog.textContent).toContain('Child');
     api.remove.mockReturnValueOnce(throwError(() => ({ status: 409, detail: 'Assigned employees' })));
-    (screen().querySelector('button[data-action="confirm-delete"]') as HTMLButtonElement).click();
+    (screen().querySelector('[data-delete-actions] [data-testid="form-submit"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(api.remove).toHaveBeenCalledWith(2);
     expect(page.selected()?.id).toBe(2);
@@ -257,17 +257,17 @@ describe('OrgUnitsComponent lifecycle', () => {
     const { api, edit } = setup();
     edit();
     const editor = edit(root);
-    editor.draft.name = 'Root renamed';
+    editor.draft.update((d) => ({ ...d, name: 'Root renamed' }));
     editor.submit();
     expect(api.update).toHaveBeenCalledWith(1, { name: 'Root renamed' }, undefined);
   });
   it('does not replace draft context with a tree reload while editing', () => {
     const { page, api, edit } = setup();
     const editor = edit();
-    editor.draft.name = 'Unsaved';
+    editor.draft.update((d) => ({ ...d, name: 'Unsaved' }));
     page.reload();
     expect(api.list).toHaveBeenCalledTimes(1);
-    expect(editor.draft.name).toBe('Unsaved');
+    expect(editor.draft().name).toBe('Unsaved');
   });
   it('cancels detail reads on destruction', () => {
     const { fixture, page, api, toast } = setup();
@@ -290,12 +290,12 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(api.update).not.toHaveBeenCalled();
     page.loadDetail();
     fixture.detectChanges();
-    expect(page.editor()?.draft.name).toBe('Child');
+    expect(page.editor()?.draft().name).toBe('Child');
   });
   it('warns on dirty Escape and keeps the draft when discard is canceled', () => {
     const { fixture, page, edit } = setup();
     const editor = edit();
-    editor.draft.name = 'Unsaved';
+    editor.draft.update((d) => ({ ...d, name: 'Unsaved' }));
     (document.activeElement ?? document.body).dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
     );
@@ -303,14 +303,14 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(page.discard.open()).toBe(true);
     page.discard.cancel();
     fixture.detectChanges();
-    expect(editor.draft.name).toBe('Unsaved');
+    expect(editor.draft().name).toBe('Unsaved');
   });
   it('unsubscribes a pending write on destruction and ignores a late success', () => {
     const { fixture, api, toast, edit } = setup();
     const editor = edit();
     const write = new Subject<undefined>();
     api.update.mockReturnValueOnce(write);
-    editor.draft.name = 'New';
+    editor.draft.update((d) => ({ ...d, name: 'New' }));
     editor.submit();
     fixture.destroy();
     expect(write.observed).toBe(false);
@@ -337,8 +337,8 @@ describe('OrgUnitsComponent lifecycle', () => {
       else page.edit();
       fixture.detectChanges();
       const editor = page.editor()!;
-      editor.draft.name = 'Unsaved';
-      editor.draft.code = 'NEW';
+      editor.draft.update((d) => ({ ...d, name: 'Unsaved' }));
+      editor.draft.update((d) => ({ ...d, code: 'NEW' }));
       grant(action);
       // Entry points must deny immediately, before the permission effect renders.
       editor.submit();
@@ -374,7 +374,7 @@ describe('OrgUnitsComponent lifecycle', () => {
   });
   it('clears dirty editor and pending discard navigation when only view is revoked', () => {
     const { fixture, page, api, screen, edit, grant } = setup();
-    edit().draft.name = 'Unsaved';
+    edit().draft.update((d) => ({ ...d, name: 'Unsaved' }));
     const decision = vi.fn();
     (page.canLeaveRecordPage() as Observable<boolean>).subscribe(decision);
     fixture.detectChanges();
@@ -446,8 +446,8 @@ describe('OrgUnitsComponent lifecycle', () => {
         else page.edit();
         fixture.detectChanges();
         const editor = page.editor()!;
-        if (action === 'create') editor.draft.code = 'NEW';
-        editor.draft.name = 'New';
+        if (action === 'create') editor.draft.update((d) => ({ ...d, code: 'NEW' }));
+        editor.draft.update((d) => ({ ...d, name: 'New' }));
         editor.submit();
       }
       expect(page.pending()).toBe(true);
@@ -478,7 +478,7 @@ describe('OrgUnitsComponent lifecycle', () => {
   it('preserves dirty and pending edit behavior when a permission update retains view', () => {
     const { fixture, page, api, screen, edit, grant } = setup();
     const editor = edit();
-    editor.draft.name = 'Unsaved';
+    editor.draft.update((d) => ({ ...d, name: 'Unsaved' }));
     grant('view', 'update');
     fixture.detectChanges();
     expect(page.editor()).toBe(editor);
@@ -495,7 +495,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     fixture.detectChanges();
     expect(page.pending()).toBe(false);
     expect(page.editor()).toBe(editor);
-    expect(editor.draft.name).toBe('Unsaved');
+    expect(editor.draft().name).toBe('Unsaved');
     expect(screen().textContent).toContain('Current failure');
   });
 });

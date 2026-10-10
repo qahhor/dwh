@@ -22,6 +22,7 @@ import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '@features/iam/roles/roles.
 import { EffectivePermissionItem, PersonalGrant } from '../users.models';
 import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 export interface GroupedPermissionAction {
@@ -45,7 +46,14 @@ export interface GroupedPermissionModule {
 @Component({
   selector: 'app-user-effective-permissions-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTRadioGroupComponent, SMTSelectComponent, SMTInputComponent, TranslatePipe, SMTButtonComponent],
+  imports: [
+    SMTRadioGroupComponent,
+    SMTSelectComponent,
+    SMTInputComponent,
+    SMTControlComponent,
+    TranslatePipe,
+    SMTButtonComponent,
+  ],
   templateUrl: './user-effective-permissions-panel.component.html',
   styleUrl: './user-effective-permissions-panel.component.css',
 })
@@ -79,6 +87,8 @@ export class UserEffectivePermissionsPanelComponent {
 
   readonly selectedFormCode = signal<string>('');
   readonly selectedAction = signal<string>('');
+  /** An add was pressed with a picker still empty: the empty picker says what to choose. */
+  readonly grantTried = signal(false);
 
   readonly isLoading = computed(() => this.effectiveRead.isLoading());
   readonly loadError = computed(() => this.effectiveRead.value() === null);
@@ -241,7 +251,11 @@ export class UserEffectivePermissionsPanelComponent {
   addPersonalGrant(): void {
     const form = this.selectedFormCode();
     const action = this.selectedAction();
-    if (!form || !action) return;
+    if (!form || !action) {
+      this.grantTried.set(true);
+      return;
+    }
+    this.grantTried.set(false);
 
     const currentGrants = [...this.personalGrants()];
     const exists = currentGrants.some((g) => g.form === form && g.action === action);

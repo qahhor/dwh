@@ -177,7 +177,7 @@ describe('UserOrgUnitsPanelComponent', () => {
     const { fixture, panel, api } = rendered({ writable: false });
     expect(panel.selectedOrgUnitIds()).toEqual([7]);
     expect(box(fixture, 7)?.disabled).toBe(true);
-    expect(fixture.nativeElement.querySelector('[data-action="save-assignments"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-assignment-actions]')).toBeNull();
     panel.toggleAssignment(units[1]);
     panel.save();
     expect(api.saveAssignments).not.toHaveBeenCalled();

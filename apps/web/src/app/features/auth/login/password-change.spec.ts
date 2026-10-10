@@ -7,7 +7,7 @@ import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
-import { ProfileComponent } from '@features/iam/profile/profile.component';
+import { ProfilePasswordCardComponent } from '@features/iam/profile/components/profile-password-card.component';
 import { LoginComponent } from './login.component';
 
 describe('Password change ends the old authenticated session', () => {
@@ -41,7 +41,7 @@ describe('Password change ends the old authenticated session', () => {
     response = new Subject<void>();
     api.post.mockImplementation(() => response.asObservable());
     await TestBed.configureTestingModule({
-      imports: [LoginComponent, ProfileComponent],
+      imports: [LoginComponent, ProfilePasswordCardComponent],
       providers: [
         AuthService,
         PermissionService,
@@ -75,13 +75,11 @@ describe('Password change ends the old authenticated session', () => {
   it('returns forced password change to credentials and erases password and OTP drafts after success', async () => {
     const fixture = TestBed.createComponent(LoginComponent);
     const component = fixture.componentInstance;
-    component.login.set(user.login);
-    component.password.set('Before-Change-2026!');
-    component.tempOldPassword.set(component.password());
-    component.newPassword.set('After-Change-2026!');
-    component.confirmNewPassword.set(component.newPassword());
+    component.credentials.set({ login: user.login, password: 'Before-Change-2026!' });
+    component.tempOldPassword.set('Before-Change-2026!');
+    component.newPassword.set({ newPassword: 'After-Change-2026!', confirmPassword: 'After-Change-2026!' });
     component.otpToken.set('synthetic-old-challenge');
-    component.otpCode.set('246810');
+    component.otp.set({ code: '246810' });
     component.step.set('must_change_password');
     fixture.detectChanges();
 
@@ -94,14 +92,14 @@ describe('Password change ends the old authenticated session', () => {
     await fixture.whenStable();
 
     expect(component.step()).toBe('credentials');
-    expect(component.login()).toBe(user.login);
+    expect(component.credentials().login).toBe(user.login);
     expect([
-      component.password(),
+      component.credentials().password,
       component.tempOldPassword(),
-      component.newPassword(),
-      component.confirmNewPassword(),
+      component.newPassword().newPassword,
+      component.newPassword().confirmPassword,
       component.otpToken(),
-      component.otpCode(),
+      component.otp().code,
     ]).toEqual(['', '', '', '', '', '']);
     expect(fixture.nativeElement.querySelector('#password')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#new-password')).toBeNull();
@@ -111,9 +109,8 @@ describe('Password change ends the old authenticated session', () => {
   it('keeps forced change retryable and authenticated when saving fails', () => {
     const fixture = TestBed.createComponent(LoginComponent);
     const component = fixture.componentInstance;
-    component.password.set('Before-Change-2026!');
-    component.newPassword.set('After-Change-2026!');
-    component.confirmNewPassword.set(component.newPassword());
+    component.credentials.set({ login: user.login, password: 'Before-Change-2026!' });
+    component.newPassword.set({ newPassword: 'After-Change-2026!', confirmPassword: 'After-Change-2026!' });
     component.step.set('must_change_password');
     component.onChangePasswordSubmit();
 
@@ -122,7 +119,7 @@ describe('Password change ends the old authenticated session', () => {
 
     expect(component.step()).toBe('must_change_password');
     expect(component.isLoading()).toBe(false);
-    expect(component.newPassword()).toBe('After-Change-2026!');
+    expect(component.newPassword().newPassword).toBe('After-Change-2026!');
     expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain('Попробуйте ещё раз');
     expect(auth.isAuthenticated()).toBe(true);
     expect(permissions.hasPermission('tasks.items', 'view')).toBe(true);
@@ -130,41 +127,41 @@ describe('Password change ends the old authenticated session', () => {
   });
 
   it('clears profile password fields and local authentication only after a successful change', () => {
-    const fixture = TestBed.createComponent(ProfileComponent);
+    const fixture = TestBed.createComponent(ProfilePasswordCardComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    component.passwordForm.set({
+    component.model.set({
       oldPassword: 'Before-Change-2026!',
       newPassword: 'After-Change-2026!',
       confirmPassword: 'After-Change-2026!',
     });
-    component.submitChangePassword(new Event('submit'));
+    component.submit();
     expect(auth.isAuthenticated()).toBe(true);
     toast.error('Earlier failed password attempt');
 
     response.next();
     response.complete();
 
-    expect(component.passwordForm()).toEqual({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    expect(component.isChangingPassword()).toBe(false);
+    expect(component.model()).toEqual({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    expect(component.saving()).toBe(false);
     assertSignedOut();
   });
 
   it('preserves profile session and draft when changing the password fails', () => {
-    const fixture = TestBed.createComponent(ProfileComponent);
+    const fixture = TestBed.createComponent(ProfilePasswordCardComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    component.passwordForm.set({
+    component.model.set({
       oldPassword: 'Before-Change-2026!',
       newPassword: 'After-Change-2026!',
       confirmPassword: 'After-Change-2026!',
     });
-    component.submitChangePassword(new Event('submit'));
+    component.submit();
 
     response.error({ error: { detail: 'Не удалось сохранить пароль' } });
 
-    expect(component.passwordForm().newPassword).toBe('After-Change-2026!');
-    expect(component.isChangingPassword()).toBe(false);
+    expect(component.model().newPassword).toBe('After-Change-2026!');
+    expect(component.saving()).toBe(false);
     expect(auth.isAuthenticated()).toBe(true);
     expect(permissions.hasPermission('tasks.items', 'view')).toBe(true);
     expect(router.navigate).not.toHaveBeenCalled();
@@ -178,14 +175,14 @@ describe('Password change ends the old authenticated session', () => {
       api.get.mockReturnValueOnce(previousSession.asObservable());
       const observed = vi.fn();
       auth[method]().subscribe(observed);
-      const fixture = TestBed.createComponent(ProfileComponent);
+      const fixture = TestBed.createComponent(ProfilePasswordCardComponent);
       const component = fixture.componentInstance;
-      component.passwordForm.set({
+      component.model.set({
         oldPassword: 'Before-Change-2026!',
         newPassword: 'After-Change-2026!',
         confirmPassword: 'After-Change-2026!',
       });
-      component.submitChangePassword(new Event('submit'));
+      component.submit();
       response.next();
       response.complete();
       expect(auth.isAuthenticated()).toBe(false);

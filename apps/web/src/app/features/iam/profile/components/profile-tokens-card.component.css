@@ -172,50 +172,6 @@
   gap: 12px;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.form-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-main);
-}
-
-.req {
-  color: var(--danger);
-}
-
-.field-error {
-  font-size: 11px;
-  color: var(--danger);
-}
-
-.form-input {
-  height: 36px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  background-color: var(--bg-surface);
-  color: var(--text-main);
-  font-size: 13px;
-  outline: none;
-  width: 100%;
-  box-sizing: border-box;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.form-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
-}
-
-.mt-3 {
-  margin-top: 12px;
-}
 .mt-4 {
   margin-top: 16px;
 }

@@ -73,7 +73,8 @@ test('light theme keeps every content surface and form control light', async ({ 
   await page.goto('/iam/custom-fields');
   await ensureTheme(page, 'light');
   await page.locator('.view-header').getByRole('button', { name: 'Добавить поле' }).click();
-  await expectColors(page.locator('.modal-form smt-input').first(), {
+  // The code field takes focus on open (forms standard, section 8) and draws the focus ring: read a field at rest.
+  await expectColors(page.locator('.modal-form smt-input:has(#custom-field-name)'), {
     'background-color': LIGHT.surface,
     'border-top-color': LIGHT.border,
     color: LIGHT.text,
@@ -122,7 +123,8 @@ test('theme toggle applies canonical dark surfaces across the affected pages', a
   await page.goto('/iam/custom-fields');
   await ensureTheme(page, 'dark');
   await page.locator('.view-header').getByRole('button', { name: 'Добавить поле' }).click();
-  await expectColors(page.locator('.modal-form smt-input').first(), {
+  // The code field takes focus on open (forms standard, section 8) and draws the focus ring: read a field at rest.
+  await expectColors(page.locator('.modal-form smt-input:has(#custom-field-name)'), {
     'background-color': DARK.surface,
     'border-top-color': DARK.border,
     color: DARK.text,

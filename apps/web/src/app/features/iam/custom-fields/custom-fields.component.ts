@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { form } from '@angular/forms/signals';
 
 import { CustomFieldsApi } from '@core/services/custom-fields.api';
 import { ToastService } from '@core/services/toast.service';
@@ -16,7 +17,13 @@ import { lastLoaded } from '@features/iam/last-loaded';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
+import { discardChangesQuestion, formChanged } from '@shared/ui/discard-changes';
+import { problemFieldErrors, ProblemFieldErrors } from '@shared/ui/problem-fields';
+import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
+
+/** The fields of the dialog, as the server names them (`options` is shown as `optionsText`). */
+const FIELD_NAMES = ['entityType', 'code', 'name', 'fieldType', 'isRequired', 'defaultValue', 'orderNo', 'optionsText'];
 
 @Component({
   selector: 'app-custom-fields',
@@ -86,10 +93,10 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
       <app-custom-fields-modals
         [showModal]="showModal()"
         [editingField]="editingField()"
-        [formData]="formData()"
-        [formError]="formError()"
+        [fieldForm]="fieldForm"
+        [serverErrors]="serverErrors()"
         [saving]="saving()"
-        (closeModal)="closeModal()"
+        (closeModal)="requestCloseModal()"
         (saveField)="saveField()"
         (codeInput)="onCodeInput($event)"
       ></app-custom-fields-modals>
@@ -105,6 +112,7 @@ export class CustomFieldsComponent {
   private readonly formService = inject(CustomFieldsFormService);
 
   private readonly modal = inject(SMTModalService);
+  private readonly askDiscard = discardChangesQuestion();
   private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly selectedEntity = signal('ALL');
@@ -113,7 +121,8 @@ export class CustomFieldsComponent {
   readonly editingField = signal<CustomField | null>(null);
   readonly saving = signal(false);
   readonly isDeleting = signal(false);
-  readonly formError = signal('');
+  /** What the server said about the fields of a refused save: messages by field, and the others. */
+  readonly serverErrors = signal<ProblemFieldErrors>({ fields: {}, other: [] });
   readonly formData = signal<CustomFieldFormData>(this.formService.createInitialFormData('USER', 0));
 
   // --- Non-signal UI state ---
@@ -161,6 +170,13 @@ export class CustomFieldsComponent {
     });
     return result;
   });
+
+  readonly fieldForm = form(
+    this.formData,
+    this.formService.schema(() => !!this.editingField()),
+  );
+  /** The values the dialog opened with: closing asks only when they changed. */
+  private initialData: CustomFieldFormData = this.formData();
 
   /** The definitions; a failed load says so and keeps the table on screen. */
   private readonly fieldsRead = rxResource({
@@ -247,35 +263,35 @@ export class CustomFieldsComponent {
 
   openCreateModal() {
     this.editingField.set(null);
-    this.formData.set(this.formService.createInitialFormData(this.selectedEntity(), this.fields().length));
-    this.formError.set('');
-    this.showModal.set(true);
+    this.openWith(this.formService.createInitialFormData(this.selectedEntity(), this.fields().length));
   }
 
   openEditModal(f: CustomField) {
     this.editingField.set(f);
-    this.formData.set(this.formService.fromCustomField(f));
-    this.formError.set('');
-    this.showModal.set(true);
+    this.openWith(this.formService.fromCustomField(f));
+  }
+
+  /** Escape, the backdrop, the close button and Cancel: changes are lost only after a question. */
+  requestCloseModal() {
+    if (this.saving()) return;
+    this.askDiscard(formChanged(this.initialData, this.formData())).subscribe((discard) => {
+      if (discard) this.closeModal();
+    });
   }
 
   closeModal() {
     this.showModal.set(false);
     this.editingField.set(null);
-    this.formError.set('');
+    this.serverErrors.set({ fields: {}, other: [] });
   }
 
   saveField() {
     // One request at a time: a second press (or Enter) while saving must not send the field again.
     if (this.saving()) return;
-    const validation = this.formService.validateForm(this.formData(), !!this.editingField());
-    if (!validation.isValid) {
-      this.formError.set(validation.errorMessage || '');
-      this.toast.error(this.formError());
-      return;
-    }
+    markSMTFormFieldsTouched(this.fieldForm);
+    this.serverErrors.set({ fields: {}, other: [] });
+    if (!this.fieldForm().valid()) return;
 
-    this.formError.set('');
     this.saving.set(true);
     const options = this.formService.parseOptionsText(this.formData().optionsText);
 
@@ -302,6 +318,7 @@ export class CustomFieldsComponent {
           },
           error: (err: unknown) => {
             this.saving.set(false);
+            if (this.showFieldErrors(err)) return;
             // A newer revision: the list is read again and the field is opened from it.
             this.saveErrors.show(err, {
               fallbackKey: 'iam.custom_fields.save_failed',
@@ -333,6 +350,7 @@ export class CustomFieldsComponent {
           },
           error: (err: unknown) => {
             this.saving.set(false);
+            if (this.showFieldErrors(err)) return;
             this.saveErrors.show(err, { fallbackKey: 'iam.custom_fields.create_failed' });
           },
         });
@@ -364,5 +382,21 @@ export class CustomFieldsComponent {
         actionError: (error) => problemText(error) || t('iam.custom_fields.delete_failed'),
       })
       .subscribe();
+  }
+
+  private openWith(data: CustomFieldFormData): void {
+    this.formData.set(data);
+    this.initialData = data;
+    this.fieldForm().reset();
+    this.serverErrors.set({ fields: {}, other: [] });
+    this.showModal.set(true);
+  }
+
+  /** Puts the server's field messages under the fields; false when the refusal named no field. */
+  private showFieldErrors(err: unknown): boolean {
+    const errors = problemFieldErrors(err, { known: FIELD_NAMES, rename: { options: 'optionsText' } });
+    if (Object.keys(errors.fields).length === 0 && errors.other.length === 0) return false;
+    this.serverErrors.set(errors);
+    return true;
   }
 }

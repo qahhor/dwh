@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
@@ -76,21 +76,6 @@ describe('ProfileComponent UI contracts', () => {
     return { fixture, apiMock };
   }
 
-  it('connects password fields to inline validation and password visibility', async () => {
-    const { fixture } = await createFixture();
-    fixture.componentInstance.submitChangePassword(new Event('submit'));
-    fixture.detectChanges();
-
-    const current = inScreen(fixture.nativeElement).querySelector('#profile-current-password') as HTMLInputElement;
-    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${current.id}"]`)).not.toBeNull();
-    expect(current.required).toBe(true);
-    expect(current.getAttribute('aria-invalid')).toBe('true');
-    expect(current.getAttribute('aria-describedby')).toBe('profile-current-password-error');
-    expect(
-      current.closest('smt-input')!.querySelector('button[aria-controls="profile-current-password"]'),
-    ).not.toBeNull();
-  });
-
   it('names channel, session and token table regions', async () => {
     const { fixture } = await createFixture();
     const regions = inScreen(fixture.nativeElement).querySelectorAll('.table-wrapper[role="region"]');
@@ -102,19 +87,6 @@ describe('ProfileComponent UI contracts', () => {
     expect(regions[1].querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Активные сессии');
     expect(regions[2].tabIndex).toBe(0);
     expect(regions[2].querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('API-токены');
-  });
-
-  it('validates token name inline before creation', async () => {
-    const { fixture } = await createFixture();
-    fixture.componentInstance.openCreateTokenModal();
-    fixture.componentInstance.createTokenSubmit();
-    fixture.detectChanges();
-
-    const name = inScreen(fixture.nativeElement).querySelector('#profile-token-name') as HTMLInputElement;
-    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${name.id}"]`)).not.toBeNull();
-    expect(name.required).toBe(true);
-    expect(name.getAttribute('aria-invalid')).toBe('true');
-    expect(name.getAttribute('aria-describedby')).toBe('profile-token-name-error');
   });
 
   it('lets each password field show and hide what was typed', async () => {
@@ -131,25 +103,20 @@ describe('ProfileComponent UI contracts', () => {
     }
   });
 
-  it('computes live password strength and matching feedback', async () => {
-    const { fixture } = await createFixture();
-    const comp = fixture.componentInstance;
+  it('reads the channels and the tokens again when their card reports a change', async () => {
+    const { fixture, apiMock } = await createFixture();
+    const page = fixture.componentInstance;
+    const reads = (part: string) => apiMock.get.mock.calls.filter(([url]: [string]) => url.includes(part)).length;
+    const channelsBefore = reads('/channels');
+    const tokensBefore = reads('/tokens');
 
-    comp.passwordForm().newPassword = 'short';
-    expect(comp.passwordStrength().score).toBeLessThan(2);
-    expect(comp.hasMinLength()).toBe(false);
+    page.loadChannels();
+    page.loadTokens();
+    fixture.detectChanges();
+    await fixture.whenStable();
 
-    comp.passwordForm().newPassword = 'CorrectP@ssword123';
-    expect(comp.passwordStrength().score).toBe(4);
-    expect(comp.hasMinLength()).toBe(true);
-    expect(comp.hasLettersAndNumbers()).toBe(true);
-    expect(comp.hasMixedCase()).toBe(true);
-
-    comp.passwordForm().confirmPassword = 'DifferentPassword123';
-    expect(comp.passwordsMatch()).toBe(false);
-
-    comp.passwordForm().confirmPassword = 'CorrectP@ssword123';
-    expect(comp.passwordsMatch()).toBe(true);
+    expect(reads('/channels')).toBe(channelsBefore + 1);
+    expect(reads('/tokens')).toBe(tokensBefore + 1);
   });
 
   it('renders current session badge and differentiates current session actions', async () => {
@@ -186,28 +153,6 @@ describe('ProfileComponent UI contracts', () => {
     // The other session has a danger button that ends it
     const buttons = inScreen(fixture.nativeElement).querySelectorAll('.data-table button');
     expect(buttons.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('submits token expiration choice and reveals secret with copy feedback', async () => {
-    const { fixture, apiMock } = await createFixture();
-    const comp = fixture.componentInstance;
-
-    comp.openCreateTokenModal();
-    comp.newTokenName.set('Deploy Bot');
-    comp.selectedTokenExpiration.set('30');
-    comp.createTokenSubmit();
-
-    expect(apiMock.post).toHaveBeenCalledWith(
-      '/iam/profile/tokens',
-      expect.objectContaining({
-        name: 'Deploy Bot',
-        expiresAt: expect.any(String),
-      }),
-      { notifyError: false },
-    );
-
-    expect(comp.isTokenSecretModalOpen()).toBe(true);
-    expect(comp.createdTokenSecret()).toBe('smc_secret_xyz');
   });
 
   it('requests and confirms session termination', async () => {
@@ -274,56 +219,6 @@ describe('ProfileComponent UI contracts', () => {
       .map((button) => (button as HTMLElement).getAttribute('aria-label'))
       .filter((label) => label?.startsWith('Отвязать'));
     expect(unbindLabels).toEqual(['Отвязать user@example.com', 'Отвязать @user_tg']);
-  });
-
-  it('initiates channel binding and opens verification modal', async () => {
-    const { fixture, apiMock } = await createFixture();
-    const comp = fixture.componentInstance;
-
-    comp.onBindChannel({ channel: 'email', address: 'alex@example.test' });
-
-    expect(apiMock.post).toHaveBeenCalledWith(
-      '/iam/profile/channels',
-      { channel: 'email', address: 'alex@example.test' },
-      { notifyError: false },
-    );
-
-    const channelsCard = comp.channelsCard();
-    expect(channelsCard?.isConfirmModalOpen()).toBe(true);
-    expect(channelsCard?.activeVerifyToken()).toBe('mock_verify_token_123');
-    expect(channelsCard?.activeVerifyAddress()).toBe('alex@example.test');
-    // The card is OnPush and the answer arrives in a callback: the dialog must be on screen, not only in state.
-    fixture.detectChanges();
-    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="dialog"]').length).toBe(1);
-  });
-
-  it('shows the server reason of a failed channel binding in one message', async () => {
-    const { fixture, apiMock } = await createFixture();
-    const toast = TestBed.inject(ToastService) as unknown as { error: ReturnType<typeof vi.fn> };
-    apiMock.post.mockReturnValueOnce(throwError(() => ({ status: 409, detail: 'Этот адрес уже привязан' })));
-
-    fixture.componentInstance.onBindChannel({ channel: 'email', address: 'alex@example.test' });
-
-    expect(toast.error).toHaveBeenCalledTimes(1);
-    expect(toast.error).toHaveBeenCalledWith('Этот адрес уже привязан');
-  });
-
-  it('confirms channel with OTP code and closes modal', async () => {
-    const { fixture, apiMock } = await createFixture();
-    const comp = fixture.componentInstance;
-
-    const channelsCard = comp.channelsCard();
-    channelsCard?.openConfirmModal('mock_verify_token_123', 'alex@example.test');
-    expect(channelsCard?.isConfirmModalOpen()).toBe(true);
-
-    comp.onConfirmChannel({ verifyToken: 'mock_verify_token_123', code: '123456' });
-
-    expect(apiMock.post).toHaveBeenCalledWith(
-      '/iam/profile/channels/confirm',
-      { verifyToken: 'mock_verify_token_123', code: '123456' },
-      { notifyError: false },
-    );
-    expect(channelsCard?.isConfirmModalOpen()).toBe(false);
   });
 
   it('requests and executes channel unbinding', async () => {

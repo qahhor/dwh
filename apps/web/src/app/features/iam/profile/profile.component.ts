@@ -9,19 +9,9 @@ import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { Observable, catchError, finalize, map, of, tap } from 'rxjs';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
-import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
 import { lastLoaded } from '@features/iam/last-loaded';
 
-import {
-  UserSession,
-  UserChannel,
-  ApiToken,
-  PasswordForm,
-  PasswordStrength,
-  TokenExpirationOption,
-  passwordStrengthOf,
-  tokenExpiresAt,
-} from './profile.models';
+import { UserSession, UserChannel, ApiToken } from './profile.models';
 
 import { UserProfileCardComponent } from './components/user-profile-card.component';
 import { ProfilePasswordCardComponent } from './components/profile-password-card.component';
@@ -33,6 +23,10 @@ import { ProfileTokensCardComponent } from './components/profile-tokens-card.com
 export * from './profile.models';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
+/**
+ * The signed-in person's profile. The password, channel and token forms live in their cards; the page reads the
+ * lists and confirms the destructive actions (ending a session, unbinding a channel, revoking a token).
+ */
 @Component({
   selector: 'app-profile',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,28 +54,7 @@ export class ProfileComponent {
 
   readonly channelsCard = viewChild<ProfileChannelsCardComponent>('channelsCard');
 
-  readonly isCreatingToken = signal<boolean>(false);
   readonly isTerminatingSession = signal<boolean>(false);
-  readonly isBindingChannel = signal<boolean>(false);
-  readonly isConfirmingChannel = signal<boolean>(false);
-  readonly copiedSecret = signal<boolean>(false);
-
-  readonly isCreateTokenModalOpen = signal<boolean>(false);
-  readonly isTokenSecretModalOpen = signal<boolean>(false);
-  readonly isChangingPassword = signal<boolean>(false);
-
-  readonly isPasswordSubmitted = signal(false);
-  readonly isTokenSubmitted = signal(false);
-
-  readonly newTokenName = signal('');
-  readonly selectedTokenExpiration = signal('90');
-  readonly createdTokenSecret = signal('');
-
-  readonly passwordForm = signal<PasswordForm>({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
 
   readonly isLoadingSessions = computed(() => this.sessionsRead.isLoading());
   readonly isLoadingTokens = computed(() => this.tokensRead.isLoading());
@@ -99,72 +72,8 @@ export class ProfileComponent {
   readonly tokens = lastLoaded<ApiToken[]>(() => this.tokensRead.value(), []);
   readonly channels = lastLoaded<UserChannel[]>(() => this.channelsRead.value(), []);
 
-  tokenExpirationOptions: TokenExpirationOption[] = [
-    { value: '30', labelKey: 'iam.profile.expiry_30_days' },
-    { value: '90', labelKey: 'iam.profile.expiry_90_days' },
-    { value: '365', labelKey: 'iam.profile.expiry_1_year' },
-    { value: 'never', labelKey: 'iam.profile.no_expiry' },
-  ];
-
-  // Methods, not computed: the card edits the form object in place.
-  passwordStrength(): PasswordStrength {
-    return passwordStrengthOf(this.passwordForm().newPassword);
-  }
-
-  hasMinLength(): boolean {
-    return fitsPasswordPolicy(this.passwordForm().newPassword);
-  }
-
-  hasLettersAndNumbers(): boolean {
-    const pwd = this.passwordForm().newPassword || '';
-    return /[a-zA-ZЀ-ӿ]/.test(pwd) && /\d/.test(pwd);
-  }
-
-  hasMixedCase(): boolean {
-    const pwd = this.passwordForm().newPassword || '';
-    return /[a-z\u0430-\u044f]/.test(pwd) && /[A-Z\u0410-\u042f]/.test(pwd);
-  }
-
-  passwordsMatch(): boolean {
-    const p1 = this.passwordForm().newPassword;
-    const p2 = this.passwordForm().confirmPassword;
-    return !!p1 && !!p2 && p1 === p2;
-  }
-
   loadChannels() {
     this.channelsRead.reload();
-  }
-
-  onBindChannel(event: { channel: string; address: string }) {
-    this.isBindingChannel.set(true);
-    this.profile.bindChannel(event.channel, event.address).subscribe({
-      next: (res) => {
-        this.isBindingChannel.set(false);
-        this.toast.info(this.uiI18n.translate('iam.profile.verification_code_sent', { address: event.address }));
-        this.channelsCard()?.openConfirmModal(res.verifyToken, event.address);
-        this.loadChannels();
-      },
-      error: (err: unknown) => {
-        this.isBindingChannel.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('iam.profile.channel_bind_failed'));
-      },
-    });
-  }
-
-  onConfirmChannel(event: { verifyToken: string; code: string }) {
-    this.isConfirmingChannel.set(true);
-    this.profile.confirmChannel(event.verifyToken, event.code).subscribe({
-      next: () => {
-        this.isConfirmingChannel.set(false);
-        this.toast.success(this.uiI18n.translate('iam.profile.channel_bound'));
-        this.channelsCard()?.closeConfirmModal();
-        this.loadChannels();
-      },
-      error: (err: unknown) => {
-        this.isConfirmingChannel.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('iam.profile.channel_verify_failed'));
-      },
-    });
   }
 
   onUnbindChannel(channel: UserChannel) {
@@ -220,74 +129,8 @@ export class ProfileComponent {
     });
   }
 
-  submitChangePassword(event: Event) {
-    event.preventDefault();
-    this.isPasswordSubmitted.set(true);
-
-    if (!this.passwordForm().oldPassword || !this.passwordForm().newPassword || !this.passwordForm().confirmPassword) {
-      this.toast.warning(this.uiI18n.translate('iam.profile.password_fields_required'));
-      return;
-    }
-
-    if (!fitsPasswordPolicy(this.passwordForm().newPassword)) {
-      this.toast.warning(this.uiI18n.translate('password.policy.length_error', PASSWORD_POLICY));
-      return;
-    }
-
-    if (this.passwordForm().newPassword !== this.passwordForm().confirmPassword) {
-      this.toast.warning(this.uiI18n.translate('iam.profile.password_mismatch'));
-      return;
-    }
-
-    this.isChangingPassword.set(true);
-    this.profile.changePassword(this.passwordForm().oldPassword, this.passwordForm().newPassword).subscribe({
-      next: () => {
-        this.isChangingPassword.set(false);
-        this.passwordForm.set({ oldPassword: '', newPassword: '', confirmPassword: '' });
-        this.isPasswordSubmitted.set(false);
-        this.authService.onPasswordChanged();
-      },
-      error: () => {
-        this.isChangingPassword.set(false);
-      },
-    });
-  }
-
   loadTokens() {
     this.tokensRead.reload();
-  }
-
-  openCreateTokenModal() {
-    this.newTokenName.set('');
-    this.selectedTokenExpiration.set('90');
-    this.isTokenSubmitted.set(false);
-    this.isCreateTokenModalOpen.set(true);
-  }
-
-  createTokenSubmit() {
-    this.isTokenSubmitted.set(true);
-    if (!this.newTokenName().trim()) {
-      this.toast.warning(this.uiI18n.translate('iam.profile.token_name_required'));
-      return;
-    }
-
-    const expiresAt = tokenExpiresAt(this.selectedTokenExpiration(), new Date());
-    this.isCreatingToken.set(true);
-    this.profile.createToken(this.newTokenName().trim(), expiresAt).subscribe({
-      next: (res) => {
-        this.isCreatingToken.set(false);
-        this.isCreateTokenModalOpen.set(false);
-        this.isTokenSubmitted.set(false);
-        this.createdTokenSecret.set(res.rawSecretToken);
-        this.copiedSecret.set(false);
-        this.isTokenSecretModalOpen.set(true);
-        this.loadTokens();
-      },
-      error: (err: unknown) => {
-        this.isCreatingToken.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('iam.profile.token_create_failed'));
-      },
-    });
   }
 
   requestRevokeToken(token: ApiToken) {
@@ -303,14 +146,6 @@ export class ProfileComponent {
       },
       failure: t('iam.profile.token_revoke_failed'),
     });
-  }
-
-  copySecret() {
-    if (!this.createdTokenSecret()) return;
-    navigator.clipboard.writeText(this.createdTokenSecret());
-    this.copiedSecret.set(true);
-    this.toast.success(this.uiI18n.translate('iam.profile.token_copied'));
-    setTimeout(() => this.copiedSecret.set(false), 2000);
   }
 
   /**

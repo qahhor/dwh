@@ -23,6 +23,7 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { isRevisionConflict, SaveErrorNotifier } from '@shared/ui/save-errors';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { latestRevision } from './org-unit-assignments';
 import { OrgUnitDraft } from './org-unit-draft';
 import { OrgUnitsApiService } from './org-units.api';
@@ -37,7 +38,14 @@ export interface ScopeRuleOption {
 @Component({
   selector: 'app-role-scope-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, SMTRadioGroupComponent],
+  imports: [
+    TranslatePipe,
+    SMTButtonComponent,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    SMTRadioGroupComponent,
+    UiFormActionsComponent,
+  ],
   templateUrl: './role-scope-panel.component.html',
   styleUrl: './role-scope-panel.component.css',
 })

@@ -1,53 +1,80 @@
-import { ChangeDetectionStrategy, Component, inject, signal, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal, input, output, untracked } from '@angular/core';
+import { email, form, FormField, required } from '@angular/forms/signals';
 
 import { PasswordApi } from '@features/auth/password.api';
+import { problemMessage } from '@features/auth/password-problem';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { problemFieldErrors } from '@shared/ui/problem-fields';
 
+/**
+ * Asks for a password reset link (docs/guidelines/forms-ux-standard.md): the email field takes focus when the dialog
+ * opens, an empty or malformed address is explained under the field, and a refusal of no field is an alert in the
+ * dialog. Closing with a typed address asks first.
+ */
 @Component({
   selector: 'app-login-reset-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, TranslatePipe],
+  imports: [
+    SMTInputComponent,
+    SMTControlComponent,
+    SMTAlertComponent,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
+    FormField,
+    TranslatePipe,
+  ],
   template: `
-    <smt-dialog [open]="isOpen()" [smtTitle]="'auth.reset_request.title' | t" smtSize="sm" (closed)="onClose()">
+    <smt-dialog
+      [open]="isOpen()"
+      [smtTitle]="'auth.reset_request.title' | t"
+      smtSize="sm"
+      [dismissible]="!isResetLoading()"
+      (closed)="requestClose()"
+    >
       <ng-template smtDialogContent>
-        <div body class="reset-body">
+        <form
+          body
+          id="login-reset-form"
+          class="reset-body"
+          uiFocusFirstInvalid
+          novalidate
+          (submit)="$event.preventDefault(); sendResetRequest()"
+        >
           <p id="reset-hint" class="reset-hint">{{ 'auth.reset.request_hint' | t }}</p>
-          <div class="form-group">
-            <label class="form-label" for="reset-email">Email</label>
+          <smt-control [smtLabel]="'auth.reset_request.email' | t" [smtError]="emailError()">
             <smt-input
               smtFieldId="reset-email"
-              name="resetEmail"
               type="email"
-              [(value)]="resetEmail"
+              [formField]="resetForm.email"
               placeholder="user@company.com"
               autocomplete="email"
               smtDescribedBy="reset-hint"
-              [smtInvalid]="resetError() ? 'true' : null"
+              smtFocusInitial
+              (edited)="edited()"
             />
-          </div>
+          </smt-control>
           @if (resetError()) {
-            <p class="form-error" role="alert">{{ resetError() }}</p>
+            <smt-alert smtTone="danger">{{ resetError() }}</smt-alert>
           }
-        </div>
-        <div footer>
-          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="onClose()">
-            {{ 'common.cancel' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            smtVariant="primary"
-            smtSize="md"
-            [smtLoading]="isResetLoading()"
-            (click)="sendResetRequest()"
-          >
-            {{ 'auth.reset.send_link' | t }}
-          </button>
-        </div>
+        </form>
+        <ui-form-actions
+          footer
+          form="login-reset-form"
+          [submitLabel]="'auth.reset.send_link' | t"
+          [submitting]="isResetLoading()"
+          (cancelled)="requestClose()"
+        />
       </ng-template>
     </smt-dialog>
   `,
@@ -57,44 +84,74 @@ export class LoginResetModalComponent {
   private readonly passwordApi = inject(PasswordApi);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly askDiscard = discardChangesQuestion();
 
   readonly isOpen = input(false);
 
   readonly closeModal = output<void>();
 
+  /** A refusal of no field, shown as an alert in the dialog. */
   readonly resetError = signal<string>('');
+  /** The server's word about the address itself, shown under the field. */
+  readonly emailError = signal<string>('');
   readonly isResetLoading = signal<boolean>(false);
 
-  readonly resetEmail = signal('');
-  onClose(): void {
-    this.resetEmail.set('');
+  readonly model = signal({ email: '' });
+
+  readonly resetForm = form(this.model, (path) => {
+    required(path.email, { message: () => this.i18n.translate('auth.reset_request.email_required') });
+    email(path.email);
+  });
+
+  constructor() {
+    // Every opening starts from an empty, untouched form.
+    effect(() => {
+      if (this.isOpen()) untracked(() => this.reset());
+    });
+  }
+
+  edited(): void {
     this.resetError.set('');
-    this.closeModal.emit();
+    this.emailError.set('');
+  }
+
+  /** Escape, the backdrop, the close button and Cancel: a typed address is lost only after a question. */
+  requestClose(): void {
+    if (this.isResetLoading()) return;
+    this.askDiscard(!!this.model().email.trim()).subscribe((discard) => {
+      if (discard) this.close();
+    });
   }
 
   sendResetRequest(): void {
-    if (!this.resetEmail()) return;
-    this.resetError.set('');
+    if (this.isResetLoading()) return;
+    markSMTFormFieldsTouched(this.resetForm);
+    this.edited();
+    if (!this.resetForm().valid()) return;
     this.isResetLoading.set(true);
-    this.passwordApi.requestReset(this.resetEmail()).subscribe({
+    this.passwordApi.requestReset(this.model().email.trim()).subscribe({
       next: () => {
         this.isResetLoading.set(false);
-        this.onClose();
+        this.close();
         this.toast.success(this.i18n.translate('auth.reset.request_sent'));
       },
       error: (err) => {
         this.isResetLoading.set(false);
-        this.resetError.set(this.errorMessage(err, this.i18n.translate('auth.reset_request.send_failed')));
+        const field = problemFieldErrors(err, { known: ['email'] }).fields['email'];
+        if (field) this.emailError.set(field);
+        else this.resetError.set(problemMessage(err, this.i18n.translate('auth.reset_request.send_failed')));
       },
     });
   }
 
-  private errorMessage(error: unknown, fallback: string): string {
-    if (error && typeof error === 'object') {
-      const value = error as { detail?: unknown; message?: unknown };
-      if (typeof value.detail === 'string' && value.detail.trim()) return value.detail;
-      if (typeof value.message === 'string' && value.message.trim()) return value.message;
-    }
-    return fallback;
+  private close(): void {
+    this.reset();
+    this.closeModal.emit();
+  }
+
+  private reset(): void {
+    this.model.set({ email: '' });
+    this.resetForm().reset();
+    this.edited();
   }
 }

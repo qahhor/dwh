@@ -132,13 +132,19 @@
 }
 .add-grant-form {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
+}
+.grant-field {
+  min-width: 220px;
 }
 .grant-select {
   display: block;
-  min-width: 180px;
+}
+/* Level with the pickers below their labels. */
+.grant-add {
+  margin-top: 22px;
 }
 
 .unsaved-banner {
