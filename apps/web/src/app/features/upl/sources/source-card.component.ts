@@ -27,6 +27,8 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
 import { DraftMode, SourceCardStore } from './source-card.store';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 
 @Component({
   selector: 'app-upl-source-card',
@@ -47,6 +49,8 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
     SMTBadgeComponent,
     SMTRadioGroupComponent,
     DatePipe,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
   ],
   providers: [SourceCardStore],
   templateUrl: './source-card.component.html',

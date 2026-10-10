@@ -54,7 +54,13 @@
       <smt-alert smtTone="danger" data-testid="upl-save-error">{{ err | t }}</smt-alert>
     }
 
-    <div class="upl-form">
+    <form
+      id="upl-source-requisites"
+      class="upl-form"
+      uiFocusFirstInvalid
+      novalidate
+      (submit)="$event.preventDefault(); store.save()"
+    >
       <div class="form-group">
         <span class="form-label">{{ 'upl.source.field.code' | t }}</span>
         <code class="upl-code">{{ s.code }}</code>
@@ -122,20 +128,16 @@
           [formField]="store.requisites.reconciliationStrictness"
         ></smt-select>
       </smt-control>
-    </div>
+    </form>
 
     @if (store.canEdit()) {
-      <div class="upl-actions">
-        <button
-          smt-button
-          type="button"
-          data-testid="upl-save-source"
-          [smtLoading]="store.isSaving()"
-          (click)="store.save()"
-        >
-          {{ 'upl.common.save' | t }}
-        </button>
-      </div>
+      <ui-form-actions
+        class="upl-actions"
+        form="upl-source-requisites"
+        data-testid="upl-requisites-actions"
+        [showCancel]="false"
+        [submitting]="store.isSaving()"
+      />
     }
   </section>
 
@@ -207,7 +209,13 @@
     (closed)="store.closeDraftDialog()"
   >
     <ng-template smtDialogContent>
-      <div body class="upl-draft-body">
+      <form
+        body
+        id="upl-new-draft"
+        class="upl-draft-body"
+        novalidate
+        (submit)="$event.preventDefault(); store.createDraft()"
+      >
         <smt-radio-group
           data-testid="upl-draft-mode"
           [options]="draftModes()"
@@ -245,28 +253,16 @@
         @if (store.draftError(); as err) {
           <smt-alert smtTone="danger" data-testid="upl-draft-error">{{ err | t }}</smt-alert>
         }
-      </div>
+      </form>
 
-      <div footer class="upl-actions">
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          [disabled]="store.isCreatingDraft()"
-          (click)="store.closeDraftDialog()"
-        >
-          {{ 'upl.common.cancel' | t }}
-        </button>
-        <button
-          smt-button
-          type="button"
-          data-testid="upl-create-draft"
-          [smtLoading]="store.isCreatingDraft()"
-          (click)="store.createDraft()"
-        >
-          {{ 'upl.common.create' | t }}
-        </button>
-      </div>
+      <ui-form-actions
+        footer
+        form="upl-new-draft"
+        data-testid="upl-draft-actions"
+        [submitLabel]="'common.create' | t"
+        [submitting]="store.isCreatingDraft()"
+        (cancelled)="store.closeDraftDialog()"
+      />
     </ng-template>
   </smt-dialog>
 }

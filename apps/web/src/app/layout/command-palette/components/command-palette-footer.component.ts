@@ -10,7 +10,7 @@ import { TranslatePipe } from '@core/services/i18n.service';
       <div class="footer-shortcuts">
         <span class="shortcut-item"><kbd>↑</kbd><kbd>↓</kbd> {{ 'search.shortcuts.navigate' | t }}</span>
         <span class="shortcut-item"><kbd>↵</kbd> {{ 'search.shortcuts.select' | t }}</span>
-        <span class="shortcut-item"><kbd>ESC</kbd> {{ 'search.shortcuts.close' | t }}</span>
+        <span class="shortcut-item"><kbd>ESC</kbd> {{ 'common.close' | t }}</span>
       </div>
     </div>
   `,

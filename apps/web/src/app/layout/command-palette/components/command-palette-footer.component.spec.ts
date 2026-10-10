@@ -17,7 +17,7 @@ describe('CommandPaletteFooterComponent', () => {
     expect(shortcuts.map((item) => item.textContent?.replace(/[↑↓↵]|ESC/g, '').trim())).toEqual([
       PACKAGED_RUSSIAN['search.shortcuts.navigate'],
       PACKAGED_RUSSIAN['search.shortcuts.select'],
-      PACKAGED_RUSSIAN['search.shortcuts.close'],
+      PACKAGED_RUSSIAN['common.close'],
     ]);
   });
 });

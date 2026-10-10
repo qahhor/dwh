@@ -33,49 +33,43 @@
 } @else if (activeSheetModel(); as sheet) {
   <div class="upl-row">
     @if (model().fileKind !== 'csv') {
-      <div class="form-group">
-        <label class="form-label" for="upl-sheet-name">{{ 'upl.format.field.sheet_name' | t }}</label>
+      <smt-control
+        class="form-group"
+        data-testid="upl-sheet-name-control"
+        [smtLabel]="'upl.format.field.sheet_name' | t"
+        [smtError]="sheetErrorText(activeSheet(), 'sheetName')"
+      >
         <smt-input
           smtFieldId="upl-sheet-name"
           smtTestId="upl-sheet-name"
-          [smtInvalid]="sheetError(activeSheet(), 'sheetName')"
           [disabled]="!editable()"
           [(value)]="sheet.sheetName"
         />
-        @if (sheetError(activeSheet(), 'sheetName'); as problem) {
-          <span class="upl-field-error">{{ errorText(problem) }}</span>
-        }
-      </div>
+      </smt-control>
     }
-    <div class="form-group">
-      <label class="form-label" for="upl-header-row">{{ 'upl.format.field.header_row' | t }}</label>
+    <smt-control
+      class="form-group"
+      [smtLabel]="'upl.format.field.header_row' | t"
+      [smtHint]="'upl.format.hint.header_row' | t"
+      [smtError]="sheetErrorText(activeSheet(), 'headerRow')"
+    >
       <smt-input
         class="upl-input-small"
         smtFieldId="upl-header-row"
         type="number"
         [smtMin]="1"
-        [smtInvalid]="sheetError(activeSheet(), 'headerRow')"
         [disabled]="!editable()"
         [(value)]="sheet.headerRow"
       />
-      <span class="upl-hint">{{ 'upl.format.hint.header_row' | t }}</span>
-      @if (sheetError(activeSheet(), 'headerRow'); as problem) {
-        <span class="upl-field-error">{{ errorText(problem) }}</span>
-      }
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="upl-total-marker">{{ 'upl.format.field.total_row_marker' | t }}</label>
-      <smt-input
-        smtFieldId="upl-total-marker"
-        [smtInvalid]="sheetError(activeSheet(), 'totalRowMarker')"
-        [disabled]="!editable()"
-        [(value)]="sheet.totalRowMarker"
-      />
-      <span class="upl-hint">{{ 'upl.format.hint.total_marker' | t }}</span>
-      @if (sheetError(activeSheet(), 'totalRowMarker'); as problem) {
-        <span class="upl-field-error">{{ errorText(problem) }}</span>
-      }
-    </div>
+    </smt-control>
+    <smt-control
+      class="form-group"
+      [smtLabel]="'upl.format.field.total_row_marker' | t"
+      [smtHint]="'upl.format.hint.total_marker' | t"
+      [smtError]="sheetErrorText(activeSheet(), 'totalRowMarker')"
+    >
+      <smt-input smtFieldId="upl-total-marker" [disabled]="!editable()" [(value)]="sheet.totalRowMarker" />
+    </smt-control>
   </div>
 
   <div class="table-card">

@@ -68,7 +68,14 @@
 
 <smt-dialog [open]="isCreateOpen()" [smtTitle]="'upl.source.new_title' | t" smtSize="md" (closed)="closeCreate()">
   <ng-template smtDialogContent>
-    <form body id="upl-source-create" class="upl-form" (submit)="$event.preventDefault(); submitCreate()" novalidate>
+    <form
+      body
+      id="upl-source-create"
+      class="upl-form"
+      uiFocusFirstInvalid
+      (submit)="$event.preventDefault(); submitCreate()"
+      novalidate
+    >
       @if (createError()) {
         <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-create-error">
           {{ createError()! | t }}
@@ -81,7 +88,7 @@
         [smtHint]="'upl.source.hint.code' | t"
         [smtError]="fieldErrorText('code')"
       >
-        <smt-input smtFieldId="upl-source-code" [formField]="createForm.code" />
+        <smt-input smtFieldId="upl-source-code" smtFocusInitial [formField]="createForm.code" />
       </smt-control>
 
       <smt-control
@@ -154,20 +161,13 @@
       </smt-control>
     </form>
 
-    <div footer class="upl-modal-footer">
-      <button smt-button type="button" smtVariant="secondary" data-testid="upl-create-cancel" (click)="closeCreate()">
-        {{ 'upl.common.cancel' | t }}
-      </button>
-      <button
-        smt-button
-        smtVariant="primary"
-        type="submit"
-        form="upl-source-create"
-        [smtLoading]="isSaving()"
-        data-testid="upl-create-submit"
-      >
-        {{ 'upl.source.create' | t }}
-      </button>
-    </div>
+    <ui-form-actions
+      footer
+      form="upl-source-create"
+      data-testid="upl-create-actions"
+      [submitLabel]="'common.create' | t"
+      [submitting]="isSaving()"
+      (cancelled)="closeCreate()"
+    />
   </ng-template>
 </smt-dialog>

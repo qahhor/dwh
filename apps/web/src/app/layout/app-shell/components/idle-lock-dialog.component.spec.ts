@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { AuthService } from '@core/services/auth.service';
 import { IdleLockService } from '@core/services/idle-lock.service';
 import { IdleLockDialogComponent } from './idle-lock-dialog.component';
@@ -50,9 +51,15 @@ describe('IdleLockDialogComponent', () => {
     await fixture.whenStable();
 
     expect(find('idle-warning')?.textContent).toContain('42');
-    (find('idle-keep')?.querySelector('button') ?? find('idle-keep'))!.click();
+    const actions = find('idle-actions')!;
+    const keep = actions.querySelector<HTMLButtonElement>('[data-testid="form-submit"]')!;
+    const signOut = actions.querySelector<HTMLButtonElement>('[data-testid="form-cancel"]')!;
+    // "Go on" is the primary action on the right; "Sign out" the secondary one before it.
+    expect(keep.textContent?.trim()).toBe(PACKAGED_RUSSIAN['auth.idle.keep']);
+    expect(signOut.compareDocumentPosition(keep) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    keep.click();
     expect(idle.keepWorking).toHaveBeenCalledTimes(1);
-    (find('idle-sign-out')?.querySelector('button') ?? find('idle-sign-out'))!.click();
+    signOut.click();
     expect(auth.logout).toHaveBeenCalledTimes(1);
   });
 });

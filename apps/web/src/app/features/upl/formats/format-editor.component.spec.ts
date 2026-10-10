@@ -9,6 +9,7 @@ import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource } fro
 import { FormatEditorComponent } from './format-editor.component';
 import { emptyColumn } from './upl-format-model';
 import { inScreen } from '@testing/in-screen';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 
 // What each step draws and edits is pinned by the step specs, the store's rules by its own spec.
 
@@ -168,6 +169,18 @@ function press(fixture: ComponentFixture<FormatEditorComponent>, element: HTMLEl
   fixture.detectChanges();
 }
 
+/** Submits the publish dialog as its primary button or Enter in the date does. */
+function confirmPublish(fixture: ComponentFixture<FormatEditorComponent>): void {
+  const form = inScreen(fixture.nativeElement).querySelector('form#upl-publish') as HTMLFormElement | null;
+  if (!form) throw new Error('publish form not found');
+  form.requestSubmit();
+  fixture.detectChanges();
+}
+
+function publishDateError(fixture: ComponentFixture<FormatEditorComponent>): HTMLElement | null {
+  return one(fixture, 'upl-valid-from-control')?.querySelector('.smt-control__error') ?? null;
+}
+
 function setInputValue(input: HTMLInputElement, value: string): void {
   input.value = value;
   input.dispatchEvent(new Event('input'));
@@ -323,6 +336,8 @@ describe('FormatEditorComponent', () => {
     expect(summary.textContent).toContain('колонка 1');
     expect(summary.textContent).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
     expect(summary.textContent).not.toContain('size must be');
+    // smt-control marks the field invalid after rendering.
+    TestBed.tick();
     expect(inScreen(fixture.nativeElement).querySelector('#upl-header-row').getAttribute('aria-invalid')).toBe('true');
     expect(many(fixture, 'upl-tab-error').length).toBe(1);
     const unit = many(fixture, 'upl-column-row')[1].querySelector('[data-testid="upl-cell-source-unit"]')!;
@@ -376,7 +391,7 @@ describe('FormatEditorComponent', () => {
     press(clean.fixture, one(clean.fixture, 'upl-publish'));
     expect(clean.component.store.isPublishOpen()).toBe(true);
 
-    press(clean.fixture, one(clean.fixture, 'upl-publish-confirm'));
+    confirmPublish(clean.fixture);
     expect(clean.api.publish).toHaveBeenCalledWith('7', '1', today());
     expect(clean.navigate).toHaveBeenCalledWith(['/upl/sources', '7']);
     expect(clean.api.saveDraft).not.toHaveBeenCalled();
@@ -388,10 +403,17 @@ describe('FormatEditorComponent', () => {
     expect(dirty.component.store.isPublishOpen()).toBe(true);
 
     dirty.component.store.validFrom.set('');
-    press(dirty.fixture, one(dirty.fixture, 'upl-publish-confirm'));
+    confirmPublish(dirty.fixture);
     expect(dirty.api.publish).not.toHaveBeenCalled();
     expect(dirty.component.store.isPublishOpen()).toBe(true);
-    expect(one(dirty.fixture, 'upl-publish-date-error')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.NotNull']);
+    expect(publishDateError(dirty.fixture)!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.NotNull']);
+    const actions = one(dirty.fixture, 'upl-publish-actions')!;
+    expect(actions.querySelector('[data-testid="form-submit"]')?.textContent?.trim()).toBe(
+      PACKAGED_RUSSIAN['upl.format.publish'],
+    );
+    expect(actions.querySelector('[data-testid="form-cancel"]')?.textContent?.trim()).toBe(
+      PACKAGED_RUSSIAN['common.cancel'],
+    );
   });
 
   it('reports a date that does not fit under the field and a validation refusal in the summary', async () => {
@@ -404,8 +426,8 @@ describe('FormatEditorComponent', () => {
       },
     });
     press(late.fixture, one(late.fixture, 'upl-publish'));
-    press(late.fixture, one(late.fixture, 'upl-publish-confirm'));
-    expect(one(late.fixture, 'upl-publish-date-error')).not.toBeNull();
+    confirmPublish(late.fixture);
+    expect(publishDateError(late.fixture)).not.toBeNull();
     expect(late.component.store.isPublishOpen()).toBe(true);
 
     const empty = await createFixture({
@@ -413,7 +435,7 @@ describe('FormatEditorComponent', () => {
       publishError: invalid(['sheets', 'UPL_NO_SHEETS']),
     });
     press(empty.fixture, one(empty.fixture, 'upl-publish'));
-    press(empty.fixture, one(empty.fixture, 'upl-publish-confirm'));
+    confirmPublish(empty.fixture);
     expect(empty.component.store.isPublishOpen()).toBe(false);
     expect(one(empty.fixture, 'upl-errors-summary')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.UPL_NO_SHEETS']);
     expect(one(empty.fixture, 'upl-no-sheets')).not.toBeNull();
@@ -425,12 +447,13 @@ describe('FormatEditorComponent', () => {
 
     press(fixture, one(fixture, 'upl-add-column'));
     expect(many(fixture, 'upl-column-row').length).toBe(3);
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(true));
     const decision = component.canLeaveRecordPage();
     let allowed: boolean | null = null;
     (decision as Observable<boolean>).subscribe((value) => (allowed = value));
-    expect(component.isLeaveOpen()).toBe(true);
-    fixture.detectChanges();
-    press(fixture, one(fixture, 'upl-leave-confirm'));
+    expect(confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ destructive: true, title: PACKAGED_RUSSIAN['upl.format.leave_title'] }),
+    );
     expect(allowed).toBe(true);
 
     press(fixture, one(fixture, 'upl-revert'));

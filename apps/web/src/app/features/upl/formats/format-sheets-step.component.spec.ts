@@ -211,7 +211,10 @@ describe('FormatSheetsStepComponent', () => {
     ];
     const { fixture } = render(draft(), { errors });
 
-    expect(text(el(fixture).querySelector('.upl-field-error'))).toBe('Имя листа повторяется');
+    const control = el(fixture).querySelector('[data-testid="upl-sheet-name-control"]')!;
+    expect(text(control.querySelector('.smt-control__error'))).toBe('Имя листа повторяется');
+    TestBed.tick();
+    expect(el(fixture).querySelector('#upl-sheet-name')?.getAttribute('aria-invalid')).toBe('true');
     expect(all(fixture, 'upl-sheet-tab')[0].querySelector('[data-testid="upl-tab-error"]')).not.toBeNull();
     expect(all(fixture, 'upl-sheet-tab')[1].querySelector('[data-testid="upl-tab-error"]')).toBeNull();
   });

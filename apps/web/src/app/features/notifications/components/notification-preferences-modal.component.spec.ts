@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { afterEach, describe, expect, it } from 'vitest';
+import { of } from 'rxjs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NotificationPrefItem } from '@core/models/notification.models';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { inScreen } from '@testing/in-screen';
 import { NotificationPreferencesModalComponent } from './notification-preferences-modal.component';
 
@@ -114,6 +116,32 @@ describe('NotificationPreferencesModalComponent', () => {
     (screen.querySelector('.smt-modal__close') as HTMLButtonElement).click();
 
     expect(closes()).toBe(2);
+  });
+
+  it('asks before closing a changed choice and stays open when the person keeps editing', async () => {
+    const { grid, button, settle, closes } = await render();
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+
+    grid()[0][0].click();
+    await settle();
+    button('Отмена').click();
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true, title: 'Отменить изменения?' }));
+    expect(closes()).toBe(0);
+
+    confirm.mockReturnValue(of(true));
+    button('Отмена').click();
+    expect(closes()).toBe(1);
+  });
+
+  it('saves from Enter as from the button and sends one request while saving', async () => {
+    const { fixture, screen, settle, saved } = await render();
+
+    (screen.querySelector('form#notification-preferences') as HTMLFormElement).requestSubmit();
+    expect(saved).toHaveLength(1);
+    fixture.componentRef.setInput('isSaving', true);
+    await settle();
+    (screen.querySelector('form#notification-preferences') as HTMLFormElement).requestSubmit();
+    expect(saved).toHaveLength(1);
   });
 
   it('cannot be closed while saving: cancel is locked and there is no close button', async () => {

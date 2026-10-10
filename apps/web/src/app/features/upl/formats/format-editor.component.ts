@@ -1,13 +1,14 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
-import { RecordNavigationDecision, RecordNavigationPage } from '@core/guards/record-navigation.guard';
+import { RecordNavigationPage } from '@core/guards/record-navigation.guard';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTDialogComponent, SMTDialogContentDirective, SMTModalService } from '@shared/ui-kit/components/modal';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTDatePickerComponent } from '@shared/ui-kit/components/forms/date-picker';
 import { SMTProgressStep, SMTProgressStepperComponent } from '@shared/ui-kit/components/progress-stepper';
 import { UPL_FILE_KIND_KEY } from '../upl-labels';
@@ -19,6 +20,8 @@ import { UplFieldError, uplErrorAddress, uplFieldErrorText } from './upl-format-
 import { uplErrorStep } from './upl-format-model';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 
 @Component({
   selector: 'app-upl-format-editor',
@@ -37,6 +40,9 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
     FormatFileStepComponent,
     FormatSheetsStepComponent,
     FormatPublishStepComponent,
+    SMTControlComponent,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
   ],
   providers: [FormatEditorStore],
   templateUrl: './format-editor.component.html',
@@ -47,10 +53,7 @@ export class FormatEditorComponent implements RecordNavigationPage {
   readonly store = inject(FormatEditorStore);
   private readonly i18n = inject(I18nService);
   private readonly route = inject(ActivatedRoute);
-
-  readonly isLeaveOpen = signal(false);
-
-  private readonly navigationDecision = new RecordNavigationDecision();
+  private readonly modal = inject(SMTModalService);
 
   constructor() {
     this.route.paramMap
@@ -115,16 +118,27 @@ export class FormatEditorComponent implements RecordNavigationPage {
     return uplFieldErrorText(problem, (key) => this.i18n.translate(key));
   }
 
-  canLeaveRecordPage(): boolean | Observable<boolean> {
-    if (!this.store.isDirty()) return true;
-    return this.navigationDecision.request(
-      () => this.isLeaveOpen.set(true),
-      () => this.isLeaveOpen.set(false),
-    );
+  /** The date of the previous version under the publish date, so the new one is chosen after it. */
+  previousValidFromHint(): string {
+    const previous = this.store.previousValidFrom();
+    return previous ? this.text('upl.version.prev_valid_from', { date: previous }) : '';
   }
 
-  settleLeave(allow: boolean): void {
-    this.isLeaveOpen.set(false);
-    this.navigationDecision.settle(allow);
+  /** The refusal of the publish date (empty, not after the previous version) as words under the field. */
+  publishDateErrorText(): string {
+    const key = this.store.publishDateError();
+    return key ? this.text(key) : '';
+  }
+
+  /** Leaving with unsaved changes asks first (forms standard, section 8); an unchanged draft is left at once. */
+  canLeaveRecordPage(): boolean | Observable<boolean> {
+    if (!this.store.isDirty()) return true;
+    return this.modal.confirm({
+      title: this.text('upl.format.leave_title'),
+      message: this.text('upl.format.leave_confirm'),
+      yesLabel: this.text('upl.format.leave'),
+      noLabel: this.text('upl.format.stay'),
+      destructive: true,
+    });
   }
 }

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  Injector,
   OnInit,
   TemplateRef,
   computed,
@@ -10,7 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 
-import { FormField, applyWhen, form, maxLength, validate } from '@angular/forms/signals';
+import { FormField, form, maxLength, validate } from '@angular/forms/signals';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { switchMap, tap } from 'rxjs';
@@ -49,10 +50,14 @@ import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-vali
 import {
   UPL_SOURCE_NAME_MAX_LENGTH,
   UplRuleMessage,
+  uplRequiredText,
   uplSourceLengthLimits,
   uplSourceRequisiteRules,
 } from './source-form-rules';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { UiFocusFirstInvalidDirective, focusFirstInvalid } from '@shared/ui/focus-first-invalid';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
 
 /** The model of the "new source" window, bound to its fields through Signal Forms. */
 interface SourceCreateForm {
@@ -98,6 +103,8 @@ function emptyForm(): SourceCreateForm {
     SMTDialogContentDirective,
     SMTBadgeComponent,
     UiServerTableComponent,
+    UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
   ],
   templateUrl: './sources-list.component.html',
   styleUrl: './sources-list.component.css',
@@ -114,6 +121,8 @@ export class SourcesListComponent implements OnInit {
      never appended to the refreshed list. */
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
+  private readonly askDiscard = discardChangesQuestion();
 
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -129,8 +138,8 @@ export class SourcesListComponent implements OnInit {
   readonly createError = signal<string | null>(null);
 
   readonly createModel = signal<SourceCreateForm>(emptyForm());
-  /* The rules run only after a save attempt, so errors still appear on save (not while typing), as before. */
-  private readonly submitted = signal(false);
+  /** The window as it was opened (a name may come prefilled): closing asks only when something changed since. */
+  private openedWith = JSON.stringify(emptyForm());
 
   readonly tableConfig = computed<TableConfig<UplSourceItem> | null>(() => {
     const meta = this.meta();
@@ -179,19 +188,16 @@ export class SourcesListComponent implements OnInit {
   private readonly periodicityMemo = optionsMemo<SMTSelectOption<UplPeriodicity>[]>();
   private readonly strictnessMemo = optionsMemo<SMTSelectOption<UplStrictness>[]>();
   private readonly ruleMessage: UplRuleMessage = (key) => ({ kind: key, message: this.i18n.translate(key) });
+  /* Rules are always on; smt-control shows an error once the field is left or a save is tried (forms standard, 4). */
   readonly createForm = form(this.createModel, (path) => {
     maxLength(path.code, CODE_MAX_LENGTH);
     uplSourceLengthLimits(path);
-    applyWhen(
-      path,
-      () => this.submitted(),
-      (checked) => {
-        validate(checked.code, ({ value }) =>
-          CODE_PATTERN.test(value().trim()) ? null : this.ruleMessage('upl.source.err.code_format'),
-        );
-        uplSourceRequisiteRules(checked, this.ruleMessage);
-      },
-    );
+    uplRequiredText(path.code, this.ruleMessage);
+    validate(path.code, ({ value }) => {
+      const code = value().trim();
+      return code.length === 0 || CODE_PATTERN.test(code) ? null : this.ruleMessage('upl.source.err.code_format');
+    });
+    uplSourceRequisiteRules(path, this.ruleMessage);
   });
 
   /** Periodicities of a source; translated again when the language changes. */
@@ -216,6 +222,7 @@ export class SourcesListComponent implements OnInit {
       this.returnTo = params.get('returnTo') === 'packages' ? 'packages' : null;
       this.openCreate();
       this.createModel.update((model) => ({ ...model, name: name.trim().slice(0, UPL_SOURCE_NAME_MAX_LENGTH) }));
+      this.openedWith = JSON.stringify(this.createModel());
     }
   }
 
@@ -252,24 +259,32 @@ export class SourcesListComponent implements OnInit {
   }
 
   openCreate(): void {
-    this.createModel.set(emptyForm());
-    this.submitted.set(false);
+    this.createForm().reset(emptyForm());
+    this.openedWith = JSON.stringify(emptyForm());
     this.fieldErrors.set({});
     this.createError.set(null);
     this.isSaving.set(false);
     this.isCreateOpen.set(true);
   }
 
+  /** Escape, the backdrop, the cross and "Cancel" only ask; a changed form asks before it is dropped. */
   closeCreate(): void {
-    this.isCreateOpen.set(false);
-    this.returnTo = null;
+    if (this.isSaving()) return;
+    this.askDiscard(this.isCreateDirty()).subscribe((discard) => {
+      if (!discard) return;
+      this.isCreateOpen.set(false);
+      this.returnTo = null;
+    });
+  }
+
+  isCreateDirty(): boolean {
+    return JSON.stringify(this.createModel()) !== this.openedWith;
   }
 
   submitCreate(): void {
     if (this.isSaving()) {
       return;
     }
-    this.submitted.set(true);
     markSMTFormFieldsTouched(this.createForm);
     this.fieldErrors.set({});
     this.createError.set(null);
@@ -322,6 +337,7 @@ export class SourcesListComponent implements OnInit {
       }
       this.fieldErrors.set(errors);
       this.createError.set('upl.err.VALIDATION_FAILED');
+      this.focusServerError();
       return;
     }
     if (
@@ -329,9 +345,16 @@ export class SourcesListComponent implements OnInit {
       problem?.messageKey === UPL_ERROR.sourceCodeTaken
     ) {
       this.fieldErrors.set({ code: 'upl.err.UPL_SOURCE_CODE_TAKEN' });
+      this.focusServerError();
       return;
     }
     this.createError.set(this.problemText(problem));
+  }
+
+  /** The server's field errors are drawn on the next render; focus goes to the first of them. */
+  private focusServerError(): void {
+    const formElement = document.getElementById('upl-source-create');
+    if (formElement) focusFirstInvalid(formElement, this.injector);
   }
 
   /** An unknown error code is not hidden: the subcode and the framework code are shown. */

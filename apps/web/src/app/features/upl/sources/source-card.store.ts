@@ -1,6 +1,16 @@
-import { Injectable, ResourceRef, computed, effect, inject, linkedSignal, signal, untracked } from '@angular/core';
+import {
+  Injectable,
+  Injector,
+  ResourceRef,
+  computed,
+  effect,
+  inject,
+  linkedSignal,
+  signal,
+  untracked,
+} from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { applyWhen, disabled, form } from '@angular/forms/signals';
+import { disabled, form } from '@angular/forms/signals';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
@@ -8,6 +18,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
+import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
 import { UplApiService, UplPeriodicity, UplSource, UplSourceRequest, UplStrictness, UplVersionItem } from '../upl.api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { UPL_ERROR, uplProblemText } from '../upl-labels';
@@ -52,6 +63,7 @@ export class SourceCardStore {
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly injector = inject(Injector);
 
   readonly sourceId = signal<string | null>(null);
   /** The source as the server last gave it: loaded, or answered by a save. */
@@ -84,12 +96,6 @@ export class SourceCardStore {
     computation: (source, previous) => (source ? formOf(source) : (previous?.value ?? emptyForm())),
   });
 
-  /* The rules run only after a save attempt, so errors still appear on save (not while typing), as before. */
-  private readonly submitted = linkedSignal<UplSource | null, boolean>({
-    source: () => this.source(),
-    computation: () => false,
-  });
-
   /** True until the first answer, and again while a reload is on its way. */
   readonly isLoading = computed(() => !this.sourceId() || this.loaded.isLoading());
   readonly notFound = computed(() => this.problem()?.status === 404);
@@ -114,15 +120,14 @@ export class SourceCardStore {
   });
 
   private readonly ruleMessage: UplRuleMessage = (key) => ({ kind: key, message: this.i18n.translate(key) });
-  /** The card's form: without the edit right every field is disabled. */
+  /**
+   * The card's form: without the edit right every field is disabled. Rules are always on; smt-control shows an error
+   * once the field is left or a save is tried (forms standard, section 4).
+   */
   readonly requisites = form(this.form, (path) => {
     disabled(path, () => !this.canEdit());
     uplSourceLengthLimits(path);
-    applyWhen(
-      path,
-      () => this.submitted(),
-      (checked) => uplSourceRequisiteRules(checked, this.ruleMessage),
-    );
+    uplSourceRequisiteRules(path, this.ruleMessage);
   });
 
   private readonly loaded: ResourceRef<SourceCardLoad | undefined> = rxResource({
@@ -153,7 +158,6 @@ export class SourceCardStore {
     if (!source || !id || this.isSaving()) {
       return;
     }
-    this.submitted.set(true);
     markSMTFormFieldsTouched(this.requisites);
     this.fieldErrors.set({});
     if (!this.requisites().valid()) {
@@ -274,6 +278,8 @@ export class SourceCardStore {
       }
       this.fieldErrors.set(errors);
       this.saveError.set('upl.err.VALIDATION_FAILED');
+      const formElement = document.getElementById('upl-source-requisites');
+      if (formElement) focusFirstInvalid(formElement, this.injector);
       return;
     }
     this.saveError.set(this.problemText(problem));
