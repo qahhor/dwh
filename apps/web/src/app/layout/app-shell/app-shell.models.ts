@@ -287,6 +287,39 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
   return sections;
 }
 
+/** The path of a router URL without its query and fragment. */
+function urlPath(url: string): string {
+  const end = url.search(/[?#]/u);
+  return end === -1 ? url : url.slice(0, end);
+}
+
+/** Whether a menu route covers the path: the same path, or (unless exact) a path below it, by whole segments. */
+export function navRouteMatches(route: string, path: string, exact = false): boolean {
+  if (path === route) return true;
+  if (exact) return false;
+  return path.startsWith(route.endsWith('/') ? route : `${route}/`);
+}
+
+/**
+ * The one menu item of the current page: among the visible internal items (and submenu children) whose route
+ * covers the URL, the most specific one, the longest route. `/settings/modules` thus marks "Modules", not also
+ * "Settings" at `/settings`; the first item wins a tie. Null when no item covers the page.
+ */
+export function activeNavItemId(sections: NavSection[], url: string): string | null {
+  const path = urlPath(url);
+  const links = sections
+    .flatMap((section) => section.items)
+    .filter((item) => item.permission())
+    .flatMap((item) => (item.children?.length ? item.children : [item]));
+  let best: NavItem | null = null;
+  for (const item of links) {
+    if (!item.route || item.external || !item.permission()) continue;
+    if (!navRouteMatches(item.route, path, !!item.exact)) continue;
+    if (!best || item.route.length > best.route!.length) best = item;
+  }
+  return best?.id ?? null;
+}
+
 export const COLLAPSED_STATE_KEY = 'smartup_nav_sidebar_collapsed';
 export const COLLAPSED_SECTIONS_KEY = 'smartup_nav_collapsed_sections';
 

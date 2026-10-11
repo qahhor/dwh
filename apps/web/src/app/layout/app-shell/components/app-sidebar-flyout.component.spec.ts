@@ -66,6 +66,14 @@ describe('AppSidebarFlyoutComponent', () => {
     expect(menuItems()[1].getAttribute('rel')).toBe('noopener noreferrer');
   });
 
+  it('marks only the item of the current page, a submenu child included', () => {
+    const { element } = render({ isFlyoutVisible: true, hoveredFlyoutSection: WORKSPACE, activeItemId: 'board' });
+    const active = Array.from(element.querySelectorAll('.flyout-item.active'));
+
+    expect(active.map((item) => item.getAttribute('href'))).toEqual(['/projects/board']);
+    expect(active[0].getAttribute('aria-current')).toBe('page');
+  });
+
   it('stays closed when the rail is expanded, on a phone, or with no section hovered', () => {
     expect(
       render({ isFlyoutVisible: true, hoveredFlyoutSection: null }).element.querySelector('[role="menu"]'),

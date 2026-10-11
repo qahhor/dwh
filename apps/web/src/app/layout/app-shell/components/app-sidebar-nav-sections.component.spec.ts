@@ -51,7 +51,7 @@ describe('AppSidebarNavSectionsComponent', () => {
     fixture.componentRef.setInput('isSectionExpanded', (id: string) => expandedSections.has(id));
     fixture.componentRef.setInput('isSectionActive', () => true);
     fixture.componentRef.setInput('isSubmenuExpanded', (id: string) => expandedSubmenus.has(id));
-    fixture.componentRef.setInput('isRouteActive', (route: string) => route === '/tasks');
+    fixture.componentRef.setInput('activeItemId', 'tasks');
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
     return { fixture, element };
@@ -99,6 +99,19 @@ describe('AppSidebarNavSectionsComponent', () => {
     expect(tasks.getAttribute('aria-current')).toBe('page');
     expect(tasks.title).toBe(PACKAGED_RUSSIAN['nav.tasks']);
     expect(tasks.querySelector('.unread-chip')?.textContent?.trim()).toBe('2');
+  });
+
+  it('marks only the active item, never also a prefix item', () => {
+    const { fixture, element } = render();
+    expandedSubmenus.add('upl');
+    redrawWith(fixture);
+    fixture.componentRef.setInput('activeItemId', 'upl-sources');
+    fixture.detectChanges();
+
+    const active = Array.from(element.querySelectorAll('a.nav-item.active')) as HTMLAnchorElement[];
+    expect(active.map((link) => link.getAttribute('href'))).toEqual(['/upl/sources']);
+    expect(active[0].getAttribute('aria-current')).toBe('page');
+    expect(element.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
   });
 
   it('opens an external item in a new tab without handing it the opener', () => {
