@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildNavSections, BuildNavSectionsOptions, NavItem } from './app-shell.models';
+import {
+  activeNavItemId,
+  buildNavSections,
+  BuildNavSectionsOptions,
+  NavItem,
+  navRouteMatches,
+} from './app-shell.models';
 import { CustomNavigationItem, EntityMenuItem } from '@core/models/navigation.models';
 
 function item(code: string, requiredPermission: string | null): CustomNavigationItem {
@@ -115,5 +121,59 @@ describe('buildNavSections — items of declared entities (roadmap item 57)', ()
 
     expect(workspace.find((one) => one.id === 'notes')!.permission()).toBe(true);
     expect(workspace.find((one) => one.id === 'later')!.permission()).toBe(false);
+  });
+});
+
+describe('activeNavItemId', () => {
+  const link = (id: string, route: string, extra: Partial<NavItem> = {}): NavItem => ({
+    id,
+    route,
+    icon: 'circle',
+    permission: () => true,
+    ...extra,
+  });
+  const sections = [
+    { id: 'admin', titleKey: 'a', items: [link('settings', '/settings'), link('modules', '/settings/modules')] },
+    {
+      id: 'more',
+      titleKey: 'b',
+      items: [
+        link('home', '/', { exact: true }),
+        link('docs', '/settings/modules/docs', { external: true, targetUrl: 'https://docs.example.test' }),
+        {
+          id: 'reports',
+          icon: 'folder',
+          permission: () => true,
+          children: [link('sales', '/reports/sales'), link('secret', '/reports/secret', { permission: () => false })],
+        },
+        {
+          id: 'locked',
+          icon: 'lock',
+          permission: () => false,
+          children: [link('hidden-child', '/locked/child')],
+        },
+      ],
+    },
+  ];
+
+  it.each([
+    ['/settings/modules', 'modules'],
+    ['/settings/modules/crm?tab=1', 'modules'],
+    ['/settings', 'settings'],
+    ['/settings/navigation', 'settings'],
+    ['/', 'home'],
+    ['/reports/sales/2026', 'sales'],
+    ['/reports/secret', null],
+    ['/locked/child', null],
+    ['/settingsx', null],
+  ])('marks only the most specific visible item for %s', (url, expected) => {
+    expect(activeNavItemId(sections, url)).toBe(expected);
+  });
+
+  it('matches a route by whole segments, and an exact route only by itself', () => {
+    expect(navRouteMatches('/tasks', '/tasks/7')).toBe(true);
+    expect(navRouteMatches('/tasks', '/tasksx')).toBe(false);
+    expect(navRouteMatches('/tasks', '/tasks/7', true)).toBe(false);
+    expect(navRouteMatches('/tasks', '/tasks', true)).toBe(true);
   });
 });

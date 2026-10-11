@@ -7,6 +7,30 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### UI fixes: side menu, English labels, checkbox marks (2026-10-11)
+
+#### Fixed
+
+- The side menu marks one item, the most specific route of the page: on
+  `/settings/modules` only "Модули" is current, not also "Настройки системы"
+  at `/settings`. Each link had `routerLinkActive` with prefix matching; the
+  shell now picks the visible item whose route covers the URL by whole
+  segments with the longest route, and the links, the collapsed-rail flyout
+  and the section markers follow it (`activeNavItemId`).
+- Every kit checkbox showed stray glyphs before its label (a check, a box, a
+  dash and another check; most visible on the permission matrix chips): the
+  icon adapter passed the unmapped kit keys `checkbox-check` and
+  `checkbox-minus` through as text, which the Material Symbols font drew as
+  several ligatures. Both keys are mapped, and a spec fails on any hyphenated
+  kit key without a mapping.
+- English and Uzbek texts: the announcements screen is "Announcements" /
+  "E'lonlar" (was "Advertisements" / "Reklamalar", with ads throughout its
+  texts); the menu item of the system status page reads "System status",
+  "Tizim holati" and "Состояние системы" like its page title (was "State",
+  "Vaziyat", "Состояние"). Obvious calques in page titles and labels fixed as
+  well ("Switch topic", "Logout", "Umumiy ball", "Ochiq", "Shaxsiy
+  imtiyozlar", "Xavfsizlik tadbirlari" and others).
+
 ### UI leftovers: plural forms and module names (2026-10-11)
 
 #### Changed

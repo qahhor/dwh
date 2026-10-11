@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { Event, NavigationEnd, Router } from '@angular/router';
+import { Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CustomNavigationItem, EntityMenuItem } from '@core/models/navigation.models';
 import { InstalledModule, ModuleService } from '@core/services/module.service';
@@ -65,6 +66,7 @@ describe('AppShellNavService', () => {
   const customModules = signal<InstalledModule[]>([]);
   const activeItems = signal<CustomNavigationItem[]>([]);
   let url = '/';
+  let events = new Subject<Event>();
 
   beforeEach(() => {
     localStorage.removeItem(COLLAPSED_STATE_KEY);
@@ -74,6 +76,7 @@ describe('AppShellNavService', () => {
     customModules.set([]);
     activeItems.set([]);
     url = '/';
+    events = new Subject<Event>();
     TestBed.configureTestingModule({
       providers: [
         AppShellNavService,
@@ -95,6 +98,9 @@ describe('AppShellNavService', () => {
           useValue: {
             get url() {
               return url;
+            },
+            get events() {
+              return events;
             },
           },
         },
@@ -216,10 +222,49 @@ describe('AppShellNavService', () => {
 
     expect(nav().isRouteActive('/tasks')).toBe(true);
     expect(nav().isRouteActive('/tasks', true)).toBe(false);
-    expect(nav().isSectionActive(workspace)).toBe(true);
-    expect(nav().isSectionActive(section('administration')!)).toBe(false);
+    expect(nav().isSectionActive()(workspace)).toBe(true);
+    expect(nav().isSectionActive()(section('administration')!)).toBe(false);
     expect(nav().getSectionBadge(workspace)).toBe(3);
     expect(nav().hasVisibleItems(workspace)).toBe(true);
     expect(nav().getSectionIcon('unknown')).toBe('folder');
+  });
+
+  /** Finishes a navigation the way the router reports it. */
+  function navigate(to: string) {
+    url = to;
+    events.next(new NavigationEnd(1, to, to));
+  }
+
+  it('marks exactly one item, the most specific route of the page, and follows each navigation', () => {
+    url = '/settings/modules';
+    const service = nav();
+
+    // "/settings" covers "/settings/modules" as well; only "Modules" is the page.
+    expect(service.activeItemId()).toBe('modules');
+    expect(service.isSectionActive()(section('administration')!)).toBe(true);
+    expect(service.isSectionActive()(section('workspace')!)).toBe(false);
+
+    navigate('/settings');
+    expect(service.activeItemId()).toBe('settings');
+    navigate('/settings/navigation?tab=custom');
+    expect(service.activeItemId()).toBe('navigation-settings');
+    navigate('/tasks/projects/7');
+    expect(service.activeItemId()).toBe('projects');
+    navigate('/tasks?view=board#top');
+    expect(service.activeItemId()).toBe('tasks');
+    navigate('/notes/42');
+    expect(service.activeItemId()).toBe('notes');
+    navigate('/iam/profile');
+    expect(service.activeItemId()).toBeNull();
+    expect(service.isSectionActive()(section('iam')!)).toBe(false);
+  });
+
+  it('matches whole path segments and skips items the person may not see', () => {
+    navigate('/systemic');
+    expect(nav().activeItemId()).toBeNull();
+
+    canView.mockImplementation((form) => form !== 'md.modules');
+    navigate('/settings/modules');
+    expect(nav().activeItemId()).toBe('settings');
   });
 });

@@ -105,7 +105,27 @@ test('the permission matrix names every area in words, never by its code', async
     expect(label).not.toMatch(/Модуль:|\([A-Z]{2,}\)|\b[A-Z]{3,}\b/u);
   }
   await expect(page.locator('.admin-notice')).not.toContainText(/I-P\d|инвариант/u);
+  // A checkbox mark is an icon; the text of an unmapped kit key ("checkbox-check") drew stray glyphs.
+  const action = page.locator('.action-checkbox-card').first();
+  await expect(action).toBeVisible();
+  await expect(action).not.toContainText('checkbox-');
 });
+
+for (const [route, href] of [
+  ['/settings/modules', '/settings/modules'],
+  ['/settings', '/settings'],
+  ['/tasks/projects', '/tasks/projects'],
+] as const) {
+  test(`the side menu marks exactly one item on ${route}`, async ({ page }) => {
+    await loginToInstance(page);
+    await page.goto(route);
+    // "/settings" is a prefix of "/settings/modules": only the most specific item is the current page.
+    const active = page.locator('.sidebar-nav a.nav-item.active');
+    await expect(active).toHaveCount(1);
+    await expect(active).toHaveAttribute('href', href);
+    await expect(page.locator('.sidebar-nav [aria-current="page"]')).toHaveCount(1);
+  });
+}
 
 test('a new record names its entity, not its code', async ({ page }) => {
   await loginToInstance(page);

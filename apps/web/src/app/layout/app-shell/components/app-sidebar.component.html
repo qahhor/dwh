@@ -104,7 +104,7 @@
           [isSectionExpanded]="isSectionExpanded()"
           [isSectionActive]="isSectionActive()"
           [isSubmenuExpanded]="isSubmenuExpanded()"
-          [isRouteActive]="isRouteActive()"
+          [activeItemId]="activeItemId()"
           (toggleSection)="toggleSection.emit($event)"
           (toggleSubmenu)="toggleSubmenu.emit($event)"
         ></app-sidebar-nav-sections>

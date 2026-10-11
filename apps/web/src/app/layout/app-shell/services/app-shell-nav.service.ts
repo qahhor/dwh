@@ -1,12 +1,16 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { PermissionService } from '@core/services/permission.service';
 import { ModuleService } from '@core/services/module.service';
 import { NavigationService } from '@core/services/navigation.service';
 import { NotificationService } from '@core/services/notification.service';
 import {
   NavSection,
+  activeNavItemId,
   buildNavSections,
+  navRouteMatches,
   loadCollapsedSections,
   loadCollapsedState,
   COLLAPSED_STATE_KEY,
@@ -58,6 +62,26 @@ export class AppShellNavService {
     }),
   );
 
+  /** The id of the single menu item of the current page: the most specific route that covers it. */
+  readonly activeItemId = computed<string | null>(() => activeNavItemId(this.navSections(), this.url()));
+
+  /** Whether a section holds the active item; a new predicate per change, so OnPush views redraw. */
+  readonly isSectionActive = computed(() => {
+    const active = this.activeItemId();
+    return (section: NavSection): boolean =>
+      active !== null &&
+      section.items.some((item) => item.id === active || !!item.children?.some((child) => child.id === active));
+  });
+
+  /** The URL after each finished navigation, so the active menu item follows the page. */
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+
   canViewTasks = () => this.permService.canView('tasks.items');
   canViewProjects = () => this.permService.canView('tasks.projects');
   canViewAnalytics = () => this.permService.canView('analytics.dashboard');
@@ -83,15 +107,7 @@ export class AppShellNavService {
     section.items.reduce((sum, item) => sum + (item.badge?.() || 0), 0);
   readonly getSectionIcon = (sectionId?: string): string => (sectionId && SECTION_ICON_MAP[sectionId]) || 'folder';
   readonly isRouteActive = (route: string, exact: boolean = false): boolean =>
-    exact ? this.router.url === route : this.router.url.startsWith(route);
-  readonly isSectionActive = (section: NavSection): boolean =>
-    section.items.some((item) => {
-      if (item.route && this.isRouteActive(item.route, !!item.exact)) return true;
-      if (item.children) {
-        return item.children.some((child) => child.route && this.isRouteActive(child.route, !!child.exact));
-      }
-      return false;
-    });
+    navRouteMatches(route, this.url().split(/[?#]/u)[0], exact);
 
   toggleSection(sectionId: string, event?: Event): void {
     if (event) {

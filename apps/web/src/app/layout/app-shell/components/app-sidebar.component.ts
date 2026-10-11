@@ -25,6 +25,8 @@ export class AppSidebarComponent {
 
   readonly getSectionBadge = input.required<(section: NavSection) => number>();
 
+  /** The id of the single menu item of the current page (see `activeNavItemId`). */
+  readonly activeItemId = input<string | null>(null);
   readonly sidebarId = input('app-sidebar');
   readonly isMobile = input(false);
   readonly isMobileMenuOpen = input(false);

@@ -29,8 +29,8 @@ import { User } from '@core/models/auth.models';
             @if (item.permission() && !item.children?.length && !item.external) {
               <a
                 [routerLink]="item.route"
-                routerLinkActive="active"
-                [routerLinkActiveOptions]="{ exact: !!item.exact }"
+                [class.active]="item.id === activeItemId()"
+                [attr.aria-current]="item.id === activeItemId() ? 'page' : null"
                 class="flyout-item"
                 (click)="flyoutItemClick.emit()"
                 role="menuitem"
@@ -75,8 +75,8 @@ import { User } from '@core/models/auth.models';
                     @if (child.permission()) {
                       <a
                         [routerLink]="child.route"
-                        routerLinkActive="active"
-                        [routerLinkActiveOptions]="{ exact: !!child.exact }"
+                        [class.active]="child.id === activeItemId()"
+                        [attr.aria-current]="child.id === activeItemId() ? 'page' : null"
                         class="flyout-item flyout-subitem"
                         (click)="flyoutItemClick.emit()"
                         role="menuitem"
@@ -140,6 +140,7 @@ export class AppSidebarFlyoutComponent {
   readonly flyoutAnchorTop = input(0);
   readonly isProfileFlyoutVisible = input(false);
   readonly currentUser = input<User | null>(null);
+  readonly activeItemId = input<string | null>(null);
 
   readonly flyoutMouseEnter = output<void>();
   readonly flyoutMouseLeave = output<void>();

@@ -44,9 +44,8 @@ import { NavSection } from '../app-shell.models';
           @if (item.permission() && !item.children?.length && !item.external) {
             <a
               [routerLink]="item.route"
-              routerLinkActive="active"
-              [routerLinkActiveOptions]="{ exact: !!item.exact }"
-              [attr.aria-current]="item.route && isRouteActive()(item.route, !!item.exact) ? 'page' : null"
+              [class.active]="item.id === activeItemId()"
+              [attr.aria-current]="item.id === activeItemId() ? 'page' : null"
               class="nav-item"
               [title]="item.label ? item.label : (item.titleKey || item.labelKey! | t)"
             >
@@ -106,9 +105,8 @@ import { NavSection } from '../app-shell.models';
                     @if (child.permission()) {
                       <a
                         [routerLink]="child.route"
-                        routerLinkActive="active"
-                        [routerLinkActiveOptions]="{ exact: !!child.exact }"
-                        [attr.aria-current]="child.route && isRouteActive()(child.route, !!child.exact) ? 'page' : null"
+                        [class.active]="child.id === activeItemId()"
+                        [attr.aria-current]="child.id === activeItemId() ? 'page' : null"
                         class="nav-item nav-subitem"
                         [title]="child.label ? child.label : (child.titleKey || child.labelKey! | t)"
                       >
@@ -134,7 +132,8 @@ export class AppSidebarNavSectionsComponent {
   readonly isSectionExpanded = input.required<(sectionId: string) => boolean>();
   readonly isSectionActive = input.required<(section: NavSection) => boolean>();
   readonly isSubmenuExpanded = input.required<(itemId: string) => boolean>();
-  readonly isRouteActive = input.required<(route: string, exact?: boolean) => boolean>();
+  /** Only this item is marked current: the most specific route of the page, never a prefix item as well. */
+  readonly activeItemId = input<string | null>(null);
 
   readonly navSections = input<NavSection[]>([]);
 

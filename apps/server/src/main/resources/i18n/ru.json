@@ -958,7 +958,7 @@
   "layout.app_shell.skip_to_main_content": "Перейти к основному содержимому",
   "layout.app_shell.analytics": "Аналитика",
   "layout.app_shell.files": "Файлы",
-  "layout.app_shell.system_health": "Состояние",
+  "layout.app_shell.system_health": "Состояние системы",
   "layout.app_shell.search": "Поиск...",
   "layout.command_palette.search_placeholder": "Поиск задач, проектов, пользователей... (Esc для закрытия)",
   "layout.command_palette.global_search": "Глобальный поиск",
