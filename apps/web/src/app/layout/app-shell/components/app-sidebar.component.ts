@@ -18,8 +18,6 @@ import { User } from '@core/models/auth.models';
 export class AppSidebarComponent {
   readonly isSectionActive = input.required<(section: NavSection) => boolean>();
   readonly isRouteActive = input.required<(route: string, exact?: boolean) => boolean>();
-  /** The id of the single menu item of the current page (see `activeNavItemId`). */
-  readonly activeItemId = input<string | null>(null);
   readonly getSectionIcon = input.required<(id: string) => string>();
   readonly hasVisibleItems = input.required<(section: NavSection) => boolean>();
   readonly isSectionExpanded = input.required<(sectionId: string) => boolean>();
@@ -27,6 +25,8 @@ export class AppSidebarComponent {
 
   readonly getSectionBadge = input.required<(section: NavSection) => number>();
 
+  /** The id of the single menu item of the current page (see `activeNavItemId`). */
+  readonly activeItemId = input<string | null>(null);
   readonly sidebarId = input('app-sidebar');
   readonly isMobile = input(false);
   readonly isMobileMenuOpen = input(false);

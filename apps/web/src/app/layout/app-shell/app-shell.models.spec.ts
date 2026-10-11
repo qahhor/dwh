@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { activeNavItemId, buildNavSections, BuildNavSectionsOptions, NavItem, navRouteMatches } from './app-shell.models';
+import {
+  activeNavItemId,
+  buildNavSections,
+  BuildNavSectionsOptions,
+  NavItem,
+  navRouteMatches,
+} from './app-shell.models';
 import { CustomNavigationItem, EntityMenuItem } from '@core/models/navigation.models';
 
 function item(code: string, requiredPermission: string | null): CustomNavigationItem {

@@ -31,15 +31,6 @@ export class AppShellNavService {
   private readonly notifService = inject(NotificationService);
   private readonly router = inject(Router);
 
-  /** The URL after each finished navigation, so the active menu item follows the page. */
-  private readonly url = toSignal(
-    this.router.events.pipe(
-      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      map((event) => event.urlAfterRedirects),
-    ),
-    { initialValue: this.router.url },
-  );
-
   readonly isCollapsed = signal<boolean>(loadCollapsedState());
   readonly collapsedSections = signal<Set<string>>(loadCollapsedSections());
   readonly expandedSubmenus = signal<Set<string>>(new Set<string>());
@@ -71,6 +62,26 @@ export class AppShellNavService {
     }),
   );
 
+  /** The id of the single menu item of the current page: the most specific route that covers it. */
+  readonly activeItemId = computed<string | null>(() => activeNavItemId(this.navSections(), this.url()));
+
+  /** Whether a section holds the active item; a new predicate per change, so OnPush views redraw. */
+  readonly isSectionActive = computed(() => {
+    const active = this.activeItemId();
+    return (section: NavSection): boolean =>
+      active !== null &&
+      section.items.some((item) => item.id === active || !!item.children?.some((child) => child.id === active));
+  });
+
+  /** The URL after each finished navigation, so the active menu item follows the page. */
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+
   canViewTasks = () => this.permService.canView('tasks.items');
   canViewProjects = () => this.permService.canView('tasks.projects');
   canViewAnalytics = () => this.permService.canView('analytics.dashboard');
@@ -97,17 +108,6 @@ export class AppShellNavService {
   readonly getSectionIcon = (sectionId?: string): string => (sectionId && SECTION_ICON_MAP[sectionId]) || 'folder';
   readonly isRouteActive = (route: string, exact: boolean = false): boolean =>
     navRouteMatches(route, this.url().split(/[?#]/u)[0], exact);
-
-  /** The id of the single menu item of the current page: the most specific route that covers it. */
-  readonly activeItemId = computed<string | null>(() => activeNavItemId(this.navSections(), this.url()));
-
-  /** Whether a section holds the active item; a new predicate per change, so OnPush views redraw. */
-  readonly isSectionActive = computed(() => {
-    const active = this.activeItemId();
-    return (section: NavSection): boolean =>
-      active !== null &&
-      section.items.some((item) => item.id === active || !!item.children?.some((child) => child.id === active));
-  });
 
   toggleSection(sectionId: string, event?: Event): void {
     if (event) {
