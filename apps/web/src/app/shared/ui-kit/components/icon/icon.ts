@@ -8,8 +8,12 @@
  * the vendored components bind to, and renders a Material Symbol. */
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-/** Kit icon key -> Material Symbol name. */
-const SYMBOL: Readonly<Record<string, string>> = {
+/**
+ * Kit icon key -> Material Symbol name. Every kit key a vendored template binds must be listed: an unmapped
+ * key is drawn as text, and the font turns its parts into separate glyphs (`checkbox-check` became a check, a
+ * box, a dash and another check in each checkbox). Material Symbol names never contain a hyphen.
+ */
+export const SMT_ICON_SYMBOLS: Readonly<Record<string, string>> = {
   'chevron-up': 'expand_less',
   'chevron-down': 'expand_more',
   'left-arrow': 'chevron_left',
@@ -18,6 +22,8 @@ const SYMBOL: Readonly<Record<string, string>> = {
   'empty-state': 'inbox',
   search: 'search',
   check: 'check',
+  'checkbox-check': 'check',
+  'checkbox-minus': 'remove',
   loader: 'progress_activity',
 };
 
@@ -40,7 +46,7 @@ export class SMTIconComponent {
   readonly height = input<number | string>();
 
   /** An unmapped key falls through unchanged: Material Symbol names are valid keys too. */
-  protected readonly symbol = computed(() => SYMBOL[this.key()] ?? this.key());
+  protected readonly symbol = computed(() => SMT_ICON_SYMBOLS[this.key()] ?? this.key());
 
   protected readonly sizePx = computed(() => {
     const value = this.fontSize();
