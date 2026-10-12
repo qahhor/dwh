@@ -120,15 +120,15 @@ management:
         paths: .,${smc.storage.local-path}
     distribution:
       # Plan 10/10, item 7.3 (docs/ops/slo.md): the latency SLOs and their alerts are computed from histogram
-      # buckets, so every node's buckets add up; the SLO thresholds are buckets of their own (100 ms, 300 ms, 1 s).
+      # buckets, so every node's buckets add up; API and upload SLO boundaries have buckets of their own.
       percentiles-histogram:
         "[http.server.requests]": true
       minimum-expected-value:
         "[http.server.requests]": 5ms
       maximum-expected-value:
-        "[http.server.requests]": 30s
+        "[http.server.requests]": 120s
       slo:
-        "[http.server.requests]": 100ms,300ms,1s
+        "[http.server.requests]": 100ms,300ms,1s,30s,60s
         "[smc.search.query.duration]": 100ms,300ms,1s
         "[smc.jobs.execution]": 1s,10s,1m,5m,30m
         "[smc.outbox.delivery]": 100ms,1s,5s,30s

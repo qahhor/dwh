@@ -57,16 +57,26 @@ if ((Get-Required $config 'ACCEPTANCE_LOAD_WRITES') -ne 'true') {
 
 $thresholdNames = @(
     'ACCEPTANCE_MAX_P95_MS', 'ACCEPTANCE_MAX_P99_MS', 'ACCEPTANCE_MAX_ERROR_RATE',
+    'ACCEPTANCE_MAX_UPLOAD_P95_MS', 'ACCEPTANCE_MAX_UPLOAD_P99_MS',
     'ACCEPTANCE_MAX_HIKARI_PENDING', 'ACCEPTANCE_MAX_HEAP_PERCENT',
     'ACCEPTANCE_MIN_FREE_DISK_GIB', 'ACCEPTANCE_MAX_TEMP_GROWTH_MIB',
     'ACCEPTANCE_MAX_SCANNER_P95_MS', 'ACCEPTANCE_MAX_R2_P95_MS',
     'ACCEPTANCE_MAX_ORPHAN_OBJECTS'
 )
 $thresholds = @{}
+$latencyCeilings = @{
+    ACCEPTANCE_MAX_P95_MS = 300; ACCEPTANCE_MAX_P99_MS = 1000
+    ACCEPTANCE_MAX_UPLOAD_P95_MS = 30000; ACCEPTANCE_MAX_UPLOAD_P99_MS = 60000
+}
 foreach ($name in $thresholdNames) {
     $maximum = if ($name -eq 'ACCEPTANCE_MAX_ERROR_RATE') { 1.0 } else { [double]::MaxValue }
     $minimum = if ($name -eq 'ACCEPTANCE_MIN_FREE_DISK_GIB') { 0.001 } else { 0.0 }
+    if ($latencyCeilings.ContainsKey($name)) { $minimum = 1; $maximum = $latencyCeilings[$name] }
     $thresholds[$name] = Get-Threshold $config $name $minimum $maximum
+}
+if ($thresholds.ACCEPTANCE_MAX_P95_MS -gt $thresholds.ACCEPTANCE_MAX_P99_MS -or
+    $thresholds.ACCEPTANCE_MAX_UPLOAD_P95_MS -gt $thresholds.ACCEPTANCE_MAX_UPLOAD_P99_MS) {
+    throw 'Latency p95 must not exceed p99.'
 }
 
 $usersPath = (Resolve-Path -LiteralPath $UsersFile).Path
@@ -110,6 +120,8 @@ try {
             ACCEPTANCE_PUBLIC_ORIGIN = Get-Required $config 'ACCEPTANCE_PUBLIC_ORIGIN'
             ACCEPTANCE_MAX_P95_MS = "$($thresholds['ACCEPTANCE_MAX_P95_MS'])"
             ACCEPTANCE_MAX_P99_MS = "$($thresholds['ACCEPTANCE_MAX_P99_MS'])"
+            ACCEPTANCE_MAX_UPLOAD_P95_MS = "$($thresholds['ACCEPTANCE_MAX_UPLOAD_P95_MS'])"
+            ACCEPTANCE_MAX_UPLOAD_P99_MS = "$($thresholds['ACCEPTANCE_MAX_UPLOAD_P99_MS'])"
             ACCEPTANCE_MAX_ERROR_RATE = "$($thresholds['ACCEPTANCE_MAX_ERROR_RATE'])"
             ACCEPTANCE_LOAD_WRITES = Get-Required $config 'ACCEPTANCE_LOAD_WRITES'
             ACTIVE_USERS = '100'
@@ -120,7 +132,7 @@ try {
             UPLOAD_FIXTURE = '/fixtures/near-limit.pdf'
         }
         $arguments = @(
-            'run', '--rm',
+            'run', '--rm', '--cpus', '3', '--memory', '8g', '--memory-swap', '8g',
             '--mount', "type=bind,src=$loadDirectory,dst=/scripts,readonly",
             '--mount', "type=bind,src=$(Split-Path -Parent $usersPath),dst=/secrets,readonly",
             '--mount', "type=bind,src=$fixtureRoot,dst=/fixtures,readonly",

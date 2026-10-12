@@ -1,0 +1,20 @@
+# Host-side ops ingress on the PRIVATE interface; include in nginx's http context.
+# Firewall: only the app host may access this port. No public DNS/proxy is required.
+server {
+    listen CHANGE_ME_OPS_PRIVATE_IP:443 ssl;
+    server_name CHANGE_ME_PRIVATE_OPS_HOST;
+    ssl_certificate /etc/smartupcms/tls/ops.pem;
+    ssl_certificate_key /etc/smartupcms/tls/ops-key.pem;
+    ssl_client_certificate /etc/smartupcms/tls/collector-ca.pem;
+    ssl_verify_client on;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    server_tokens off;
+    allow CHANGE_ME_APP_PRIVATE_IP;
+    deny all;
+    client_max_body_size 16m;
+    location = /api/v1/write {
+        limit_except POST { deny all; }
+        proxy_pass http://127.0.0.1:19090;
+    }
+    location / { return 404; }
+}

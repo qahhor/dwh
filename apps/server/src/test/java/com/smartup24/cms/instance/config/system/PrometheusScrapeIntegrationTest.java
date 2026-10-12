@@ -56,7 +56,7 @@ class PrometheusScrapeIntegrationTest extends EmbeddedPostgresTest {
     SearchMetrics searchMetrics;
 
     @Test
-    @DisplayName("7.3: http.server.requests is a histogram with the 100 ms, 300 ms and 1 s SLO buckets")
+    @DisplayName("7.3: HTTP histograms expose API and upload SLO boundaries, including slow uploads")
     void httpServerRequestsHistogramHasSloBuckets() throws Exception {
         get(serverPort, "/api/v1/i18n/languages");
 
@@ -69,7 +69,14 @@ class PrometheusScrapeIntegrationTest extends EmbeddedPostgresTest {
                     return le.find() ? le.group(1) : "";
                 })
                 .collect(Collectors.toCollection(TreeSet::new));
-        assertThat(buckets).contains("0.1", "0.3", "1.0", "+Inf");
+        assertThat(buckets).contains("0.1", "0.3", "1.0", "30.0", "60.0", "+Inf");
+        assertThat(buckets.stream()
+                        .filter(bucket -> !bucket.equals("+Inf"))
+                        .mapToDouble(Double::parseDouble)
+                        .max()
+                        .orElseThrow())
+                .as("finite buckets must distinguish uploads exceeding the 60 s SLO")
+                .isGreaterThan(60);
         // A percentiles histogram, not the SLO buckets alone: the quantiles of the dashboards need the fine buckets.
         assertThat(buckets).hasSizeGreaterThan(20);
         assertThat(scrape).contains("application=\"smartupcms\"");

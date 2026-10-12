@@ -7,6 +7,24 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Staging: утверждённая конфигурация и upload SLO (2026-10-12)
+
+#### Changed
+
+- `NFR-PERF-02`: `POST /api/v1/files/upload` получает утверждённые
+  p95 ≤ 30 с / p99 ≤ 60 с; остальные API сохраняют 300/1000 мс.
+  Capacity runner требует оба бюджета, запрещает их ослаблять и требует
+  20/20 успешных загрузок. Ошибки upload остаются в доступности API.
+- HTTP-гистограмма расширена до 120 с; отдельные upload SLI, алерты,
+  дашборд и runbook проверяются вместе с регрессиями k6/Prometheus.
+- Добавлены staging overlay и шаблоны edge/collector/acceptance для
+  утверждённых Hetzner + Cloudflare + R2. Бюджет и RPO/RTO записаны в
+  installation annex; target identity, secrets и recovery/alert drills
+  остаются обязательными входами. Инфраструктура не развёрнута.
+- Проверка объединённого Compose сохраняет изоляцию томов и сетей restore
+  (`--no-normalize`); web upload-buffer 1536 MiB выделен фактическому
+  `/var/lib/nginx/tmp`, общий лимит web остаётся 2 GiB.
+
 ### Release gates: проверка комплекта выпуска (2026-10-12)
 
 #### Fixed

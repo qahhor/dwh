@@ -138,6 +138,16 @@ Hikari pending, heap, minimum disk, temporary-space growth, scanner p95, R2 p95,
 and orphan-object thresholds from the independently captured monitoring window.
 A threshold failure exits non-zero and cannot emit a passing manifest.
 
+The approved staging values and resource limits are in
+[the installation annex](staging-acceptance.md) and
+`deploy/staging/.env.acceptance.example`. The generator is capped at 3 CPUs,
+8 GiB RAM with no additional swap. API thresholds remain 300/1000 ms;
+`ACCEPTANCE_MAX_UPLOAD_P95_MS=30000` and `ACCEPTANCE_MAX_UPLOAD_P99_MS=60000`
+apply only to the upload profile. Both pairs are required, may be tightened,
+and cannot be raised beyond the approved values. Upload requires 20/20 HTTP
+201 responses with zero request/check failures. Server-side upload errors
+remain part of API availability; this latency split does not exempt failures.
+
 Граничные значения p95/p99 и доли ошибок включены в допустимый диапазон;
 нулевой бюджет ошибок допускает только успешные запросы и проверки.
 Окно мониторинга сравнивается в UTC без преобразования через локальный

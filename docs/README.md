@@ -195,6 +195,7 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [План доведения до релиза](ops/release-readiness-plan.md) — порядок P0/P1,
   владельцы работ и критерии готовности по существующим FR/NFR/AC.
 - [Smartup-managed infrastructure acceptance](ops/managed-infrastructure-acceptance.md)
+- [Утверждённая staging-конфигурация и критерии приёмки](ops/staging-acceptance.md)
 - [Rollback and recovery](ops/rollback.md)
 - [Migration failure repair](ops/migration-repair.md)
 - [GitHub repository settings](ops/repository-settings.md)

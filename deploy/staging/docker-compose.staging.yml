@@ -1,0 +1,168 @@
+# Approved staging annex: docs/ops/staging-acceptance.md.
+# Apply after production Compose and the observability overlay. Compose >= 2.24.4.
+# No image tag fallback: all six references must come from verified release metadata.
+services:
+  server:
+    image: ${SERVER_IMAGE:?Verified SERVER_IMAGE digest is required}
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -Xms1g -Xmx4g -XX:+ExitOnOutOfMemoryError -XX:+UseZGC
+        -Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC
+        -Djna.tmpdir=/opt/smartupcms/jna
+      SMC_FILES_MAX_CONCURRENT_UPLOADS: "20"
+      SMC_PROVIDER_STORAGE: s3
+      SMC_S3_ENDPOINT: ${SMC_S3_ENDPOINT:?R2 endpoint is required}
+      SMC_S3_BUCKET: ${SMC_S3_BUCKET:?Private application bucket is required}
+      SMC_S3_ACCESS_KEY: ${SMC_S3_ACCESS_KEY:?Application bucket key is required}
+      SMC_S3_SECRET_KEY: ${SMC_S3_SECRET_KEY:?Application bucket secret is required}
+      SMC_S3_REGION: auto
+      SMC_S3_PATH_STYLE: "true"
+      SMC_BACKUP_MAX_AGE: 20h
+    tmpfs: !override
+      - /tmp:rw,nosuid,nodev,noexec,size=3072m
+      - /opt/smartupcms/jna:rw,nosuid,nodev,exec,size=16m,uid=10001,gid=10001,mode=0700
+    deploy:
+      resources:
+        limits: {cpus: "3.0", memory: 10G}
+        reservations: {memory: 4G}
+
+  postgres:
+    image: ${POSTGRES_IMAGE:?Verified POSTGRES_IMAGE digest is required}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=1536MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - autovacuum_work_mem=128MB
+      - -c
+      - max_connections=80
+      - -c
+      - fsync=on
+      - -c
+      - synchronous_commit=on
+      - -c
+      - full_page_writes=on
+    shm_size: 512mb
+    deploy:
+      resources:
+        limits: {cpus: "1.5", memory: 6G}
+        reservations: {memory: 3G}
+
+  web:
+    image: ${WEB_IMAGE:?Verified WEB_IMAGE digest is required}
+    ports: !override
+      - "127.0.0.1:8080:8080"
+    tmpfs: !override
+      - /tmp:rw,nosuid,nodev,noexec,size=64m,mode=1777
+      # The release web image buffers request bodies in /var/lib/nginx/tmp/client_body.
+      - /var/lib/nginx/tmp:rw,nosuid,nodev,noexec,size=1536m,uid=10001,gid=10001,mode=0700
+      - /run/nginx:rw,nosuid,nodev,noexec,size=16m,uid=10001,gid=10001,mode=0750
+    deploy:
+      resources:
+        limits: {cpus: "0.25", memory: 2G}
+        reservations: {memory: 256M}
+
+  typesense:
+    image: ${TYPESENSE_IMAGE:?Verified TYPESENSE_IMAGE digest is required}
+    deploy:
+      resources:
+        limits: {cpus: "0.5", memory: 2G}
+        reservations: {memory: 1G}
+
+  clamav:
+    image: ${CLAMAV_IMAGE:?Verified CLAMAV_IMAGE digest is required}
+    # The host path MUST be a disk-backed filesystem with an enforced 2 GiB quota.
+    volumes:
+      - type: bind
+        source: ${STAGING_CLAMAV_SCRATCH_PATH:?Quota-backed ClamAV scratch path is required}
+        target: /tmp
+        bind: {create_host_path: false}
+    deploy:
+      resources:
+        limits: {cpus: "1.5", memory: 4G}
+        reservations: {memory: 2G}
+
+  backup:
+    image: ${BACKUP_IMAGE:?Verified BACKUP_IMAGE digest is required}
+    environment:
+      BACKUP_STORAGE_MODE: s3
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:?Recovery R2 endpoint is required}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:?Private recovery bucket is required}
+      # This loop backs up databases only. It is NOT the coordinated full-kit schedule.
+      BACKUP_INTERVAL_SECONDS: "43200"
+    tmpfs: !override
+      - /tmp:rw,nosuid,nodev,noexec,size=128m
+    deploy:
+      resources:
+        limits: {cpus: "0.25", memory: 1G}
+        reservations: {memory: 256M}
+
+  migrate:
+    image: ${SERVER_IMAGE:?Verified SERVER_IMAGE digest is required}
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -Xms512m -Xmx2g -XX:+ExitOnOutOfMemoryError -XX:+UseZGC
+        -Djava.security.egd=file:/dev/./urandom -Duser.timezone=UTC
+        -Djna.tmpdir=/opt/smartupcms/jna
+    deploy:
+      resources:
+        limits: {cpus: "2.0", memory: 4G}
+        reservations: {memory: 1G}
+
+  backup-bootstrap:
+    image: ${BACKUP_IMAGE:?Verified BACKUP_IMAGE digest is required}
+    tmpfs: !override
+      - /tmp:rw,nosuid,nodev,noexec,size=128m
+    deploy:
+      resources:
+        limits: {cpus: "0.25", memory: 256M}
+        reservations: {memory: 64M}
+
+  node-exporter:
+    deploy:
+      resources:
+        limits: {cpus: "0.1", memory: 64M}
+  postgres-exporter:
+    deploy:
+      resources:
+        limits: {cpus: "0.1", memory: 64M}
+
+  prometheus:
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    restart: unless-stopped
+    user: "65534:65534"
+    command:
+      - --config.file=/etc/prometheus/staging.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=24h
+      - --storage.tsdb.retention.size=2GB
+    volumes:
+      - type: bind
+        source: ${STAGING_PROMETHEUS_CONFIG:?Prepared collector config is required}
+        target: /etc/prometheus/staging.yml
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${STAGING_MONITORING_TLS_DIR:?Monitoring mTLS directory is required}
+        target: /etc/prometheus/tls
+        read_only: true
+        bind: {create_host_path: false}
+      - prometheus-data:/prometheus
+    networks: [monitoring, egress]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    deploy:
+      resources:
+        limits: {cpus: "0.25", memory: 1G}
+        reservations: {memory: 512M}
+    logging:
+      driver: json-file
+      options: {max-size: "100m", max-file: "5", compress: "true"}
+
+volumes:
+  prometheus-data:

@@ -92,8 +92,9 @@ foreach ($loadFile in @('common.js', 'interactive.js', 'upload-contention.js', '
     $loadPath = Join-Path $repoRoot "scripts/acceptance/load/$loadFile"
     if (Test-Path -LiteralPath $loadPath -PathType Leaf) {
         $load = Get-Content -LiteralPath $loadPath -Raw
-        Assert-Matches $load 'ACCEPTANCE_MAX_P95_MS' "$loadFile must bind thresholds to approved acceptance values."
-        Assert-Matches $load 'ACCEPTANCE_MAX_P99_MS' "$loadFile must bind p99 to approved acceptance values."
+        $latencyPrefix = if ($loadFile -eq 'upload-contention.js') { 'ACCEPTANCE_MAX_UPLOAD' } else { 'ACCEPTANCE_MAX' }
+        Assert-Matches $load "$($latencyPrefix)_P95_MS" "$loadFile must bind thresholds to approved acceptance values."
+        Assert-Matches $load "$($latencyPrefix)_P99_MS" "$loadFile must bind p99 to approved acceptance values."
         Assert-Matches $load 'ACCEPTANCE_MAX_ERROR_RATE' "$loadFile must bind error rate to approved acceptance values."
     }
 }

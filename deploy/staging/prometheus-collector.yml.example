@@ -1,0 +1,25 @@
+# Copy to STAGING_PROMETHEUS_CONFIG and supply the private ops endpoint and TLS files.
+# No local alert evaluation: the ops host evaluates rules even if this host disappears.
+global:
+  scrape_interval: 15s
+  external_labels:
+    installation: smartupcms-staging
+scrape_configs:
+  - job_name: smartupcms
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [server:9090]
+  - job_name: smartupcms-node
+    static_configs:
+      - targets: [node-exporter:9100]
+        labels: {application: smartupcms}
+  - job_name: smartupcms-postgres
+    static_configs:
+      - targets: [postgres-exporter:9187]
+        labels: {application: smartupcms}
+remote_write:
+  - url: https://CHANGE_ME_PRIVATE_OPS_HOST/api/v1/write
+    tls_config:
+      ca_file: /etc/prometheus/tls/ca.pem
+      cert_file: /etc/prometheus/tls/client.pem
+      key_file: /etc/prometheus/tls/client-key.pem

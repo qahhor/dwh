@@ -1,0 +1,15 @@
+# Receive the app collector over the private host TLS edge. One staging installation only.
+# The separately managed Alertmanager must have a tested receiver and protected network route.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+rule_files:
+  - /etc/prometheus/rules/recording.yml
+  - /etc/prometheus/rules/alerts.yml
+  - /etc/prometheus/rules/infrastructure.yml
+scrape_configs: []
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+        - targets: [CHANGE_ME_PRIVATE_ALERTMANAGER_HOST:9093]

@@ -298,6 +298,12 @@ jobs:
         shell: pwsh
         run: ./scripts/acceptance/test-managed-acceptance.ps1
 
+      - name: Validate approved staging configuration
+        shell: pwsh
+        run: |
+          ./scripts/acceptance/test-staging-config.ps1
+          ./scripts/acceptance/test-staging-edge.ps1
+
       - name: Validate capacity evidence and threshold boundaries
         shell: pwsh
         run: ./scripts/acceptance/test-capacity-runner.ps1

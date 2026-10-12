@@ -30,14 +30,19 @@ groups:
             or on (application) (0 * sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[6h]))))
             / sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[6h]))
       - record: smc:api_latency_seconds:p95_5m
-        expr: histogram_quantile(0.95, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m])))
+        expr: histogram_quantile(0.95, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m]) unless rate(http_server_requests_seconds_bucket{uri="/api/v1/files/upload", method="POST"}[5m])))
       - record: smc:api_latency_seconds:p99_5m
-        expr: histogram_quantile(0.99, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m])))
+        expr: histogram_quantile(0.99, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m]) unless rate(http_server_requests_seconds_bucket{uri="/api/v1/files/upload", method="POST"}[5m])))
+      # NFR-PERF-02: only POST upload has a separate latency budget; its errors remain in API availability.
+      - record: smc:upload_latency_seconds:p95_5m
+        expr: histogram_quantile(0.95, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri="/api/v1/files/upload", method="POST"}[5m])))
+      - record: smc:upload_latency_seconds:p99_5m
+        expr: histogram_quantile(0.99, sum by (application, le) (rate(http_server_requests_seconds_bucket{uri="/api/v1/files/upload", method="POST"}[5m])))
       # Share of API requests answered within 300 ms: the latency SLI of the 30-day report.
       - record: smc:api_requests_within_300ms:ratio_rate5m
         expr: |
-          sum by (application) (rate(http_server_requests_seconds_bucket{uri=~"/api/.+", uri!~"/api/v1/events.*", le="0.3"}[5m]))
-            / sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m]))
+          sum by (application) (rate(http_server_requests_seconds_bucket{uri=~"/api/.+", uri!~"/api/v1/events.*", le="0.3"}[5m]) unless rate(http_server_requests_seconds_bucket{uri="/api/v1/files/upload", method="POST", le="0.3"}[5m]))
+            / sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/.+", uri!~"/api/v1/events.*"}[5m]) unless rate(http_server_requests_seconds_count{uri="/api/v1/files/upload", method="POST"}[5m]))
       # The entity runtime: the generic CRUD of declared entities (ADR-0032).
       - record: smc:entity_requests:rate5m
         expr: sum by (application) (rate(http_server_requests_seconds_count{uri=~"/api/v1/entities/.+"}[5m]))
