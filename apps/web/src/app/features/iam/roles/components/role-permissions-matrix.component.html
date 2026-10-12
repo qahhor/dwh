@@ -155,7 +155,7 @@
 
 <!-- Modules List -->
 <div class="modules-stack">
-  @for (mod of visibleModuleGroups(); track mod) {
+  @for (mod of visibleModuleGroups(); track mod.moduleCode) {
     <div class="mod-section-card">
       <!-- Module Section Header -->
       <div class="mod-section-header">
@@ -220,7 +220,7 @@
             [attr.aria-label]="'iam.module_permissions_named' | t: { name: mod.moduleName }"
           >
             <tbody>
-              @for (f of mod.forms; track f) {
+              @for (f of mod.forms; track f.formCode) {
                 <tr class="form-grid-row">
                   <th scope="row" class="form-title-col">
                     <div class="form-title-wrap">
@@ -252,7 +252,7 @@
 
                   <td class="form-actions-col">
                     <div class="actions-chips-wrap">
-                      @for (act of f.actions; track act) {
+                      @for (act of f.actions; track act.action) {
                         <div
                           smt-checkbox
                           class="action-checkbox-card"

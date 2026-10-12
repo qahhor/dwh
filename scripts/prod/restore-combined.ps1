@@ -215,6 +215,9 @@ try {
         if ($evidence.dwhTableCount -lt 1) { throw 'The restored DWH database has no tables.' }
     }
 
+    # ADR-0001: restore ownership and grants before checking the database as its application role.
+    Invoke-Compose @('run', '--rm', 'backup-bootstrap')
+
     $rowCountSql = @'
 select json_build_object(
   'md_users', (select count(*) from md_users),
@@ -224,7 +227,7 @@ select json_build_object(
 )::text;
 '@
     $rowCountJson = ($rowCountSql | & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath exec -T postgres `
-        sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"') -join "`n"
+        sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$APP_DB_USER" -d "$POSTGRES_DB"') -join "`n"
     if ($LASTEXITCODE -ne 0) { throw 'Restored row-count query failed.' }
     $evidence.rowCounts = $rowCountJson.Trim() | ConvertFrom-Json
 
@@ -237,7 +240,7 @@ from (
 ) x;
 '@
     $databaseInventoryJson = ($fileInventorySql | & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath exec -T postgres `
-        sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"') -join "`n"
+        sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$APP_DB_USER" -d "$POSTGRES_DB"') -join "`n"
     $databaseKeys = [System.Collections.Generic.List[string]]::new()
     $parsedDbInventory = $databaseInventoryJson.Trim() | ConvertFrom-Json
     foreach ($item in $parsedDbInventory) {
@@ -329,7 +332,7 @@ from (
         if ([string]::IsNullOrWhiteSpace($dbManifest.capturedAt)) {
             throw 'Database manifest is missing capturedAt timestamp.'
         }
-        $databaseCapturedAt = [datetime]::Parse("$($dbManifest.capturedAt)").ToUniversalTime()
+        $databaseCapturedAt = ([datetime]$dbManifest.capturedAt).ToUniversalTime()
     }
     elseif ((Split-Path -Leaf $databaseBackupPath) -match 'smartupcms-(\d{8}T\d{6}Z)\.dump\.age') {
         $databaseCapturedAt = [datetime]::ParseExact($matches[1], 'yyyyMMddTHHmmssZ', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal).ToUniversalTime()
@@ -342,7 +345,7 @@ from (
     if ($databaseCapturedAt -gt $nowUtc.AddSeconds(300)) {
         throw 'Database backup capture timestamp is in the future.'
     }
-    $objectCapturedAt = [datetime]::Parse("$($manifest.capturedAt)").ToUniversalTime()
+    $objectCapturedAt = ([datetime]$manifest.capturedAt).ToUniversalTime()
     if ($objectCapturedAt -gt $nowUtc.AddSeconds(300)) {
         throw 'Object backup capture timestamp is in the future.'
     }

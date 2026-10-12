@@ -103,9 +103,12 @@ public class EntityGate {
      * right; else empty: what the bulk actions, the files, the form, the history and the export of an entity open with.
      */
     public Optional<EntityDefinition> findVisible(String code) {
-        return registry.find(code)
-                .filter(this::moduleActive)
-                .filter(entity -> SecurityContext.hasPermission(entity.form(), "view"));
+        return findActive(code).filter(entity -> SecurityContext.hasPermission(entity.form(), "view"));
+    }
+
+    /** An active declaration only; callers must still enforce the permission of their own endpoint. */
+    public Optional<EntityDefinition> findActive(String code) {
+        return registry.find(code).filter(this::moduleActive);
     }
 
     /** Whether the entity {@code code} is known and the viewer may see it: what a related list of a card needs. */

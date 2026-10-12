@@ -13,6 +13,8 @@ import com.smartup24.cms.instance.md.service.MdI18nCatalog;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserEntity;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
+import com.smartup24.cms.instance.ms.task.service.MsProjectEntity;
+import com.smartup24.cms.instance.ms.task.service.MsTaskEntity;
 import com.smartup24.cms.instance.support.entity.EntityRegistries;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.EntityScope;
@@ -77,6 +79,23 @@ class MdPermissionEntityNamesTest {
         assertThat(items.getFirst().formName()).isEqualTo("Заметки");
         assertThat(items.get(1).formNameKey()).isNull();
         assertThat(items.get(1).actionNameKey()).isNull();
+    }
+
+    @Test
+    void entityNamesTakePrecedenceOverTheStaticCatalogForTheSameForm() {
+        MdPermissionRepository repository = mock(MdPermissionRepository.class);
+        when(repository.getAllFormsWithActions())
+                .thenReturn(List.of(
+                        new FormTreeItem("tasks.projects", "ms.task", "Проекты", "view", "Просмотр проектов", false)));
+        var registry = EntityRegistries.declarations(List.of(
+                MsProjectEntity.definition((userId, alias) -> EntityScope.Condition.unrestricted()),
+                MsTaskEntity.definition((userId, alias) -> EntityScope.Condition.unrestricted())));
+        MdPermissionService service = new MdPermissionService(repository, registry, CATALOG);
+
+        var item = service.getFormCatalogItems().getFirst();
+
+        assertThat(item.formNameKey()).isEqualTo("projects.rights.form");
+        assertThat(item.actionNameKey()).isEqualTo("projects.rights.view");
     }
 
     @Test

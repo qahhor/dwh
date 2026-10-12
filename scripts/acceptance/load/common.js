@@ -76,10 +76,10 @@ export function jsonRequest(method, path, body, expected, name) {
 export function standardThresholds(scenarioName) {
   return {
     [`http_req_duration{scenario:${scenarioName}}`]: [
-      `p(95)<${ACCEPTANCE_MAX_P95_MS}`,
-      `p(99)<${ACCEPTANCE_MAX_P99_MS}`,
+      `p(95)<=${ACCEPTANCE_MAX_P95_MS}`,
+      `p(99)<=${ACCEPTANCE_MAX_P99_MS}`,
     ],
-    [`http_req_failed{scenario:${scenarioName}}`]: [`rate<${ACCEPTANCE_MAX_ERROR_RATE}`],
-    checks: [`rate>${1 - ACCEPTANCE_MAX_ERROR_RATE}`],
+    [`http_req_failed{scenario:${scenarioName}}`]: [`rate<=${ACCEPTANCE_MAX_ERROR_RATE}`],
+    checks: [`rate>=${1 - ACCEPTANCE_MAX_ERROR_RATE}`],
   };
 }

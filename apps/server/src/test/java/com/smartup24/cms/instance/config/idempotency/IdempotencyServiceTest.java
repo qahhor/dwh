@@ -17,7 +17,7 @@ class IdempotencyServiceTest {
     private final IdempotencyService service = new IdempotencyService(repository);
 
     private static final IdempotencyRepository.StoredAnswer ANSWER = new IdempotencyRepository.StoredAnswer(
-            201, "{\"id\":100}", "/api/v1/notes/100", "application/json", "\"1\"");
+            201, "{\"id\":100}", "/api/v1/notes/100", "application/json", "\"1\"", "{}");
 
     @Test
     @DisplayName("Вычисление хэша запроса должно быть детерминированным для одинаковых параметров")
@@ -49,7 +49,8 @@ class IdempotencyServiceTest {
                 IdempotencyRepository.State.COMPLETED,
                 Instant.now(),
                 null,
-                null);
+                null,
+                "{}");
 
         when(repository.tryReserve(eq(key), eq(1L), eq("abc123hash"), any(UUID.class), any(Instant.class)))
                 .thenReturn(false);

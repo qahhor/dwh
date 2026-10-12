@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.config.idempotency;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
+import com.smartup24.cms.instance.common.entity.RetainedRecordAccess;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.config.error.ProblemMessages;
@@ -59,13 +60,15 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             ObjectMapper objectMapper,
             ObjectProvider<ProblemMessages> messages,
             ObjectProvider<PlatformTransactionManager> transactions,
-            @Qualifier("requestMappingHandlerMapping") ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
+            @Qualifier("requestMappingHandlerMapping") ObjectProvider<RequestMappingHandlerMapping> handlerMapping,
+            ObjectProvider<RetainedRecordAccess> access) {
         this(
                 idempotencyService,
                 objectMapper,
                 messages.getIfAvailable(PackagedProblemMessages::new),
                 transactions.getIfUnique(),
-                handlerMapping);
+                handlerMapping,
+                access.getIfAvailable());
     }
 
     public IdempotencyFilter(
@@ -74,8 +77,18 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             ProblemMessages messages,
             @Nullable PlatformTransactionManager transactions,
             ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
+        this(idempotencyService, objectMapper, messages, transactions, handlerMapping, null);
+    }
+
+    private IdempotencyFilter(
+            IdempotencyService idempotencyService,
+            ObjectMapper objectMapper,
+            ProblemMessages messages,
+            @Nullable PlatformTransactionManager transactions,
+            ObjectProvider<RequestMappingHandlerMapping> handlerMapping,
+            @Nullable RetainedRecordAccess access) {
         this.idempotencyService = idempotencyService;
-        this.answers = new IdempotencyAnswers(objectMapper, messages);
+        this.answers = new IdempotencyAnswers(objectMapper, messages, access);
         this.execution = new IdempotentExecution(idempotencyService, answers, transactions);
         this.handlerMapping = handlerMapping;
     }
@@ -184,12 +197,14 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             return;
         }
 
-        execution.run(
-                wrappedRequest,
-                new ContentCachingResponseWrapper(response),
-                filterChain,
-                idempotencyKey,
-                claim.reservationToken());
+        try (var capture = RetainedRecordAccess.capture()) {
+            execution.run(
+                    wrappedRequest,
+                    new ContentCachingResponseWrapper(response),
+                    filterChain,
+                    idempotencyKey,
+                    claim.reservationToken());
+        }
     }
 
     /** Multipart bodies and bodies over the limit are not kept for replay: refused before the body is read. */

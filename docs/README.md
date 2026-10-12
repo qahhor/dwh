@@ -97,8 +97,8 @@ Current ADRs that are not superseded:
 - [ADR-0029 — encryption of secrets in the database](adr/ADR-0029-stored-secrets-encryption.md)
   — webhook signing keys and SSO client secrets are stored as AES-256-GCM
   `v1:` values under the installation key `SMC_SECRETS_KEY`; the server
-  refuses to start without the key outside dev and encrypts legacy plain
-  values at start.
+  refuses to start without the key outside the dev/migrate profiles and
+  rejects stored plaintext secrets. Startup does not convert plaintext values.
 - [ADR-0030 — splitting fnd into jobs, warehouse and units](adr/ADR-0030-fnd-split.md)
   — the shared job queue is the `jobs` module, the second database with its
   load ledger is `warehouse`, units of measure are `units`, versioning and the
@@ -192,6 +192,8 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [Operations runbook](ops/operations-runbook.md)
 - [Privacy, data protection, and retention annex](ops/privacy-and-retention-annex.md)
 - [Production launch checklist](ops/production-launch-checklist.md)
+- [План доведения до релиза](ops/release-readiness-plan.md) — порядок P0/P1,
+  владельцы работ и критерии готовности по существующим FR/NFR/AC.
 - [Smartup-managed infrastructure acceptance](ops/managed-infrastructure-acceptance.md)
 - [Rollback and recovery](ops/rollback.md)
 - [Migration failure repair](ops/migration-repair.md)

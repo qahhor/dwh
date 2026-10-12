@@ -32,7 +32,8 @@ public class IdempotencyRepository {
             State state,
             Instant createdAt,
             @Nullable String responseContentType,
-            @Nullable String responseEtag) {}
+            @Nullable String responseEtag,
+            String responseAccess) {}
 
     /**
      * The answer kept for a replay: its status, its JSON body ({@code {}} when it had none), and the headers a replay
@@ -43,13 +44,14 @@ public class IdempotencyRepository {
             String body,
             @Nullable String location,
             @Nullable String contentType,
-            @Nullable String etag) {}
+            @Nullable String etag,
+            String access) {}
 
     public Optional<IdempotencyRecord> findByKey(UUID key) {
         return jdbcClient
                 .sql("""
                 select key, user_id, request_hash, response_status, response_body::text, response_location, state,
-                       created_at, response_content_type, response_etag
+                       created_at, response_content_type, response_etag, response_access::text
                 from idempotency_keys
                 where key = :key
                 """)
@@ -64,7 +66,8 @@ public class IdempotencyRepository {
                         State.valueOf(rs.getString("state")),
                         rs.getTimestamp("created_at").toInstant(),
                         rs.getString("response_content_type"),
-                        rs.getString("response_etag")))
+                        rs.getString("response_etag"),
+                        rs.getString("response_access")))
                 .optional();
     }
 
@@ -106,6 +109,7 @@ public class IdempotencyRepository {
                     response_location = :responseLocation,
                     response_content_type = :responseContentType,
                     response_etag = :responseEtag,
+                    response_access = cast(:responseAccess as jsonb),
                     state = 'COMPLETED',
                     reservation_token = null
                 where key = :key
@@ -118,6 +122,7 @@ public class IdempotencyRepository {
                         .param("responseLocation", answer.location())
                         .param("responseContentType", answer.contentType())
                         .param("responseEtag", answer.etag())
+                        .param("responseAccess", answer.access())
                         .param("reservationToken", reservationToken)
                         .update()
                 == 1;

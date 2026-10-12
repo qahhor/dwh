@@ -6,15 +6,28 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+$evidenceRoot = if ([System.IO.Path]::IsPathRooted($EvidenceDirectory)) {
+    [System.IO.Path]::GetFullPath($EvidenceDirectory)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path $repoRoot $EvidenceDirectory))
+}
+$manifestPath = Join-Path $evidenceRoot "release-integrity-$Version.json"
+# NFR-SEC-07: a failed repeat verification must not leave the previous PASS as current evidence.
+if (Test-Path -LiteralPath $manifestPath -PathType Leaf) { Remove-Item -LiteralPath $manifestPath -Force }
 $releaseRoot = (Resolve-Path -LiteralPath $ReleaseDirectory).Path
 $checksumsPath = Join-Path $releaseRoot 'SHA256SUMS'
 if (-not (Test-Path -LiteralPath $checksumsPath -PathType Leaf)) { throw 'SHA256SUMS is missing.' }
 
+$checksummedFiles = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 foreach ($line in Get-Content -LiteralPath $checksumsPath) {
     if ($line -notmatch '^([a-f0-9]{64})\s+\*?(.+)$') { throw 'SHA256SUMS contains an invalid line.' }
     $expected = $Matches[1]
-    $relative = $Matches[2].TrimStart('.', '/', '\')
-    if (-not $relative -or $relative.Split('/', '\') -contains '..') { throw 'SHA256SUMS contains an unsafe path.' }
+    $relative = $Matches[2]
+    if ([System.IO.Path]::IsPathRooted($relative) -or $relative.Split([char[]]@('/', '\')) -contains '..') {
+        throw 'SHA256SUMS contains an unsafe path.'
+    }
+    if (-not $checksummedFiles.Add($relative)) { throw 'SHA256SUMS contains a duplicate path.' }
     $artifactPath = [System.IO.Path]::GetFullPath((Join-Path $releaseRoot $relative))
     if (-not $artifactPath.StartsWith($releaseRoot + [System.IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
         throw 'SHA256SUMS path escapes the release directory.'
@@ -25,11 +38,22 @@ foreach ($line in Get-Content -LiteralPath $checksumsPath) {
     }
 }
 
+$components = @('server', 'web', 'backup', 'postgres', 'typesense', 'clamav')
+$requiredArtifacts = @("smartupcms-$Version.tar.gz", "smartupcms-$Version.zip")
+foreach ($component in $components) {
+    foreach ($suffix in @('image.txt', 'spdx.json', 'cdx.json', 'provenance.json')) {
+        $requiredArtifacts += "smartupcms-$component-$Version.$suffix"
+    }
+}
+foreach ($artifact in $requiredArtifacts) {
+    if (-not $checksummedFiles.Contains($artifact)) { throw "Required release artifact is missing from SHA256SUMS: $artifact" }
+}
+
 $cosign = (Get-Command cosign -ErrorAction Stop).Source
 $gh = (Get-Command gh -ErrorAction Stop).Source
 $images = [System.Collections.Generic.List[string]]::new()
 $owner = $Repository.Split('/')[0].ToLowerInvariant()
-foreach ($component in @('server', 'web', 'backup', 'postgres', 'typesense', 'clamav')) {
+foreach ($component in $components) {
     $imageFile = Join-Path $releaseRoot "smartupcms-$component-$Version.image.txt"
     $spdxFile = Join-Path $releaseRoot "smartupcms-$component-$Version.spdx.json"
     $cyclonedxFile = Join-Path $releaseRoot "smartupcms-$component-$Version.cdx.json"
@@ -47,7 +71,8 @@ foreach ($component in @('server', 'web', 'backup', 'postgres', 'typesense', 'cl
     if ($cyclonedx.bomFormat -ne 'CycloneDX') { throw "Invalid CycloneDX SBOM for $component." }
 
     # Independent target-side commands: cosign verify and gh attestation verify.
-    & $cosign verify --certificate-identity-regexp "^https://github.com/$Repository/.github/workflows/release.yml@refs/tags/$Version$" `
+    $identity = [regex]::Escape("https://github.com/$Repository/.github/workflows/release.yml@refs/tags/$Version")
+    & $cosign verify --certificate-identity-regexp "^$identity$" `
         --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' $image | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "cosign verify failed for $component." }
     & $gh attestation verify "oci://$image" --repo $Repository | Out-Null
@@ -55,12 +80,6 @@ foreach ($component in @('server', 'web', 'backup', 'postgres', 'typesense', 'cl
     $images.Add($image)
 }
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$evidenceRoot = if ([System.IO.Path]::IsPathRooted($EvidenceDirectory)) {
-    [System.IO.Path]::GetFullPath($EvidenceDirectory)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $repoRoot $EvidenceDirectory))
-}
 New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
 $manifest = [ordered]@{
     schemaVersion = 1
@@ -71,6 +90,5 @@ $manifest = [ordered]@{
     sha256Sums = (Get-FileHash -LiteralPath $checksumsPath -Algorithm SHA256).Hash.ToLowerInvariant()
     images = $images
 }
-$manifestPath = Join-Path $evidenceRoot "release-integrity-$Version.json"
 $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestPath -Encoding utf8NoBOM
 Write-Host "Published release integrity passed. Evidence: $manifestPath" -ForegroundColor Green

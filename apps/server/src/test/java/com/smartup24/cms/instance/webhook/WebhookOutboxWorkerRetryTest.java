@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -121,6 +122,33 @@ class WebhookOutboxWorkerRetryTest {
                         eq("webhook_delivery_failed"),
                         eq(true));
         verify(repository, never()).markSuccess(anyLong(), any(), anyInt());
+    }
+
+    @Test
+    void retryKeepsTheDeliveryIdentityAtTheReceiver() {
+        var deliveryIds = new ConcurrentLinkedQueue<String>();
+        var payloads = new ConcurrentLinkedQueue<String>();
+        server.createContext("/retry", exchange -> {
+            try {
+                deliveryIds.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-Delivery-Id")));
+                payloads.add(
+                        new String(exchange.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+                exchange.sendResponseHeaders(deliveryIds.size() == 1 ? 503 : 204, -1);
+            } finally {
+                exchange.close();
+            }
+        });
+        var first = item(6L, "/retry", 0);
+        var retry = item(6L, "/retry", 1);
+        when(repository.fetchPending(20)).thenReturn(List.of(first), List.of(retry));
+
+        worker.processWebhooks();
+        worker.processWebhooks();
+
+        assertThat(deliveryIds).containsExactly("6", "6");
+        assertThat(payloads).hasSize(2).containsOnly("{\"id\":6}");
+        verify(repository).markFailed(eq(6L), eq(first.claimToken()), eq(1), any(), eq(0), anyString(), eq(false));
+        verify(repository).markSuccess(6L, retry.claimToken(), 204);
     }
 
     @Test

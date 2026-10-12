@@ -25,9 +25,6 @@ class CyrillicLiteralsTest {
 
     /** Files whose Cyrillic literals are data, not text the server writes; the path is under {@link #SOURCES}. */
     static final Map<String, String> ALLOWED = Map.of(
-            "md/pref/MdFormCatalog.java",
-            "names of the permission catalog in its source language: md_forms stores Russian and the language"
-                    + " editor translates them (ADR-0031)",
             "search/service/QueryLanguageConverter.java",
             "the Russian keyboard layout, letters and words the search converts a query with",
             "config/demo/DemoDataset.java",

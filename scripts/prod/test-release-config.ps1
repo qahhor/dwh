@@ -103,6 +103,8 @@ Assert-Matches $restoreSh 'age[\s\S]*pg_restore' 'Bash restore must stream age-d
 Assert-Matches $restorePs 'decryptArguments[\s\S]*pg_restore' 'PowerShell restore must stream age-decrypted data to pg_restore.'
 Assert-Matches $restoreSh 'sha256sum' 'Bash restore must verify the encrypted artifact checksum.'
 Assert-Matches $restorePs 'Get-FileHash' 'PowerShell restore must verify the encrypted artifact checksum.'
+Assert-Matches $restoreSh 'run --rm backup-bootstrap[\s\S]*run --rm migrate' 'Bash restore must restore ownership and grants before Flyway reads the restored schema.'
+Assert-Matches $restorePs 'run --rm backup-bootstrap[\s\S]*run --rm migrate' 'PowerShell restore must restore ownership and grants before Flyway reads the restored schema.'
 
 foreach ($scriptPath in @($deployPsPath, (Join-Path $PSScriptRoot 'backup.ps1'), $restorePsPath,
         $backupObjectsPsPath, $restoreCombinedPsPath, $rollbackPsPath, $testRecoveryPsPath,

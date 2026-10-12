@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.upl.api.UplSourceDtos.SourceItem;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,6 +20,11 @@ public class UplListExporters {
         return new QueryListExporter() {
             public String code() {
                 return "upl.sources";
+            }
+
+            public boolean visible(Set<String> ids) {
+                // This list has no row scope; the export service checks its current list permission.
+                return true;
             }
 
             public KeysetPage<?> page(
@@ -34,6 +40,11 @@ public class UplListExporters {
         return new QueryListExporter() {
             public String code() {
                 return "upl.packages";
+            }
+
+            public boolean visible(Set<String> ids) {
+                // This list has no row scope; the export service checks its current list permission.
+                return true;
             }
 
             public KeysetPage<?> page(

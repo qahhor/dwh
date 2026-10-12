@@ -7,6 +7,128 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Release gates: проверка комплекта выпуска (2026-10-12)
+
+#### Fixed
+
+- Target-side verifier корректно разбирает пути SHA256SUMS в PowerShell,
+  отклоняет выход за каталог, повторные записи и отсутствие checksum любого
+  из 24 файлов метаданных шести образов или двух архивов поставки.
+- Неудачная повторная проверка удаляет прежнее свидетельство PASS для этой
+  версии; проверка Cosign привязана к точному имени workflow и release tag.
+- В CI добавлены поведенческие регрессии verifier с изолированной подменой
+  внешних команд подписи и attestation; публикация для них не требуется.
+  Release-config job получает полную Git-историю для проверки секретов.
+- Release drill запускает текущий PowerShell и проверяет полный текст ошибки:
+  перенос строки в Windows больше не скрывает ожидаемый отказ по checksum.
+  Отрицательный сценарий требует и ненулевой код, и ожидаемую причину отказа.
+- API smoke выводит число OpenAPI-маршрутов одним числом вместо массива
+  единичных значений свойств PowerShell.
+
+### Release gates: ёмкость и наблюдаемость (2026-10-12)
+
+#### Fixed
+
+- Capacity runner сохраняет UTC при чтении окна мониторинга и отклоняет
+  нечисловые, бесконечные, пустые и недопустимые отрицательные значения
+  метрик до записи PASS. Уменьшение временных файлов допускается.
+- Пороги k6 включают граничное значение (`≤` для задержек и доли ошибок,
+  `≥` для успешных проверок); нулевой бюджет ошибок корректно принимается.
+- Доля ошибок API равна нулю при успешном трафике без ряда 5xx во всех
+  четырёх окнах Prometheus. Приложения без API-трафика, включая только SSE,
+  не получают искусственную нулевую серию.
+- В CI добавлена регрессия приёмочного runner: синтетическая граница
+  нагрузки, проверка реального манифеста и настоящий evaluator закреплённого
+  k6 без сетевых запросов. Проверка не требует staging.
+- SLO-документ приведён к `NFR-PERF-02`: загрузки и выгрузки учитываются
+  в задержке API; удалена рекомендация исключать их URI при росте p99.
+
+### Release gates: восстановление резервных копий (2026-10-12)
+
+#### Fixed
+
+- Combined restore сохраняет UTC и дату при чтении JSON-манифестов:
+  корректная копия больше не отклоняется как созданная в будущем из-за
+  преобразования через строку с локальным форматом даты.
+- Перед проверкой восстановленной CMS восстанавливаются владельцы таблиц
+  и права существующим `backup-bootstrap`; контрольные запросы выполняются
+  от роли приложения. В PowerShell и Bash restore этот шаг предшествует
+  миграциям, которым также нужен доступ к восстановленным таблицам.
+- Регрессия recovery проверяет обе БД, чтение от роли приложения,
+  возможность мигратора изменять таблицы и сохранение запретов приложения
+  на TRUNCATE и удаление audit-записей; отсутствующий ключ отклоняется
+  до создания целевого контейнера. Тест сам собирает образы из репозитория.
+- Приёмочные тесты повторной доставки проверяют неизменность `X-Delivery-Id`
+  у HTTP-получателя и ключа идемпотентности почтового провайдера, включая
+  сохранение ключа после передачи notification claim другому обработчику.
+
+### Release gates: access revocation (2026-10-11)
+
+#### Fixed
+
+- Finished exports recheck the owner's current permission context, visible
+  columns and the scope of every retained row before serving the file. Task
+  participation changes also revoke access to exports of linked files.
+- Idempotent responses recheck the current authorization context and retained
+  records. A revoked context or inaccessible record returns 409 without replaying
+  the old body or executing the mutation again; unchanged access preserves replay.
+- Clearing an optional reference with empty text writes SQL NULL and is safe
+  for typed entity hooks, including removal of a task's responsible user.
+
+### Changed
+
+- Custom `QueryListExporter` implementations must implement `visible(ids)` to
+  check current access to retained rows. Model-backed entity exports use the
+  shared scoped repository. Migration V204 adds record proofs to idempotent answers.
+
+### Release gates: log record integrity (2026-10-11)
+
+#### Fixed
+
+- The development console now masks secrets and escapes control characters in
+  the complete log event, including metadata and exception chains. Request data
+  cannot add physical log lines; normal messages, trace/span IDs and stack frames
+  remain available in readable text through Spring Boot's formatter extension.
+- ECS console and file logs render Unicode line/paragraph separators as visible
+  escapes, preserving one physical record for line-oriented consumers. Default
+  JSON logging, file rotation and HTTP error responses are unchanged.
+
+### Release gates: backup artifacts and E2E redaction (2026-10-11)
+
+#### Fixed
+
+- The database-backup regression reads private keys, status, manifests and
+  checksums as the backup container's UID. A Linux CI runner no longer needs
+  host access to files written with mode 0600; production permissions stay intact.
+- The E2E artifact gate checks the actual 20-character rotated password instead
+  of a different 28-character value. An injected synthetic leak is rejected;
+  the normal failure-artifact probe remains clean.
+- Analytics and command-palette translation contracts recognize permission
+  labels declared by the server, using the existing source-derived key helper.
+- The accessibility fixture server normalizes `WEB_DIST` before checking paths,
+  so a Windows build path written with forward slashes does not produce HTTP 403.
+
+### Release preparation: permission catalog and guidance (2026-10-11)
+
+#### Fixed
+
+- Static permission forms and actions now expose dictionary keys through the
+  existing catalog API, like entity rights. All 20 static forms have ru/uz/en
+  labels; source/format permissions no longer store Uzbek text as Russian.
+  Permission codes and authorization behavior are unchanged.
+- The open role matrix and personal-permission panel refresh translated names
+  when the language or dictionary changes, preserving unsaved grants and selected
+  actions. The role matrix also keeps search, expanded groups and control identity.
+  The obsolete Cyrillic-literal exception for the form catalog is removed.
+- Transaction guidance distinguishes atomic notification/outbox writes from
+  after-commit signals and external delivery. The documentation index now
+  describes startup refusal for stored plaintext secrets rather than conversion.
+
+#### Added
+
+- An actionable P0/P1 release preparation plan tied to the existing AC-01…AC-13,
+  with owners, dependencies, verification criteria and explicit production gates.
+
 ### UI fixes: side menu, English labels, checkbox marks (2026-10-11)
 
 #### Fixed

@@ -7,8 +7,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixtures, me } from './a11y-fixtures.mjs';
 
-const root = process.env.WEB_DIST
-  ?? fileURLToPath(new URL('../../apps/web/dist/web/browser', import.meta.url));
+const root = path.resolve(process.env.WEB_DIST
+  ?? fileURLToPath(new URL('../../apps/web/dist/web/browser', import.meta.url)));
 const port = Number(process.env.A11Y_PORT ?? 4310);
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.json': 'application/json', '.ico': 'image/x-icon' };
 

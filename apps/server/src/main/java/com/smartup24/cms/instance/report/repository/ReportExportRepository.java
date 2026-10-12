@@ -86,11 +86,13 @@ public class ReportExportRepository {
                 == 1;
     }
 
-    public void markDone(long id, int rows, boolean truncated, String fileName, String storageKey, long sizeBytes) {
+    public void markDone(
+            long id, int rows, boolean truncated, String fileName, String storageKey, long sizeBytes, String access) {
         jdbc.sql("""
                         update report_exports
                            set state = 'done', rows_count = :rows, truncated = :truncated, file_name = :name,
-                               storage_key = :key, size_bytes = :size, finished_at = now()
+                               storage_key = :key, size_bytes = :size, finished_at = now(),
+                               request = jsonb_set(request, '{access}', cast(:access as jsonb))
                          where id = :id
                         """)
                 .param("rows", rows)
@@ -98,6 +100,7 @@ public class ReportExportRepository {
                 .param("name", fileName)
                 .param("key", storageKey)
                 .param("size", sizeBytes)
+                .param("access", access)
                 .param("id", id)
                 .update();
     }

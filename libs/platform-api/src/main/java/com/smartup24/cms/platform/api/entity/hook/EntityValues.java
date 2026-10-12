@@ -94,6 +94,7 @@ public final class EntityValues {
     public @Nullable Long ref(String key) {
         Object value = values.get(key);
         if (value == null) return null;
+        if (value instanceof String text && text.isBlank()) return null;
         return value instanceof Number number
                 ? number.longValue()
                 : Long.valueOf(String.valueOf(value).strip());

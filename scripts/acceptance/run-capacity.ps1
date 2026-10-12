@@ -152,8 +152,8 @@ if ($metrics.schemaVersion -ne 1 -or -not $metrics.windowStart -or -not $metrics
     -not $metrics.sourceDashboard -or -not $metrics.collector) {
     throw 'Runtime metrics provenance is incomplete.'
 }
-$metricsWindowStart = [datetime]::Parse("$($metrics.windowStart)").ToUniversalTime()
-$metricsWindowEnd = [datetime]::Parse("$($metrics.windowEnd)").ToUniversalTime()
+$metricsWindowStart = ([datetime]$metrics.windowStart).ToUniversalTime()
+$metricsWindowEnd = ([datetime]$metrics.windowEnd).ToUniversalTime()
 if ($metricsWindowStart -gt $loadStartedAt -or $metricsWindowEnd -lt $loadFinishedAt) {
     throw 'Runtime metrics do not cover the complete k6 load window.'
 }
@@ -169,7 +169,16 @@ $metricContracts = @(
 foreach ($contract in $metricContracts) {
     $property = $metrics.PSObject.Properties[$contract.Name]
     if ($null -eq $property -or $null -eq $property.Value) { throw "Runtime metrics are missing '$($contract.Name)'." }
+    if ($property.Value -is [string] -and [string]::IsNullOrWhiteSpace($property.Value)) {
+        throw "Runtime metric '$($contract.Name)' must be a finite number."
+    }
     $actual = [double]$property.Value
+    if ([double]::IsNaN($actual) -or [double]::IsInfinity($actual) -or $property.Value -is [bool]) {
+        throw "Runtime metric '$($contract.Name)' must be a finite number."
+    }
+    if ($actual -lt 0 -and $contract.Name -ne 'tempGrowthMiB') {
+        throw "Runtime metric '$($contract.Name)' must be non-negative."
+    }
     $limit = [double]$thresholds[$contract.Threshold]
     if (($contract.Direction -eq 'max' -and $actual -gt $limit) -or
         ($contract.Direction -eq 'min' -and $actual -lt $limit)) {

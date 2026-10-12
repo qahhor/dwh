@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
+import com.smartup24.cms.instance.common.entity.RetainedRecordAccess;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
@@ -237,7 +238,9 @@ public class EntityLabelResolver {
                 + " where " + model.alias() + ".id in (:ids)" + scope.sql();
         Map<String, Object> params = new LinkedHashMap<>(scope.params());
         params.put("ids", List.copyOf(ids));
-        return executeQuery(sql, params);
+        Map<Long, String> result = executeQuery(sql, params);
+        result.keySet().forEach(id -> RetainedRecordAccess.remember(target.code(), id));
+        return result;
     }
 
     private Map<Long, String> executeQuery(String sql, Map<String, Object> params) {

@@ -19,7 +19,7 @@ public class MdPermissionService {
     private final MdPermissionRepository permissionRepository;
     /** Declared entities name their own rights (roadmap item 57); null — only the catalog names them. */
     private final EntityRegistry entities;
-    /** The Russian catalog names an entity's right in the stored catalog (ADR-0031); null — the key itself. */
+    /** The Russian catalog names each right in the stored catalog (ADR-0031); null — the key itself. */
     private final MdI18nCatalog catalog;
 
     @Autowired
@@ -60,15 +60,20 @@ public class MdPermissionService {
         return getFormCatalog().stream()
                 .map(i -> {
                     Optional<EntityRights> rights = rightsOf(i.formCode());
+                    var form = MdFormCatalog.find(i.formCode());
                     return new FormCatalogItem(
                             i.formCode(),
                             i.module(),
                             i.formName(),
-                            rights.map(EntityRights::nameKey).orElse(null),
+                            rights.map(EntityRights::nameKey)
+                                    .orElseGet(() -> form.map(MdFormCatalog.FormMeta::nameKey)
+                                            .orElse(null)),
                             i.action(),
                             i.actionName(),
                             rights.map(named -> named.actionKeys().get(i.action()))
-                                    .orElse(null),
+                                    .orElseGet(() -> form.map(
+                                                    named -> named.actionKeys().get(i.action()))
+                                            .orElse(null)),
                             i.isDeprecated());
                 })
                 .toList();
@@ -108,12 +113,12 @@ public class MdPermissionService {
             permissionRepository.registerForm(
                     formCode,
                     rights.map(EntityRights::module).orElseGet(() -> MdFormCatalog.moduleOf(formCode)),
-                    rights.map(named -> russian(named.nameKey())).orElseGet(() -> MdFormCatalog.formNameOf(formCode)));
+                    russian(rights.map(EntityRights::nameKey).orElseGet(() -> MdFormCatalog.formNameKeyOf(formCode))));
             permissionRepository.registerFormAction(
                     formCode,
                     action,
-                    rights.map(named -> russian(named.actionKeys().get(action)))
-                            .orElseGet(() -> MdFormCatalog.actionNameOf(formCode, action)));
+                    russian(rights.map(named -> named.actionKeys().get(action))
+                            .orElseGet(() -> MdFormCatalog.actionNameKeyOf(formCode, action))));
         }
 
         int deprecated = permissionRepository.deprecateMissing(declaredPairs);

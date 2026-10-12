@@ -216,7 +216,8 @@ class IdempotencyFilterTest {
                 .complete(
                         eq(key),
                         eq(token),
-                        eq(new IdempotencyRepository.StoredAnswer(201, "{\"id\":10}", "/api/v1/tasks/10", null, null)));
+                        eq(new IdempotencyRepository.StoredAnswer(
+                                201, "{\"id\":10}", "/api/v1/tasks/10", null, null, "{}")));
     }
 
     @Test
@@ -238,7 +239,8 @@ class IdempotencyFilterTest {
                 IdempotencyRepository.State.COMPLETED,
                 Instant.now(),
                 null,
-                null);
+                null,
+                "{}");
 
         when(idempotencyService.computeRequestHash(anyString(), anyString(), any(), any()))
                 .thenReturn("hash123");
