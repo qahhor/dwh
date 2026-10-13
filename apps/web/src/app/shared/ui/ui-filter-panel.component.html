@@ -25,6 +25,7 @@
           class="filter-row"
           [class.filter-row--invalid]="error"
           data-testid="filter-row"
+          (focusout)="leaveRow(i, $event)"
           [attr.aria-describedby]="error ? rowId(i) + '-error' : null"
         >
           <legend class="filter-legend">{{ 'ui.filter.condition_n' | t: { n: i + 1 } }}</legend>

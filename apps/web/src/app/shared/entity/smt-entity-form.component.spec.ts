@@ -85,6 +85,94 @@ describe('SMTEntityFormComponent', () => {
     ).not.toBeNull();
   });
 
+  it('checks an empty field only after leaving it and removes the error while correcting it', async () => {
+    const { fixture, root } = await render((host) => host.values.update((value) => ({ ...value, title: '' })));
+    const title = root.querySelector('[data-field="title"] input') as HTMLInputElement;
+    const field = root.querySelector('[data-field="title"]') as HTMLElement;
+    expect(field.textContent).not.toContain(translateTest('ui.entity_form.required'));
+
+    title.focus();
+    title.blur();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(field.textContent).toContain(translateTest('ui.entity_form.required'));
+    expect(title.getAttribute('aria-invalid')).toBe('true');
+
+    title.value = 'Corrected';
+    title.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(field.textContent).not.toContain(translateTest('ui.entity_form.required'));
+    expect(title.getAttribute('aria-invalid')).not.toBe('true');
+  });
+
+  it('clears only the changed field server error and keeps an unknown error in the summary', async () => {
+    const { fixture, root, host } = await render((host) =>
+      host.problems.set({ title: 'Server title problem', color: 'Server color problem', hidden: 'Unknown problem' }),
+    );
+    const title = root.querySelector('[data-field="title"] input') as HTMLInputElement;
+    title.value = 'Corrected';
+    title.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(root.querySelector('[data-field="title"]')?.textContent).not.toContain('Server title problem');
+    expect(root.querySelector('[data-field="color"]')?.textContent).toContain('Server color problem');
+    expect(root.querySelector('[data-testid="form-error-summary"]')?.textContent).toContain('Unknown problem');
+
+    host.problems.set({ title: 'New server problem' });
+    fixture.detectChanges();
+    expect(root.querySelector('[data-field="title"]')?.textContent).toContain('New server problem');
+  });
+
+  it('waits until focus leaves a composite field before checking its value', async () => {
+    const { fixture, root } = await render((host) => {
+      host.meta.set({
+        ...NOTES_FORM_META,
+        fields: [formField('total', 'money', { required: true, currencies: ['UZS', 'USD'] })],
+        layout: [{ key: 'main', labelKey: 'entity.section.main', fields: ['total'] }],
+      });
+      host.values.set({ total: null });
+    });
+    const field = root.querySelector('[data-field="total"]') as HTMLElement;
+    const amount = field.querySelector('input') as HTMLInputElement;
+    const currency = field.querySelector('[role="combobox"]') as HTMLElement;
+    amount.focus();
+    currency.focus();
+    fixture.detectChanges();
+    expect(field.textContent).not.toContain(translateTest('ui.entity_form.required'));
+
+    currency.blur();
+    fixture.detectChanges();
+    expect(field.textContent).toContain(translateTest('ui.entity_form.required'));
+  });
+
+  it('rechecks type rules and removes client errors when a touched field becomes hidden or read-only', async () => {
+    const { fixture, root, host } = await render((host) => {
+      host.meta.set({
+        ...NOTES_FORM_META,
+        fields: [formField('site', 'url', { required: true })],
+        layout: [{ key: 'main', labelKey: 'entity.section.main', fields: ['site'] }],
+      });
+      host.values.set({ site: 'invalid' });
+    });
+    const site = root.querySelector('input') as HTMLInputElement;
+    site.focus();
+    site.blur();
+    fixture.detectChanges();
+    expect(root.textContent).toContain(translateTest('ui.entity_form.invalid'));
+
+    for (const restriction of [
+      { readonly: true },
+      { visibleWhen: [{ field: 'show', op: 'eq' as const, values: ['yes'] }] },
+    ]) {
+      host.meta.update((meta) => ({ ...meta, fields: meta.fields.map((field) => ({ ...field, ...restriction })) }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(root.textContent).not.toContain(translateTest('ui.entity_form.invalid'));
+    }
+  });
+
   it('adds custom fields in their own section, named by their own label', async () => {
     const { root } = await render((host) => {
       host.meta.set(

@@ -2,18 +2,19 @@
 
 **Версия:** 1.0
 
-**Обновлено:** 2026-10-07
+**Обновлено:** 2026-10-12
 
-**Алерты:** `SmartupcmsApiErrorBudgetBurnFast`, `SmartupcmsApiLatencyP99High`
+**Алерты:** `SmartupcmsApiErrorBudgetBurnFast`, `SmartupcmsApiLatencyP99High`, `SmartupcmsUploadLatencyP99High`
 (critical); `SmartupcmsApiErrorBudgetBurnSlow`, `SmartupcmsApiLatencyP95High`,
-`SmartupcmsEntityRuntimeLatencyHigh` (warning) — [SLO и алерты](../ops/slo.md).
+`SmartupcmsEntityRuntimeLatencyHigh`, `SmartupcmsUploadLatencyP95High` (warning) — [SLO и алерты](../ops/slo.md).
 
 ## Сигнал и цель
 
 - Сгорание бюджета: доля ответов 5xx на `/api/…` выше 14.4× (за 1 ч и 5 мин)
   или 6× (за 6 ч и 30 мин) от бюджета 0.1 % (SLO доступности 99.9 %).
 - Задержка: p95 API или entity runtime выше 300 мс, p99 API выше 1 с 15 мин
-  (пороги по умолчанию, `NFR-PERF-02`).
+  (`NFR-PERF-02`). Для `POST /api/v1/files/upload` отдельные пороги:
+  p95 > 30 с / p99 > 60 с в течение 15 мин; ошибки upload входят в бюджет API.
 
 Цель — найти маршрут и причину, остановить расход бюджета.
 
@@ -34,6 +35,8 @@
    ([RB-07](RB-07-database-pool-and-disk.md)); JVM heap и CPU на обзорном.
 4. Зависимости: pg-dwh, Typesense, ClamAV, S3 (`smc_storage_operation_seconds`,
    `smc_file_scanner_seconds`) — их отказ деградирует одну функцию.
+   При upload-алерте сопоставьте scanner/R2 duration, 20 одновременных запросов,
+   временные диски и задержку edge; не расширяйте исключение на остальные URI.
 5. Для entity runtime: какая сущность (`uri` с `{code}` не различает коды —
    смотрите журнал), тяжёлые фильтры и сортировки без индекса.
 

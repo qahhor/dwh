@@ -95,7 +95,7 @@ class EntityGateModulesTest {
         assertThatThrownBy(() -> new EntityGate(registry, installed, withoutTasks))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("ms.task_types")
-                .hasMessageContaining("area tasks")
+                .hasMessageContaining("form tasks.types")
                 .hasMessageNotContaining("ms.notes");
     }
 

@@ -1,8 +1,14 @@
 package com.smartup24.cms.instance.ms.notify.sse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
 import com.smartup24.cms.instance.config.cache.CacheInvalidations;
+import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
+import com.smartup24.cms.instance.md.service.MdPermissionService;
+import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationRepository;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -19,6 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -48,6 +55,18 @@ class MsSseClusterIntegrationTest extends EmbeddedPostgresTest {
 
     @Autowired
     private JdbcClient jdbc;
+
+    @Autowired
+    private MsSseAccess access;
+
+    @Autowired
+    private KauthSessionRepository sessions;
+
+    @Autowired
+    private MdUserService users;
+
+    @Autowired
+    private MdPermissionService permissions;
 
     private CacheInvalidations secondNode;
     private RecordingRegistry secondStreams;
@@ -127,6 +146,61 @@ class MsSseClusterIntegrationTest extends EmbeddedPostgresTest {
         assertThat(secondStreams.sent).isEmpty();
     }
 
+    @Test
+    void theOtherNodeStopsSendingAfterSessionRevocationWithoutARevocationNotice() throws Exception {
+        user = jdbc.sql("insert into md_users(name, login, email) values (:name, :name, :name) returning id")
+                .param("name", source)
+                .query(Long.class)
+                .single();
+        jdbc.sql("insert into md_user_permissions(user_id, form_code, action) values (:user, 'notify.inbox', 'view')")
+                .param("user", user)
+                .update();
+        permissions.recalculateEffectivePermissions(user);
+        var identity = users.getUserIdentity(user);
+        var session = sessions.create(
+                user,
+                identity.authenticationVersion(),
+                UUID.randomUUID().toString(),
+                "127.0.0.1",
+                "cluster-test",
+                "web");
+        var streams = new MsSseRegistry(60_000, 5, access);
+        var publisher = new MsSsePublisher(streams, secondNode, repository);
+        var mvc = MockMvcBuilders.standaloneSetup(new MsSseController(streams)).build();
+        SecurityContext.setPrincipal(new KauthPrincipal(
+                user,
+                identity.login(),
+                identity.email(),
+                session.id(),
+                false,
+                permissions.getEffectivePermissions(user),
+                permissions.getPermissionVersion(user),
+                false,
+                identity.authenticationVersion(),
+                null));
+        org.springframework.test.web.servlet.MvcResult response;
+        try {
+            response = mvc.perform(get("/api/v1/events")).andReturn();
+        } finally {
+            SecurityContext.clear();
+        }
+        transactions.executeWithoutResult(status ->
+                notifications.sendInAppNotification(user, "info", "before-revoke", "visible-body", null, source));
+        awaitTrue(
+                () -> new String(
+                                response.getResponse().getContentAsByteArray(), java.nio.charset.StandardCharsets.UTF_8)
+                        .contains("before-revoke"),
+                WITHIN);
+        sessions.close(session.id());
+
+        transactions.executeWithoutResult(status ->
+                notifications.sendInAppNotification(user, "info", "after-revoke", "private-body", null, source));
+
+        awaitTrue(() -> streams.openConnectionCount() == 0, WITHIN);
+        assertThat(response.getResponse().getContentAsString()).doesNotContain("after-revoke", "private-body");
+        publisher.heartbeat();
+    }
+
     /** The streams of the second node: who is online there and what it pushed. */
     static final class RecordingRegistry extends MsSseRegistry {
 
@@ -134,7 +208,7 @@ class MsSseClusterIntegrationTest extends EmbeddedPostgresTest {
         volatile Long online;
 
         RecordingRegistry() {
-            super(60_000, 5);
+            super(60_000, 5, org.mockito.Mockito.mock(MsSseAccess.class));
         }
 
         @Override

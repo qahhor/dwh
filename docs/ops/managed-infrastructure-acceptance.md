@@ -138,6 +138,35 @@ Hikari pending, heap, minimum disk, temporary-space growth, scanner p95, R2 p95,
 and orphan-object thresholds from the independently captured monitoring window.
 A threshold failure exits non-zero and cannot emit a passing manifest.
 
+The approved staging values and resource limits are in
+[the installation annex](staging-acceptance.md) and
+`deploy/staging/.env.acceptance.example`. The generator is capped at 3 CPUs,
+8 GiB RAM with no additional swap. API thresholds remain 300/1000 ms;
+`ACCEPTANCE_MAX_UPLOAD_P95_MS=30000` and `ACCEPTANCE_MAX_UPLOAD_P99_MS=60000`
+apply only to the upload profile. Both pairs are required, may be tightened,
+and cannot be raised beyond the approved values. Upload requires 20/20 HTTP
+201 responses with zero request/check failures. Server-side upload errors
+remain part of API availability; this latency split does not exempt failures.
+
+Граничные значения p95/p99 и доли ошибок включены в допустимый диапазон;
+нулевой бюджет ошибок допускает только успешные запросы и проверки.
+Окно мониторинга сравнивается в UTC без преобразования через локальный
+формат даты. Метрики должны быть конечными числами: null, пустые строки,
+NaN, бесконечность и boolean отклоняются. Отрицательное значение допустимо
+только для `tempGrowthMiB`, если временные файлы уменьшились.
+
+Локальная регрессия приёмочного инструмента доступна без staging:
+
+```powershell
+./scripts/acceptance/test-capacity-runner.ps1
+```
+
+Она подменяет выполнение нагрузки, вызывает настоящий runner и проверяет
+наличие либо отсутствие PASS-манифеста. Границы порогов дополнительно
+проверяет настоящий закреплённый k6 в контейнере без сети. Тестовые токены
+создаются в игнорируемом `.local/` и удаляются вместе с данными проверки.
+Этот тест входит в CI и не является измерением ёмкости установки.
+
 ## 4. Degraded dependency drills
 
 `run-failure-scenario.ps1` is staging-only and requires the explicit
@@ -198,6 +227,7 @@ $env:RESTORE_AWS_ACCESS_KEY_ID = '<drill-bucket-key>'
 $env:RESTORE_AWS_SECRET_ACCESS_KEY = '<drill-bucket-secret>'
 ./scripts/prod/restore-combined.ps1 `
   -DatabaseBackupFile D:/secure-backup/smartupcms-....dump.age `
+  -DwhBackupFile D:/secure-backup/smartupcms_dwh-....dump.age `
   -ObjectBackupFile D:/secure-backup/smartupcms-objects-....tar.age `
   -AgeIdentityFile D:/offline/backup-age-identity.txt `
   -IsolatedProjectName smartupcms-restore-v1-2-3 `
@@ -209,8 +239,10 @@ $env:RESTORE_AWS_SECRET_ACCESS_KEY = '<drill-bucket-secret>'
   -MaxRtoSeconds '<approved-RTO-seconds>'
 ```
 
-Before creating the isolated PostgreSQL container, the command verifies both
-encrypted checksums, decrypts both artifacts, validates `pg_restore --list`,
+Use CMS, DWH and object archives from the same consistent recovery set. Omitting
+`-DwhBackupFile` is only a partial drill and cannot satisfy production acceptance.
+Before creating the isolated PostgreSQL container, the command verifies the
+encrypted checksums, decrypts all three artifacts, validates `pg_restore --list`,
 rejects unsafe tar paths, and verifies every object size/hash. It then compares
 distinct `mf_files` physical keys with the object inventory, rejects missing or
 orphan objects, verifies sampled downloads, and records row counts, RPO, and
@@ -234,6 +266,11 @@ authenticated `gh` plus `cosign` installed:
 
 This independently verifies `SHA256SUMS`, six digest-addressed images, Cosign
 OIDC signatures, GitHub provenance attestations, and SPDX/CycloneDX documents.
+Требуется полный комплект assets: оба архива (`.tar.gz` и `.zip`) и по четыре
+файла метаданных каждого из шести образов. Каждый файл должен иметь единственную
+запись в `SHA256SUMS`; пустой или неполный список отклоняется. Повторный запуск
+удаляет прежнее свидетельство `PASS` этой версии до проверки: после ошибки
+его нельзя использовать как актуальное подтверждение.
 Deploy only the verified digests. Finish the production launch checklist with
 links to preflight, capacity, failure, alert, release-integrity, rollback, and
 combined-restore evidence. Missing evidence is `UNVERIFIED` and the final record

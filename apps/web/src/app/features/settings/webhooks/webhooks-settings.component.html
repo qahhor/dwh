@@ -150,6 +150,7 @@
         novalidate
         (submit)="$event.preventDefault(); submitCreate()"
       >
+        <ui-form-error-summary [errors]="errorSummary()" />
         <smt-control
           class="form-row"
           [smtLabel]="'settings.webhooks.name' | t"
@@ -160,6 +161,7 @@
             smtFocusInitial
             [placeholder]="'settings.webhooks.name_placeholder' | t"
             [formField]="createForm.name"
+            (valueChange)="clearServerError('name')"
           />
         </smt-control>
 
@@ -174,6 +176,7 @@
             type="url"
             [placeholder]="'settings.webhooks.url_placeholder' | t"
             [formField]="createForm.targetUrl"
+            (valueChange)="clearServerError('targetUrl')"
           />
         </smt-control>
 
@@ -184,7 +187,7 @@
           [smtError]="eventsError()"
           [required]="true"
         >
-          <div class="events-grid" role="group">
+          <div class="events-grid" role="group" id="webhook-events" tabindex="-1">
             @for (opt of availableEvents(); track opt.code) {
               <div
                 smt-checkbox

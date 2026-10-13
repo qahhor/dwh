@@ -62,7 +62,7 @@ const CRM: InstalledModule = {
 
 describe('AppShellNavService', () => {
   const canView = vi.fn((_form: string) => true);
-  const activeCodes = signal(new Set(['notes', 'upl']));
+  const activeCodes = signal(new Set(['tasks', 'notes', 'upl']));
   const customModules = signal<InstalledModule[]>([]);
   const activeItems = signal<CustomNavigationItem[]>([]);
   let url = '/';
@@ -72,7 +72,7 @@ describe('AppShellNavService', () => {
     localStorage.removeItem(COLLAPSED_STATE_KEY);
     localStorage.removeItem(COLLAPSED_SECTIONS_KEY);
     canView.mockImplementation(() => true);
-    activeCodes.set(new Set(['notes', 'upl']));
+    activeCodes.set(new Set(['tasks', 'notes', 'upl']));
     customModules.set([]);
     activeItems.set([]);
     url = '/';
@@ -123,6 +123,17 @@ describe('AppShellNavService', () => {
     nav()
       .navSections()
       .flatMap((candidate) => candidate.items);
+
+  it('hides task navigation when tasks is disabled while preserving core analytics and administration', () => {
+    activeCodes.set(new Set());
+    expect(nav().canViewTasks()).toBe(false);
+    expect(nav().canViewProjects()).toBe(false);
+    expect(nav().canViewAnalytics()).toBe(true);
+    expect(nav().canViewSettings()).toBe(true);
+    activeCodes.set(new Set(['tasks']));
+    expect(nav().canViewTasks()).toBe(true);
+    expect(nav().canViewProjects()).toBe(true);
+  });
 
   it('declares the workspace, team and administration sections with their items in order', () => {
     expect(

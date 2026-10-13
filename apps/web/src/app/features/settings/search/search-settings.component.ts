@@ -29,7 +29,7 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
-import { formatBytes, formatJobError } from './search-settings.models';
+import { formatBytes, formatJobError, searchFieldError } from './search-settings.models';
 import { SearchSettingsStore } from './search-settings.store';
 
 @Component({
@@ -72,6 +72,7 @@ export class SearchSettingsComponent implements OnInit {
   readonly previewQuery = signal('');
   /** "Enter a query", after a preview was asked without one; typing clears it. */
   readonly previewQueryError = signal('');
+  private readonly touchedPolicy = signal<ReadonlySet<string>>(new Set());
 
   readonly generationsConfig = computed<TableConfig<SearchGenerationStatus>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -157,9 +158,21 @@ export class SearchSettingsComponent implements OnInit {
     queue: (g: SearchGenerationStatus) => g.pendingDeliveries,
   };
 
-  /** A policy rule's error under its field once a save was tried (forms standard, section 4). */
+  /** Show feedback after the field is left, or after an explicit save attempt. */
   policyError(key: string): string {
-    return this.store.saveAttempted() && this.store.policyErrors().includes(key) ? this.i18n.translate(key) : '';
+    return (this.store.saveAttempted() || this.touchedPolicy().has(key)) && this.store.policyErrors().includes(key)
+      ? this.i18n.translate(key)
+      : '';
+  }
+
+  touchPolicy(key: string): void {
+    this.touchedPolicy.update((keys) => new Set([...keys, key]));
+  }
+
+  fieldError(entity: SearchEntityType, field: SearchFieldPolicy, part: 'weight' | 'numTypos'): string {
+    if (!this.store.saveAttempted() && !this.touchedPolicy().has(entity + '.' + field.field + '.' + part)) return '';
+    const key = searchFieldError(field, part);
+    return key ? this.i18n.translate(key) : '';
   }
 
   setPreviewQuery(query: string): void {

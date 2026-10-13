@@ -66,8 +66,8 @@ class WebhookTargetPolicyTest {
         var properties = properties(true, Set.of("internal-hook.example"), true);
         var policy = new WebhookTargetPolicy(properties, host -> List.of(InetAddress.getByName("10.20.30.40")));
 
-        assertThat(policy.validate("http://internal-hook.example:8080/events").toString())
-                .isEqualTo("http://internal-hook.example:8080/events");
+        assertThat(policy.validate("https://internal-hook.example:8080/events").toString())
+                .isEqualTo("https://internal-hook.example:8080/events");
     }
 
     @Test

@@ -135,10 +135,21 @@ export class SMTModalService {
       data,
     });
 
-    return dialogRef.closed.pipe(
-      take(1),
-      map((result) => this.resolveConfirmResult(result, { cancelLabel, onConfirm, onDecline, onCancel })),
-    );
+    return new Observable<boolean>((subscriber) => {
+      const answer = dialogRef.closed
+        .pipe(
+          take(1),
+          map((result) => this.resolveConfirmResult(result, { cancelLabel, onConfirm, onDecline, onCancel })),
+        )
+        .subscribe(subscriber);
+      const cancellation = config.closeWhen
+        ?.pipe(take(1), takeUntil(dialogRef.closed))
+        .subscribe(() => dialogRef.close());
+      return () => {
+        answer.unsubscribe();
+        cancellation?.unsubscribe();
+      };
+    });
   }
 
   private keepFocusReturn(dialogRef: DialogRef<unknown, unknown>): void {

@@ -249,6 +249,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
 
       - name: Validate unified architecture boundary
         shell: pwsh
@@ -276,9 +278,30 @@ jobs:
         shell: pwsh
         run: ./scripts/release/verify-release.ps1
 
+      - name: Validate published release verification failures
+        shell: pwsh
+        run: ./scripts/release/test-published-release.ps1
+
+      - name: Exercise release artifact gates
+        shell: pwsh
+        run: ./scripts/release/test-release-gates.ps1
+
       - name: Validate production Compose, proxy and scripts
         shell: pwsh
         run: ./scripts/prod/test-release-config.ps1
+
+      - name: Validate production credential and recovery failure paths
+        shell: bash
+        run: |
+          node --test scripts/prod/database-credentials.test.mjs scripts/prod/backup-control.test.mjs
+          python3 -m unittest discover -s scripts/prod -p 'test_*.py'
+
+      - name: Validate pinned Ansible controller syntax
+        shell: bash
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/smartupcms-ansible"
+          "${RUNNER_TEMP}/smartupcms-ansible/bin/pip" install -r deploy/ansible/requirements-controller.txt
+          "${RUNNER_TEMP}/smartupcms-ansible/bin/ansible-playbook" --syntax-check -i deploy/ansible/inventory.example.yml deploy/ansible/deploy.yml
 
       - name: Validate encrypted backup status contract
         shell: pwsh
@@ -287,6 +310,16 @@ jobs:
       - name: Validate managed infrastructure acceptance contract
         shell: pwsh
         run: ./scripts/acceptance/test-managed-acceptance.ps1
+
+      - name: Validate approved staging configuration
+        shell: pwsh
+        run: |
+          ./scripts/acceptance/test-staging-config.ps1
+          ./scripts/acceptance/test-staging-edge.ps1
+
+      - name: Validate capacity evidence and threshold boundaries
+        shell: pwsh
+        run: ./scripts/acceptance/test-capacity-runner.ps1
 
       - name: Verify backup failure blocks migrations
         run: bash scripts/prod/test-deploy-fail-closed.sh

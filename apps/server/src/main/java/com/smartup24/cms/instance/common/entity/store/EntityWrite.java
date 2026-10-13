@@ -124,8 +124,9 @@ public record EntityWrite(
     }
 
     /** A reference by its key, or by a code for a column that keeps codes. */
-    private static Object refKey(String text) {
-        return text.chars().allMatch(Character::isDigit) && !text.isEmpty() ? (Object) Long.valueOf(text) : text;
+    private static @Nullable Object refKey(String text) {
+        if (text.isEmpty()) return null;
+        return text.chars().allMatch(Character::isDigit) ? (Object) Long.valueOf(text) : text;
     }
 
     private static @Nullable BigDecimal decimal(@Nullable Object value) {

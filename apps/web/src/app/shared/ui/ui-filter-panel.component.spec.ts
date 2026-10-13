@@ -107,6 +107,32 @@ function type(input: HTMLElement, value: string) {
 }
 
 describe('ui-filter-panel', () => {
+  it('checks only the condition left, keeps internal focus untouched and clears corrected errors', async () => {
+    const { fixture, close } = await render();
+    button(fixture, 'filter-add').click();
+    button(fixture, 'filter-add').click();
+    fixture.detectChanges();
+    const rows = all(fixture, 'filter-row');
+    const values = all(fixture, 'filter-value');
+    const field = rows[0].querySelector('button')!;
+    values[0].dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: field }));
+    fixture.detectChanges();
+    expect(all(fixture, 'filter-error')).toHaveLength(0);
+    values[0].dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: values[1] }));
+    fixture.detectChanges();
+    expect(rows[0].querySelector('[data-testid="filter-error"]')?.textContent).toContain(
+      PACKAGED_RUSSIAN['ui.filter.err.required'],
+    );
+    expect(rows[1].querySelector('[data-testid="filter-error"]')).toBeNull();
+    type(values[0], 'Corrected');
+    fixture.detectChanges();
+    expect(all(fixture, 'filter-error')).toHaveLength(0);
+    button(fixture, 'filter-apply').click();
+    fixture.detectChanges();
+    expect(close).not.toHaveBeenCalled();
+    expect(rows[1].querySelector('[data-testid="filter-error"]')).not.toBeNull();
+  });
+
   it('builds rows of labelled field, condition and value controls inside numbered fieldsets', async () => {
     const { fixture } = await render();
     expect(all(fixture, 'filter-empty')).toHaveLength(1);

@@ -1,17 +1,20 @@
 import { signal } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
+import { DiscardChangesQuestion } from '@shared/ui/discard-changes';
 
-/** Shared local discard decision; the host owns its modal and pending/dirty state. */
+/** A cancellable draft decision using the common question; the host owns pending/dirty state. */
 export class OrgUnitDraft {
   readonly open = signal(false);
   private readonly navigation = new RecordNavigationDecision();
+  private readonly closeQuestion = new Subject<void>();
   private action: (() => void) | null = null;
 
   constructor(
     private readonly dirty: () => boolean,
     private readonly pending: () => boolean,
     private readonly clear: () => void,
+    private readonly ask: DiscardChangesQuestion,
   ) {}
 
   request(action: () => void): void {
@@ -22,7 +25,7 @@ export class OrgUnitDraft {
       return;
     }
     this.action = action;
-    this.open.set(true);
+    this.show();
   }
   canLeave(): boolean | Observable<boolean> {
     if (this.pending()) return false;
@@ -32,22 +35,37 @@ export class OrgUnitDraft {
     }
     this.cancel();
     return this.navigation.request(
-      () => this.open.set(true),
-      () => this.open.set(false),
+      () => this.show(),
+      () => this.hide(),
     );
   }
   confirm(): void {
     if (!this.open() || this.pending()) return;
     const action = this.action;
     this.action = null;
-    this.open.set(false);
+    this.hide();
     this.clear();
     this.navigation.settle(true);
     action?.();
   }
   cancel(): void {
     this.action = null;
-    this.open.set(false);
+    this.hide();
     this.navigation.settle(false);
+  }
+
+  private show(): void {
+    this.open.set(true);
+    this.ask(true, this.closeQuestion).subscribe((accepted) => {
+      if (this.open()) {
+        if (accepted) this.confirm();
+        else this.cancel();
+      }
+    });
+  }
+
+  private hide(): void {
+    this.open.set(false);
+    this.closeQuestion.next();
   }
 }

@@ -8,6 +8,7 @@ import {
   Injector,
   OnInit,
   input,
+  linkedSignal,
   output,
   signal,
 } from '@angular/core';
@@ -89,14 +90,22 @@ export class OrgUnitEditorComponent implements OnInit {
   readonly impactOpen = signal(false);
   private readonly editingState = signal(false);
 
+  private readonly editedFields = linkedSignal({ source: this.error, computation: () => new Set<string>() });
+
   /** The server's field messages of the last refused save. */
-  readonly serverErrors = computed(() => problemFieldErrors(this.error(), { known: FIELDS }));
+  readonly serverErrors = computed(() => {
+    const errors = problemFieldErrors(this.error(), { known: FIELDS });
+    return {
+      ...errors,
+      fields: Object.fromEntries(Object.entries(errors.fields).filter(([field]) => !this.editedFields().has(field))),
+    };
+  });
 
   /** A refusal of no field: its text above the fields. */
   readonly formError = computed(() => {
     const error = this.error();
     if (!error) return '';
-    const { fields, other } = this.serverErrors();
+    const { fields, other } = problemFieldErrors(error, { known: FIELDS });
     if (Object.keys(fields).length > 0) return other.join(' ');
     return error.detail || this.i18n.translate('iam.org_units.save_error');
   });
@@ -140,7 +149,7 @@ export class OrgUnitEditorComponent implements OnInit {
   constructor() {
     // A refused save marks fields invalid from the server's answer: focus goes to the first of them.
     effect(() => {
-      if (Object.keys(this.serverErrors().fields).length > 0) {
+      if (Object.keys(problemFieldErrors(this.error(), { known: FIELDS }).fields).length > 0) {
         focusFirstInvalid(this.host.nativeElement, this.injector);
       }
     });
@@ -165,6 +174,10 @@ export class OrgUnitEditorComponent implements OnInit {
       { id: 'P', label: this.i18n.translate('iam.org_units.passive') },
     ]);
   }
+  edited(field: string): void {
+    this.editedFields.update((fields) => new Set([...fields, field]));
+  }
+
   serverError(field: string): string {
     return this.serverErrors().fields[field] ?? '';
   }

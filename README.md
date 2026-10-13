@@ -30,8 +30,8 @@ node tools/cms-cli/bin/cms.mjs module new inventory --title "Склад" --title
 node tools/cms-cli/bin/cms.mjs entity new inventory items --title "Товары" --title-en Items --hooks
 node tools/cms-cli/bin/cms.mjs entity add-field inventory.items price --type money --currencies UZS,USD
 
-V196__inventory_items_table.sql    the table: revision, archive, attributes, indexes
-V197__inventory_items_rights.sql   the right, role grants, the module registry
+V<next>__inventory_items_table.sql    the table: revision, archive, attributes, indexes
+V<next+1>__inventory_items_rights.sql  the right, role grants, the module registry
 InventoryItemsEntity.java          the declaration: fields, rules, scope, rights, menu, capabilities
 InventoryItemsHooks.java           what the declaration cannot say (optional)
 InventoryItemsContractTest.java    the entity contract kit, one subclass
@@ -78,10 +78,10 @@ SmartupCMS is a modular monolith with separately deployable runtime containers:
 
 ```mermaid
 flowchart LR
-  subgraph Module["Your module: five files"]
-    D["EntityDefinition + EntityRecords"]
-    Q["QueryList"]
-    S["Service, Repository, Controller"]
+  subgraph Module["Your module"]
+    D["Entity declaration"]
+    H["Optional hooks"]
+    M["Migrations, translations, contract test"]
   end
   subgraph Platform["Platform"]
     FM["form-meta and validation"]
@@ -96,7 +96,9 @@ flowchart LR
   D --> FM
   D --> CAP
   D --> NAV
-  Q --> QM
+  D --> QM
+  H --> CAP
+  M --> D
   FM --> F
   QM --> T
 ```

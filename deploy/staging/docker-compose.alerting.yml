@@ -1,0 +1,76 @@
+# Add to docker-compose.ops.yml on the independent ops host.
+services:
+  prometheus:
+    deploy:
+      resources:
+        limits: {cpus: "0.25", memory: 1536M}
+  recovery-metrics:
+    image: prom/node-exporter:v1.12.1@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0
+    restart: unless-stopped
+    user: "65534:65534"
+    command:
+      - --collector.disable-defaults
+      - --collector.textfile
+      - --collector.textfile.directory=/textfile
+    volumes:
+      - type: bind
+        source: ${STAGING_OPS_METRICS_DIR:-/var/lib/smartupcms/metrics}
+        target: /textfile
+        read_only: true
+        bind: {create_host_path: false}
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    deploy:
+      resources:
+        limits: {cpus: "0.05", memory: 64M}
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "3"}
+  alertmanager:
+    image: prom/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a
+    restart: unless-stopped
+    user: "65534:65534"
+    command: [--config.file=/etc/alertmanager/config.yml, --storage.path=/alertmanager, --cluster.listen-address=]
+    volumes:
+      - type: bind
+        source: ${STAGING_ALERTMANAGER_CONFIG:?Prepared Alertmanager config is required}
+        target: /etc/alertmanager/config.yml
+        read_only: true
+        bind: {create_host_path: false}
+      - alertmanager-data:/alertmanager
+    secrets: [alert_webhook_url]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    deploy:
+      resources:
+        limits: {cpus: "0.1", memory: 256M}
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "3"}
+  blackbox:
+    image: prom/blackbox-exporter:v0.29.0@sha256:9613f2884689b6fad9f1939f6a3b0388c93a022cfaededb19545b329b5c83dea
+    restart: unless-stopped
+    user: "65534:65534"
+    command: [--config.file=/etc/blackbox/config.yml]
+    volumes:
+      - type: bind
+        source: ${STAGING_BLACKBOX_CONFIG:?Prepared blackbox config is required}
+        target: /etc/blackbox/config.yml
+        read_only: true
+        bind: {create_host_path: false}
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    deploy:
+      resources:
+        limits: {cpus: "0.1", memory: 128M}
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "3"}
+volumes:
+  alertmanager-data:
+secrets:
+  alert_webhook_url:
+    file: ${STAGING_ALERT_WEBHOOK_URL_FILE:?Private receiver URL file is required}

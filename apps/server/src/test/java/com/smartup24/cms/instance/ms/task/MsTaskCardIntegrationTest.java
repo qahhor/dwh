@@ -15,7 +15,6 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
-import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
@@ -33,6 +32,7 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskAccess;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskMemberService;
+import com.smartup24.cms.instance.support.TestModules;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -106,7 +106,7 @@ class MsTaskCardIntegrationTest {
                         new MsTaskCommentRepository(jdbc), access, members, mock(MfFileService.class), events, audit),
                 transactions);
         mvc = MockMvcBuilders.standaloneSetup(new MsTaskController(members), new MsTaskCommentController(comments))
-                .addInterceptors(new RequiresPermissionInterceptor())
+                .addInterceptors(TestModules.permissions())
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }

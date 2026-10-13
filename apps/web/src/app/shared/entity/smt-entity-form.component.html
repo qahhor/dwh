@@ -11,7 +11,12 @@
     <div class="entity-section-grid">
       @for (field of drawn.fields; track field.meta.key) {
         @if (shown(field.meta)) {
-          <div class="entity-field" [class.entity-field--wide]="isWide(field.meta)" [attr.data-field]="field.meta.key">
+          <div
+            class="entity-field"
+            [class.entity-field--wide]="isWide(field.meta)"
+            [attr.data-field]="field.meta.key"
+            (focusout)="feedback.leave(field.meta.key, $event)"
+          >
             @if (replacement(field.meta.key); as custom) {
               <ng-container *ngTemplateOutlet="custom; context: contextOf(field.meta)" />
             } @else if (controlOf(field.meta.key); as control) {

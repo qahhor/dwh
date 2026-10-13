@@ -30,11 +30,13 @@ export const routes: Routes = [
       },
       {
         matcher: projectRecordMatcher,
+        canActivate: [moduleActiveGuard('tasks')],
         canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/tasks/projects/projects.component').then((m) => m.ProjectsComponent),
       },
       {
         matcher: taskRecordMatcher,
+        canActivate: [moduleActiveGuard('tasks')],
         canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/tasks/tasks.component').then((m) => m.TasksComponent),
       },

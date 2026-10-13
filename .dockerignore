@@ -33,6 +33,12 @@ graphify-out
 **/out
 **/coverage
 **/.cache
+**/.local
+**/.tools
+**/__pycache__
+**/.venv
+**/.pytest_cache
+**/*.py[cod]
 **/tmp
 **/*.dump
 **/*.dump.age

@@ -299,10 +299,6 @@
 }
 
 @media (max-width: 1023px) {
-  .sidebar-slot {
-    width: 60px;
-  }
-
   .sidebar.collapsed:not(.hover-expanded) .brand-logo,
   .sidebar.collapsed:not(.hover-expanded) .nav-label,
   .sidebar.collapsed:not(.hover-expanded) .nav-section-title,
@@ -315,6 +311,7 @@
 @media (max-width: 767px) {
   .sidebar-slot {
     width: 0 !important;
+    z-index: 1200;
   }
 
   .mobile-drawer-backdrop {
@@ -348,6 +345,10 @@
   .sidebar.mobile-open .user-meta,
   .sidebar.mobile-open .unread-chip {
     display: flex !important;
+  }
+
+  .sidebar.mobile-open .user-meta {
+    flex-direction: column;
   }
 }
 

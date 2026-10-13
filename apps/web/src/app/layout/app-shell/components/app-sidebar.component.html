@@ -10,10 +10,12 @@
     #sidebarElement
     [id]="sidebarId()"
     class="sidebar"
-    [class.collapsed]="isCollapsed()"
+    [class.collapsed]="isCollapsed() && !isMobile()"
     [class.mobile-open]="isMobile() && isMobileMenuOpen()"
     [attr.role]="isMobile() && isMobileMenuOpen() ? 'dialog' : null"
     [attr.aria-modal]="isMobile() && isMobileMenuOpen() ? 'true' : null"
+    [attr.aria-label]="isMobile() && isMobileMenuOpen() ? ('layout.app_shell.main_navigation' | t) : null"
+    [cdkTrapFocus]="isMobile() && isMobileMenuOpen()"
     [attr.aria-hidden]="isMobile() && !isMobileMenuOpen() ? 'true' : null"
     [attr.inert]="isMobile() && !isMobileMenuOpen() ? true : null"
   >
@@ -65,7 +67,7 @@
       <!-- Collapsed Mode: Categories Rail (Main Categories of the Menu) -->
       @if (isCollapsed() && !isMobileMenuOpen()) {
         <div class="rail-category-list">
-          @for (section of navSections(); track section) {
+          @for (section of navSections(); track section.id) {
             @if (hasVisibleItems()(section)) {
               <button
                 type="button"
@@ -73,8 +75,13 @@
                 [class.active]="isSectionActive()(section)"
                 [class.open]="isFlyoutVisible() && hoveredFlyoutSection()?.id === section.id"
                 [attr.aria-label]="section.titleKey | t"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="isFlyoutVisible() && hoveredFlyoutSection()?.id === section.id"
+                [attr.aria-controls]="
+                  isFlyoutVisible() && hoveredFlyoutSection()?.id === section.id ? 'rail-section-menu' : null
+                "
                 [attr.title]="section.titleKey | t"
-                (click)="categoryClick.emit({ section: section, event: $event })"
+                (click)="openCategory(section, $event)"
                 (mouseenter)="categoryMouseEnter.emit({ section: section, event: $event })"
                 (mouseleave)="categoryMouseLeave.emit()"
               >
@@ -143,10 +150,11 @@
     [isCollapsed]="isCollapsed()"
     [isMobile]="isMobile()"
     [isFlyoutVisible]="isFlyoutVisible()"
-    [hoveredFlyoutSection]="hoveredFlyoutSection()"
+    [hoveredFlyoutSection]="currentFlyoutSection()"
     [flyoutAnchorTop]="flyoutAnchorTop()"
     [isProfileFlyoutVisible]="isProfileFlyoutVisible()"
     [currentUser]="currentUser()"
+    [activeItemId]="activeItemId()"
     (flyoutMouseEnter)="flyoutMouseEnter.emit()"
     (flyoutMouseLeave)="flyoutMouseLeave.emit()"
     (flyoutItemClick)="flyoutItemClick.emit()"

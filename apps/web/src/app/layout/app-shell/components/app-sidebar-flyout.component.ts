@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, viewChild } from '@angular/core';
+import { CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '@core/services/i18n.service';
@@ -8,15 +9,19 @@ import { User } from '@core/models/auth.models';
 @Component({
   selector: 'app-sidebar-flyout',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterModule, TranslatePipe],
+  imports: [CdkMenu, CdkMenuItem, RouterModule, TranslatePipe],
   template: `
     <!-- Collapsed Rail Flyout Popover (Opens next to hovered/clicked category) -->
     @if (isCollapsed() && !isMobile() && isFlyoutVisible() && hoveredFlyoutSection(); as section) {
       <div
+        id="rail-section-menu"
+        cdkMenu
         class="rail-flyout-popover"
         [style.top.px]="flyoutAnchorTop()"
         (mouseenter)="flyoutMouseEnter.emit()"
-        (mouseleave)="flyoutMouseLeave.emit()"
+        (mouseleave)="leaveFlyout($event)"
+        (focusin)="flyoutMouseEnter.emit()"
+        (focusout)="leaveFlyout($event)"
         role="menu"
         [attr.aria-label]="section.titleKey | t"
       >
@@ -28,6 +33,7 @@ import { User } from '@core/models/auth.models';
             <!-- Internal link item -->
             @if (item.permission() && !item.children?.length && !item.external) {
               <a
+                cdkMenuItem
                 [routerLink]="item.route"
                 [class.active]="item.id === activeItemId()"
                 [attr.aria-current]="item.id === activeItemId() ? 'page' : null"
@@ -48,6 +54,7 @@ import { User } from '@core/models/auth.models';
             <!-- External link item -->
             @if (item.permission() && !item.children?.length && item.external) {
               <a
+                cdkMenuItem
                 [href]="item.targetUrl"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -74,6 +81,7 @@ import { User } from '@core/models/auth.models';
                   @for (child of item.children; track child) {
                     @if (child.permission()) {
                       <a
+                        cdkMenuItem
                         [routerLink]="child.route"
                         [class.active]="child.id === activeItemId()"
                         [attr.aria-current]="child.id === activeItemId() ? 'page' : null"
@@ -149,4 +157,16 @@ export class AppSidebarFlyoutComponent {
   readonly profileFlyoutMouseLeave = output<void>();
   readonly profileFlyoutClick = output<void>();
   readonly logout = output<void>();
+  private readonly menu = viewChild(CdkMenu);
+
+  focusFirstItem(): void {
+    this.menu()?.focusFirstItem('keyboard');
+  }
+
+  leaveFlyout(event: MouseEvent | FocusEvent): void {
+    const menu = event.currentTarget as HTMLElement;
+    const next = event instanceof FocusEvent ? event.relatedTarget : document.activeElement;
+    if (next instanceof Node && menu.contains(next)) return;
+    this.flyoutMouseLeave.emit();
+  }
 }

@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   HostListener,
   computed,
   signal,
@@ -9,14 +10,16 @@ import {
   linkedSignal,
   output,
 } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, tap } from 'rxjs';
 import { LanguageInfo, TranslationDictionary, TranslationEditor, TranslationEntry } from '@core/models/i18n.models';
 import { SettingsApi } from './settings.api';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
-import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
 import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
@@ -24,7 +27,14 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 @Component({
   selector: 'app-language-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTSwitchComponent, SMTInputComponent, SMTControlComponent, TranslatePipe],
+  imports: [
+    SMTSwitchComponent,
+    SMTInputComponent,
+    SMTControlComponent,
+    SMTButtonComponent,
+    UiFormActionsComponent,
+    TranslatePipe,
+  ],
   templateUrl: './language-editor.component.html',
   styleUrl: './language-editor.component.css',
 })
@@ -35,7 +45,7 @@ export class LanguageEditorComponent {
   private readonly toast = inject(ToastService);
 
   private readonly uiI18n = inject(I18nService);
-  private readonly modal = inject(SMTModalService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly languageCode = input.required<string>();
 
@@ -82,19 +92,15 @@ export class LanguageEditorComponent {
     });
   });
 
+  readonly canEdit = computed(() => this.permissionService.hasPermission('md.settings', 'update'));
+
+  private readonly askDiscard = discardChangesQuestion();
+
   /** Every arrival starts a clean draft. */
   private readonly editorResource = rxResource({
     params: this.languageCode,
     stream: ({ params }) => this.settingsApi.translations(params).pipe(tap((model) => this.resetDraft(model))),
   });
-
-  readonly canEdit: boolean;
-
-  constructor() {
-    const permissionService = this.permissionService;
-
-    this.canEdit = permissionService.hasPermission('md.settings', 'update');
-  }
 
   load(): void {
     this.editorResource.reload();
@@ -116,6 +122,7 @@ export class LanguageEditorComponent {
   }
 
   setValue(key: string, value: string): void {
+    if (this.isSaving() || !this.canEdit()) return;
     this.draft.update((current) => ({ ...current, [key]: value }));
     this.saveError.set(null);
   }
@@ -133,12 +140,17 @@ export class LanguageEditorComponent {
   }
 
   cancelChanges(): void {
-    this.resetDraft();
+    if (this.isSaving()) return;
+    this.askDiscard(this.dirtyCount() > 0)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((discard) => {
+        if (discard) this.resetDraft();
+      });
   }
 
   save(): void {
     const model = this.editor();
-    if (!model || !this.canEdit || this.dirtyCount() === 0) return;
+    if (!model || !this.canEdit() || this.isSaving() || this.dirtyCount() === 0) return;
 
     const languageCode = this.languageCode();
     if (languageCode === 'ru') {
@@ -158,7 +170,10 @@ export class LanguageEditorComponent {
     this.saveError.set(null);
     this.settingsApi
       .saveTranslations(languageCode, model.language.revision, translations)
-      .pipe(finalize(() => this.isSaving.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isSaving.set(false)),
+      )
       .subscribe({
         next: (language) => {
           this.applySavedModel(model, language, translations);
@@ -182,7 +197,7 @@ export class LanguageEditorComponent {
 
   importJson(content: string): boolean {
     const model = this.editor();
-    if (!model) return false;
+    if (!model || this.isSaving() || !this.canEdit()) return false;
     try {
       const parsed: unknown = JSON.parse(content);
       if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
@@ -236,17 +251,11 @@ export class LanguageEditorComponent {
   }
 
   requestClose(): void {
-    if (this.dirtyCount() === 0) {
-      this.closed.emit();
-      return;
-    }
-    this.modal
-      .confirm({
-        message: this.uiI18n.translate('settings.languages.unsaved_close_confirm'),
-        destructive: true,
-      })
-      .subscribe((confirmed) => {
-        if (confirmed) this.closed.emit();
+    if (this.isSaving()) return;
+    this.askDiscard(this.dirtyCount() > 0)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((discard) => {
+        if (discard) this.closed.emit();
       });
   }
 

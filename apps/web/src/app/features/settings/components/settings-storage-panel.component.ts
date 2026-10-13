@@ -56,6 +56,7 @@ import { SettingChange } from '../settings.models';
             [disabled]="!canUpdateSystemSettings() || isSaving()"
             [value]="systemSettings()['storage.default_user_quota_mb']"
             (valueChange)="changeSetting('storage.default_user_quota_mb', $event)"
+            (touch)="settingTouched.emit('storage.default_user_quota_mb')"
           />
           @if (formatQuotaMb(systemSettings()['storage.default_user_quota_mb']); as unit) {
             <span class="unit-badge" data-testid="user-quota-unit">{{ unit }}</span>
@@ -88,6 +89,7 @@ export class SettingsStoragePanelComponent {
   readonly save = output<void>();
   /** The settings object belongs to the store, so an edit goes up and the store keeps it. */
   readonly settingChange = output<SettingChange>();
+  readonly settingTouched = output<string>();
 
   /** A number field gives a number, or null when empty; the settings keep text, validated on save. */
   changeSetting(key: string, value: SMTInputValue): void {
@@ -100,7 +102,7 @@ export class SettingsStoragePanelComponent {
 
   /** Enter in a field and the Save button both save; nothing is sent twice while a save runs. */
   onSubmit(): void {
-    if (!this.isSaving()) this.save.emit();
+    if (this.canUpdateSystemSettings() && !this.isSaving()) this.save.emit();
   }
 
   /** The store's refusal of a setting as words under its field (forms standard, section 4). */

@@ -8,7 +8,7 @@ import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource, UplUnit, UplVersionItem } from '../upl.api';
 import { UPL_ERROR, UPL_VERSION_STATUS_KEY, uplErrorKey, uplProblemText } from '../upl-labels';
-import { UplFieldError, localFormatErrors, parseUplProblem } from './upl-format-errors';
+import { UplFieldError, localFormatErrors, parseUplProblem, uplFieldErrorText } from './upl-format-errors';
 import { UplFormatStep, buildDraftRequest, emptyModel, uplErrorStep } from './upl-format-model';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
@@ -212,7 +212,17 @@ export class FormatEditorStore {
   }
 
   closePublish(): void {
+    if (this.isPublishing()) return;
     this.isPublishOpen.set(false);
+  }
+
+  setValidFrom(value: string | null): void {
+    this.validFrom.set(value ?? '');
+    this.publishDateError.set(null);
+  }
+
+  touchValidFrom(): void {
+    if (!this.validFrom()) this.publishDateError.set(uplErrorKey('NotNull'));
   }
 
   confirmPublish(): void {
@@ -234,6 +244,12 @@ export class FormatEditorStore {
       },
       error: (problem: ProblemDetail) => {
         this.isPublishing.set(false);
+        const date =
+          problem?.status === 422 ? parseUplProblem(problem).find((error) => error.field === 'validFrom') : null;
+        if (date) {
+          this.publishDateError.set(uplFieldErrorText(date, (key) => this.i18n.translate(key)));
+          return;
+        }
         if (problem?.messageKey === UPL_ERROR.notAfterPrevious) {
           this.publishDateError.set(UPL_ERROR.notAfterPrevious);
           return;

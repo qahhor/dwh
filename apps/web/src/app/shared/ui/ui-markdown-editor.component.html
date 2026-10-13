@@ -122,10 +122,10 @@
     <!-- Textarea Mode -->
     @if (mode === 'edit') {
       <div class="editor-pane" role="tabpanel" [id]="editPanelId" [attr.aria-labelledby]="editTabId">
-        <label class="sr-only" [for]="textareaId">{{ ariaLabel() || ('ui.markdown_editor.text_label' | t) }}</label>
         <textarea
           #textareaRef
           [id]="textareaId"
+          [attr.aria-label]="ariaLabel() || ('ui.markdown_editor.text_label' | t)"
           class="md-textarea"
           [rows]="rows()"
           [placeholder]="placeholder()"

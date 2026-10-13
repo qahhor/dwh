@@ -1,4 +1,16 @@
-import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  Injector,
+  input,
+  output,
+  viewChild,
+} from '@angular/core';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '@core/services/i18n.service';
@@ -11,11 +23,19 @@ import { User } from '@core/models/auth.models';
 @Component({
   selector: 'app-sidebar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTAvatarComponent, RouterModule, TranslatePipe, AppSidebarNavSectionsComponent, AppSidebarFlyoutComponent],
+  imports: [
+    CdkTrapFocus,
+    SMTAvatarComponent,
+    RouterModule,
+    TranslatePipe,
+    AppSidebarNavSectionsComponent,
+    AppSidebarFlyoutComponent,
+  ],
   templateUrl: './app-sidebar.component.html',
   styleUrl: './app-sidebar.component.css',
 })
 export class AppSidebarComponent {
+  private readonly injector = inject(Injector);
   readonly isSectionActive = input.required<(section: NavSection) => boolean>();
   readonly isRouteActive = input.required<(route: string, exact?: boolean) => boolean>();
   readonly getSectionIcon = input.required<(id: string) => string>();
@@ -70,4 +90,17 @@ export class AppSidebarComponent {
 
   readonly sidebarElement = viewChild<ElementRef<HTMLElement>>('sidebarElement');
   readonly mobileDrawerClose = viewChild<ElementRef<HTMLButtonElement>>('mobileDrawerClose');
+  private readonly flyout = viewChild(AppSidebarFlyoutComponent);
+
+  readonly currentFlyoutSection = computed(() => {
+    const section = this.navSections().find((entry) => entry.id === this.hoveredFlyoutSection()?.id);
+    return section && this.hasVisibleItems()(section) ? section : null;
+  });
+
+  openCategory(section: NavSection, event: MouseEvent): void {
+    this.categoryClick.emit({ section, event });
+    if (event.detail === 0) {
+      afterNextRender(() => this.flyout()?.focusFirstItem(), { injector: this.injector });
+    }
+  }
 }

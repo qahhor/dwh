@@ -1,0 +1,21 @@
+all:
+  children:
+    smartupcms:
+      hosts:
+        app:
+          ansible_host: app.example.invalid
+          ansible_user: deploy
+          ansible_become: true
+          ansible_ssh_common_args: >-
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile=/secure/smartupcms/known_hosts
+          smc_recovery_host: smartupcms-ops
+    smartupcms_recovery:
+      hosts:
+        smartupcms-ops:
+          ansible_host: ops.example.invalid
+          ansible_user: deploy
+          ansible_become: true
+          ansible_ssh_common_args: >-
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile=/secure/smartupcms/known_hosts

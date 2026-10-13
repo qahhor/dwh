@@ -60,6 +60,7 @@ Plan 10/10, item 2.8; ESLint refuses `FormsModule`, `ReactiveFormsModule` and
   `[(value)]="query"` or `[value]` + `(valueChange)`; `(edited)` fires on every
   keystroke when the screen needs that.
 
+The one-page contract is [forms-one-page.md](../../../../../docs/guidelines/forms-one-page.md).
 The look and behaviour of every form follow
 `docs/guidelines/forms-ux-standard.md` (`npm run forms:audit`, part of
 `npm run lint`, checks its mechanical rules). Its building blocks:

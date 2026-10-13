@@ -32,6 +32,19 @@ function choose(fixture: ComponentFixture<FormatFileStepComponent>, id: string, 
 }
 
 describe('FormatFileStepComponent', () => {
+  it('validates the CSV delimiter on blur and clears its stale error on editing', () => {
+    const fixture = render({ ...emptyModel(), fileKind: 'csv', encoding: 'utf-8', delimiter: ';;' });
+    const delimiter = el(fixture).querySelector('#upl-delimiter') as HTMLInputElement;
+    expect(el(fixture).querySelector('.smt-control__error')).toBeNull();
+    delimiter.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(el(fixture).querySelector('.smt-control__error')).not.toBeNull();
+    delimiter.value = ';';
+    delimiter.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(el(fixture).querySelector('.smt-control__error')).toBeNull();
+  });
+
   it('shows the file kind and column matching the draft holds, without CSV settings for a workbook', () => {
     const fixture = render({ ...emptyModel(), matchColumnsBy: 'position' });
 

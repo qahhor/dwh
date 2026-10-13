@@ -2,7 +2,8 @@
   [open]="isOpen()"
   [smtTitle]="'projects.members.title' | t: { name: project()?.name || '' }"
   smtSize="lg"
-  (closed)="closeModal.emit()"
+  [dismissible]="!pending()"
+  (closed)="requestClose()"
 >
   <ng-template smtDialogContent>
     <div body class="members-modal-body">
@@ -22,7 +23,7 @@
             (submit)="$event.preventDefault(); submitAddMember()"
           >
             <!-- User Search / Selector -->
-            <div class="user-search-wrapper">
+            <div class="user-search-wrapper" (focusout)="touchUser($event)">
               <smt-control [smtLabel]="'projects.members.select_user' | t" [smtError]="userError()" [required]="true">
                 <div class="search-input-box">
                   <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
@@ -85,7 +86,7 @@
                 smtTriggerId="project-member-role"
                 name="accessKind"
                 [value]="selectedAccessKind()"
-                (valueChange)="$event && selectedAccessKind.set($event)"
+                (valueChange)="changeAccessKind($event)"
                 [options]="accessKindOptions()"
                 [allowClear]="false"
               ></smt-select>
@@ -143,7 +144,8 @@
       data-testid="project-members-actions"
       [showCancel]="false"
       [submitLabel]="'common.close' | t"
-      (submitted)="closeModal.emit()"
+      [submitDisabled]="pending()"
+      (submitted)="requestClose()"
     />
   </ng-template>
 </smt-dialog>

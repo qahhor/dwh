@@ -13,7 +13,6 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
-import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
@@ -25,6 +24,7 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.report.controller.ReportController;
 import com.smartup24.cms.instance.report.service.ReportService;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.instance.support.TestModules;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -82,7 +82,7 @@ class ReportExportIntegrationTest {
         orgUnits = new MdOrgUnitService(orgRepository, scopes, audit);
         reports = new ReportService(jdbc, scopes, user -> new MdI18nCatalog(new ObjectMapper()).bundled("ru"));
         mvc = MockMvcBuilders.standaloneSetup(new ReportController(reports))
-                .addInterceptors(new RequiresPermissionInterceptor())
+                .addInterceptors(TestModules.permissions())
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }

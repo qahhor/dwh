@@ -38,6 +38,13 @@ import { PackageCardComponent } from './package-card.component';
 import { UplPackageItem, UplPackagesApiService } from './packages.api';
 import { UplPackageFormErrors, UplTranslate, mapUplUploadProblem } from './packages-errors';
 import {
+  PackageUploadForm,
+  clearUploadFieldErrors,
+  emptyForm,
+  emptyFormErrors,
+  touchUploadField,
+} from './packages-form';
+import {
   UPL_PACKAGE_STATUS_KEY,
   UPL_PACKAGE_STATUS_VARIANT,
   formatUplDateTime,
@@ -47,30 +54,16 @@ import {
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
-
-/** Fields of the "new upload" form; the form signal holds them and is replaced on every change. */
-interface PackageUploadForm {
-  sourceId: number | null;
-  periodFrom: string;
-  periodTo: string;
-  file: File | null;
-}
+import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 
 const PAGE_SIZE = 50;
-
-function emptyForm(): PackageUploadForm {
-  return { sourceId: null, periodFrom: '', periodTo: '', file: null };
-}
-
-function emptyFormErrors(): UplPackageFormErrors {
-  return { source: [], period: [], file: [], form: [] };
-}
 
 @Component({
   selector: 'app-upl-packages',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     UiPageHeaderComponent,
+    UiFocusFirstInvalidDirective,
     SMTAlertComponent,
     SMTControlComponent,
     TranslatePipe,
@@ -281,18 +274,16 @@ export class PackagesComponent implements OnInit {
 
   patchForm(patch: Partial<PackageUploadForm>): void {
     this.form.update((form) => ({ ...form, ...patch }));
+    this.formErrors.update((errors) => clearUploadFieldErrors(errors, patch));
   }
 
-  /** The "Upload" button comes alive only when all four fields are filled in. */
+  /** A selected file can be submitted for validation; an upload in progress cannot be repeated. */
   isReady(): boolean {
-    const form = this.form();
-    return (
-      !this.isSending() &&
-      form.sourceId !== null &&
-      form.periodFrom.length > 0 &&
-      form.periodTo.length > 0 &&
-      form.file !== null
-    );
+    return !this.isSending() && this.form().file !== null;
+  }
+
+  touchField(field: 'sourceId' | 'periodFrom' | 'periodTo'): void {
+    this.formErrors.update((errors) => touchUploadField(this.form(), errors, field, this.translate));
   }
 
   submit(): void {
@@ -301,8 +292,12 @@ export class PackagesComponent implements OnInit {
     }
     const form = this.form();
     const file = form.file as File;
-    this.isSending.set(true);
     this.formErrors.set(emptyFormErrors());
+    this.touchField('sourceId');
+    this.touchField('periodFrom');
+    this.touchField('periodTo');
+    if (this.formErrors().source.length || this.formErrors().period.length) return;
+    this.isSending.set(true);
     this.api
       .upload({
         sourceId: Number(form.sourceId),

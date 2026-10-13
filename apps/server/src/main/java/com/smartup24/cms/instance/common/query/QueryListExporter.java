@@ -18,6 +18,9 @@ public interface QueryListExporter {
     /** The registry list code, e.g. {@code upl.packages}. */
     String code();
 
+    /** Rechecks the exported row ids against today's scope before a stored file can be downloaded (ADR-0018). */
+    boolean visible(Set<String> ids);
+
     /**
      * Options beyond filter, sort and search that the screen passes and the export keeps, e.g. the files
      * list's {@code scope}. Anything else the client sends is refused.

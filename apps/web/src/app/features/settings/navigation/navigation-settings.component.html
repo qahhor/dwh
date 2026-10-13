@@ -34,6 +34,8 @@
     [isSubmitting]="store.isSubmitting()"
     [itemForm]="itemForm"
     [serverErrors]="store.fieldErrors()"
+    [otherErrors]="store.otherErrors()"
+    (fieldEdited)="store.clearFieldError($event)"
     [permissionChoices]="store.permissionChoices()"
     [popularIcons]="popularIcons"
     (titleChange)="onTitleChange($event)"

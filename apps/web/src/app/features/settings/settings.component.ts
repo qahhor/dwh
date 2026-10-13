@@ -1,6 +1,17 @@
-import { ChangeDetectionStrategy, Component, HostListener, Injector, OnInit, signal, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  HostListener,
+  Injector,
+  OnInit,
+  signal,
+  inject,
+  viewChild,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, finalize } from 'rxjs';
 import { RecordNavigationPage } from '@core/guards/record-navigation.guard';
 
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -25,6 +36,7 @@ import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
 /** The panel that holds each validated system setting. */
 const SETTING_TAB: Readonly<Record<string, SettingsTab>> = {
   'security.session_lifetime_hours': 'security',
+  'security.idle_lock_minutes': 'security',
   'storage.default_user_quota_mb': 'storage',
 };
 
@@ -59,21 +71,25 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
   private readonly injector = inject(Injector);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly languagesPanel = viewChild(SettingsLanguagesPanelComponent);
+  private readonly tabBar = viewChild(SMTTabBarComponent);
 
   readonly activeTab = signal<SettingsTab>('general');
 
   private readonly askDiscard = discardChangesQuestion();
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<SettingsTab>[]>();
+  private changingTab = false;
 
   ngOnInit() {
     if (this.route) {
-      this.route.queryParams.subscribe((params) => {
+      this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
         const tabParam = params['tab'];
         if (tabParam && this.isTabAvailable(tabParam)) {
-          this.activeTab.set(tabParam);
-        } else if (!this.store.canManageSystemSettings()) {
-          this.activeTab.set('preferences');
+          this.setTab(tabParam, true);
+        } else {
+          this.setTab(this.store.canManageSystemSettings() ? 'general' : 'preferences', true);
         }
       });
     } else if (!this.store.canManageSystemSettings()) {
@@ -97,7 +113,8 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
 
   /** Unsaved settings make leaving the screen ask first (forms standard, section 8). */
   canLeaveRecordPage(): boolean | Observable<boolean> {
-    return this.store.dirty() ? this.askDiscard(true) : true;
+    if (this.store.isSaving() || this.languageStore.isAddingLang() || this.languagesPanel()?.isSaving()) return false;
+    return this.store.dirty() || this.languagesPanel()?.hasUnsavedChanges() ? this.askDiscard(true) : true;
   }
 
   isTabAvailable(tab: string): tab is SettingsTab {
@@ -120,17 +137,31 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
     }
   }
 
-  setTab(tab: SettingsTab): void {
-    if (!this.isTabAvailable(tab)) return;
-    this.activeTab.set(tab);
-    if (this.router && this.route) {
-      this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: { tab },
-        queryParamsHandling: 'merge',
-        replaceUrl: true,
-      });
+  setTab(tab: SettingsTab, fromRoute = false): void {
+    if (!this.isTabAvailable(tab) || tab === this.activeTab() || this.changingTab) return;
+    this.tabBar()?.value.set(this.activeTab());
+    if (this.languagesPanel()?.isSaving()) {
+      this.syncTabUrl();
+      return;
     }
+    this.changingTab = true;
+    this.askDiscard(this.languagesPanel()?.hasUnsavedChanges() ?? false)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.changingTab = false;
+        }),
+      )
+      .subscribe((discard) => {
+        if (discard) {
+          if (this.activeTab() === 'languages') {
+            this.languageStore.editingLanguageCode.set(null);
+            this.languageStore.isAddLangModalOpen.set(false);
+          }
+          this.activeTab.set(tab);
+        }
+        if (!discard || !fromRoute) this.syncTabUrl();
+      });
   }
 
   @HostListener('window:keydown', ['$event'])
@@ -171,5 +202,16 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
         panelId: `settings-${tab}-panel`,
       })),
     );
+  }
+
+  private syncTabUrl(): void {
+    if (this.router && this.route) {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { tab: this.activeTab() },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
   }
 }

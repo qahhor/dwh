@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 
 import { Router } from '@angular/router';
 import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { ModuleService } from '@core/services/module.service';
+import { PermissionService } from '@core/services/permission.service';
 
 import { AnalyticsApi } from './analytics.api';
 import { AnalyticsSummary, TrendDataPoint, ProjectDistribution, UserWorkload } from './analytics.models';
@@ -42,42 +44,46 @@ const FIRST_RANGE = '7d';
     <div class="analytics-container">
       <!-- Header -->
       <ui-page-header [title]="'analytics.dashboard.title' | t">
-        <!-- Time Range Selector -->
-        <smt-radio-group
-          smtAppearance="segmented"
-          class="range-picker"
-          [options]="rangeOptions()"
-          [value]="selectedRange"
-          [smtAriaLabel]="'analytics.dashboard.period' | t"
-          (valueChange)="setRange($event ?? selectedRange)"
-        />
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          smtSize="sm"
-          smtIcon="download"
-          (click)="exportReport()"
-          [title]="'analytics.dashboard.export_tasks_excel' | t"
-        >
-          {{ 'analytics.dashboard.export' | t }}
-        </button>
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          smtSize="sm"
-          smtIcon="refresh"
-          [smtLoading]="loading()"
-          [title]="'common.refresh' | t"
-          (click)="loadAll()"
-        >
-          {{ 'common.refresh' | t }}
-        </button>
+        @if (taskAnalyticsAvailable()) {
+          <!-- Time Range Selector -->
+          <smt-radio-group
+            smtAppearance="segmented"
+            class="range-picker"
+            [options]="rangeOptions()"
+            [value]="selectedRange"
+            [smtAriaLabel]="'analytics.dashboard.period' | t"
+            (valueChange)="setRange($event ?? selectedRange)"
+          />
+          @if (canExportTasks()) {
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              smtIcon="download"
+              (click)="exportReport()"
+              [title]="'analytics.dashboard.export_tasks_excel' | t"
+            >
+              {{ 'analytics.dashboard.export' | t }}
+            </button>
+          }
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="refresh"
+            [smtLoading]="loading()"
+            [title]="'common.refresh' | t"
+            (click)="loadAll()"
+          >
+            {{ 'common.refresh' | t }}
+          </button>
+        }
       </ui-page-header>
 
       <!-- Error Alert -->
-      @if (error()) {
+      @if (taskAnalyticsAvailable() && error()) {
         <smt-alert smtTone="danger">
           <span>{{ error() }}</span>
           <button type="button" class="alert-retry" data-testid="analytics-retry" (click)="setRange(selectedRange)">
@@ -87,34 +93,40 @@ const FIRST_RANGE = '7d';
       }
 
       <!-- KPI Metrics Row -->
-      <app-analytics-metrics-tiles [summary]="summary()"></app-analytics-metrics-tiles>
+      @if (taskAnalyticsAvailable()) {
+        <app-analytics-metrics-tiles [summary]="summary()"></app-analytics-metrics-tiles>
+      }
 
       <!-- The viewer's own widgets: reports saved on entity lists (ADR-0032 10.2) -->
-      <app-analytics-widgets />
+      @if (canViewWidgets()) {
+        <app-analytics-widgets />
+      }
 
       <!-- Main Analytics Grid: Trend Chart & Project Distribution -->
-      <div class="analytics-grid">
-        <app-analytics-trend-chart
-          [trends]="trends()"
-          [loading]="loading()"
-          [displayedRange]="displayedRange()"
-          [error]="error()"
-        ></app-analytics-trend-chart>
+      @if (taskAnalyticsAvailable()) {
+        <div class="analytics-grid">
+          <app-analytics-trend-chart
+            [trends]="trends()"
+            [loading]="loading()"
+            [displayedRange]="displayedRange()"
+            [error]="error()"
+          ></app-analytics-trend-chart>
 
-        <app-analytics-projects-card
-          [projects]="projects()"
+          <app-analytics-projects-card
+            [projects]="projects()"
+            [loading]="loading()"
+            [error]="error()"
+            (projectClick)="navigateToProject($event)"
+          ></app-analytics-projects-card>
+        </div>
+
+        <!-- Bottom Grid: Team Workload Table -->
+        <app-analytics-workload-table
+          [workload]="workload()"
           [loading]="loading()"
           [error]="error()"
-          (projectClick)="navigateToProject($event)"
-        ></app-analytics-projects-card>
-      </div>
-
-      <!-- Bottom Grid: Team Workload Table -->
-      <app-analytics-workload-table
-        [workload]="workload()"
-        [loading]="loading()"
-        [error]="error()"
-      ></app-analytics-workload-table>
+        ></app-analytics-workload-table>
+      }
     </div>
   `,
   styles: [
@@ -174,6 +186,8 @@ export class AnalyticsComponent {
   private readonly uiI18n = inject(I18nService);
   private readonly analytics = inject(AnalyticsApi);
   private router = inject(Router);
+  private readonly modules = inject(ModuleService);
+  private readonly permissions = inject(PermissionService);
 
   /* Each section keeps what it showed while a read is pending or failed, and a
      full refresh replaces all of them together. */
@@ -202,6 +216,17 @@ export class AnalyticsComponent {
   /** The read on screen; a new one cancels the read still in flight. */
   private readonly read = signal<AnalyticsRead>({ range: FIRST_RANGE, full: true });
 
+  readonly taskAnalyticsAvailable = computed(
+    () =>
+      this.modules.isLoaded() &&
+      this.modules.isModuleActive('tasks') &&
+      this.permissions.canView('analytics.dashboard'),
+  );
+  readonly canViewWidgets = computed(() => this.permissions.canView('md.profile'));
+  readonly canExportTasks = computed(
+    () => this.taskAnalyticsAvailable() && this.permissions.hasPermission('tasks.items', 'export'),
+  );
+
   readonly error = computed(() => {
     const result = this.result.value();
     return result && 'failure' in result ? result.failure : '';
@@ -214,11 +239,20 @@ export class AnalyticsComponent {
   selectedRange = FIRST_RANGE;
   /** A failed or superseded refresh must be retried as a whole snapshot. */
   private refreshRequired = true;
-  private readonly result = rxResource({ params: this.read, stream: ({ params }) => this.fetch(params) });
+  private readonly result = rxResource({
+    params: () => (this.taskAnalyticsAvailable() ? this.read() : undefined),
+    stream: ({ params }) => this.fetch(params),
+  });
 
   readonly loading = this.result.isLoading;
 
   private readonly rangeMemo = optionsMemo<SMTRadioOption<string>[]>();
+
+  constructor() {
+    effect(() => {
+      if (!this.taskAnalyticsAvailable()) this.loadAll();
+    });
+  }
 
   setRange(range: string): void {
     this.selectedRange = range;
@@ -230,6 +264,7 @@ export class AnalyticsComponent {
   }
 
   exportReport(format: 'xlsx' | 'csv' = 'xlsx'): void {
+    if (!this.canExportTasks()) return;
     window.open(`/api/v1/reports/tasks/export?format=${format}`, '_blank');
   }
 

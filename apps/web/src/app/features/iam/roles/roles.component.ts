@@ -5,13 +5,14 @@ import {
   OnInit,
   signal,
   inject,
+  effect,
   linkedSignal,
   viewChild,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
-import { Observable, Subscription, catchError, map, of, tap } from 'rxjs';
+import { Observable, Subscription, catchError, map, of } from 'rxjs';
 import { lastLoaded } from '@features/iam/last-loaded';
 import { RolesApi } from '@core/services/roles.api';
 import { PermissionService } from '@core/services/permission.service';
@@ -87,7 +88,6 @@ export class RolesComponent implements OnInit {
     this.rolesApi.forms().pipe(
       map((res) => res || []),
       catchError(() => of<FormTreeItem[]>([])),
-      tap((items) => this.buildModuleGroups(items)),
     ),
     { initialValue: [] },
   );
@@ -103,6 +103,7 @@ export class RolesComponent implements OnInit {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.panelLeaveSubscription?.unsubscribe());
+    effect(() => this.buildModuleGroups(this.forms()));
   }
 
   ngOnInit() {
@@ -181,10 +182,11 @@ export class RolesComponent implements OnInit {
   }
 
   buildModuleGroups(items: FormTreeItem[]) {
+    const expanded = new Map(this.moduleGroups.map((group) => [group.moduleCode, group.isExpanded]));
     this.moduleGroups = buildModuleGroups(
       namedCatalog(items, (key) => this.uiI18n.translate(key)),
       (mod) => this.getModuleDisplayName(mod),
-    );
+    ).map((group) => ({ ...group, isExpanded: expanded.get(group.moduleCode) ?? group.isExpanded }));
   }
 
   /** Switching roles asks about an unsaved matrix and waits for the scope panel to let go. */

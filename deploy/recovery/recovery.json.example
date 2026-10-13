@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "project": "smartupcms",
+  "composeFiles": [
+    "/opt/smartupcms/current/deploy/compose/docker-compose.prod.yml",
+    "/opt/smartupcms/current/deploy/observability/docker-compose.observability.yml",
+    "/opt/smartupcms/current/deploy/staging/docker-compose.staging.yml"
+  ],
+  "envFile": "/etc/smartupcms/production.env",
+  "outputDirectory": "/var/lib/smartupcms/recovery",
+  "metricsFile": "/var/lib/smartupcms/metrics/recovery.prom",
+  "ageRecipient": "CHANGE_ME_PUBLIC_AGE_RECIPIENT",
+  "maxDurationSeconds": 3600,
+  "maxLocalSets": 1,
+  "minFreeBytes": 214748364800,
+  "minFreePercent": 20,
+  "objects": {
+    "provider": "s3",
+    "endpoint": "https://CHANGE_ME_ACCOUNT.r2.cloudflarestorage.com",
+    "bucket": "smartupcms-app",
+    "region": "auto",
+    "accessKeyFile": "/etc/smartupcms/secrets/object-read-access",
+    "secretKeyFile": "/etc/smartupcms/secrets/object-read-secret"
+  },
+  "recovery": {
+    "endpoint": "https://CHANGE_ME_RECOVERY_ACCOUNT.r2.cloudflarestorage.com",
+    "bucket": "smartupcms-recovery",
+    "prefix": "consistent-sets",
+    "accessKeyFile": "/etc/smartupcms/secrets/recovery-access",
+    "secretKeyFile": "/etc/smartupcms/secrets/recovery-secret"
+  }
+}

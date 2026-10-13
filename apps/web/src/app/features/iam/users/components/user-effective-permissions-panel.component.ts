@@ -90,6 +90,7 @@ export class UserEffectivePermissionsPanelComponent {
   /** An add was pressed with a picker still empty: the empty picker says what to choose. */
   readonly grantTried = signal(false);
 
+  readonly formCatalog = computed(() => namedCatalog(this.rawFormCatalog(), (key) => this.uiI18n.translate(key)));
   readonly isLoading = computed(() => this.effectiveRead.isLoading());
   readonly loadError = computed(() => this.effectiveRead.value() === null);
 
@@ -219,20 +220,12 @@ export class UserEffectivePermissionsPanelComponent {
   private readonly catalogRead = rxResource({
     params: () => this.hasUser() || undefined,
     stream: () =>
-      orNull(
-        this.usersApi
-          .permissionForms()
-          .pipe(
-            map((catalog) =>
-              Array.isArray(catalog) ? namedCatalog(catalog, (key) => this.uiI18n.translate(key)) : null,
-            ),
-          ),
-      ),
+      orNull(this.usersApi.permissionForms().pipe(map((catalog) => (Array.isArray(catalog) ? catalog : null)))),
   });
 
   readonly effectiveItems = lastLoaded<EffectivePermissionItem[]>(() => this.effectiveRead.value(), []);
   readonly personalGrants = lastLoaded<PersonalGrant[]>(() => this.personalRead.value(), []);
-  readonly formCatalog = lastLoaded<FormTreeItem[]>(() => this.catalogRead.value(), []);
+  private readonly rawFormCatalog = lastLoaded<FormTreeItem[]>(() => this.catalogRead.value(), []);
 
   /** Asks the server again: the rights, the grants and, while it is still empty, the catalog. */
   loadAll(): void {

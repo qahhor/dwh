@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.kauth.api.KauthPref;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.md.service.MdUserService;
+import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture.Format;
@@ -84,6 +85,9 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
 
     @Autowired
     private JobRunner jobs;
+
+    @Autowired
+    private ModuleRegistryService modules;
 
     @Autowired
     private MdAuditActors actors;
@@ -169,7 +173,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
                         .query(String.class)
                         .list())
                 .containsExactly(UplPref.JOB_PARSE);
-        assertThat(jobs.runQueued()).isEqualTo(1);
+        finishAcceptedWorkWhileModuleIsDisabled(analyst);
 
         var list = sendGet(analyst, BASE, 200);
         assertThat((String) read(list, "$.items[0].id")).isEqualTo(read(accepted, "$.id"));
@@ -288,7 +292,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
         var queued = send(session, post(BASE + "/" + packageId + "/apply"));
         assertThat(queued.getStatus()).as(queued.getContentAsString()).isEqualTo(202);
         assertThat((String) read(queued, "$.status")).isEqualTo(UplPackageModel.APPLYING);
-        assertThat(jobs.runQueued()).isEqualTo(1);
+        finishAcceptedWorkWhileModuleIsDisabled(session);
         var applied = sendGet(session, queued.getHeader("Location"), 200);
         assertThat((String) read(applied, "$.status")).isEqualTo(UplPackageModel.APPLIED);
         assertThat(((Number) read(applied, "$.rawRows")).intValue()).isEqualTo(sample.total());
@@ -301,6 +305,19 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
                 .param("id", loadId)
                 .query(Long.class)
                 .single();
+    }
+
+    /** FR-MOD-01: the switch closes new requests while accepted jobs finish without losing their work. */
+    private void finishAcceptedWorkWhileModuleIsDisabled(Session session) throws Exception {
+        modules.toggleModuleStatus("upl", false);
+        try {
+            sendGet(session, BASE, 404);
+            var refused = send(session, post(BASE + "/" + UUID.randomUUID() + "/apply"));
+            assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(404);
+            assertThat(jobs.runQueued()).isEqualTo(1);
+        } finally {
+            modules.toggleModuleStatus("upl", true);
+        }
     }
 
     // ---------- error expectations ----------

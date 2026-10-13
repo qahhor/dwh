@@ -33,9 +33,20 @@ fail() { echo "[FAIL] $*" >&2; exit 1; }
 sql() { docker exec "$postgres" psql -X -A -t -v ON_ERROR_STOP=1 -U postgres "$@"; }
 app_sql() { docker exec -e PGPASSWORD=app-test-password "$postgres" psql -X -q -v ON_ERROR_STOP=1 -h 127.0.0.1 -U smartupcms "$@"; }
 
+# The backup image writes keys, archives and status as UID 10001 with mode 0600.
+# Read them as that same user: the host's CI user must not need access to secrets.
+artifact() {
+    local command="$1"
+    shift
+    docker run --rm --entrypoint "$command" \
+        -v "$work/backups:/backups:ro" -v "$work/status:/status:ro" -v "$work/key:/key:ro" \
+        "$image" "$@"
+}
+
 bootstrap() {
     docker run --rm --network "$network" --entrypoint /usr/local/bin/bootstrap-role \
         -e PGHOST="$postgres" -e PGDATABASE=smartupcms -e PGUSER=postgres -e PGPASSWORD_FILE=/secrets/admin \
+        -e MIGRATE_DB_PASSWORD_FILE=/secrets/migrator \
         -e APP_DB_USER=smartupcms -e APP_DB_PASSWORD_FILE=/secrets/app \
         -e BACKUP_DB_PASSWORD_FILE=/secrets/backup -e WAREHOUSE_DB_NAME=smartupcms_dwh \
         -v "$work/secrets:/secrets:ro" "$image" >/dev/null
@@ -52,12 +63,13 @@ docker build --quiet --tag "$image" "$repo_root/deploy/images/backup" >/dev/null
 
 mkdir -p "$work/secrets" "$work/backups" "$work/status" "$work/key"
 printf 'admin-test-password' > "$work/secrets/admin"
+printf 'migrator-test-password' > "$work/secrets/migrator"
 printf 'app-test-password' > "$work/secrets/app"
 printf 'backup-test-password' > "$work/secrets/backup"
 chmod 0644 "$work"/secrets/*
 chmod 0777 "$work/backups" "$work/status" "$work/key"
 docker run --rm --entrypoint age-keygen -v "$work/key:/key" "$image" -o /key/identity.txt 2>/dev/null
-recipient="$(grep -o 'age1[0-9a-z]*' "$work/key/identity.txt")"
+recipient="$(artifact age-keygen -y /key/identity.txt)"
 [[ -n "$recipient" ]] || fail 'no age recipient was generated'
 
 docker network create "$network" >/dev/null
@@ -81,7 +93,7 @@ app_sql -d smartupcms_dwh -c "create schema mart; create table mart.daily as sel
 
 echo '[3/5] One backup run writes both archives...'
 backup_once >/dev/null
-grep -q '"status":"SUCCESS"' "$work/status/status.json" || fail "backup status: $(cat "$work/status/status.json")"
+artifact grep -q '"status":"SUCCESS"' /status/status.json || fail "backup status: $(artifact cat /status/status.json)"
 for prefix in smartupcms smartupcms_dwh; do
     count="$(find "$work/backups" -name "${prefix}-*.dump.age" | wc -l)"
     [[ "$count" -eq 1 ]] || fail "expected one ${prefix} archive, found $count"
@@ -89,8 +101,8 @@ done
 cms_archive="$(basename "$(find "$work/backups" -name 'smartupcms-*.dump.age')")"
 dwh_archive="$(basename "$(find "$work/backups" -name 'smartupcms_dwh-*.dump.age')")"
 [[ "${cms_archive#smartupcms-}" == "${dwh_archive#smartupcms_dwh-}" ]] || fail 'archives of one run must share the timestamp'
-grep -q '"database":"smartupcms_dwh"' "$work/backups/${dwh_archive}.manifest.json" || fail 'DWH manifest names the wrong database'
-(cd "$work/backups" && sha256sum -c "${dwh_archive}.sha256" >/dev/null) || fail 'DWH archive checksum does not match'
+artifact grep -q '"database":"smartupcms_dwh"' "/backups/${dwh_archive}.manifest.json" || fail 'DWH manifest names the wrong database'
+artifact sha256sum -c "${dwh_archive}.sha256" >/dev/null || fail 'DWH archive checksum does not match'
 
 echo '[4/5] The DWH archive restores with the application role as owner...'
 sql -d postgres -c 'create database dwh_restored owner smartupcms' >/dev/null
@@ -107,7 +119,7 @@ foreign="$(sql -d dwh_restored -c "select count(*) from pg_tables where schemana
 echo '[5/5] An unreadable DWH fails the run without partial files...'
 sql -d smartupcms_dwh -c 'revoke select on raw.sales from smartupcms_backup' >/dev/null
 if backup_once >/dev/null 2>&1; then fail 'backup succeeded without reading the DWH'; fi
-grep -q '"failureCode":"DATABASE_DUMP_FAILED"' "$work/status/status.json" || fail "status after failure: $(cat "$work/status/status.json")"
+artifact grep -q '"failureCode":"DATABASE_DUMP_FAILED"' /status/status.json || fail "status after failure: $(artifact cat /status/status.json)"
 [[ -z "$(find "$work/backups" -name '*.partial')" ]] || fail 'a partial file was left behind'
 
 echo 'Backup of both databases passed.'

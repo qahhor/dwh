@@ -72,11 +72,15 @@ describe('SMTCellContentComponent', () => {
 
   it('formats a date column, with the column’s own format when it has one', () => {
     const { fixture, cell } = render((host) => host.data.set({ type: 'date', value: (row) => row.due }));
-    expect(cell().textContent?.trim()).toBe('28 Sep 2026');
+    expect(cell().textContent?.trim()).toBe('28.09.2026');
 
-    fixture.componentInstance.data.set({ type: 'date-time', value: (row) => row.due, format: 'dd.MM.yyyy HH:mm' });
+    fixture.componentInstance.data.set({ type: 'date-time', value: (row) => row.due });
     fixture.detectChanges();
     expect(cell().textContent?.trim()).toBe('28.09.2026 14:05');
+
+    fixture.componentInstance.data.set({ type: 'date', value: (row) => row.due, format: 'yyyy-MM-dd' });
+    fixture.detectChanges();
+    expect(cell().textContent?.trim()).toBe('2026-09-28');
   });
 
   it('draws a template or a component with the row it is given', () => {

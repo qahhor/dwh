@@ -152,9 +152,18 @@ class MsOutboxWorkerTest {
 
         when(outboxRepository.fetchPending(20)).thenReturn(List.of(item));
         when(mailProvider.send(any(MailMessage.class)))
-                .thenReturn(MailSendResult.failure("SMTP_ERR", "SMTP connection timeout", 100));
+                .thenReturn(MailSendResult.failure("SMTP_ERR", "SMTP connection timeout", 100))
+                .thenReturn(MailSendResult.success("msg-retry", 50));
 
         worker.processOutbox();
+        worker.processOutbox();
+
+        ArgumentCaptor<MailMessage> messages = ArgumentCaptor.forClass(MailMessage.class);
+        verify(mailProvider, times(2)).send(messages.capture());
+        assertThat(messages.getAllValues())
+                .extracting(MailMessage::idempotencyKey)
+                .containsExactly(idempotencyKey.toString(), idempotencyKey.toString());
+        verify(outboxRepository).markSuccess(3L, claimToken);
 
         verify(outboxRepository)
                 .markFailed(

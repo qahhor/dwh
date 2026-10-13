@@ -42,6 +42,20 @@ function click(fixture: ComponentFixture<TaskCreateModalComponent>, node: HTMLEl
 }
 
 describe('TaskCreateModalComponent', () => {
+  it('removes only the edited field refusal from the control and summary', () => {
+    const { fixture, screen } = render({
+      serverErrors: { fields: { title: 'Title refused', priority: 'Priority refused' }, other: ['Unknown refused'] },
+    });
+    const title = screen.querySelector('#task-create-title') as HTMLInputElement;
+    title.value = 'Corrected';
+    title.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(titleError(screen)).toBe('');
+    const summary = text(screen.querySelector('[data-testid="form-error-summary"]'));
+    expect(summary).not.toContain('Title refused');
+    expect(summary).toContain('Priority refused');
+    expect(summary).toContain('Unknown refused');
+  });
   it('is titled for a new task, or for a subtask of the parent the form names', () => {
     const { screen } = render();
     expect(text(screen.querySelector('.smt-modal__title'))).toBe('Создание новой задачи');
@@ -113,7 +127,7 @@ describe('TaskCreateModalComponent', () => {
     expect(screen.querySelector(`label[for="${title.id}"]`)).not.toBeNull();
     expect(title.getAttribute('aria-required')).toBe('true');
     expect(title.getAttribute('aria-invalid')).toBe('true');
-    expect(text(screen.querySelector(`label[for="${description.id}"]`))).toBe('Описание');
+    expect(description.getAttribute('aria-label')).toBe('Описание');
     expect(project.getAttribute('role')).toBe('combobox');
     expect(text(screen.querySelector('label[for="task-create-project"]'))).toContain('Проект');
     for (const [id, name] of [

@@ -31,7 +31,22 @@ function Invoke-PowerShellCapture([string]$Command) {
     $prev = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $out = (& powershell -NoProfile -ExecutionPolicy Bypass -Command $Command 2>&1) -join "`n"
+        $engine = (Get-Process -Id $PID).Path
+        # NFR-SEC-07: keep the exception message intact, independent of terminal width and host OS.
+        $wrapper = @'
+$ErrorActionPreference = 'Stop'
+try {
+    & { __COMMAND__ } 2>&1 | ForEach-Object {
+        if ($_ -is [System.Management.Automation.ErrorRecord]) { [Console]::Error.WriteLine($_.Exception.Message) }
+        else { $_ }
+    }
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+} catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}
+'@.Replace('__COMMAND__', $Command)
+        $out = (& $engine -NoProfile -NonInteractive -Command $wrapper 2>&1) -join "`n"
         return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = $out }
     }
     finally {
@@ -52,7 +67,7 @@ try {
     $failedClosed = $false
     $verifyPath = (Join-Path $PSScriptRoot 'verify-release.ps1')
     $res3 = Invoke-PowerShellCapture "& '$verifyPath' -WorkflowPath '$tamperedFile'"
-    if ($res3.ExitCode -ne 0 -or $res3.Output -match 'must scan published image digests with Trivy') {
+    if ($res3.ExitCode -ne 0 -and $res3.Output -match 'must scan published image digests with Trivy') {
         $failedClosed = $true
         Write-Host "Expected failure caught: $($res3.Output)" -ForegroundColor DarkGray
     }
@@ -107,3 +122,4 @@ finally {
 }
 
 Write-Host "`nAll Release Artifact Gates drills PASSED." -ForegroundColor Green
+exit 0

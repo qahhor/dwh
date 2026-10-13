@@ -7,6 +7,8 @@ import {
   inject,
   viewChild,
   input,
+  linkedSignal,
+  model,
   output,
   signal,
 } from '@angular/core';
@@ -22,6 +24,7 @@ import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { Project } from '@core/models/task.models';
 import { User } from '@core/models/auth.models';
+import { clearTaskErrors } from '@features/tasks/task-form-errors';
 import { ProjectMember } from '../projects.models';
 import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
@@ -61,6 +64,7 @@ export class ProjectMembersModalComponent {
   readonly hasMore = input(false);
   readonly isLoadingMore = input(false);
   readonly isAddingMember = input(false);
+  readonly addedCount = input(0);
   /** The member whose removal is running, so only that row's button shows it. */
   readonly removingUserId = input<number | null>(null);
 
@@ -69,8 +73,6 @@ export class ProjectMembersModalComponent {
 
   readonly members = input<ProjectMember[]>([]);
   readonly canUpdateProject = input<boolean>(false);
-  /** The server's refusal of the last added member, by field (`userId`, `accessKind`). */
-  readonly addErrors = input<Readonly<Record<string, string>>>({});
 
   readonly closeModal = output<void>();
   /** Asks for the next page of members. */
@@ -87,24 +89,33 @@ export class ProjectMembersModalComponent {
     userName: string;
   }>();
 
+  /** The server's refusal of the last added member, by field (`userId`, `accessKind`). */
+  readonly addErrors = model<Readonly<Record<string, string>>>({});
+
   private readonly userCell = viewChild.required<TemplateRef<unknown>>('memberUserCell');
   private readonly emailCell = viewChild.required<TemplateRef<unknown>>('memberEmailCell');
   private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('memberActionCell');
 
   /** "Add" was pressed since the last added member, so an empty person field shows its error. */
-  readonly addTried = signal(false);
+  readonly addTried = linkedSignal({ source: () => [this.isOpen(), this.addedCount()], computation: () => false });
+  readonly userTouched = linkedSignal({ source: () => [this.isOpen(), this.addedCount()], computation: () => false });
 
   readonly foundUsers = signal<User[]>([]);
   readonly isUserDropdownOpen = signal(false);
 
   /** Signals, since the search box, the result list and the role picker change them from callbacks. */
-  readonly userSearchQuery = signal('');
-  readonly selectedUser = signal<User | null>(null);
+  readonly userSearchQuery = linkedSignal({ source: () => [this.isOpen(), this.addedCount()], computation: () => '' });
+  readonly selectedUser = linkedSignal({
+    source: () => [this.isOpen(), this.addedCount()],
+    computation: (): User | null => null,
+  });
   readonly selectedAccessKind = signal('MEMBER');
 
   /** What was typed into the search box; choosing or clearing a user does not search again. */
   private readonly searchTerm = signal('');
+
+  readonly pending = computed(() => this.isAddingMember() || this.removingUserId() !== null);
 
   readonly rows = computed<ProjectMember[]>(() => this.members() ?? []);
 
@@ -175,8 +186,13 @@ export class ProjectMembersModalComponent {
     ]);
   }
 
+  requestClose(): void {
+    if (!this.pending()) this.closeModal.emit();
+  }
+
   onSearchInput(value: SMTInputValue): void {
     const query = value === null ? '' : String(value);
+    if (query !== this.userSearchQuery()) this.clearError('userId');
     this.userSearchQuery.set(query);
     const selected = this.selectedUser();
     if (selected && query !== selected.name) {
@@ -186,16 +202,30 @@ export class ProjectMembersModalComponent {
   }
 
   selectUser(user: User): void {
+    if (this.selectedUser()?.id !== user.id) this.clearError('userId');
     this.selectedUser.set(user);
     this.userSearchQuery.set(user.name);
     this.isUserDropdownOpen.set(false);
   }
 
   clearSelectedUser(): void {
+    this.clearError('userId');
     this.selectedUser.set(null);
     this.userSearchQuery.set('');
     this.foundUsers.set([]);
     this.isUserDropdownOpen.set(false);
+  }
+
+  touchUser(event: FocusEvent): void {
+    const wrapper = event.currentTarget as HTMLElement;
+    if (event.relatedTarget instanceof Node && wrapper.contains(event.relatedTarget)) return;
+    this.userTouched.set(true);
+  }
+
+  changeAccessKind(value: string | null): void {
+    if (!value || value === this.selectedAccessKind()) return;
+    this.selectedAccessKind.set(value);
+    this.clearError('accessKind');
   }
 
   accessVariant(kind: string): TBadgeVariant {
@@ -222,7 +252,8 @@ export class ProjectMembersModalComponent {
 
   /** "Required" after a press without a chosen person, else the server's word on the person. */
   userError(): string {
-    if (this.addTried() && !this.selectedUser()) return this.i18n.translate('ui.control.required');
+    if ((this.addTried() || this.userTouched()) && !this.selectedUser())
+      return this.i18n.translate('ui.control.required');
     return this.addErrors()['userId'] ?? '';
   }
 
@@ -239,10 +270,13 @@ export class ProjectMembersModalComponent {
       userId: user.id,
       accessKind: this.selectedAccessKind(),
     });
-    this.clearSelectedUser();
   }
 
   requestRemove(member: ProjectMember): void {
     this.removeMember.emit({ projectId: member.projectId, userId: member.userId, userName: member.userName });
+  }
+
+  private clearError(field: string): void {
+    this.addErrors.update((errors) => clearTaskErrors(errors, [field]));
   }
 }

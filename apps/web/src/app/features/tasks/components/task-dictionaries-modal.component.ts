@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
+import { clearTaskErrors } from '../task-form-errors';
 import { DictionaryAddState, newAddState } from '../services/task-dictionaries.service';
 import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
@@ -108,6 +109,11 @@ export class TaskDictionariesModalComponent {
   readonly typeTried = linkedSignal({ source: () => this.typeAdd().added(), computation: () => false });
   readonly statusTried = linkedSignal({ source: () => this.statusAdd().added(), computation: () => false });
 
+  readonly typeTouched = linkedSignal({ source: () => this.typeAdd().added(), computation: () => new Set<string>() });
+  readonly statusTouched = linkedSignal({ source: () => this.statusAdd().added(), computation: () => false });
+
+  readonly pending = computed(() => this.typeAdd().saving() || this.statusAdd().saving());
+
   settingsTab: 'types' | 'statuses' = 'types';
 
   /** Rows are kept by id, so a moved row keeps its focus. */
@@ -117,23 +123,41 @@ export class TaskDictionariesModalComponent {
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<'types' | 'statuses'>[]>();
 
+  requestClose(): void {
+    if (!this.pending()) this.closeModal.emit();
+  }
+
+  touchType(field: 'code' | 'name'): void {
+    this.typeTouched.update((fields) => new Set([...fields, field]));
+  }
+
   /** The error under a field: "required" after a press with the field empty, else the server's word. */
   typeError(field: 'code' | 'name'): string {
-    if (this.typeTried() && !this.newTypeForm()[field].trim()) return this.tabText.translate('ui.control.required');
+    if ((this.typeTried() || this.typeTouched().has(field)) && !this.newTypeForm()[field].trim())
+      return this.tabText.translate('ui.control.required');
     return this.typeAdd().errors()[field] ?? '';
   }
 
   statusError(field: 'name'): string {
-    if (this.statusTried() && !this.newStatusForm()[field].trim()) return this.tabText.translate('ui.control.required');
+    if ((this.statusTried() || this.statusTouched()) && !this.newStatusForm()[field].trim())
+      return this.tabText.translate('ui.control.required');
     return this.statusAdd().errors()[field] ?? '';
   }
 
   patchTypeForm(patch: Partial<NewTypeForm>): void {
+    const changed = Object.keys(patch).filter(
+      (key) => !Object.is(this.newTypeForm()[key as keyof NewTypeForm], patch[key as keyof NewTypeForm]),
+    );
     this.newTypeForm.update((form) => ({ ...form, ...patch }));
+    this.typeAdd().errors.update((errors) => clearTaskErrors(errors, changed));
   }
 
   patchStatusForm(patch: Partial<NewStatusForm>): void {
+    const changed = Object.keys(patch).filter(
+      (key) => !Object.is(this.newStatusForm()[key as keyof NewStatusForm], patch[key as keyof NewStatusForm]),
+    );
     this.newStatusForm.update((form) => ({ ...form, ...patch }));
+    this.statusAdd().errors.update((errors) => clearTaskErrors(errors, changed));
   }
 
   /** A text field's value is typed as text, a number or null; the forms keep text. */

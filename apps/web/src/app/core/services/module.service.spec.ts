@@ -20,6 +20,26 @@ describe('ModuleService', () => {
     return { service, api };
   }
 
+  it('treats tasks as optional and never adds a duplicate built-in navigation item', async () => {
+    const { service, api } = setup();
+    const taskModule: InstalledModule = {
+      code: 'tasks',
+      name: 'Tasks',
+      version: '1.0',
+      route: '/tasks',
+      isSystem: false,
+      status: 'DISABLED',
+    };
+    api.get.mockReturnValue(of([taskModule]));
+    await firstValueFrom(service.loadAllModules());
+    expect(service.isModuleActive('tasks')).toBe(false);
+    expect(service.isModuleActive('iam')).toBe(true);
+    api.put.mockReturnValue(of({ ...taskModule, status: 'ACTIVE' }));
+    await firstValueFrom(service.toggleModule('tasks', true));
+    expect(service.isModuleActive('tasks')).toBe(true);
+    expect(service.getActiveCustomModules()).toEqual([]);
+  });
+
   it('initializes with system modules active and isLoaded false', () => {
     const { service } = setup();
 

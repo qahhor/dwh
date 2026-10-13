@@ -1,0 +1,54 @@
+# Host-side TLS edge; include from nginx's http context, outside application Compose.
+# Replace placeholders, install the zone-specific AOP client CA and exact current CF CIDRs.
+# The cloud/host firewall MUST admit 443 from Cloudflare only (IPv4 and IPv6).
+# cloudflare-realip.conf contains ONLY set_real_ip_from directives for those CIDRs.
+include /etc/smartupcms/cloudflare-realip.conf;
+real_ip_header CF-Connecting-IP;
+real_ip_recursive off;
+limit_conn_zone $server_name zone=staging_uploads:1m;
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    ssl_reject_handshake on;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name CHANGE_ME_STAGING_HOST;
+    ssl_certificate /etc/smartupcms/tls/origin.pem;
+    ssl_certificate_key /etc/smartupcms/tls/origin-key.pem;
+    ssl_client_certificate /etc/smartupcms/tls/zone-aop-ca.pem;
+    ssl_verify_client on;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    server_tokens off;
+    client_max_body_size 51m;
+    client_body_timeout 60s;
+    # Do not buffer multi-GiB aggregate bodies on the root filesystem.
+    proxy_request_buffering off;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Forwarded "";
+    proxy_connect_timeout 5s;
+    proxy_send_timeout 90s;
+    proxy_read_timeout 90s;
+    location = /api/v1/files/upload {
+        limit_conn staging_uploads 20;
+        limit_conn_status 429;
+        proxy_pass http://127.0.0.1:8080;
+    }
+    location /api/v1/events {
+        proxy_buffering off;
+        proxy_read_timeout 1h;
+        proxy_pass http://127.0.0.1:8080;
+    }
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+    }
+}

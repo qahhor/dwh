@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
 
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -37,6 +37,8 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
         type="button"
         smtVariant="secondary"
         smtIcon="tune"
+        #preferencesButton
+        [smtLoading]="isLoadingPreferences()"
         [attr.aria-label]="'notifications.preferences_title' | t"
         (click)="openPreferences.emit()"
       >
@@ -58,8 +60,16 @@ export class NotificationsHeaderComponent {
   readonly isLoading = input.required<boolean>();
   readonly hasPendingReads = input.required<boolean>();
   readonly isMarkingAll = input.required<boolean>();
+  readonly isLoadingPreferences = input(false);
 
   readonly refresh = output<void>();
   readonly markAllRead = output<void>();
   readonly openPreferences = output<void>();
+  private readonly preferencesButton = viewChild.required('preferencesButton', {
+    read: ElementRef<HTMLButtonElement>,
+  });
+
+  focusPreferences(): void {
+    this.preferencesButton().nativeElement.focus();
+  }
 }

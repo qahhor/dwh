@@ -39,6 +39,9 @@ import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { UiFocusFirstInvalidDirective, focusFirstInvalid } from '@shared/ui/focus-first-invalid';
 import { discardChangesQuestion } from '@shared/ui/discard-changes';
 import { problemFieldErrors } from '@shared/ui/problem-fields';
+import { UiFormErrorItem, UiFormErrorSummaryComponent } from '@shared/ui/ui-form-error-summary.component';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
+import { messageForError } from '@shared/ui-kit/components/forms/control/control-messages';
 
 /** What the person types and picks in the create dialog. */
 interface WebhookCreateModel {
@@ -61,6 +64,7 @@ function emptyCreate(): WebhookCreateModel {
     SMTInputComponent,
     FormField,
     UiFormActionsComponent,
+    UiFormErrorSummaryComponent,
     UiFocusFirstInvalidDirective,
     TranslatePipe,
     SMTButtonComponent,
@@ -80,6 +84,7 @@ export class WebhooksSettingsComponent {
   private readonly modal = inject(SMTModalService);
   private readonly saveErrors = inject(SaveErrorNotifier);
   private readonly injector = inject(Injector);
+  private readonly kitI18n = inject(SMTI18nService);
 
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -97,6 +102,7 @@ export class WebhooksSettingsComponent {
   readonly createModel = signal<WebhookCreateModel>(emptyCreate());
   /** The server's refusal of the new subscription by field, already in words. */
   readonly serverErrors = signal<Readonly<Record<string, string>>>({});
+  readonly otherErrors = signal<readonly string[]>([]);
   readonly availableEvents = signal<WebhookEventOption[]>(AVAILABLE_WEBHOOK_EVENTS);
 
   readonly tableConfig = computed<TableConfig<WebhookSubscription>>(() => {
@@ -196,6 +202,7 @@ export class WebhooksSettingsComponent {
     // A new dialog starts blank and untouched, so no field shows an error before it is used.
     this.createForm().reset(emptyCreate());
     this.serverErrors.set({});
+    this.otherErrors.set([]);
     this.isCreateModalOpen.set(true);
   }
 
@@ -247,6 +254,7 @@ export class WebhooksSettingsComponent {
     if (!this.isCreateValid()) return;
     this.isSaving.set(true);
     this.serverErrors.set({});
+    this.otherErrors.set([]);
 
     const model = this.createModel();
     const body: CreateWebhookSubscriptionDto = {
@@ -271,12 +279,13 @@ export class WebhooksSettingsComponent {
           rename: { subscribedEvents: 'events' },
         });
         this.serverErrors.set(fields);
+        this.otherErrors.set(other);
         if (Object.keys(fields).length > 0) {
           const formElement = document.getElementById('webhook-create');
           if (formElement) focusFirstInvalid(formElement, this.injector);
         }
-        if (Object.keys(fields).length === 0 || other.length > 0) {
-          this.toast.error(other[0] ?? (problemText(err) || this.uiI18n.translate('common.error')));
+        if (Object.keys(fields).length === 0 && other.length === 0) {
+          this.toast.error(problemText(err) || this.uiI18n.translate('common.error'));
         }
       },
     });
@@ -331,7 +340,28 @@ export class WebhooksSettingsComponent {
       .subscribe();
   }
 
+  errorSummary(): UiFormErrorItem[] {
+    const fields = [
+      ['name', 'webhook-name', 'settings.webhooks.name'],
+      ['targetUrl', 'webhook-url', 'settings.webhooks.target_url'],
+      ['events', 'webhook-events', 'settings.webhooks.events'],
+    ] as const;
+    const errors: UiFormErrorItem[] = fields.flatMap(([key, fieldId, label]) => {
+      const field = this.createForm[key]();
+      const message =
+        this.serverErrors()[key] ??
+        (field.touched() ? messageForError(field.errors()[0], this.kitI18n.messages().control) : '');
+      return message ? [{ fieldId, label: this.uiI18n.translate(label), message }] : [];
+    });
+    return [...errors, ...this.otherErrors().map((message) => ({ message }))];
+  }
+
+  clearServerError(key: string): void {
+    this.serverErrors.update(({ [key]: _previous, ...rest }) => rest);
+  }
+
   private setEvents(events: string[]): void {
+    this.clearServerError('events');
     const field = this.createForm.events();
     field.value.set(events);
     field.markAsTouched();

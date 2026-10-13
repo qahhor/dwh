@@ -27,7 +27,7 @@
             name="taskCreateTitle"
             class="title-input"
             [value]="createForm().title"
-            (valueChange)="createForm().title = $event?.toString() ?? ''"
+            (valueChange)="setField('title', $event?.toString() ?? '')"
             (touch)="titleTouched.set(true)"
             [placeholder]="'tasks.editor.title_placeholder' | t"
           />
@@ -44,7 +44,7 @@
             smtAppearance="chips"
             [options]="typeOptions()"
             [value]="createForm().taskType"
-            (valueChange)="createForm().taskType = $event ?? createForm().taskType"
+            (valueChange)="setField('taskType', $event ?? createForm().taskType)"
           />
         </smt-control>
 
@@ -59,7 +59,7 @@
             smtAppearance="segmented"
             [options]="priorityOptions()"
             [value]="createForm().priority"
-            (valueChange)="createForm().priority = $event ?? createForm().priority"
+            (valueChange)="setField('priority', $event ?? createForm().priority)"
           />
         </smt-control>
 
@@ -75,7 +75,7 @@
               [source]="lookups.projects"
               [knownRows]="lookups.knownProjectRows()"
               [value]="createForm().projectId"
-              (valueChange)="createForm().projectId = $event"
+              (valueChange)="setField('projectId', $event)"
               [placeholder]="'tasks.editor.no_project' | t"
               [searchPlaceholder]="'tasks.search_project' | t"
               [emptyLabel]="'tasks.editor.no_project' | t"
@@ -93,7 +93,7 @@
               [source]="lookups.tasks"
               [knownRows]="lookups.knownParentRows()"
               [value]="createForm().parentTaskId"
-              (valueChange)="createForm().parentTaskId = $event"
+              (valueChange)="setField('parentTaskId', $event)"
               [placeholder]="'tasks.editor.no_parent' | t"
               [searchPlaceholder]="'tasks.editor.parent_search_placeholder' | t"
               [emptyLabel]="'tasks.without_parent' | t"
@@ -113,7 +113,7 @@
               [source]="lookups.users"
               [knownRows]="lookups.knownUserRows()"
               [value]="createForm().responsibleUserId"
-              (valueChange)="createForm().responsibleUserId = $event"
+              (valueChange)="setField('responsibleUserId', $event)"
               [placeholder]="'tasks.editor.select_assignee' | t"
               [searchPlaceholder]="'tasks.common.employee_search_placeholder' | t"
               [emptyLabel]="'common.not_assigned' | t"
@@ -131,7 +131,7 @@
               name="taskCreateDeadline"
               smtWithTime
               [value]="createForm().endTime"
-              (valueChange)="createForm().endTime = $event ?? ''"
+              (valueChange)="setField('endTime', $event ?? '')"
             />
           </smt-control>
         </div>
@@ -147,7 +147,7 @@
             [knownRows]="lookups.knownUserRows()"
             [value]="createForm().executorUserIds"
             [ariaLabel]="'tasks.common.co_executors' | t"
-            (valueChange)="createForm().executorUserIds = [...$event]"
+            (valueChange)="setField('executorUserIds', [...$event])"
             [placeholder]="'tasks.editor.add_co_executors_hint' | t"
             [searchPlaceholder]="'tasks.editor.employee_search' | t"
           />
@@ -164,7 +164,7 @@
             [knownRows]="lookups.knownUserRows()"
             [value]="createForm().observerUserIds"
             [ariaLabel]="'tasks.common.observers' | t"
-            (valueChange)="createForm().observerUserIds = [...$event]"
+            (valueChange)="setField('observerUserIds', [...$event])"
             [placeholder]="'tasks.editor.add_observers_hint' | t"
             [searchPlaceholder]="'tasks.editor.employee_search' | t"
           />
@@ -178,7 +178,7 @@
           <ui-markdown-editor
             [value]="createForm().descriptionMarkdown"
             [ariaLabel]="'projects.common.description' | t"
-            (valueChange)="createForm().descriptionMarkdown = $event"
+            (valueChange)="setField('descriptionMarkdown', $event)"
             [placeholder]="'tasks.editor.description_placeholder' | t"
             [rows]="4"
           ></ui-markdown-editor>

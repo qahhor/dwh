@@ -28,6 +28,7 @@ import com.smartup24.cms.instance.search.api.TypesenseProperties;
 import com.smartup24.cms.instance.search.controller.SearchController;
 import com.smartup24.cms.instance.search.service.*;
 import com.smartup24.cms.instance.search.typesense.*;
+import com.smartup24.cms.instance.support.TestModules;
 import com.sun.net.httpserver.HttpServer;
 import jakarta.servlet.http.Cookie;
 import java.net.InetSocketAddress;
@@ -76,6 +77,7 @@ import tools.jackson.databind.ObjectMapper;
             "management.server.port=0"
         })
 @Import({
+    TestModules.Enabled.class,
     SearchSettingsIntegrationTestSupport.Fixture.class,
     SecurityConfig.class,
     ProblemDetailAuthHandlers.class,

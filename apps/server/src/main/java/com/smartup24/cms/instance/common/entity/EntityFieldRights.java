@@ -8,6 +8,7 @@ import com.smartup24.cms.platform.api.entity.EntityModel;
 import com.smartup24.cms.platform.api.entity.FormField;
 import com.smartup24.cms.platform.api.entity.field.EntityField;
 import com.smartup24.cms.platform.api.entity.field.FieldAccess;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -72,6 +73,18 @@ public final class EntityFieldRights {
     /** The keys of the fields that do not exist for the viewer. */
     public static Set<String> hidden(EntityDefinition entity) {
         return keys(entity, access -> !visible(access));
+    }
+
+    /** Declared file/image fields readable by the viewer; stale attachment keys never grant access. */
+    public static Set<String> visibleFiles(EntityDefinition entity) {
+        Set<String> keys = new LinkedHashSet<>();
+        for (FormField field : entity.fields()) {
+            if ((field.type() == FieldType.FILE || field.type() == FieldType.IMAGE)
+                    && visible(of(entity, field.key()))) {
+                keys.add(field.key());
+            }
+        }
+        return Set.copyOf(keys);
     }
 
     /** The keys of the fields the viewer sees but may not change. */

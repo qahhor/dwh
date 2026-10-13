@@ -2,27 +2,24 @@
 
 **Version:** 2.0
 
-**Updated:** 2026-09-02
+**Updated:** 2026-10-13
+
+The current Russian operating procedure is [production handbook](production-handbook-ru.md).
+Use its complete recovery coordinator for the approved APP/OPS installation;
+the database-only utilities below remain diagnostic building blocks.
 
 ## Release upgrade
 
 1. Read the release notes and migration notes.
 2. Verify the target image signatures and release manifest.
 3. Confirm current health, free space, and a successful recent restore drill.
-4. Set the immutable target `APP_VERSION` in `.env.production`.
-5. Run the supported deploy script:
+4. Select the immutable target release and independent checksum digest in
+   the private Ansible variables; keep credentials outside its bundle.
+5. Run [verified Ansible deployment](ansible-deployment.md), which requires
+   complete pre-deploy recovery and preserves a durable migration boundary.
 
-```bash
-bash scripts/prod/deploy.sh
-```
-
-```powershell
-./scripts/prod/deploy.ps1
-```
-
-The script creates an encrypted database backup before migrating an existing
-database and stops on backup, pull, migration, or readiness failure. Do not run
-Flyway manually around a failed gate. Follow [rollback](rollback.md).
+Do not run Flyway or the low-level deploy scripts around a failed gate.
+Follow [rollback](rollback.md).
 
 ## On-demand encrypted backup
 
@@ -107,6 +104,7 @@ docker compose -f deploy/compose/docker-compose.prod.yml \
 |---|---|---|
 | Initial/admin credentials | bootstrap complete, suspected exposure, policy date | old credential denied; administrator sign-in works |
 | Application database password | suspected exposure or policy date | migrations and server readiness pass |
+| PostgreSQL administrator and migrator passwords | suspected exposure or policy date | all four DB values remain distinct; CMS/DWH migration, bootstrap and readiness pass |
 | Backup database password | suspected exposure or policy date | bootstrap role and one-shot backup pass |
 | S3/R2 keys | suspected exposure or provider policy date | upload/download/delete plus encrypted backup pass |
 | Mail/SMS/messenger token | suspected exposure or provider policy date | test delivery and redacted logs |

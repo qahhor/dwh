@@ -151,7 +151,7 @@ public class KauthPasswordResetService {
                 .filter(u -> MdPref.STATE_ACTIVE.equals(u.state())
                         && u.authenticationVersion() == reset.get().authVersion());
         if (user.isEmpty()) {
-            attemptRepository.recordAttempt(ATTEMPT_LOGIN, ip, false, ATTEMPT_REJECTED);
+            attemptRepository.recordAttempt(ATTEMPT_LOGIN, null, ip, false, ATTEMPT_REJECTED);
             throw rejectedLink();
         }
 

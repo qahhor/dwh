@@ -1,0 +1,64 @@
+# Evaluate on the separate ops host for one installation; change its label consistently.
+groups:
+  - name: smartupcms-external-operations
+    rules:
+      - alert: SmartupcmsExternalUnavailable
+        expr: probe_success{job="smartupcms-external"} == 0 or absent(probe_success{job="smartupcms-external"})
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "External HTTPS API probe failed"
+          runbook_url: https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md
+      - alert: SmartupcmsCollectorStale
+        expr: time() - max(timestamp(up{job="smartupcms",installation="smartupcms-staging"})) > 60 or absent(up{job="smartupcms",installation="smartupcms-staging"})
+        for: 30s
+        labels:
+          severity: critical
+          installation: smartupcms-staging
+        annotations:
+          summary: "App collector is missing or stale"
+          runbook_url: https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md
+      - alert: SmartupcmsRecoveryAging
+        expr: (time() - max(smc_recovery_point_timestamp_seconds{installation="smartupcms-staging"}) > 50400) and (time() - max(smc_recovery_point_timestamp_seconds{installation="smartupcms-staging"}) <= 72000)
+        for: 1m
+        labels:
+          severity: warning
+          installation: smartupcms-staging
+        annotations:
+          summary: "Verified recovery point is older than 14 hours"
+          runbook_url: https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md
+      - alert: SmartupcmsRecoveryUrgent
+        expr: time() - max(smc_recovery_point_timestamp_seconds{installation="smartupcms-staging"}) > 72000
+        for: 1m
+        labels:
+          severity: critical
+          installation: smartupcms-staging
+        annotations:
+          summary: "Verified recovery point is older than 20 hours"
+          runbook_url: https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md
+      - alert: SmartupcmsRecoveryUnverified
+        expr: time() - max(smc_recovery_point_timestamp_seconds{installation="smartupcms-staging"}) > 86400 or absent(smc_recovery_point_timestamp_seconds{installation="smartupcms-staging"})
+        for: 1m
+        labels:
+          severity: critical
+          installation: smartupcms-staging
+        annotations:
+          summary: "No verified recovery point within the approved RPO"
+          runbook_url: https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md
+      - alert: SmartupcmsRecoveryFailed
+        expr: smc_recovery_last_attempt_success{installation="smartupcms-staging"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Consistent recovery capture failed"
+          runbook_url: https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md
+      - alert: SmartupcmsAlertDeliveryFailed
+        expr: increase(alertmanager_notifications_failed_total[5m]) > 0 or up{job="smartupcms-alertmanager"} == 0 or absent(up{job="smartupcms-alertmanager"})
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alert delivery needs an independent escalation"
+          runbook_url: https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md

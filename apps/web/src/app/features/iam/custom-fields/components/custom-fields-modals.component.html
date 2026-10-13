@@ -27,6 +27,7 @@
               <smt-select
                 smtTriggerId="custom-field-entity"
                 [formField]="fieldForm().entityType"
+                (valueChange)="edited('entityType')"
                 [options]="entityOptions()"
                 [allowClear]="false"
               />
@@ -47,6 +48,7 @@
               smtFieldId="custom-field-code"
               [smtFocusInitial]="!editingField()"
               [formField]="fieldForm().code"
+              (edited)="edited('code')"
               (input)="onCodeInput($event, codeField)"
               [placeholder]="'iam.custom_fields.editor.code_placeholder' | t"
               autocomplete="off"
@@ -58,6 +60,7 @@
               smtFieldId="custom-field-name"
               [smtFocusInitial]="!!editingField()"
               [formField]="fieldForm().name"
+              (edited)="edited('name')"
               [placeholder]="'iam.custom_fields.editor.name_placeholder' | t"
             />
           </smt-control>
@@ -67,6 +70,7 @@
               <smt-select
                 smtTriggerId="custom-field-type"
                 [formField]="fieldForm().fieldType"
+                (valueChange)="edited('fieldType')"
                 [options]="fieldTypeOptions()"
                 [allowClear]="false"
               />
@@ -74,7 +78,11 @@
           }
 
           <smt-control [smtLabel]="'iam.custom_fields.default_value' | t" [smtError]="serverError('defaultValue')">
-            <smt-input smtFieldId="custom-field-default" [formField]="fieldForm().defaultValue" />
+            <smt-input
+              smtFieldId="custom-field-default"
+              [formField]="fieldForm().defaultValue"
+              (edited)="edited('defaultValue')"
+            />
           </smt-control>
 
           <smt-control [smtLabel]="'iam.custom_fields.editor.sort_order' | t" [smtError]="serverError('orderNo')">
@@ -83,6 +91,7 @@
               smtFieldId="custom-field-order"
               type="number"
               [formField]="fieldForm().orderNo"
+              (edited)="edited('orderNo')"
               [smtMin]="0"
               [smtMax]="99999"
               [smtStep]="1"
@@ -98,13 +107,18 @@
               [smtHint]="'iam.custom_fields.editor.options_hint' | t"
               [smtError]="serverError('optionsText')"
             >
-              <smt-textarea smtFieldId="custom-field-options" [formField]="fieldForm().optionsText" [rows]="4" />
+              <smt-textarea
+                smtFieldId="custom-field-options"
+                [formField]="fieldForm().optionsText"
+                (edited)="edited('optionsText')"
+                [rows]="4"
+              />
             </smt-control>
           }
 
           <!-- Required flag, saved with the form -->
           <div class="form-wide checkbox-group">
-            <div smt-checkbox [formField]="fieldForm().isRequired">
+            <div smt-checkbox [formField]="fieldForm().isRequired" (checkedChange)="edited('isRequired')">
               {{ 'iam.custom_fields.editor.required' | t }}
             </div>
           </div>

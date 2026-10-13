@@ -101,7 +101,8 @@ gh auth login
 `observability (promtool rules + unit tests, dashboards)` (план 10/10, п. 7.3),
 `e2e (clean deploy + Playwright Chromium, shard 1/2)` и `… shard 2/2`,
 `security (gitleaks + trivy)`, `Verify commit sign-offs`,
-`codeql (java-kotlin)`, `codeql (javascript-typescript)`, `codeql (actions)`.
+`codeql (java-kotlin)`, `codeql (javascript-typescript)`, `codeql (python)`,
+`codeql (actions)`.
 `test-rulesets.ps1` в CI сверяет список в обе стороны: падает, если
 обязательной проверке не соответствует ни один джоб (переименование джоба без
 правки `main.json` не пройдёт), и если джоб, который запускается на PR, не

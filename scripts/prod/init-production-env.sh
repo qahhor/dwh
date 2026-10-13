@@ -64,12 +64,21 @@ generate_secure_password() {
     fi
 }
 
+command -v age-keygen >/dev/null 2>&1 || { echo "Error: host age-keygen is required." >&2; exit 1; }
+
 # 1. Prepare secrets directory
+umask 077
 mkdir -p "$SECRETS_DIR"
 chmod 700 "$SECRETS_DIR"
+SECRETS_DIR="$(cd "$SECRETS_DIR" && pwd -P)"
+if command -v cygpath >/dev/null 2>&1; then
+    SECRETS_DIR="$(cygpath -m "$SECRETS_DIR")"
+fi
 
 # 2. Generate secrets
 DB_PASSWORD="$(generate_hex_token)"
+POSTGRES_PASSWORD="$(generate_hex_token)"
+MIGRATE_DB_PASSWORD="$(generate_hex_token)"
 BACKUP_DB_PASSWORD="$(generate_hex_token)"
 TYPESENSE_API_KEY="$(generate_hex_token)"
 SMC_SECRETS_KEY="$(generate_base64_key)"
@@ -80,8 +89,11 @@ fi
 
 # Write secret files with strict 0600 permissions
 printf "%s" "$DB_PASSWORD" > "$SECRETS_DIR/database-password"
+printf "%s" "$POSTGRES_PASSWORD" > "$SECRETS_DIR/postgres-password"
+printf "%s" "$MIGRATE_DB_PASSWORD" > "$SECRETS_DIR/migrate-database-password"
 printf "%s" "$BACKUP_DB_PASSWORD" > "$SECRETS_DIR/backup-database-password"
-chmod 600 "$SECRETS_DIR/database-password" "$SECRETS_DIR/backup-database-password"
+chmod 600 "$SECRETS_DIR/database-password" "$SECRETS_DIR/postgres-password" \
+    "$SECRETS_DIR/migrate-database-password" "$SECRETS_DIR/backup-database-password"
 
 echo "[+] Wrote database secret files to $SECRETS_DIR (mode 0600)"
 
@@ -97,33 +109,11 @@ if command -v age-keygen >/dev/null 2>&1; then
     fi
 fi
 
-if [[ -z "$AGE_RECIPIENT" ]] && command -v docker >/dev/null 2>&1; then
-    echo "[+] Generating Age keypair via ephemeral Docker container..."
-    DOCKER_OUT="$(docker run --rm alpine:latest sh -c "apk add --no-cache age >/dev/null 2>&1 && age-keygen" 2>/dev/null || true)"
-    if [[ -n "$DOCKER_OUT" ]]; then
-        AGE_RECIPIENT="$(echo "$DOCKER_OUT" | grep -E '(# public key:|Public key:)' | awk '{print $NF}' | head -n 1 || true)"
-        PRIV_KEY="$(echo "$DOCKER_OUT" | grep '^AGE-SECRET-KEY-1' || true)"
-        if [[ -n "$PRIV_KEY" && -n "$AGE_RECIPIENT" ]]; then
-            cat > "$AGE_IDENTITY_FILE" <<EOF
-# created: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
-# public key: $AGE_RECIPIENT
-$PRIV_KEY
-EOF
-            chmod 600 "$AGE_IDENTITY_FILE"
-        fi
-    fi
-fi
-
 if [[ -z "$AGE_RECIPIENT" ]]; then
-    AGE_RECIPIENT="age1$(generate_hex_token | head -c 56)"
-    echo "[!] Warning: age-keygen not available. Generated placeholder Age recipient: $AGE_RECIPIENT"
-    echo "    Replace BACKUP_AGE_RECIPIENT with your real public key from age-keygen."
-else
-    echo "[+] Age backup keypair generated successfully!"
-    echo "    Public recipient: $AGE_RECIPIENT"
-    echo "    Private key saved to: $AGE_IDENTITY_FILE (mode 0600)"
-    echo "    IMPORTANT: Move $AGE_IDENTITY_FILE off this server to secure offline storage."
+    echo "Error: a real age keypair is required; initialization aborted." >&2
+    exit 1
 fi
+echo "[+] Age backup keypair generated; store the identity off-host: $AGE_IDENTITY_FILE"
 
 # 4. Generate environment file
 cat > "$ENV_FILE" <<EOF
@@ -147,16 +137,17 @@ SMC_PUBLIC_URL=$SMC_PUBLIC_URL
 # Database credentials (least-privilege role separation, NFR-SEC-02)
 DB_NAME=smartupcms
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=$DB_PASSWORD
-POSTGRES_PASSWORD_FILE=./.secrets/database-password
+POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+POSTGRES_PASSWORD_FILE=$SECRETS_DIR/postgres-password
 MIGRATE_DB_USER=smartupcms_migrator
-MIGRATE_DB_PASSWORD=$DB_PASSWORD
-MIGRATE_DB_PASSWORD_FILE=./.secrets/database-password
+MIGRATE_DB_PASSWORD=$MIGRATE_DB_PASSWORD
+MIGRATE_DB_PASSWORD_FILE=$SECRETS_DIR/migrate-database-password
 DB_USER=smartupcms
 DB_PASSWORD=$DB_PASSWORD
-DB_PASSWORD_FILE=./.secrets/database-password
+DB_PASSWORD_FILE=$SECRETS_DIR/database-password
 BACKUP_DB_USER=smartupcms_backup
-BACKUP_DB_PASSWORD_FILE=./.secrets/backup-database-password
+BACKUP_DB_PASSWORD=$BACKUP_DB_PASSWORD
+BACKUP_DB_PASSWORD_FILE=$SECRETS_DIR/backup-database-password
 
 ADMIN_LOGIN=$ADMIN_LOGIN
 ADMIN_EMAIL=$ADMIN_EMAIL
@@ -244,7 +235,7 @@ echo ""
 echo "=== Production Deployment Summary ==="
 echo "Organization : $ORGANIZATION_NAME ($ORGANIZATION_CODE)"
 echo "Admin user   : $ADMIN_LOGIN ($ADMIN_EMAIL)"
-echo "Admin pass   : $ADMIN_PASSWORD"
+echo "Admin pass   : saved in the environment file"
 echo "Environment  : $ENV_FILE"
 echo "Secrets dir  : $SECRETS_DIR"
 echo "Age public   : $AGE_RECIPIENT"

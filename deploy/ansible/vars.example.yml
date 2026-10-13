@@ -1,0 +1,29 @@
+# Paths name operator-managed files; this example contains no credentials.
+smc_private_root: /var/lib/smartupcms/deployment
+smc_project: smartupcms
+smc_repository: YOUR_ORGANIZATION/YOUR_REPOSITORY
+smc_version: v1.2.3
+smc_release_assets_source: /secure/releases/v1.2.3
+# Pin from independently reviewed release evidence, never derive this from the copied assets.
+smc_release_checksums_sha256: REPLACE_WITH_TRUSTED_SHA256SUMS_DIGEST
+smc_environment_source: /secure/smartupcms/environment
+smc_staging: false
+smc_health_timeout: 180
+smc_action: deploy
+# rollback-plan writes a private plan only; automated rollback execution is unsupported.
+smc_rollback_approval_source: ""
+smc_prerequisites:
+  docker: REPLACE_WITH_APPROVED_ENGINE_VERSION
+  compose: REPLACE_WITH_APPROVED_COMPOSE_VERSION
+  powershell: REPLACE_WITH_APPROVED_POWERSHELL_VERSION
+  cosign: 3.1.3
+  gh: REPLACE_WITH_APPROVED_GH_VERSION
+smc_secret_files:
+  - {variable: POSTGRES_PASSWORD_FILE, name: postgres-password, source: /secure/smartupcms/postgres-password}
+  - {variable: MIGRATE_DB_PASSWORD_FILE, name: migrate-database-password, source: /secure/smartupcms/migrate-database-password}
+  - {variable: DB_PASSWORD_FILE, name: database-password, source: /secure/smartupcms/database-password}
+  - {variable: BACKUP_DB_PASSWORD_FILE, name: backup-database-password, source: /secure/smartupcms/backup-database-password}
+  # Add the following when using S3 and the staging observability overlay.
+  # - {variable: BACKUP_S3_ACCESS_KEY_ID_FILE, name: backup-s3-access-key-id, source: /secure/smartupcms/backup-s3-access-key-id}
+  # - {variable: BACKUP_S3_SECRET_ACCESS_KEY_FILE, name: backup-s3-secret-access-key, source: /secure/smartupcms/backup-s3-secret-access-key}
+  # - {variable: MONITOR_DB_PASSWORD_FILE, name: monitor-password, source: /secure/smartupcms/monitor-password}

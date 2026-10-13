@@ -1,0 +1,13 @@
+# NFR-DATA-04: local recovery runs on the same host and reads this exact bind source.
+# Create the private directory for UID/GID 10001 before the first deployment.
+services:
+  server:
+    environment:
+      SMC_PROVIDER_STORAGE: local_disk
+      SMC_STORAGE_LOCAL_PATH: /var/lib/smartupcms/storage
+    volumes:
+      - type: bind
+        source: ${SMC_LOCAL_STORAGE_HOST_PATH:?SMC_LOCAL_STORAGE_HOST_PATH is required}
+        target: /var/lib/smartupcms/storage
+        bind:
+          create_host_path: false

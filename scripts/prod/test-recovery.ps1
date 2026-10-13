@@ -20,19 +20,37 @@ New-Item -ItemType Directory -Path $testRoot, $backupDir, $sourceStorageDir, $ev
 
 $testEnvFile = Join-Path $testRoot '.env.test'
 $databasePasswordFile = Join-Path $testRoot 'db-password'
+$postgresPasswordFile = Join-Path $testRoot 'postgres-password'
+$migratePasswordFile = Join-Path $testRoot 'migrate-password'
 $backupPasswordFile = Join-Path $testRoot 'backup-password'
-Set-Content -LiteralPath $databasePasswordFile -Value 'test-db-pass-recovery' -NoNewline
-Set-Content -LiteralPath $backupPasswordFile -Value 'test-backup-pass-recovery' -NoNewline
+$databasePassword = [guid]::NewGuid().ToString('N')
+$postgresPassword = [guid]::NewGuid().ToString('N')
+$migratePassword = [guid]::NewGuid().ToString('N')
+$backupPassword = [guid]::NewGuid().ToString('N')
+Set-Content -LiteralPath $databasePasswordFile -Value $databasePassword -NoNewline
+Set-Content -LiteralPath $postgresPasswordFile -Value $postgresPassword -NoNewline
+Set-Content -LiteralPath $migratePasswordFile -Value $migratePassword -NoNewline
+Set-Content -LiteralPath $backupPasswordFile -Value $backupPassword -NoNewline
 
 $envContent = Get-Content -LiteralPath $envTemplate -Raw
 $envContent = $envContent -replace '(?m)^DB_PASSWORD_FILE=.*', "DB_PASSWORD_FILE=$databasePasswordFile"
+$envContent = $envContent -replace '(?m)^POSTGRES_PASSWORD_FILE=.*', "POSTGRES_PASSWORD_FILE=$postgresPasswordFile"
+$envContent = $envContent -replace '(?m)^MIGRATE_DB_PASSWORD_FILE=.*', "MIGRATE_DB_PASSWORD_FILE=$migratePasswordFile"
 $envContent = $envContent -replace '(?m)^BACKUP_DB_PASSWORD_FILE=.*', "BACKUP_DB_PASSWORD_FILE=$backupPasswordFile"
-$envContent += "`nPOSTGRES_IMAGE=postgres:18-alpine`nBACKUP_IMAGE=smartupcms/backup:release-config-test`n"
+$envContent += "`nPOSTGRES_IMAGE=smartupcms/postgres:18-alpine-hardened`nBACKUP_IMAGE=smartupcms/backup:release-config-test`nDB_PASSWORD=$databasePassword`n"
+$envContent += "POSTGRES_PASSWORD=$postgresPassword`nMIGRATE_DB_PASSWORD=$migratePassword`nBACKUP_DB_PASSWORD=$backupPassword`n"
 [System.IO.File]::WriteAllText($testEnvFile, $envContent, [System.Text.UTF8Encoding]::new($false))
 
 Write-Host "=== Starting Recovery Drill Automated Test [$isolatedProject] ===" -ForegroundColor Cyan
 
 try {
+    & docker build --quiet --tag smartupcms/postgres:18-alpine-hardened (Join-Path $repoRoot 'deploy/images/postgres')
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to build the recovery PostgreSQL image.' }
+    & docker build --quiet --tag smartupcms/backup:release-config-test (Join-Path $repoRoot 'deploy/images/backup')
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to build the recovery backup image.' }
+    $backupToolImage = (& docker image inspect --format '{{.Id}}' smartupcms/backup:release-config-test).Trim()
+    if ($LASTEXITCODE -ne 0 -or $backupToolImage -notmatch '^sha256:[a-f0-9]{64}$') { throw 'Immutable backup test image missing.' }
+
     # Generate test age keypair
     Write-Host '[1/6] Generating age keypair for backup encryption...' -ForegroundColor Yellow
     $prevEap = $ErrorActionPreference
@@ -71,6 +89,7 @@ create table if not exists md_users (id text primary key, username text);
 create table if not exists ms_tasks (id text primary key, title text);
 create table if not exists mf_files (id text primary key, storage_bucket text, storage_key text, size_bytes bigint, sha256 text);
 create table if not exists audit_log (id text primary key, action text);
+create table if not exists audit_log_default (like audit_log);
 
 delete from md_users;
 delete from ms_tasks;
@@ -85,6 +104,10 @@ insert into audit_log values ('a1', 'INITIAL_SEED'), ('a2', 'CONFIG_LOAD');
     & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile exec -T postgres `
         psql -U postgres -d smartupcms -v ON_ERROR_STOP=1 -c "$seedSql"
     if ($LASTEXITCODE -ne 0) { throw 'Failed to seed isolated test database.' }
+
+    & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile exec -T postgres `
+        psql -U postgres -d smartupcms_dwh -v ON_ERROR_STOP=1 -c 'create schema raw authorization smartupcms; create table raw.restore_probe (id integer primary key, value text); insert into raw.restore_probe values (1, ''one''), (2, ''two'');'
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to seed the isolated DWH database.' }
 
     # Capture encrypted database dump and manifest
     Write-Host '[4/6] Capturing encrypted database dump and manifest...' -ForegroundColor Yellow
@@ -131,9 +154,24 @@ insert into audit_log values ('a1', 'INITIAL_SEED'), ('a2', 'CONFIG_LOAD');
     $manifestHash = (Get-FileHash -LiteralPath $dbManifestFile -Algorithm SHA256).Hash.ToLowerInvariant()
     "$manifestHash  $([System.IO.Path]::GetFileName($dbManifestFile))" | Set-Content -LiteralPath $dbManifestChecksum -Encoding ascii -NoNewline
 
+    $warehouseBackupFile = Join-Path $backupDir "smartupcms_dwh-$timestamp.dump.age"
+    $warehousePlain = Join-Path $testRoot 'warehouse.dump'
+    & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile exec -T postgres `
+        pg_dump --format=custom --no-owner --no-privileges -U postgres -d smartupcms_dwh -f /tmp/warehouse.dump
+    if ($LASTEXITCODE -ne 0) { throw 'DWH pg_dump failed.' }
+    & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile cp 'postgres:/tmp/warehouse.dump' $warehousePlain
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to copy the DWH dump.' }
+    & docker run --rm --entrypoint age -v "${testRoot}:/in:ro" -v "${backupDir}:/out" `
+        smartupcms/backup:release-config-test --encrypt --recipient $recipient `
+        --output "/out/$(Split-Path -Leaf $warehouseBackupFile)" /in/warehouse.dump
+    if ($LASTEXITCODE -ne 0) { throw 'DWH age encryption failed.' }
+    $warehouseHash = (Get-FileHash -LiteralPath $warehouseBackupFile -Algorithm SHA256).Hash.ToLowerInvariant()
+    "$warehouseHash  $(Split-Path -Leaf $warehouseBackupFile)" | Set-Content -LiteralPath "$warehouseBackupFile.sha256" -Encoding ascii -NoNewline
+    Remove-Item -LiteralPath $warehousePlain -Force
+
     # Capture object backup
     Write-Host '[5/6] Capturing encrypted object backup...' -ForegroundColor Yellow
-    & $backupObjectsScript -Provider local_disk -AgeRecipient $recipient -OutputDirectory $backupDir -LocalStoragePath $sourceStorageDir
+    & $backupObjectsScript -Provider local_disk -AgeRecipient $recipient -OutputDirectory $backupDir -LocalStoragePath $sourceStorageDir -BackupImage $backupToolImage
     if ($LASTEXITCODE -ne 0) { throw 'Object backup failed.' }
 
     $objectBackupFile = (Get-ChildItem -LiteralPath $backupDir -Filter 'smartupcms-objects-*.tar.age' | Select-Object -First 1).FullName
@@ -148,7 +186,9 @@ insert into audit_log values ('a1', 'INITIAL_SEED'), ('a2', 'CONFIG_LOAD');
     $ErrorActionPreference = $prev
 
     & $restoreCombinedScript `
+        -BackupImage $backupToolImage `
         -DatabaseBackupFile $dbDumpFile `
+        -DwhBackupFile $warehouseBackupFile `
         -ObjectBackupFile $objectBackupFile `
         -AgeIdentityFile $identityFile `
         -IsolatedProjectName $isolatedProject `
@@ -157,7 +197,7 @@ insert into audit_log values ('a1', 'INITIAL_SEED'), ('a2', 'CONFIG_LOAD');
         -MaxRtoSeconds 600 `
         -ComposeFile $composeFile `
         -EnvFile $testEnvFile `
-        -EvidenceDirectory $evidenceDir
+        -EvidenceDirectory $evidenceDir -KeepIsolatedTarget
     if ($LASTEXITCODE -ne 0) { throw 'Combined restore drill failed.' }
 
     # Verify evidence output
@@ -170,7 +210,23 @@ insert into audit_log values ('a1', 'INITIAL_SEED'), ('a2', 'CONFIG_LOAD');
     if ($evidence.sampleDownloads -lt 2) { throw "Expected at least 2 sample downloads, found: $($evidence.sampleDownloads)" }
     if ($null -eq $evidence.rpoSeconds -or $null -eq $evidence.rtoSeconds) { throw 'RPO or RTO metrics are null.' }
 
+    # ADR-0001: successful pg_restore must preserve usable application and migrator roles.
+    $appCount = & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile exec -T postgres `
+        psql -U smartupcms -d smartupcms -At -v ON_ERROR_STOP=1 -c 'select count(*) from mf_files;'
+    if ($LASTEXITCODE -ne 0 -or "$appCount".Trim() -ne '2') { throw 'The application cannot read restored CMS records.' }
+    $warehouseValues = & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile exec -T postgres `
+        psql -U smartupcms -d smartupcms_dwh -At -v ON_ERROR_STOP=1 -c "select string_agg(value, ',' order by id) from raw.restore_probe;"
+    if ($LASTEXITCODE -ne 0 -or "$warehouseValues".Trim() -ne 'one,two') { throw 'Restored DWH contents are not readable by the application.' }
+    & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile exec -T postgres `
+        psql -U smartupcms_migrator -d smartupcms -v ON_ERROR_STOP=1 -c 'begin; alter table ms_tasks add column migration_probe text; rollback;'
+    if ($LASTEXITCODE -ne 0) { throw 'The migrator cannot alter restored CMS records.' }
+    $unsafeRights = & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile exec -T postgres `
+        psql -U postgres -d smartupcms -At -v ON_ERROR_STOP=1 -c "select has_table_privilege('smartupcms', 'ms_tasks', 'TRUNCATE') or has_table_privilege('smartupcms', 'audit_log', 'DELETE');"
+    if ($LASTEXITCODE -ne 0 -or "$unsafeRights".Trim() -ne 'f') { throw 'Restore widened the application database privileges.' }
+
     Write-Host "Positive restore drill verified successfully: RPO=$($evidence.rpoSeconds)s, RTO=$($evidence.rtoSeconds)s." -ForegroundColor Green
+    & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile down --volumes --remove-orphans | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to remove the positive test target before negative cases.' }
 
     # Negative Test 1: Corrupted checksum must fail closed
     Write-Host 'Running Negative Test 1: Corrupt checksum must fail closed...' -ForegroundColor Yellow
@@ -178,8 +234,9 @@ insert into audit_log values ('a1', 'INITIAL_SEED'), ('a2', 'CONFIG_LOAD');
     Set-Content -LiteralPath $corruptChecksumFile -Value '0000000000000000000000000000000000000000000000000000000000000000  fake'
     $corruptFailed = $false
     try {
-        & $restoreCombinedScript `
+        & $restoreCombinedScript -BackupImage $backupToolImage `
             -DatabaseBackupFile $dbDumpFile `
+            -DwhBackupFile $warehouseBackupFile `
             -ObjectBackupFile $objectBackupFile `
             -AgeIdentityFile $identityFile `
             -IsolatedProjectName $isolatedProject `
@@ -190,13 +247,28 @@ insert into audit_log values ('a1', 'INITIAL_SEED'), ('a2', 'CONFIG_LOAD');
             -EnvFile $testEnvFile `
             -EvidenceDirectory $evidenceDir 2>$null
     } catch {
-        $corruptFailed = $true
+        $corruptFailed = $_.Exception.Message -match 'SHA-256 verification failed'
     }
     if (-not $corruptFailed) { throw 'Corrupted checksum did not cause restore to fail closed.' }
     Write-Host 'Negative Test 1 passed.' -ForegroundColor Green
 
     # Restore correct checksum
     "$dbHash  $dumpLeaf" | Set-Content -LiteralPath $dbDumpChecksum -Encoding ascii -NoNewline
+
+    Write-Host 'Running Negative Test: missing age identity must fail before target creation...' -ForegroundColor Yellow
+    $missingIdentityFailed = $false
+    try {
+        & $restoreCombinedScript -BackupImage $backupToolImage -DatabaseBackupFile $dbDumpFile -DwhBackupFile $warehouseBackupFile `
+            -ObjectBackupFile $objectBackupFile -AgeIdentityFile (Join-Path $testRoot 'missing-identity') `
+            -IsolatedProjectName $isolatedProject -TargetObjectProvider local_disk -MaxRpoSeconds 3600 `
+            -MaxRtoSeconds 600 -ComposeFile $composeFile -EnvFile $testEnvFile -EvidenceDirectory $evidenceDir 2>$null
+    } catch {
+        $missingIdentityFailed = $_.Exception.Message -match 'missing-identity'
+    }
+    if (-not $missingIdentityFailed) { throw 'Missing identity did not fail closed.' }
+    $unexpectedTarget = & docker compose -p $isolatedProject -f $composeFile --env-file $testEnvFile ps -a -q
+    if ($LASTEXITCODE -ne 0 -or $unexpectedTarget) { throw 'A negative preflight unexpectedly created a target.' }
+    Write-Host 'Missing identity test passed.' -ForegroundColor Green
 
     # Negative Test 2: Future timestamp must fail closed
     Write-Host 'Running Negative Test 2: Future timestamp must fail closed...' -ForegroundColor Yellow
@@ -214,8 +286,9 @@ insert into audit_log values ('a1', 'INITIAL_SEED'), ('a2', 'CONFIG_LOAD');
 
     $futureFailed = $false
     try {
-        & $restoreCombinedScript `
+        & $restoreCombinedScript -BackupImage $backupToolImage `
             -DatabaseBackupFile $dbDumpFile `
+            -DwhBackupFile $warehouseBackupFile `
             -ObjectBackupFile $objectBackupFile `
             -AgeIdentityFile $identityFile `
             -IsolatedProjectName $isolatedProject `
@@ -226,7 +299,7 @@ insert into audit_log values ('a1', 'INITIAL_SEED'), ('a2', 'CONFIG_LOAD');
             -EnvFile $testEnvFile `
             -EvidenceDirectory $evidenceDir 2>$null
     } catch {
-        $futureFailed = $true
+        $futureFailed = $_.Exception.Message -match 'timestamp is in the future'
     }
     if (-not $futureFailed) { throw 'Future timestamp did not cause restore to fail closed.' }
     Write-Host 'Negative Test 2 passed.' -ForegroundColor Green

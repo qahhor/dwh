@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, linkedSignal, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  Injector,
+  afterNextRender,
+  computed,
+  inject,
+  linkedSignal,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, catchError, finalize, map, of, tap } from 'rxjs';
 
@@ -35,6 +46,7 @@ export { resolveNotificationIcon };
         [isLoading]="isLoading()"
         [hasPendingReads]="pendingReads().size > 0"
         [isMarkingAll]="isMarkingAll()"
+        [isLoadingPreferences]="isLoadingPreferences()"
         (refresh)="loadNotifications()"
         (markAllRead)="markAllAsRead()"
         (openPreferences)="openPreferencesModal()"
@@ -72,7 +84,7 @@ export { resolveNotificationIcon };
         <app-notification-preferences-modal
           [initialPreferences]="preferences()"
           [isSaving]="isSavingPreferences()"
-          (closeModal)="isPreferencesOpen.set(false)"
+          (closeModal)="closePreferencesModal()"
           (save)="savePreferences($event)"
         />
       }
@@ -104,6 +116,9 @@ export class NotificationsComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
+  private readonly injector = inject(Injector);
+
+  private readonly header = viewChild(NotificationsHeaderComponent);
 
   /** A failed read keeps the notifications on screen; a read marks them here without a new request. */
   readonly items = linkedSignal<NotificationItem[] | null | undefined, NotificationItem[]>({
@@ -115,6 +130,7 @@ export class NotificationsComponent {
   readonly pendingReads = signal<Set<number>>(new Set());
   readonly isPreferencesOpen = signal(false);
   readonly isSavingPreferences = signal(false);
+  readonly isLoadingPreferences = signal(false);
   readonly preferences = signal<NotificationPrefItem[]>([]);
 
   readonly currentPage = signal(1);
@@ -231,22 +247,28 @@ export class NotificationsComponent {
   }
 
   openPreferencesModal(): void {
+    if (this.isLoadingPreferences() || this.isPreferencesOpen()) return;
+    this.isLoadingPreferences.set(true);
     this.notifService
       .fetchPreferences()
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isLoadingPreferences.set(false)),
+      )
       .subscribe({
         next: (prefs) => {
           this.preferences.set(prefs);
           this.isPreferencesOpen.set(true);
         },
         error: () => {
-          this.preferences.set([]);
-          this.isPreferencesOpen.set(true);
+          this.toast.error(this.uiI18n.translate('notifications.preferences.load_error'));
+          this.focusPreferences();
         },
       });
   }
 
   savePreferences(prefs: NotificationPrefItem[]): void {
+    if (this.isSavingPreferences()) return;
     this.isSavingPreferences.set(true);
     this.notifService
       .updatePreferences(prefs)
@@ -256,13 +278,22 @@ export class NotificationsComponent {
       )
       .subscribe({
         next: () => {
-          this.isPreferencesOpen.set(false);
+          this.closePreferencesModal();
           this.toast.success(this.uiI18n.translate('notifications.preferences_saved'));
         },
         error: () => {
           this.toast.error(this.uiI18n.translate('notifications.preferences_error'));
         },
       });
+  }
+
+  closePreferencesModal(): void {
+    this.isPreferencesOpen.set(false);
+    this.focusPreferences();
+  }
+
+  private focusPreferences(): void {
+    afterNextRender(() => this.header()?.focusPreferences(), { injector: this.injector });
   }
 
   /** A shorter inbox must not leave the pager past its last page. */

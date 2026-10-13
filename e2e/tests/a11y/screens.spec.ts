@@ -139,6 +139,12 @@ const screens: Screen[] = [
       await page.locator('app-note-card').first().getByRole('button', { name: 'Редактировать' }).click();
       const dialog = page.getByRole('dialog');
       await expect(dialog.getByRole('textbox').first()).toHaveValue('Планёрка филиала 1');
+      await expect(dialog.getByRole('textbox', { name: 'Текст', exact: true })).toBeVisible();
+      await expect(dialog.getByRole('textbox', { name: 'Заголовок', exact: true })).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
+      await expect(dialog.getByRole('button', { name: 'Закрыть', exact: true })).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(dialog.getByRole('textbox', { name: 'Заголовок', exact: true })).toBeFocused();
       await dialog.getByTestId('record-history-toggle').click();
       await expect(dialog.getByText('Иван Петров').first()).toBeVisible();
     },

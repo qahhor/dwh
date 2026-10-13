@@ -123,6 +123,24 @@ describe('AppSidebarComponent', () => {
     expect(element.querySelector('.mobile-drawer-backdrop')).toBeNull();
   });
 
+  it('passes the current page to the compact flyout', () => {
+    const { element } = render({
+      isCollapsed: true,
+      isFlyoutVisible: true,
+      hoveredFlyoutSection: WORKSPACE,
+      activeItemId: 'tasks',
+    });
+    expect(element.querySelector('.flyout-item[aria-current="page"]')?.getAttribute('href')).toBe('/tasks');
+  });
+
+  it('refreshes an open flyout when the navigation catalog changes', () => {
+    const { fixture, element } = render({ isCollapsed: true, isFlyoutVisible: true, hoveredFlyoutSection: WORKSPACE });
+    expect(element.querySelector('.flyout-item[href="/tasks"]')).not.toBeNull();
+    fixture.componentRef.setInput('navSections', [{ ...WORKSPACE, items: [] }, IAM]);
+    fixture.detectChanges();
+    expect(element.querySelector('.flyout-item[href="/tasks"]')).toBeNull();
+  });
+
   it('links to the profile with the person, marks it current and reports followed links', () => {
     const { fixture, element } = render();
     const clicks: unknown[] = [];

@@ -91,6 +91,7 @@ public class ReportExportService {
     private final ObjectMapper json;
     private final JsonColumns jsonColumns;
     private final int maxRows;
+    private final ExportAccess access;
 
     public ReportExportService(
             ReportExportRepository repo,
@@ -105,6 +106,7 @@ public class ReportExportService {
             @Lazy JobQueue jobs,
             AuditLogService audit,
             ObjectMapper json,
+            ExportAccess access,
             @Value("${smc.reports.export.max-rows:50000}") int maxRows) {
         this.repo = repo;
         this.registry = registry;
@@ -120,6 +122,7 @@ public class ReportExportService {
         this.json = json;
         this.jsonColumns = new JsonColumns(json, "report_exports");
         this.maxRows = maxRows;
+        this.access = access;
     }
 
     @Transactional
@@ -213,6 +216,8 @@ public class ReportExportService {
         if (!"done".equals(row.state()) || row.expiresAt().isBefore(Instant.now())) {
             throw ApiException.conflict(ErrorCode.CONFLICT, "error.report.export_not_ready");
         }
+        QueryList list = stillOpen(row.listCode());
+        access.requireCurrent(row.request(), list, exporters.get(list.code()));
         return new ExportFile(
                 row.fileName(),
                 row.sizeBytes() == null ? -1 : row.sizeBytes(),
@@ -277,6 +282,7 @@ public class ReportExportService {
         QueryListExporter exporter = Optional.ofNullable(exporters.get(list.code()))
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_list_unknown"));
         List<QueryField> fields = columns(list, request.columns());
+        ExportAccess.Snapshot snapshot = access.start(fields);
         Map<String, String> dictionary = i18n.effectiveDictionary(request.lang());
         Function<String, String> text = key -> dictionary.getOrDefault(key, key);
 
@@ -303,7 +309,7 @@ public class ReportExportService {
                             truncated = true;
                             break;
                         }
-                        writer.add(json.convertValue(item, new TypeReference<Map<String, Object>>() {}));
+                        writer.add(access.row(item, snapshot));
                     }
                     cursor = page.hasMore() ? page.nextCursor() : null;
                     if (cursor != null && writer.rows() >= maxRows) {
@@ -317,7 +323,7 @@ public class ReportExportService {
             try (InputStream in = Files.newInputStream(temp)) {
                 storage.upload(BUCKET, key, in, size, XLSX);
             }
-            repo.markDone(row.id(), written, truncated, fileName(row), key, size);
+            repo.markDone(row.id(), written, truncated, fileName(row), key, size, access.json(snapshot));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } finally {

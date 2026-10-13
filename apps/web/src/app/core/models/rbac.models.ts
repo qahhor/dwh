@@ -15,11 +15,11 @@ export interface FormTreeItem {
   formCode: string;
   module: string;
   formName: string;
-  /** Set for a declared entity's right: the dictionary key of the form's name (ADR-0031, plan 10/10, item 5.0). */
+  /** The dictionary key of a known form's name (ADR-0031). */
   formNameKey?: string | null;
   action: string;
   actionName: string;
-  /** Set for a declared entity's right: the dictionary key of the action's name. */
+  /** The dictionary key of a known action's name. */
   actionNameKey?: string | null;
 }
 

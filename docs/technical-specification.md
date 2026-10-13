@@ -51,7 +51,10 @@ SmartupCMS — самостоятельно размещаемая low-code CMS 
 пользователей суммарно и 50 ГБ загружаемых файлов в месяц суммарно.
 Целевой показатель доступности (SLO) утверждён на уровне 99.9% доступности
 сервиса, пороги задержки API — p95 ≤ 300 мс и p99 ≤ 1 с (`NFR-PERF-02`,
-решение владельца продукта 2026-10-10). В качестве целевого объектного хранилища для файлов и записей на
+решение владельца продукта 2026-10-10); для `POST /api/v1/files/upload`
+утверждены p95 ≤ 30 с / p99 ≤ 60 с (2026-10-12). Конфигурация, бюджет,
+RPO/RTO и критерии staging закреплены в [installation annex](ops/staging-acceptance.md).
+В качестве целевого объектного хранилища для файлов и записей на
 клиентских установках поддерживаются MinIO (S3-совместимое) или локальный
 диск (`local_disk`); канал уведомлений SMTP настраивается независимо per-deployment.
 Горизонт запуска составляет четыре месяца от утверждённой базовой точки
@@ -170,7 +173,7 @@ SmartupCMS — самостоятельно размещаемая low-code CMS 
 
 | ID | Требование («Должна») | Подтверждение в репозитории | Метод приёмки |
 |---|---|---|---|
-| `FR-MOD-01` | Система должна предоставлять реестр модулей (`md_installed_modules`) с возможностью включения, отключения и проверки активности модулей через серверный guard и API. | `apps/server/src/main/java/com/smartup24/cms/instance/md/controller/ModuleRegistryController.java`; `apps/server/src/main/java/com/smartup24/cms/instance/md/service/ModuleRegistryService.java`; `apps/server/src/main/resources/db/migration/V028__module_registry_and_reference_module.sql` | Интеграционный тест проверяет регистрацию модуля, переключение флага активности и серверный запрет доступа к деактивированному модулю. |
+| `FR-MOD-01` | Система должна предоставлять реестр модулей (`md_installed_modules`) с возможностью включения, отключения и проверки активности модулей через серверный guard и API. Поставка — ядро и отключаемые приложения `tasks` (включая проекты и task-аналитику), `notes`, `upl`; выключение закрывает новые API-вызовы и выдачу сохранённых idempotency-ответов, не удаляя данные. Ранее принятые задания UPL завершаются. Решение владельца 2026-10-12, ADR-0033 §14. | `apps/server/src/main/java/com/smartup24/cms/instance/md/controller/ModuleRegistryController.java`; `apps/server/src/main/java/com/smartup24/cms/instance/md/service/ModuleRegistryService.java`; `apps/server/src/main/resources/db/migration/V028__module_registry_and_reference_module.sql` | Интеграционный тест проверяет регистрацию модуля, переключение флага активности и серверный запрет доступа к деактивированному модулю. |
 | `FR-MOD-02` | Система должна позволять администратору настраивать иерархические элементы навигации (`md_navigation_items`) с привязкой к правам и ролям. | `apps/server/src/main/java/com/smartup24/cms/instance/md/controller/NavigationItemController.java`; `apps/server/src/main/java/com/smartup24/cms/instance/md/service/NavigationItemService.java`; `apps/server/src/main/resources/db/migration/V032__custom_navigation_items.sql` | API-тест проверяет сохранение порядка, родительских связей и фильтрацию навигационного меню по правам текущего пользователя. |
 | `FR-MOD-03` | Система должна поддерживать расширенные настраиваемые поля для дополнительных бизнес-сущностей с сохранением аудита изменений. | `apps/server/src/main/resources/db/migration/V029__expand_custom_fields_entities.sql`; `apps/server/src/main/java/com/smartup24/cms/instance/md/service/MdCustomFieldService.java` | Интеграционный тест проверяет запись и чтение кастомных полей для расширенных сущностей и запись audit trail. |
 | `FR-MOD-04` | Система должна предоставлять списки записей через реестр полей: фильтр (JSON DSL с группами «любое из условий»), сортировку, поиск, keyset-курсор, поля-ссылки на другие списки и дополнительные поля; сервер проверяет права списка и скоуп данных. | `apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryCompiler.java`; `apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryListRegistry.java`; `docs/adr/ADR-0016-field-registry-query-dsl.md` | `QueryCompilerTest` проверяет DSL, группы, лимиты и отпечаток курсора; `MdUserListIntegrationTest`, `MsTaskListIntegrationTest`, `MsProjectListIntegrationTest`, `AuditListIntegrationTest`, `MdCustomFieldQueryFieldsIntegrationTest` — фильтр, сортировку, скоуп и дополнительные поля на данных. |
@@ -212,7 +215,7 @@ SmartupCMS — самостоятельно размещаемая low-code CMS 
 | ID | Требование («Должна») | Подтверждение в репозитории | Метод приёмки |
 |---|---|---|---|
 | `NFR-PERF-01` | До release система должна пройти воспроизводимый нагрузочный и soak-профиль на репрезентативных данных для суммарного планового контура 500 registered/100 active users и 50 ГБ upload в месяц с отдельно зафиксированным распределением по установкам. | `scripts/acceptance/run-capacity.ps1`; `scripts/acceptance/load/`; `deploy/acceptance/runtime-metrics.example.json` | Digest-pinned k6 выполняет 100-user read/write, 20 near-limit uploads и 4h soak; evidence фиксирует SHA/digest, p95/p99/error и независимые Hikari/heap/disk/temp/scanner/R2/orphan thresholds за полное окно. |
-| `NFR-PERF-02` | Задержка API (`/api/…`, кроме потока событий SSE) за 5 минут не должна превышать p95 ≤ 300 мс и p99 ≤ 1 с; пороги утверждены владельцем продукта 2026-10-10. Цели загрузки страниц не утверждены и остаются входными данными релиза. | `docs/ops/slo.md`; `deploy/observability/prometheus/rules/alerts.yml`; `docs/ops/production-launch-checklist.md` | Алерты `SmartupcmsApiLatencyP95High` (> 0.3 с) и `SmartupcmsApiLatencyP99High` (> 1 с) с юнит-тестами promtool; capacity-профиль `NFR-PERF-01` держит p95/p99 в этих пределах; в installation/release annex заполнены цели загрузки страниц и решение владельца, без них performance gate и `AC-12` не выполнены. |
+| `NFR-PERF-02` | Задержка API (`/api/…`, кроме SSE и `POST /api/v1/files/upload`) за 5 минут: p95 ≤ 300 мс, p99 ≤ 1 с (утверждено 2026-10-10). Для `POST /api/v1/files/upload`: p95 ≤ 30 с, p99 ≤ 60 с (утверждено 2026-10-12); ошибки upload остаются в доступности API. Остальные файловые операции сохраняют общий API-бюджет. Цели страниц задаются в утверждённом installation annex. | `docs/ops/slo.md`; `docs/ops/staging-acceptance.md`; `deploy/observability/prometheus/rules/alerts.yml`; `scripts/acceptance/run-capacity.ps1` | Promtool проверяет отдельные API/upload SLI и алерты, а scrape integration — конечные buckets выше 60 с. Capacity runner отклоняет отсутствие обоих бюджетов и их ослабление: API ≤ 300/1000 мс, upload ≤ 30000/60000 мс. При 20 одновременных near-limit uploads требуются 20/20 HTTP 201, 0 ошибок и соблюдение upload-перцентилей; k6 измеряет client-side HTTP duration, Prometheus — server-side окно 5 мин. Annex содержит UX-пороги и решение владельца; без target evidence performance gate и `AC-12` не выполнены. |
 
 ### 5.3. Надёжность
 
@@ -260,7 +263,11 @@ SmartupCMS — самостоятельно размещаемая low-code CMS 
 
 Целевой показатель доступности (SLO) сервиса утверждён на уровне 99.9%
 доступности, пороги задержки API — p95 ≤ 300 мс и p99 ≤ 1 с (2026-10-10).
-Из репозитория невозможно подтвердить целевые p95 загрузки страниц,
+Для staging решением владельца 2026-10-12 утверждены конфигурация, бюджет,
+RPO 24 ч / RTO 2 ч, нагрузка и UX-пороги
+[installation annex](ops/staging-acceptance.md). Это не подтверждает их
+достижение на целевом стенде и не назначает владельцев production.
+Для остальных установок из репозитория невозможно подтвердить цели загрузки страниц,
 юридически обязательные сроки хранения, production-домены, ответственных за
 инциденты и распределение пиковой нагрузки по отдельным установкам. Также
 installation-specific решениями остаются RPO/RTO, provider region, хранение
@@ -270,7 +277,7 @@ age identity и ответственный за rollback/go-no-go. Эти зна
 
 | Пробел | Обязательное решение до production | Закрывающий критерий |
 |---|---|---|
-| Нагрузка и задержки | SLO доступности 99.9% и задержки API p95 ≤ 300 мс / p99 ≤ 1 с утверждены; утвердить распределение 500 registered/100 active/50 ГБ в месяц по установкам, dataset, цели загрузки страниц, error/saturation thresholds установки и владельца. | `NFR-PERF-01`, `NFR-PERF-02`, `AC-12` |
+| Нагрузка и задержки | SLO доступности 99.9%, API p95 ≤ 300 мс / p99 ≤ 1 с и upload 30/60 с утверждены; staging имеет утверждённый annex. Для production установок утвердить распределение 500 registered/100 active/50 ГБ в месяц, dataset, цели страниц, error/saturation thresholds и владельца. | `NFR-PERF-01`, `NFR-PERF-02`, `AC-12` |
 | Privacy и retention | Назначить controller/processor, правовое основание, сроки по классам, DSAR/delete/hold и владельцев. | `NFR-DATA-05`, `AC-12` |
 | Production topology | Зафиксировать domain, TLS edge, storage/backup provider regions и доступ к age identity. | `NFR-SEC-04`, `AC-08`, `AC-12` |
 | Operations | Назначить incident contacts/on-call, alert transport, RPO/RTO и владельца rollback/go-no-go. | `NFR-OBS-02`, `NFR-REL-04`, `AC-12` |

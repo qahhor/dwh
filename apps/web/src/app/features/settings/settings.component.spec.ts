@@ -1,7 +1,8 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { Observable, of, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, of, Subject } from 'rxjs';
+import { ActivatedRoute, Params } from '@angular/router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
@@ -10,8 +11,10 @@ import { SearchManagementService } from '@core/services/search-management.servic
 import { ToastService } from '@core/services/toast.service';
 import { ThemeService } from '@core/services/theme.service';
 import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
+import { SMTTabBarComponent } from '@shared/ui-kit/components/tab-bar';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { SettingsComponent } from './settings.component';
+import { SettingsLanguagesPanelComponent } from './components/settings-languages-panel.component';
 import { translateTest } from '@testing/i18n-test.stub';
 import { inScreen, redraw } from '@testing/in-screen';
 
@@ -29,10 +32,12 @@ describe('SettingsComponent UI contracts', () => {
       jobs: vi.fn(() => of({ items: [], hasMore: false })),
       categories: vi.fn(() => of([])),
     },
+    queryParams?: BehaviorSubject<Params>,
   ) {
     await TestBed.configureTestingModule({
       imports: [SettingsComponent],
       providers: [
+        ...(queryParams ? [{ provide: ActivatedRoute, useValue: { queryParams } }] : []),
         { provide: ApiService, useValue: api },
         { provide: PermissionService, useValue: { hasPermission } },
         { provide: SearchManagementService, useValue: searchManagement },
@@ -61,6 +66,47 @@ describe('SettingsComponent UI contracts', () => {
     redraw(fixture);
     return fixture;
   }
+
+  it('resets the settings panel when an internal link removes its tab parameter', async () => {
+    const query = new BehaviorSubject<Params>({ tab: 'security' });
+    const fixture = await createFixture(undefined, undefined, undefined, query);
+    expect(fixture.componentInstance.activeTab()).toBe('security');
+    query.next({});
+    redraw(fixture);
+    expect(fixture.componentInstance.activeTab()).toBe('general');
+    query.next({ tab: 'unknown' });
+    expect(fixture.componentInstance.activeTab()).toBe('general');
+  });
+
+  it('protects the language draft when changing tabs or leaving settings', async () => {
+    const query = new BehaviorSubject<Params>({ tab: 'languages' });
+    const fixture = await createFixture(undefined, undefined, undefined, query);
+    const component = fixture.componentInstance;
+    component.languageStore.openAddLanguage();
+    redraw(fixture);
+    const panel = fixture.debugElement.query(By.directive(SettingsLanguagesPanelComponent))
+      .componentInstance as SettingsLanguagesPanelComponent;
+    panel.addModel.set({ code: 'kk', name: 'Қазақша', json: '' });
+    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
+
+    const tabs = fixture.debugElement.query(By.directive(SMTTabBarComponent)).componentInstance as SMTTabBarComponent;
+    tabs.choose(0);
+    expect(component.activeTab()).toBe('languages');
+    expect(tabs.value()).toBe('languages');
+    query.next({ tab: 'security' });
+    expect(component.activeTab()).toBe('languages');
+    let allowed = true;
+    (component.canLeaveRecordPage() as Observable<boolean>).subscribe((value) => {
+      allowed = value;
+    });
+    expect(allowed).toBe(false);
+    component.languageStore.isAddingLang.set(true);
+    expect(component.canLeaveRecordPage()).toBe(false);
+    component.languageStore.isAddingLang.set(false);
+    confirm.mockReturnValue(of(true));
+    component.setTab('general');
+    expect(component.activeTab()).toBe('general');
+  });
 
   it('renders settings that arrive after the initial change-detection pass', async () => {
     const systemSettings = new Subject<{ values: Record<string, string>; revision: number }>();
@@ -270,6 +316,30 @@ describe('SettingsComponent UI contracts', () => {
     expect(panel).not.toBeNull();
     const webhooksCmp = panel.querySelector('app-webhooks-settings');
     expect(webhooksCmp).not.toBeNull();
+  });
+
+  it.each([
+    { tab: 'security', id: 'settings-session-lifetime', invalid: '0', valid: '24' },
+    { tab: 'storage', id: 'settings-user-quota', invalid: '10', valid: '1024' },
+    { tab: 'security', id: 'settings-idle-lock', invalid: '1441', valid: '30' },
+  ])('validates $id after blur and clears it on correction', async ({ tab, id, invalid, valid }) => {
+    const fixture = await createFixture(undefined, () => true);
+    (inScreen(fixture.nativeElement).querySelector(`#settings-${tab}-tab`) as HTMLButtonElement).click();
+    redraw(fixture);
+    const field = inScreen(fixture.nativeElement).querySelector(`#${id}`) as HTMLInputElement;
+    field.value = invalid;
+    field.dispatchEvent(new Event('input'));
+    redraw(fixture);
+    expect(field.getAttribute('aria-invalid')).not.toBe('true');
+    field.dispatchEvent(new Event('blur'));
+    redraw(fixture);
+    TestBed.tick();
+    expect(field.getAttribute('aria-invalid')).toBe('true');
+    field.value = valid;
+    field.dispatchEvent(new Event('input'));
+    redraw(fixture);
+    TestBed.tick();
+    expect(field.getAttribute('aria-invalid')).not.toBe('true');
   });
 
   it('shows a value refused on save on its own panel, even when Save was pressed on another one', async () => {

@@ -65,10 +65,10 @@ describe('NotificationPreferencesModalComponent', () => {
     expect(screen.querySelector('.smt-modal__title').textContent).toBe('Настройки уведомлений');
     expect(screen.querySelector('table.pref-table').getAttribute('aria-label')).toBe('Настройки уведомлений');
     expect(
-      (Array.from(screen.querySelectorAll('.pref-table th')) as HTMLElement[]).map((th) =>
+      (Array.from(screen.querySelectorAll('.pref-table thead th')) as HTMLElement[]).map((th) =>
         th.textContent?.replace(/notifications|mail|send/, '').trim(),
       ),
-    ).toEqual(['Тип события', 'In-App', 'Email', 'Telegram']);
+    ).toEqual(['Тип события', 'В приложении', 'Email', 'Telegram']);
     expect(grid()).toHaveLength(6);
     expect(grid().every((row) => row.length === 3)).toBe(true);
   });
@@ -77,7 +77,7 @@ describe('NotificationPreferencesModalComponent', () => {
     const { screen } = await render();
 
     const titles = (Array.from(screen.querySelectorAll('.pref-table tbody tr')) as HTMLElement[]).map((row) =>
-      row.querySelector('td')?.textContent?.trim(),
+      row.querySelector('th[scope="row"]')?.textContent?.trim(),
     );
     expect(titles).toEqual(EVENT_TITLES);
     expect(screen.textContent).not.toContain('notifications.pref_');
@@ -152,5 +152,30 @@ describe('NotificationPreferencesModalComponent', () => {
 
     expect(button('Отмена').disabled).toBe(true);
     expect(screen.querySelector('.smt-modal__close')).toBeNull();
+  });
+
+  it('locks the saved choices while a request runs and retains them for retry after failure', async () => {
+    const { fixture, grid, settle, saved, button } = await render();
+    grid()[0][0].click();
+    await settle();
+    button('Сохранить').click();
+    fixture.componentRef.setInput('isSaving', true);
+    await settle();
+
+    expect(
+      grid()
+        .flat()
+        .every((box) => box.getAttribute('aria-disabled') === 'true'),
+    ).toBe(true);
+    grid()[0][0].click();
+    fixture.componentInstance.toggle('task_assigned', 'in_app', true);
+    expect(fixture.componentInstance.isEnabled('task_assigned', 'in_app')).toBe(false);
+
+    fixture.componentRef.setInput('isSaving', false);
+    await settle();
+    button('Сохранить').click();
+    expect(saved[1]).toEqual(saved[0]);
+    grid()[0][0].click();
+    expect(fixture.componentInstance.isEnabled('task_assigned', 'in_app')).toBe(true);
   });
 });

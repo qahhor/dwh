@@ -12,6 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
@@ -84,7 +85,8 @@ class EntityFileControllerTest {
     private static EntityFiles files() {
         return new EntityFiles() {
             @Override
-            public Optional<FileFacts> attachable(UUID fileId, String entity, @Nullable Long recordId, long userId) {
+            public Optional<FileFacts> attachable(
+                    UUID fileId, String entity, @Nullable Long recordId, long userId, Set<String> visibleFields) {
                 return Optional.empty();
             }
 
@@ -95,8 +97,8 @@ class EntityFileControllerTest {
             public void detachAll(String entity, long recordId) {}
 
             @Override
-            public Optional<FileFacts> attached(String entity, long recordId, UUID fileId) {
-                return recordId == 1L && fileId.equals(PHOTO)
+            public Optional<FileFacts> attached(String entity, long recordId, UUID fileId, Set<String> visibleFields) {
+                return recordId == 1L && fileId.equals(PHOTO) && visibleFields.contains("photo")
                         ? Optional.of(new FileFacts(PHOTO, "shelf photo.png", 3, "image/png"))
                         : Optional.empty();
             }

@@ -67,7 +67,7 @@
             <span>{{ 'settings.search.status.last_check' | t }}</span
             ><strong>{{
               current.lastSuccessfulReconciliation
-                ? (current.lastSuccessfulReconciliation | date: 'medium')
+                ? (current.lastSuccessfulReconciliation | date: 'dd.MM.yyyy HH:mm:ss')
                 : ('settings.search.unknown' | t)
             }}</strong>
           </div>
@@ -176,6 +176,7 @@
                 inputmode="numeric"
                 [value]="policy.globalLimit"
                 (edited)="store.updatePolicyNumber('globalLimit', $event)"
+                (touch)="touchPolicy('settings.search.validation.global_limit')"
               />
             </smt-control>
           </div>
@@ -200,28 +201,34 @@
                       <span class="field-name" [id]="'search-field-' + entity + '-' + i">{{
                         fieldLabel(entity, field.field)
                       }}</span>
-                      <smt-input
-                        type="number"
-                        [smtMin]="0"
-                        [smtMax]="127"
-                        [smtStep]="1"
-                        inputmode="numeric"
-                        [smtAriaLabel]="'settings.search.fields.weight' | t"
-                        [smtDescribedBy]="'search-field-' + entity + '-' + i"
-                        [value]="field.weight"
-                        (edited)="store.updateFieldNumber(entity, i, 'weight', $event)"
-                      />
-                      <smt-input
-                        type="number"
-                        [smtMin]="0"
-                        [smtMax]="2"
-                        [smtStep]="1"
-                        inputmode="numeric"
-                        [smtAriaLabel]="'settings.search.fields.typos' | t"
-                        [smtDescribedBy]="'search-field-' + entity + '-' + i"
-                        [value]="field.numTypos"
-                        (edited)="store.updateFieldNumber(entity, i, 'numTypos', $event)"
-                      />
+                      <smt-control [smtError]="fieldError(entity, field, 'weight')">
+                        <smt-input
+                          type="number"
+                          [smtMin]="0"
+                          [smtMax]="127"
+                          [smtStep]="1"
+                          inputmode="numeric"
+                          [smtAriaLabel]="'settings.search.fields.weight' | t"
+                          [smtDescribedBy]="'search-field-' + entity + '-' + i"
+                          [value]="field.weight"
+                          (edited)="store.updateFieldNumber(entity, i, 'weight', $event)"
+                          (touch)="touchPolicy(entity + '.' + field.field + '.weight')"
+                        />
+                      </smt-control>
+                      <smt-control [smtError]="fieldError(entity, field, 'numTypos')">
+                        <smt-input
+                          type="number"
+                          [smtMin]="0"
+                          [smtMax]="2"
+                          [smtStep]="1"
+                          inputmode="numeric"
+                          [smtAriaLabel]="'settings.search.fields.typos' | t"
+                          [smtDescribedBy]="'search-field-' + entity + '-' + i"
+                          [value]="field.numTypos"
+                          (edited)="store.updateFieldNumber(entity, i, 'numTypos', $event)"
+                          (touch)="touchPolicy(entity + '.' + field.field + '.numTypos')"
+                        />
+                      </smt-control>
                       <div class="checkbox-cell">
                         <div
                           smt-checkbox
@@ -352,6 +359,7 @@
               inputmode="numeric"
               [value]="policy.requestsPerMinute"
               (edited)="store.updatePolicyNumber('requestsPerMinute', $event)"
+              (touch)="touchPolicy('settings.search.validation.rate')"
             />
           </smt-control>
           <smt-control
@@ -367,6 +375,7 @@
               inputmode="numeric"
               [value]="policy.burst"
               (edited)="store.updatePolicyNumber('burst', $event)"
+              (touch)="touchPolicy('settings.search.validation.burst')"
             />
           </smt-control>
         </div>
@@ -699,7 +708,7 @@
 <ng-template #jobGenerationCell let-job
   ><span class="mono">{{ job.generationId }}</span></ng-template
 >
-<ng-template #jobCreatedCell let-job>{{ job.createdAt | date: 'short' }}</ng-template>
+<ng-template #jobCreatedCell let-job>{{ job.createdAt | date: 'dd.MM.yyyy HH:mm' }}</ng-template>
 <ng-template #jobActionsCell let-job>
   <span class="cell-actions">
     @if (store.canMaintain() && store.canCancel(job)) {

@@ -81,6 +81,7 @@
         [errors]="store.systemErrors()"
         (save)="saveSystemSettings()"
         (settingChange)="store.setSystemSetting($event.key, $event.value)"
+        (settingTouched)="store.touchSystemSetting($event)"
         (toggleRequire2fa)="store.toggleRequire2fa($event)"
       />
     </div>
@@ -96,6 +97,7 @@
         [errors]="store.systemErrors()"
         (save)="saveSystemSettings()"
         (settingChange)="store.setSystemSetting($event.key, $event.value)"
+        (settingTouched)="store.touchSystemSetting($event)"
       />
     </div>
   }
@@ -127,7 +129,7 @@
         [currentLang]="i18n.currentLang()"
         [isAddLangModalOpen]="languageStore.isAddLangModalOpen()"
         [isAddingLang]="languageStore.isAddingLang()"
-        [addServerErrors]="languageStore.addLanguageErrors()"
+        [(addServerErrors)]="languageStore.addLanguageErrors"
         (openLanguageEditor)="languageStore.openLanguageEditor($event)"
         (closeLanguageEditor)="languageStore.editingLanguageCode.set(null)"
         (languageSaved)="languageStore.onLanguageSaved()"

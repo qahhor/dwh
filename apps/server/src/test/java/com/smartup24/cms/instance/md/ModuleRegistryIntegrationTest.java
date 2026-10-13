@@ -142,11 +142,22 @@ class ModuleRegistryIntegrationTest {
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.system_module_disable_forbidden")
                 .hasFieldOrPropertyWithValue("params", Map.of("code", "iam"));
+    }
 
-        assertThatThrownBy(() -> moduleService.toggleModuleStatus("tasks", false))
-                .isInstanceOf(ApiException.class)
-                .hasFieldOrPropertyWithValue("messageKey", "error.md.system_module_disable_forbidden")
-                .hasFieldOrPropertyWithValue("params", Map.of("code", "tasks"));
+    @Test
+    void tasksAndProjectsCanBeSwitchedOffAndBackOn() {
+        var before = moduleService.getModule("tasks").orElseThrow();
+        assertThat(before.isSystem()).isFalse();
+        try {
+            assertThat(moduleService.toggleModuleStatus("tasks", false).status())
+                    .isEqualTo("DISABLED");
+            assertThat(moduleService.isModuleActive("tasks")).isFalse();
+            assertThat(moduleService.getModule("tasks").orElseThrow().attributes())
+                    .isEqualTo(before.attributes());
+        } finally {
+            moduleService.toggleModuleStatus("tasks", true);
+        }
+        assertThat(moduleService.isModuleActive("tasks")).isTrue();
     }
 
     @Test

@@ -10,6 +10,7 @@ import { CustomNavigationItem } from '@core/models/navigation.models';
 import { ComponentFixture } from '@angular/core/testing';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { NavigationItemForm } from './navigation-item-form';
+import { inScreen, redraw } from '@testing/in-screen';
 
 /** Types into the dialog's model, as the bound fields do. */
 function edit(fixture: ComponentFixture<NavigationSettingsComponent>, values: Partial<NavigationItemForm>): void {
@@ -282,6 +283,38 @@ describe('NavigationSettingsComponent', () => {
     expect(toast.show).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
     expect(fixture.componentInstance.isModalOpen()).toBe(true);
+  });
+
+  it('clears only an edited refusal, retains unknown errors in the summary and leaves focus on the edit', async () => {
+    const { fixture, navService, toast } = setup();
+    fixture.detectChanges();
+    navService.createItem.mockReturnValueOnce(
+      throwError(() => ({
+        status: 422,
+        errors: [
+          { field: 'code', message: 'Code already exists' },
+          { field: 'url', message: 'Address refused' },
+          { field: 'policy', message: 'Review this item policy' },
+        ],
+      })),
+    );
+    fixture.componentInstance.openCreateModal();
+    edit(fixture, { title: 'A', code: 'a', url: '/a' });
+    fixture.componentInstance.saveItem();
+    redraw(fixture);
+    const root = inScreen(fixture.nativeElement);
+    expect(root.querySelector('[data-testid="form-error-summary"]')?.textContent).toContain('Review this item policy');
+    await fixture.whenStable();
+    const code = root.querySelector('#nav-code') as HTMLInputElement;
+    code.focus();
+    code.value = 'new-code';
+    code.dispatchEvent(new Event('input'));
+    redraw(fixture);
+    TestBed.tick();
+    expect(fixture.componentInstance.store.fieldErrors()).toEqual({ url: 'Address refused' });
+    expect(document.activeElement).toBe(code);
+    expect(navService.createItem).toHaveBeenCalledTimes(1);
+    expect(toast.show).not.toHaveBeenCalled();
   });
 
   it('closes an untouched dialog at once and asks before dropping a changed one', () => {

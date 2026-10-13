@@ -43,6 +43,61 @@ function rowTexts(root: HTMLElement): string[][] {
 }
 
 describe('ProjectMembersModalComponent', () => {
+  it('keeps the dialog open during a pending addition', async () => {
+    const fixture = await createFixture(true);
+    const closed = vi.fn();
+    fixture.componentInstance.closeModal.subscribe(closed);
+    fixture.componentRef.setInput('isAddingMember', true);
+    fixture.detectChanges();
+    expect(document.body.querySelector('.smt-modal__close')).toBeNull();
+    const close = document.body.querySelector('[data-testid="project-members-actions"] button') as HTMLButtonElement;
+    close.click();
+    expect(closed).not.toHaveBeenCalled();
+    fixture.componentRef.setInput('isAddingMember', false);
+    fixture.detectChanges();
+    close.click();
+    expect(closed).toHaveBeenCalledTimes(1);
+    fixture.destroy();
+  });
+
+  it('keeps focus transitions inside the person picker untouched and ignores a pending add', async () => {
+    const fixture = await createFixture(true);
+    const modal = fixture.componentInstance;
+    const person = { id: 5, name: 'Selected' } as User;
+    modal.foundUsers.set([person]);
+    modal.isUserDropdownOpen.set(true);
+    fixture.detectChanges();
+    const input = document.body.querySelector('#project-member-search') as HTMLInputElement;
+    const result = document.body.querySelector('.user-search-wrapper .user-dropdown-list button') as HTMLButtonElement;
+    input.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: result }));
+    fixture.detectChanges();
+    expect(modal.userError()).toBe('');
+    modal.selectUser(person);
+    fixture.componentRef.setInput('isAddingMember', true);
+    fixture.detectChanges();
+    const added = vi.fn();
+    modal.addMember.subscribe(added);
+    modal.submitAddMember();
+    expect(added).not.toHaveBeenCalled();
+    expect(modal.selectedUser()).toEqual(person);
+    fixture.destroy();
+  });
+  it('checks the person on blur and clears its refusal after changing the search', async () => {
+    const fixture = await createFixture(true);
+    const input = document.body.querySelector('#project-member-search') as HTMLInputElement;
+    input.focus();
+    input.blur();
+    fixture.detectChanges();
+    expect(input.closest('smt-control')?.textContent).toContain('Обязательное поле');
+    fixture.componentRef.setInput('addErrors', { userId: 'Person refused', accessKind: 'Role refused' });
+    fixture.detectChanges();
+    input.value = 'Another';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.addErrors()['userId']).toBeUndefined();
+    expect(fixture.componentInstance.addErrors()['accessKind']).toBe('Role refused');
+    fixture.destroy();
+  });
   it('lists every member with the role named and an unknown role shown as it came', async () => {
     const fixture = await createFixture(true);
     const root = document.body;
@@ -137,6 +192,12 @@ describe('ProjectMembersModalComponent', () => {
       await vi.advanceTimersByTimeAsync(250);
       modal.submitAddMember();
       expect(added).toHaveBeenCalledWith({ projectId: 7, userId: 5, accessKind: 'MEMBER' });
+      expect(modal.selectedUser()).toEqual(alisher);
+      fixture.componentRef.setInput('addErrors', { accessKind: 'Role refused' });
+      fixture.detectChanges();
+      expect(modal.selectedUser()).toEqual(alisher);
+      fixture.componentRef.setInput('addedCount', 1);
+      fixture.detectChanges();
       expect(modal.selectedUser()).toBeNull();
       // Choosing and clearing the user fill the box without searching again.
       expect(get).toHaveBeenCalledTimes(2);

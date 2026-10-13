@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.common.entity.RetainedRecordAccess;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
@@ -24,8 +25,10 @@ public class MsTaskAccess {
 
     /** The title of the task as the user may see it; an invisible task is as good as a missing one. */
     public String requireVisible(long taskId, long userId) {
-        return taskRepository
+        String title = taskRepository
                 .visibleTitle(taskId, scopeService.filterForTasks(userId))
                 .orElseThrow(() -> new ApiException(ErrorCode.TASK_NOT_FOUND));
+        RetainedRecordAccess.remember(MsTaskEntity.CODE, taskId);
+        return title;
     }
 }

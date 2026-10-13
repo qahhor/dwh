@@ -89,7 +89,6 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
       labelKey: 'nav.tasks',
       icon: 'task_alt',
       permission: options.canViewTasks,
-      exact: true,
     },
     {
       id: 'projects',

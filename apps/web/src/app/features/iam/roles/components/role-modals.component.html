@@ -21,6 +21,7 @@
           smtFieldId="role-create-name"
           smtFocusInitial
           [formField]="createForm().name"
+          (edited)="edited('create', 'name')"
           [placeholder]="'iam.roles.editor.name_placeholder' | t"
         />
       </smt-control>
@@ -34,6 +35,7 @@
           class="font-mono"
           [smtStep]="1"
           [formField]="createForm().orderNo"
+          (edited)="edited('create', 'orderNo')"
           placeholder="0"
         />
       </smt-control>
@@ -68,7 +70,12 @@
       >
         <ui-form-error-summary [errors]="summary(editErrors(), 'role-edit')" />
         <smt-control [smtLabel]="'iam.roles.editor.role_name' | t" [smtError]="editErrors().fields['name'] ?? ''">
-          <smt-input smtFieldId="role-edit-name" smtFocusInitial [formField]="editForm().name" />
+          <smt-input
+            smtFieldId="role-edit-name"
+            smtFocusInitial
+            [formField]="editForm().name"
+            (edited)="edited('edit', 'name')"
+          />
         </smt-control>
         <smt-control
           [smtLabel]="'iam.common.activity_status' | t"
@@ -78,6 +85,7 @@
           <smt-select
             smtTriggerId="role-edit-state"
             [formField]="editForm().state"
+            (valueChange)="edited('edit', 'state')"
             [options]="stateOptions()"
             [allowClear]="false"
           />
@@ -92,6 +100,7 @@
             class="font-mono"
             [smtStep]="1"
             [formField]="editForm().orderNo"
+            (edited)="edited('edit', 'orderNo')"
           />
         </smt-control>
       </form>

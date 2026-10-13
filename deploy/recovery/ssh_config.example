@@ -1,0 +1,11 @@
+# Install root-owned at /etc/ssh/ssh_config.d/smartupcms.conf on the ops host.
+Host smartupcms-app
+    HostName CHANGE_ME_PRIVATE_APP_IP
+    User CHANGE_ME_DOCKER_OPERATOR
+    IdentityFile /etc/smartupcms/ssh/app-key
+    UserKnownHostsFile /etc/smartupcms/ssh/known_hosts
+    StrictHostKeyChecking yes
+    BatchMode yes
+    IdentitiesOnly yes
+    PasswordAuthentication no
+    ConnectTimeout 10

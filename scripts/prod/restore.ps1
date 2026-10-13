@@ -96,9 +96,9 @@ if ($dwhDecryptArguments) {
     if ($LASTEXITCODE -ne 0) { throw 'DWH restore stream failed.' }
 }
 
-Write-Host '[5/6] Applying migrations and refreshing the backup role...' -ForegroundColor Yellow
-Invoke-Compose run --rm migrate
+Write-Host '[5/6] Restoring database roles before applying migrations...' -ForegroundColor Yellow
 Invoke-Compose run --rm backup-bootstrap
+Invoke-Compose run --rm migrate
 
 Write-Host '[6/6] Starting SmartupCMS and waiting for readiness...' -ForegroundColor Yellow
 Invoke-Compose up -d --wait --wait-timeout $HealthTimeoutSeconds

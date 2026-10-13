@@ -2,7 +2,7 @@
 
 **Версия:** 2.0
 
-**Обновлено:** 2026-10-08
+**Обновлено:** 2026-10-13
 
 **Область:** одна установка SmartupCMS, одна организация, много пользователей
 
@@ -73,16 +73,39 @@ PostgreSQL, Typesense, порт сервера и порт management в product
 
 ## STRIDE по областям, добавленным после 2026-09-04
 
+Дополнение pre-production: login budget связан с account ID и нормализованным
+IP, сериализуется PostgreSQL advisory locks (IP → account) в ограниченной
+транзакции; aliases не создают новый бюджет. SSE перед данными/heartbeat
+перепроверяет исходный credential и текущее право inbox, закрывается при
+ошибке проверки. Регрессии: `T/kauth/KauthLoginBudgetIntegrationTest`,
+`T/kauth/MsSseRevocationIntegrationTest`. Проверка на каждом SSE send
+увеличивает нагрузку БД и входит в target capacity gate.
+
+Production DB passwords разделены между postgres/migrator/runtime/backup,
+источники env/file должны совпадать. Это не заменяет защищённые host files,
+secret manager и проверку ротации. Consistent recovery coordinator и
+deployment runner работают с привилегированным Docker/SSH доступом;
+configuration и helper scripts принадлежат root. Контроллер/ops являются
+частью доверенной computing base; их компрометация требует отзыва доступов.
+
 Буквы: S — подмена, T — изменение, R — отказ от действий, I — раскрытие,
 D — отказ в обслуживании, E — повышение привилегий.
 
 ### Low-code runtime `/api/v1/entities`
+
+Скачивание FILE/IMAGE и повторное использование вложения проверяют текущие
+права поля через `EntityFieldRights.visibleFiles` и ограничение `field_key` в
+`MfRecordFileRepository`. Скрытый, удалённый или не-файловый ключ не даёт
+доступа. `EntityFileAccessIntegrationTest` проверяет отзыв, перенос скрытого
+чужого UUID в открытое поле, несколько связей и собственную загрузку.
+Проверка выполняется до выдачи потока; уже полученные байты отозвать нельзя.
 
 | STRIDE | Угроза | Меры (код → тест) | Остаточный риск |
 |---|---|---|---|
 | E | Доступ к сущности без права | Аннотация контроллера пускает вошедшего; права конкретной сущности проверяет `S/common/entity/runtime/EntityGate.java` (нет права на просмотр — 404, на действие — 403); сущность без области прав модуля не даёт серверу стартовать → `T/common/entity/runtime/EntityRuntimeIntegrationTest`, `T/support/entity/KitAccessChecks`, покрытие всех сущностей — `T/support/entity/EntityContractCoverageTest` | Защита держится на вызове `EntityGate` в каждой точке входа; новая точка входа без него откроет данные |
 | I | Чтение записей вне области данных | `EntityReads`, `S/common/entity/EntityScopes.java` (предикат в том же SQL, 404 вне области); ссылки проверяются в области целевой сущности (`EntitySaveChecks`) → `EntityRuntimeIntegrationTest#filtersDoNotBypassTheScope`, `#referencesAreCheckedInTheTargetsScope` | — |
 | I, T | Чтение или запись закрытого поля | `S/common/entity/EntityFieldRights.java` (скрытие при чтении, отказ записи скрытого и read-only поля) → `T/common/entity/EntityFieldRightsIntegrationTest`, `T/support/entity/KitFieldRightChecks` | Дополнительные поля и собственные свойства записи прав на поля не имеют |
+| I | Повтор сохранённого ответа после отзыва доступа | `S/config/idempotency/IdempotencyService.java` связывает запрос с контекстом авторизации; `S/common/entity/RetainedRecordAccess.java` повторно проверяет текущий скоуп записей ответа и подписей ссылок → `T/common/entity/FieldAccessRevocationIntegrationTest`, `T/common/security/RetainedTaskAccessIntegrationTest` | Уже полученные клиентом данные отозвать невозможно |
 | T | Потерянное обновление | `If-Match` для PATCH, архивации и действий (`S/common/web/Revisions.java`: 428/409) → `KitCrudChecks#staleUpdate`, `#staleArchive` | `DELETE` принимает запрос без ревизии |
 | T | SQL-инъекция через фильтр | Поля фильтра только из реестра, лимиты условий и длины (`S/common/query/QueryCompiler.java`), идентификаторы проверены регулярками (`libs/platform-api/.../FieldSource.java`, `EntityScope.java`), значения — параметры → `T/common/entity/EntityScopeTest#scopeColumnsAreIdentifiers` | — |
 | D | Большое тело или тяжёлый список | Тело до 512 KiB (`S/config/web/EntityBodyLimitFilter.java` → `EntityBodyLimitFilterTest`); страница до 200 записей | — |
@@ -101,6 +124,7 @@ D — отказ в обслуживании, E — повышение прив�
 |---|---|---|---|
 | E | Импорт или экспорт без права | Импорт: видимость, capability `IMPORT`, право `form.import` (`S/common/entity/runtime/EntityImports.java`); экспорт: право списка при запросе и при выполнении, задача берёт текущие права владельца (`S/report/export/ExportPrincipals.java`) → `T/report/ReportExportControllerTest#jobRunsWithTheOwnersCurrentRights`, `T/report/ReportImportIntegrationTest#blockedOwnerFailsTheImport` | — |
 | I | Чужой файл или отчёт | Импорт только из своего xlsx; статус, отчёт и выгрузка — только владельцу и только до истечения срока → `ReportExportControllerTest#requestIsCheckedAtOnceAndExportsArePrivate`, `ReportImportIntegrationTest#requestAndJournalChecks` | — |
+| I | Скачивание готовой выгрузки после отзыва доступа | `S/report/export/ExportAccess.java`: контекст авторизации, видимые колонки и текущий скоуп сохранённых ID; для собственного списка — `QueryListExporter.visible(ids)` → `T/common/entity/FieldAccessRevocationIntegrationTest`, `T/common/security/RetainedTaskAccessIntegrationTest` | Уже скачанные копии остаются у получателя; проверка права выполняется перед выдачей потока |
 | T | Formula injection в выгрузке | CSV: экранирование префиксов `= + - @` и управляющих символов (`S/report/service/ReportService.java`) → `T/report/ReportExportIntegrationTest#csvNeutralizesUnsafePrefixes…`; xlsx пишет значения строковыми ячейками без формул | В общем xlsx-экспорте (`ExportWorkbookWriter`) нет явного экранирования `=` и отдельного теста на отсутствие формул |
 | D | Zip-бомба, поток shared strings, ячейка за последним столбцом | Лимиты xlsx до чтения (`S/common/xlsx/XlsxGuard.java`) → `T/report/imports/ImportSheetsTest#zipBombIsRefused`; не больше 3 активных импортов и экспортов; до 100 000 строк импорта, до `smc.reports.export.max-rows` строк экспорта | См. «Загрузки xlsx и антивирус» |
 
@@ -128,7 +152,7 @@ D — отказ в обслуживании, E — повышение прив�
 | S, T | Подделка или изменение доставки | HMAC-SHA256 над `timestamp.body`, заголовки `X-Signature-SHA256`, `X-Signature-Timestamp`, `X-Delivery-Id` (`S/webhook/worker/WebhookOutboxWorker.java`) → `T/webhook/WebhookOutboxWorkerSecurityTest#dispatchesSignedDelivery…` | Ротации секрета нет; защита от повтора — на стороне получателя по времени и id доставки |
 | I | Утечка секрета подписи | 32 случайных байта, показываются только при создании, хранятся в AES-256-GCM (`S/common/security/StoredSecrets.java`, ADR-0029) → `T/webhook/WebhookServiceTest#shouldReturnSigningSecretOnlyAtCreation`, `T/common/security/StoredSecretsTest` | — |
 | I | Доставка закрытых полей | Неизвестные события отклоняются; данные проходят `EntityFieldRights.forEveryone` (`S/webhook/service/EntityWebhookListener.java`) → `T/webhook/WebhookSubscriptionControllerTest` | — |
-| E (SSRF) | Запрос во внутреннюю сеть | `S/webhook/service/WebhookTargetPolicy.java` (схема, allow-list, запрет private/loopback/link-local/CGNAT/ULA, повтор перед отправкой, без редиректов) → `T/webhook/service/WebhookTargetPolicyTest`, `WebhookOutboxWorkerSecurityTest#revalidatesTheStoredTarget…` | Между проверкой и подключением DNS разрешается заново (окно rebinding, сужено allow-list); NAT64 `64:ff9b::/96` не блокируется |
+| E (SSRF) | Запрос во внутреннюю сеть | `S/webhook/service/WebhookTargetPolicy.java` (только HTTPS, allow-list, запрет private/loopback/link-local/CGNAT/ULA, повтор перед отправкой, без редиректов) → `T/webhook/service/WebhookTargetPolicyTest`, `WebhookOutboxWorkerSecurityTest#revalidatesTheStoredTarget…` | Между проверкой и подключением DNS разрешается заново (окно rebinding, сужено allow-list); NAT64 `64:ff9b::/96` не блокируется |
 | D | Медленный адресат | Таймауты 3 с / 10 с, 5 попыток с backoff, затем dead letter → `WebhookOutboxWorkerSecurityTest#boundsDeliveryTime…` | — |
 
 ### Внешние модули (`/app/modules`, манифесты)

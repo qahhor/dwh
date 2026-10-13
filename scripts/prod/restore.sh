@@ -85,9 +85,9 @@ if [[ -n "$WAREHOUSE_BACKUP_FILE" ]]; then
         'exec pg_restore --exit-on-error --no-owner --no-acl --role="$APP_DB_USER" -U "$POSTGRES_USER" -d "$WAREHOUSE_DB_NAME"'
 fi
 
-echo '[5/6] Applying migrations and refreshing the backup role...'
-"${compose[@]}" run --rm migrate
+echo '[5/6] Restoring database roles before applying migrations...'
 "${compose[@]}" run --rm backup-bootstrap
+"${compose[@]}" run --rm migrate
 
 echo '[6/6] Starting SmartupCMS and waiting for readiness...'
 "${compose[@]}" up -d --wait --wait-timeout "$HEALTH_TIMEOUT_SECONDS"

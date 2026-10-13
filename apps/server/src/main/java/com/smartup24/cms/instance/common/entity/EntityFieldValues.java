@@ -204,8 +204,9 @@ public class EntityFieldValues {
     private Optional<FieldErrorItem> fileProblem(
             EntityDefinition entity, FormField field, Object value, @Nullable Long recordId, long userId) {
         UUID id = FieldValueRules.fileId(value).orElseThrow();
-        Optional<FileFacts> file =
-                files == null ? Optional.empty() : files.attachable(id, entity.code(), recordId, userId);
+        Optional<FileFacts> file = files == null
+                ? Optional.empty()
+                : files.attachable(id, entity.code(), recordId, userId, EntityFieldRights.visibleFiles(entity));
         if (file.isEmpty()) {
             return Optional.of(FieldErrorItem.keyed(field.key(), "not_found", "error.field.file_not_found"));
         }

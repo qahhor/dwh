@@ -23,6 +23,8 @@ export class ProjectMembersService {
 
   readonly selectedProjectForMembers = signal<Project | null>(null);
   readonly isAddingMember = signal<boolean>(false);
+  /** Successful additions reset the picker; refusals keep the selected person. */
+  readonly addedCount = signal(0);
   readonly removingMemberId = signal<number | null>(null);
   /** The server's refusal of the last added member, by field (`userId`, `accessKind`). */
   readonly addErrors = signal<Readonly<Record<string, string>>>({});
@@ -56,6 +58,7 @@ export class ProjectMembersService {
   }
 
   closeMembersModal(): void {
+    if (this.isAddingMember() || this.removingMemberId() !== null) return;
     this.selectedProjectForMembers.set(null);
     this.pager.cancel();
     this.pager.items.set([]);
@@ -72,6 +75,7 @@ export class ProjectMembersService {
     this.projectsApi.addMember(event.projectId, event.userId, event.accessKind).subscribe({
       next: () => {
         this.isAddingMember.set(false);
+        this.addedCount.update((count) => count + 1);
         this.toast.success(this.uiI18n.translate('projects.members.added'));
         this.pager.first();
       },

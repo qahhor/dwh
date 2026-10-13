@@ -101,17 +101,27 @@ export const fixtures = {
     { code: 'ru', name: 'Русский', builtin: true, active: true, revision: 1, translated: 1929, total: 1929, coverage: 100 },
     { code: 'en', name: 'English', builtin: true, active: true, revision: 1, translated: 1751, total: 1929, coverage: 91 },
   ],
+  '/i18n/admin/languages/en/translations': {
+    language: { code: 'en', name: 'English', builtin: true, active: true, revision: 1, translated: 2, total: 2, coverage: 100 },
+    entries: [
+      { key: 'common.save', russianValue: 'Сохранить', bundledValue: 'Save', overrideValue: null, effectiveValue: 'Save', translated: true },
+      { key: 'common.cancel', russianValue: 'Отмена', bundledValue: 'Cancel', overrideValue: null, effectiveValue: 'Cancel', translated: true },
+    ],
+  },
   '/settings/system': {
     values: { 'system.company_name': 'Smartup Distribution', 'system.default_language': 'ru' },
     revision: 1,
   },
   '/settings/user': {},
   '/modules/active': [
+    { code: 'tasks', name: 'Задачи', version: '1.0.0', route: '/tasks', icon: 'task_alt', isSystem: false, status: 'ACTIVE', isActive: true },
     { code: 'notes', name: 'Заметки', version: '1.0.0', route: '/notes', icon: 'description', isSystem: false, status: 'ACTIVE', isActive: true },
     { code: 'example', name: 'Эталон', version: '1.0.0', route: '/e/example.orders', icon: 'receipt_long', isSystem: false, status: 'ACTIVE', isActive: true },
   ],
   '/navigation/items/active': [],
   '/notifications/unread-count': { unread_count: 0 },
+  '/notifications/inbox': page([]),
+  '/notifications/preferences': [{ eventType: 'task_status', channel: 'email', isEnabled: false }],
   '/announcements/active': [],
   '/iam/org-units': orgUnits(),
   '/iam/org-units/users/1': { userId: 1, orgUnitIds: [2, 5], legacyOrgUnitId: null, revision: 1 },

@@ -120,6 +120,22 @@
   overflow-y: auto;
 }
 
+/* The close button follows the content in keyboard order; its visual position stays in the header. */
+.smt-dialog {
+  position: relative;
+}
+
+.smt-dialog--dismissible > .smt-modal__header {
+  min-height: 61px;
+  padding-inline-end: 62px;
+}
+
+.smt-dialog > .smt-modal__close {
+  position: absolute;
+  inset-block-start: 14px;
+  inset-inline-end: 18px;
+}
+
 .smt-modal-confirm {
   display: flex;
   flex-direction: column;

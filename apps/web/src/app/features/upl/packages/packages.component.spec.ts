@@ -17,7 +17,52 @@ import {
 
 const DEFAULT_QUERY = { sort: { field: 'uploadedAt', descending: true }, conditions: [], match: 'all' };
 
+function submitForm(screen: Awaited<ReturnType<typeof createPackagesFixture>>['screen']): void {
+  (screen.testId('upl-pkg-form')[0] as HTMLFormElement).requestSubmit();
+  screen.redraw();
+  TestBed.tick();
+}
+
 describe('PackagesComponent', () => {
+  it('submits an incomplete form with a file to show errors and never sends invalid fields', async () => {
+    const { api, component, screen } = await createPackagesFixture();
+    screen.attachFile();
+    expect(screen.submit().disabled).toBe(false);
+    submitForm(screen);
+    expect(api.upload).not.toHaveBeenCalled();
+    expect(screen.fieldError('upl-pkg-source-field')).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_SOURCE_REQUIRED']);
+    expect(screen.fieldError('upl-pkg-period-to-field')).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_PERIOD_REQUIRED']);
+    component.patchForm({ sourceId: 3, periodFrom: '2026-02-01', periodTo: '2026-01-31' });
+    submitForm(screen);
+    expect(api.upload).not.toHaveBeenCalled();
+    expect(screen.fieldError('upl-pkg-period-to-field')).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_PERIOD_ORDER']);
+  });
+
+  it('clears only the corrected upload fields and validates a required date on blur', async () => {
+    const { component, screen } = await createPackagesFixture();
+    component.formErrors.set({
+      source: ['source error'],
+      period: ['period error'],
+      file: ['file error'],
+      form: ['unknown'],
+    });
+    component.patchForm({ sourceId: 3 });
+    expect(component.formErrors()).toEqual({
+      source: [],
+      period: ['period error'],
+      file: ['file error'],
+      form: ['unknown'],
+    });
+    component.patchForm({ periodFrom: '2026-01-01' });
+    expect(component.formErrors().period).toEqual([]);
+    screen.attachFile();
+    expect(component.formErrors().file).toEqual([]);
+    screen.dateField('upl-pkg-period-to').dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    screen.redraw();
+    TestBed.tick();
+    expect(screen.fieldError('upl-pkg-period-to-field')).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_PERIOD_REQUIRED']);
+  });
+
   it('без права загрузки формы нет, источники не запрашиваются, пустой текст короткий', async () => {
     const { api, screen } = await createPackagesFixture({ rights: [], pages: [of(keysetPage([]))] });
 
@@ -56,7 +101,7 @@ describe('PackagesComponent', () => {
     screen.attachFile();
     expect(screen.submit().disabled).toBe(false);
 
-    screen.click('upl-pkg-submit');
+    submitForm(screen);
     // While the file is on its way, nothing in the form can change.
     const source = screen.testId('upl-pkg-source')[0].querySelector('button[role="combobox"]');
     const dates = [screen.dateField('upl-pkg-period-from'), screen.dateField('upl-pkg-period-to')];
@@ -160,14 +205,14 @@ describe('PackagesComponent', () => {
     });
     screen.fillForm();
 
-    screen.click('upl-pkg-submit');
+    submitForm(screen);
 
     expect(screen.fieldError('upl-pkg-source-field')).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_SOURCE_REQUIRED']);
     expect(screen.fieldError('upl-pkg-period-to-field')).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_PERIOD_ORDER']);
     expect(screen.fieldError('upl-pkg-file-field')).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_FILE_NOT_XLSX']);
     expect(screen.testId('upl-pkg-err-form')).toHaveLength(0);
 
-    screen.click('upl-pkg-submit');
+    submitForm(screen);
 
     expect(screen.testId('upl-pkg-err-form')[0].textContent).toContain('UPL_PKG_FROM_FUTURE (service_unavailable)');
     expect(screen.fieldError('upl-pkg-source-field')).toBeUndefined();

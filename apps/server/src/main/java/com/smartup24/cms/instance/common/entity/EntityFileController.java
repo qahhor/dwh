@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * {@code GET /api/v1/entities/{code}/{id}/files/{fileId}} (ADR-0032, 4.7): the file of a file or image field, read
  * through its record. The viewer must see the entity ({@link EntityGate}: its module switched on, its {@code view}
  * right) and the record (its module's scope, {@link EntityRecords}), and
- * the file must be attached to that record; anything else answers the same 404, so the answer tells neither which
+ * the file must be attached to a visible file/image field of that record; anything else answers the same 404, so the answer tells neither which
  * records nor which files exist. The files list of the files module keeps its own rule (the owner's files); it is not
  * widened to the records of every entity.
  */
@@ -66,7 +66,8 @@ public class EntityFileController {
         EntityRecords records = registry.records(code).orElseThrow(EntityFileController::notFound);
         records.requireVisible(id);
         if (files == null) throw notFound();
-        FileFacts file = files.attached(entity.code(), id, fileId).orElseThrow(EntityFileController::notFound);
+        FileFacts file = files.attached(entity.code(), id, fileId, EntityFieldRights.visibleFiles(entity))
+                .orElseThrow(EntityFileController::notFound);
         FileDownloadStream stream = files.open(file.id());
         String name = URLEncoder.encode(file.name(), StandardCharsets.UTF_8).replace("+", "%20");
         String disposition = INLINE.contains(file.contentType()) ? "inline" : "attachment";

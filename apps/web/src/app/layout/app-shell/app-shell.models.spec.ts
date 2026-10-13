@@ -56,6 +56,17 @@ function customItems(held: string[]): NavItem[] {
   return buildNavSections(options(held)).find((section) => section.id === 'custom-reports')!.items;
 }
 
+describe('record navigation', () => {
+  it.each([
+    ['/tasks', 'tasks'],
+    ['/tasks/items/42?view=board', 'tasks'],
+    ['/tasks/projects/17', 'projects'],
+  ])('keeps the owning menu item active on %s', (url, expected) => {
+    const sections = buildNavSections({ ...options([]), canViewTasks: () => true, canViewProjects: () => true });
+    expect(activeNavItemId(sections, url)).toBe(expected);
+  });
+});
+
 function entity(code: string, section: string, order: number, module: string | null): EntityMenuItem {
   return {
     code,

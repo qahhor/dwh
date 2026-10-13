@@ -15,15 +15,21 @@ param(
     [string]$ComposeFile = 'deploy/compose/docker-compose.prod.yml',
     [string]$EnvFile = '.env.production',
     [string]$EvidenceDirectory = 'output/managed-acceptance',
+    [ValidatePattern('^(sha256:[a-f0-9]{64}|[^\s]+@sha256:[a-f0-9]{64})$')][string]$BackupImage,
     [switch]$KeepIsolatedTarget
 )
 
 $ErrorActionPreference = 'Stop'
 $startedAt = (Get-Date).ToUniversalTime()
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$gitSha = (& git -C $repoRoot rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0 -or $gitSha -notmatch '^[a-f0-9]{40}$') {
-    throw 'git rev-parse HEAD did not return an immutable commit SHA.'
+$revisionFile = Join-Path $repoRoot 'REVISION'
+$gitSha = if (Test-Path -LiteralPath $revisionFile -PathType Leaf) {
+    (Get-Content -LiteralPath $revisionFile -Raw).Trim()
+} else {
+    (& git -C $repoRoot rev-parse HEAD).Trim()
+}
+if ($gitSha -notmatch '^[a-f0-9]{40}$') {
+    throw 'Release REVISION or git HEAD must identify an immutable commit SHA.'
 }
 $startedByScript = $false
 $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('smartupcms-combined-restore-' + [guid]::NewGuid())
@@ -93,6 +99,9 @@ $tarPath = Require-Command 'tar'
 $pgRestoreCommand = Get-Command 'pg_restore' -ErrorAction SilentlyContinue
 $script:hasHostPgRestore = $null -ne $pgRestoreCommand
 $pgRestorePath = if ($script:hasHostPgRestore) { $pgRestoreCommand.Source } else { $null }
+if ((-not $script:hasHostAge -or -not $script:hasHostPgRestore) -and -not $BackupImage) {
+    throw 'Host age/pg_restore or an explicitly verified immutable BackupImage is required.'
+}
 
 $awsPath = if ($TargetObjectProvider -eq 's3') { Require-Command 'aws' } else { $null }
 
@@ -115,7 +124,7 @@ function Invoke-AgeDecrypt([string]$Identity, [string]$InputFile, [string]$Outpu
             -v "${inDir}:/in:ro" `
             -v "${idDir}:/id:ro" `
             -v "${outDir}:/out" `
-            smartupcms/backup:release-config-test `
+            $BackupImage `
             --decrypt --identity "/id/$idLeaf" --output "/out/$outLeaf" "/in/$inLeaf"
         if ($LASTEXITCODE -ne 0) { throw 'Containerized age decryption failed.' }
     }
@@ -132,7 +141,7 @@ function Invoke-PgRestoreList([string]$DumpFile) {
         $dumpLeaf = Split-Path -Leaf $resolvedDump
         & docker run --rm --entrypoint pg_restore `
             -v "${dumpDir}:/dump:ro" `
-            smartupcms/backup:release-config-test `
+            $BackupImage `
             --list "/dump/$dumpLeaf" | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Containerized pg_restore catalog validation failed.' }
     }
@@ -215,6 +224,9 @@ try {
         if ($evidence.dwhTableCount -lt 1) { throw 'The restored DWH database has no tables.' }
     }
 
+    # ADR-0001: restore ownership and grants before checking the database as its application role.
+    Invoke-Compose @('run', '--rm', 'backup-bootstrap')
+
     $rowCountSql = @'
 select json_build_object(
   'md_users', (select count(*) from md_users),
@@ -224,7 +236,7 @@ select json_build_object(
 )::text;
 '@
     $rowCountJson = ($rowCountSql | & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath exec -T postgres `
-        sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"') -join "`n"
+        sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$APP_DB_USER" -d "$POSTGRES_DB"') -join "`n"
     if ($LASTEXITCODE -ne 0) { throw 'Restored row-count query failed.' }
     $evidence.rowCounts = $rowCountJson.Trim() | ConvertFrom-Json
 
@@ -237,7 +249,7 @@ from (
 ) x;
 '@
     $databaseInventoryJson = ($fileInventorySql | & docker compose -p $IsolatedProjectName -f $composePath --env-file $environmentPath exec -T postgres `
-        sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"') -join "`n"
+        sh -ec 'exec psql -X -A -t -v ON_ERROR_STOP=1 -U "$APP_DB_USER" -d "$POSTGRES_DB"') -join "`n"
     $databaseKeys = [System.Collections.Generic.List[string]]::new()
     $parsedDbInventory = $databaseInventoryJson.Trim() | ConvertFrom-Json
     foreach ($item in $parsedDbInventory) {
@@ -329,7 +341,7 @@ from (
         if ([string]::IsNullOrWhiteSpace($dbManifest.capturedAt)) {
             throw 'Database manifest is missing capturedAt timestamp.'
         }
-        $databaseCapturedAt = [datetime]::Parse("$($dbManifest.capturedAt)").ToUniversalTime()
+        $databaseCapturedAt = ([datetime]$dbManifest.capturedAt).ToUniversalTime()
     }
     elseif ((Split-Path -Leaf $databaseBackupPath) -match 'smartupcms-(\d{8}T\d{6}Z)\.dump\.age') {
         $databaseCapturedAt = [datetime]::ParseExact($matches[1], 'yyyyMMddTHHmmssZ', [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal).ToUniversalTime()
@@ -342,7 +354,7 @@ from (
     if ($databaseCapturedAt -gt $nowUtc.AddSeconds(300)) {
         throw 'Database backup capture timestamp is in the future.'
     }
-    $objectCapturedAt = [datetime]::Parse("$($manifest.capturedAt)").ToUniversalTime()
+    $objectCapturedAt = ([datetime]$manifest.capturedAt).ToUniversalTime()
     if ($objectCapturedAt -gt $nowUtc.AddSeconds(300)) {
         throw 'Object backup capture timestamp is in the future.'
     }

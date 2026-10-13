@@ -7,6 +7,255 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Webhook destinations require HTTPS (`NFR-SEC-06`), including explicitly
+  allowed private hosts. HTTP subscriptions are rejected on create/update and
+  before dispatch; no HTTP compatibility path is retained.
+
+### Audit follow-up (2026-10-13)
+
+#### Fixed
+
+- Entity FILE/IMAGE downloads and attachment reuse enforce current field
+  visibility. Revoked, removed and non-file field keys do not authorize a file;
+  readable shared attachments and the user's own uploads remain supported.
+- Complete recovery sets alert after 14/20 hours before the 24-hour RPO breach.
+  HTTP acceptance of an alert drill no longer reports confirmed delivery;
+  receipt remains an explicit unverified acceptance control.
+- Local-disk recovery has an explicit bind-mount Compose profile for new
+  same-host installations. Managed restore instructions include the DWH archive.
+- Security and module documentation distinguish owner-permission API tokens
+  and configured OAuth metadata from separate token scopes and OAuth sign-in.
+- Portable ignores exclude local tools, runtime files and Python caches;
+  workstation-specific assistant settings are no longer versioned.
+
+#### Tests
+
+- Browser scenarios compare downloaded bytes with the uploaded fixture and
+  require Russian fallback after a missing or removed translation override.
+- Webhook delivery, HMAC, retry and timeout checks use disposable TLS receivers
+  with certificate and hostname verification.
+
+### Pre-production hardening (2026-10-13)
+
+#### Fixed
+
+- Production initialization generates separate PostgreSQL, migrator, runtime
+  and backup credentials; missing, shared or inconsistent values fail closed.
+  Backup key generation no longer publishes an unusable placeholder recipient.
+- Login attempts share an atomic account/IP budget across aliases and nodes.
+  Active notification streams recheck credentials and current permissions
+  before delivery and heartbeat, including after remote revocation.
+- Local credentials, tool installations and Python caches are excluded from
+  the server Docker build context.
+
+#### Added
+
+- Consistent CMS/DWH/object recovery coordinator with bounded scratch,
+  encrypted remote read-back verification, writer cleanup, complete-set
+  validation and UTC systemd scheduling.
+- Separate ops alerting/probing configuration and stale-collector/recovery
+  alerts; Russian deployment/operations handbook and explicit launch gates.
+- Ansible automation for verified immutable releases, guarded migrations and
+  repeatable installation. Target rehearsals remain required before launch.
+- Python deployment/recovery automation is included in CodeQL security-extended
+  checks alongside Java, TypeScript and GitHub Actions.
+
+### Staging: утверждённая конфигурация и upload SLO (2026-10-12)
+
+#### Changed
+
+- `NFR-PERF-02`: `POST /api/v1/files/upload` получает утверждённые
+  p95 ≤ 30 с / p99 ≤ 60 с; остальные API сохраняют 300/1000 мс.
+  Capacity runner требует оба бюджета, запрещает их ослаблять и требует
+  20/20 успешных загрузок. Ошибки upload остаются в доступности API.
+- HTTP-гистограмма расширена до 120 с; отдельные upload SLI, алерты,
+  дашборд и runbook проверяются вместе с регрессиями k6/Prometheus.
+- Добавлены staging overlay и шаблоны edge/collector/acceptance для
+  утверждённых Hetzner + Cloudflare + R2. Бюджет и RPO/RTO записаны в
+  installation annex; target identity, secrets и recovery/alert drills
+  остаются обязательными входами. Инфраструктура не развёрнута.
+- Проверка объединённого Compose сохраняет изоляцию томов и сетей restore
+  (`--no-normalize`); web upload-buffer 1536 MiB выделен фактическому
+  `/var/lib/nginx/tmp`, общий лимит web остаётся 2 GiB.
+
+### Release gates: проверка комплекта выпуска (2026-10-12)
+
+#### Fixed
+
+- Target-side verifier корректно разбирает пути SHA256SUMS в PowerShell,
+  отклоняет выход за каталог, повторные записи и отсутствие checksum любого
+  из 24 файлов метаданных шести образов или двух архивов поставки.
+- Неудачная повторная проверка удаляет прежнее свидетельство PASS для этой
+  версии; проверка Cosign привязана к точному имени workflow и release tag.
+- В CI добавлены поведенческие регрессии verifier с изолированной подменой
+  внешних команд подписи и attestation; публикация для них не требуется.
+  Release-config job получает полную Git-историю для проверки секретов.
+- Release drill запускает текущий PowerShell и проверяет полный текст ошибки:
+  перенос строки в Windows больше не скрывает ожидаемый отказ по checksum.
+  Отрицательный сценарий требует и ненулевой код, и ожидаемую причину отказа.
+- API smoke выводит число OpenAPI-маршрутов одним числом вместо массива
+  единичных значений свойств PowerShell.
+
+### Release gates: ёмкость и наблюдаемость (2026-10-12)
+
+#### Fixed
+
+- Capacity runner сохраняет UTC при чтении окна мониторинга и отклоняет
+  нечисловые, бесконечные, пустые и недопустимые отрицательные значения
+  метрик до записи PASS. Уменьшение временных файлов допускается.
+- Пороги k6 включают граничное значение (`≤` для задержек и доли ошибок,
+  `≥` для успешных проверок); нулевой бюджет ошибок корректно принимается.
+- Доля ошибок API равна нулю при успешном трафике без ряда 5xx во всех
+  четырёх окнах Prometheus. Приложения без API-трафика, включая только SSE,
+  не получают искусственную нулевую серию.
+- В CI добавлена регрессия приёмочного runner: синтетическая граница
+  нагрузки, проверка реального манифеста и настоящий evaluator закреплённого
+  k6 без сетевых запросов. Проверка не требует staging.
+- SLO-документ приведён к `NFR-PERF-02`: загрузки и выгрузки учитываются
+  в задержке API; удалена рекомендация исключать их URI при росте p99.
+
+### Release gates: восстановление резервных копий (2026-10-12)
+
+#### Fixed
+
+- Combined restore сохраняет UTC и дату при чтении JSON-манифестов:
+  корректная копия больше не отклоняется как созданная в будущем из-за
+  преобразования через строку с локальным форматом даты.
+- Перед проверкой восстановленной CMS восстанавливаются владельцы таблиц
+  и права существующим `backup-bootstrap`; контрольные запросы выполняются
+  от роли приложения. В PowerShell и Bash restore этот шаг предшествует
+  миграциям, которым также нужен доступ к восстановленным таблицам.
+- Регрессия recovery проверяет обе БД, чтение от роли приложения,
+  возможность мигратора изменять таблицы и сохранение запретов приложения
+  на TRUNCATE и удаление audit-записей; отсутствующий ключ отклоняется
+  до создания целевого контейнера. Тест сам собирает образы из репозитория.
+- Приёмочные тесты повторной доставки проверяют неизменность `X-Delivery-Id`
+  у HTTP-получателя и ключа идемпотентности почтового провайдера, включая
+  сохранение ключа после передачи notification claim другому обработчику.
+
+### Release gates: access revocation (2026-10-11)
+
+#### Fixed
+
+- Finished exports recheck the owner's current permission context, visible
+  columns and the scope of every retained row before serving the file. Task
+  participation changes also revoke access to exports of linked files.
+- Idempotent responses recheck the current authorization context and retained
+  records. A revoked context or inaccessible record returns 409 without replaying
+  the old body or executing the mutation again; unchanged access preserves replay.
+- Clearing an optional reference with empty text writes SQL NULL and is safe
+  for typed entity hooks, including removal of a task's responsible user.
+
+### Changed
+
+- Custom `QueryListExporter` implementations must implement `visible(ids)` to
+  check current access to retained rows. Model-backed entity exports use the
+  shared scoped repository. Migration V204 adds record proofs to idempotent answers.
+
+### Release gates: log record integrity (2026-10-11)
+
+#### Fixed
+
+- The development console now masks secrets and escapes control characters in
+  the complete log event, including metadata and exception chains. Request data
+  cannot add physical log lines; normal messages, trace/span IDs and stack frames
+  remain available in readable text through Spring Boot's formatter extension.
+- ECS console and file logs render Unicode line/paragraph separators as visible
+  escapes, preserving one physical record for line-oriented consumers. Default
+  JSON logging, file rotation and HTTP error responses are unchanged.
+
+### Release gates: backup artifacts and E2E redaction (2026-10-11)
+
+#### Fixed
+
+- The database-backup regression reads private keys, status, manifests and
+  checksums as the backup container's UID. A Linux CI runner no longer needs
+  host access to files written with mode 0600; production permissions stay intact.
+- The E2E artifact gate checks the actual 20-character rotated password instead
+  of a different 28-character value. An injected synthetic leak is rejected;
+  the normal failure-artifact probe remains clean.
+- Analytics and command-palette translation contracts recognize permission
+  labels declared by the server, using the existing source-derived key helper.
+- The accessibility fixture server normalizes `WEB_DIST` before checking paths,
+  so a Windows build path written with forward slashes does not produce HTTP 403.
+
+### Release preparation: permission catalog and guidance (2026-10-11)
+
+#### Fixed
+
+- Static permission forms and actions now expose dictionary keys through the
+  existing catalog API, like entity rights. All 20 static forms have ru/uz/en
+  labels; source/format permissions no longer store Uzbek text as Russian.
+  Permission codes and authorization behavior are unchanged.
+- The open role matrix and personal-permission panel refresh translated names
+  when the language or dictionary changes, preserving unsaved grants and selected
+  actions. The role matrix also keeps search, expanded groups and control identity.
+  The obsolete Cyrillic-literal exception for the form catalog is removed.
+- Transaction guidance distinguishes atomic notification/outbox writes from
+  after-commit signals and external delivery. The documentation index now
+  describes startup refusal for stored plaintext secrets rather than conversion.
+
+#### Added
+
+- An actionable P0/P1 release preparation plan tied to the existing AC-01…AC-13,
+  with owners, dependencies, verification criteria and explicit production gates.
+### Low-code framework composition and form consistency (2026-10-12)
+
+#### Changed
+
+- Core administration stays available; tasks/projects, notes and UPL are
+  optional application modules. Tasks can now be disabled. Disabled modules
+  return 404 from their entity and custom APIs, including cached idempotent
+  replies; enabling a module restores the existing records and receipts.
+  Task reminders pause while tasks are disabled; accepted UPL jobs finish.
+  The UI uses the same module state for routes, navigation and task analytics.
+- The one-page form standard covers lists, search, view, create, edit, delete,
+  validation, pending requests and unsaved changes. Shared metadata forms and
+  specialized forms follow blur/submit validation and clear only the edited
+  field's server error; hidden and read-only fields do not block submission.
+- Tables default to numeric dates and 24-hour time; explicit column formats
+  remain authoritative. Segmented labels wrap on narrow screens.
+
+#### Fixed
+
+- Notification preferences stay closed after a failed load instead of presenting
+  defaults as saved choices. Pending requests lock the matrix; all channels are
+  visible together on narrow screens, with localized names. Closing the dialog
+  or failing to load preferences restores focus to the opening button.
+- Translation editing uses the shared form actions and native form submission.
+  Pending saves lock edits, imports and closing; failed saves retain the draft.
+  Leaving the language panel through tabs or navigation asks before discarding.
+- Navigation keeps collapsed sections out of keyboard traversal, names each
+  section, highlights record routes and the compact menu's current page, and
+  refreshes an open flyout from the current navigation catalog. Compact menus
+  support keyboard entry, arrow keys and Escape. The mobile drawer contains
+  focus and receives pointer clicks above its backdrop; tablet breakpoints
+  keep the sidebar operable without covering page content. Opening settings
+  without a tab parameter selects the default permitted panel.
+- Validation feedback for entity lines, filters, tasks/projects, IAM forms,
+  announcements, saved views, settings and UPL; failed member additions retain
+  the selected users, pending dialogs cannot discard in-flight changes, and
+  navigation/webhook errors without a matching field remain visible.
+- Organization drafts, user unit assignments and role scopes use the common
+  discard confirmation, focus the safe action and dismiss obsolete questions
+  on revoked access, replaced navigation or destruction of their host.
+  The pending-write E2E scenario waits for the refreshed tree before removing
+  request interception, keeping test cleanup out of the save/read transition.
+- Declarative dialogs focus their content before the header close button;
+  explicit initial-focus markers and keyboard access to the close button stay.
+  Notes and search management use numeric day-first dates and 24-hour time.
+- The Markdown editor has one accessible field name when wrapped by a form
+  control; a redundant hidden label no longer duplicates its visible label.
+
+#### Removed
+
+- Unused Angular Material dependency (Angular CDK and the existing UI kit stay)
+  and the duplicate module-settings API client.
+- Duplicate translation-editor button styles and unused discard labels; the
+  editor uses the same controls and confirmation as other forms.
+
 ### UI fixes: side menu, English labels, checkbox marks (2026-10-11)
 
 #### Fixed

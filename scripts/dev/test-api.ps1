@@ -442,7 +442,7 @@ try {
 # 18.5 OpenAPI Specification verification
 # The description is for signed-in users only (product owner, 2026-10-03).
 $openApiSpec = Invoke-RestMethod -Uri "$BaseUrl/api/v1/openapi.json" -Method Get -WebSession $session
-Write-Host "   OpenAPI Spec verified: Version=$($openApiSpec.openapi), Title='$($openApiSpec.info.title)', Paths count=$($openApiSpec.paths.PSObject.Properties.Count)" -ForegroundColor Green
+Write-Host "   OpenAPI Spec verified: Version=$($openApiSpec.openapi), Title='$($openApiSpec.info.title)', Paths count=$(@($openApiSpec.paths.PSObject.Properties).Count)" -ForegroundColor Green
 
 # 19. Fleet Observability & Metrics (NFR-OBS-01)
 Write-Host "`n19. Fleet Observability & Metrics (W3C Traceparent, Actuator Info, Prometheus)..." -ForegroundColor Yellow

@@ -60,6 +60,17 @@ class EntityHookTypesTest {
     }
 
     @Test
+    void optionalReferenceAcceptsEmptyTextAsNoValue() {
+        for (String empty : List.of("", " ", "\t")) {
+            assertThat(EntityValues.readOnly(ORDERS, Map.of("orgUnitId", empty)).ref("orgUnitId"))
+                    .isNull();
+        }
+        assertThat(EntityValues.readOnly(ORDERS, Map.of("orgUnitId", " 7 ")).ref("orgUnitId"))
+                .isEqualTo(7L);
+        assertThat(EntityValues.readOnly(ORDERS, Map.of()).ref("orgUnitId")).isNull();
+    }
+
+    @Test
     void rulesReportProblemsByField() {
         RuleErrors errors = new RuleErrors();
         Rules.notBefore("endsOn", "startsOn")

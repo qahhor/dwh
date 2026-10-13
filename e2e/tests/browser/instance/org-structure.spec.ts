@@ -539,15 +539,16 @@ test.describe.serial('organization structure vertical acceptance', () => {
     await editor.getByLabel(fieldName('Код')).fill(`${runPrefix}-discard`);
     await name.fill(`${runPrefix} keyboard draft`);
     await page.keyboard.press('Escape');
-    const discard = page.getByRole('dialog', { name: 'Несохранённые изменения', exact: true });
+    const discard = page.getByRole('alertdialog', { name: 'Отменить изменения?', exact: true });
     await expect(discard).toBeVisible();
+    await expect(discard.getByRole('button', { name: 'Продолжить редактирование', exact: true })).toBeFocused();
     await discard.getByRole('button', { name: 'Продолжить редактирование', exact: true }).click();
     await expect(discard).toBeHidden();
     await expect(name).toHaveValue(`${runPrefix} keyboard draft`);
     await expect(name).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(discard).toBeVisible();
-    await discard.getByRole('button', { name: 'Отбросить изменения', exact: true }).click();
+    await discard.getByRole('button', { name: 'Не сохранять', exact: true }).click();
     await expect(editor).toBeHidden();
     await expect(create).toBeFocused();
 
@@ -577,8 +578,9 @@ test.describe.serial('organization structure vertical acceptance', () => {
     await expect(editor).toBeVisible();
     release();
     expect((await response).status()).toBe(201);
-    await page.unroute('**/api/v1/iam/org-units');
     await expect(orgUnitRow(page, pendingName)).toBeVisible();
+    // The POST response starts a GET refresh: remove interception only after that refresh reaches the UI.
+    await page.unroute('**/api/v1/iam/org-units');
     assertHealthy();
   });
 

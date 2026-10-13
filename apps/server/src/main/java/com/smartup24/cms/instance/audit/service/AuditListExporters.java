@@ -28,6 +28,11 @@ public class AuditListExporters {
                 return AuditQuery.LOGS.code();
             }
 
+            public boolean visible(Set<String> ids) {
+                // Audit visibility is the list permission, rechecked by the export service.
+                return true;
+            }
+
             public Set<String> options() {
                 return Set.of("tableName", "rowPk", "event", "userId", "from", "to");
             }
@@ -66,6 +71,11 @@ public class AuditListExporters {
         return new QueryListExporter() {
             public String code() {
                 return AuditQuery.SECURITY_EVENTS.code();
+            }
+
+            public boolean visible(Set<String> ids) {
+                // Security-event visibility is the list permission, rechecked by the export service.
+                return true;
             }
 
             public Set<String> options() {

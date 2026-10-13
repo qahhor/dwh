@@ -272,6 +272,12 @@ public class EntityRegistry {
     private static QueryListExporter exporter(EntityDefinition entity, EntityRecords records) {
         return new QueryListExporter() {
             @Override
+            public boolean visible(Set<String> ids) {
+                for (String id : ids) records.requireVisible(Long.parseLong(id));
+                return true;
+            }
+
+            @Override
             public String code() {
                 return Objects.requireNonNull(entity.listCode(), entity.code());
             }

@@ -262,6 +262,49 @@ describe('WebhooksSettingsComponent', () => {
     expect(component.isCreateModalOpen()).toBe(true);
   });
 
+  it('keeps an unknown field refusal in the form summary', async () => {
+    const { fixture, component, api, toast } = await createFixture();
+    component.openCreateModal();
+    component.createModel.set({ name: 'CRM', targetUrl: 'https://crm.corp/hook', events: ['*'] });
+    api.post.mockReturnValueOnce(
+      throwError(() => ({ status: 422, errors: [{ field: 'policy', message: 'Review the delivery policy' }] })),
+    );
+    component.submitCreate();
+    redraw(fixture);
+    expect(inScreen(fixture.nativeElement).querySelector('[data-testid="form-error-summary"]')?.textContent).toContain(
+      'Review the delivery policy',
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(component.createModel().name).toBe('CRM');
+  });
+
+  it('clears only the edited field refusal without another request', async () => {
+    const { fixture, component, api } = await createFixture();
+    component.openCreateModal();
+    component.createModel.set({ name: 'CRM', targetUrl: 'http://crm.corp/hook', events: ['*'] });
+    api.post.mockReturnValueOnce(
+      throwError(() => ({
+        status: 422,
+        errors: [
+          { field: 'name', message: 'Choose another name' },
+          { field: 'targetUrl', message: 'Use HTTPS' },
+          { field: 'subscribedEvents', message: 'Choose another event' },
+        ],
+      })),
+    );
+    component.submitCreate();
+    redraw(fixture);
+    const root = inScreen(fixture.nativeElement);
+    const url = root.querySelector('#webhook-url') as HTMLInputElement;
+    url.value = 'https://crm.corp/hook';
+    url.dispatchEvent(new Event('input'));
+    redraw(fixture);
+    expect(component.serverErrors()).toEqual({ name: 'Choose another name', events: 'Choose another event' });
+    component.onEventCheck('task.created', true);
+    expect(component.serverErrors()).toEqual({ name: 'Choose another name' });
+    expect(api.post).toHaveBeenCalledTimes(1);
+  });
+
   it('closes an untouched create dialog at once and asks before dropping typed values', async () => {
     const { component } = await createFixture();
     const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));

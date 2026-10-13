@@ -1011,7 +1011,7 @@
     },
     "/api/v1/auth/oauth2/providers" : {
       "get" : {
-        "description" : "The external OAuth 2 providers a user may sign in with.",
+        "description" : "Administrative provider metadata. OAuth 2 sign-in and callback exchange are not implemented.",
         "operationId" : "getProviders",
         "responses" : {
           "200" : {
@@ -1038,7 +1038,7 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "summary" : "List sign-in providers",
+        "summary" : "List configured OAuth 2 providers",
         "tags" : [ "o-auth-2-auth-controller" ]
       }
     },

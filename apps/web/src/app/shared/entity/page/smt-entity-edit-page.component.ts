@@ -90,16 +90,18 @@ import { EntityPageContext } from './smt-entity-page.component';
             [meta]="meta()"
             [recordId]="record()?.id ?? null"
             [controls]="context.overrides().fields ?? {}"
-            [problems]="problems()"
+            [(problems)]="problems"
             [disabled]="saving()"
+            [submitted]="submitted()"
             [(value)]="values"
           />
           @for (collection of meta().collections ?? []; track collection.key) {
             <smt-entity-lines
               [collection]="collection"
               [values]="values()"
-              [problems]="problems()"
+              [(problems)]="problems"
               [disabled]="saving()"
+              [submitted]="submitted()"
               [readonly]="locked().has(collection.key)"
               [rows]="rowsOf(values(), collection.key)"
               (rowsChange)="setRows(collection.key, $event)"
@@ -157,6 +159,7 @@ export class SMTEntityEditPageComponent implements RecordNavigationPage {
   readonly values = linkedSignal(() => recordValues(this.meta(), this.record() ? { ...this.record() } : null));
   readonly problems = signal<FormProblems>({});
   readonly saving = signal(false);
+  readonly submitted = signal(false);
 
   /** The form, with the fields the state of the record's process locks read-only. */
   readonly meta = computed(() => withLocks(this.context.formMeta(), this.record()));
@@ -228,6 +231,7 @@ export class SMTEntityEditPageComponent implements RecordNavigationPage {
   /** Checked by the entity's declared rules first; the server checks them again and names the fields it rejects. */
   save(): void {
     if (this.saving()) return;
+    this.submitted.set(true);
     const meta = this.meta();
     const record = this.record();
     const translate = (key: string, params?: Record<string, string | number>) => this.i18n.translate(key, params);
@@ -286,6 +290,7 @@ export class SMTEntityEditPageComponent implements RecordNavigationPage {
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (fresh) => {
+          this.submitted.set(false);
           this.problems.set({});
           this.record.set(fresh);
         },

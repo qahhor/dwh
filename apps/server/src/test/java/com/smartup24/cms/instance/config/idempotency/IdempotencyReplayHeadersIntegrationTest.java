@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.instance.support.TestModules;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
@@ -40,7 +41,8 @@ class IdempotencyReplayHeadersIntegrationTest {
                 new ObjectMapper(),
                 PackagedProblemMessages.russian(),
                 new DataSourceTransactionManager(database),
-                null);
+                null,
+                TestModules.replayAccess());
     }
 
     @BeforeEach

@@ -71,6 +71,33 @@ describe('RoleModalsComponent', () => {
     expect(screen.querySelector('.smt-modal')).toBeNull();
   });
 
+  it.each(['create', 'edit'] as const)(
+    'clears only the edited %s field refusal and updates the summary',
+    async (mode) => {
+      const { screen, settle } = setup({
+        [mode === 'create' ? 'isCreateModalOpen' : 'isEditModalOpen']: true,
+        editingRole: analyst,
+        [mode === 'create' ? 'createErrors' : 'editErrors']: {
+          fields: { name: 'Name refused', orderNo: 'Order refused' },
+          other: ['Unknown refused'],
+        },
+      });
+      await settle();
+      const name = screen.querySelector(`#role-${mode}-name`) as HTMLInputElement;
+      name.focus();
+      name.value = 'Corrected';
+      name.dispatchEvent(new Event('input'));
+      await settle();
+      await settle();
+      expect(document.activeElement).toBe(name);
+      expect(name.closest('smt-control')?.textContent).not.toContain('Name refused');
+      const summary = screen.querySelector('[data-testid="form-error-summary"]');
+      expect(summary.textContent).not.toContain('Name refused');
+      expect(summary.textContent).toContain('Order refused');
+      expect(summary.textContent).toContain('Unknown refused');
+    },
+  );
+
   it('names the role field, marks it required and submits the form with Enter or the button', async () => {
     const { screen, byText, asked, settle } = setup({ isCreateModalOpen: true });
     await settle();

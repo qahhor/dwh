@@ -1,10 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  model,
+  output,
+} from '@angular/core';
 import { ProblemFieldErrors } from '@shared/ui/problem-fields';
 import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { UiFormErrorSummaryComponent } from '@shared/ui/ui-form-error-summary.component';
 import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 import { NO_FIELD_ERRORS, TASK_CREATE_FORM_ID } from '../services/task-forms.service';
-import { taskErrorSummary } from '../task-form-errors';
+import { clearTaskFieldError, taskErrorSummary } from '../task-form-errors';
 
 import { SMTDataSelectComponent, SMTMultiDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
 import { TaskLookupsService } from '../services/task-lookups.service';
@@ -54,11 +63,11 @@ export class TaskCreateModalComponent {
   readonly createForm = input<TaskCreateFormValue>(createDefaultTaskCreateForm());
   readonly taskCustomFields = input<CustomField[]>([]);
 
-  /** The server's refusal of the last save by field; `other` goes to the error summary. */
-  readonly serverErrors = input<ProblemFieldErrors>(NO_FIELD_ERRORS);
-
   readonly closeModal = output<void>();
   readonly submitForm = output<void>();
+
+  /** The server's refusal of the last save by field; `other` goes to the error summary. */
+  readonly serverErrors = model<ProblemFieldErrors>(NO_FIELD_ERRORS);
 
   /** The title was visited this opening (a new form object is a new opening). */
   readonly titleTouched = linkedSignal({ source: this.createForm, computation: () => false });
@@ -82,6 +91,14 @@ export class TaskCreateModalComponent {
     if (this.isCreateSubmitted() && !title.trim()) return this.i18n.translate('tasks.editor.title_required_hint');
     if (this.titleTouched() && !title) return this.i18n.translate('ui.control.required');
     return this.serverErrors().fields['title'] ?? '';
+  }
+
+  /** Editing a field clears only its previous server refusal. */
+  setField<K extends keyof TaskCreateFormValue>(key: K, value: TaskCreateFormValue[K]): void {
+    const form = this.createForm();
+    if (Object.is(form[key], value)) return;
+    form[key] = value;
+    this.serverErrors.update((errors) => clearTaskFieldError(errors, key));
   }
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */

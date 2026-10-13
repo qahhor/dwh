@@ -1,4 +1,10 @@
-<smt-dialog [open]="isOpen()" [smtTitle]="'tasks.dictionaries.title' | t" smtSize="md" (closed)="closeModal.emit()">
+<smt-dialog
+  [open]="isOpen()"
+  [smtTitle]="'tasks.dictionaries.title' | t"
+  smtSize="md"
+  [dismissible]="!pending()"
+  (closed)="requestClose()"
+>
   <ng-template smtDialogContent>
     <div body class="settings-modal-content">
       <!-- Settings Tabs -->
@@ -69,6 +75,7 @@
                   [placeholder]="'tasks.dictionaries.code_placeholder' | t"
                   [value]="newTypeForm().code"
                   (valueChange)="patchTypeForm({ code: text($event) })"
+                  (touch)="touchType('code')"
                 />
               </smt-control>
               <smt-control
@@ -83,6 +90,7 @@
                   [placeholder]="'tasks.dictionaries.name_placeholder' | t"
                   [value]="newTypeForm().name"
                   (valueChange)="patchTypeForm({ name: text($event) })"
+                  (touch)="touchType('name')"
                 />
               </smt-control>
               <smt-control
@@ -174,6 +182,7 @@
                   [placeholder]="'tasks.dictionaries.status_name_placeholder' | t"
                   [value]="newStatusForm().name"
                   (valueChange)="patchStatusForm({ name: text($event) })"
+                  (touch)="statusTouched.set(true)"
                 />
               </smt-control>
               <smt-control
@@ -220,7 +229,8 @@
       data-testid="task-dictionaries-actions"
       [showCancel]="false"
       [submitLabel]="'common.close' | t"
-      (submitted)="closeModal.emit()"
+      [submitDisabled]="pending()"
+      (submitted)="requestClose()"
     />
   </ng-template>
 </smt-dialog>

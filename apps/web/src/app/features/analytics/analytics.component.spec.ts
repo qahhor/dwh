@@ -5,6 +5,8 @@ import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EntityReportsApi } from '@shared/entity/report/entity-reports';
+import { ModuleService } from '@core/services/module.service';
+import { PermissionService } from '@core/services/permission.service';
 import {
   AnalyticsComponent,
   AnalyticsSummary,
@@ -60,6 +62,8 @@ describe('AnalyticsComponent request and rendering contracts', () => {
         provideRouter([]),
         // The widgets section has its own spec (ADR-0032 10.2); here the viewer has none.
         { provide: EntityReportsApi, useValue: { widgets: () => of([]) } },
+        { provide: ModuleService, useValue: { isLoaded: () => true, isModuleActive: () => true } },
+        { provide: PermissionService, useValue: { canView: () => true, hasPermission: () => true } },
       ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);

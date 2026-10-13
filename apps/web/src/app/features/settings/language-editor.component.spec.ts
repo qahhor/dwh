@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
@@ -173,6 +173,35 @@ describe('LanguageEditorComponent', () => {
 
     expect(fixture.componentInstance.dirtyCount()).toBe(1);
     expect(fixture.componentInstance.saveError()).toContain('другим администратором');
+  });
+
+  it('submits a native form once and locks editing and leaving until the request completes', async () => {
+    const { fixture, api } = await createFixture();
+    const pending = new Subject<object>();
+    api.put.mockReturnValueOnce(pending);
+    const component = fixture.componentInstance;
+    const closed = vi.fn();
+    component.closed.subscribe(closed);
+    component.setValue('feature.empty', 'Keine Daten');
+    fixture.detectChanges();
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    expect(form).not.toBeNull();
+    form.requestSubmit();
+    component.save();
+    component.setValue('feature.empty', 'Lost edit');
+    component.importJson('{"feature.empty":"Lost import"}');
+    component.cancelChanges();
+    component.requestClose();
+    fixture.detectChanges();
+
+    expect(api.put).toHaveBeenCalledTimes(1);
+    expect(component.valueFor('feature.empty')).toBe('Keine Daten');
+    expect(closed).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[data-translation-key="feature.empty"] input').disabled).toBe(true);
+    pending.error({ status: 409 });
+    fixture.detectChanges();
+    expect(component.valueFor('feature.empty')).toBe('Keine Daten');
+    expect(fixture.nativeElement.querySelector('[data-translation-key="feature.empty"] input').disabled).toBe(false);
   });
 
   it('rejects empty Russian values and malformed imports', async () => {

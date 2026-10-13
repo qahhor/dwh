@@ -15,12 +15,12 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
-import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos;
 import com.smartup24.cms.instance.md.controller.MdOrgUnitController;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.support.TestModules;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -223,7 +223,7 @@ class MdOrgUnitControllerTest {
 
     private static MockMvc mvc(MdScopeService scopeService) {
         return MockMvcBuilders.standaloneSetup(new MdOrgUnitController(mock(MdOrgUnitService.class), scopeService))
-                .addInterceptors(new RequiresPermissionInterceptor())
+                .addInterceptors(TestModules.permissions())
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }

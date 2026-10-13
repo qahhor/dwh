@@ -134,9 +134,9 @@
   box-shadow: 0 0 0 1px var(--smt-radio-color, var(--primary));
 }
 
-/* Segmented: one bar of equal parts; the chosen part lifts. */
+/* Segmented options keep their labels readable and wrap on narrow screens. */
 .smt-radio-group--segmented .smt-radio-group__list {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 3px;
   border: 1px solid var(--border-color);
@@ -145,7 +145,7 @@
 }
 
 .smt-radio-group--segmented .smt-radio-group__item {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   justify-content: center;
   gap: 4px;
   min-width: 0;
@@ -169,9 +169,8 @@
 }
 
 .smt-radio-group--segmented .smt-radio-group__label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .smt-radio-group__item--checked.smt-radio-group__item--tone-success {

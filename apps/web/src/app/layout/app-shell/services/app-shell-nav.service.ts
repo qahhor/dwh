@@ -82,9 +82,9 @@ export class AppShellNavService {
     { initialValue: this.router.url },
   );
 
-  canViewTasks = () => this.permService.canView('tasks.items');
-  canViewProjects = () => this.permService.canView('tasks.projects');
-  canViewAnalytics = () => this.permService.canView('analytics.dashboard');
+  canViewTasks = () => this.permService.canView('tasks.items') && this.moduleService.isModuleActive('tasks');
+  canViewProjects = () => this.permService.canView('tasks.projects') && this.moduleService.isModuleActive('tasks');
+  canViewAnalytics = () => this.permService.canView('analytics.dashboard') || this.permService.canView('md.profile');
   canViewRoles = () => this.permService.canView('md.roles');
   canViewOrgUnits = () => this.permService.canView('md.org_units');
   canViewCustomFields = () => this.permService.canView('md.custom_fields');

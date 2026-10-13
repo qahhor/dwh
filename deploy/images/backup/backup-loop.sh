@@ -8,6 +8,9 @@ BACKUP_INTERVAL_SECONDS="${BACKUP_INTERVAL_SECONDS:-86400}"
 BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-14}"
 BACKUP_STORAGE_MODE="${BACKUP_STORAGE_MODE:-local}"
 BACKUP_RUN_ONCE="${BACKUP_RUN_ONCE:-false}"
+BACKUP_COORDINATED_ONLY="${BACKUP_COORDINATED_ONLY:-false}"
+control_dir="$(dirname "$BACKUP_STATUS_FILE")"
+running_marker="$control_dir/running"
 PGHOST="${PGHOST:-postgres}"
 PGPORT="${PGPORT:-5432}"
 PGDATABASE="${PGDATABASE:-smartupcms}"
@@ -37,8 +40,10 @@ read_secret() {
 cleanup() {
     rm -f "${PGPASSFILE:-}" "${temporary_backup:-}" "${temporary_checksum:-}" \
         "${temporary_manifest:-}" "${temporary_manifest_checksum:-}"
+    rm -f "$running_marker"
 }
-trap cleanup EXIT HUP INT TERM
+trap cleanup EXIT
+trap 'exit 143' HUP INT TERM
 
 # Writes the encrypted archive of database $1 as $2-<timestamp>.dump.age with its
 # checksum, manifest and manifest checksum, and adds the four files to
@@ -68,7 +73,7 @@ dump_database() {
     mv -f "$temporary_checksum" "$final_checksum"
     temporary_checksum=""
 
-    captured_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    captured_iso="$capture_point"
     backup_hash="$(awk '{print $1}' "$final_checksum")"
     printf '{"schemaVersion":1,"database":"%s","capturedAt":"%s","archiveFile":"%s","archiveSha256":"%s","backupRole":"%s"}\n' \
         "$database" "$captured_iso" "$(basename "$final_backup")" "$backup_hash" "$PGUSER" > "$temporary_manifest"
@@ -110,7 +115,13 @@ run_backup() {
     export PGPASSFILE
     unset db_password
 
-    timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+    timestamp="${BACKUP_TIMESTAMP:-$(date -u +%Y%m%dT%H%M%SZ)}"
+    capture_point="${BACKUP_CONSISTENT_POINT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+    if ! printf '%s' "$timestamp" | grep -Eq '^[0-9]{8}T[0-9]{6}Z$' ||
+        ! printf '%s' "$capture_point" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'; then
+        failed CONFIGURATION_MISSING
+        return 1
+    fi
     archive_files=""
     if ! dump_database "$PGDATABASE" smartupcms; then
         failed DATABASE_DUMP_FAILED
@@ -148,13 +159,25 @@ run_backup() {
     status SUCCESS "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 
+mkdir -p "$control_dir"
+printf '1\n' > "$control_dir/control-version"
+rm -f "$running_marker"
 if [ ! -f "$BACKUP_STATUS_FILE" ]; then
     status NEVER
 fi
 
 while true; do
+    # Publish running before checking pause so an idle acknowledgement cannot race a new dump.
+    touch "$running_marker"
+    if [ "$BACKUP_RUN_ONCE" != "true" ] &&
+        { [ -f "$control_dir/pause" ] || [ "$BACKUP_COORDINATED_ONLY" = "true" ]; }; then
+        rm -f "$running_marker"
+        sleep 1
+        continue
+    fi
     result=0
     run_backup || result=$?
+    rm -f "$running_marker"
     if [ "$BACKUP_RUN_ONCE" = "true" ]; then
         exit "$result"
     fi

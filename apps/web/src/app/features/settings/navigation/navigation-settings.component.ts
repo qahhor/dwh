@@ -55,13 +55,17 @@ export class NavigationSettingsComponent {
 
   /** The server's field errors are drawn first; then focus goes to the first of them. */
   private readonly focusServerErrors = effect(() => {
-    if (Object.keys(this.store.fieldErrors()).length === 0) return;
+    const errors = this.store.fieldErrors();
+    const added = Object.entries(errors).some(([key, value]) => this.previousErrors[key] !== value);
+    this.previousErrors = errors;
+    if (!added) return;
     const formElement = document.getElementById('nav-item-form');
     if (formElement) focusFirstInvalid(formElement, this.injector);
   });
 
   private readonly askDiscard = discardChangesQuestion();
 
+  private previousErrors: Readonly<Record<string, string>> = {};
   searchQuery = '';
 
   readonly popularIcons = [
@@ -96,7 +100,9 @@ export class NavigationSettingsComponent {
 
   /** A new item takes its code from the title as it is typed; an existing one keeps its code. */
   onTitleChange(title: string): void {
+    this.store.clearFieldError('title');
     if (!this.editingItem() && title) {
+      this.store.clearFieldError('code');
       this.itemModel.update((item) => ({ ...item, code: transliterateToCode(title) }));
     }
   }
@@ -195,6 +201,7 @@ export class NavigationSettingsComponent {
     this.itemForm().reset(item);
     this.openedWith = JSON.stringify(item);
     this.store.fieldErrors.set({});
+    this.store.otherErrors.set([]);
     this.isModalOpen.set(true);
   }
 }

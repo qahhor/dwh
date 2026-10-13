@@ -6,6 +6,35 @@ rule_files:
 evaluation_interval: 1m
 
 tests:
+  - name: successful API traffic before the first server error
+    interval: 1m
+    input_series:
+      - series: 'http_server_requests_seconds_count{application="smartupcms", uri="/api/v1/entities/ms.tasks", status="200"}'
+        values: '0+100x10'
+      - series: 'http_server_requests_seconds_count{application="events-only", uri="/api/v1/events", status="500"}'
+        values: '0+100x10'
+    promql_expr_test:
+      - expr: smc:api_error_ratio:rate5m
+        eval_time: 5m
+        exp_samples:
+          - labels: '{__name__="smc:api_error_ratio:rate5m", application="smartupcms"}'
+            value: 0
+      - expr: smc:api_error_ratio:rate30m
+        eval_time: 5m
+        exp_samples:
+          - labels: '{__name__="smc:api_error_ratio:rate30m", application="smartupcms"}'
+            value: 0
+      - expr: smc:api_error_ratio:rate1h
+        eval_time: 5m
+        exp_samples:
+          - labels: '{__name__="smc:api_error_ratio:rate1h", application="smartupcms"}'
+            value: 0
+      - expr: smc:api_error_ratio:rate6h
+        eval_time: 5m
+        exp_samples:
+          - labels: '{__name__="smc:api_error_ratio:rate6h", application="smartupcms"}'
+            value: 0
+
   - name: instance down and not ready
     interval: 1m
     input_series:

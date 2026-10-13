@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
-import { Observable, of, throwError } from 'rxjs';
+import { NEVER, Observable, of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
@@ -201,6 +201,31 @@ const visibleSteps = (fixture: ComponentFixture<FormatEditorComponent>) =>
   ['file', 'sheets', 'publish'].filter((id) => !(one(fixture, `upl-step-${id}`) as HTMLElement).hidden);
 
 describe('FormatEditorComponent', () => {
+  it('keeps the publish dialog open while the request is pending', async () => {
+    const { fixture, component, api } = await createFixture();
+    api.publish.mockReturnValue(NEVER);
+    press(fixture, one(fixture, 'upl-publish'));
+    confirmPublish(fixture);
+    component.store.closePublish();
+    expect(component.store.isPublishOpen()).toBe(true);
+    expect(component.store.isPublishing()).toBe(true);
+    confirmPublish(fixture);
+    expect(api.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a 422 date error in the publish dialog and clears it when the date is corrected', async () => {
+    const { fixture, component } = await createFixture({ publishError: invalid(['validFrom', 'NotNull']) });
+    press(fixture, one(fixture, 'upl-publish'));
+    confirmPublish(fixture);
+    expect(component.store.isPublishOpen()).toBe(true);
+    expect(publishDateError(fixture)).not.toBeNull();
+    const input = inScreen(fixture.nativeElement).querySelector('#upl-valid-from') as HTMLInputElement;
+    setInputValue(input, '01.01.2027');
+    input.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(publishDateError(fixture)).toBeNull();
+  });
+
   // Dialogs render into the CDK overlay on document.body; each test starts without the last one's.
   afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove()));
   it('loads source, version, versions and units by the route and shows the sheets with their columns', async () => {
@@ -345,10 +370,11 @@ describe('FormatEditorComponent', () => {
     const unit = many(fixture, 'upl-column-row')[1].querySelector('[data-testid="upl-cell-source-unit"]')!;
     expect(unit.closest('td')!.classList.contains('upl-cell-error')).toBe(true);
 
-    // A step that changes the columns drops the addresses, which no longer fit.
+    // Removing a column keeps errors of the remaining fields visible.
     press(fixture, many(fixture, 'upl-column-remove')[1]);
-    expect(one(fixture, 'upl-errors-summary')).toBeNull();
-    expect(one(fixture, 'upl-tab-error')).toBeNull();
+    expect(one(fixture, 'upl-errors-summary')!.querySelectorAll('li')).toHaveLength(2);
+    expect(one(fixture, 'upl-errors-summary')!.textContent).not.toContain('UPL_UNIT_UNKNOWN');
+    expect(one(fixture, 'upl-tab-error')).not.toBeNull();
   });
 
   it('shows a refusal without an address as text and keeps the edits', async () => {

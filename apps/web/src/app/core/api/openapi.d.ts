@@ -352,8 +352,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List sign-in providers
-         * @description The external OAuth 2 providers a user may sign in with.
+         * List configured OAuth 2 providers
+         * @description Administrative provider metadata. OAuth 2 sign-in and callback exchange are not implemented.
          */
         get: operations["getProviders"];
         put?: never;

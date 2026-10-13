@@ -381,6 +381,9 @@ describe('SourceCardComponent', () => {
     expect(el(fixture, 'upl-save-error')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.VALIDATION_FAILED']);
     expect((el(fixture, 'upl-field-name') as HTMLInputElement).value).toBe('Edited TEST');
     expect(el(fixture, 'upl-conflict')).toBeNull();
+    setInput(fixture, 'upl-field-name', 'Corrected TEST');
+    expect(fieldError(fixture.nativeElement, 'upl-source-name')).toBeNull();
+    expect(el(fixture, 'upl-save-error')).toBeNull();
   });
 
   it('shows an unknown field code as server message plus code, never a raw dictionary key', async () => {

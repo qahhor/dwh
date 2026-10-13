@@ -15,7 +15,13 @@
       uiFocusFirstInvalid
       (submit)="$event.preventDefault(); save()"
     >
-      <smt-entity-form [meta]="meta()" [(value)]="values" [problems]="problems()" [disabled]="saving()" />
+      <smt-entity-form
+        [meta]="meta()"
+        [(value)]="values"
+        [(problems)]="problems"
+        [disabled]="saving()"
+        [submitted]="submitted()"
+      />
       @if (showHistory() && note(); as current) {
         <ui-record-history [kind]="meta().code" [recordId]="current.id" [meta]="meta()" />
       }

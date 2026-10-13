@@ -44,6 +44,8 @@
           smtTestId="upl-sheet-name"
           [disabled]="!editable()"
           [(value)]="sheet.sheetName"
+          (edited)="clearFieldError('sheetName')"
+          (touch)="touchField('sheetName')"
         />
       </smt-control>
     }
@@ -60,6 +62,8 @@
         [smtMin]="1"
         [disabled]="!editable()"
         [(value)]="sheet.headerRow"
+        (edited)="clearFieldError('headerRow')"
+        (touch)="touchField('headerRow')"
       />
     </smt-control>
     <smt-control
@@ -68,7 +72,13 @@
       [smtHint]="'upl.format.hint.total_marker' | t"
       [smtError]="sheetErrorText(activeSheet(), 'totalRowMarker')"
     >
-      <smt-input smtFieldId="upl-total-marker" [disabled]="!editable()" [(value)]="sheet.totalRowMarker" />
+      <smt-input
+        smtFieldId="upl-total-marker"
+        [disabled]="!editable()"
+        [(value)]="sheet.totalRowMarker"
+        (edited)="clearFieldError('totalRowMarker')"
+        (touch)="touchField('totalRowMarker')"
+      />
     </smt-control>
   </div>
 
@@ -109,6 +119,8 @@
                   [smtAriaLabel]="'upl.format.col.name_in_file' | t"
                   [disabled]="!editable()"
                   [(value)]="column.nameInFile"
+                  (edited)="clearFieldError('nameInFile', $index)"
+                  (touch)="touchField('nameInFile', $index)"
                 />
               </td>
               @if (model().matchColumnsBy !== 'position') {
@@ -122,6 +134,7 @@
                     [disabled]="!editable()"
                     [value]="synonymsText(column)"
                     (change)="setSynonyms(column, $any($event.target).value)"
+                    (edited)="clearFieldError('headerSynonyms', $index)"
                   />
                 </td>
               }
@@ -134,6 +147,8 @@
                   [smtAriaLabel]="'upl.format.col.target_field' | t"
                   [disabled]="!editable()"
                   [(value)]="column.targetField"
+                  (edited)="clearFieldError('targetField', $index)"
+                  (touch)="touchField('targetField', $index)"
                 />
               </td>
               <td
@@ -161,6 +176,7 @@
                   [smtAriaLabel]="'upl.format.col.required' | t"
                   [disabled]="!editable()"
                   [(checked)]="column.required"
+                  (checkedChange)="clearFieldError('required', $index)"
                 ></span>
               </td>
               <td
@@ -176,7 +192,12 @@
                     placeholder="—"
                     emptyLabel="—"
                     [value]="column.sourceUnit"
-                    (valueChange)="column.sourceUnit = $event; onUnitChange(column)"
+                    (valueChange)="
+                      column.sourceUnit = $event;
+                      onUnitChange(column);
+                      clearFieldError('sourceUnit', $index);
+                      clearFieldError('baseUnit', $index)
+                    "
                   ></smt-select>
                 }
               </td>
@@ -198,6 +219,8 @@
                     [smtAriaLabel]="'upl.format.col.key_mask' | t"
                     [disabled]="!editable()"
                     [(value)]="column.keyMask"
+                    (edited)="clearFieldError('keyMask', $index)"
+                    (touch)="touchField('keyMask', $index)"
                   />
                 }
               </td>
@@ -219,6 +242,8 @@
                       [smtAriaLabel]="'upl.format.col.key_pad_length' | t"
                       [disabled]="!editable()"
                       [(value)]="column.keyPadLength"
+                      (edited)="clearFieldError('keyPadLength', $index)"
+                      (touch)="touchField('keyPadLength', $index)"
                     />
                     <smt-input
                       class="upl-input-small"
@@ -228,6 +253,8 @@
                       [smtAriaLabel]="'upl.format.col.key_pad_max' | t"
                       [disabled]="!editable()"
                       [(value)]="column.keyPadMax"
+                      (edited)="clearFieldError('keyPadMax', $index)"
+                      (touch)="touchField('keyPadMax', $index)"
                     />
                   </span>
                 }
@@ -242,6 +269,8 @@
                     [smtAriaLabel]="'upl.format.col.ref_book' | t"
                     [disabled]="!editable()"
                     [(value)]="column.refBookCode"
+                    (edited)="clearFieldError('refBookCode', $index)"
+                    (touch)="touchField('refBookCode', $index)"
                   />
                 }
               </td>
@@ -258,6 +287,8 @@
                     [smtAriaLabel]="'upl.format.col.file_position' | t"
                     [disabled]="!editable()"
                     [(value)]="column.filePosition"
+                    (edited)="clearFieldError('filePosition', $index)"
+                    (touch)="touchField('filePosition', $index)"
                   />
                 </td>
               }

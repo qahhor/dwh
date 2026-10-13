@@ -230,8 +230,9 @@ export function formProblems(meta: FormMeta, values: FormValues, translate: Tran
       problems[collection.key] = translate('ui.entity_lines.too_many', { count: collection.maxRows });
     }
     rows.forEach((row, index) => {
+      const context = { ...values, ...row };
       for (const field of collection.fields) {
-        if (field.computed) continue;
+        if (!fieldVisible(field, context) || fieldReadonly(field, context, creating || row['id'] == null)) continue;
         const problem = fieldProblem(field, rowMoney(field, row[field.key], values));
         if (problem) problems[`${collection.key}[${index}].${field.key}`] = problemText(problem, field, translate);
       }
@@ -241,8 +242,8 @@ export function formProblems(meta: FormMeta, values: FormValues, translate: Tran
 }
 
 /**
- * A 422's field errors by field key. A custom field's error names it `attributes.<code>`; an error of a
- * field the form does not show is left for the caller's message.
+ * A 422's field errors by field key. A custom field's error names it `attributes.<code>`; errors of unknown
+ * fields keep the server's message so the form can show them in its summary.
  */
 export function serverProblems(
   meta: FormMeta,
@@ -254,12 +255,15 @@ export function serverProblems(
     const field = meta.fields.find((candidate) =>
       candidate.attribute ? `attributes.${candidate.attribute}` === error.field : candidate.key === error.field,
     );
-    if (field && !problems[field.key]) {
-      problems[field.key] = KNOWN_CODES.has(error.code) ? problemText(error.code, field, translate) : error.message;
+    if (field) {
+      if (!problems[field.key]) {
+        problems[field.key] = KNOWN_CODES.has(error.code) ? problemText(error.code, field, translate) : error.message;
+      }
       continue;
     }
     const row = rowProblem(meta, error, translate);
-    if (row && !problems[row[0]]) problems[row[0]] = row[1];
+    const [key, message] = row ?? [error.field, error.message];
+    if (!problems[key]) problems[key] = message;
   }
   return problems;
 }

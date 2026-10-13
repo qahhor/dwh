@@ -23,7 +23,7 @@ import type {
   FormSectionMeta,
   FormValues,
 } from '@core/models/form-meta.models';
-import { fieldLabel, fieldReadonly, fieldVisible, optionLabel } from '@core/services/form-meta.service';
+import { fieldLabel, fieldReadonly, fieldVisible, formProblems, optionLabel } from '@core/services/form-meta.service';
 import type { FileValue, MoneyValue } from '@core/services/field-values';
 import { I18nService } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
@@ -41,6 +41,7 @@ import {
 import type { SMTLookupKey, SMTLookupSource } from '../ui-kit/components/forms/data-select/lookup-source';
 import { SMTFileFieldComponent } from './smt-file-field.component';
 import { SMTMoneyFieldComponent } from './smt-money-field.component';
+import { EntityFormFeedback, entityProblemControlId, entityProblemLabel } from './entity-form-feedback';
 
 /**
  * The control each field type is drawn with (ADR-0032 4.1, plan 10/10, item 5.2): a kit field of the dynamic field,
@@ -140,10 +141,10 @@ export class SMTEntityFormComponent {
 
   readonly meta = input.required<FormMeta>();
 
-  /** Problems by field key, from `formProblems` or the server's answer. */
-  readonly problems = input<FormProblems>({});
-
   readonly disabled = input(false, { transform: booleanAttribute });
+
+  /** A save attempt checks every editable field, including fields not visited yet. */
+  readonly submitted = input(false, { transform: booleanAttribute });
 
   /** The record being edited, or null while it is new: fields read-only on update follow it (ADR-0032 4.4). */
   readonly recordId = input<number | null>(null);
@@ -159,9 +160,12 @@ export class SMTEntityFormComponent {
 
   /**
    * Whether the form shows the summary of its problems above the sections (docs/guidelines/forms-ux-standard.md,
-   * section 4): from three problems, or a problem of a field the form does not draw (a row of a document's lines).
+   * section 4): from three problems, or a server problem without a drawn field in the containing form.
    */
   readonly summary = input(true, { transform: booleanAttribute });
+
+  /** Problems by field key, from `formProblems` or the server's answer. */
+  readonly problems = model<FormProblems>({});
 
   /** The record's values by field key. */
   readonly value = model<FormValues>({});
@@ -175,11 +179,14 @@ export class SMTEntityFormComponent {
   readonly errorItems = computed<UiFormErrorItem[]>(() => {
     this.i18n.currentLang();
     const translate = (key: string, params?: Record<string, string | number>) => this.i18n.translate(key, params);
-    const labels = new Map(this.meta().fields.map((field) => [field.key, fieldLabel(field, translate)]));
     const ids = this.problemFieldIds();
     return Object.entries(this.problems())
       .filter(([, message]) => !!message)
-      .map(([key, message]) => ({ fieldId: ids[key], label: labels.get(key), message }));
+      .map(([key, message]) => ({
+        fieldId: ids[key],
+        label: entityProblemLabel(this.meta(), key, translate),
+        message,
+      }));
   });
 
   /** Sections and their fields, rebuilt when the form or the language changes — not on every keystroke. */
@@ -205,11 +212,26 @@ export class SMTEntityFormComponent {
   /** One setter per field, so the control's input keeps its identity between checks. */
   private readonly setters = new Map<string, (value: unknown) => void>();
 
+  readonly feedback = new EntityFormFeedback(
+    this.problems,
+    () => {
+      this.i18n.currentLang();
+      const fields = this.drawnSections().flatMap((section) => section.fields.map((field) => field.meta));
+      return formProblems(
+        { ...this.meta(), fields, collections: [] },
+        this.value(),
+        (key, params) => this.i18n.translate(key, params),
+        this.recordId() === null,
+      );
+    },
+    this.submitted,
+  );
+
   constructor() {
     afterRenderEffect(() => {
       const ids: Record<string, string> = {};
       for (const key of Object.keys(this.problems())) {
-        const id = this.controlIdOf(key);
+        const id = entityProblemControlId(this.host.nativeElement, key);
         if (id) ids[key] = id;
       }
       const current = this.problemFieldIds();
@@ -221,7 +243,9 @@ export class SMTEntityFormComponent {
   }
 
   set(key: string, value: unknown): void {
+    if (Object.is(this.value()[key], value)) return;
     this.value.update((values) => ({ ...values, [key]: value }));
+    this.feedback.changed(key);
   }
 
   problemOf(key: string): string {
@@ -296,15 +320,6 @@ export class SMTEntityFormComponent {
     };
   }
 
-  /** The id of the control drawn for a field (smt-control gives every field one); none when it is not drawn. */
-  private controlIdOf(key: string): string | undefined {
-    const box = [...this.host.nativeElement.querySelectorAll<HTMLElement>('.entity-field[data-field]')].find(
-      (element) => element.dataset['field'] === key,
-    );
-    const control = box?.querySelector<HTMLElement>(ENTITY_FIELD_CONTROL);
-    return control?.id || undefined;
-  }
-
   private setterOf(key: string): (value: unknown) => void {
     let setter = this.setters.get(key);
     if (!setter) {
@@ -336,17 +351,6 @@ export class SMTEntityFormComponent {
     return { meta: field, control, def, label, source };
   }
 }
-
-/** The focusable control of a field, as smt-control finds it. */
-const ENTITY_FIELD_CONTROL = [
-  'input:not([type="hidden"])',
-  'select',
-  'textarea',
-  '[role="combobox"]',
-  '[role="radiogroup"]',
-  '[role="switch"]',
-  '[contenteditable="true"]',
-].join(', ');
 
 function isDynamic(control: SMTEntityControl): control is SMTDynamicFieldType {
   return (

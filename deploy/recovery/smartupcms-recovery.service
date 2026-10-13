@@ -1,0 +1,28 @@
+[Unit]
+Description=SmartupCMS consistent encrypted recovery set
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+WorkingDirectory=/opt/smartupcms/current
+EnvironmentFile=-/etc/smartupcms/recovery-runtime.env
+ExecStart=/usr/bin/python3 /opt/smartupcms/current/scripts/prod/recovery_coordinator.py --config /etc/smartupcms/recovery.json
+TimeoutStartSec=70min
+TimeoutStopSec=10min
+KillMode=mixed
+Nice=10
+CPUQuota=300%
+MemoryMax=4G
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/smartupcms/recovery /var/lib/smartupcms/metrics
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal

@@ -272,6 +272,38 @@ describe('SearchSettingsComponent', () => {
     expect(button(fixture, 'start-rebuild')).not.toBeNull();
   });
 
+  it('checks only the policy field left, and clears feedback when corrected', async () => {
+    const { fixture, management } = await createFixture(ADMIN);
+    const limit = type(fixture, '#search-global-limit', '0');
+    type(fixture, '#search-requests-per-minute', '0');
+    expect(limit.getAttribute('aria-invalid')).not.toBe('true');
+    limit.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    TestBed.tick();
+    expect(limit.getAttribute('aria-invalid')).toBe('true');
+    expect(find(fixture, '#search-requests-per-minute')?.getAttribute('aria-invalid')).not.toBe('true');
+    type(fixture, '#search-global-limit', '10');
+    TestBed.tick();
+    expect(limit.getAttribute('aria-invalid')).not.toBe('true');
+    expect(management['save']).not.toHaveBeenCalled();
+  });
+
+  it('validates each search field on blur without exposing untouched row errors', async () => {
+    const { fixture } = await createFixture(ADMIN);
+    const selector = 'input[aria-label="' + translateTest('settings.search.fields.weight') + '"]';
+    const weight = type(fixture, selector, '128');
+    expect(weight.getAttribute('aria-invalid')).not.toBe('true');
+    weight.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    TestBed.tick();
+    expect(weight.getAttribute('aria-invalid')).toBe('true');
+    const other = fixture.nativeElement.querySelectorAll(selector)[1] as HTMLInputElement;
+    expect(other.getAttribute('aria-invalid')).not.toBe('true');
+    type(fixture, selector, '10');
+    TestBed.tick();
+    expect(weight.getAttribute('aria-invalid')).not.toBe('true');
+  });
+
   it('blocks an invalid policy before issuing a save request', async () => {
     const { fixture, management } = await createFixture(ADMIN);
     type(fixture, '#search-global-limit', '0');
@@ -424,10 +456,11 @@ describe('SearchSettingsComponent', () => {
     });
     const typoInputs = Array.from(
       inScreen(fixture.nativeElement).querySelectorAll(
-        '.field-grid:not(.field-grid-head) smt-input:nth-of-type(2) input',
+        'input[aria-label="' + translateTest('settings.search.fields.typos') + '"]',
       ),
     ) as HTMLInputElement[];
-    const editedValues = [1, 2, 2, 2, 2, 2, 2, 0, 0, 0];
+    expect(typoInputs).toHaveLength(8);
+    const editedValues = [1, 2, 2, 2, 2, 2, 0, 0];
     typoInputs.forEach((input, index) => {
       input.value = String(editedValues[index]);
       input.dispatchEvent(new Event('input'));

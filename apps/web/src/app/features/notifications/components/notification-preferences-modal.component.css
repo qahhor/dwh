@@ -7,14 +7,14 @@
 .table-wrap {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  overflow-x: auto;
 }
 .pref-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
-.pref-table th {
+.pref-table thead th {
   background: var(--bg-hover);
   padding: 10px 14px;
   text-align: left;
@@ -22,19 +22,30 @@
   color: var(--text-main);
   border-bottom: 1px solid var(--border-color);
 }
-.pref-table td {
+.pref-table td,
+.pref-table tbody th {
   padding: 10px 14px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-main);
 }
-.pref-table tr:last-child td {
+.pref-table tr:last-child td,
+.pref-table tr:last-child th {
   border-bottom: none;
 }
-.pref-table tr:hover td {
+.pref-table tr:hover td,
+.pref-table tr:hover th {
   background: var(--bg-hover);
 }
 .event-col {
   width: 52%;
+}
+.event-title {
+  text-align: left;
+  font-weight: 400;
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
 }
 .channel-col {
   width: 16%;
@@ -49,8 +60,33 @@
   margin-right: 3px;
   color: var(--text-muted);
 }
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+@media (max-width: 480px) {
+  .pref-table,
+  .pref-table thead,
+  .pref-table tbody {
+    display: block;
+  }
+  .pref-table tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .event-col,
+  .event-title {
+    grid-column: 1 / -1;
+  }
+  .event-col,
+  .channel-col {
+    width: auto;
+  }
+  .pref-table thead th {
+    padding: 8px 4px;
+    white-space: normal;
+  }
+  .channel-icon {
+    display: none;
+  }
+  .pref-table tbody th {
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 }

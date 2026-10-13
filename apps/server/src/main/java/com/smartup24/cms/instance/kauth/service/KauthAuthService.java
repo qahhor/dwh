@@ -66,8 +66,24 @@ public class KauthAuthService {
      * a refusal by the lockout itself is logged, not counted, otherwise every try during the lock would renew it.
      * Other exceptions still roll everything back.
      */
-    @Transactional(noRollbackFor = ApiException.class)
+    @Transactional(noRollbackFor = ApiException.class, timeout = 10)
     public LoginResult login(String login, String password, String ip, String userAgent, String deviceInfo) {
+        var user = verifyPassword(login, password, ip, userAgent);
+        loginAttemptRepository.recordAttempt(login, user.id(), ip, true, null);
+        auditLogService.logSecurityEvent(
+                "LOGIN_SUCCESS",
+                user.id(),
+                ip,
+                userAgent,
+                Map.of("login", login, "deviceInfo", deviceInfo != null ? deviceInfo : "web"));
+        return issueLogin(user, ip, userAgent, deviceInfo);
+    }
+
+    private MdUserService.AuthUser verifyPassword(String login, String password, String ip, String userAgent) {
+        loginAttemptRepository.lockIp(ip);
+        var userOpt = userService.findAuthUserByLogin(login);
+        Long userId = userOpt.map(MdUserService.AuthUser::id).orElse(null);
+        loginAttemptRepository.lockAccount(userId, login);
         Instant tenMinutesAgo = Instant.now().minusSeconds(600);
 
         int failedIp = loginAttemptRepository.countFailedAttemptsForIpSince(ip, tenMinutesAgo);
@@ -76,23 +92,17 @@ public class KauthAuthService {
             throw ApiException.locked(ErrorCode.RATE_LIMITED, "error.auth.too_many_failed_logins_from_ip");
         }
 
-        int failedUser = loginAttemptRepository.countFailedAttemptsForLoginSince(login, tenMinutesAgo);
+        int failedUser = loginAttemptRepository.countFailedAttemptsForAccountSince(userId, login, tenMinutesAgo);
         if (failedUser >= MAX_FAILED_ATTEMPTS_PER_USER) {
             auditLogService.logSecurityEvent("LOGIN_LOCKED", null, ip, userAgent, Map.of("login", login));
             throw ApiException.locked(ErrorCode.LOGIN_LOCKED, "error.auth.account_temporarily_locked");
         }
 
-        var userOpt = userService.findAuthUserByLogin(login);
         String storedHash = userOpt.map(MdUserService.AuthUser::passwordHash).orElse(null);
         boolean passwordMatches =
                 passwordHasher.verifyPassword(password, storedHash != null ? storedHash : dummyPasswordHash());
         if (userOpt.isEmpty() || storedHash == null || !passwordMatches) {
-            refuse(
-                    login,
-                    ip,
-                    userAgent,
-                    userOpt.map(MdUserService.AuthUser::id).orElse(null),
-                    userOpt.isEmpty() ? "USER_NOT_FOUND" : "INVALID_PASSWORD");
+            refuse(login, ip, userAgent, userId, userOpt.isEmpty() ? "USER_NOT_FOUND" : "INVALID_PASSWORD");
             throw ApiException.invalidCredentials();
         }
 
@@ -102,14 +112,10 @@ public class KauthAuthService {
             throw ApiException.conflict(ErrorCode.USER_BLOCKED, "error.auth.account_blocked");
         }
 
-        loginAttemptRepository.recordAttempt(login, ip, true, null);
-        auditLogService.logSecurityEvent(
-                "LOGIN_SUCCESS",
-                user.id(),
-                ip,
-                userAgent,
-                Map.of("login", login, "deviceInfo", deviceInfo != null ? deviceInfo : "web"));
+        return user;
+    }
 
+    private LoginResult issueLogin(MdUserService.AuthUser user, String ip, String userAgent, String deviceInfo) {
         // FR-AUTH-5: second factor. The channel is chosen by the user, not by the code:
         // take a confirmed one in order of preference. No channel means a refusal with
         // a clear reason, not a token that cannot be used.
@@ -207,7 +213,7 @@ public class KauthAuthService {
     }
 
     private void refuse(String login, String ip, String userAgent, Long userId, String reason) {
-        loginAttemptRepository.recordAttempt(login, ip, false, reason);
+        loginAttemptRepository.recordAttempt(login, userId, ip, false, reason);
         auditLogService.logSecurityEvent(
                 "LOGIN_FAILED", userId, ip, userAgent, Map.of("login", login, "reason", reason));
     }

@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -81,6 +82,15 @@ public class MfFileRepository {
         var query = jdbcClient.sql(sql).param("id", id);
         if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
         return query.query(this::mapRecord).optional();
+    }
+
+    public boolean visible(Set<UUID> ids, ScopeFilter scope) {
+        if (ids.isEmpty()) return true;
+        var query = jdbcClient
+                .sql("select count(*) from mf_files f where f.id in (:ids)" + scope.sql())
+                .param("ids", ids);
+        if (scope.bindsUserId()) query = query.param("scopeUserId", scope.userId());
+        return query.query(Long.class).single() == ids.size();
     }
 
     /**

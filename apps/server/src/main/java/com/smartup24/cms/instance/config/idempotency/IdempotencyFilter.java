@@ -2,6 +2,8 @@ package com.smartup24.cms.instance.config.idempotency;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
+import com.smartup24.cms.instance.common.entity.RetainedRecordAccess;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.config.error.ProblemMessages;
@@ -48,6 +50,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
     private final IdempotencyService idempotencyService;
     private final IdempotencyAnswers answers;
+    private final IdempotencyModuleAccess moduleAccess;
     /** Finds the handler of a request, to honour {@link ReturnsSecret}; absent in slice tests. */
     private final ObjectProvider<RequestMappingHandlerMapping> handlerMapping;
     /** Runs an accepted request and records its answer (plan 10/10, item 3.12). */
@@ -59,13 +62,17 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             ObjectMapper objectMapper,
             ObjectProvider<ProblemMessages> messages,
             ObjectProvider<PlatformTransactionManager> transactions,
-            @Qualifier("requestMappingHandlerMapping") ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
+            @Qualifier("requestMappingHandlerMapping") ObjectProvider<RequestMappingHandlerMapping> handlerMapping,
+            ObjectProvider<RetainedRecordAccess> access,
+            IdempotencyModuleAccess moduleAccess) {
         this(
                 idempotencyService,
                 objectMapper,
                 messages.getIfAvailable(PackagedProblemMessages::new),
                 transactions.getIfUnique(),
-                handlerMapping);
+                handlerMapping,
+                access.getIfAvailable(),
+                moduleAccess);
     }
 
     public IdempotencyFilter(
@@ -73,24 +80,41 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             ObjectMapper objectMapper,
             ProblemMessages messages,
             @Nullable PlatformTransactionManager transactions,
-            ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
+            ObjectProvider<RequestMappingHandlerMapping> handlerMapping,
+            IdempotencyModuleAccess moduleAccess) {
+        this(idempotencyService, objectMapper, messages, transactions, handlerMapping, null, moduleAccess);
+    }
+
+    private IdempotencyFilter(
+            IdempotencyService idempotencyService,
+            ObjectMapper objectMapper,
+            ProblemMessages messages,
+            @Nullable PlatformTransactionManager transactions,
+            ObjectProvider<RequestMappingHandlerMapping> handlerMapping,
+            @Nullable RetainedRecordAccess access,
+            IdempotencyModuleAccess moduleAccess) {
         this.idempotencyService = idempotencyService;
-        this.answers = new IdempotencyAnswers(objectMapper, messages);
+        this.answers = new IdempotencyAnswers(objectMapper, messages, access);
         this.execution = new IdempotentExecution(idempotencyService, answers, transactions);
         this.handlerMapping = handlerMapping;
+        this.moduleAccess = moduleAccess;
     }
 
     public IdempotencyFilter(
             IdempotencyService idempotencyService,
             ObjectMapper objectMapper,
             ProblemMessages messages,
-            ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
-        this(idempotencyService, objectMapper, messages, null, handlerMapping);
+            ObjectProvider<RequestMappingHandlerMapping> handlerMapping,
+            IdempotencyModuleAccess moduleAccess) {
+        this(idempotencyService, objectMapper, messages, null, handlerMapping, moduleAccess);
     }
 
     public IdempotencyFilter(
-            IdempotencyService idempotencyService, ObjectMapper objectMapper, ProblemMessages messages) {
-        this(idempotencyService, objectMapper, messages, null, null);
+            IdempotencyService idempotencyService,
+            ObjectMapper objectMapper,
+            ProblemMessages messages,
+            IdempotencyModuleAccess moduleAccess) {
+        this(idempotencyService, objectMapper, messages, null, null, moduleAccess);
     }
 
     /**
@@ -180,16 +204,38 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
         Long userId = SecurityContext.getCurrentUserId();
         IdempotencyService.Claim claim = idempotencyService.claim(idempotencyKey, userId, requestHash);
+        if (claim.state() == IdempotencyService.ClaimState.REPLAY && refusedReplay(request, response, requestBody)) {
+            return;
+        }
         if (answers.answeredByClaim(claim, request, response)) {
             return;
         }
 
-        execution.run(
-                wrappedRequest,
-                new ContentCachingResponseWrapper(response),
-                filterChain,
-                idempotencyKey,
-                claim.reservationToken());
+        try (var capture = RetainedRecordAccess.capture()) {
+            execution.run(
+                    wrappedRequest,
+                    new ContentCachingResponseWrapper(response),
+                    filterChain,
+                    idempotencyKey,
+                    claim.reservationToken());
+        }
+    }
+
+    /** Keep the original reservation and answer intact while its module is unavailable. */
+    private boolean refusedReplay(HttpServletRequest request, HttpServletResponse response, byte[] body)
+            throws IOException {
+        try {
+            moduleAccess.requireActive(request, body);
+            return false;
+        } catch (ApiException unavailable) {
+            answers.problem(
+                    request,
+                    response,
+                    HttpServletResponse.SC_NOT_FOUND,
+                    unavailable.getErrorCode(),
+                    unavailable.getMessageKey());
+            return true;
+        }
     }
 
     /** Multipart bodies and bodies over the limit are not kept for replay: refused before the body is read. */

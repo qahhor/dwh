@@ -265,6 +265,11 @@ jobs:
             scripts/prod/backup-objects.ps1 scripts/prod/restore-combined.ps1 \
             scripts/prod/rollback.sh scripts/prod/rollback.ps1 scripts/prod/test-recovery.ps1 \
             "dist/${bundle}/scripts/prod/"
+          cp scripts/prod/recovery_coordinator.py scripts/prod/recovery_support.py \
+            scripts/prod/verify_recovery_set.py "dist/${bundle}/scripts/prod/"
+          cp -R deploy/compose deploy/staging deploy/observability deploy/recovery deploy/ansible "dist/${bundle}/deploy/"
+          find "dist/${bundle}/deploy" -type d -name __pycache__ -prune -exec rm -rf -- {} +
+          printf '%s\n' "$GITHUB_SHA" > "dist/${bundle}/REVISION"
           cp scripts/acceptance/invoke-managed-preflight.ps1 \
             scripts/acceptance/invoke-managed-host-check.ps1 \
             scripts/acceptance/run-capacity.ps1 \

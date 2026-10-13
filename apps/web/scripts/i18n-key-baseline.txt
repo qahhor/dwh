@@ -87,7 +87,6 @@ common.retry
 common.revision_conflict_title
 common.save
 common.saved
-common.saving
 common.server_unavailable
 common.status
 common.system

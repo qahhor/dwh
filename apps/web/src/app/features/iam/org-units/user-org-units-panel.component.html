@@ -142,18 +142,4 @@
     </section>
   }
 </section>
-@if (can('view')) {
-  <smt-dialog [open]="discard.open()" [smtTitle]="'iam.org_units.discard_title' | t" (closed)="discard.cancel()">
-    <ng-template smtDialogContent>
-      <p body>{{ 'iam.org_units.assignments_discard_warning' | t }}</p>
-      <ui-form-actions
-        footer
-        submitVariant="danger"
-        [cancelLabel]="'iam.org_units.keep_editing' | t"
-        [submitLabel]="'iam.org_units.discard' | t"
-        (submitted)="discard.confirm()"
-        (cancelled)="discard.cancel()"
-      />
-    </ng-template>
-  </smt-dialog>
-}
+@if (can('view')) {}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { featureI18nProblems } from '@testing/feature-i18n';
+import { featureI18nProblems, serverLiteralKeys } from '@testing/feature-i18n';
 
 describe('i18n: command palette and search', () => {
   it('uses only translated keys, in Russian and English, and none of its keys is dead', () => {
@@ -8,6 +8,7 @@ describe('i18n: command palette and search', () => {
         dir: 'src/app/layout/command-palette',
         owns: ['layout.command_palette.', 'search.'],
         english: true,
+        dynamic: serverLiteralKeys('search.rights.'),
       }),
     ).toEqual([]);
   });

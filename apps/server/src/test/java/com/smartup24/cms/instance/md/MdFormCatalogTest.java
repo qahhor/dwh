@@ -89,8 +89,8 @@ class MdFormCatalogTest {
     @Test
     @DisplayName("Незнакомая форма не роняет каталог: имя и модуль выводятся из кода")
     void unknownFormDegradesGracefully() {
-        assertThat(MdFormCatalog.formNameOf("unknown.form")).isEqualTo("unknown.form");
-        assertThat(MdFormCatalog.actionNameOf("unknown.form", "view")).isEqualTo("view");
+        assertThat(MdFormCatalog.formNameKeyOf("unknown.form")).isEqualTo("unknown.form");
+        assertThat(MdFormCatalog.actionNameKeyOf("unknown.form", "view")).isEqualTo("view");
         assertThat(MdFormCatalog.moduleOf("unknown.form")).isEqualTo("unknown");
     }
 

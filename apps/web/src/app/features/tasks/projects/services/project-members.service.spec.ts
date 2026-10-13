@@ -131,6 +131,25 @@ describe('ProjectMembersService', () => {
     expect(members.addErrors()).toEqual({});
   });
 
+  it('resets the picker only after success and prevents another add while awaiting the response', () => {
+    const event = { projectId: 42, userId: 20, accessKind: 'MEMBER' };
+    for (const status of [409, 422, 0]) {
+      api.post.mockReturnValue(throwError(() => ({ status, detail: 'Refused' })));
+      members.onAddProjectMember(event);
+      expect(members.addedCount()).toBe(0);
+    }
+    const pending = new Subject<unknown>();
+    api.post.mockReturnValue(pending);
+    members.onAddProjectMember(event);
+    members.onAddProjectMember(event);
+    expect(api.post).toHaveBeenCalledTimes(4);
+    expect(members.addedCount()).toBe(0);
+    pending.next({});
+    pending.complete();
+    expect(members.addedCount()).toBe(1);
+    expect(members.isAddingMember()).toBe(false);
+  });
+
   it('adds the next page below the members shown, and offers more only while the server has them', async () => {
     memberReads = [of(page([member(10, 'Alice')], 'c1')), of(page([member(20, 'Bob')]))];
     members.openMembersModal(PROJECT);

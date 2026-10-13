@@ -20,8 +20,15 @@ actions, menu item and permission names.
    commands.
 
 This index defines the authority and navigation order for active project
-documentation. Public operations documentation remains in English. The
+documentation. The production handbook requested by the product owner is in Russian;
+existing public operations documentation remains in English. The
 canonical requirements document is the Russian technical specification.
+
+- [Production handbook (Russian)](ops/production-handbook-ru.md) — deployment,
+  recovery, monitoring, incidents, rollback and maintenance.
+- [Production launch checklist](ops/production-launch-checklist.md) — explicit
+  go/no-go gates and required target evidence.
+- [Ansible deployment](ops/ansible-deployment.md) — controlled automation.
 
 ## Authority tier 1 — requirements
 
@@ -97,8 +104,8 @@ Current ADRs that are not superseded:
 - [ADR-0029 — encryption of secrets in the database](adr/ADR-0029-stored-secrets-encryption.md)
   — webhook signing keys and SSO client secrets are stored as AES-256-GCM
   `v1:` values under the installation key `SMC_SECRETS_KEY`; the server
-  refuses to start without the key outside dev and encrypts legacy plain
-  values at start.
+  refuses to start without the key outside the dev/migrate profiles and
+  rejects stored plaintext secrets. Startup does not convert plaintext values.
 - [ADR-0030 — splitting fnd into jobs, warehouse and units](adr/ADR-0030-fnd-split.md)
   — the shared job queue is the `jobs` module, the second database with its
   load ledger is `warehouse`, units of measure are `units`, versioning and the
@@ -165,6 +172,8 @@ Historical, fully superseded decisions are retained for traceability only:
 - [Monorepo structure](architecture/monorepo-structure.md)
 - [Database migration guidelines](guidelines/database-migrations.md)
 - [Module development guide](guidelines/module-development-guide.md)
+- [Forms standard in one page](guidelines/forms-one-page.md) — the common CRUD, table and field contract.
+- [Forms catalog](guidelines/forms-catalog.md) — screens, entry points, nested editors and applicable actions.
 - [Forms UX standard](guidelines/forms-ux-standard.md) — layout, labels,
   errors, buttons and unsaved changes of every form; `npm run forms:audit`.
 - [Cookbook](cookbook/README.md) — recipes on the reference modules; the docs
@@ -192,7 +201,10 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [Operations runbook](ops/operations-runbook.md)
 - [Privacy, data protection, and retention annex](ops/privacy-and-retention-annex.md)
 - [Production launch checklist](ops/production-launch-checklist.md)
+- [План доведения до релиза](ops/release-readiness-plan.md) — порядок P0/P1,
+  владельцы работ и критерии готовности по существующим FR/NFR/AC.
 - [Smartup-managed infrastructure acceptance](ops/managed-infrastructure-acceptance.md)
+- [Утверждённая staging-конфигурация и критерии приёмки](ops/staging-acceptance.md)
 - [Rollback and recovery](ops/rollback.md)
 - [Migration failure repair](ops/migration-repair.md)
 - [GitHub repository settings](ops/repository-settings.md)
@@ -208,6 +220,7 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [RB-09 search delivery](runbooks/RB-09-search-delivery.md)
 - [RB-10 host disk](runbooks/RB-10-host-disk.md)
 - [RB-11 PostgreSQL health](runbooks/RB-11-postgresql-health.md)
+- [RB-12 Ops recovery and alerting (Russian)](runbooks/RB-12-ops-recovery-and-alerting.md)
 - [Threat model and personal-data inventory](security/threat-model.md)
 
 These documents govern execution for a concrete installation but cannot supply
