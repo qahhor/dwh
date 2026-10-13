@@ -102,6 +102,31 @@ class EntityRequestReaderTest {
         assertThat(EntityRequestReader.params(json("{\"reason\": \"late\"}"))).containsEntry("reason", "late");
     }
 
+    @Test
+    void numericReferencesMustFitALongBeforeReadingValues() {
+        for (String value : List.of("18446744073709551617", "-18446744073709551615", "1.5")) {
+            EntityRequestReader.Body body =
+                    EntityRequestReader.read(FieldTypesFixture.DEFINITION, json("{\"ownerId\":" + value + "}"));
+            assertThat(body.values()).doesNotContainKey("ownerId");
+            assertThat(body.errors())
+                    .extracting(item -> item.field() + ":" + item.code())
+                    .containsExactly("ownerId:invalid");
+        }
+    }
+
+    @Test
+    void referenceBoundariesAndCodesDoNotChangeHowOtherNumbersAreRead() {
+        EntityRequestReader.Body body = EntityRequestReader.read(FieldTypesFixture.DEFINITION, json("""
+                {"ownerId": 9223372036854775807, "qty": 18446744073709551617}
+                """));
+        assertThat(body.errors()).isEmpty();
+        assertThat(body.values()).containsEntry("ownerId", Long.MAX_VALUE);
+        assertThat(body.values().get("qty")).isEqualTo(new BigDecimal("18446744073709551617"));
+        assertThat(EntityRequestReader.read(FieldTypesFixture.DEFINITION, json("{\"ownerId\":\"north\"}"))
+                        .values())
+                .containsEntry("ownerId", "north");
+    }
+
     private static JsonNode json(String text) {
         return JSON.readTree(text);
     }

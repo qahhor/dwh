@@ -20,6 +20,8 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -199,6 +201,74 @@ class MsTaskEntityIntegrationTest extends EmbeddedPostgresTest {
                 .as("a bulk change needs the right to change tasks")
                 .isEqualTo(403);
         assertThat(column(first, "status_code")).isEqualTo("done");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-9223372036854775809", "+9223372036854775808", "north"})
+    void anInvalidResponsibleIdCannotCreateATask(String value) throws Exception {
+        TaskState before = taskState();
+        MockHttpServletResponse refused = session.send(
+                post(TASKS), Map.of("title", "Invalid responsible " + tag, "typeCode", "task", "responsibleId", value));
+        assertInvalidResponsible(refused);
+        assertThat(taskState()).isEqualTo(before);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-9223372036854775809", "+9223372036854775808", "north"})
+    void anInvalidResponsibleIdCannotChangeATask(String value) throws Exception {
+        long id = number(created(Map.of("title", "Before invalid id " + tag, "responsibleId", colleague.id()))
+                .get("id"));
+        TaskState before = taskState();
+        MockHttpServletResponse refused = change(id, Map.of("title", "Must stay unchanged", "responsibleId", value));
+        assertInvalidResponsible(refused);
+        assertThat(taskState()).isEqualTo(before);
+    }
+
+    @Test
+    void aSignedResponsibleIdKeepsTheSelectedPerson() throws Exception {
+        Map<String, Object> task = created(Map.of("title", "Signed id " + tag, "responsibleId", "+" + colleague.id()));
+        long id = number(task.get("id"));
+        assertThat(number(task.get("responsibleId"))).isEqualTo(colleague.id());
+        assertThat(members(id, MsTaskPref.INVOLVE_RESPONSIBLE)).containsExactly(colleague.id());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-1", "-9223372036854775808", "+9223372036854775807"})
+    void signedLongKeysStillReachTheParticipantAvailabilityCheck(String value) throws Exception {
+        TaskState before = taskState();
+        MockHttpServletResponse refused = session.send(
+                post(TASKS),
+                Map.of("title", "Unavailable responsible " + tag, "typeCode", "task", "responsibleId", value));
+        assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(422);
+        assertThat(refused.getContentAsString()).contains("responsibleId", "error.task.assignee_unavailable");
+        assertThat(taskState()).isEqualTo(before);
+    }
+
+    private TaskState taskState() {
+        List<String> rows = jdbc.sql(
+                        "select row_to_json(t)::text from ms_tasks t where created_by = :author order by id")
+                .param("author", author.id())
+                .query(String.class)
+                .list();
+        List<String> participants =
+                jdbc.sql("""
+                        select row_to_json(m)::text from ms_task_members m
+                        join ms_tasks t on t.id = m.task_id where t.created_by = :author
+                        order by m.task_id, m.user_id, m.involve_kind
+                        """).param("author", author.id()).query(String.class).list();
+        long auditRows = jdbc.sql("select count(*) from audit_log where table_name = 'ms_tasks'")
+                .query(Long.class)
+                .single();
+        return new TaskState(rows, participants, auditRows);
+    }
+
+    private record TaskState(List<String> rows, List<String> participants, long audits) {}
+
+    private static void assertInvalidResponsible(MockHttpServletResponse response) throws Exception {
+        assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(422);
+        assertThat((List<?>) TestSession.object(response).get("errors"))
+                .extracting(item -> ((Map<?, ?>) item).get("field") + ":" + ((Map<?, ?>) item).get("code"))
+                .containsExactly("responsibleId:invalid");
     }
 
     private Map<String, Object> created(Map<String, Object> values) throws Exception {

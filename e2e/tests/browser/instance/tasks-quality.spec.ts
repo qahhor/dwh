@@ -3,6 +3,7 @@ import { expect, test, type Locator, type Page, type Route } from '@playwright/t
 import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors, uniqueRunName } from '../../../support/diagnostics.js';
 import { loadE2eEnv } from '../../../support/env.mjs';
+import { entityPage } from '../../../support/entity-page.js';
 
 const environment = loadE2eEnv();
 
@@ -155,7 +156,7 @@ async function routeTaskList(page: Page, handler: (route: Route, url: URL) => Pr
   });
 }
 
-test('task edit round-trips and clears a local deadline while retaining observers and named comments', async ({ page }) => {
+test('task edit retains observers and comments, clears the deadline and preserves resolution after completion', async ({ page }) => {
   const originalTitle = uniqueRunName('E2E tasks quality');
   const editedTitle = `${originalTitle} edited`;
   const comment = uniqueRunName('E2E named author');
@@ -223,6 +224,38 @@ test('task edit round-trips and clears a local deadline while retaining observer
   await expect(commentCard).toBeVisible();
   await expect(commentCard.locator('.comment-author')).toContainText(selectedObserverName);
   await expect(commentCard.locator('.comment-author')).toContainText(`@${environment.instance.login}`);
+
+  // Complete the same task, then edit only its title on the general form (ADR-0032 7.1).
+  const resolved = page.waitForResponse(candidate =>
+    candidate.request().method() === 'POST' && /\/api\/v1\/entities\/ms\.tasks\/\d+\/actions\/set_status$/u.test(candidate.url())
+  );
+  await detailDialog.getByRole('combobox', { name: /Статус задачи #\d+/u }).click();
+  await page.getByRole('option', { name: 'Выполнена', exact: true }).click();
+  const resolvedResponse = await resolved;
+  expect(resolvedResponse.status()).toBe(200);
+  const completed = await resolvedResponse.json() as { id: number; statusCode: string; resolvedTime: string };
+  expect(completed.statusCode).toBe('done');
+  expect(completed.resolvedTime).toEqual(expect.any(String));
+  expect(Number.isNaN(Date.parse(completed.resolvedTime))).toBe(false);
+
+  await page.goto(`/e/ms.tasks/${completed.id}/edit`);
+  const taskForm = entityPage(page, 'ms.tasks');
+  await expect(taskForm.form).toBeVisible();
+  const finalTitle = `${editedTitle} completed`;
+  await taskForm.fillField('title', finalTitle);
+  const saved = await taskForm.save();
+  expect(saved.status()).toBe(200);
+  expect(saved.request().postDataJSON()).not.toHaveProperty('resolvedTime');
+  expect(saved.request().headers()['if-match']).toMatch(/^"\d+"$/u);
+  await expect(page.getByRole('heading', { level: 1, name: finalTitle })).toBeVisible();
+
+  const reread = await page.request.get(`/api/v1/entities/ms.tasks/${completed.id}`);
+  expect(reread.status()).toBe(200);
+  expect(await reread.json()).toMatchObject({
+    title: finalTitle,
+    statusCode: 'done',
+    resolvedTime: completed.resolvedTime,
+  });
   assertNoPageErrors();
 });
 

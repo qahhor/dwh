@@ -304,7 +304,8 @@ public class EntityWrites {
      * The values a hook or an action's handler changed ({@code touched}) pass the checks of step 8 that look at data
      * (ADR-0032, 6.5 and 6.7): a reference to a row the saver sees in its target's scope, a unit in the saver's scope, an
      * item of the enumeration, an attachable file — so module code cannot link what the saver does not see, from action
-     * parameters for one — and the declaration's rules over the record as it will be written. Read-only flags, field
+     * parameters for one — and all field rules, including required fields and their visibility conditions, over the
+     * final record. A hook may temporarily clear a required field if it fills it before returning. Read-only flags, field
      * rights and the locks of the process limit the client, not the module, and do not apply. One 422 with them all.
      *
      * @param current the record before the save, empty for a create: an unchanged old value is kept
@@ -319,12 +320,14 @@ public class EntityWrites {
             @Nullable Map<String, Object> before,
             @Nullable Long id,
             long user) {
-        if (touched.isEmpty()) return;
-        List<FieldErrorItem> errors = new ArrayList<>(checks.references(entity, touched, current, user));
-        errors.addAll(checks.unit(entity, touched, current, user));
-        errors.addAll(fieldValues.lookupProblems(entity, touched, current, id, user));
         Map<String, Object> after = new LinkedHashMap<>(record);
         after.putAll(touched);
+        List<FieldErrorItem> errors = new ArrayList<>(EntityValidator.problems(entity, after, false));
+        if (errors.isEmpty()) {
+            errors.addAll(checks.references(entity, touched, current, user));
+            errors.addAll(checks.unit(entity, touched, current, user));
+            errors.addAll(fieldValues.lookupProblems(entity, touched, current, id, user));
+        }
         EntityValues was = before == null ? null : EntityValues.readOnly(entity, before);
         errors.addAll(checks.rules(entity, EntityValues.readOnly(entity, after), was));
         if (!errors.isEmpty()) {

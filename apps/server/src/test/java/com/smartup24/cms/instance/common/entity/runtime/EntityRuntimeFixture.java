@@ -13,6 +13,8 @@ import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.EntityScope;
 import com.smartup24.cms.platform.api.entity.event.EntityChanged;
+import com.smartup24.cms.platform.api.entity.field.FieldCondition;
+import com.smartup24.cms.platform.api.entity.field.FieldDefault;
 import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.platform.api.entity.hook.EntityActionCall;
 import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
@@ -51,6 +53,12 @@ class EntityRuntimeFixture {
     /** A title whose hook sets a key that is no written field: a defect of the module. */
     static final String MISUSES = "misuses the values";
 
+    static final String CLEARS_REQUIRED = "clears required title";
+    static final String CLEARS_IN_ACTION = "action clears required title";
+    static final String SHOWS_REQUIRED = "shows required detail";
+    static final String FILLS_REQUIRED = "fills required detail";
+    static final String RESTORES_REQUIRED = "restores required title";
+
     static final List<String> SAVES = new CopyOnWriteArrayList<>();
     static final List<Long> COMMITTED = new CopyOnWriteArrayList<>();
     static final List<Long> FAILING = new CopyOnWriteArrayList<>();
@@ -59,7 +67,9 @@ class EntityRuntimeFixture {
     static final String DDL = """
             create table if not exists test_rt_items (
                 id bigint generated always as identity primary key,
-                title text not null,
+                title text,
+                details_required boolean not null default false,
+                detail text,
                 code text,
                 note_id bigint references ms_notes (id),
                 starts_on date,
@@ -85,6 +95,13 @@ class EntityRuntimeFixture {
                     .length(1, 50)
                     .list(sortable().searchable()))
             .field(text("code", "notes.col.title").column("code").readonly())
+            .field(bool("detailsRequired", "notes.col.pinned")
+                    .column("details_required")
+                    .defaultValue(FieldDefault.fixed("false")))
+            .field(text("detail", "notes.col.title")
+                    .column("detail")
+                    .required()
+                    .visibleWhen(FieldCondition.eq("detailsRequired", "true")))
             .field(ref("noteId", "notes.col.title").column("note_id").target(MsNoteEntity.CODE, "title"))
             .field(date("startsOn", "notes.col.created_at").column("starts_on"))
             .field(date("endsOn", "notes.col.modified_at").column("ends_on"))
@@ -92,7 +109,17 @@ class EntityRuntimeFixture {
             .field(instant("modifiedAt", "notes.col.modified_at")
                     .system(SystemColumn.MODIFIED_AT)
                     .list(sortable()))
-            .section("main", "entity.section.main", "title", "code", "noteId", "startsOn", "endsOn", "starred")
+            .section(
+                    "main",
+                    "entity.section.main",
+                    "title",
+                    "code",
+                    "noteId",
+                    "startsOn",
+                    "endsOn",
+                    "starred",
+                    "detailsRequired",
+                    "detail")
             .rule("period", Rules.notBefore("endsOn", "startsOn"))
             .actions("create", "update", "delete")
             .action("star", "update")
@@ -131,6 +158,15 @@ class EntityRuntimeFixture {
                 }
                 if (MISUSES.equals(title)) {
                     save.values().set("createdBy", 1L);
+                }
+                if (CLEARS_REQUIRED.equals(title)) save.values().set("title", null);
+                if (RESTORES_REQUIRED.equals(title)) {
+                    save.values().set("title", null);
+                    save.values().set("title", title);
+                }
+                if (SHOWS_REQUIRED.equals(title) || FILLS_REQUIRED.equals(title)) {
+                    save.values().set("detailsRequired", true);
+                    if (FILLS_REQUIRED.equals(title)) save.values().set("detail", "Filled by hook");
                 }
                 if (title != null && save.changed("title")) {
                     save.values()
@@ -176,6 +212,8 @@ class EntityRuntimeFixture {
                     call.reject("", "already_starred", "error.field.unknown", Map.of());
                 }
                 call.values().set("starred", true);
+                if (CLEARS_IN_ACTION.equals(call.values().text("title")))
+                    call.values().set("title", null);
             }
         };
     }

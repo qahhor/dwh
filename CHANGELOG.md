@@ -13,6 +13,20 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   allowed private hosts. HTTP subscriptions are rejected on create/update and
   before dispatch; no HTTP compatibility path is retained.
 
+### Value integrity (2026-10-13)
+
+#### Fixed
+
+- Entity forms preserve unchanged DATETIME precision, including custom fields
+  and document rows; edits omit fields that are read-only in the current record.
+- Single REF values follow their declared lookup key: numeric ids must fit an
+  exact signed 64-bit key, including signed strings. Invalid ids return field
+  validation errors instead of linking a truncated id or failing inside a hook;
+  code-based references preserve text keys.
+- The runtime revalidates the final record after hooks and action handlers,
+  including required fields made visible by a hook. Refused saves leave no row,
+  revision, audit or committed event; trusted hooks can still write read-only fields.
+
 ### Audit follow-up (2026-10-13)
 
 #### Fixed

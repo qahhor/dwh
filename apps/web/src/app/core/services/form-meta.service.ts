@@ -91,20 +91,23 @@ function defaultOf(field: FormFieldMeta): unknown {
 
 /**
  * The body to save: declared fields by key, custom fields in `attributes`. Attributes the form does not show
- * are kept, so a field an administrator removed does not lose its value on the next save. A computed field is never
- * sent, nor is a new record's field that is read-only whatever the state — the server gives it its default, and
- * refuses a value the viewer may not set (ADR-0032 4.4, 5.2); a field its condition hides is sent empty, as the
- * server keeps it.
+ * are kept, so a field an administrator removed does not lose its value on the next save. Fields a save may not
+ * change are omitted using the original record's conditions and workflow locks (ADR-0032 4.4, 5.2, 9.2). A field
+ * its condition hides is sent empty, as the server keeps it. Unchanged moments keep the original precision.
  */
 export function recordPayload(meta: FormMeta, values: FormValues, row?: Row | null): Row {
   const attributes: Row = { ...((row?.['attributes'] ?? {}) as Row) };
   const payload: Row = {};
+  const locked = row ? lockedKeys(meta, row) : new Set<string>();
   for (const field of meta.fields) {
-    if (field.computed || (field.readonly && !row)) continue;
+    if (fieldReadonly(field, row ?? values, !row) || locked.has(field.key)) continue;
     const raw = values[field.key];
     if (field.attribute) {
       const trimmed = typeof raw === 'string' ? raw.trim() : raw;
-      const value = field.type === 'datetime' ? (utcMoment(trimmed) ?? trimmed) : trimmed;
+      const value =
+        field.type === 'datetime'
+          ? FIELD_VALUE_RULES.datetime.payload(field, trimmed, attributes[field.attribute])
+          : trimmed;
       attributes[field.attribute] = value === '' ? null : (value ?? null);
       continue;
     }
@@ -113,14 +116,21 @@ export function recordPayload(meta: FormMeta, values: FormValues, row?: Row | nu
       payload[field.key] = field.type === 'multi_ref' ? [] : null;
       continue;
     }
-    payload[field.key] = rules.empty(raw) ? emptyOf(field, raw) : rules.payload(field, raw);
+    payload[field.key] = rules.empty(raw) ? emptyOf(field, raw) : rules.payload(field, raw, row?.[field.key]);
   }
   payload['attributes'] = attributes;
-  const locked = row ? lockedKeys(meta, row) : new Set<string>();
   for (const collection of meta.collections ?? []) {
     // Rows a state of the process locks are not sent, nor rows the form does not hold: the server keeps them.
     if (locked.has(collection.key) || !(collection.key in values)) continue;
-    payload[collection.key] = rowsOf(values, collection.key).map((current) => rowPayload(collection, current, values));
+    const originals = new Map(rowsOf(row ?? {}, collection.key).map((kept) => [kept['id'], kept]));
+    payload[collection.key] = rowsOf(values, collection.key).map((current) =>
+      rowPayload(
+        collection,
+        current,
+        values,
+        typeof current['id'] === 'number' ? originals.get(current['id']) : undefined,
+      ),
+    );
   }
   return payload;
 }
@@ -180,14 +190,14 @@ export function rowMoney(field: FormFieldMeta, value: unknown, values: FormValue
 }
 
 /** A row as the server takes it: its id when it has one and its written fields, never a computed one. */
-function rowPayload(collection: FormCollectionMeta, row: FormValues, values: FormValues): Row {
+function rowPayload(collection: FormCollectionMeta, row: FormValues, values: FormValues, original?: Row): Row {
   const payload: Row = {};
   if (typeof row['id'] === 'number') payload['id'] = row['id'];
   for (const field of collection.fields) {
     if (field.computed) continue;
     const raw = rowMoney(field, row[field.key], values);
     const rules = FIELD_VALUE_RULES[field.type];
-    payload[field.key] = rules.empty(raw) ? emptyOf(field, raw) : rules.payload(field, raw);
+    payload[field.key] = rules.empty(raw) ? emptyOf(field, raw) : rules.payload(field, raw, original?.[field.key]);
   }
   return payload;
 }

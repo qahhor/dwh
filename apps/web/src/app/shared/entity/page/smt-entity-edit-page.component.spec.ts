@@ -24,6 +24,46 @@ function stateTitle(root: HTMLElement): string | undefined {
 
 /* Creating or changing a record of a declared entity (ADR-0032 7.1). */
 describe('SMTEntityEditPageComponent', () => {
+  it('patches a title without rounding untouched moments or sending the read-only resolved time', async () => {
+    const fields = [
+      formField('title', 'text', { required: true }),
+      formField('startsAt', 'datetime'),
+      formField('resolvedTime', 'datetime', { readonly: true }),
+      formField('cfDueAt', 'datetime', { attribute: 'due_at' }),
+    ];
+    const record = entityRecord(4, {
+      title: 'Before',
+      startsAt: '2026-10-13T04:15:37.123456Z',
+      resolvedTime: '2026-10-13T04:15:48.987654Z',
+      attributes: { due_at: '2026-10-13T04:15:59.654321Z' },
+    });
+    const { root, api, router, settle } = await renderEntityScreen(`/e/${CODE}/4/edit`, {
+      meta: {
+        ...META,
+        fields,
+        layout: [{ key: 'main', labelKey: 'entity.section.main', fields: fields.map((f) => f.key) }],
+      },
+      records: [record],
+    });
+    const title = root.querySelector('[data-field="title"] input') as HTMLInputElement;
+    title.value = 'After';
+    title.dispatchEvent(new Event('input'));
+    await settle();
+    (root.querySelector('[data-testid="form-submit"]') as HTMLButtonElement).click();
+    await settle();
+
+    expect(api.patch).toHaveBeenCalledExactlyOnceWith(
+      `/entities/${CODE}/4`,
+      {
+        title: 'After',
+        startsAt: '2026-10-13T04:15:37.123456Z',
+        attributes: { due_at: '2026-10-13T04:15:59.654321Z' },
+      },
+      { notifyError: false, ifMatch: 1 },
+    );
+    expect(router.url).toBe(`/e/${CODE}/4`);
+  });
+
   it('keeps every editable field checked after a failed submit, including previously valid fields', async () => {
     const { root, settle } = await renderEntityScreen(`/e/${CODE}/new`, {
       meta: {
