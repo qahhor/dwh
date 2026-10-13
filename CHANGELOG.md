@@ -32,6 +32,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 #### Tests
 
+- Live API smoke uses HTTPS subscription targets and requires HTTP create/update
+  requests to fail with the URL scheme error; delivery remains covered by TLS tests.
 - Browser scenarios compare downloaded bytes with the uploaded fixture and
   require Russian fallback after a missing or removed translation override.
 - Webhook delivery, HMAC, retry and timeout checks use disposable TLS receivers
