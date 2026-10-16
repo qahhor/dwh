@@ -22,9 +22,9 @@
         <!-- Boot 4.1.1 manages 11.0.24; 11.0.25 fixes the August 2026
              security-constraint and authentication vulnerabilities. -->
         <tomcat.version>11.0.26</tomcat.version>
-        <!-- Boot 4.1.1 manages Jackson 3.1.5 and 2.21.5; 3.1.7 and 2.21.7 fix the 2026 jackson-core and
-             jackson-databind vulnerabilities (HIGH in Trivy). Jackson 2 reaches the server through springdoc (swagger-core). -->
-        <jackson.version>3.1.7</jackson.version>
+        <!-- Override both Jackson baselines managed by Spring Boot.
+             Jackson 2 reaches the server through springdoc (swagger-core). -->
+        <jackson.version>3.2.3</jackson.version>
         <jackson-2.version>2.22.3</jackson-2.version>
         <postgresql.version>42.7.5</postgresql.version>
         <archunit.version>1.5.1</archunit.version>
