@@ -40,6 +40,9 @@
 | `example.orders` — Заказы | Эталон документа: создание, изменение, просмотр, строки, деньги, проведение и отмена; импорт по номеру. | [ExampleOrderEntity](../../apps/server/src/main/java/com/smartup24/cms/instance/example/service/ExampleOrderEntity.java) |
 | `example.requests` — Заявки | Эталон процесса: создание, изменение, просмотр, согласование; удаление ограничено черновиком. | [ExampleRequestsEntity](../../apps/server/src/main/java/com/smartup24/cms/instance/example/service/ExampleRequestsEntity.java) |
 
+Три встроенных эталона находятся в отдельном разделе меню «Примеры».
+Раздел учитывает права просмотра и исчезает при отключении модуля `example`.
+
 Эталоны нужны разработчикам framework и рецептам расширения, поэтому наличие
 этих форм само по себе не является причиной удаления. Задачи, проекты,
 заметки и UPL входят в отключаемые прикладные модули; ядро администрирования
@@ -84,7 +87,7 @@
 | Модули | `/settings/modules` | Просмотр, включение/отключение допустимых модулей; системные модули защищены. Создание и удаление через UI неприменимы. | [modules](../../apps/web/src/app/features/settings/modules/modules.component.ts) |
 | Меню | `/settings/navigation`, также вкладка `navigation` | Дерево, создание/изменение/удаление пользовательских пунктов, порядок и доступность. | [navigation](../../apps/web/src/app/features/settings/navigation/navigation-settings.component.ts) |
 | Поиск | `/settings?tab=search` | Политика поиска, предпросмотр запроса, состояние индекса и задания переиндексации. | [search settings](../../apps/web/src/app/features/settings/search/search-settings.component.ts) |
-| Webhooks | `/settings?tab=webhooks` | Список подписок, создание/изменение, адрес и события, состояние, доставки и предусмотренные действия. | [webhooks](../../apps/web/src/app/features/settings/webhooks/webhooks-settings.component.ts) |
+| Webhooks | `/settings?tab=webhooks` | Список подписок, создание с адресом и событиями, включение/отключение, удаление; секрет показывается однократно. Изменение адреса/событий и журнал доставок через этот UI не реализованы. | [webhooks](../../apps/web/src/app/features/settings/webhooks/webhooks-settings.component.ts) |
 
 Эти формы редактируют настройки или метаданные, а не вторую копию обычной
 бизнес-сущности. Их специальные экраны остаются; контролы, кнопки и поведение
@@ -144,10 +147,17 @@
   lint, i18n/aria/contrast/signals/api/comments audits и build.
 - Поведение: соседние `*.spec.ts`, полный `npm run test:coverage` и пороги.
 - Отрисовка и клавиатура: [a11y-сценарии](../../e2e/tests/a11y/screens.spec.ts) на production
-  build в обеих темах; матрица уведомлений и переводы дополнительно на 360 px.
+  build в обеих темах; матрица уведомлений, metadata-форма, поиск меню и меню действий задач дополнительно на 360 px.
 - Реальные API и права: [browser E2E](../../e2e/playwright.config.ts),
   оба шарда на отдельном свежем Compose-стенде.
 
 При добавлении маршрута, сущности или вложенного редактора обновлять этот
 реестр. Результаты конкретного запуска, SHA и ограничения среды записывать
 в handoff/протокол проверки; наличие строки в реестре не означает приёмку staging.
+
+Дополнительные регрессии прохода 2026-10-14: `responsive-controls.spec.ts`
+(мобильные действия и доступная диаграмма), `navigation-table-controls.spec.ts`
+(ширина колонки действий, компактное меню, переключатель, вложенный заголовок и drawer фильтра),
+`roles-layout.spec.ts` (длинные названия матрицы, checkbox и безопасный фокус).
+Это проверки изолированного API; ручной обход наполненного демо не изменяет
+записи, права, настройки интеграций и опубликованные форматы.

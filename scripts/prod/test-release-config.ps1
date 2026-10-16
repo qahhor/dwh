@@ -35,6 +35,25 @@ function Assert-DoesNotMatch([string]$Text, [string]$Pattern, [string]$Message) 
     if ($Text -match $Pattern) { throw $Message }
 }
 
+function Assert-StudioActivation([string]$ComposeFile, [string]$EnvironmentFile) {
+    $previousActivation = $env:SMC_STUDIO_ACTIVATION_ENABLED
+    try {
+        foreach ($value in @('', 'false', 'true')) {
+            $env:SMC_STUDIO_ACTIVATION_ENABLED = $value
+            $rendered = & docker compose -f $ComposeFile --env-file $EnvironmentFile config --format json
+            if ($LASTEXITCODE -ne 0) { throw 'Studio Compose rendering failed.' }
+            $settings = $rendered | ConvertFrom-Json
+            $expected = if ($value -eq 'true') { 'true' } else { 'false' }
+            if ("$($settings.services.server.environment.SMC_STUDIO_ACTIVATION_ENABLED)" -ne $expected) {
+                throw "Studio activation must reach the server as '$expected' in $ComposeFile."
+            }
+        }
+    }
+    finally {
+        $env:SMC_STUDIO_ACTIVATION_ENABLED = $previousActivation
+    }
+}
+
 $composeSource = Get-Content -LiteralPath $composePath -Raw
 $webNginx = Get-Content -LiteralPath $webNginxPath -Raw
 $deploySh = Get-Content -LiteralPath $deployShPath -Raw
@@ -140,6 +159,9 @@ try {
     $env:BACKUP_DB_PASSWORD_FILE = $backupPassword
     $env:BACKUP_S3_ACCESS_KEY_ID_FILE = $unusedSecret
     $env:BACKUP_S3_SECRET_ACCESS_KEY_FILE = $unusedSecret
+
+    Assert-StudioActivation (Join-Path $repoRoot 'docker-compose.yml') $envPath
+    Assert-StudioActivation $composePath $envPath
 
     $configJsonText = & docker compose -f $composePath --env-file $envPath --profile tools config --format json
     if ($LASTEXITCODE -ne 0) { throw 'Production Compose failed config validation.' }

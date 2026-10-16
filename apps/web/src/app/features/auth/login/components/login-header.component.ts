@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { TranslatePipe } from '@core/services/i18n.service';
 
@@ -7,62 +7,23 @@ import { TranslatePipe } from '@core/services/i18n.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe],
   template: `
-    <div class="login-header">
+    <header class="login-header">
       <div class="brand-lockup" role="img" aria-label="SmartupCMS">
         <span class="brand-mark" aria-hidden="true">S</span>
         <span class="brand-name" aria-hidden="true">SmartupCMS</span>
       </div>
-      <h1 class="login-title">{{ 'auth.login.corporate_login' | t }}</h1>
-      <p class="login-subtitle">{{ 'auth.login.platform_tagline' | t }}</p>
-    </div>
+      <h1 class="login-title">{{ title() ?? ('auth.login.corporate_login' | t) }}</h1>
+      @if (subtitle() !== '') {
+        <p class="login-subtitle" [attr.id]="subtitleId()">
+          {{ subtitle() ?? ('auth.login.platform_tagline' | t) }}
+        </p>
+      }
+    </header>
   `,
-  styles: [
-    `
-      .login-header {
-        text-align: center;
-        margin-bottom: 24px;
-      }
-
-      .brand-lockup {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 12px;
-      }
-
-      .brand-mark {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 44px;
-        height: 44px;
-        flex: 0 0 44px;
-        border-radius: var(--radius-md);
-        background-color: var(--primary);
-        color: var(--on-primary);
-        font-weight: 700;
-        font-size: 16px;
-      }
-
-      .brand-name {
-        color: var(--text-main);
-        font-size: 18px;
-        font-weight: 700;
-        letter-spacing: -0.2px;
-      }
-
-      .login-title {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--text-main);
-        margin-bottom: 4px;
-      }
-
-      .login-subtitle {
-        font-size: 12px;
-        color: var(--text-muted);
-      }
-    `,
-  ],
+  styleUrl: './login-header.component.css',
 })
-export class LoginHeaderComponent {}
+export class LoginHeaderComponent {
+  readonly title = input<string>();
+  readonly subtitle = input<string>();
+  readonly subtitleId = input<string>();
+}

@@ -64,7 +64,7 @@ public class ExampleRequestsEntity {
                             "recall", "example.requests.rights.recall",
                             "approve", "example.requests.rights.approve",
                             "reject", "example.requests.rights.reject"))
-            .menu(new EntityMenu("nav.example_requests", "approval", "workspace", 92, "example"))
+            .menu(new EntityMenu("nav.example_requests", "approval", "examples", 92, "example"))
             .field(text("subject", "example.requests.col.subject")
                     .column("subject")
                     .required()

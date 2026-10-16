@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { ToastService } from '@core/services/toast.service';
@@ -104,6 +104,32 @@ describe('NotesComponent', () => {
 
     expect(toast.error).toHaveBeenCalledWith(expect.any(String));
     expect(screen.querySelector('.note-card')).toBeNull();
+    expect(screen.querySelector('.empty-state')).toBeNull();
+    expect(screen.querySelector('[role="alert"]')).not.toBeNull();
+    expect(screen.querySelector('[data-testid="notes-retry"]')).not.toBeNull();
+  });
+
+  it('retries a refused first page and replaces the alert with cards', async () => {
+    let fail = true;
+    const { screen, settle } = await setup({
+      notes: () => (fail ? throwError(() => ({ status: 500 })) : of(page([note]))),
+    });
+    fail = false;
+    (screen.querySelector('[data-testid="notes-retry"]') as HTMLButtonElement).click();
+    await settle();
+    expect(screen.querySelector('[role="alert"]')).toBeNull();
+    expect(screen.querySelector('.note-title').textContent).toContain(note.title);
+  });
+
+  it('distinguishes an empty pinned filter and can clear it', async () => {
+    const { component, screen, settle } = await setup({ notes: () => of(page([])) });
+    component.setTab('pinned');
+    await settle();
+    expect(screen.querySelector('.empty-state').textContent).not.toContain('Заметок пока нет');
+    (screen.querySelector('[data-testid="notes-reset-filters"]') as HTMLButtonElement).click();
+    await settle();
+    expect(component.activeTab()).toBe('all');
+    expect(screen.querySelector('.empty-state').textContent).toContain('Заметок пока нет');
   });
 
   it('offers only the actions the note form allows the viewer', async () => {
@@ -164,6 +190,19 @@ describe('NotesComponent', () => {
     expect(component.list().items.map((item) => item.id)).toEqual([1, 2]);
     expect(screen.querySelectorAll('app-note-card')).toHaveLength(2);
     expect(screen.querySelector('[data-testid="notes-load-more"]')).toBeNull();
+  });
+
+  it('does not append an old next page after the filter changes', async () => {
+    const pending = new Subject<ReturnType<typeof page>>();
+    const pages = [of(page([note], 'next')), pending, of(page([{ ...note, id: 3, isPinned: true }]))];
+    const { component, settle } = await setup({ notes: () => pages.shift()! });
+    component.loadMore();
+    component.setTab('pinned');
+    await settle();
+    pending.next(page([{ ...note, id: 2 }]));
+    pending.complete();
+    await settle();
+    expect(component.list().items.map((item) => item.id)).toEqual([3]);
   });
 
   it('opens the form for a new note and for a note to edit, and reloads after saving', async () => {

@@ -61,6 +61,28 @@
       }
     </div>
 
+    @if (!isCollapsed() || isMobileMenuOpen()) {
+      <div class="sidebar-search">
+        <smt-input
+          class="sidebar-navigation-search"
+          smtFieldId="sidebar-navigation-search"
+          type="search"
+          smtSize="sm"
+          smtIcon="search"
+          clearable
+          [smtAriaLabel]="'layout.app_shell.search_navigation' | t"
+          [placeholder]="'layout.app_shell.search_navigation' | t"
+          [value]="navigationQuery()"
+          (valueChange)="setNavigationQuery($event)"
+        />
+        <span class="sr-only navigation-search-status" aria-live="polite">
+          @if (searchingNavigation()) {
+            {{ 'layout.app_shell.navigation_search_results' | t: { count: navigationResultCount() } }}
+          }
+        </span>
+      </div>
+    }
+
     <!-- Delegation: a followed link (by mouse or Enter) bubbles a click here and closes the mobile menu. -->
     <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
     <nav class="sidebar-nav" [attr.aria-label]="'layout.app_shell.main_navigation' | t" (click)="navClick.emit()">
@@ -105,15 +127,18 @@
 
       <!-- Expanded Mode / Mobile Drawer: Full Sections Hierarchy -->
       @if (!isCollapsed() || isMobileMenuOpen()) {
+        @if (searchingNavigation() && !visibleNavSections().length) {
+          <p class="navigation-search-empty">{{ 'layout.app_shell.navigation_no_results' | t }}</p>
+        }
         <app-sidebar-nav-sections
-          [navSections]="navSections()"
+          [navSections]="visibleNavSections()"
           [hasVisibleItems]="hasVisibleItems()"
-          [isSectionExpanded]="isSectionExpanded()"
+          [isSectionExpanded]="displayedSectionExpanded"
           [isSectionActive]="isSectionActive()"
-          [isSubmenuExpanded]="isSubmenuExpanded()"
+          [isSubmenuExpanded]="displayedSubmenuExpanded"
           [activeItemId]="activeItemId()"
-          (toggleSection)="toggleSection.emit($event)"
-          (toggleSubmenu)="toggleSubmenu.emit($event)"
+          (toggleSection)="toggleNavigationGroup('section', $event)"
+          (toggleSubmenu)="toggleNavigationGroup('submenu', $event)"
         ></app-sidebar-nav-sections>
       }
     </nav>

@@ -115,7 +115,13 @@ export interface SMTMessages {
     readonly downloadInstead: string;
   };
   readonly common: { readonly close: string; readonly cancel: string };
-  readonly table: { readonly noResults: string };
+  readonly table: {
+    readonly noResults: string;
+    readonly scrollToTop: string;
+    readonly scrollLeft: string;
+    readonly scrollRight: string;
+    readonly resizeColumn: (column: string) => string;
+  };
   readonly dataTable: { readonly selectAll: string; readonly selectRow: string };
   readonly tree: { readonly expandAll: string; readonly collapseAll: string };
   readonly modalConfirm: { readonly title: string; readonly yes: string; readonly no: string; readonly failed: string };
@@ -207,7 +213,13 @@ export class SMTI18nService {
       close: this.i18n.translate('common.close'),
       cancel: this.i18n.translate('common.cancel'),
     },
-    table: { noResults: this.i18n.translate('ui.table.nothing_found') },
+    table: {
+      noResults: this.i18n.translate('ui.table.nothing_found'),
+      scrollToTop: this.i18n.translate('ui.table.scroll_to_top'),
+      scrollLeft: this.i18n.translate('ui.table.scroll_left'),
+      scrollRight: this.i18n.translate('ui.table.scroll_right'),
+      resizeColumn: (column) => this.i18n.translate('ui.table.resize_column', { column }),
+    },
     dataTable: {
       selectAll: this.i18n.translate('ui.table.select_all'),
       selectRow: this.i18n.translate('ui.table.select_row'),

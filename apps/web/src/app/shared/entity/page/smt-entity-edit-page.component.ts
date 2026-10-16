@@ -134,6 +134,10 @@ import { EntityPageContext } from './smt-entity-page.component';
         flex-direction: column;
         gap: 20px;
         max-width: 960px;
+        padding: clamp(12px, 2vw, 20px);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        background: var(--bg-surface);
       }
       .entity-edit-actions {
         max-width: 960px;

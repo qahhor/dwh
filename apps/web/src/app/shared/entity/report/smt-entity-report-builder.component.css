@@ -1,0 +1,47 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.builder {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.builder-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+.builder-measure {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.builder-error {
+  margin: 0;
+  color: var(--danger-text, var(--danger));
+}
+
+.builder-form {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+.source-note p {
+  margin: 4px 0 8px;
+  color: var(--text-muted);
+}
+
+.builder-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}

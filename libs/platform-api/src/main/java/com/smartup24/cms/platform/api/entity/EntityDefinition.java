@@ -77,7 +77,7 @@ public record EntityDefinition(
 
     /**
      * The entity's item in the side menu (roadmap item 57): where it leads, its label and icon, the menu section
-     * ({@code workspace}, {@code iam}, {@code administration}) and its place there, and the installed module
+     * ({@code workspace}, {@code iam}, {@code administration}, {@code examples}) and its place there, and the installed module
      * whose switch hides it, or null when it is always on. Without a route of its own the item leads to the general
      * screen of the entity, {@code /e/<code>} (ADR-0032, 7.1): only a screen with another way of working (a board, a
      * calendar, a wizard; ADR-0032, 7.2) names its route.

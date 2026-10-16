@@ -7,8 +7,120 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Shared line and horizontal bar report charts with exact tables, prepared N:1 report
+  datasets with current source/field access checks, and the optional tasks/projects reference dataset.
+- An explicitly configured, disabled-by-default LLM draft assistant with a bounded
+  HTTP transport, separate permission, strict declaration validation and explicit editor adoption.
+  Suggestions never save, prepare a package or activate a form automatically.
+
+- Explicit, disabled-by-default live activation of immutable simple forms in `studio.*`,
+  with separately authorized publishing, atomic declaration/rights/audit, bounded
+  database snapshots and shared JSONB records isolated by a server-owned partition.
+  The existing editor offers activation separately from CLI delivery.
+
+- A compact administrator editor for simple new forms, strict create-only declarations,
+  deterministic delivery packages and `cms form apply` through existing CLI/Flyway templates.
+  Generation preserves manual edits on exact repeats, rejects existing-schema changes,
+  and grants initial access only to administrative roles. CLI delivery requires a release.
+
+- Role-shared saved reports and named dashboards with bounded catalogs, explicit
+  per-widget UTC period mapping, isolated source failures and owner-controlled sharing.
+- Bounded aggregate XLSX downloads with fresh source/data/field authorization,
+  original groups, currency and truncation metadata, NULL cells and precision-safe numbers.
+- Form Studio server drafts with optimistic revision checks, immutable version
+  history, and transactional publication-package preparation. Package verification
+  rechecks current access, dependency fingerprints and the trusted stored version;
+  preparing or downloading a package does not activate it in ordinary forms.
+- Draft saving, conflict recovery, version history and package download/verification
+  in the existing Studio editor, separate from local declaration-file export.
+- A bounded Form Studio prototype for the existing Products form, available from
+  Settings to administrators with form access. It edits translated labels, field
+  order and sections, previews through the existing renderer, and imports/exports
+  validated JSON without changing products, the entity schema or active forms.
+- Presentation declaration v1 and read-only prototype/preview endpoints: strict
+  allowlists, UTF-8 size/depth limits, duplicate-key and field-coverage checks,
+  current module/field permissions, and localized structured validation errors.
+
+### Fixed
+
+- Development Compose now forwards the explicit Studio activation switch; both
+  development and production configurations verify disabled defaults and explicit opt-in.
+- A live Studio browser scenario verifies real package preparation, activation
+  when enabled, and persisted record creation, editing and deletion.
+
+- Simple-form validation and CLI reject reserved secret-like field identifiers
+  before runtime compilation. Live module navigation and translated labels obey
+  access/module state; dictionary refresh discards stale authentication responses.
+- Startup permission synchronization reads a bounded live catalog instead of
+  reloading all dynamic forms for every permission.
+
+- Единый UX форм: явные ошибки и повтор загрузки заметок/динамических полей,
+  отдельное пустое состояние поиска заметок, Enter в настройках и предпросмотре поиска,
+  адаптивные диалоги меню и компактные поля задачи; уведомления корректно обрабатывают вложенные кнопки.
+- Таблицы: фактический диапазон пагинации, доступные прокрутка и изменение ширины колонок с клавиатуры,
+  ограничение высоты длинных реестров, читаемые ID/приоритеты задач и увеличенные мобильные кнопки.
+- Встроенные отчёты используют общие заголовки, кнопки и сообщения; ошибка загрузки больше не выглядит
+  готовым отчётом, загрузка поддерживает тёмную тему.
+
+- Converting a shared report to a private table view removes its sharing grants
+  in the same transaction, so converting it back cannot silently restore access.
+- Aggregate export sheet names remain valid and unique ignoring case even when
+  translations contain reserved names, apostrophes or Excel-invalid characters.
+- Switching the default table view also increments the previous default's revision,
+  so stale edits cannot silently overwrite the changed setting.
+- Report charts keep raw group identities distinct and no longer add averages,
+  minima or maxima into an Others series. Unsupported results use the complete
+  table, including widgets; currencies and extra dimensions are not combined,
+  and missing KPI values remain distinct from zero.
+- Widget-list loading errors expose an accessible retry instead of an empty state;
+  a failed refresh does not present stale widgets as current data.
+
 ### Changed
 
+- Breaking platform API change: platform-api and provider-spi use version 2.0.0.
+  The new JsonProperty variant of the stable sealed FieldSource requires consumers
+  with exhaustive switches to handle the new variant when recompiling. The original
+  1.0.0 compatibility baseline remains unchanged.
+- OpenAPI operation IDs with automatic suffixes changed for 13 existing operations;
+  generated client method names may change while their HTTP paths remain unchanged.
+
+- Breaking API change: saved table/report/widget updates and deletes now require
+  `If-Match`; request-body `lockVersion` is removed. Responses retain `lockVersion`
+  and return ETag. List-view and dashboard mutations reject idempotency keys to
+  prevent replay of stale definitions after access revocation (ADR-0036).
+- Orders, products and requests from the optional `example` module appear in
+  a separate Examples navigation section. Disabling the module hides the section;
+  entity routes and view permissions remain unchanged. Users without view rights
+  no longer receive a fallback link to the example module under Modules.
+
+- Breaking API semantics: `ms.projects/add_member` is add-only by default.
+  Existing membership returns field validation error 422 without changing access,
+  revision or audit. Changing existing access requires the explicit boolean
+  `updateExisting: true`; revision and permission checks still apply.
+
+- Live UI review: menu loading distinguishes errors from empty/filter results;
+  role switching initially focuses continuing editing, project member searches
+  recover after clearing and expose loading/error/retry states. Member access
+  now sends the server-supported R/W values and defaults to read access.
+- Mobile table actions, switches and tree controls use consistent touch targets;
+  checkbox inputs and chart data stay within their scroll containers. Short
+  windows keep the collapsed navigation menu reachable. Embedded menu settings
+  use a section heading, and custom-field headings describe their purpose.
+
+- Compact task filters and creation: secondary options retain values while
+  collapsed, active filters remain counted and server errors reveal their fields.
+  Full task exports explicitly state their unfiltered scope. Metadata-driven
+  forms allocate width by field type and length and stack in narrow containers.
+- Sidebar section search respects translated labels and current permissions,
+  preserving the original section expansion when cleared.
+- Error navigation reaches composite and custom editable controls; input focus
+  uses one visible ring, and action menus stay within narrow viewports.
+
+- Sign-in and password recovery use a compact, responsive auth layout with a
+  consistent card width and headings for each authentication or reset step.
+  Existing form validation, focus handling and password security rules remain.
 - Webhook destinations require HTTPS (`NFR-SEC-06`), including explicitly
   allowed private hosts. HTTP subscriptions are rejected on create/update and
   before dispatch; no HTTP compatibility path is retained.

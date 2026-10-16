@@ -206,3 +206,10 @@
 .smt-radio-group--cards .smt-radio-group__label {
   font-weight: 600;
 }
+
+@media (max-width: 767px) {
+  .smt-radio-group__item {
+    min-height: var(--control-touch-height);
+    align-items: center;
+  }
+}

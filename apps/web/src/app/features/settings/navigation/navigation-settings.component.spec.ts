@@ -106,6 +106,53 @@ describe('NavigationSettingsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Внешняя CRM');
   });
 
+  it('shows a persistent first-load error and retries without claiming an empty result', () => {
+    const { fixture, navService } = setup();
+    navService.loadAllItems.mockReturnValueOnce(throwError(() => ({ status: 503 })));
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('[data-testid="navigation-load-error"]')).not.toBeNull();
+    expect(host.querySelector('app-navigation-settings-table')).toBeNull();
+    expect(host.textContent).not.toContain('Нет данных для отображения');
+    (host.querySelector('[data-testid="navigation-retry"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(navService.loadAllItems).toHaveBeenCalledTimes(2);
+    expect(host.querySelector('[data-testid="navigation-load-error"]')).toBeNull();
+    expect(host.querySelectorAll('.nav-table [role="rowgroup"] > [role="row"]')).toHaveLength(2);
+  });
+
+  it('keeps loaded menu items after a failed refresh and clears the error on retry', () => {
+    const { fixture, navService } = setup();
+    fixture.detectChanges();
+    navService.loadAllItems.mockReturnValueOnce(throwError(() => ({ status: 503 })));
+    fixture.componentInstance.store.loadItems();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('[data-testid="navigation-load-error"]')).not.toBeNull();
+    expect(host.querySelectorAll('.nav-table [role="rowgroup"] > [role="row"]')).toHaveLength(2);
+    (host.querySelector('[data-testid="navigation-retry"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(navService.loadAllItems).toHaveBeenCalledTimes(3);
+    expect(host.querySelector('[data-testid="navigation-load-error"]')).toBeNull();
+    expect(fixture.componentInstance.store.items()).toEqual(sampleItems);
+  });
+
+  it('uses a section heading only when embedded in the settings page', () => {
+    const { fixture } = setup();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('h1')?.textContent).toBe(translateTest('nav.settings.navigation_title'));
+
+    fixture.componentRef.setInput('embedded', true);
+    fixture.detectChanges();
+    expect(host.querySelector('h1')).toBeNull();
+    expect(host.querySelector('h2')?.textContent).toBe(translateTest('nav.settings.navigation_title'));
+  });
+
   it('opens create modal with default values', () => {
     const { fixture } = setup();
     fixture.detectChanges();

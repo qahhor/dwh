@@ -43,7 +43,7 @@ export function moduleDescription(module: InstalledModule, translate: Translate)
 const SYSTEM_MODULES = new Set(['iam', 'files', 'audit', 'search']);
 
 /** Modules with a built-in, permission-gated nav item: they must not be duplicated in the custom "Modules" section. */
-const BUILT_IN_NAV_MODULES = new Set(['tasks', 'notes', 'upl']);
+const BUILT_IN_NAV_MODULES = new Set(['tasks', 'notes', 'upl', 'example']);
 
 @Injectable({ providedIn: 'root' })
 export class ModuleService {

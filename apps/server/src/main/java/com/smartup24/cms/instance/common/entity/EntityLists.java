@@ -67,7 +67,7 @@ public class EntityLists implements QueryListSource {
                 entity.form(),
                 "view",
                 select(entity, model),
-                model.table() + " " + alias,
+                model.from(),
                 alias + ".id",
                 fields,
                 model.defaultSort(),

@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from '@core/models/auth.models';
+import { I18nService } from '@core/services/i18n.service';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import type { NavSection } from '../app-shell.models';
 import { AppSidebarComponent } from './app-sidebar.component';
@@ -43,6 +45,179 @@ describe('AppSidebarComponent', () => {
     const aside = () => element.querySelector('aside.sidebar') as HTMLElement;
     return { fixture, element, aside };
   }
+
+  function searchMenu(view: ReturnType<typeof render>, text: string) {
+    const input = view.element.querySelector('#sidebar-navigation-search') as HTMLInputElement;
+    input.value = text;
+    input.dispatchEvent(new Event('input'));
+    view.fixture.detectChanges();
+  }
+
+  it('searches translated names without changing source sections, routes or the saved expansion state', () => {
+    const view = render({ isSectionExpanded: (id: string) => id === 'iam' });
+    const sectionToggle = vi.fn();
+    view.fixture.componentInstance.toggleSection.subscribe(sectionToggle);
+    searchMenu(view, '  зАдА  ');
+
+    expect(view.element.querySelectorAll('nav a.nav-item')).toHaveLength(1);
+    expect(view.element.querySelector('nav a')?.getAttribute('href')).toBe('/tasks');
+    const header = () => view.element.querySelector('.nav-section-header') as HTMLButtonElement;
+    expect(header().getAttribute('aria-expanded')).toBe('true');
+    expect(view.element.querySelector('#section-content-workspace')?.hasAttribute('inert')).toBe(false);
+    expect(view.element.querySelector('.navigation-search-status')?.getAttribute('aria-live')).toBe('polite');
+
+    header().click();
+    view.fixture.detectChanges();
+    expect(header().getAttribute('aria-expanded')).toBe('false');
+    expect(sectionToggle).not.toHaveBeenCalled();
+    searchMenu(view, 'задач');
+    expect(header().getAttribute('aria-expanded')).toBe('true');
+    searchMenu(view, '');
+    const headers = [...view.element.querySelectorAll('.nav-section-header')];
+    expect(headers.map((item) => item.getAttribute('aria-expanded'))).toEqual(['false', 'true']);
+    expect(view.element.querySelectorAll('nav a.nav-item')).toHaveLength(2);
+    expect(WORKSPACE.items).toHaveLength(1);
+    expect(WORKSPACE.items[0].route).toBe('/tasks');
+  });
+
+  it('finds permitted nested labels and expands their ancestors without changing submenu preferences', () => {
+    const sections: NavSection[] = [
+      {
+        id: 'data',
+        titleKey: 'nav.section.workspace',
+        items: [
+          {
+            id: 'imports',
+            label: 'Импорт',
+            icon: 'upload',
+            permission: () => true,
+            children: [
+              { id: 'sources', label: 'Источники', route: '/upl/sources', icon: 'source', permission: () => true },
+              { id: 'hidden', label: 'Источники закрытые', route: '/hidden', icon: 'lock', permission: () => false },
+            ],
+          },
+        ],
+      },
+    ];
+    const view = render({ navSections: sections, isSectionExpanded: () => false, isSubmenuExpanded: () => false });
+    const submenuToggle = vi.fn();
+    view.fixture.componentInstance.toggleSubmenu.subscribe(submenuToggle);
+    searchMenu(view, 'источ');
+    expect([...view.element.querySelectorAll('nav a')].map((link) => link.getAttribute('href'))).toEqual([
+      '/upl/sources',
+    ]);
+    const parent = () => view.element.querySelector('.nav-parent-btn') as HTMLButtonElement;
+    expect(parent().getAttribute('aria-expanded')).toBe('true');
+    parent().click();
+    view.fixture.detectChanges();
+    expect(parent().getAttribute('aria-expanded')).toBe('false');
+    expect(submenuToggle).not.toHaveBeenCalled();
+    searchMenu(view, 'Импорт');
+    expect(view.element.querySelector('nav a')?.getAttribute('href')).toBe('/upl/sources');
+    searchMenu(view, '');
+    expect(parent().getAttribute('aria-expanded')).toBe('false');
+    expect(sections[0].items[0].children).toHaveLength(2);
+  });
+
+  it('keeps permission checks reactive and never reveals a denied parent or child through search', () => {
+    const allowed = signal(true);
+    const sections: NavSection[] = [
+      {
+        id: 'secure',
+        titleKey: 'nav.section.workspace',
+        items: [
+          { id: 'private', label: 'Каталог закрытый', route: '/private', icon: 'lock', permission: () => false },
+          { id: 'allowed', label: 'Каталог', route: '/catalog', icon: 'list', permission: () => allowed() },
+          {
+            id: 'denied-parent',
+            label: 'Каталог группы',
+            icon: 'folder',
+            permission: () => false,
+            children: [
+              {
+                id: 'allowed-child',
+                label: 'Каталог вложенный',
+                route: '/denied-child',
+                icon: 'list',
+                permission: () => true,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const view = render({ navSections: sections });
+    searchMenu(view, 'каталог');
+    expect([...view.element.querySelectorAll('nav a')].map((link) => link.getAttribute('href'))).toEqual(['/catalog']);
+    allowed.set(false);
+    view.fixture.detectChanges();
+    expect(view.element.querySelector('nav a')).toBeNull();
+    expect(view.element.querySelector('.navigation-search-empty')).not.toBeNull();
+    expect(view.element.querySelector('.nav-section-header')).toBeNull();
+  });
+
+  it('matches custom names and section titles while preserving external link safeguards', () => {
+    const view = render({
+      navSections: [
+        {
+          ...WORKSPACE,
+          items: [
+            ...WORKSPACE.items,
+            {
+              id: 'docs',
+              label: 'Руководство',
+              icon: 'help',
+              permission: () => true,
+              external: true,
+              targetUrl: 'https://docs.example.test/manual',
+            },
+          ],
+        },
+      ],
+    });
+    searchMenu(view, 'руковод');
+    const link = view.element.querySelector('nav a')!;
+    expect(link.getAttribute('href')).toBe('https://docs.example.test/manual');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+    searchMenu(view, PACKAGED_RUSSIAN['nav.section.workspace']);
+    expect(view.element.querySelectorAll('nav a')).toHaveLength(2);
+  });
+
+  it('updates search matches when the translated menu label changes', () => {
+    const translatedLabel = signal('Задачи');
+    const i18n = TestBed.inject(I18nService);
+    const translate = i18n.translate.bind(i18n);
+    vi.spyOn(i18n, 'translate').mockImplementation((key, params) =>
+      key === 'nav.tasks' ? translatedLabel() : translate(key, params),
+    );
+    const view = render();
+    searchMenu(view, 'tasks');
+    expect(view.element.querySelector('nav a')).toBeNull();
+    translatedLabel.set('Tasks');
+    view.fixture.detectChanges();
+    expect(view.element.querySelector('nav a')?.getAttribute('href')).toBe('/tasks');
+  });
+
+  it('shows menu search only when expanded and keeps mobile navigation open while searching or clearing', () => {
+    const view = render({ isCollapsed: true });
+    expect(view.element.querySelector('#sidebar-navigation-search')).toBeNull();
+    view.fixture.componentRef.setInput('isMobile', true);
+    view.fixture.componentRef.setInput('isMobileMenuOpen', true);
+    view.fixture.detectChanges();
+    const navClicks = vi.fn();
+    view.fixture.componentInstance.navClick.subscribe(navClicks);
+    const input = view.element.querySelector('#sidebar-navigation-search') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    input.click();
+    searchMenu(view, 'нет такого раздела');
+    const clear = view.element.querySelector('.sidebar-navigation-search .smt-input__action') as HTMLButtonElement;
+    clear.click();
+    view.fixture.detectChanges();
+    expect(input.value).toBe('');
+    expect(view.element.querySelectorAll('nav a.nav-item')).toHaveLength(2);
+    expect(navClicks).not.toHaveBeenCalled();
+  });
 
   it('collapses from a named toggle and shows the full sections while expanded', () => {
     const { fixture, element } = render();

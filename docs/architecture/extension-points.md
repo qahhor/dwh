@@ -119,7 +119,7 @@ classpath сервера (ADR-0033, §6); экран его сущностей �
 |---|---|---|
 | `@RequiresPermission(form, action)` и объявление сущности | `S/common/annotation/RequiresPermission.java`, `S/md/service/MdFormCatalogSynchronizer.java` | Источники существования права: пары аннотаций и пары объявлений (`view`, право каждого действия, формы `FieldAccess`; ADR-0032, §6.10) при старте попадают в каталог. Код формы — `<область>.<сущность>`, область называет модуль-владельца (`S/md/pref/PermissionAreas.java`, ADR-0028). |
 | `EntityRights` | в объявлении | Ключи названий формы и действий в матрице прав (ADR-0031): каталог хранит русские слова, API отдаёт и ключи; тесты не дают выпустить пару без названия и ключ без перевода в ru/uz/en. |
-| `EntityMenu` | в объявлении | Пункт бокового меню: подпись, иконка, раздел, порядок, модуль-выключатель и необязательный маршрут. Без маршрута пункт ведёт на общий экран `/e/<код>` (`EntityMenu.routeFor`, ADR-0032 §7.1); свой маршрут называет только свой экран другого способа работы (доска заметок — `/notes`). Отдаётся `GET /api/v1/entities/menu` по правам зрителя. |
+| `EntityMenu` | в объявлении | Пункт бокового меню: подпись, иконка, раздел, порядок, модуль-выключатель и необязательный маршрут. Без маршрута пункт ведёт на общий экран `/e/<код>` (`EntityMenu.routeFor`, ADR-0032 §7.1); свой маршрут называет только свой экран другого способа работы (доска заметок — `/notes`). Отдаётся `GET /api/v1/entities/menu` по правам зрителя. Встроенные учебные сущности используют раздел `examples` («Примеры») и `module="example"`; меню скрывает их при отключении модуля, runtime закрывает доступ независимо от раздела. |
 | Модуль-выключатель | `md_installed_modules`, `S/md/service/ModuleRegistryService.java`, `S/common/module/InstalledModules.java` | Администратор включает и выключает модуль; экран охраняет `moduleActiveGuard`, runtime отвечает на сущность выключенного модуля (`EntityMenu.module`) как на неизвестную — 404. |
 | Переводы | `apps/server/src/main/resources/i18n/{ru,uz,en}.json` | Ключи модуля (`nav.<код>`, подписи полей). Русский — канонический каталог; другие языки администратор добавляет в редакторе языков. |
 
@@ -201,7 +201,7 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
 |---|---|---|
 | Общий экран `/e/:code` | `W/shared/entity/page/` (`entity.routes.ts`, `smt-entity-page`, `smt-entity-list-page`, `smt-entity-edit-page`, `smt-entity-record-page`), `W/shared/entity/page/entity.guard.ts` | Экран любой объявленной сущности **без кода веба** (ADR-0032, §7.1; план 10/10, пункт 5.5): `/e/<код>` — список (`ui-server-table` по `query-meta`, фильтр, сохранённые виды, выгрузка, переключатель архива, массовые архив и удаление, «Создать» — всё по возможностям и `actions`), `/new` и `/:id/edit` — форма (`smt-entity-form`, `If-Match`, 422 под полями, 409/428 — `SaveErrorNotifier` с перечитыванием), `/:id` — карточка (поля по секциям, файлы полей через запись, вкладка истории, кнопки по `actions` записи: правка, архив, удаление, действия по коду). У документа (ADR-0032, §9; пункт 5.7) форма правит строки (`smt-entity-lines`: добавить, удалить, переставить, ошибка под ячейкой строки; строки, заблокированные состоянием, не отправляются), карточка — вкладки из `form-meta` (`smt-entity-rows` — строки, `smt-entity-related` — связанный список), значок состояния и кнопки переходов с их вопросом. `form-meta` читается один раз на сущность (`EntityPageContext`); неизвестная, чужая сущность — «не найдено» по 404 сервера; `entityGuard` закрывает экран выключенного модуля по `EntityMenu.module`. Данные — `EntitiesApi` (`page`, `get`, `create`, `patch`, `remove`, `setArchived`, `action`). |
 | `provideEntityOverrides(code, {cells, fields, sections, tabs})` | `W/shared/entity/page/entity-overrides.ts`, провайдеры маршрута общего экрана в `W/features/entity-screens.routes.ts` (грузятся вместе с экраном) | Точечная правка общего экрана без своего экрана (ADR-0032, §7.2): ячейка списка (входы `row`, `field`), контрол поля формы (`field`, `value`, `problem`, `disabled`, `set`), секция карточки (`meta`, `record`, `values`), своя вкладка карточки (`key`, `labelKey`, компонент со входами `meta`, `record`; `requires` — вкладка предлагается зрителю с одним из этих прав). Несколько вызовов для одной сущности складываются. Пример — пользователи (`W/features/iam/users/users.overrides.ts`: язык и часовой пояс выбором, вкладки «Сессии и безопасность», «Роли и права»). Ссылка на список с фильтром — `/e/<код>?filter=<условия DSL>` (поля, которых у списка нет, отбрасываются). |
-| Отчёт списка и виджеты панели | `W/shared/entity/report/` (`smt-entity-report-builder`, `smt-entity-report`, `smt-entity-report-saved`, `EntityReportsApi`), `W/features/analytics/components/analytics-widgets.component.ts` | Вкладка «Отчёт» общего списка (ADR-0032, §10.2): группировки, меры и вид (таблица, столбцы `ui-bar-chart`, одно число `ui-kpi-card`) под фильтром списка, сохранение отчётом или виджетом; панель аналитики показывает виджеты зрителя. Группировки и меры предлагаются по `query-meta` (`groupable`, `measurable`), код веба на сущность не нужен. |
+| Отчёт списка и виджеты панели | `W/shared/entity/report/` (`smt-entity-report-builder`, `smt-entity-report`, `smt-entity-report-saved`, `EntityReportsApi`), `W/features/analytics/components/analytics-widgets.component.ts` | Вкладка «Отчёт» общего списка (ADR-0032, §10.2): группировки, меры и вид (таблица, столбцы `ui-bar-chart`, одно число `ui-kpi-card`) под фильтром списка, сохранение отчётом или виджетом; панель аналитики показывает виджеты зрителя. При непредставимом столбцами результате показывается точная таблица с пояснением, включая виджеты (валюты, NULL, отрицательные значения, лишние измерения или неаддитивные «Остальные»); см. [рецепт](../cookbook/list-analytics.md#точность-отображения). Группировки и меры предлагаются по `query-meta` (`groupable`, `measurable`), код веба на сущность не нужен. |
 | Помощники тестов общего экрана | `apps/web/src/testing/entity-page.ts` | `renderEntityScreen(url, {meta, list, records, …})` — страница настоящим роутером поверх API из фикстур, `queryMetaFixture`, `entityRecord`, `problem`. |
 | `smt-entity-form` | `W/shared/entity/smt-entity-form.component.ts` | Форма по `form-meta`; отдельное поле заменяется шаблоном `smtEntityField` или компонентом из `[controls]` (так его заменяет `provideEntityOverrides`). Контрол каждого типа — `ENTITY_CONTROLS` (почта, телефон, адрес — поля ввода своего вида; `smt-money-field`, `smt-file-field`, `smt-multi-data-select`, JSON текстом); поле скрывается по `visibleWhen`, блокируется, если только для чтения (`[recordId]` — запись уже есть). Правила значений по типам — `W/core/services/field-values.ts` (`FIELD_VALUE_RULES`), слова на карточке и в истории — `FIELD_TEXT`. |
 | `smt-entity-card` | `W/shared/entity/smt-entity-card.component.ts` | Просмотр записи по раскладке; с `[recordId]` поле `FILE`/`IMAGE` — ссылка на файл через запись. |
@@ -211,6 +211,10 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
 | UI kit | `W/shared/ui-kit` | Кнопки, диалоги, таблицы, поля (в том числе `smt-dynamic-field`, `smt-data-select`), загрузка файлов. |
 | Маршрут своего экрана | `W/app.routes.ts` | Только для экрана другого способа работы (ADR-0032, §7.2): lazy `loadComponent` с `moduleActiveGuard` и `permissionGuard`. Сущности без своего экрана маршрут не нужен — её открывает общий `/e/:code`. |
 | Пункты меню администратора | `md_navigation_items` | Внутренний маршрут, внешняя ссылка или встраивание (`EMBEDDED_IFRAME`, открывается на `/embed/:code`). |
+
+### Прототип декларативного layout
+
+[Контракт Студии](admin-studio-contract.md) задаёт ограниченный формат подписи/секций/порядка для `example.products`. `FormLayoutDeclarations` проверяет документ, `FormStudioService` получает свежий разрешённый metadata через EntityGate, а страница `/settings/form-studio` применяет декларацию к отдельной копии для `smt-entity-form`. Для literal-подписи секции frontend `FormSectionMeta` допускает `label`; серверный FormMeta и общий runtime не изменены. STU-01 сохраняет файл; STU-02 добавляет служебное хранилище черновиков и неизменяемых пакетов внутри md по [ADR-0035](../adr/ADR-0035-declaration-lifecycle.md). Подготовка пакета не меняет реестр сущностей или рабочую форму.
 
 ## 7. Известные пробелы
 
@@ -247,3 +251,26 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
    `./modules:/app/modules:ro` в compose; ADR-0033, §13, Р6) и подключается при
    старте; горячей загрузки, изоляции и порядка миграций нескольких модулей
    между собой (кроме «после платформы, по коду») нет (ADR-0033, §10).
+
+Новые простые формы из административной Студии проходят отдельный контракт `simple-form` и `cms form apply`: [доставка CLI/Flyway](../cookbook/simple-form-delivery.md), [ADR-0037](../adr/ADR-0037-simple-form-cli-delivery.md). Новых runtime-интерфейсов и динамической регистрации эта точка не добавляет.
+
+### Простые формы с активацией
+
+[ADR-0038](../adr/ADR-0038-live-simple-forms.md) добавляет ограниченный источник
+`EntityDefinitionSource`, агрегатор `LiveEntities` и `LiveQueryListSource`.
+`StudioDefinitions` читает immutable определения; `StudioEntityCompiler`
+компилирует разрешённые типы в обычный `EntityDefinition`. SQL, имя таблицы и
+partition задаются сервером. `EntityModel.partition` — обязательная граница
+в чтении и записи; `FieldSource.JsonProperty` хранит простое поле в фиксированном
+JSONB payload. Подписи живут в `studio.live.*`, права — в общем каталоге MD.
+
+Редактор, `/e/:code`, QueryList, история, отчёт и экспорт сохраняют общие контракты.
+Новые определения доступны следующему запросу; внутри запроса закреплён snapshot.
+Начальный publish выключен конфигурацией. Сложные схемы, собственные hooks,
+ссылки и изменение уже активированной схемы требуют инженерной поставки.
+Порядок включения и диагностика — [рецепт](../cookbook/live-simple-forms.md).
+
+
+### Подготовленные отчётные проекции и LLM
+
+[ADR-0039](../adr/ADR-0039-report-datasets-and-assistant.md): EntityReportDataset и EntityReportDatasets расширяют существующий отчёт доверенной REF N:1 проекцией, сохраняя root entity и права обоих источников. Это внутренняя точка расширения встроенных модулей; она не объявлена стабильным внешним Platform API. LlmProvider — дополнительный экспериментальный SPI 2.0: генерация текста через явно выбранный провайдер, без хранения или исполнения. StudioAssistantService проверяет результат и текущий доступ. Пример и эксплуатация — [рецепт](../cookbook/report-datasets-and-assistant.md).

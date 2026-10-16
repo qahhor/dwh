@@ -16,6 +16,31 @@ public class MdPermissionRepository {
         this.jdbcClient = jdbcClient;
     }
 
+    /** Serializes catalog synchronization with live entity registration (ADR-0038). */
+    public void lockCatalog() {
+        jdbcClient
+                .sql("select pg_advisory_xact_lock(129632, 2)")
+                .query((row, index) -> 1)
+                .single();
+    }
+
+    /** Initial live-entity grants belong only to the administrative roles (ADR-0038). */
+    public List<Long> grantEntityToAdministrativeRoles(String form, Set<String> actions) {
+        for (String action : actions) {
+            jdbcClient.sql("""
+                    insert into md_role_permissions(role_id, form_code, action)
+                    select id, :form, :action from md_roles where pcode in ('admin', 'chief_admin')
+                    on conflict(role_id, form_code, action) do nothing
+                    """).param("form", form).param("action", action).update();
+        }
+        return jdbcClient.sql("""
+                select distinct ur.user_id from md_user_roles ur
+                join md_roles r on r.id = ur.role_id
+                where r.pcode in ('admin', 'chief_admin') and r.state = 'A'
+                order by ur.user_id
+                """).query(Long.class).list();
+    }
+
     public void registerForm(String code, String module, String name) {
         jdbcClient
                 .sql("""

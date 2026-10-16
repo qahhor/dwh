@@ -15,6 +15,8 @@
 }
 
 .form-group {
+  margin-bottom: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -121,4 +123,14 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    flex-direction: column;
+  }
+  .chip-btn {
+    width: var(--control-touch-height);
+    height: var(--control-touch-height);
+  }
 }

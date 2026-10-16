@@ -16,12 +16,15 @@
 }
 .dash-card__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 .dash-card__titles {
+  flex: 1 1 160px;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .dash-card__title {
   margin: 0;
@@ -36,8 +39,10 @@
 }
 .dash-card__actions {
   display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   gap: 6px;
-  flex-shrink: 0;
+  flex: 0 1 auto;
 }
 .dash-card__body {
   min-width: 0;

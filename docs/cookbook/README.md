@@ -1,6 +1,6 @@
 # Cookbook: рецепты модуля на low-code платформе
 
-**Обновлено:** 2026-10-03 · **Основание:** план 10/10, пункт 6.6;
+**Обновлено:** 2026-10-14 · **Основание:** план 10/10, пункт 6.6;
 [ADR-0032](../adr/ADR-0032-low-code-platform-v2.md),
 [ADR-0033](../adr/ADR-0033-platform-api-and-module-manifest.md);
 [руководство по модулям](../guidelines/module-development-guide.md).
@@ -29,11 +29,16 @@ cookbook — короткий путь от задачи к коду.
 приём. Новые сущности созданы командами `cms` и доведены руками; что именно
 пришлось доводить — в рецептах («Подводные камни»). Включить модуль —
 переключатель `example` в реестре модулей; тесты включают его сами.
+После включения заказы, товары и заявки доступны в отдельном разделе «Примеры»
+(`EntityMenu.section = "examples"`) с учётом прав просмотра. Отключение `example`
+убирает раздел из меню и закрывает доступ к сущностям на сервере.
 
 ## Рецепты
 
 | Задача | Рецепт |
 |---|---|
+| Новая форма из Студии: пакет, CLI, Flyway | [simple-form-delivery.md](simple-form-delivery.md) |
+| Новая форма без выпуска приложения: активация, права, восстановление | [live-simple-forms.md](live-simple-forms.md) |
 | Справочник: код, название, архив | [reference-list.md](reference-list.md) |
 | Список: фильтры, сортировка, виды, поиск | [list-filters-search.md](list-filters-search.md) |
 | Документ со строками | [document-lines.md](document-lines.md) |
@@ -46,6 +51,7 @@ cookbook — короткий путь от задачи к коду.
 | Скоуп данных: чьи записи видит пользователь | [data-scope.md](data-scope.md) |
 | Импорт из xlsx | [import.md](import.md) |
 | Отчёты и виджеты | [list-analytics.md](list-analytics.md) |
+| Подготовленные datasets, графики и помощник | [report-datasets-and-assistant.md](report-datasets-and-assistant.md) |
 | Оптимистическая блокировка (`If-Match`) | [if-match.md](if-match.md) |
 | Описание API сущности (OpenAPI) | [openapi.md](openapi.md) |
 | Точечная правка общего экрана в Angular | [screen-overrides.md](screen-overrides.md) |

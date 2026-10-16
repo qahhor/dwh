@@ -37,8 +37,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,7 +79,7 @@ public class ReportExportService {
 
     private final ReportExportRepository repo;
     private final QueryListRegistry registry;
-    private final Map<String, QueryListExporter> exporters;
+    private final ReportExportSources exporters;
     private final ExportPrincipals principals;
     private final EntityGate gate;
     private final MdI18nService i18n;
@@ -110,9 +108,7 @@ public class ReportExportService {
             @Value("${smc.reports.export.max-rows:50000}") int maxRows) {
         this.repo = repo;
         this.registry = registry;
-        // The modules' own exporters and those the declared entities get from their declaration (roadmap item 56).
-        this.exporters = Stream.concat(exporters.stream(), entities.exporters().stream())
-                .collect(Collectors.toUnmodifiableMap(QueryListExporter::code, Function.identity()));
+        this.exporters = new ReportExportSources(exporters, entities);
         this.principals = principals;
         this.gate = gate;
         this.i18n = i18n;
@@ -132,9 +128,9 @@ public class ReportExportService {
         QueryList list = registry.find(request.list())
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))
                 .filter(found -> gate.listOpen(found.code()))
-                .filter(found -> exporters.containsKey(found.code()))
+                .filter(found -> exporters.find(found.code()) != null)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_list_unknown"));
-        QueryListExporter exporter = exporters.get(list.code());
+        QueryListExporter exporter = exporters.find(list.code());
         // The same checks the list endpoint makes: a bad filter is refused now, not in the job.
         QueryCompiler.compile(list, request.filter(), request.sort(), 1, null, request.q());
         Map<String, String> options = presentOptions(request.options());
@@ -217,7 +213,7 @@ public class ReportExportService {
             throw ApiException.conflict(ErrorCode.CONFLICT, "error.report.export_not_ready");
         }
         QueryList list = stillOpen(row.listCode());
-        access.requireCurrent(row.request(), list, exporters.get(list.code()));
+        access.requireCurrent(row.request(), list, exporters.find(list.code()));
         return new ExportFile(
                 row.fileName(),
                 row.sizeBytes() == null ? -1 : row.sizeBytes(),
@@ -279,7 +275,7 @@ public class ReportExportService {
     private void write(ExportRow row) {
         StoredRequest request = readRequest(row.request());
         QueryList list = stillOpen(row.listCode());
-        QueryListExporter exporter = Optional.ofNullable(exporters.get(list.code()))
+        QueryListExporter exporter = Optional.ofNullable(exporters.find(list.code()))
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_list_unknown"));
         List<QueryField> fields = columns(list, request.columns());
         ExportAccess.Snapshot snapshot = access.start(fields);

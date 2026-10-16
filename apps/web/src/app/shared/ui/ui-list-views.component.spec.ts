@@ -150,7 +150,7 @@ describe('ui-list-views', () => {
     expect(confirm).toHaveBeenCalledWith(
       expect.objectContaining({ destructive: true, message: expect.stringContaining('Месячные') }),
     );
-    expect(api.remove).toHaveBeenCalledWith('upl.sources', 1);
+    expect(api.remove).toHaveBeenCalledWith('upl.sources', 1, 0);
     expect(fixture.componentInstance.state.views()).toEqual([]);
   });
 

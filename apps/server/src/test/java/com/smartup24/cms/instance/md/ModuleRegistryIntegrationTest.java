@@ -55,7 +55,7 @@ class ModuleRegistryIntegrationTest {
         newModule = new ModuleManifest(
                 "library",
                 PlatformVersion.parse("1.2.0"),
-                PlatformVersion.parse("1.0.0"),
+                PlatformVersion.current(),
                 List.of(new ModuleManifest.Dependency("iam", PlatformVersion.parse("1.0.0"))),
                 List.of(),
                 "com.acme.library.LibraryModule",
@@ -111,7 +111,7 @@ class ModuleRegistryIntegrationTest {
         assertThat(library.titleKey()).isEqualTo("library.module.name");
         assertThat(library.descriptionKey()).isEqualTo("library.module.description");
         assertThat(library.version()).isEqualTo("1.2.0");
-        assertThat(library.minPlatform()).isEqualTo("1.0.0");
+        assertThat(library.minPlatform()).isEqualTo(PlatformVersion.current().toString());
         assertThat(library.dependencies())
                 .containsExactly(new ModuleRegistryService.ModuleDependencyView("iam", "1.0.0"));
         assertThat(withNewModule.toggleModuleStatus("library", false).status()).isEqualTo("DISABLED");

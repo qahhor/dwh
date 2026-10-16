@@ -41,15 +41,18 @@ public class MsProjectRepository {
         return query.query(Long.class).list();
     }
 
-    /** Adds the user to the project, or changes their access; true when anything changed. */
-    public boolean addMember(long projectId, long userId, String accessKind) {
+    /** Adds a member atomically; changing existing access requires an explicit request. True when changed. */
+    public boolean addMember(long projectId, long userId, String accessKind, boolean updateExisting) {
+        String conflictAction = updateExisting
+                ? "do update set access_kind = :accessKind"
+                        + " where ms_task_project_members.access_kind <> :accessKind"
+                : "do nothing";
         return jdbcClient
                         .sql("""
                 insert into ms_task_project_members (project_id, user_id, access_kind)
                 values (:projectId, :userId, :accessKind)
-                on conflict (project_id, user_id) do update set access_kind = :accessKind
-                where ms_task_project_members.access_kind <> :accessKind
-                """)
+                on conflict (project_id, user_id)
+                """ + conflictAction)
                         .param("projectId", projectId)
                         .param("userId", userId)
                         .param("accessKind", accessKind)

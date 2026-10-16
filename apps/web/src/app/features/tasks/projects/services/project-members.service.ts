@@ -82,7 +82,10 @@ export class ProjectMembersService {
       error: (err: unknown) => {
         this.isAddingMember.set(false);
         // A refusal about the person or the access level goes under that field (forms standard, section 5).
-        const { fields, other } = problemFieldErrors(err, { known: ['userId', 'accessKind'] });
+        const { fields, other } = problemFieldErrors(err, {
+          known: ['userId', 'accessKind'],
+          rename: { 'params.userId': 'userId', 'params.accessKind': 'accessKind' },
+        });
         this.addErrors.set(fields);
         if (Object.keys(fields).length === 0 || other.length > 0) {
           this.toast.error(other[0] ?? (problemText(err) || this.uiI18n.translate('projects.members.add_failed')));

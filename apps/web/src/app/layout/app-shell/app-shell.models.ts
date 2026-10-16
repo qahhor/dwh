@@ -245,6 +245,11 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
     },
   );
 
+  const exampleItems = entityNavItems(options, 'examples');
+  if (exampleItems.length > 0) {
+    sections.push({ id: 'examples', titleKey: 'nav.section.examples', items: exampleItems });
+  }
+
   const customNavItems = options.customNavItems;
   if (customNavItems.length > 0) {
     const customReportItems: NavItem[] = [];
@@ -352,6 +357,7 @@ export const SECTION_ICON_MAP: Record<string, string> = {
   workspace: 'space_dashboard',
   iam: 'manage_accounts',
   administration: 'tune',
+  examples: 'science',
   'custom-modules': 'extension',
   'custom-reports': 'analytics',
 };

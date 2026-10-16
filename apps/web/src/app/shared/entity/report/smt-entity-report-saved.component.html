@@ -1,0 +1,157 @@
+@if (list.loading()) {
+  <p role="status">{{ 'common.loading' | t }}</p>
+}
+@if (list.failed() || list.loadMoreFailed()) {
+  <p role="alert">
+    {{ 'ui.report.failed' | t }}
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtSize="sm"
+      data-testid="report-catalog-retry"
+      (click)="list.retry()"
+    >
+      {{ 'common.retry' | t }}
+    </button>
+  </p>
+}
+@if (saveError() && !saveAsOpen()) {
+  <p role="alert">
+    {{ conflict() ? ('ui.report.conflict' | t) : saveError() }}
+    <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="reload()">
+      {{ 'ui.report.reload' | t }}
+    </button>
+  </p>
+}
+<div class="saved" data-testid="report-saved">
+  <smt-control class="saved-field" [smtLabel]="'ui.report.saved' | t">
+    <smt-select
+      [smtTriggerId]="ids + '-pick'"
+      [options]="options()"
+      [disabled]="list.loading() || list.failed() || busy()"
+      [placeholder]="'ui.report.saved_none' | t"
+      [value]="activeId()"
+      (valueChange)="pick($event)"
+    />
+  </smt-control>
+  @if (list.hasMore()) {
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      [smtLoading]="list.loadingMore()"
+      (click)="list.loadMore()"
+    >
+      {{ 'common.load_more' | t }}
+    </button>
+  }
+  @if (active(); as report) {
+    @if (report.canShare) {
+      <smt-report-sharing [path]="sharingPath()" (changed)="sharingChanged($event)" />
+    }
+    @if (report.canEdit) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        smtIcon="save"
+        [smtLoading]="busy()"
+        [disabled]="conflict() || list.loading()"
+        (click)="saveActive(report)"
+      >
+        {{ 'common.save' | t }}
+      </button>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        [smtIcon]="report.kind === 'widget' ? 'dashboard_customize' : 'dashboard'"
+        [attr.aria-pressed]="report.kind === 'widget'"
+        data-testid="report-pin"
+        (click)="togglePin(report)"
+      >
+        {{ 'ui.report.on_dashboard' | t }}
+      </button>
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        [disabled]="busy() || conflict()"
+        (click)="openRename()"
+      >
+        {{ 'ui.report.rename' | t }}
+      </button>
+      <button smt-button type="button" smtVariant="ghost" smtSize="sm" smtIcon="delete" (click)="remove(report)">
+        {{ 'common.delete' | t }}
+      </button>
+    }
+  }
+  <button
+    smt-button
+    type="button"
+    smtVariant="primary"
+    smtSize="sm"
+    smtIcon="bookmark_add"
+    data-testid="report-save-as"
+    (click)="openSaveAs()"
+  >
+    {{ 'ui.report.save_as' | t }}
+  </button>
+</div>
+
+<smt-dialog
+  [open]="saveAsOpen()"
+  [smtTitle]="(renaming() ? 'ui.report.rename' : 'ui.report.save_as') | t"
+  smtSize="sm"
+  [dismissible]="!busy()"
+  (closed)="closeSaveAs()"
+>
+  <ng-template smtDialogContent>
+    <form
+      class="saved-form"
+      [id]="ids + '-form'"
+      uiFocusFirstInvalid
+      (submit)="$event.preventDefault(); submitSaveAs()"
+      novalidate
+    >
+      @if (saveError(); as text) {
+        <div class="saved-alert" role="alert" data-testid="report-save-error">
+          {{ text }}
+          @if (conflict()) {
+            <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="reload()">
+              {{ 'ui.report.reload' | t }}
+            </button>
+          }
+        </div>
+      }
+      <smt-control [smtLabel]="'ui.report.name' | t" [smtError]="error()" [required]="true">
+        <smt-input
+          smtTestId="report-name"
+          smtFocusInitial
+          [smtFieldId]="ids + '-name'"
+          [maxLength]="nameMax"
+          [value]="name()"
+          (valueChange)="name.set($event === null ? '' : '' + $event)"
+        />
+      </smt-control>
+      @if (!renaming()) {
+        <div smt-checkbox data-testid="report-widget" [checked]="asWidget()" (checkedChange)="asWidget.set($event)">
+          {{ 'ui.report.show_on_dashboard' | t }}
+        </div>
+      }
+    </form>
+    <ui-form-actions
+      footer
+      [form]="ids + '-form'"
+      data-testid="report-save-as-actions"
+      [submitting]="busy()"
+      [submitDisabled]="renaming() && conflict()"
+      (cancelled)="closeSaveAs()"
+    />
+  </ng-template>
+</smt-dialog>

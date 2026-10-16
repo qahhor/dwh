@@ -79,3 +79,26 @@ A component asks its feature's typed data service (`<feature>.api.ts`), not
 `RecordHistoryApi`, and `core` holds what several features read
 (`RolesApi`, `CustomFieldsApi`). The module guide shows the reference screen:
 `docs/guidelines/module-development-guide.md`.
+
+## Server table viewport and keyboard controls
+
+`ui-server-table` limits its scroll area to `min(60dvh, 640px)` by default.
+Override `[maxHeight]` for a constrained dialog, or pass `null` for an explicitly
+unbounded view. The table header stays inside the scroll area. The footer uses
+the actual number of rows on the current page even when the total is estimated.
+
+Column resize handles are keyboard-focusable: Left/Right change the width by
+10 px, Shift increases the step to 50 px, Home/End use the configured limits.
+Horizontal scroll controls are buttons; after activation focus moves into the
+table's scroll region. Tab bars centre keyboard focus without moving a tab
+between pointer press and release.
+
+## Heading and dialog focus
+
+`ui-page-header` uses a native `h1` by default. Embedded screens set
+`[headingLevel]="2"` to keep one page-level heading.
+
+Use `[cancelFocusInitial]="true"` on `ui-form-actions` when a confirmation
+should initially focus its safe cancellation action. Drawers and dialogs
+start with their first available content control; their close icon remains
+visually in the header but follows the content in keyboard order.

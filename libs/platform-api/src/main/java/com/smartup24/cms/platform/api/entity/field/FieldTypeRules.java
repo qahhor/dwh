@@ -58,12 +58,34 @@ final class FieldTypeRules {
                         ? type == FieldType.MULTI_REF
                         : type != FieldType.MULTI_REF || source instanceof FieldSource.Expression,
                 "several references live in a link table, and only they do; an expression may read them");
+        checkSource(key, type, source, form, list, options);
+        if (list != null && list.isSortable()) {
+            require(key, type.sortable(), "a " + type.wire() + " is never sorted");
+        }
+        if (form != null) {
+            checkForm(key, source, form);
+        }
+    }
+
+    private static void checkSource(
+            String key,
+            FieldType type,
+            FieldSource source,
+            @Nullable FormPart form,
+            @Nullable ListPart list,
+            FieldOptions options) {
         checkMoney(key, type, source, options);
         if (type == FieldType.FILE || type == FieldType.IMAGE || type == FieldType.JSON) {
             require(key, source instanceof FieldSource.Column, "a file and JSON live in a column of their own");
         }
         if (type == FieldType.IMAGE && form != null) {
             require(key, IMAGE_TYPES.containsAll(form.rules().contentTypes()), "an image is PNG, JPEG or WebP");
+        }
+        if (source instanceof FieldSource.JsonProperty) {
+            require(
+                    key,
+                    JsonPropertyCasts.TYPES.contains(type) && (list == null || !list.isSortable()),
+                    "a JSON property holds a simple scalar and is never sorted (ADR-0038)");
         }
         if (source instanceof FieldSource.Attribute) {
             require(
@@ -73,12 +95,6 @@ final class FieldTypeRules {
         }
         if (source instanceof FieldSource.Computed) {
             require(key, type.scalar() || type == FieldType.MONEY, "a computed value is a scalar or money");
-        }
-        if (list != null && list.isSortable()) {
-            require(key, type.sortable(), "a " + type.wire() + " is never sorted");
-        }
-        if (form != null) {
-            checkForm(key, source, form);
         }
     }
 

@@ -20,6 +20,24 @@ interface Screen {
 
 const screens: Screen[] = [
   {
+    name: 'navigation filtered by translated section name',
+    path: '/tasks',
+    open: async page => {
+      await page.getByRole('searchbox', { name: 'Найти раздел' }).fill('Пользователи');
+      await expect(page.locator('.sidebar-nav').getByRole('link', { name: 'Пользователи', exact: true })).toBeVisible();
+      await expect(page.locator('.sidebar-nav').getByRole('link')).toHaveCount(1);
+    },
+  },
+  {
+    name: 'task creation with additional options expanded',
+    path: '/tasks',
+    open: async page => {
+      await page.locator('.view-header').getByRole('button', { name: 'Новая задача' }).click();
+      await page.getByTestId('task-create-additional-toggle').click();
+      await expect(page.getByRole('radio', { name: 'Высокий' })).toBeVisible();
+    },
+  },
+  {
     name: 'language list',
     path: '/settings',
     open: async page => {
@@ -121,6 +139,7 @@ const screens: Screen[] = [
     name: 'task list with the project filter open',
     path: '/tasks',
     open: async page => {
+      await page.locator('#task-more-filters').click();
       await page.getByRole('combobox', { name: 'Фильтр по проекту' }).click();
       await expect(page.getByRole('option', { name: 'Выкладка в сети 1', exact: true })).toBeVisible();
     },
@@ -219,12 +238,12 @@ const screens: Screen[] = [
   },
   // ADR-0032 10.2: a report built on the list without code, and the viewer's widget on the dashboard.
   {
-    name: 'document report with its chart and table',
+    name: 'multi-currency report with its accurate table',
     path: '/e/example.orders',
     open: async page => {
       await page.getByTestId('entity-mode').getByRole('radio', { name: 'Отчёт' }).click();
       await chooseOption(page.getByLabel('Группировать по'), 'status');
-      await expect(page.getByTestId('report-chart')).toBeVisible();
+      await expect(page.getByTestId('report-chart-fallback')).toBeVisible();
       await expect(page.getByRole('table', { name: 'Отчёт: Заказы (эталон)', exact: true })).toBeVisible();
     },
   },
@@ -234,7 +253,8 @@ const screens: Screen[] = [
     open: async page => {
       const widget = page.getByTestId('analytics-widget');
       await expect(widget.getByRole('heading', { name: 'Заказы по статусам' })).toBeVisible();
-      await expect(widget.getByTestId('bar-chart-bar').first()).toBeVisible();
+      await expect(widget.getByTestId('report-chart-fallback')).toBeVisible();
+      await expect(widget.getByTestId('report-table')).toBeVisible();
     },
   },
 ];

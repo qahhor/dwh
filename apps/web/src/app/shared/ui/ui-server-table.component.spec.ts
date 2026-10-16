@@ -340,3 +340,36 @@ describe('ui-server-table selection', () => {
     expect(bar(fixture)).toBeNull();
   });
 });
+
+describe('ui-server-table observed ranges', () => {
+  it('uses the rows on screen when the estimated total is lower than their position', async () => {
+    respond = (cursor) =>
+      of(
+        cursor
+          ? { items: [{ id: 3 }], totalEstimated: 1, totalExact: false }
+          : { items: [{ id: 1 }, { id: 2 }], nextCursor: 'c2', hasMore: true, totalEstimated: 1, totalExact: false },
+      );
+    const fixture = await render();
+    fixture.componentInstance.pager.first();
+    fixture.componentInstance.pager.next();
+    fixture.detectChanges();
+    expect(el(fixture).querySelector('.pagination-info')?.textContent).toContain('3–3');
+    expect(el(fixture).querySelector('.pagination-info')?.textContent).toContain('≈ 1');
+  });
+
+  it('does not claim a full last page when the estimate exceeds the actual rows', async () => {
+    respond = () => of({ items: [{ id: 1 }], totalEstimated: 100, totalExact: false });
+    const fixture = await render();
+    fixture.componentInstance.pager.first();
+    fixture.detectChanges();
+    expect(el(fixture).querySelector('.pagination-info')?.textContent).toContain('1–1');
+  });
+
+  it('does not announce rows on an empty page even when the total remains positive', async () => {
+    respond = () => of({ items: [], totalEstimated: 100, totalExact: false });
+    const fixture = await render();
+    fixture.componentInstance.pager.first();
+    fixture.detectChanges();
+    expect(el(fixture).querySelector('.pagination-info')).toBeNull();
+  });
+});

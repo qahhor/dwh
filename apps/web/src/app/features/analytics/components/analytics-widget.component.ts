@@ -68,7 +68,9 @@ export class AnalyticsWidgetComponent {
     params: () => this.widget(),
     stream: ({ params: widget }) =>
       forkJoin({
-        meta: this.queryMeta.get(widget.listCode),
+        meta: widget.state.dataset
+          ? this.queryMeta.report(widget.entity, widget.state.dataset)
+          : this.queryMeta.get(widget.listCode),
         result: this.reports.saved(widget.entity, widget.id),
       }).pipe(
         map((loaded) => ({ ...loaded, failure: '' })),

@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { rxResource, takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { debounceTime, distinctUntilChanged, tap } from 'rxjs';
+import { Observable, debounceTime, distinctUntilChanged, of, tap } from 'rxjs';
 import type { ListQuery, QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
 import { canDo, hasCapability } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -60,91 +60,7 @@ import { EntityPageContext } from './smt-entity-page.component';
     UiServerTableComponent,
   ],
   host: { class: 'smt-entity-list-page' },
-  template: `
-    <ui-page-header [title]="context.title()" [count]="pager.total()" countTestId="entity-count">
-      @if (listMeta()) {
-        <smt-radio-group
-          smtAppearance="segmented"
-          smtOrientation="horizontal"
-          data-testid="entity-mode"
-          [options]="modeOptions()"
-          [value]="mode()"
-          [smtAriaLabel]="'ui.report.mode' | t"
-          (valueChange)="mode.set($event ?? 'list')"
-        />
-      }
-      @if (searchable() && mode() === 'list') {
-        <smt-input
-          class="entity-search"
-          type="search"
-          smtIcon="search"
-          clearable
-          smtSize="sm"
-          [placeholder]="'ui.entity_page.search' | t"
-          [smtAriaLabel]="'ui.entity_page.search' | t"
-          [value]="search()"
-          (valueChange)="search.set($any($event) ?? '')"
-        />
-      }
-      <smt-entity-toolbar [meta]="meta()" [views]="views" [listTools]="false" (bulkDone)="pager.reload()" />
-      <smt-entity-import [meta]="meta()" (imported)="pager.reload()" />
-      @if (canCreate()) {
-        <a smt-button smtVariant="primary" smtIcon="add" routerLink="new" data-testid="entity-create">
-          {{ 'common.create' | t }}
-        </a>
-      }
-    </ui-page-header>
-
-    @if (listFailed()) {
-      <smt-entity-page-state kind="failed" (retry)="load()" />
-    } @else if (mode() === 'report' && listMeta(); as meta) {
-      <smt-entity-report-builder
-        [code]="context.code()"
-        [meta]="meta"
-        [views]="views"
-        [title]="context.title()"
-        [canSave]="savedViews()"
-      />
-    } @else if (config(); as config) {
-      <ui-server-table
-        [pager]="pager"
-        [config]="config"
-        [views]="views"
-        [savedViews]="savedViews()"
-        [filterMeta]="listMeta()"
-        [exportable]="exportable()"
-        [exportSearch]="search()"
-        [selectable]="selectable()"
-        [lockedColumns]="lockedColumns()"
-        [(selected)]="selectedRows"
-        [loadingLabel]="'ui.entity_page.list_loading' | t"
-        [errorLabel]="'ui.entity_page.list_failed' | t"
-        [emptyTemplate]="empty"
-        (sortChange)="sort($event)"
-        (rowClick)="open($event)"
-      >
-        <smt-entity-toolbar
-          bulkActions
-          [meta]="meta()"
-          [selected]="selectedIds()"
-          [clearable]="false"
-          (selectedChange)="$event.length === 0 && selectedRows.set([])"
-          (bulkDone)="pager.reload()"
-        />
-      </ui-server-table>
-    }
-
-    <ng-template #openCell let-row>
-      <a class="entity-open" [routerLink]="[row.id]" (click)="$event.stopPropagation()">{{ openText(row) }}</a>
-    </ng-template>
-    <ng-template #empty>
-      <div class="entity-empty" data-testid="entity-empty">
-        <span class="material-symbols-outlined entity-empty-icon" aria-hidden="true">inbox</span>
-        <h3>{{ 'ui.entity_page.empty' | t }}</h3>
-        <p>{{ (canCreate() ? 'ui.entity_page.empty_hint' : 'ui.entity_page.empty_hint_view') | t }}</p>
-      </div>
-    </ng-template>
-  `,
+  templateUrl: './smt-entity-list-page.component.html',
   styles: [
     `
       :host {
@@ -195,6 +111,8 @@ export class SMTEntityListPageComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly openCell = viewChild.required<TemplateRef<unknown>>('openCell');
+
+  private readonly report = viewChild(SMTEntityReportBuilderComponent);
 
   readonly search = signal('');
   /** The list itself, or its report (ADR-0032 10.2). */
@@ -331,6 +249,15 @@ export class SMTEntityListPageComponent {
     effect(() => {
       this.query();
       if (this.viewsReady()) untracked(() => this.pager.first());
+    });
+  }
+
+  canLeaveRecordPage(): Observable<boolean> {
+    return this.report()?.canLeaveRecordPage() ?? of(true);
+  }
+  setMode(mode: 'list' | 'report'): void {
+    this.canLeaveRecordPage().subscribe((allow) => {
+      if (allow) this.mode.set(mode);
     });
   }
 

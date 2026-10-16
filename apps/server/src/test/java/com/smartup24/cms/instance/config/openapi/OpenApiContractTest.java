@@ -147,6 +147,114 @@ class OpenApiContractTest extends EmbeddedPostgresTest {
     }
 
     @Test
+    void formLayoutVersionIsDescribedAsTheNumberAcceptedByTheServer() throws Exception {
+        JsonNode version = generated()
+                .path("components")
+                .path("schemas")
+                .path("FormLayoutDeclaration")
+                .path("properties")
+                .path("formatVersion");
+        assertThat(version.path("type").asString()).isEqualTo("integer");
+        assertThat(version.has("enum"))
+                .as("a string enum would generate a string web type")
+                .isFalse();
+        assertThat(version.path("minimum").isNumber()).isTrue();
+        assertThat(version.path("maximum").isNumber()).isTrue();
+        assertThat(version.path("minimum").decimalValue()).isEqualByComparingTo("1");
+        assertThat(version.path("maximum").decimalValue()).isEqualByComparingTo("1");
+    }
+
+    @Test
+    void formLayoutSchemasNameExactlyTheirRequiredProperties() throws Exception {
+        JsonNode schemas = generated().path("components").path("schemas");
+        assertRequiredProperties(schemas, "FormLayoutDeclaration", "formatVersion", "kind", "entityCode", "sections");
+        assertRequiredProperties(schemas, "FormLayoutSection", "id", "fields");
+        assertRequiredProperties(schemas, "FormLayoutField", "fieldId");
+        assertRequiredProperties(schemas, "LocalizedLabels", "ru", "uz", "en");
+        assertRequiredProperties(schemas, "FormLayoutPreview", "declaration", "meta");
+    }
+
+    @Test
+    void storedFormStudioSchemasKeepRequiredFieldsAndNumericVersions() throws Exception {
+        JsonNode schemas = generated().path("components").path("schemas");
+        assertRequiredProperties(schemas, "FormStudioDraft", "entityCode", "revision", "declaration");
+        assertRequiredProperties(schemas, "FormStudioDraftResponse", "draft", "meta");
+        assertRequiredProperties(schemas, "FormStudioDependencies", "contractVersion", "metadataChecksum");
+        assertRequiredProperties(
+                schemas,
+                "FormStudioPublicationPackage",
+                "formatVersion",
+                "kind",
+                "entityCode",
+                "version",
+                "sourceRevision",
+                "dependencies",
+                "declaration");
+        assertRequiredProperties(
+                schemas, "FormStudioVersionPackage", "version", "sourceRevision", "checksum", "package");
+        assertRequiredProperties(
+                schemas, "FormStudioVersionSummary", "version", "sourceRevision", "checksum", "createdAt");
+        assertRequiredProperties(schemas, "FormStudioVerification", "valid", "version", "sourceRevision", "checksum");
+        JsonNode format =
+                schemas.path("FormStudioPublicationPackage").path("properties").path("formatVersion");
+        assertThat(format.path("type").asString()).isEqualTo("integer");
+        assertThat(format.has("enum")).isFalse();
+        assertThat(format.path("minimum").decimalValue()).isEqualByComparingTo("1");
+        assertThat(format.path("maximum").decimalValue()).isEqualByComparingTo("1");
+    }
+
+    @Test
+    void absentFormStudioDraftIsAnObjectOrNullUnion() throws Exception {
+        JsonNode schemas = generated().path("components").path("schemas");
+        JsonNode draft =
+                schemas.path("FormStudioDraftResponse").path("properties").path("draft");
+        assertThat(draft.has("$ref"))
+                .as("a sibling null type would intersect the object reference")
+                .isFalse();
+        assertThat(draft.has("type")).isFalse();
+        assertThat(draft.path("anyOf").size()).isEqualTo(2);
+        assertThat(draft.path("anyOf").get(0).path("$ref").asString())
+                .isEqualTo("#/components/schemas/FormStudioDraft");
+        assertThat(draft.path("anyOf").get(1).path("type").asString()).isEqualTo("null");
+        assertThat(schemas.path("FormStudioDraft").path("type").asString()).isEqualTo("object");
+    }
+
+    @Test
+    void formStudioLifecycleOperationsDescribeTheirBehaviorAndStatus() throws Exception {
+        JsonNode paths = generated().path("paths");
+        String base = "/api/v1/form-studio/drafts/{entityCode}";
+        int operations = 0;
+        for (String path :
+                List.of(base, base + "/versions", base + "/versions/{version}", base + "/versions/{version}/verify")) {
+            for (String method : List.of("get", "post", "put")) {
+                JsonNode operation = paths.path(path).path(method);
+                if (operation.isMissingNode()) continue;
+                assertThat(operation.path("summary").asString())
+                        .as(method + " " + path + " summary")
+                        .isNotBlank();
+                assertThat(operation.path("description").asString())
+                        .as(method + " " + path + " description")
+                        .isNotBlank();
+                operations++;
+            }
+        }
+        assertThat(operations).isEqualTo(7);
+        assertThat(paths.path(base + "/versions").path("post").path("responses").has("201"))
+                .isTrue();
+        assertThat(paths.path(base + "/versions/{version}/verify")
+                        .path("post")
+                        .path("responses")
+                        .has("200"))
+                .isTrue();
+    }
+
+    private static void assertRequiredProperties(JsonNode schemas, String name, String... properties) {
+        List<String> required = new ArrayList<>();
+        schemas.path(name).path("required").forEach(value -> required.add(value.asString()));
+        assertThat(required).as(name + " required properties").containsExactlyInAnyOrder(properties);
+    }
+
+    @Test
     @DisplayName("3.3: docs/api/openapi.json is the description the code generates")
     void committedDescriptionIsCurrent() throws Exception {
         String current = canonical(generated());

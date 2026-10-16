@@ -1,6 +1,14 @@
 <div class="settings-page">
   <!-- Page Header -->
   <ui-page-header [title]="'settings.title' | t" [subtitle]="'settings.page.title' | t">
+    @if (store.canUpdateSystemSettings()) {
+      <button smt-button type="button" smtVariant="secondary" (click)="openNewFormStudio()">
+        {{ 'settings.simple_form.title' | t }}
+      </button>
+      <button smt-button type="button" smtVariant="secondary" smtIcon="design_services" (click)="openFormStudio()">
+        {{ 'settings.form_studio.title' | t }}
+      </button>
+    }
     <button
       smt-button
       type="button"
@@ -46,7 +54,7 @@
   <!-- TAB: Navigation Settings -->
   @if (activeTab() === 'navigation' && store.canViewNavigationSettings()) {
     <div id="settings-navigation-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-navigation-tab">
-      <app-navigation-settings />
+      <app-navigation-settings [embedded]="true" />
     </div>
   }
 

@@ -53,6 +53,8 @@ public class EntityRegistry {
     private final Map<String, EntityHooks> hooks;
     private final Map<String, EntityActionHandler> handlers;
     private final List<FormFieldExtender> extenders;
+    private final EntityRecordStore runtimeStore;
+    private Supplier<LiveEntities> live = LiveEntities::empty;
 
     @Autowired
     public EntityRegistry(
@@ -61,8 +63,10 @@ public class EntityRegistry {
             List<EntityRecords> records,
             List<EntityHooks> hooks,
             List<EntityActionHandler> handlers,
-            ObjectProvider<EntityRecordStore> store) {
+            ObjectProvider<EntityRecordStore> store,
+            ObjectProvider<LiveEntities> live) {
         this(declared, extenders, records, hooks, handlers, (Supplier<EntityRecordStore>) store::getObject);
+        this.live = live::getObject;
     }
 
     /** The registry over a store given directly; the runtime is created after the registry, so it is asked lazily. */
@@ -94,6 +98,7 @@ public class EntityRegistry {
             }
         }
         LazyStore lazy = new LazyStore(store);
+        runtimeStore = lazy;
         for (EntityDefinition entity : entities.values()) {
             if (entity.model() != null) {
                 this.records.put(entity.code(), lazy.of(entity));
@@ -118,16 +123,24 @@ public class EntityRegistry {
     }
 
     public Optional<EntityDefinition> find(String code) {
-        return Optional.ofNullable(entities.get(code)).map(this::resolve);
+        EntityDefinition declared = entities.get(code);
+        Optional<EntityDefinition> dynamic = live.get().find(code);
+        if (declared != null && dynamic.isPresent()) throw new IllegalStateException("Duplicate entity " + code);
+        return (declared == null ? dynamic : Optional.of(declared)).map(this::resolve);
     }
 
     public List<EntityDefinition> all() {
-        return List.copyOf(entities.values());
+        Map<String, EntityDefinition> all = new TreeMap<>(entities);
+        for (EntityDefinition entity : live.get().all()) {
+            if (all.putIfAbsent(entity.code(), entity) != null)
+                throw new IllegalStateException("Duplicate entity " + entity.code());
+        }
+        return List.copyOf(all.values());
     }
 
     /** The entity whose registry list has this code, if an entity declares it. */
     public Optional<EntityDefinition> findByList(String listCode) {
-        return entities.values().stream()
+        return all().stream()
                 .filter(entity -> listCode.equals(entity.listCode()))
                 .findFirst()
                 .map(this::resolve);
@@ -135,14 +148,15 @@ public class EntityRegistry {
 
     /** How the permission matrix names a form, when an entity with that right declares it (roadmap item 57). */
     public Optional<EntityDefinition.EntityRights> rights(String form) {
-        return entities.values().stream()
+        return all().stream()
                 .filter(entity -> entity.form().equals(form))
                 .flatMap(entity -> Optional.ofNullable(entity.rights()).stream())
                 .findFirst();
     }
 
     public Optional<EntityRecords> records(String code) {
-        return Optional.ofNullable(records.get(code));
+        EntityRecords fixed = records.get(code);
+        return fixed == null ? live.get().find(code).map(runtimeStore::of) : Optional.of(fixed);
     }
 
     /** The hooks of the entity, if its module has them (ADR-0032, 6.5). */
@@ -179,7 +193,7 @@ public class EntityRegistry {
      * record the viewer may see, its fields named by the form's labels.
      */
     public List<RecordHistorySource> historySources() {
-        return entities.values().stream()
+        return all().stream()
                 .filter(entity -> entity.capabilities().contains(EntityCapability.HISTORY))
                 .map(entity -> historySource(entity, recordsOf(entity)))
                 .toList();
@@ -187,7 +201,7 @@ public class EntityRegistry {
 
     /** The list export of every entity that declares it, under its list's code. */
     public List<QueryListExporter> exporters() {
-        return entities.values().stream()
+        return all().stream()
                 .filter(entity -> entity.capabilities().contains(EntityCapability.EXPORT))
                 .map(entity -> exporter(entity, recordsOf(entity)))
                 .toList();
@@ -195,7 +209,7 @@ public class EntityRegistry {
 
     /** The constructor refused an entity with history, export or bulk actions and no records. */
     private EntityRecords recordsOf(EntityDefinition entity) {
-        return Objects.requireNonNull(records.get(entity.code()), entity.code());
+        return entity.model() != null ? runtimeStore.of(entity) : Objects.requireNonNull(records.get(entity.code()));
     }
 
     /**

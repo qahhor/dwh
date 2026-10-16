@@ -117,6 +117,14 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
     return this.store.dirty() || this.languagesPanel()?.hasUnsavedChanges() ? this.askDiscard(true) : true;
   }
 
+  openNewFormStudio(): void {
+    void this.router?.navigate(['/settings/form-studio/new']);
+  }
+
+  openFormStudio(): void {
+    void this.router?.navigate(['/settings/form-studio']);
+  }
+
   isTabAvailable(tab: string): tab is SettingsTab {
     switch (tab) {
       case 'general':

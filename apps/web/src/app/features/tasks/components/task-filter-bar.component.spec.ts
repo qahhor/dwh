@@ -50,6 +50,11 @@ function radios(fixture: ComponentFixture<TaskFilterBarComponent>, groupName: st
 
 const label = (radio: HTMLElement) => radio.querySelector('.smt-radio-group__label')?.textContent?.trim();
 
+function toggleMore(fixture: ComponentFixture<TaskFilterBarComponent>) {
+  (el(fixture).querySelector('#task-more-filters') as HTMLButtonElement).click();
+  fixture.detectChanges();
+}
+
 /** Opens the smt-select behind the trigger id and picks the option with the label. */
 function choose(fixture: ComponentFixture<TaskFilterBarComponent>, triggerId: string, optionLabel: string) {
   (el(fixture).querySelector(`#${triggerId}`) as HTMLButtonElement).click();
@@ -67,6 +72,7 @@ describe('TaskFilterBarComponent', () => {
 
   it('shows the quick presets with the active one checked and reports the preset a person picks', () => {
     const fixture = render({ activePreset: 'my' });
+    toggleMore(fixture);
     const presets = radios(fixture, 'Быстрые фильтры');
     const picked = vi.fn();
     fixture.componentInstance.activePresetChange.subscribe(picked);
@@ -87,14 +93,22 @@ describe('TaskFilterBarComponent', () => {
 
   it('offers active, all and every status, and reports a status by its code', () => {
     const fixture = render();
-    const chips = radios(fixture, 'Фильтр по статусу');
+    const trigger = el(fixture).querySelector('#task-status-filter') as HTMLButtonElement;
     const changed = vi.fn();
     fixture.componentInstance.statusFilterModeChange.subscribe(changed);
 
-    expect(chips.map(label)).toEqual(['Активные', 'Все', 'Новая', 'Готово']);
-    expect(chips[0].getAttribute('aria-checked')).toBe('true');
-
-    chips[3].click();
+    expect(trigger.getAttribute('aria-label')).toBe('Фильтр по статусу');
+    expect(trigger.textContent).toContain('Активные');
+    trigger.click();
+    fixture.detectChanges();
+    const options = [...document.querySelectorAll<HTMLElement>('.smt-select__option')];
+    expect(options.map((option) => option.querySelector('.smt-select__option-label')?.textContent?.trim())).toEqual([
+      'Активные',
+      'Все',
+      'Новая',
+      'Готово',
+    ]);
+    options[3].click();
     expect(changed).toHaveBeenCalledWith('status:s3');
   });
 
@@ -129,6 +143,7 @@ describe('TaskFilterBarComponent', () => {
     fixture.componentInstance.selectedProjectIdChange.subscribe(project);
     fixture.componentInstance.selectedPriorityChange.subscribe(priority);
 
+    toggleMore(fixture);
     choose(fixture, 'task-project-filter', 'Логистика');
     expect(project).toHaveBeenCalledWith(6);
 
@@ -138,6 +153,7 @@ describe('TaskFilterBarComponent', () => {
 
   it('searches projects on the server 20 at a time, labelled for screen readers, never the whole list', () => {
     const fixture = render();
+    toggleMore(fixture);
     const trigger = el(fixture).querySelector('#task-project-filter') as HTMLElement;
     expect(trigger.getAttribute('aria-label')).toBe('Фильтр по проекту');
     expect(trigger.getAttribute('role')).toBe('combobox');
@@ -153,8 +169,62 @@ describe('TaskFilterBarComponent', () => {
     const fixture = render({ selectedProjectId: 9 }, () =>
       TestBed.inject(TaskLookupsService).retainTaskProjects([{ projectId: 9, projectName: 'Архив 2025' }]),
     );
+    toggleMore(fixture);
     expect(el(fixture).querySelector('#task-project-filter')?.textContent).toContain('Архив 2025');
     expect(api.get).not.toHaveBeenCalled();
+  });
+
+  it('keeps search and status available while secondary filters are collapsed', () => {
+    const fixture = render();
+    const toggle = el(fixture).querySelector('#task-more-filters') as HTMLButtonElement;
+    expect(el(fixture).querySelector('#task-search')).not.toBeNull();
+    expect(el(fixture).querySelector('#task-status-filter')).not.toBeNull();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(el(fixture).querySelector('#task-project-filter')).toBeNull();
+    expect(el(fixture).querySelector('.active-filter-count')).toBeNull();
+
+    toggleMore(fixture);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(el(fixture).querySelector(`#${toggle.getAttribute('aria-controls')}`)).not.toBeNull();
+    expect(el(fixture).querySelector('#task-project-filter')).not.toBeNull();
+  });
+
+  it('shows the count of active secondary filters when collapsed, preserving their values and reset access', () => {
+    const fixture = render({
+      activePreset: 'my',
+      selectedProjectId: 5,
+      selectedPriority: 'high',
+      hasActiveFilters: true,
+      searchQuery: 'report',
+      statusFilterMode: 'all',
+    });
+    const preset = vi.fn();
+    const project = vi.fn();
+    const priority = vi.fn();
+    fixture.componentInstance.activePresetChange.subscribe(preset);
+    fixture.componentInstance.selectedProjectIdChange.subscribe(project);
+    fixture.componentInstance.selectedPriorityChange.subscribe(priority);
+
+    expect(el(fixture).querySelector('.active-filter-count')?.textContent?.trim()).toBe('3');
+    expect(el(fixture).querySelector('#task-more-filters')?.getAttribute('aria-label')).toContain('3');
+    expect(el(fixture).querySelector('.reset-filters-btn')).not.toBeNull();
+    toggleMore(fixture);
+    expect(
+      radios(fixture, 'Быстрые фильтры').find((radio) => radio.getAttribute('aria-checked') === 'true')?.textContent,
+    ).toContain('Мои задачи');
+    expect(el(fixture).querySelector('#task-project-filter')?.textContent).toContain('Склад');
+    expect(el(fixture).querySelector('#task-priority-filter')?.textContent).toContain('Высокий');
+    toggleMore(fixture);
+    expect(el(fixture).querySelector('.active-filter-count')?.textContent?.trim()).toBe('3');
+    expect(preset).not.toHaveBeenCalled();
+    expect(project).not.toHaveBeenCalled();
+    expect(priority).not.toHaveBeenCalled();
+
+    fixture.componentRef.setInput('activePreset', 'all');
+    fixture.componentRef.setInput('selectedProjectId', null);
+    fixture.componentRef.setInput('selectedPriority', '');
+    fixture.detectChanges();
+    expect(el(fixture).querySelector('.active-filter-count')).toBeNull();
   });
 
   it('offers the named reset button only while a filter is on', () => {

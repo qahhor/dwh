@@ -142,6 +142,8 @@ Current ADRs that are not superseded:
   frontend network in production), and the absolute lifetime and idle timeout
   of a session are part of the active-session query; plan 10/10, items 7.4
   and 7.5.
+- [ADR-0035 — declaration drafts, immutable versions and publication packages](adr/ADR-0035-declaration-lifecycle.md)
+- [ADR-0036 — shared reports, aggregate exports and named dashboards](adr/ADR-0036-shared-reports-and-dashboards.md)
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
@@ -158,6 +160,10 @@ Historical, fully superseded decisions are retained for traceability only:
 [ADR-0004](adr/ADR-0004-deployment-model.md) and
 [ADR-0007](adr/ADR-0007-fleet-strategy.md).
 
+- [ADR-0037 — simple form CLI/Flyway delivery](adr/ADR-0037-simple-form-cli-delivery.md) — create-only declarations, server validation and developer delivery.
+- [ADR-0038 — live simple forms](adr/ADR-0038-live-simple-forms.md) — immutable activation, shared JSONB storage and request snapshots.
+- [Live form operations](cookbook/live-simple-forms.md) — enabling, access, retries and operational limits.
+
 ## Authority tier 3 — engineering guidance
 
 - [Developer onboarding](onboarding.md)
@@ -165,6 +171,8 @@ Historical, fully superseded decisions are retained for traceability only:
   locking and size limits, each rule with the check that enforces it.
 - [How the API behaves](api/README.md) — errors, paging, If-Match, idempotency,
   deprecations and where `openapi.json` comes from.
+- [Studio implementation plan](architecture/admin-studio-plan.md) — phased delivery, DoR, DoD and acceptance criteria; future capabilities are explicitly marked.
+- [Form layout prototype contract](architecture/admin-studio-contract.md) — bounded declarations, permissions and validation for one existing form.
 - [Extension points](architecture/extension-points.md)
 - [Module map](architecture/module-map.md) — one row per server module:
   purpose, owned tables, permission areas and entry points.
@@ -237,3 +245,5 @@ legal and ownership decisions.
 
 Dated audit reports and agent plans were removed from the tree; git history
 keeps them. The canonical ТЗ and current ADRs are the only authority.
+
+- [ADR-0039 — datasets and draft assistance](adr/ADR-0039-report-datasets-and-assistant.md) — scoped projections, accurate charts and an explicitly configured draft-only provider.

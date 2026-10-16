@@ -198,6 +198,7 @@ export class NotificationsComponent {
   }
 
   onItemKeydown(event: KeyboardEvent, item: NotificationItem): void {
+    if (event.target !== event.currentTarget) return;
     if ((event.key === 'Enter' || event.key === ' ') && item.targetUrl) {
       event.preventDefault();
       this.onItemClick(item);

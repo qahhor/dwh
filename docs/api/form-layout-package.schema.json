@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SmartupCMS form layout publication package envelope v1",
+  "description": "Prepared artifact only. Verification also requires the trusted source version in this installation and fresh permissions/dependencies. Server additionally enforces UTF-8 byte/depth limits and integer JSON tokens.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "sourceRevision",
+    "checksum",
+    "package"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "sourceRevision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "formatVersion",
+        "kind",
+        "entityCode",
+        "version",
+        "sourceRevision",
+        "dependencies",
+        "declaration"
+      ],
+      "properties": {
+        "formatVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "kind": {
+          "const": "form-layout-package"
+        },
+        "entityCode": {
+          "const": "example.products"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sourceRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contractVersion",
+            "metadataChecksum"
+          ],
+          "properties": {
+            "contractVersion": {
+              "type": "integer",
+              "const": 1
+            },
+            "metadataChecksum": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "declaration": {
+          "$ref": "./form-layout.schema.json"
+        }
+      }
+    }
+  }
+}

@@ -1,13 +1,20 @@
 package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
+import com.smartup24.cms.instance.common.entity.LiveEntities;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.FormCatalogItem;
 import com.smartup24.cms.instance.md.pref.MdFormCatalog;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
+import com.smartup24.cms.platform.api.entity.EntityCapability;
+import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityRights;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -22,12 +29,23 @@ public class MdPermissionService {
     /** The Russian catalog names each right in the stored catalog (ADR-0031); null — the key itself. */
     private final MdI18nCatalog catalog;
 
+    private final LiveEntities live;
+
     @Autowired
     public MdPermissionService(
-            MdPermissionRepository permissionRepository, @Lazy EntityRegistry entities, MdI18nCatalog catalog) {
+            MdPermissionRepository permissionRepository,
+            @Lazy EntityRegistry entities,
+            MdI18nCatalog catalog,
+            LiveEntities live) {
         this.permissionRepository = permissionRepository;
         this.entities = entities;
         this.catalog = catalog;
+        this.live = live;
+    }
+
+    public MdPermissionService(
+            MdPermissionRepository permissionRepository, EntityRegistry entities, MdI18nCatalog catalog) {
+        this(permissionRepository, entities, catalog, LiveEntities.empty());
     }
 
     public MdPermissionService(MdPermissionRepository permissionRepository) {
@@ -102,33 +120,73 @@ public class MdPermissionService {
      */
     @Transactional
     public CatalogSyncResult syncFormCatalog(Set<String> declaredPairs) {
+        permissionRepository.lockCatalog();
+        Set<String> livePairs = new TreeSet<>(declaredPairs);
+        List<EntityDefinition> snapshot = entities == null ? List.of() : entities.all();
+        livePairs.addAll(MdFormCatalogSynchronizer.entityPairs(snapshot));
+        Map<String, EntityRights> namedRights = new LinkedHashMap<>();
+        for (EntityDefinition entity : snapshot) {
+            if (entity.rights() != null) namedRights.putIfAbsent(entity.form(), entity.rights());
+        }
+        Map<String, String> liveNames = live.messages("ru", entity -> true);
         Set<String> beforeGrantable = permissionRepository.getGrantablePairs();
 
-        for (String pair : declaredPairs) {
+        Set<String> registeredForms = new TreeSet<>();
+        for (String pair : livePairs) {
             int dot = pair.lastIndexOf('.');
             String formCode = pair.substring(0, dot);
             String action = pair.substring(dot + 1);
 
-            Optional<EntityRights> rights = rightsOf(formCode);
-            permissionRepository.registerForm(
-                    formCode,
-                    rights.map(EntityRights::module).orElseGet(() -> MdFormCatalog.moduleOf(formCode)),
-                    russian(rights.map(EntityRights::nameKey).orElseGet(() -> MdFormCatalog.formNameKeyOf(formCode))));
+            Optional<EntityRights> rights = Optional.ofNullable(namedRights.get(formCode));
+            if (registeredForms.add(formCode)) {
+                permissionRepository.registerForm(
+                        formCode,
+                        rights.map(EntityRights::module).orElseGet(() -> MdFormCatalog.moduleOf(formCode)),
+                        named(
+                                liveNames,
+                                rights.map(EntityRights::nameKey)
+                                        .orElseGet(() -> MdFormCatalog.formNameKeyOf(formCode))));
+            }
             permissionRepository.registerFormAction(
                     formCode,
                     action,
-                    russian(rights.map(named -> named.actionKeys().get(action))
-                            .orElseGet(() -> MdFormCatalog.actionNameKeyOf(formCode, action))));
+                    named(
+                            liveNames,
+                            rights.map(named -> named.actionKeys().get(action))
+                                    .orElseGet(() -> MdFormCatalog.actionNameKeyOf(formCode, action))));
         }
 
-        int deprecated = permissionRepository.deprecateMissing(declaredPairs);
+        int deprecated = permissionRepository.deprecateMissing(livePairs);
 
         List<String> deprecatedPairs = beforeGrantable.stream()
-                .filter(pair -> !declaredPairs.contains(pair))
+                .filter(pair -> !livePairs.contains(pair))
                 .sorted()
                 .toList();
 
-        return new CatalogSyncResult(declaredPairs.size(), deprecated, deprecatedPairs);
+        return new CatalogSyncResult(livePairs.size(), deprecated, deprecatedPairs);
+    }
+
+    /** Registers a live entity in the activation transaction and refreshes the affected users (ADR-0038). */
+    @Transactional
+    public void registerEntityDefinition(EntityDefinition entity, Map<String, String> russianLabels) {
+        permissionRepository.lockCatalog();
+        EntityRights rights = Objects.requireNonNull(entity.rights(), "Live entity rights");
+        permissionRepository.registerForm(entity.form(), rights.module(), named(russianLabels, rights.nameKey()));
+        Set<String> actions = new TreeSet<>();
+        actions.add("view");
+        entity.actions().forEach(action -> actions.add(action.permission()));
+        if (entity.capabilities().contains(EntityCapability.IMPORT)) actions.add(EntityDefinition.IMPORT);
+        for (String action : actions) {
+            String key = Objects.requireNonNull(rights.actionKeys().get(action), "Live entity action name");
+            permissionRepository.registerFormAction(entity.form(), action, named(russianLabels, key));
+        }
+        for (Long user : permissionRepository.grantEntityToAdministrativeRoles(entity.form(), actions)) {
+            permissionRepository.recalculateEffectivePermissions(user);
+        }
+    }
+
+    private String named(Map<String, String> names, String key) {
+        return key != null && names.containsKey(key) ? names.get(key) : russian(key);
     }
 
     /** Pairs that can actually be granted: obsolete ones are excluded (FR-PERM-1). */

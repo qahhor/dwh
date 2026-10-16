@@ -234,7 +234,7 @@ public class EntityLabelResolver {
         String labelSql = labelSql(model, labelField);
         QueryPlan.SqlFragment scope = scopes.rows(target, userId);
         String sql = "select " + model.alias() + ".id as rid, cast(" + labelSql + " as text) as rlabel from "
-                + model.table() + " " + model.alias()
+                + model.from()
                 + " where " + model.alias() + ".id in (:ids)" + scope.sql();
         Map<String, Object> params = new LinkedHashMap<>(scope.params());
         params.put("ids", List.copyOf(ids));

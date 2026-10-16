@@ -86,6 +86,32 @@ describe('NotificationsComponent', () => {
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
+  it.each(['Enter', ' '])('keeps %s on the mark-read button from opening the notification', (key) => {
+    const { host } = render([item(9, { title: 'Задача', targetUrl: '/tasks/99' })]);
+    const button = host.querySelector<HTMLButtonElement>('.mark-read-btn')!;
+    const keydown = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+
+    button.dispatchEvent(keydown);
+
+    expect(keydown.defaultPrevented).toBe(false);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(notificationService.markAsRead).not.toHaveBeenCalled();
+    button.click();
+    expect(notificationService.markAsRead).toHaveBeenCalledWith(9);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it.each(['Enter', ' '])('opens the focused notification row with %s', (key) => {
+    const { host } = render([item(5, { title: 'Задача назначена', targetUrl: '/tasks/100' })]);
+    const keydown = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+
+    host.querySelector<HTMLElement>('.notif-item.clickable')!.dispatchEvent(keydown);
+
+    expect(keydown.defaultPrevented).toBe(true);
+    expect(notificationService.markAsRead).toHaveBeenCalledWith(5);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/tasks/100');
+  });
+
   it('opens preferences modal and saves updated preferences', () => {
     const { component } = render([]);
 

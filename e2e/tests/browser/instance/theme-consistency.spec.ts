@@ -82,9 +82,7 @@ test('light theme keeps every content surface and form control light', async ({ 
 
   await page.goto('/tasks');
   await page.locator('.view-header').getByRole('button', { name: 'Новая задача' }).click();
-  await expectColors(page.locator('.custom-fields-empty-tip .tip-icon'), {
-    color: LIGHT.primary,
-  });
+  await page.getByTestId('task-create-additional-toggle').click();
   const parentTaskSelect = page.getByRole('combobox', { name: 'Родительская задача' });
   await parentTaskSelect.click();
   await expectOverlayShadow(page.locator('.smt-select__popup'));

@@ -1,7 +1,7 @@
 /* Not vendored: tests for the table semantics added here (ADR-0015 rule 2). */
 import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SMTTableComponent } from './table.component';
 import { TableConfig, TableRowKeydownEvent } from './table.types';
 
@@ -39,11 +39,14 @@ function config(extra: Partial<TableConfig<Row>> = {}): TableConfig<Row> {
     [smtData]="data()"
     [smtConfig]="config()"
     [smtVirtualRows]="false"
+    [smtIsLoading]="loading()"
+    [smtSkeletonRowCount]="50"
     (smtRowKeydown)="keys.push($event)"
   />`,
 })
 class HostComponent {
   readonly data = signal(rows);
+  readonly loading = signal(false);
   readonly config = signal(config());
   readonly keys: TableRowKeydownEvent<Row>[] = [];
 }
@@ -192,5 +195,85 @@ describe('smt-table row clicks', () => {
     (row.querySelector('.open .icon') as HTMLElement).click();
     (row.querySelector('.status') as HTMLElement).click();
     expect(fixture.componentInstance.clicked).toEqual([]);
+  });
+});
+
+describe('smt-table scroll controls', () => {
+  it('names the top control and scrolls when activated', async () => {
+    const { fixture, root } = await render();
+    const scroller = root.querySelector<HTMLElement>('.smt-table-scroll')!;
+    scroller.scrollTo = vi.fn();
+    scroller.scrollTop = 600;
+    scroller.dispatchEvent(new Event('scroll'));
+    fixture.detectChanges();
+    const button = root.querySelector<HTMLButtonElement>('button[data-table-scroll="top"]');
+    expect(button).not.toBeNull();
+    expect(button?.getAttribute('aria-label')).toBeTruthy();
+    button!.click();
+    expect(scroller.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+  });
+
+  it('offers native named buttons for horizontal scroll and activates them without hover', async () => {
+    const { fixture, root } = await render();
+    const scroller = root.querySelector<HTMLElement>('.smt-table-scroll')!;
+    scroller.scrollBy = vi.fn();
+    Object.defineProperties(scroller, { clientWidth: { value: 400 }, scrollWidth: { value: 1000 } });
+    scroller.scrollLeft = 200;
+    scroller.dispatchEvent(new Event('scroll'));
+    fixture.detectChanges();
+    for (const direction of ['left', 'right']) {
+      const button = root.querySelector<HTMLButtonElement>(`button[data-table-scroll="${direction}"]`);
+      expect(button).not.toBeNull();
+      expect(button?.getAttribute('aria-label')).toBeTruthy();
+      button!.click();
+      expect(scroller.scrollBy).toHaveBeenLastCalledWith({
+        left: direction === 'left' ? -300 : 300,
+        behavior: 'smooth',
+      });
+    }
+  });
+});
+
+describe('smt-table loading identities', () => {
+  it('does not give placeholder rows to domain tracking or produce duplicate keys', async () => {
+    const trackBy = vi.fn((_index: number, row: Row) => row.id);
+    const { fixture, root } = await render({ trackBy });
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      trackBy.mockClear();
+      fixture.componentInstance.data.set([]);
+      fixture.componentInstance.loading.set(true);
+      fixture.detectChanges();
+      expect(root.querySelectorAll('.smt-data-row')).toHaveLength(24);
+      expect(trackBy.mock.calls.every(([, row]) => typeof row === 'object')).toBe(true);
+      expect(warning.mock.calls.flat().join(' ')).not.toContain('NG0955');
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
+  it('keeps record identities when existing rows are skeletonized during reload', async () => {
+    const trackBy = vi.fn((_index: number, row: Row) => row.id);
+    const { fixture, root } = await render({ trackBy });
+    fixture.componentInstance.data.set([]);
+    fixture.componentInstance.loading.set(true);
+    fixture.detectChanges();
+    fixture.componentInstance.data.set(rows);
+    fixture.componentInstance.loading.set(false);
+    fixture.detectChanges();
+    const before = Array.from(root.querySelectorAll('.smt-data-row'));
+    expect(before).toHaveLength(3);
+    expect(before[0].textContent).toContain('Tashkent');
+    trackBy.mockClear();
+    fixture.componentInstance.loading.set(true);
+    fixture.detectChanges();
+    const reloading = Array.from(root.querySelectorAll('.smt-data-row'));
+    expect(reloading).toHaveLength(3);
+    expect(reloading.every((row, index) => row === before[index])).toBe(true);
+    expect(trackBy.mock.calls.every(([, row]) => rows.includes(row))).toBe(true);
+    fixture.componentInstance.loading.set(false);
+    fixture.detectChanges();
+    expect(root.querySelectorAll('.smt-data-row')[0]).toBe(before[0]);
+    expect(root.querySelectorAll('.smt-data-row')[0].textContent).toContain('Tashkent');
   });
 });

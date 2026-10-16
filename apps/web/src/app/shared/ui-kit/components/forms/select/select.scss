@@ -270,3 +270,20 @@
 .smt-select--invalid .smt-select__trigger {
   border-color: var(--danger);
 }
+
+.smt-select__control:has(.smt-select__clear) .smt-select__trigger {
+  padding-right: 64px;
+}
+
+@media (max-width: 767px) {
+  .smt-select__clear {
+    width: var(--control-touch-height);
+    height: var(--control-touch-height);
+  }
+  .smt-select__control:has(.smt-select__clear) .smt-select__trigger {
+    padding-right: 84px;
+  }
+  .smt-select__option {
+    min-height: var(--control-touch-height);
+  }
+}

@@ -29,7 +29,7 @@ export class NavigationSettingsStore {
   private readonly saveErrors = inject(SaveErrorNotifier);
 
   /** A failed reload keeps the list on screen. */
-  readonly items = linkedSignal<CustomNavigationItem[] | undefined, CustomNavigationItem[]>({
+  readonly items = linkedSignal<CustomNavigationItem[] | null | undefined, CustomNavigationItem[]>({
     source: () => this.itemsResource.value(),
     computation: (loaded, previous) => loaded ?? previous?.value ?? [],
   });
@@ -40,6 +40,7 @@ export class NavigationSettingsStore {
   readonly otherErrors = signal<readonly string[]>([]);
 
   readonly isLoading = computed(() => this.itemsResource.isLoading());
+  readonly loadError = computed(() => this.itemsResource.value() === null);
   readonly activeCount = computed(() => this.items().filter((i) => i.state === 'A').length);
   readonly embeddedCount = computed(() => this.items().filter((i) => i.targetType === 'EMBEDDED_IFRAME').length);
   readonly externalCount = computed(() => this.items().filter((i) => i.targetType === 'EXTERNAL_LINK').length);
@@ -57,10 +58,7 @@ export class NavigationSettingsStore {
     stream: () =>
       this.navService.loadAllItems().pipe(
         map((data) => data || []),
-        catchError((err: unknown) => {
-          this.showError(err);
-          return of(undefined);
-        }),
+        catchError(() => of(null)),
       ),
   });
 

@@ -57,6 +57,7 @@
                 role="columnheader"
                 [attr.aria-sort]="ariaSort(col.sortedBy, col.hasSorting)"
                 [smtColumnResize]="columnResizeEnabled()"
+                [smtColumnResizeLabel]="col.header.type === 'primitive' ? '' + col.header.value : col.key"
                 [smtColumnResizeMin]="columnResizeMinPx()"
                 [smtColumnResizeMax]="columnResizeMaxPx()"
                 [smtColumnResizeContainerWidth]="columnResizeBasisWidth()"
@@ -216,35 +217,47 @@
     <div class="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center">
       <button
         type="button"
-        class="pointer-events-auto opacity-50 transition-all flex items-center justify-center rounded-t bg-gray-300 w-25 h-6 text-white hover:opacity-100 hover:text-gray-500"
+        class="smt-table-scroll-button pointer-events-auto"
+        [attr.aria-label]="i18n.messages().table.scrollToTop"
+        data-table-scroll="top"
         (click)="scrollContainerToTop(scrollContainer)"
       >
-        <smt-icon key="chevron-up" [fontSize]="20" />
+        <smt-icon key="chevron-up" [fontSize]="20" aria-hidden="true" />
       </button>
     </div>
   }
 
   @if (showHorizontalScrollLeft()) {
-    <div class="pointer-events-none absolute top-1/2 left-0 z-10 -translate-y-1/2">
-      <div
-        class="pointer-events-auto opacity-50 flex h-15 w-7 cursor-pointer items-center justify-center pe-2 rounded-r-full text-white bg-gray-300 transition-all hover:bg-gray-300 hover:opacity-100 hover:text-gray-500"
+    <div class="pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2">
+      <button
+        type="button"
+        class="smt-table-scroll-button pointer-events-auto"
+        data-table-scroll="left"
+        [attr.aria-label]="i18n.messages().table.scrollLeft"
+        (click)="scrollHorizontally('left')"
         (mouseenter)="startHorizontalAutoScroll('left')"
         (mouseleave)="stopHorizontalAutoScroll()"
+        (blur)="stopHorizontalAutoScroll()"
       >
-        <smt-icon key="left-arrow" [fontSize]="13" />
-      </div>
+        <smt-icon key="left-arrow" [fontSize]="16" aria-hidden="true" />
+      </button>
     </div>
   }
 
   @if (showHorizontalScrollRight()) {
-    <div class="pointer-events-none absolute right-0 z-10 top-1/2 flex justify-end -translate-y-1/2">
-      <div
-        class="pointer-events-auto opacity-50 flex h-15 w-7 cursor-pointer items-center justify-center ps-2 rounded-l-full bg-gray-300 text-white transition-all hover:bg-gray-300 hover:opacity-100"
+    <div class="pointer-events-none absolute right-0 top-1/2 z-10 -translate-y-1/2">
+      <button
+        type="button"
+        class="smt-table-scroll-button pointer-events-auto"
+        data-table-scroll="right"
+        [attr.aria-label]="i18n.messages().table.scrollRight"
+        (click)="scrollHorizontally('right')"
         (mouseenter)="startHorizontalAutoScroll('right')"
         (mouseleave)="stopHorizontalAutoScroll()"
+        (blur)="stopHorizontalAutoScroll()"
       >
-        <smt-icon key="right-arrow" [fontSize]="13" />
-      </div>
+        <smt-icon key="right-arrow" [fontSize]="16" aria-hidden="true" />
+      </button>
     </div>
   }
 </div>

@@ -78,7 +78,7 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
       ><span class="text-muted">{{ f.defaultValue || '—' }}</span></ng-template
     >
     <ng-template #actionsCell let-f>
-      <div class="text-right">
+      <div class="row-actions">
         @if (canEdit() || canManage()) {
           <button
             type="button"
@@ -186,7 +186,7 @@ export class CustomFieldsTableComponent {
       columns['actions'] = {
         header: header('common.actions'),
         content: cell(this.actionsCell),
-        width: '110px',
+        width: '140px',
         align: 'right',
       };
       order.push('actions');

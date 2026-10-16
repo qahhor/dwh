@@ -58,7 +58,8 @@ export function moduleNew(plan, code, values) {
     return externalModuleNew(plan, code, values);
   }
   const names = moduleNames(code, { area: values.area, tablePrefix: values['table-prefix'] });
-  const module = { ...names, title: titles(values, pascal(code)) };
+  const module = { ...names, title: titles(values, pascal(code)),
+    ...(values.safeDocumentation ? { documentationTitle: 'Generated reference forms' } : {}) };
 
   plan.create(`${module.javaDir}/package-info.java`, packageInfo(module), 'the module and its purpose');
   plan.create(module.manifest, moduleManifest(module), 'module manifest');
@@ -161,23 +162,38 @@ export function entityNew(plan, moduleCode, entityName, values) {
     throw new CliError(`Icon: a lower-case icon name (box, package): ${values.icon}`);
   }
   const module = loadModule(plan.root, moduleCode, values.icon);
+  return planEntityNew(plan, module, entityName, values);
+}
+
+/** Shared entity generation for the command line and the bounded Studio package. */
+export function planEntityNew(plan, module, entityName, values) {
   const entity = entityNames(module, entityName);
   const title = titles(values, humanize(entity.name));
+  const fields = values.fields ?? starterFields(entity);
+  let declaration = entityDeclaration(module, entity, { title, fields,
+    ...(values.safeDocumentation ? { documentationTitle: 'Generated reference form' } : {}) });
+  for (const field of fields) {
+    const part = fieldDeclaration(entity, field);
+    declaration = addImports(declaration, part.staticImports, part.imports);
+    declaration = addConstants(declaration, part.constants);
+  }
 
   const ofEntity = (text) => text.includes(`"${entity.code}"`) || text.includes(`${entity.entityClass}.CODE`);
-  plan.create(entity.entityFile, entityDeclaration(module, entity, { title }), `the declaration of ${entity.code}`, ofEntity);
+  plan.create(entity.entityFile, declaration, `the declaration of ${entity.code}`, ofEntity);
   if (values.hooks) plan.create(entity.hooksFile, entityHooks(entity), `the hooks of ${entity.code}`, ofEntity);
-  plan.create(entity.testFile, contractTest(module, entity), `the contract test of ${entity.code}`, ofEntity);
+  plan.create(entity.testFile, contractTest(module, entity, { expectedFormOnly: values.fields?.filter((field) => field.formOnly).map((field) => field.key) }), `the contract test of ${entity.code}`, ofEntity);
 
   if (createsTable(plan.root, entity.table)) {
     plan.note(`a migration already creates ${entity.table}: no new table migration`);
   } else {
-    const version = planMigration(plan, `${entity.table}_table`, tableMigration(entity, starterFields(entity)), values.version);
+    const version = planMigration(plan, `${entity.table}_table`, tableMigration(entity, fields), values.version);
     if (!seedsForm(plan.root, entity.form)) {
-      planMigration(plan, `${entity.table}_rights`, rightsMigration(module, entity, version, title));
+      planMigration(plan, `${entity.table}_rights`, rightsMigration(module, entity, version, title, { administratorsOnly: values.administratorsOnly }));
     }
   }
-  planKeys(plan, entityKeys(entity, title), { sync: !values['no-sync'] });
+  const keys = entityKeys(entity, title);
+  for (const field of fields) Object.assign(keys, fieldKeys(entity, field));
+  planKeys(plan, keys, { sync: !values['no-sync'] });
   plan.patch(PATHS.schemaOrderTest, (text) => addAttributesTable(text, entity.table), `attributes ${entity.table}`);
   plan.patch(PATHS.coverageFloors, (text) => addCoverageFloor(text, module, NEW_MODULE_FLOOR), `floor ${module.code}`);
   plan.patch(PATHS.moduleMap, (text) => addModuleMapEntity(text, module, entity), `entry ${entity.code}`);

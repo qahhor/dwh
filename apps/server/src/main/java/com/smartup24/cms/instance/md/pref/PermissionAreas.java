@@ -34,6 +34,7 @@ public final class PermissionAreas {
             "mf",
             "report",
             "search",
+            "studio",
             "units",
             "upl",
             "warehouse",

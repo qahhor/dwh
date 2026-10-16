@@ -28,6 +28,7 @@ describe('analytics without the task application', () => {
     const fixture = TestBed.createComponent(AnalyticsComponent);
     fixture.detectChanges();
     const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/v1/dashboards?limit=20').flush({ items: [], hasMore: false });
     http.expectNone((request) => request.url.startsWith('/api/v1/analytics'));
     expect(widgets).toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('app-analytics-widgets')).not.toBeNull();

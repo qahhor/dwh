@@ -1,7 +1,8 @@
 :host {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  container-type: inline-size;
 }
 .entity-section {
   border: 0;
@@ -17,14 +18,12 @@
 }
 .entity-section-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
 .entity-field {
   min-width: 0;
-}
-.entity-field--wide {
-  grid-column: 1 / -1;
+  grid-column: span var(--field-span, 3);
 }
 .entity-json {
   font-family: var(--font-mono, monospace);
@@ -32,4 +31,10 @@
 /* The summary takes no gap of the column until it has something to say. */
 .entity-error-summary:empty {
   display: none;
+}
+
+@container (max-width: 600px) {
+  .entity-field {
+    grid-column: 1 / -1;
+  }
 }

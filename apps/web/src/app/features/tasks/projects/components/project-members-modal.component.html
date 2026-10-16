@@ -48,6 +48,32 @@
                 </div>
               </smt-control>
 
+              @if (searchStatus() === 'loading') {
+                <p class="user-search-status" role="status" data-testid="project-member-search-loading">
+                  {{ 'common.loading' | t }}
+                </p>
+              }
+              @if (searchStatus() === 'error') {
+                <div class="user-search-status" role="alert" data-testid="project-member-search-error">
+                  <span>{{ 'ui.remote_lookup.failed' | t }}</span>
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="secondary"
+                    smtSize="sm"
+                    data-testid="project-member-search-retry"
+                    (click)="retryUserSearch()"
+                  >
+                    {{ 'common.retry' | t }}
+                  </button>
+                </div>
+              }
+              @if (searchStatus() === 'empty') {
+                <p class="user-search-status" role="status" data-testid="project-member-search-empty">
+                  {{ 'ui.searchable_select.nothing_found' | t }}
+                </p>
+              }
+
               <!-- User Search Results Dropdown -->
               @if (isUserDropdownOpen() && foundUsers().length > 0) {
                 <div class="user-dropdown-list">

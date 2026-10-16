@@ -12,7 +12,7 @@ test('protected route redirects to the accessible login form', async ({ page }) 
   await page.goto('/e/md.users');
 
   await expect(page).toHaveURL(/\/login$/u);
-  await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Вход в систему' })).toBeVisible();
   await expect(page.getByLabel('Логин или Email')).toBeVisible();
   await expect(page.getByLabel(fieldName('Пароль'))).toBeVisible();
 });
@@ -32,7 +32,7 @@ test('login applies the saved dark theme with accessible mobile controls', async
   await page.addInitScript(() => localStorage.setItem('smc_theme', 'dark'));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/login');
-  await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Вход в систему' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expectNoSeriousAccessibilityViolations(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

@@ -1,0 +1,65 @@
+<button
+  smt-button
+  type="button"
+  smtVariant="secondary"
+  smtSize="sm"
+  smtIcon="group"
+  (click)="show()"
+  data-testid="report-share"
+>
+  {{ 'ui.report.share' | t }}
+</button>
+<smt-dialog [open]="open()" [smtTitle]="'ui.report.share' | t" smtSize="sm" [dismissible]="!busy()" (closed)="close()">
+  <ng-template smtDialogContent>
+    <p>{{ 'ui.report.sharing_hint' | t }}</p>
+    @if (loading()) {
+      <p role="status">{{ 'common.loading' | t }}</p>
+    }
+    @if (error(); as message) {
+      <div role="alert">{{ conflict() ? ('ui.report.sharing_conflict' | t) : message }}</div>
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="reload()">
+        {{ 'ui.report.reload' | t }}
+      </button>
+    }
+    <smt-control [smtLabel]="'ui.report.roles' | t">
+      <smt-multi-select
+        [options]="options()"
+        [knownOptions]="known()"
+        [value]="selected()"
+        (valueChange)="selected.set($event)"
+        [disabled]="loading() || busy() || !initial()"
+        [loading]="roles.loading() || roles.loadingMore()"
+        [hasMore]="roles.hasMore()"
+        (loadMore)="roles.loadMore()"
+        (retry)="roles.retry()"
+      />
+    </smt-control>
+    @if (roles.failed() || roles.loadMoreFailed()) {
+      <div role="alert">
+        <span>{{ 'common.operation_failed' | t }}</span>
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="roles.retry()">
+          {{ 'common.retry' | t }}
+        </button>
+      </div>
+    }
+    @if (roles.hasMore()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        [smtLoading]="roles.loadingMore()"
+        (click)="roles.loadMore()"
+      >
+        {{ 'common.load_more' | t }}
+      </button>
+    }
+    <ui-form-actions
+      footer
+      [submitting]="busy()"
+      [submitDisabled]="loading() || !initial() || conflict()"
+      (cancelled)="close()"
+      (submitted)="save()"
+    />
+  </ng-template>
+</smt-dialog>

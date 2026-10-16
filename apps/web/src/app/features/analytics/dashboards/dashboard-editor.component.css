@@ -1,0 +1,22 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.dashboard-editor {
+  display: grid;
+  gap: 12px;
+}
+.add-report {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.add-report smt-control {
+  flex: 1;
+  min-width: min(100%, 220px);
+}
+.hint {
+  margin: 0;
+  color: var(--text-muted);
+}

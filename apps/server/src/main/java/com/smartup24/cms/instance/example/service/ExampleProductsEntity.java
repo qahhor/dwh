@@ -53,7 +53,7 @@ public class ExampleProductsEntity {
                             "update", "example.products.rights.update",
                             "delete", "example.products.rights.delete",
                             "import", "example.products.rights.import"))
-            .menu(new EntityMenu("nav.example_products", "inventory_2", "workspace", 91, "example"))
+            .menu(new EntityMenu("nav.example_products", "inventory_2", "examples", 91, "example"))
             .field(text("code", "example.products.col.code")
                     .column("code")
                     .required()

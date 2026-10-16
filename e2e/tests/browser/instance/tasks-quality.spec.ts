@@ -119,6 +119,7 @@ async function createTaskThroughUi(
   }
 
   if (options.observeAsLogin) {
+    await dialog.getByTestId('task-create-additional-toggle').click();
     await dialog.getByRole('combobox', { name: 'Наблюдатели' }).click();
     // The list opens in an overlay outside the dialog's DOM, so it is found on the page.
     const observer = page.getByRole('option').filter({ hasText: `@${options.observeAsLogin}` });
@@ -413,12 +414,13 @@ test('kanban keeps visible filters and the 390px page contains horizontal overfl
   await page.setViewportSize({ width: 390, height: 844 });
   await loginToInstance(page);
   await page.goto('/tasks');
-  // The view switch and the status filter are segmented radio groups (smt-radio-group).
+  // The view switch uses radio chips; status choices live in the compact select.
   await page.getByRole('radio', { name: 'Канбан' }).click();
   await expect(page.getByRole('region', { name: 'Канбан-доска задач' })).toBeVisible();
-  const filterGroup = page.getByRole('radiogroup', { name: 'Фильтр по статусу' });
-  await expect(filterGroup.getByRole('radio', { name: 'Активные' })).toBeVisible();
-  await expect(filterGroup.getByRole('radio', { name: 'Все', exact: true })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Фильтр по статусу' }).click();
+  await expect(page.getByRole('option', { name: 'Активные', exact: true })).toBeVisible();
+  await expect(page.getByRole('option', { name: 'Все', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Новая задача' })).toBeVisible();
 
   await expect.poll(async () => page.evaluate(() => ({

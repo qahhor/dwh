@@ -36,6 +36,7 @@ public class EntityGate {
     private final EntityRegistry registry;
     private final @Nullable InstalledModules modules;
     private final Map<String, String> moduleOf;
+    private final @Nullable ModuleCatalog catalog;
 
     @Autowired
     public EntityGate(EntityRegistry registry, ObjectProvider<InstalledModules> modules, ModuleCatalog catalog) {
@@ -45,6 +46,7 @@ public class EntityGate {
     /** Without {@code catalog} no entity has a module to switch off: a registry of declarations alone. */
     public EntityGate(EntityRegistry registry, @Nullable InstalledModules modules, @Nullable ModuleCatalog catalog) {
         this.registry = registry;
+        this.catalog = catalog;
         this.modules = modules;
         this.moduleOf = catalog == null ? Map.of() : modules(registry.all(), catalog);
     }
@@ -79,7 +81,13 @@ public class EntityGate {
 
     /** The installed module the entity belongs to, or empty without a module catalog. */
     public Optional<String> moduleOf(String code) {
-        return Optional.ofNullable(moduleOf.get(code));
+        String fixed = moduleOf.get(code);
+        ModuleCatalog current = catalog;
+        return fixed != null || current == null
+                ? Optional.ofNullable(fixed)
+                : registry.find(code)
+                        .flatMap(entity -> current.holdingForm(entity.form()))
+                        .map(ModuleManifest::code);
     }
 
     /** The entity with its custom fields, when the viewer may see it (step 1). */
@@ -141,9 +149,9 @@ public class EntityGate {
     }
 
     private boolean moduleActive(EntityDefinition entity) {
-        String module = moduleOf.get(entity.code());
         InstalledModules installed = modules;
-        return module == null || installed == null || installed.active(module);
+        if (catalog == null || installed == null) return true;
+        return moduleOf(entity.code()).map(installed::active).orElse(false);
     }
 
     /** The answer to an entity the viewer may not see, the same as to an unknown code. */

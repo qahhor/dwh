@@ -20,13 +20,18 @@ public class MsProjectMemberActions {
 
     @Bean
     public EntityActionHandler msProjectAddMember(MsProjectMemberService members) {
-        return handler(
-                MsProjectEntity.ADD_MEMBER,
-                call -> members.addMember(
-                        project(call),
-                        userId(call),
-                        text(call.params().get("accessKind")),
-                        call.actor().userId()));
+        return handler(MsProjectEntity.ADD_MEMBER, call -> {
+            Object updateExisting = call.params().get("updateExisting");
+            if (updateExisting != null && !(updateExisting instanceof Boolean)) {
+                return FieldErrorItem.keyed("params.updateExisting", "invalid", "error.field.yes_no_required");
+            }
+            return members.addMember(
+                    project(call),
+                    userId(call),
+                    text(call.params().get("accessKind")),
+                    Boolean.TRUE.equals(updateExisting),
+                    call.actor().userId());
+        });
     }
 
     @Bean

@@ -80,7 +80,7 @@ export function resolve(root, relative) {
 /** What a module outside the monorepo builds against when the repository's pom says nothing (ADR-0033, 4). */
 export const PLATFORM_DEFAULTS = {
   appVersion: '1.0.0-SNAPSHOT',
-  apiVersion: '1.0.0',
+  apiVersion: '2.0.0',
   bootVersion: '4.1.1',
   compilerPlugin: '3.16.0',
   surefirePlugin: '3.6.0',

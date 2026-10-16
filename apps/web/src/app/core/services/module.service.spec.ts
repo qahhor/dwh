@@ -40,6 +40,28 @@ describe('ModuleService', () => {
     expect(service.getActiveCustomModules()).toEqual([]);
   });
 
+  it('never offers the example module as an unguarded fallback when its entity menu is absent', async () => {
+    const { service, api } = setup();
+    api.get.mockReturnValue(
+      of([
+        {
+          code: 'example',
+          name: 'Examples',
+          version: '1',
+          route: '/e/example.orders',
+          isSystem: false,
+          status: 'ACTIVE',
+        },
+        { code: 'crm', name: 'CRM', version: '1', route: '/crm', isSystem: false, status: 'ACTIVE' },
+      ]),
+    );
+
+    await firstValueFrom(service.loadActiveModules());
+
+    expect(service.isModuleActive('example')).toBe(true);
+    expect(service.getActiveCustomModules().map((module) => module.code)).toEqual(['crm']);
+  });
+
   it('initializes with system modules active and isLoaded false', () => {
     const { service } = setup();
 

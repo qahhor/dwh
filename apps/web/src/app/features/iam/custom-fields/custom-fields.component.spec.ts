@@ -31,6 +31,21 @@ describe('CustomFieldsComponent', () => {
     return { fixture: TestBed.createComponent(CustomFieldsComponent), api, toast };
   }
 
+  it('shows a refused first read with retry instead of an empty table', async () => {
+    const { fixture, api } = await createFixture();
+    api.get.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-custom-fields-table')).toBeNull();
+    (fixture.nativeElement.querySelector('[data-testid="custom-fields-retry"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-custom-fields-table')).not.toBeNull();
+  });
+
   it('opens creation from the header button and labels every modal control', async () => {
     const { fixture } = await createFixture();
     fixture.detectChanges();

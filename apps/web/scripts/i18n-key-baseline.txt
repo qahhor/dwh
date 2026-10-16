@@ -417,8 +417,6 @@ tasks.detail_loading
 tasks.edit_load_error
 tasks.edit_loading
 tasks.edit_task_number
-tasks.export_all_accessible
-tasks.export_filters_not_applied
 tasks.file_attached
 tasks.file_removed
 tasks.filter_preset_all

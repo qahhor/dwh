@@ -200,7 +200,7 @@ export class SMTEntityFormComponent {
       .filter((section) => only.length === 0 || only.includes(section.key))
       .map((section) => ({
         section,
-        title: translate(section.labelKey),
+        title: section.label ?? translate(section.labelKey),
         fields: section.fields
           .map((key) => byKey.get(key))
           .filter((field): field is FormFieldMeta => !!field)
@@ -257,8 +257,11 @@ export class SMTEntityFormComponent {
     return value === null || value === undefined ? '' : String(value);
   }
 
-  isWide(field: FormFieldMeta): boolean {
-    return field.type === 'markdown' || field.type === 'textarea' || field.type === 'json';
+  fieldSpan(field: FormFieldMeta): number {
+    if (['markdown', 'textarea', 'json', 'multi_ref', 'file', 'image'].includes(field.type)) return 6;
+    if (field.type === 'money' || (field.type === 'text' && (field.maxLength ?? 255) > 64)) return 4;
+    if (['ref', 'email', 'phone', 'url', 'datetime'].includes(field.type)) return 3;
+    return 2;
   }
 
   /** Whether the field is shown over the values on screen: its condition holds (ADR-0032 4.4). */

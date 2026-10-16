@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { InteractivityChecker } from '@angular/cdk/a11y';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { Role } from '@core/models/rbac.models';
@@ -201,18 +202,36 @@ describe('RoleModalsComponent', () => {
     expect(screen.querySelector('.delete-title').textContent).toContain('(4)');
     byText('Сбросить и перейти').click();
     byText('Сохранить и перейти').click();
-    byText('Отмена').click();
+    byText('Продолжить редактирование').click();
 
     expect(asked.discard).toHaveBeenCalledTimes(1);
     expect(asked.saveAndSwitch).toHaveBeenCalledTimes(1);
     expect(asked.closeDiscard).toHaveBeenCalledTimes(1);
   });
 
+  it('starts the unsaved-rights question on keeping the draft, even with the discard action first in DOM', async () => {
+    // jsdom has no layout dimensions; allow CDK to focus the real, enabled button selected by its marker.
+    const visible = vi.spyOn(InteractivityChecker.prototype, 'isFocusable').mockReturnValue(true);
+    try {
+      const { screen, asked, settle } = setup({ isDiscardPermissionsModalOpen: true, selectedRole: analyst });
+      await settle();
+      const cancel = screen.querySelector('[data-testid="form-cancel"]') as HTMLButtonElement;
+      expect(cancel.hasAttribute('cdkFocusInitial')).toBe(true);
+      expect(document.activeElement).toBe(cancel);
+      cancel.click();
+      expect(asked.closeDiscard).toHaveBeenCalledTimes(1);
+      expect(asked.discard).not.toHaveBeenCalled();
+      expect(asked.saveAndSwitch).not.toHaveBeenCalled();
+    } finally {
+      visible.mockRestore();
+    }
+  });
+
   it('holds discarding and cancelling while the rights are being saved', () => {
     const { screen, byText } = setup({ isDiscardPermissionsModalOpen: true, selectedRole: analyst, isSaving: true });
 
     expect(byText('Сбросить и перейти').disabled).toBe(true);
-    expect(byText('Отмена').disabled).toBe(true);
+    expect(byText('Продолжить редактирование').disabled).toBe(true);
     expect(screen.querySelector('.smt-modal__close')).toBeNull();
   });
 });

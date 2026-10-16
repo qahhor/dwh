@@ -202,6 +202,27 @@
   padding: 0;
 }
 
+.sidebar-search {
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 10px 12px 2px;
+}
+
+.sidebar-navigation-search {
+  --bg-surface: var(--bg-sidebar-hover);
+  --text-main: var(--sidebar-text-strong);
+  --text-muted: var(--sidebar-text);
+  --border-color: var(--border-sidebar);
+}
+
+.navigation-search-empty {
+  margin: 0;
+  padding: 10px;
+  color: var(--sidebar-text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;

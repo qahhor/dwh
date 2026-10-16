@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Injector, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, effect, inject, input, signal } from '@angular/core';
 import { form } from '@angular/forms/signals';
 
 import { RouterModule } from '@angular/router';
@@ -19,6 +19,7 @@ import {
 } from './navigation-item-form';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import { transliterateToCode } from '@core/utils/transliteration';
 import { NavigationSettingsStatsComponent } from './components/navigation-settings-stats.component';
@@ -33,6 +34,7 @@ import { NavigationSettingsStore } from './navigation-settings.store';
     RouterModule,
     TranslatePipe,
     SMTButtonComponent,
+    SMTAlertComponent,
     NavigationSettingsStatsComponent,
     NavigationSettingsTableComponent,
     NavigationSettingsModalComponent,
@@ -46,6 +48,8 @@ export class NavigationSettingsComponent {
   /** The menu items, loaded as the screen opens, and their requests; the template reads it directly. */
   readonly store = inject(NavigationSettingsStore);
   private readonly injector = inject(Injector);
+
+  readonly embedded = input(false);
 
   readonly isModalOpen = signal<boolean>(false);
   readonly editingItem = signal<CustomNavigationItem | null>(null);

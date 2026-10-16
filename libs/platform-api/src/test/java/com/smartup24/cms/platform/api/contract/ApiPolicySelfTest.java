@@ -2,6 +2,7 @@ package com.smartup24.cms.platform.api.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.platform.api.PlatformVersion;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.classfile.Annotation;
@@ -58,6 +59,26 @@ class ApiPolicySelfTest {
 
         assertThat(new ApiPolicy(ROOT).removedWithoutDeprecation(jar, PlatformApiContractTest.baseline()))
                 .containsExactly(ROOT + ".PlatformVersion#legacy():void is gone without a deprecation first");
+    }
+
+    @Test
+    void addingASealedVariantIsRejectedWithinTheBaselineMajor() {
+        assertThat(new ApiPolicy(ROOT)
+                        .sealedChangesWithoutMajor(
+                                PlatformApiContractTest.baseline(),
+                                PlatformVersion.parse("1.0.0"),
+                                PlatformVersion.parse("1.1.0")))
+                .contains(ROOT + ".entity.field.FieldSource sealed variants changed without a new MAJOR version");
+    }
+
+    @Test
+    void addingASealedVariantIsAllowedWithANewMajor() {
+        assertThat(new ApiPolicy(ROOT)
+                        .sealedChangesWithoutMajor(
+                                PlatformApiContractTest.baseline(),
+                                PlatformVersion.parse("1.0.0"),
+                                PlatformVersion.parse("2.0.0")))
+                .isEmpty();
     }
 
     private record Method(String name, boolean deprecated) {}

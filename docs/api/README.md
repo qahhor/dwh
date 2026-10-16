@@ -107,6 +107,19 @@ GET /api/v1/entities/ms.notes?limit=50&cursor=<nextCursor прошлой стр�
   не принимают (400);
 - ключи хранятся 14 дней (`SMC_IDEMPOTENCY_RETENTION_DAYS`); ответ,
   содержащий секрет, не сохраняется.
+- POST/PUT `/api/v1/form-studio/**` не принимают ключ (400): декларации,
+  metadata и пакеты не воспроизводятся из HTTP-журнала после отзыва доступа.
+  Обработчики отмечены `NoIdempotency`, включая альтернативную кодировку пути.
+  Повтор подготовки версии безопасен за счёт уникальной ревизии в БД и новой
+  проверки доступа. [Контракт Студии](../architecture/admin-studio-contract.md),
+  [ADR-0035](../adr/ADR-0035-declaration-lifecycle.md).
+
+- POST `/api/v1/studio/forms` также не принимает `Idempotency-Key` (400).
+  Это отдельная активация нового simple-form-package: право `studio.forms.publish`,
+  flag `SMC_STUDIO_ACTIVATION_ENABLED`, точный повтор по checksum в транзакции.
+  201 возвращает код формы и `Location` metadata; другой пакет занятого кода — 409.
+  [ADR-0038](../adr/ADR-0038-live-simple-forms.md),
+  [рецепт активации](../cookbook/live-simple-forms.md).
 
 ## 6. Сущности: общий runtime — [ADR-0032](../adr/ADR-0032-low-code-platform-v2.md), §6
 

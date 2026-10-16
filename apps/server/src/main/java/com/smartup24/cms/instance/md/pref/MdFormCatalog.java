@@ -215,6 +215,11 @@ public final class MdFormCatalog {
     /** Webhooks, analytics, modules and navigation. */
     private static void putPlatformForms(Map<String, FormMeta> forms) {
         forms.put(
+                "studio.forms",
+                new FormMeta(
+                        "studio.forms.rights.form",
+                        ordered("publish", "studio.forms.rights.publish", "assist", "studio.forms.rights.assist")));
+        forms.put(
                 "webhook.subscriptions",
                 new FormMeta(
                         "webhook.subscriptions.rights.form",

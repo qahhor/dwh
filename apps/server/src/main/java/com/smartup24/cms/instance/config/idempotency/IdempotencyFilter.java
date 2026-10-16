@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.config.idempotency;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.common.annotation.NoIdempotency;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.entity.RetainedRecordAccess;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -45,6 +46,14 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     public static final int MAX_ENTITY_BODY_BYTES = 524_288; // 512 KB
 
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
+
+    private static final String FORM_PREVIEW = "/api/v1/form-studio/preview";
+
+    private enum ReplayPolicy {
+        STANDARD,
+        NOT_SUPPORTED,
+        NOT_STORED
+    }
 
     private static final Logger log = LoggerFactory.getLogger(IdempotencyFilter.class);
 
@@ -118,36 +127,32 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Whether a path takes an Idempotency-Key: sign-in and the delivery channels of the profile answer secrets and
-     * refuse it (400). The API description declares the header where this is true.
+     * Whether a path takes an Idempotency-Key: sign-in, profile channels and the transient form preview refuse it
+     * (400). Handler annotations also close mapped variants of a path. The API description follows this policy.
      */
     public static boolean supportsPath(String uri) {
         return !uri.startsWith("/api/v1/auth/")
                 && !uri.equals("/api/v1/auth")
-                && !uri.startsWith("/api/v1/iam/profile/channels");
+                && !uri.startsWith("/api/v1/iam/profile/channels")
+                && !uri.equals(FORM_PREVIEW);
     }
 
     private boolean isUnsupportedPath(String uri) {
         return !supportsPath(uri);
     }
 
-    /**
-     * Whether the handler returns a secret ({@link ReturnsSecret}). When the handler cannot be resolved the
-     * answer is yes: a response that is not stored costs a replay, a stored secret costs a leak.
-     */
-    private boolean returnsSecret(HttpServletRequest request) {
+    /** Handler policy closes encoded and matrix-parameter aliases; lookup failure never permits storage. */
+    private ReplayPolicy replayPolicy(HttpServletRequest request) {
         RequestMappingHandlerMapping mapping = handlerMapping == null ? null : handlerMapping.getIfAvailable();
-        if (mapping == null) {
-            return false;
-        }
+        if (mapping == null) return ReplayPolicy.STANDARD;
         try {
             HandlerExecutionChain chain = mapping.getHandler(request);
-            return chain != null
-                    && chain.getHandler() instanceof HandlerMethod method
-                    && method.hasMethodAnnotation(ReturnsSecret.class);
+            if (chain == null || !(chain.getHandler() instanceof HandlerMethod method)) return ReplayPolicy.STANDARD;
+            if (method.hasMethodAnnotation(NoIdempotency.class)) return ReplayPolicy.NOT_SUPPORTED;
+            return method.hasMethodAnnotation(ReturnsSecret.class) ? ReplayPolicy.NOT_STORED : ReplayPolicy.STANDARD;
         } catch (Exception e) {
             log.warn("idempotency_handler_lookup_failed uri={}", request.getRequestURI(), e);
-            return true;
+            return ReplayPolicy.NOT_STORED;
         }
     }
 
@@ -164,19 +169,14 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 1. Validate sensitive / unsupported endpoint
-        if (isUnsupportedPath(request.getRequestURI())) {
-            answers.problem(
-                    request,
-                    response,
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    ErrorCode.IDEMPOTENCY_NOT_SUPPORTED,
-                    "error.idempotency_auth_unsupported");
+        ReplayPolicy policy = replayPolicy(request);
+        if (isUnsupportedPath(request.getRequestURI()) || policy == ReplayPolicy.NOT_SUPPORTED) {
+            unsupported(request, response, policy);
             return;
         }
 
         // A response carrying a secret is never stored for replay: run it without a reservation.
-        if (returnsSecret(request)) {
+        if (policy == ReplayPolicy.NOT_STORED) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -219,6 +219,15 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                     idempotencyKey,
                     claim.reservationToken());
         }
+    }
+
+    private void unsupported(HttpServletRequest request, HttpServletResponse response, ReplayPolicy policy)
+            throws IOException {
+        String key = policy == ReplayPolicy.NOT_SUPPORTED || FORM_PREVIEW.equals(request.getRequestURI())
+                ? "error.idempotency_not_supported"
+                : "error.idempotency_auth_unsupported";
+        answers.problem(
+                request, response, HttpServletResponse.SC_BAD_REQUEST, ErrorCode.IDEMPOTENCY_NOT_SUPPORTED, key);
     }
 
     /** Keep the original reservation and answer intact while its module is unavailable. */

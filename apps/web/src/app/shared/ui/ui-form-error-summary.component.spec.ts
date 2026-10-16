@@ -44,6 +44,33 @@ describe('ui-form-error-summary', () => {
     expect(document.activeElement).toBe(field);
   });
 
+  it('jumps to an enabled option inside a composite field', () => {
+    const group = document.createElement('div');
+    group.id = 'priority-group';
+    group.setAttribute('role', 'radiogroup');
+    group.innerHTML =
+      '<div role="radio" tabindex="-1">Low</div>' + '<div role="radio" tabindex="0" id="priority-selected">High</div>';
+    document.body.appendChild(group);
+    const element = render([{ fieldId: group.id, message: 'Choose an available priority' }], 1);
+    (element.querySelector('a') as HTMLAnchorElement).click();
+    expect(document.activeElement?.id).toBe('priority-selected');
+  });
+
+  it.each([false, true])('focuses an editable override, nested=%s', (nested) => {
+    const editor = document.createElement('div');
+    editor.id = 'editable-field';
+    editor.setAttribute('contenteditable', 'true');
+    const field = nested ? document.createElement('div') : editor;
+    if (nested) {
+      field.id = 'editor-wrapper';
+      field.appendChild(editor);
+    }
+    document.body.appendChild(field);
+    const element = render([{ fieldId: field.id, message: 'Check the content' }], 1);
+    (element.querySelector('a') as HTMLAnchorElement).click();
+    expect(document.activeElement).toBe(editor);
+  });
+
   it('shows an error of no drawn field at once, as plain text', () => {
     const element = render([{ message: 'Поле «Владелец» скрыто, но заполнено неверно' }]);
     const box = element.querySelector('[role="alert"]')!;

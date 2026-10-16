@@ -70,9 +70,15 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     fixture = TestBed.createComponent(AnalyticsComponent);
     host = fixture.nativeElement;
     fixture.detectChanges();
+    http.expectOne('/api/v1/dashboards?limit=20').flush({ items: [], hasMore: false });
   });
 
   afterEach(() => http.verify());
+
+  it('delegates the navigation decision to the dashboard editor', async () => {
+    await loadInitialSnapshot();
+    expect(fixture.componentInstance).toHaveProperty('canLeaveRecordPage');
+  });
 
   function takeSnapshotRequests(range = '7d') {
     return {

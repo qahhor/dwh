@@ -4,6 +4,8 @@ import {
   Signal,
   TemplateRef,
   computed,
+  effect,
+  untracked,
   inject,
   viewChild,
   input,
@@ -13,8 +15,8 @@ import {
   signal,
 } from '@angular/core';
 
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { catchError, debounceTime, distinctUntilChanged, map, of, skip, switchMap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, map, of, Subject, switchMap, timer } from 'rxjs';
 import { ProjectsApi } from '../projects.api';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
@@ -110,10 +112,9 @@ export class ProjectMembersModalComponent {
     source: () => [this.isOpen(), this.addedCount()],
     computation: (): User | null => null,
   });
-  readonly selectedAccessKind = signal('MEMBER');
+  readonly selectedAccessKind = signal<'R' | 'W'>('R');
 
-  /** What was typed into the search box; choosing or clearing a user does not search again. */
-  private readonly searchTerm = signal('');
+  readonly searchStatus = signal<'idle' | 'loading' | 'ready' | 'empty' | 'error'>('idle');
 
   readonly pending = computed(() => this.isAddingMember() || this.removingUserId() !== null);
 
@@ -153,18 +154,21 @@ export class ProjectMembersModalComponent {
 
   private readonly accessKindMemo = optionsMemo<SMTSelectOption<string>[]>();
 
+  /** Query events reset immediately, including when the same query is entered after clearing. */
+  private readonly searchRequests = new Subject<string>();
+
   constructor() {
-    toObservable(this.searchTerm)
+    this.searchRequests
       .pipe(
-        // The first value is the empty box, not something typed.
-        skip(1),
-        debounceTime(250),
-        distinctUntilChanged(),
+        // Switching before the delay also cancels in-flight results as soon as the query is cleared or changed.
         switchMap((query) => {
           const trimmed = query.trim();
-          if (!trimmed) return of<User[] | null>([]);
-          // A failed search empties the list but keeps the box searching.
-          return this.projectsApi.searchActiveUsers(trimmed).pipe(
+          this.foundUsers.set([]);
+          this.isUserDropdownOpen.set(!!trimmed);
+          this.searchStatus.set(trimmed ? 'loading' : 'idle');
+          if (!trimmed) return of(undefined);
+          return timer(250).pipe(
+            switchMap(() => this.projectsApi.searchActiveUsers(trimmed)),
             map((res) => res.items || []),
             catchError(() => of(null)),
           );
@@ -172,17 +176,26 @@ export class ProjectMembersModalComponent {
         takeUntilDestroyed(),
       )
       .subscribe((users) => {
+        if (users === undefined) return;
         this.foundUsers.set(users ?? []);
-        if (users) this.isUserDropdownOpen.set(true);
+        this.searchStatus.set(users === null ? 'error' : users.length ? 'ready' : 'empty');
       });
+    effect(() => {
+      this.isOpen();
+      this.addedCount();
+      this.project();
+      untracked(() => {
+        this.clearSelectedUser();
+        this.selectedAccessKind.set('R');
+      });
+    });
   }
 
   /** Access levels a new member can get; translated again when the language changes. */
   accessKindOptions(): SMTSelectOption<string>[] {
     return this.accessKindMemo([this.i18n.currentLang()], () => [
-      { id: 'MEMBER', label: this.i18n.translate('projects.members.role_member') },
-      { id: 'MANAGER', label: this.i18n.translate('projects.members.role_manager') },
-      { id: 'OBSERVER', label: this.i18n.translate('projects.members.role_observer') },
+      { id: 'R', label: this.i18n.translate('projects.members.access_read') },
+      { id: 'W', label: this.i18n.translate('projects.members.access_write') },
     ]);
   }
 
@@ -198,11 +211,12 @@ export class ProjectMembersModalComponent {
     if (selected && query !== selected.name) {
       this.selectedUser.set(null);
     }
-    this.searchTerm.set(query);
+    this.searchRequests.next(query);
   }
 
   selectUser(user: User): void {
     if (this.selectedUser()?.id !== user.id) this.clearError('userId');
+    this.searchRequests.next('');
     this.selectedUser.set(user);
     this.userSearchQuery.set(user.name);
     this.isUserDropdownOpen.set(false);
@@ -212,8 +226,11 @@ export class ProjectMembersModalComponent {
     this.clearError('userId');
     this.selectedUser.set(null);
     this.userSearchQuery.set('');
-    this.foundUsers.set([]);
-    this.isUserDropdownOpen.set(false);
+    this.searchRequests.next('');
+  }
+
+  retryUserSearch(): void {
+    this.searchRequests.next(this.userSearchQuery());
   }
 
   touchUser(event: FocusEvent): void {
@@ -223,24 +240,22 @@ export class ProjectMembersModalComponent {
   }
 
   changeAccessKind(value: string | null): void {
-    if (!value || value === this.selectedAccessKind()) return;
+    if ((value !== 'R' && value !== 'W') || value === this.selectedAccessKind()) return;
     this.selectedAccessKind.set(value);
     this.clearError('accessKind');
   }
 
   accessVariant(kind: string): TBadgeVariant {
-    return kind === 'MANAGER' ? 'blue' : kind === 'MEMBER' ? 'success' : 'gray';
+    return kind === 'W' ? 'blue' : 'gray';
   }
 
   /** The role's name; a kind this screen does not know shows as it came. */
   accessLabel(kind: string): string {
     switch (kind) {
-      case 'MANAGER':
-        return this.i18n.translate('projects.members.role_manager');
-      case 'MEMBER':
-        return this.i18n.translate('projects.members.role_member');
-      case 'OBSERVER':
-        return this.i18n.translate('projects.members.role_observer');
+      case 'R':
+        return this.i18n.translate('projects.members.access_read');
+      case 'W':
+        return this.i18n.translate('projects.members.access_write');
       default:
         return kind;
     }

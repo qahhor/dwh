@@ -42,6 +42,19 @@ describe('ui-page-header', () => {
     expect(host.querySelector('[data-testid="tasks-count"]')?.textContent?.trim()).toBe('5');
   });
 
+  it('uses a native section heading when embedded, preserving its accessible target', () => {
+    const fixture = TestBed.createComponent(UiPageHeaderComponent);
+    fixture.componentRef.setInput('title', 'Menu settings');
+    fixture.componentRef.setInput('titleId', 'navigation-title');
+    fixture.componentRef.setInput('headingLevel', 2);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('h1')).toBeNull();
+    expect(host.querySelector('h2')?.id).toBe('navigation-title');
+    expect(host.querySelector('h2')?.textContent).toBe('Menu settings');
+  });
+
   it('puts the aside beside the title and the rest among the actions', () => {
     const { host } = render();
 

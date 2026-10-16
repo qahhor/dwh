@@ -15,6 +15,7 @@ import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewRequest;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewResponse;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository;
@@ -70,6 +71,7 @@ public class MdListViewService {
     private final AuditLogService audit;
     private final MdReportViewState reports;
     private final EntityReports entityReports;
+    private final MdReportCatalogService catalog;
     /** Builds the view state trees (plan 10/10, item 3.11: the application's mapper). */
     private final ObjectMapper json;
     /** Writes and reads the stored state column. */
@@ -81,12 +83,14 @@ public class MdListViewService {
             AuditLogService audit,
             MdReportViewState reports,
             EntityReports entityReports,
+            MdReportCatalogService catalog,
             ObjectMapper json) {
         this.repo = repo;
         this.registry = registry;
         this.audit = audit;
         this.reports = reports;
         this.entityReports = entityReports;
+        this.catalog = catalog;
         this.json = json;
         this.stored = new JsonColumns(json, AUDIT_TABLE);
     }
@@ -99,7 +103,11 @@ public class MdListViewService {
         for (String kind : wanted) {
             if (!KINDS.contains(kind)) throw invalid(List.of(kindProblem()));
         }
-        return repo.list(userId, listCode, wanted).stream().map(this::response).toList();
+        return repo.list(userId, listCode, wanted).stream()
+                .filter(view -> TABLE.equals(view.kind())
+                        || catalog.visible(view, userId, false).isPresent())
+                .map(this::response)
+                .toList();
     }
 
     @Transactional
@@ -130,10 +138,13 @@ public class MdListViewService {
     }
 
     @Transactional
-    public ViewResponse update(long userId, String listCode, long id, int lockVersion, ViewRequest data) {
+    public ViewResponse update(long userId, String listCode, long id, long lockVersion, ViewRequest data) {
         QueryList list = visibleList(listCode);
         ListView checked = check(list, data);
         ListView before = repo.find(userId, listCode, id).orElseThrow(MdListViewService::notFound);
+        if (!TABLE.equals(before.kind())
+                && catalog.visible(before, userId, false).isEmpty()) throw notFound();
+        if (before.lockVersion() != lockVersion) throw Revisions.conflict();
         if (WIDGET.equals(checked.kind()) && !WIDGET.equals(before.kind())) requireWidgetRoom(userId);
         if (checked.isDefault()) {
             repo.clearDefault(userId, listCode, id);
@@ -145,18 +156,22 @@ public class MdListViewService {
             throw nameTaken();
         }
         if (updated == 0) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.list_view_stale");
+            throw Revisions.conflict();
         }
+        if (TABLE.equals(checked.kind())) repo.clearSharing(id);
         ListView after = repo.find(userId, listCode, id).orElseThrow();
         audit.logChange(AUDIT_TABLE, Long.toString(id), "U", AUDITED, row(before), row(after));
         return response(after);
     }
 
     @Transactional
-    public void delete(long userId, String listCode, long id) {
+    public void delete(long userId, String listCode, long id, long revision) {
         visibleList(listCode);
         ListView before = repo.find(userId, listCode, id).orElseThrow(MdListViewService::notFound);
-        repo.delete(userId, listCode, id);
+        if (!TABLE.equals(before.kind())
+                && catalog.visible(before, userId, false).isEmpty()) throw notFound();
+        if (before.lockVersion() != revision || repo.delete(userId, listCode, id, revision) != 1)
+            throw Revisions.conflict();
         audit.logChange(AUDIT_TABLE, Long.toString(id), "D", AUDITED, row(before), null);
     }
 
@@ -178,7 +193,13 @@ public class MdListViewService {
                     FieldErrorItem.keyed("isDefault", LIST_VIEW_INVALID, "error.md.field_list_view_default_table")));
         }
         String name = checkName(data.name());
-        String state = TABLE.equals(kind) ? canonicalState(list, data.state()) : reports.canonical(list, data.state());
+        String state = TABLE.equals(kind)
+                ? canonicalState(list, data.state())
+                : reports.canonical(
+                        entityReports.list(
+                                entityReports.entityOfList(list.code()).orElseThrow(),
+                                MdReportViewState.dataset(data.state())),
+                        data.state());
         return new ListView(0, list.code(), kind, name, state, isDefault, 0, Instant.EPOCH);
     }
 

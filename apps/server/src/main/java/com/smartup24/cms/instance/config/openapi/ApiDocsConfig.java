@@ -124,6 +124,22 @@ public class ApiDocsConfig {
         };
     }
 
+    /** The absent shared draft is a union; a null sibling of an object reference rejects both shapes (ADR-0035). */
+    @Bean
+    OpenApiCustomizer nullableFormStudioDraft() {
+        return openApi -> {
+            Schema<?> response = openApi.getComponents().getSchemas().get("FormStudioDraftResponse");
+            if (response == null) return;
+            Schema<?> absent = new Schema<>();
+            absent.addType("null");
+            response.addProperty(
+                    "draft",
+                    new Schema<>()
+                            .addAnyOfItem(new Schema<>().$ref("#/components/schemas/FormStudioDraft"))
+                            .addAnyOfItem(absent));
+        };
+    }
+
     /**
      * The forms of {@link ApiDeprecations#CURRENT} are marked deprecated with the day they stop answering and their
      * successor (plan item 3.4, ADR-0023); each snake_case parameter is listed, deprecated, next to its camelCase name;

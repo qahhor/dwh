@@ -1,0 +1,44 @@
+.assistant {
+  display: grid;
+  gap: var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  min-width: 0;
+}
+.assistant h2,
+.assistant h3,
+.assistant p {
+  margin: 0;
+}
+.assistant h2 {
+  font-size: 16px;
+}
+.assistant h3 {
+  font-size: 13px;
+}
+.assistant-hint {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.assistant-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.assistant-proposal {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.assistant-proposal pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 280px;
+  overflow: auto;
+  font-size: 12px;
+}
+.assistant-proposal summary {
+  cursor: pointer;
+  padding-block: var(--space-2);
+}

@@ -59,7 +59,8 @@ public record EntityModel(
         @Nullable EntityWorkflow workflow,
         List<EntityTab> tabs,
         @Nullable EntityImportSpec importing,
-        @Nullable EntitySearchSpec search) {
+        @Nullable EntitySearchSpec search,
+        @Nullable EntityPartition partition) {
 
     /** The record property of the custom field values. */
     public static final String ATTRIBUTES = "attributes";
@@ -93,6 +94,10 @@ public record EntityModel(
             }
         }
         EntityModelRules.check(table, fields);
+        EntityStorageRules.check(fields, partition, collections, reference, importing, search);
+        if (partition != null && workflow != null) {
+            throw new IllegalArgumentException("A partitioned entity has no workflow");
+        }
         EntityModelRules.checkReference(table, reference, scope);
         rules = Collections.unmodifiableMap(new LinkedHashMap<>(rules));
         collections = List.copyOf(collections);
@@ -108,6 +113,45 @@ public record EntityModel(
         if (search != null) {
             search.check(table, fields, scope);
         }
+    }
+
+    /** A table model without a shared-table partition. */
+    public EntityModel(
+            String table,
+            String alias,
+            List<EntityField> fields,
+            String defaultSort,
+            boolean defaultDescending,
+            EntityScope scope,
+            @Nullable EntityReference reference,
+            Map<String, EntityRule> rules,
+            List<EntityCollection> collections,
+            @Nullable EntityWorkflow workflow,
+            List<EntityTab> tabs,
+            @Nullable EntityImportSpec importing,
+            @Nullable EntitySearchSpec search) {
+        this(
+                table,
+                alias,
+                fields,
+                defaultSort,
+                defaultDescending,
+                scope,
+                reference,
+                rules,
+                collections,
+                workflow,
+                tabs,
+                importing,
+                search,
+                null);
+    }
+
+    /** The source used by every list/report; partition values are trusted positive server keys (ADR-0038). */
+    public String from() {
+        return partition == null
+                ? table + " " + alias
+                : "(select * from " + table + " where " + partition.column() + " = " + partition.value() + ") " + alias;
     }
 
     /** A model of an entity without collections, process or tabs of its own. */

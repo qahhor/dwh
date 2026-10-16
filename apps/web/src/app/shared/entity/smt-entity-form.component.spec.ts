@@ -60,6 +60,22 @@ describe('SMTEntityFormComponent', () => {
     expect(root.querySelector('[data-field="isPinned"] [role="switch"]')).not.toBeNull();
   });
 
+  it('shows a literal section label as text without changing stable field keys or constraints', async () => {
+    const { root, host } = await render((host) =>
+      host.meta.set({
+        ...NOTES_FORM_META,
+        layout: NOTES_FORM_META.layout.map((section, index) => ({
+          ...section,
+          ...(index === 0 ? { label: '<b>Details</b>' } : {}),
+        })),
+      }),
+    );
+    expect(root.querySelector('legend')?.textContent?.trim()).toBe('<b>Details</b>');
+    expect(root.querySelector('legend b')).toBeNull();
+    expect(host.meta().fields[0].key).toBe(NOTES_FORM_META.fields[0].key);
+    expect((root.querySelector('[data-field="title"] input') as HTMLInputElement).required).toBe(true);
+  });
+
   it('writes what is typed into the value, by field key', async () => {
     const { fixture, root, host } = await render();
     const form = new EntityFormHarness(

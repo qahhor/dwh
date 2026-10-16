@@ -1,4 +1,6 @@
 .login-wrapper {
+  --control-height: calc(var(--space-2) * 5);
+
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
@@ -7,55 +9,83 @@
   align-items: center;
   justify-content: center;
   background-color: var(--bg-app);
-  padding: 16px;
-  position: relative;
+  padding: calc(var(--space-4) * 2) var(--space-4);
 }
 
 .login-card {
+  width: 100%;
+  max-width: 400px;
+  min-width: 0;
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-overlay);
-  padding: 32px 28px;
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-md);
+  padding: calc(var(--space-3) * 2);
 }
 
-:host-context([data-theme='dark']) .login-card {
-  --text-inverse: var(--bg-app);
+.login-form,
+.form-group,
+.otp-actions {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  margin: 0;
+}
+
+.form-group,
+.otp-actions {
+  gap: var(--space-2);
+}
+
+.login-form smt-input {
+  font-size: 14px;
+}
+
+.password-group {
+  position: relative;
+}
+
+.password-group > smt-control {
+  padding-top: calc(var(--space-2) / 2);
 }
 
 .forgot-link {
-  align-self: flex-end;
-  font-size: 11px;
-  color: var(--primary);
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-height: calc(var(--space-3) * 2);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--primary-text);
   cursor: pointer;
-  text-decoration: none;
   border: 0;
-  padding: 5px 2px;
+  padding: 0;
   background: transparent;
   font-family: inherit;
 }
+
 .forgot-link:hover {
   text-decoration: underline;
 }
 
 .forgot-link:focus-visible {
-  outline: 2px solid var(--focus-ring, var(--primary));
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+  border-radius: var(--radius-xs);
 }
+
 .forgot-link:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 /* Keep pointer targets still when a password blur clears the hint. */
 .caps-lock-hint {
   min-height: 1.4em;
@@ -64,42 +94,62 @@
   line-height: 1.4;
 }
 
-@media (max-width: 480px) {
-  .login-card {
-    padding: 24px 20px;
-  }
+.login-card button[smt-button] {
+  min-height: var(--control-touch-height);
 }
 
 .submit-btn {
   width: 100%;
-  margin-top: 6px;
 }
 
-.otp-banner {
-  background-color: var(--info-bg);
-  color: var(--info-text);
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  gap: 10px;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.warning-banner {
-  background-color: var(--warning-bg);
-  color: var(--warning);
-}
-
-.otp-input {
-  font-size: 18px;
-  letter-spacing: 4px;
+.login-form .otp-input {
+  font-size: 22px;
+  letter-spacing: var(--space-2);
   text-align: center;
   font-weight: 600;
 }
 
-.otp-actions {
+.auth-result {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-4);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.status-icon {
+  font-size: 28px;
+  color: var(--primary-text);
+}
+
+.status-icon.success {
+  color: var(--success-text);
+}
+
+.status-icon.invalid {
+  color: var(--warning-text);
+}
+
+@media (max-width: 480px) {
+  .login-wrapper {
+    --control-height: var(--control-touch-height);
+  }
+
+  .login-card {
+    padding: calc(var(--space-2) + var(--space-3));
+  }
+
+  .login-form smt-input {
+    font-size: 16px;
+  }
+
+  .password-group > smt-control {
+    padding-top: var(--space-4);
+    gap: var(--space-4);
+  }
+
+  .forgot-link {
+    min-height: var(--control-touch-height);
+  }
 }

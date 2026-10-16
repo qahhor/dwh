@@ -15,6 +15,8 @@
     "SessionCookie" : [ ]
   } ],
   "tags" : [ {
+    "name" : "aggregate-export-controller"
+  }, {
     "name" : "analytics-controller"
   }, {
     "name" : "audit-log-controller"
@@ -35,6 +37,8 @@
   }, {
     "name" : "form-meta-controller"
   }, {
+    "name" : "form-studio-controller"
+  }, {
     "name" : "kauth-api-token-controller"
   }, {
     "name" : "kauth-auth-controller"
@@ -51,6 +55,10 @@
   }, {
     "name" : "md-custom-field-controller"
   }, {
+    "name" : "md-dashboard-controller"
+  }, {
+    "name" : "md-form-studio-controller"
+  }, {
     "name" : "md-i-18n-admin-controller"
   }, {
     "name" : "md-i-18n-controller"
@@ -59,11 +67,17 @@
   }, {
     "name" : "md-org-unit-controller"
   }, {
+    "name" : "md-report-view-controller"
+  }, {
     "name" : "md-report-widget-controller"
   }, {
     "name" : "md-role-controller"
   }, {
     "name" : "md-setting-controller"
+  }, {
+    "name" : "md-simple-form-controller"
+  }, {
+    "name" : "md-simple-form-draft-controller"
   }, {
     "name" : "md.users"
   }, {
@@ -114,6 +128,10 @@
     "name" : "search-controller"
   }, {
     "name" : "search-management-controller"
+  }, {
+    "name" : "studio-assistant-controller"
+  }, {
+    "name" : "studio-form-controller"
   }, {
     "name" : "system-info-controller"
   }, {
@@ -271,7 +289,7 @@
     "/api/v1/announcements" : {
       "post" : {
         "description" : "Adds an announcement.",
-        "operationId" : "create_3",
+        "operationId" : "create_5",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
           "in" : "header",
@@ -427,7 +445,7 @@
     "/api/v1/announcements/{id}" : {
       "put" : {
         "description" : "Replaces an announcement.",
-        "operationId" : "update_2",
+        "operationId" : "update_4",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1407,6 +1425,608 @@
         },
         "summary" : "Update a custom field",
         "tags" : [ "md-custom-field-controller" ]
+      }
+    },
+    "/api/v1/dashboards" : {
+      "get" : {
+        "description" : "Returns owned and active-role-shared dashboard summaries. The default limit is 20 and maximum 100; all access is checked for the current reader.",
+        "operationId" : "list_4",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KeysetPageDashboardSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List accessible dashboards",
+        "tags" : [ "md-dashboard-controller" ]
+      },
+      "post" : {
+        "description" : "Creates an owned dashboard containing up to 12 distinct accessible saved reports. Names are unique per owner; each owner may create at most 20 dashboards. Returns Location and ETag.",
+        "operationId" : "create_4",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DashboardRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DashboardDetail"
+                }
+              }
+            },
+            "description" : "Created",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a named dashboard",
+        "tags" : [ "md-dashboard-controller" ]
+      }
+    },
+    "/api/v1/dashboards/{id}" : {
+      "delete" : {
+        "description" : "Only the owner may delete the layout with its current If-Match revision. Referenced reports remain intact. Missing revision returns 428 and stale revision 409.",
+        "operationId" : "delete_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Delete a named dashboard",
+        "tags" : [ "md-dashboard-controller" ]
+      },
+      "get" : {
+        "description" : "Reads the current persisted layout and revalidates every source for the reader. An unavailable widget retains only its identifier and width; no source name, fields or definition are disclosed.",
+        "operationId" : "get_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DashboardDetail"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read a named dashboard",
+        "tags" : [ "md-dashboard-controller" ]
+      },
+      "put" : {
+        "description" : "Only the owner may replace a layout with its current If-Match revision. A retained unavailable slot preserves its stored period binding without exposing it; missing revision returns 428 and stale revision 409.",
+        "operationId" : "update_3",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DashboardRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DashboardDetail"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Update a named dashboard",
+        "tags" : [ "md-dashboard-controller" ]
+      }
+    },
+    "/api/v1/dashboards/{id}/sharing" : {
+      "get" : {
+        "description" : "Only the owner with settings-update permission reads the explicit role policy. ETag identifies the dashboard revision, shared with layout changes.",
+        "operationId" : "sharing_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SharingResponse"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read dashboard sharing",
+        "tags" : [ "md-dashboard-controller" ]
+      },
+      "put" : {
+        "description" : "The owner with settings-update permission assigns up to 20 active roles. If-Match checks the layout revision; policy and incremented revision are committed atomically.",
+        "operationId" : "share_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SharingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SharingResponse"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Replace dashboard sharing",
+        "tags" : [ "md-dashboard-controller" ]
+      }
+    },
+    "/api/v1/dashboards/{id}/widgets/{viewId}/export" : {
+      "get" : {
+        "description" : "Requires the current dashboard revision in If-Match. Uses its source and UTC period mapping with the same authorization as the widget result.",
+        "operationId" : "dashboard",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "path",
+          "name" : "viewId",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lang",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "ru"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Export a dashboard widget",
+        "tags" : [ "aggregate-export-controller" ]
+      }
+    },
+    "/api/v1/dashboards/{id}/widgets/{viewId}/result" : {
+      "get" : {
+        "description" : "Requires the current layout revision in If-Match and rechecks report, field and data access. Both ISO dates or neither are accepted. DATE bounds are inclusive; timestamps use UTC start through the exclusive next day.",
+        "operationId" : "result",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "path",
+          "name" : "viewId",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueryAggregateResult"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Run a dashboard widget",
+        "tags" : [ "md-dashboard-controller" ]
       }
     },
     "/api/v1/entities/example.orders" : {
@@ -6366,6 +6986,13 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "in" : "query",
+          "name" : "dataset",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -6393,9 +7020,167 @@
         "tags" : [ "entity-report-controller" ]
       }
     },
+    "/api/v1/entities/{code}/report-datasets" : {
+      "get" : {
+        "description" : "Lists up to 16 trusted datasets after checking root, reference and target access.",
+        "operationId" : "datasets",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportDatasetCatalog"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List available prepared report datasets",
+        "tags" : [ "entity-report-controller" ]
+      }
+    },
+    "/api/v1/entities/{code}/report-meta" : {
+      "get" : {
+        "description" : "Returns current visible fields and report capabilities for the entity or a named dataset.",
+        "operationId" : "metadata",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "dataset",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ListMeta"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Describe the authorized report source",
+        "tags" : [ "entity-report-controller" ]
+      }
+    },
+    "/api/v1/entities/{code}/report/export" : {
+      "get" : {
+        "description" : "Exports the report's original groups and measures, with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.",
+        "operationId" : "report_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "measures",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "filter",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "dataset",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lang",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "ru"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Export aggregate report rows",
+        "tags" : [ "aggregate-export-controller" ]
+      }
+    },
     "/api/v1/entities/{code}/reports/{viewId}" : {
       "get" : {
-        "description" : "Runs a report or widget the viewer saved as a view of the entity's list.",
+        "description" : "Runs an owned or role-shared report or widget using the current reader's data and field access.",
         "operationId" : "saved",
         "parameters" : [ {
           "in" : "path",
@@ -6437,6 +7222,61 @@
         },
         "summary" : "Run a saved report",
         "tags" : [ "entity-report-controller" ]
+      }
+    },
+    "/api/v1/entities/{code}/reports/{viewId}/export" : {
+      "get" : {
+        "description" : "Rechecks current source sharing and the reader's data and field rights.",
+        "operationId" : "saved_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "viewId",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lang",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "ru"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Export a saved report",
+        "tags" : [ "aggregate-export-controller" ]
       }
     },
     "/api/v1/entities/{code}/{id}/files/{fileId}" : {
@@ -6924,7 +7764,7 @@
     "/api/v1/form-meta/{code}" : {
       "get" : {
         "description" : "The fields, layout and rules of an entity form, built from its declaration; the entity's own right is checked.",
-        "operationId" : "get_4",
+        "operationId" : "get_6",
         "parameters" : [ {
           "in" : "path",
           "name" : "code",
@@ -6957,6 +7797,569 @@
         },
         "summary" : "Get a form description",
         "tags" : [ "form-meta-controller" ]
+      }
+    },
+    "/api/v1/form-studio/drafts/{entityCode}" : {
+      "get" : {
+        "description" : "Returns the saved draft, or null when none exists, with current authorized form metadata. A saved draft is revalidated against visible fields and its revision is returned as ETag.",
+        "operationId" : "get_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "entityCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormStudioDraftResponse"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read the shared form layout draft",
+        "tags" : [ "md-form-studio-controller" ]
+      },
+      "post" : {
+        "description" : "Validates the declaration against current authorized metadata and creates one shared draft for the prototype form. Returns its Location and ETag; an existing draft causes 409.",
+        "operationId" : "create",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "entityCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FormLayoutDeclaration"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormStudioDraftResponse"
+                }
+              }
+            },
+            "description" : "Created",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a shared form layout draft",
+        "tags" : [ "md-form-studio-controller" ]
+      },
+      "put" : {
+        "description" : "Replaces the shared declaration only when If-Match names its current revision. Both the stored and submitted layouts must remain visible and valid. Returns the new ETag; missing If-Match causes 428 and a stale revision causes 409.",
+        "operationId" : "update_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "entityCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FormLayoutDeclaration"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormStudioDraftResponse"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Save a shared form layout draft",
+        "tags" : [ "md-form-studio-controller" ]
+      }
+    },
+    "/api/v1/form-studio/drafts/{entityCode}/versions" : {
+      "get" : {
+        "description" : "Returns version, source revision, checksum and creation time in descending keyset order. The default limit is 20, the maximum is 100 and an invalid limit causes 422. Each request checks current access; declaration contents are not included.",
+        "operationId" : "versions_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "entityCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KeysetPageFormStudioVersionSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List prepared form layout versions",
+        "tags" : [ "md-form-studio-controller" ]
+      },
+      "post" : {
+        "description" : "Requires If-Match for the current draft and seals its declaration, dependency fingerprint and checksum atomically. Repeating preparation of the same current revision returns its existing compatible package. Returns 201 with Location and never activates the package.",
+        "operationId" : "prepare_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "entityCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormStudioVersionPackage"
+                }
+              }
+            },
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Prepare an immutable form layout version",
+        "tags" : [ "md-form-studio-controller" ]
+      }
+    },
+    "/api/v1/form-studio/drafts/{entityCode}/versions/{version}" : {
+      "get" : {
+        "description" : "Returns the immutable stored package after checking current permissions and field visibility. Use the verification action to check its dependency compatibility. Reading a package never changes the draft or activates a runtime definition.",
+        "operationId" : "version",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "entityCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "version",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormStudioVersionPackage"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read a prepared form layout package",
+        "tags" : [ "md-form-studio-controller" ]
+      }
+    },
+    "/api/v1/form-studio/drafts/{entityCode}/versions/{version}/verify" : {
+      "post" : {
+        "description" : "Checks a strict JSON package of at most 64 KiB against the trusted stored version, checksum and current authorized metadata. Returns 200 with the verification result, 422 for an invalid package or 409 for changed dependencies. This action stores and activates nothing.",
+        "operationId" : "verify",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "entityCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "version",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FormStudioVersionPackage"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormStudioVerification"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Verify a prepared form package",
+        "tags" : [ "md-form-studio-controller" ]
+      }
+    },
+    "/api/v1/form-studio/new-forms/check-draft" : {
+      "post" : {
+        "description" : "Checks bounded JSON structure and known field types, preserving empty identifiers, labels and unfinished numeric limits. Returns authoring input only, never a checksum or delivery package. Preparation independently enforces the complete declaration contract. Nothing is stored or activated.",
+        "operationId" : "check",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SimpleFormDraftDeclaration"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SimpleFormDraftDeclaration"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Check an unfinished local simple form draft",
+        "tags" : [ "md-simple-form-draft-controller" ]
+      }
+    },
+    "/api/v1/form-studio/new-forms/prepare" : {
+      "post" : {
+        "description" : "Validates a bounded create-only declaration and returns a deterministic SHA-256 package. Requires current settings update permission. No draft, entity or schema is created. The CLI independently validates the package and target checkout before generating sources and Flyway migrations.",
+        "operationId" : "prepare",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SimpleFormDeclaration"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SimpleFormDeliveryPackage"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Prepare a simple new form for CLI delivery",
+        "tags" : [ "md-simple-form-controller" ]
+      }
+    },
+    "/api/v1/form-studio/preview" : {
+      "post" : {
+        "description" : "Validates a presentation-only declaration against current authorized metadata, without persistence or publication.",
+        "operationId" : "preview_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FormLayoutDeclaration"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormLayoutPreview"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Validate a form layout preview",
+        "tags" : [ "form-studio-controller" ]
+      }
+    },
+    "/api/v1/form-studio/prototype" : {
+      "get" : {
+        "description" : "Current authorized product form metadata and its initial presentation declaration; no records are read.",
+        "operationId" : "prototype",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FormLayoutPreview"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Get the form layout prototype",
+        "tags" : [ "form-studio-controller" ]
       }
     },
     "/api/v1/history" : {
@@ -7395,7 +8798,7 @@
       },
       "post" : {
         "description" : "Adds a unit to the organisation structure.",
-        "operationId" : "create_2",
+        "operationId" : "create_3",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
           "in" : "header",
@@ -7760,7 +9163,7 @@
     "/api/v1/iam/org-units/{id}" : {
       "delete" : {
         "description" : "Removes a unit of the organisation structure.",
-        "operationId" : "delete_1",
+        "operationId" : "delete_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -7844,7 +9247,7 @@
       },
       "patch" : {
         "description" : "Changes the name, parent or state of a unit; names the revision it was read at.",
-        "operationId" : "update_3",
+        "operationId" : "update_5",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -9220,7 +10623,7 @@
     },
     "/api/v1/list-views/{listCode}" : {
       "get" : {
-        "description" : "The saved views of a list of the given kinds: table views (filters, columns, sort) when no kind is named, reports and widgets (grouping, measures, chart) when asked for.",
+        "description" : "The owner's saved views of a list: table views by default, or requested reports and widgets. Stored report state is revalidated for the current viewer before it is returned.",
         "operationId" : "list_2",
         "parameters" : [ {
           "in" : "path",
@@ -9270,23 +10673,14 @@
         "tags" : [ "md-list-view-controller" ]
       },
       "post" : {
-        "description" : "Saves the current filters, columns and sort of a list as a named view.",
-        "operationId" : "create_1",
+        "description" : "Saves a named view after validating its state and current field access. Returns Location and ETag.",
+        "operationId" : "create_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "listCode",
           "required" : true,
           "schema" : {
             "type" : "string"
-          }
-        }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
           }
         } ],
         "requestBody" : {
@@ -9310,6 +10704,12 @@
             },
             "description" : "Created",
             "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
               "Location" : {
                 "description" : "Path of the created resource, when it has one",
                 "schema" : {
@@ -9317,16 +10717,6 @@
                 }
               }
             }
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetailRecord"
-                }
-              }
-            },
-            "description" : "The record changed since the revision the body names"
           },
           "default" : {
             "content" : {
@@ -9345,7 +10735,7 @@
     },
     "/api/v1/list-views/{listCode}/{id}" : {
       "delete" : {
-        "description" : "Removes a saved view of a list.",
+        "description" : "Only the owner removes a saved view with its current If-Match revision. Missing revision returns 428 and stale revision 409. Dashboard references become unavailable placeholders.",
         "operationId" : "delete",
         "parameters" : [ {
           "in" : "path",
@@ -9363,18 +10753,36 @@
             "format" : "int64"
           }
         }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
           "in" : "header",
-          "name" : "Idempotency-Key",
+          "name" : "If-Match",
           "required" : false,
           "schema" : {
-            "type" : "string",
-            "format" : "uuid"
+            "type" : "string"
           }
         } ],
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
           },
           "default" : {
             "content" : {
@@ -9391,7 +10799,7 @@
         "tags" : [ "md-list-view-controller" ]
       },
       "put" : {
-        "description" : "Replaces a saved view of a list.",
+        "description" : "Only the owner replaces a saved view with its current If-Match revision. Missing revision returns 428 and stale revision 409; the answer carries the new ETag.",
         "operationId" : "update_1",
         "parameters" : [ {
           "in" : "path",
@@ -9409,13 +10817,11 @@
             "format" : "int64"
           }
         }, {
-          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
           "in" : "header",
-          "name" : "Idempotency-Key",
+          "name" : "If-Match",
           "required" : false,
           "schema" : {
-            "type" : "string",
-            "format" : "uuid"
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -9437,7 +10843,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "409" : {
             "content" : {
@@ -9447,7 +10861,17 @@
                 }
               }
             },
-            "description" : "The record changed since the revision the body names"
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
           },
           "default" : {
             "content" : {
@@ -9462,6 +10886,149 @@
         },
         "summary" : "Update a saved view",
         "tags" : [ "md-list-view-controller" ]
+      }
+    },
+    "/api/v1/list-views/{listCode}/{id}/sharing" : {
+      "get" : {
+        "description" : "Only the owner with settings-update permission reads the assigned role identifiers. Table views cannot be shared. ETag identifies the current view revision.",
+        "operationId" : "sharing",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "listCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SharingResponse"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read a report sharing policy",
+        "tags" : [ "md-report-view-controller" ]
+      },
+      "put" : {
+        "description" : "The owner assigns up to 20 distinct active roles with If-Match. The view revision and policy change atomically; an empty role list revokes sharing. Missing revision returns 428 and stale revision 409.",
+        "operationId" : "share",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "listCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SharingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SharingResponse"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Replace a report sharing policy",
+        "tags" : [ "md-report-view-controller" ]
       }
     },
     "/api/v1/modules" : {
@@ -10415,7 +11982,7 @@
     "/api/v1/query-meta/{code}" : {
       "get" : {
         "description" : "The fields, filters, sorts and defaults of a registry list, including custom fields; the list's own right is checked.",
-        "operationId" : "get_3",
+        "operationId" : "get_5",
         "parameters" : [ {
           "in" : "path",
           "name" : "code",
@@ -10450,10 +12017,109 @@
         "tags" : [ "query-meta-controller" ]
       }
     },
+    "/api/v1/report-sharing/roles" : {
+      "get" : {
+        "description" : "Returns only role identifiers and names under settings-update permission. The default limit is 20, maximum 100; larger limits return 422.",
+        "operationId" : "roles",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KeysetPageSharingRole"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List active sharing roles",
+        "tags" : [ "md-report-view-controller" ]
+      }
+    },
+    "/api/v1/report-views" : {
+      "get" : {
+        "description" : "Returns owned and role-shared reports with current visible fields. The default limit is 20, maximum 100. An incomplete or empty page can still have a next cursor when inaccessible definitions are omitted.",
+        "operationId" : "list_7",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "listCode",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KeysetPageReportViewItem"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List accessible report definitions",
+        "tags" : [ "md-report-view-controller" ]
+      }
+    },
     "/api/v1/report-widgets" : {
       "get" : {
         "description" : "The viewer's widgets for the dashboard, at most 12, over the entities the viewer may see.",
-        "operationId" : "list_5",
+        "operationId" : "list_6",
         "responses" : {
           "200" : {
             "content" : {
@@ -11260,6 +12926,154 @@
         "tags" : [ "md-setting-controller" ]
       }
     },
+    "/api/v1/studio/activation" : {
+      "get" : {
+        "description" : "Requires studio.forms.publish. Reports the activation switch and bounded namespace/form limit; an inactive module returns 404.",
+        "operationId" : "availability_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioAvailability"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read simple-form activation availability",
+        "tags" : [ "studio-form-controller" ]
+      }
+    },
+    "/api/v1/studio/assistant" : {
+      "get" : {
+        "description" : "Requires studio.forms.assist and md.settings.update. Disabled by default; no provider request is made.",
+        "operationId" : "availability",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioAssistantAvailability"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read assistant availability",
+        "tags" : [ "studio-assistant-controller" ]
+      }
+    },
+    "/api/v1/studio/assistant/drafts" : {
+      "post" : {
+        "description" : "Requires studio.forms.assist and md.settings.update. Sends only the explicit prompt to the configured provider. No save, package, activation or replay; 200 returns an unsaved declaration.",
+        "operationId" : "propose",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudioAssistantRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SimpleFormDeclaration"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Propose a validated simple-form draft",
+        "tags" : [ "studio-assistant-controller" ]
+      }
+    },
+    "/api/v1/studio/forms" : {
+      "post" : {
+        "description" : "Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. Exact package repeats return the same result; different packages at an occupied code return 409.",
+        "operationId" : "activate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SimpleFormDeliveryPackage"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioActivatedForm"
+                }
+              }
+            },
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Activate an immutable simple form",
+        "tags" : [ "studio-form-controller" ]
+      }
+    },
     "/api/v1/system/info" : {
       "get" : {
         "description" : "The version and build of the running installation.",
@@ -11733,7 +13547,7 @@
     "/api/v1/upl/overview" : {
       "get" : {
         "description" : "Uploads and their outcomes over the requested number of days, for the overview screen.",
-        "operationId" : "get_2",
+        "operationId" : "get_4",
         "parameters" : [ {
           "in" : "query",
           "name" : "days",
@@ -11905,7 +13719,7 @@
     "/api/v1/upl/packages/{id}" : {
       "get" : {
         "description" : "One uploaded package with its state and counts.",
-        "operationId" : "get_1",
+        "operationId" : "get_3",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -12139,7 +13953,7 @@
       },
       "post" : {
         "description" : "Adds an upload source.",
-        "operationId" : "create",
+        "operationId" : "create_1",
         "parameters" : [ {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
           "in" : "header",
@@ -12664,7 +14478,7 @@
     "/api/v1/upl/units" : {
       "get" : {
         "description" : "The units of measure.",
-        "operationId" : "list_4",
+        "operationId" : "list_5",
         "responses" : {
           "200" : {
             "content" : {
@@ -13917,6 +15731,141 @@
           }
         }
       },
+      "DashboardDetail" : {
+        "type" : "object",
+        "properties" : {
+          "canEdit" : {
+            "type" : "boolean"
+          },
+          "canShare" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "widgetCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "widgets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DashboardWidget"
+            }
+          }
+        },
+        "required" : [ "canEdit", "canShare", "id", "modifiedAt", "name", "revision", "shared", "widgetCount", "widgets" ]
+      },
+      "DashboardRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 80,
+            "minLength" : 1
+          },
+          "widgets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DashboardWidgetRequest"
+            }
+          }
+        },
+        "required" : [ "name", "widgets" ]
+      },
+      "DashboardSummary" : {
+        "type" : "object",
+        "properties" : {
+          "canEdit" : {
+            "type" : "boolean"
+          },
+          "canShare" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "widgetCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "canEdit", "canShare", "id", "modifiedAt", "name", "revision", "shared", "widgetCount" ]
+      },
+      "DashboardWidget" : {
+        "type" : "object",
+        "properties" : {
+          "available" : {
+            "type" : "boolean"
+          },
+          "periodField" : {
+            "type" : "string"
+          },
+          "report" : {
+            "$ref" : "#/components/schemas/ReportViewItem"
+          },
+          "viewId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "width" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 2,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "available", "viewId", "width" ]
+      },
+      "DashboardWidgetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "periodField" : {
+            "type" : "string"
+          },
+          "viewId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "width" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 2,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "viewId", "width" ]
+      },
       "DayRow" : {
         "type" : "object",
         "properties" : {
@@ -15102,6 +17051,74 @@
           }
         }
       },
+      "FormLayoutDeclaration" : {
+        "type" : "object",
+        "properties" : {
+          "entityCode" : {
+            "type" : "string",
+            "enum" : [ "example.products" ]
+          },
+          "formatVersion" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 1,
+            "minimum" : 1
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "form-layout" ]
+          },
+          "sections" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormLayoutSection"
+            }
+          }
+        },
+        "required" : [ "entityCode", "formatVersion", "kind", "sections" ]
+      },
+      "FormLayoutField" : {
+        "type" : "object",
+        "properties" : {
+          "fieldId" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/LocalizedLabels"
+          }
+        },
+        "required" : [ "fieldId" ]
+      },
+      "FormLayoutPreview" : {
+        "type" : "object",
+        "properties" : {
+          "declaration" : {
+            "$ref" : "#/components/schemas/FormLayoutDeclaration"
+          },
+          "meta" : {
+            "$ref" : "#/components/schemas/FormMeta"
+          }
+        },
+        "required" : [ "declaration", "meta" ]
+      },
+      "FormLayoutSection" : {
+        "type" : "object",
+        "properties" : {
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormLayoutField"
+            }
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/LocalizedLabels"
+          }
+        },
+        "required" : [ "fields", "id" ]
+      },
       "FormMeta" : {
         "type" : "object",
         "properties" : {
@@ -15194,6 +17211,160 @@
             "type" : "boolean"
           }
         }
+      },
+      "FormStudioDependencies" : {
+        "type" : "object",
+        "properties" : {
+          "contractVersion" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 1,
+            "minimum" : 1
+          },
+          "metadataChecksum" : {
+            "type" : "string",
+            "pattern" : "^[0-9a-f]{64}$"
+          }
+        },
+        "required" : [ "contractVersion", "metadataChecksum" ]
+      },
+      "FormStudioDraft" : {
+        "type" : "object",
+        "properties" : {
+          "declaration" : {
+            "$ref" : "#/components/schemas/FormLayoutDeclaration"
+          },
+          "entityCode" : {
+            "type" : "string"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64",
+            "maximum" : 9007199254740991,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "declaration", "entityCode", "revision" ]
+      },
+      "FormStudioDraftResponse" : {
+        "type" : "object",
+        "properties" : {
+          "draft" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FormStudioDraft"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "meta" : {
+            "$ref" : "#/components/schemas/FormMeta"
+          }
+        },
+        "required" : [ "draft", "meta" ]
+      },
+      "FormStudioPublicationPackage" : {
+        "type" : "object",
+        "properties" : {
+          "declaration" : {
+            "$ref" : "#/components/schemas/FormLayoutDeclaration"
+          },
+          "dependencies" : {
+            "$ref" : "#/components/schemas/FormStudioDependencies"
+          },
+          "entityCode" : {
+            "type" : "string",
+            "enum" : [ "example.products" ]
+          },
+          "formatVersion" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 1,
+            "minimum" : 1
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "form-layout-package" ]
+          },
+          "sourceRevision" : {
+            "type" : "integer",
+            "format" : "int64",
+            "maximum" : 9007199254740991,
+            "minimum" : 1
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64",
+            "maximum" : 9007199254740991,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "declaration", "dependencies", "entityCode", "formatVersion", "kind", "sourceRevision", "version" ]
+      },
+      "FormStudioVerification" : {
+        "type" : "object",
+        "properties" : {
+          "checksum" : {
+            "type" : "string"
+          },
+          "sourceRevision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "valid" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "checksum", "sourceRevision", "valid", "version" ]
+      },
+      "FormStudioVersionPackage" : {
+        "type" : "object",
+        "properties" : {
+          "checksum" : {
+            "type" : "string",
+            "pattern" : "^[0-9a-f]{64}$"
+          },
+          "package" : {
+            "$ref" : "#/components/schemas/FormStudioPublicationPackage"
+          },
+          "sourceRevision" : {
+            "type" : "integer",
+            "format" : "int64",
+            "maximum" : 9007199254740991,
+            "minimum" : 1
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64",
+            "maximum" : 9007199254740991,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "checksum", "package", "sourceRevision", "version" ]
+      },
+      "FormStudioVersionSummary" : {
+        "type" : "object",
+        "properties" : {
+          "checksum" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "sourceRevision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "checksum", "createdAt", "sourceRevision", "version" ]
       },
       "FormTabMeta" : {
         "type" : "object",
@@ -15730,6 +17901,30 @@
           }
         }
       },
+      "KeysetPageDashboardSummary" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DashboardSummary"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "KeysetPageFileListItem" : {
         "type" : "object",
         "properties" : {
@@ -15740,6 +17935,30 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/FileListItem"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "KeysetPageFormStudioVersionSummary" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormStudioVersionSummary"
             }
           },
           "nextCursor" : {
@@ -15874,6 +18093,30 @@
           }
         }
       },
+      "KeysetPageReportViewItem" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportViewItem"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "KeysetPageSecurityEventView" : {
         "type" : "object",
         "properties" : {
@@ -15884,6 +18127,30 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/SecurityEventView"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "KeysetPageSharingRole" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SharingRole"
             }
           },
           "nextCursor" : {
@@ -16011,6 +18278,21 @@
             "format" : "int32"
           }
         }
+      },
+      "LocalizedLabels" : {
+        "type" : "object",
+        "properties" : {
+          "en" : {
+            "type" : "string"
+          },
+          "ru" : {
+            "type" : "string"
+          },
+          "uz" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "en", "ru", "uz" ]
       },
       "LoginAttemptView" : {
         "type" : "object",
@@ -18000,6 +20282,75 @@
         },
         "required" : [ "grants" ]
       },
+      "ReportDatasetCatalog" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportDatasetItem"
+            },
+            "maxItems" : 16
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "ReportDatasetItem" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "titleKey" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "titleKey" ]
+      },
+      "ReportViewItem" : {
+        "type" : "object",
+        "properties" : {
+          "canEdit" : {
+            "type" : "boolean"
+          },
+          "canShare" : {
+            "type" : "boolean"
+          },
+          "entity" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "report", "widget" ]
+          },
+          "listCode" : {
+            "type" : "string"
+          },
+          "lockVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "shared" : {
+            "type" : "boolean"
+          },
+          "state" : {
+            "type" : "object",
+            "additionalProperties" : true
+          }
+        },
+        "required" : [ "canEdit", "canShare", "entity", "id", "kind", "listCode", "lockVersion", "modifiedAt", "name", "shared", "state" ]
+      },
       "RequestDto" : {
         "type" : "object",
         "properties" : {
@@ -18321,6 +20672,49 @@
           }
         }
       },
+      "SharingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "roleIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        },
+        "required" : [ "roleIds" ]
+      },
+      "SharingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "roleIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        },
+        "required" : [ "revision", "roleIds" ]
+      },
+      "SharingRole" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ]
+      },
       "SheetDto" : {
         "type" : "object",
         "properties" : {
@@ -18351,6 +20745,255 @@
           }
         },
         "required" : [ "columns" ]
+      },
+      "SimpleFormDeclaration" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "entity" : {
+            "$ref" : "#/components/schemas/SimpleFormEntity"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormField"
+            },
+            "maxItems" : 20
+          },
+          "formatVersion" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 1,
+            "minimum" : 1
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "simple-form" ]
+          },
+          "module" : {
+            "$ref" : "#/components/schemas/SimpleFormModule"
+          }
+        },
+        "required" : [ "entity", "fields", "formatVersion", "kind", "module" ]
+      },
+      "SimpleFormDeliveryPackage" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "checksum" : {
+            "type" : "string",
+            "pattern" : "^[0-9a-f]{64}$"
+          },
+          "declaration" : {
+            "$ref" : "#/components/schemas/SimpleFormDeclaration"
+          },
+          "formatVersion" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 1,
+            "minimum" : 1
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "simple-form-package" ]
+          }
+        },
+        "required" : [ "checksum", "declaration", "formatVersion", "kind" ]
+      },
+      "SimpleFormDraftDeclaration" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "entity" : {
+            "$ref" : "#/components/schemas/SimpleFormDraftEntity"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormDraftField"
+            },
+            "maxItems" : 20
+          },
+          "formatVersion" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 1,
+            "minimum" : 1
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "simple-form" ]
+          },
+          "module" : {
+            "$ref" : "#/components/schemas/SimpleFormDraftModule"
+          }
+        },
+        "required" : [ "entity", "fields", "formatVersion", "kind", "module" ]
+      },
+      "SimpleFormDraftEntity" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 80
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormDraftLabels"
+          }
+        },
+        "required" : [ "name", "title" ]
+      },
+      "SimpleFormDraftField" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "maxLength" : 80
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormDraftLabels"
+          },
+          "listed" : {
+            "type" : "boolean"
+          },
+          "maxLength" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "scale" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url" ]
+          }
+        },
+        "required" : [ "id", "labels", "listed", "required", "type" ]
+      },
+      "SimpleFormDraftLabels" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "en" : {
+            "type" : "string",
+            "maxLength" : 80
+          },
+          "ru" : {
+            "type" : "string",
+            "maxLength" : 80
+          },
+          "uz" : {
+            "type" : "string",
+            "maxLength" : 80
+          }
+        },
+        "required" : [ "en", "ru", "uz" ]
+      },
+      "SimpleFormDraftModule" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 80
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormDraftLabels"
+          }
+        },
+        "required" : [ "code", "title" ]
+      },
+      "SimpleFormEntity" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_]{0,19}$"
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "name", "title" ]
+      },
+      "SimpleFormField" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9]{0,19}$"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "listed" : {
+            "type" : "boolean"
+          },
+          "maxLength" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 4000,
+            "minimum" : 1
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "scale" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 6,
+            "minimum" : 0
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url" ]
+          }
+        },
+        "required" : [ "id", "labels", "listed", "required", "type" ]
+      },
+      "SimpleFormLabels" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "en" : {
+            "type" : "string",
+            "maxLength" : 80,
+            "minLength" : 1
+          },
+          "ru" : {
+            "type" : "string",
+            "maxLength" : 80,
+            "minLength" : 1
+          },
+          "uz" : {
+            "type" : "string",
+            "maxLength" : 80,
+            "minLength" : 1
+          }
+        },
+        "required" : [ "en", "ru", "uz" ]
+      },
+      "SimpleFormModule" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9]{1,11}$"
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "code", "title" ]
       },
       "SourceFreshness" : {
         "type" : "object",
@@ -18631,6 +21274,54 @@
           "userUsedBytes" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "StudioActivatedForm" : {
+        "type" : "object",
+        "properties" : {
+          "checksum" : {
+            "type" : "string"
+          },
+          "entityCode" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StudioAssistantAvailability" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "available" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "available" ]
+      },
+      "StudioAssistantRequest" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "prompt" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 1
+          }
+        },
+        "required" : [ "prompt" ]
+      },
+      "StudioAvailability" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "maxForms" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "namespace" : {
+            "type" : "string"
           }
         }
       },
@@ -19217,10 +21908,6 @@
           "kind" : {
             "type" : "string",
             "enum" : [ "table", "report", "widget" ]
-          },
-          "lockVersion" : {
-            "type" : "integer",
-            "format" : "int32"
           },
           "name" : {
             "type" : "string"

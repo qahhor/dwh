@@ -205,7 +205,7 @@ export class FilesTableComponent {
           key: 'actions',
           header: { type: 'primitive', value: this.i18n.translate('common.actions') },
           content: cell(this.actionsCell),
-          width: '110px',
+          width: '180px',
           align: 'right',
         },
       },

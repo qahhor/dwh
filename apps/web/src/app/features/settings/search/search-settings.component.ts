@@ -28,7 +28,7 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
-import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
+import { focusFirstInvalid, UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
 import { formatBytes, formatJobError, searchFieldError } from './search-settings.models';
 import { SearchSettingsStore } from './search-settings.store';
 
@@ -46,6 +46,7 @@ import { SearchSettingsStore } from './search-settings.store';
     SMTCheckboxComponent,
     SMTControlComponent,
     UiFormActionsComponent,
+    UiFocusFirstInvalidDirective,
     DatePipe,
   ],
   providers: [SearchSettingsStore],

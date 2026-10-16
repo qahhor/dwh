@@ -302,7 +302,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+:where(button, a, input, select, textarea, [tabindex]):not(.smt-input__field):focus-visible {
   outline: 2px solid var(--focus-ring) !important;
   outline-offset: 2px !important;
 }
@@ -596,6 +596,7 @@ td.empty {
 
 .form-input {
   width: 100%;
+  min-height: var(--control-height);
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
@@ -624,4 +625,10 @@ td.empty {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+@media (max-width: 767px) {
+  :root {
+    --control-height: var(--control-touch-height);
+  }
 }

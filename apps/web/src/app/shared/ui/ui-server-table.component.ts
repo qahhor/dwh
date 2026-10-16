@@ -143,6 +143,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
     @if (!failedWithoutRows()) {
       <smt-table
         [smtData]="pager().items()"
+        [smtMaxHeight]="maxHeight()"
         [smtConfig]="shownConfig()"
         [(smtSelectedItems)]="selected"
         [smtIsLoading]="pager().loading() || !pager().loaded()"
@@ -155,6 +156,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
       />
       <ui-pagination
         [totalItems]="countsPage() ? pager().items().length : pager().total()"
+        [pageItemCount]="pager().items().length"
         [cursorItemsArePageLength]="countsPage()"
         [totalApproximate]="!pager().totalExact()"
         [pageSize]="pager().pageSize()"
@@ -222,6 +224,9 @@ export class UiServerTableComponent<T> {
   readonly loadingLabel = input.required<string>();
   /** Shown with the retry button when a request fails. */
   readonly errorLabel = input.required<string>();
+
+  /** Keeps column headings and both scrollbars reachable on long pages; dialogs may override it. */
+  readonly maxHeight = input<string | null>('min(60dvh, 640px)');
 
   readonly errorId = input<string>('');
   readonly emptyTemplate = input<TemplateRef<unknown> | null>(null);

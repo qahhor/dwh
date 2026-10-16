@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnChanges, input, model, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnChanges, computed, input, model, output } from '@angular/core';
 
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
@@ -9,15 +9,15 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTSelectComponent],
   template: `
-    @if (totalItems() > 0 || (cursorMode() && (currentPage() > 1 || hasNextPage()))) {
+    @if (hasItems() || (cursorMode() && (currentPage() > 1 || hasNextPage()))) {
       <nav class="pagination-bar" [attr.aria-label]="'ui.pagination.label' | t">
         <!-- Left: Item Range & Total Counter -->
-        @if (totalItems() > 0) {
+        @if (hasItems()) {
           <div class="pagination-info" role="status" aria-live="polite" aria-atomic="true">
             <span class="range-text">
               {{ 'ui.pagination.shown' | t }}
               <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
-              @if (!cursorMode() || !cursorItemsArePageLength()) {
+              @if (totalItems() > 0 && (!cursorMode() || !cursorItemsArePageLength())) {
                 {{ 'files.common.of' | t }}
                 <strong class="highlight font-mono">{{ totalApproximate() ? '≈ ' : '' }}{{ totalItems() }}</strong>
               }
@@ -143,6 +143,9 @@ export class UiPaginationComponent implements OnChanges {
   readonly disabled = input<boolean>(false);
 
   readonly totalItems = input<number>(0);
+  /** Actual rows on the current cursor page; totals can be approximate or become stale. */
+  readonly pageItemCount = input<number | null>(null);
+
   /** The total is an estimate (a large table, plan item 3.5): it reads "≈ N". */
   readonly totalApproximate = input(false);
   readonly cursorMode = input<boolean>(false);
@@ -154,6 +157,10 @@ export class UiPaginationComponent implements OnChanges {
   readonly currentPage = model<number>(1);
   /** Rows per page; choosing another size sets it and emits pageSizeChange. */
   readonly pageSize = model<number>(10);
+
+  protected readonly hasItems = computed(() =>
+    this.cursorMode() && this.pageItemCount() !== null ? this.pageItemCount()! > 0 : this.totalItems() > 0,
+  );
 
   private static nextId = 0;
 
@@ -176,6 +183,15 @@ export class UiPaginationComponent implements OnChanges {
   }
 
   calculatePagination() {
+    if (this.cursorMode() && this.pageItemCount() !== null) {
+      this.currentPage.set(Math.max(1, this.currentPage()));
+      this.totalPages = this.currentPage() + (this.hasNextPage() ? 1 : 0);
+      const count = this.pageItemCount()!;
+      this.startItem = count > 0 ? (this.currentPage() - 1) * this.pageSize() + 1 : 0;
+      this.endItem = count > 0 ? this.startItem + count - 1 : 0;
+      this.visiblePages = [];
+      return;
+    }
     if (this.totalItems() <= 0) {
       this.totalPages = 1;
       this.startItem = 0;

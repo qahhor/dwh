@@ -13,6 +13,7 @@ import { UiFormActionsComponent } from './ui-form-actions.component';
       [form]="linked() ? 'host-form' : ''"
       [submitLabel]="label()"
       [submitting]="submitting()"
+      [cancelFocusInitial]="focusCancel()"
       [submitDisabled]="locked()"
       (submitted)="presses.set(presses() + 1)"
       (cancelled)="cancels.set(cancels() + 1)"
@@ -23,6 +24,7 @@ import { UiFormActionsComponent } from './ui-form-actions.component';
 })
 class Host {
   readonly linked = signal(false);
+  readonly focusCancel = signal(false);
   readonly label = signal('');
   readonly submitting = signal(false);
   readonly locked = signal(false);
@@ -55,6 +57,15 @@ describe('ui-form-actions', () => {
     expect(submit().textContent?.trim()).toBe('Сохранить');
     expect(submit().type).toBe('button');
     expect(submit().classList).toContain('smt-button--primary');
+  });
+
+  it('opts into initial focus on the safe cancel action without changing other forms', () => {
+    const { fixture, host, submit, cancel } = render();
+    expect(cancel().hasAttribute('cdkFocusInitial')).toBe(false);
+    host.focusCancel.set(true);
+    fixture.detectChanges();
+    expect(cancel().hasAttribute('cdkFocusInitial')).toBe(true);
+    expect(submit().hasAttribute('cdkFocusInitial')).toBe(false);
   });
 
   it('emits submitted and cancelled when no form is linked', () => {

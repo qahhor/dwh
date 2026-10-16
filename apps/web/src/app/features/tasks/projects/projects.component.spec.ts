@@ -361,7 +361,7 @@ describe('ProjectsComponent', () => {
   });
 
   it('opens the members of a project from its row', async () => {
-    const alice = { projectId: 1, userId: 10, userName: 'Alice', userEmail: 'a@example.com', accessKind: 'MANAGER' };
+    const alice = { projectId: 1, userId: 10, userName: 'Alice', userEmail: 'a@example.com', accessKind: 'W' };
     const { component, settle, screen } = await setup({
       items: [project(1)],
       read: (url) => (url === '/tasks/projects/1/members/page' ? of({ items: [alice], nextCursor: null }) : undefined),

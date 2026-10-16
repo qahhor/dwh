@@ -15,7 +15,7 @@ const member = (userId: number, userName: string): ProjectMember => ({
   userId,
   userName,
   userEmail: `${userName}@example.com`,
-  accessKind: 'MANAGER',
+  accessKind: 'W',
 });
 /** A page of members as the server answers it. */
 const page = (items: ProjectMember[], nextCursor: string | null = null) => ({
@@ -100,11 +100,11 @@ describe('ProjectMembersService', () => {
     await settle();
     memberReads = [of(page([member(10, 'Alice'), member(20, 'Bob')]))];
 
-    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
+    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'R' });
     await settle();
     expect(api.post).toHaveBeenCalledWith(
       '/entities/ms.projects/42/actions/add_member',
-      { userId: 20, accessKind: 'MEMBER' },
+      { userId: 20, accessKind: 'R', updateExisting: false },
       { notifyError: false, ifMatch: 7 },
     );
     expect(toast.success).toHaveBeenCalled();
@@ -112,16 +112,25 @@ describe('ProjectMembersService', () => {
     expect(members.isAddingMember()).toBe(false);
 
     api.post.mockReturnValue(throwError(() => ({ status: 409, detail: 'Already a member' })));
-    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
+    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'R' });
     expect(toast.error).toHaveBeenCalledWith('Already a member');
     expect(members.isAddingMember()).toBe(false);
+  });
+
+  it.each(['R', 'W'])('sends canonical %s access to the revisioned member action', (accessKind) => {
+    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind });
+    expect(api.post).toHaveBeenCalledWith(
+      '/entities/ms.projects/42/actions/add_member',
+      { userId: 20, accessKind, updateExisting: false },
+      { notifyError: false, ifMatch: 7 },
+    );
   });
 
   it('puts a refusal about the person or the access level under that field, without a toast', async () => {
     members.openMembersModal(PROJECT);
     await settle();
     api.post.mockReturnValue(
-      throwError(() => ({ status: 422, errors: [{ field: 'accessKind', message: 'Unknown level' }] })),
+      throwError(() => ({ status: 422, errors: [{ field: 'params.accessKind', message: 'Unknown level' }] })),
     );
     members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'BOSS' });
     expect(members.addErrors()).toEqual({ accessKind: 'Unknown level' });
@@ -131,8 +140,37 @@ describe('ProjectMembersService', () => {
     expect(members.addErrors()).toEqual({});
   });
 
+  it('adds without changing existing access even when the person is beyond the loaded page', async () => {
+    const loaded = Array.from({ length: 50 }, (_, index) => member(index + 1, `Member ${index}`));
+    memberReads = [of(page(loaded, 'next-page'))];
+    members.openMembersModal(PROJECT);
+    await settle();
+    api.post.mockReturnValue(
+      throwError(() => ({
+        status: 422,
+        errors: [{ field: 'params.userId', message: 'Already a member' }],
+      })),
+    );
+
+    members.onAddProjectMember({ projectId: 42, userId: 51, accessKind: 'R' });
+
+    expect(api.post).toHaveBeenCalledExactlyOnceWith(
+      '/entities/ms.projects/42/actions/add_member',
+      { userId: 51, accessKind: 'R', updateExisting: false },
+      { notifyError: false, ifMatch: 7 },
+    );
+    expect(members.projectMembers()).toEqual(loaded);
+    expect(members.hasMoreMembers()).toBe(true);
+    expect(members.addErrors()).toEqual({ userId: 'Already a member' });
+    expect(members.addedCount()).toBe(0);
+    expect(members.isAddingMember()).toBe(false);
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(reads()).toBe(1);
+  });
+
   it('resets the picker only after success and prevents another add while awaiting the response', () => {
-    const event = { projectId: 42, userId: 20, accessKind: 'MEMBER' };
+    const event = { projectId: 42, userId: 20, accessKind: 'R' };
     for (const status of [409, 422, 0]) {
       api.post.mockReturnValue(throwError(() => ({ status, detail: 'Refused' })));
       members.onAddProjectMember(event);
@@ -173,7 +211,7 @@ describe('ProjectMembersService', () => {
     await settle();
     memberReads = [throwError(() => ({ status: 503 }))];
 
-    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
+    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'R' });
     await settle();
 
     expect(toast.error).toHaveBeenCalledWith('Ошибка загрузки участников проекта');

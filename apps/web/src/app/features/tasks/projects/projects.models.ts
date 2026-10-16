@@ -13,7 +13,8 @@ export interface ProjectMember {
   userId: number;
   userName: string;
   userEmail: string;
-  accessKind: 'MANAGER' | 'MEMBER' | 'OBSERVER' | string;
+  /** The server defines R (read) and W (write); an unknown answer stays visible for diagnostics. */
+  accessKind: string;
 }
 
 export interface AddProjectMemberDto {

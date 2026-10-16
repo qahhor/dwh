@@ -72,7 +72,7 @@ async function expectNoFrameworkOverlay(page: Page): Promise<void> {
 async function expectLoginSurface(page: Page): Promise<void> {
   await expect(page).toHaveTitle('SmartupCMS');
   await expect(page).toHaveURL(/\/login(?:\?.*)?$/u);
-  await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Вход в систему' })).toBeVisible();
   await expect(page.getByLabel(fieldName('Пароль'))).toHaveValue('');
   await expect.poll(() => page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,

@@ -36,7 +36,15 @@ public record EntityWrite(
 
     /** One column and its value; {@code cast} wraps the parameter ({@code cast(:p0 as jsonb)}) or is null. */
     public record Column(
-            String name, @Nullable Object value, @Nullable String cast) {
+            String name, @Nullable Object value, @Nullable String cast, boolean merging) {
+        public Column(String name, @Nullable Object value, @Nullable String cast) {
+            this(name, value, cast, false);
+        }
+
+        public String assignment(String parameter) {
+            return name + " = " + (merging ? "coalesce(" + name + ", '{}'::jsonb) || " : "") + parameter(parameter);
+        }
+
         public String parameter(String name) {
             return cast == null ? ":" + name : "cast(:" + name + " as " + cast + ")";
         }
@@ -63,6 +71,7 @@ public record EntityWrite(
         List<Column> columns = new ArrayList<>();
         Map<FieldSource.Link, List<Long>> links = new LinkedHashMap<>();
         Map<String, @Nullable UUID> files = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> properties = new LinkedHashMap<>();
         for (EntityField field : fields) {
             if (!values.containsKey(field.key())) continue;
             Object value = values.get(field.key());
@@ -82,11 +91,17 @@ public record EntityWrite(
                     }
                 }
                 case FieldSource.Link link -> links.put(link, keys(value));
+                case FieldSource.JsonProperty property ->
+                    properties
+                            .computeIfAbsent(property.column(), column -> new LinkedHashMap<>())
+                            .put(property.key(), columnValue(field, value, json));
                 default -> {
                     // An attribute is written with the record's attributes; the rest is never written.
                 }
             }
         }
+        properties.forEach(
+                (column, valuesByKey) -> columns.add(new Column(column, json.object(valuesByKey), "jsonb", true)));
         return new EntityWrite(columns, links, files);
     }
 

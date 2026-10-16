@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  linkedSignal,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 
 import { Router } from '@angular/router';
@@ -15,7 +24,7 @@ import { AnalyticsMetricsTilesComponent } from './components/analytics-metrics-t
 import { AnalyticsTrendChartComponent } from './components/analytics-trend-chart.component';
 import { AnalyticsProjectsCardComponent } from './components/analytics-projects-card.component';
 import { AnalyticsWorkloadTableComponent } from './components/analytics-workload-table.component';
-import { AnalyticsWidgetsComponent } from './components/analytics-widgets.component';
+import { DashboardsComponent } from './dashboards/dashboards.component';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 
@@ -38,7 +47,7 @@ const FIRST_RANGE = '7d';
     AnalyticsTrendChartComponent,
     AnalyticsProjectsCardComponent,
     AnalyticsWorkloadTableComponent,
-    AnalyticsWidgetsComponent,
+    DashboardsComponent,
   ],
   template: `
     <div class="analytics-container">
@@ -99,7 +108,7 @@ const FIRST_RANGE = '7d';
 
       <!-- The viewer's own widgets: reports saved on entity lists (ADR-0032 10.2) -->
       @if (canViewWidgets()) {
-        <app-analytics-widgets />
+        <app-dashboards />
       }
 
       <!-- Main Analytics Grid: Trend Chart & Project Distribution -->
@@ -189,6 +198,8 @@ export class AnalyticsComponent {
   private readonly modules = inject(ModuleService);
   private readonly permissions = inject(PermissionService);
 
+  private readonly dashboards = viewChild(DashboardsComponent);
+
   /* Each section keeps what it showed while a read is pending or failed, and a
      full refresh replaces all of them together. */
   readonly summary = linkedSignal<AnalyticsLoaded | undefined, AnalyticsSummary | null>({
@@ -252,6 +263,10 @@ export class AnalyticsComponent {
     effect(() => {
       if (!this.taskAnalyticsAvailable()) this.loadAll();
     });
+  }
+
+  canLeaveRecordPage(): boolean | Observable<boolean> {
+    return this.dashboards()?.canLeaveRecordPage() ?? true;
   }
 
   setRange(range: string): void {

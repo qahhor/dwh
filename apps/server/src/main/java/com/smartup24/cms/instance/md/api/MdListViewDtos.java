@@ -28,7 +28,6 @@ public final class MdListViewDtos {
             String name,
             JsonNode state,
             Boolean isDefault,
-            Integer lockVersion,
 
             @Schema(allowableValues = {TABLE, REPORT, WIDGET}) @Nullable
             String kind) {}

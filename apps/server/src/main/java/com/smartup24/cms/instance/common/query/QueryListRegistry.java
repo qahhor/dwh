@@ -24,6 +24,7 @@ public class QueryListRegistry {
     private final Map<String, QueryList> lists = new TreeMap<>();
     private final List<QueryListExtender> extenders;
     private final List<QueryFieldResolver> resolvers;
+    private final List<LiveQueryListSource> live;
 
     @Autowired
     public QueryListRegistry(
@@ -34,8 +35,12 @@ public class QueryListRegistry {
         for (QueryList list : declared) {
             add(list);
         }
+        live = sources.stream()
+                .filter(LiveQueryListSource.class::isInstance)
+                .map(LiveQueryListSource.class::cast)
+                .toList();
         for (QueryListSource source : sources) {
-            source.lists().forEach(this::add);
+            if (!(source instanceof LiveQueryListSource)) source.lists().forEach(this::add);
         }
         this.extenders = List.copyOf(extenders);
         this.resolvers = List.copyOf(resolvers);
@@ -58,7 +63,15 @@ public class QueryListRegistry {
     }
 
     public Optional<QueryList> find(String code) {
-        return Optional.ofNullable(lists.get(code)).map(this::resolve);
+        QueryList found = lists.get(code);
+        for (LiveQueryListSource source : live) {
+            for (QueryList list : source.lists()) {
+                if (!list.code().equals(code)) continue;
+                if (found != null) throw new IllegalStateException("Duplicate query list " + code);
+                found = list;
+            }
+        }
+        return Optional.ofNullable(found).map(this::resolve);
     }
 
     public QueryList get(String code) {

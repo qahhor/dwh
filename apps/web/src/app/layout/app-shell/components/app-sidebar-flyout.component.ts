@@ -18,6 +18,7 @@ import { User } from '@core/models/auth.models';
         cdkMenu
         class="rail-flyout-popover"
         [style.top.px]="flyoutAnchorTop()"
+        [style.max-height]="'calc(100dvh - ' + flyoutAnchorTop() + 'px - 8px)'"
         (mouseenter)="flyoutMouseEnter.emit()"
         (mouseleave)="leaveFlyout($event)"
         (focusin)="flyoutMouseEnter.emit()"

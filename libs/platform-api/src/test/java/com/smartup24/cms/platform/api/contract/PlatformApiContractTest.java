@@ -2,6 +2,7 @@ package com.smartup24.cms.platform.api.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.platform.api.PlatformVersion;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +33,14 @@ class PlatformApiContractTest {
     @Test
     void sinceIsAFeatureVersionNoLaterThanTheCurrentOne() {
         assertThat(POLICY.sinceProblems()).isEmpty();
+    }
+
+    @Test
+    void sealedHierarchyChangesRequireANewMajorVersion() {
+        PlatformVersion baselineVersion =
+                PlatformVersion.parse(System.getProperty("platform-api.baseline.version", "1.0.0"));
+        assertThat(POLICY.sealedChangesWithoutMajor(baseline(), baselineVersion, PlatformVersion.current()))
+                .isEmpty();
     }
 
     @Test

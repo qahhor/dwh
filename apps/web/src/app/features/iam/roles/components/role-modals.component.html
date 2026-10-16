@@ -157,6 +157,8 @@
     <ui-form-actions
       footer
       [submitLabel]="'iam.roles.editor.save_and_switch' | t"
+      [cancelLabel]="'common.discard.keep' | t"
+      cancelFocusInitial
       [submitting]="isSaving()"
       (submitted)="saveAndSwitch.emit()"
       (cancelled)="closeDiscard.emit()"

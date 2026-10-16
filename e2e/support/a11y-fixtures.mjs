@@ -96,6 +96,9 @@ export const me = {
 
 /** Keyed by API path; `path#cursor` answers a follow-up page. */
 export const fixtures = {
+  '/studio/assistant': { available: false },
+  '/entities/example.orders/report-datasets': { items: [] },
+  '/entities/ms.tasks/report-datasets': { items: [] },
   '/i18n/ru': catalog('ru'),
   '/i18n/languages': [
     { code: 'ru', name: 'Русский', builtin: true, active: true, revision: 1, translated: 1929, total: 1929, coverage: 100 },
@@ -286,7 +289,9 @@ export const fixtures = {
   '/entities/menu': [
     { code: 'ms.notes', form: 'notes', route: '/notes', labelKey: 'nav.notes', icon: 'description', section: 'workspace', order: 30, module: 'notes' },
     { code: 'md.users', form: 'md.users', route: '/e/md.users', labelKey: 'nav.users', icon: 'people', section: 'iam', order: 10, module: null },
-    { code: 'example.orders', form: 'example.orders', route: '/e/example.orders', labelKey: 'nav.example_orders', icon: 'receipt_long', section: 'workspace', order: 90, module: 'example' },
+    { code: 'example.orders', form: 'example.orders', route: '/e/example.orders', labelKey: 'nav.example_orders', icon: 'receipt_long', section: 'examples', order: 90, module: 'example' },
+    { code: 'example.products', form: 'example.products', route: '/e/example.products', labelKey: 'nav.example_products', icon: 'inventory_2', section: 'examples', order: 91, module: 'example' },
+    { code: 'example.requests', form: 'example.requests', route: '/e/example.requests', labelKey: 'nav.example_requests', icon: 'approval', section: 'examples', order: 92, module: 'example' },
   ],
   '/history/ms.notes/1': page([
     { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'title', labelKey: 'notes.col.title', oldValue: 'Планёрка', newValue: 'Планёрка филиала 1' }] },
@@ -350,6 +355,8 @@ export const fixtures = {
     ],
   },
   '/list-views/example.orders': [],
+  '/report-views': { items: [], hasMore: false, nextCursor: null, totalReturned: 0 },
+  '/dashboards': { items: [], hasMore: false, nextCursor: null, totalReturned: 0 },
   '/entities/example.orders': page(range(6, 1).map(order), null, 6),
   '/entities/example.orders/1': {
     ...order(1), actions: ['create', 'update', 'post', 'cancel'],

@@ -33,7 +33,8 @@ public class EntityKeyLookup {
         Map<String, Object> params = new LinkedHashMap<>(scope.params());
         params.put("importKey", value);
         String sql = "select " + model.alias() + ".id from " + list.from() + " where " + model.sqlOf(key)
-                + " = :importKey" + scope.sql() + order(entity, model) + " limit 1";
+                + " = :importKey" + scope.sql() + EntityPartitions.where(model, model.alias() + ".", params)
+                + order(entity, model) + " limit 1";
         return jdbc.sql(sql).params(params).query(Long.class).optional();
     }
 

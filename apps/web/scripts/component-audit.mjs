@@ -35,7 +35,6 @@ const ALLOWED = {
     'features/auth/login/components/login-header.component.ts': 'sign-in card outside the application shell',
     // A report embedded in an iframe keeps a one-line toolbar (icon, title, host, status, fullscreen and popup
     // actions) that stays on screen in fullscreen mode; the page header would take the height the frame needs.
-    'features/reports/embedded-report.component.ts': 'compact toolbar of a full-height embedded report',
   },
 };
 

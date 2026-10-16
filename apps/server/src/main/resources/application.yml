@@ -157,6 +157,14 @@ management:
           endpoint: ${SMC_TRACING_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 smc:
+  studio:
+    activation-enabled: ${SMC_STUDIO_ACTIVATION_ENABLED:false}
+    assistant:
+      enabled: ${SMC_STUDIO_ASSISTANT_ENABLED:false}
+      provider: ${SMC_STUDIO_ASSISTANT_PROVIDER:none}
+      endpoint: ${SMC_STUDIO_ASSISTANT_ENDPOINT:}
+      model: ${SMC_STUDIO_ASSISTANT_MODEL:}
+      api-key: ${SMC_STUDIO_ASSISTANT_API_KEY:}
   database:
     # Limits of the main database pool (docs/ops/operations-runbook.md, "Background jobs and database timeouts").
     # Background jobs hold no transaction while they work, so a job does not need a longer limit.
