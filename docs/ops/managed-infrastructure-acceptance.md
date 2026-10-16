@@ -53,9 +53,14 @@ container health, internal readiness, and each running container's configured
 digest reference. A tag-only managed deployment fails this gate.
 
 The Cloudflare token needs read-only access to zone settings, DNS, rulesets,
-and R2 bucket configuration. The R2 key must be a dedicated, time-limited key
-limited to the application bucket. The preflight writes only below the
-configured `acceptance/` prefix and deletes its test object.
+and R2 bucket configuration. Its R2 REST permission also permits account-wide
+object reads; it is not a metadata-only or bucket-scoped credential. The
+[staging access guide](staging-access-setup.md) maps the exact permissions
+and separates this operator token from runtime keys. The R2 S3 test key must
+be dedicated and time-limited to the application bucket. The preflight writes
+only below the configured `acceptance/` prefix and deletes its test object;
+that prefix is a runner convention, not an IAM boundary for this bucket key.
+The full preflight also performs an alert drill and is not a read-only check.
 
 ## 2. Edge, host, R2, scanner, and alert preflight
 

@@ -50,6 +50,9 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Docker build contexts now exclude local deployment history and generated
+  browser-test outputs, keeping operational records and test artifacts out of images.
+
 - Release workflow verification accepts LF and Windows CRLF line endings while
   enforcing the same stable and staging supply-chain gates.
 - Development Compose now forwards the explicit Studio activation switch; both
@@ -92,9 +95,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ansible forwards release channel/source identity and admits RC versions only with
   the staging overlays; numeric RC ordering preserves update/rollback safeguards.
 
-- Staging acceptance now targets Studio RC bc559ddd, with explicit Studio
-  scenarios, target readiness gates, owner access inputs and the unresolved
-  signed-release path. Approved infrastructure, recovery and upload budgets remain unchanged.
+- Staging acceptance targets RC 4a721df0 with explicit signed-prerelease
+  positive/negative checks, independent source/signer/digest verification,
+  deployment-identity access requirements and Studio target scenarios.
+  The runbook revision is separate from the frozen RC; approved infrastructure,
+  recovery and upload budgets remain unchanged. Publication and target acceptance remain pending.
+- A step-by-step staging access guide maps protected GitHub environments,
+  tag rulesets, artifact consumer credentials, Hetzner SSH and Cloudflare/R2
+  permissions to the existing runner, including account-wide R2 read limits
+  and revocation. No cloud settings, access grants or publication were performed.
 
 - Breaking platform API change: platform-api and provider-spi use version 2.0.0.
   The new JsonProperty variant of the stable sealed FieldSource requires consumers

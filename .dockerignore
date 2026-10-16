@@ -19,6 +19,9 @@ secrets/
 
 # Local evidence, credentials, caches, and tool installations are not build inputs.
 output
+deployments
+**/test-results
+**/artifact-security-results
 audit
 graphify-out
 .superpowers

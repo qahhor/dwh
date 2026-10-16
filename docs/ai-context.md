@@ -172,14 +172,41 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 ## 7. Точка продолжения — 2026-10-16
 
-**RC Студии и staging-план (2026-10-16):** DCO-кандидат
-`bc559ddd7f089e0505c4ed590e349df39b7c66de` включает STU-00…06 и изменения форм,
-авторизации/навигации ветки `codex/admin-studio`. По сохранённому протоколу
-на точном SHA завершены **108/108** обязательных локальных checks: backend
-3306, web 2579, accessibility 143, live E2E 72 (37 + 35), без retries/quarantine.
-Указатель на приватные первичные результаты и границы локального CI —
-игнорируемый `.local/rc-studio-20261016/EVIDENCE.md`. Числа и незакрытый commit/CI
-в более ранних записях ниже относятся к этапам до этого RC.
+**Локальный стенд и уборка (2026-10-16):** демо пересобрано из текущего
+`codex/admin-studio`; UI `http://localhost:4201`, API `127.0.0.1:8081`,
+readiness `127.0.0.1:9091`, Mailpit `localhost:8026`. UI/API/почта — HTTP 200,
+readiness — UP. PostgreSQL `5434` и Typesense `8109` привязаны к loopback;
+Compose project `smc-rc-demo-b859da89` сохранён вместе с базами и файлами.
+На этой workstation запускать из актуального worktree через ignored
+`.local/demo-instance.ps1 up -Rebuild` (штатный run-local с локальным
+loopback overlay); старый основной checkout не является текущим исходником.
+Административные credentials остаются локальными и в Git не попадают.
+
+Удалены неиспользуемые копии зависимостей старых локальных CI, устаревшие
+UI-логи, Python-кэши и остатки E2E. RC/evidence, runtime/storage, секреты,
+Docker volumes и журнал deployment history сохранены. `.dockerignore`
+исключает deployment history и browser-test outputs; действующие документы,
+fixtures, lockfiles и manifests не удалялись. Манифест уборки, команды запуска
+и результаты проверок: `.local/local-start-cleanup-20261016/EVIDENCE.md`.
+
+Владелец разрешил DCO-коммит и push рабочей ветки `codex/admin-studio`.
+Это не разрешение на release tags, публикацию образов/релиза, staging deploy
+или merge в main. Последующие изменения документации и build-context ignore
+не создают нового RC: результаты 116/116 ниже относятся только к `4a721df0`.
+SHA рабочего коммита и результат push проверять по Git и приватному receipt.
+
+**Текущий RC и staging-план (2026-10-16):** DCO-кандидат
+`4a721df037e8274c3f1be56718e0319fec88c3dc` включает STU-00…06,
+prerelease pipeline/verifier (ADR-0040) и CRLF-исправление проверки workflow.
+По первичному протоколу `final-proof.json` на этом SHA выполнены **116/116**
+локальных checks: backend 3306, web 2579, accessibility 143, live E2E 72
+(37 + 35), без retries/quarantine. Указатель на приватные доказательства —
+`.local/rc-prerelease-final-20261016/EVIDENCE.md`. Результаты `bc559ddd`/108 checks
+не переиспользованы; кандидат `9fceb040` отклонён из-за CRLF до нового полного CI.
+CodeQL: 44 сигнала разобраны, подтверждённых блокеров нет. Actions использовал
+официальный suite через JS DB + Workflow AST 8/8 после отказа native extractor
+из-за Windows Execution Policy; реальный hosted signing этим не доказан.
+Пять ранее документированных ZAP CSP/origin residual risks остаются видимыми.
 
 Breaking-контракт: `If-Match` для list-views, явное `updateExisting: true` для
 изменения участника проекта; API/SPI 2.0.0 и новый sealed `FieldSource`
@@ -187,16 +214,23 @@ JsonProperty требуют обновить exhaustive switches. Суффикс
 operationId изменены, HTTP-пути сохранены.
 
 Обновлены [staging-план](ops/staging-acceptance.md) и
-[матрица Студии](ops/studio-staging-acceptance.md): неизменные утверждённые
-ресурсы/бюджет, RPO 24 ч / RTO 2 ч, upload 30/60 с; IN-01…10 для владельца,
-STG-STU-01…17 и GO/NO-GO. Это документация после RC, не часть проверенного SHA.
-Target-доступы/подписанные digest не предоставлены; приёмка NOT RUN,
-DOD-09/ACC-20 открыты. Для off-main staging выбран и реализован отдельный
-signed prerelease (ADR-0040); он требует нового DCO SHA/полного CI и отдельного
-разрешения на внешнюю публикацию. Stable ancestry сохранён.
-Assistant off/provider none, без внешних вызовов; live provider
-не блокирует выключенную возможность. ACC-21 N/A для create-only definitions.
-Публикация/merge/provision/deploy не выполнялись; demo сохранён.
+[матрица Студии](ops/studio-staging-acceptance.md): PRC-01…07 проверки
+подписанного prerelease, IN-01…10 доступов, STG-STU-01…17 и go/no-go.
+Эта документация изменена после RC; её revision фиксировать отдельно,
+target scripts запускать из чистого checkout `4a721df0`.
+Подготовлена [инструкция настройки и минимальных доступов](ops/staging-access-setup.md):
+GitHub environment/rulesets/consumer credentials, Hetzner SSH без обязательного
+API token, Cloudflare zone read + account R2 read и раздельные S3 keys.
+Approved vars до разрешения публикации отсутствуют; R2 account read не считается
+metadata-only доступом. Выдача прав и облачные настройки не выполнялись.
+Ресурсы/бюджет, RPO 24 ч / RTO 2 ч и upload 30/60 с утверждены ранее.
+Следующий gate: конкретный свободный RC-tag/repository, protected environment
+с независимым reviewer, разрешённая публикация и verifier реальных assets;
+затем target preflight, функционал/нагрузка/fault/restore. GitHub settings,
+подписи/registry digest и staging-доступы пока не предоставлены/не выполнены.
+DOD-09/ACC-20 открыты. Assistant off/provider none; live LLM вне scope,
+ACC-21 N/A для create-only definitions. Публикации/merge/deploy не было.
+Более ранние записи ниже исторические и не отменяют текущий RC/CI.
 
 **STU-06: графики, datasets и помощник (2026-10-16):** реализовано и проверено локально в той же ветке `codex/admin-studio`.
 [ADR-0039](adr/ADR-0039-report-datasets-and-assistant.md), [план §15](architecture/admin-studio-plan.md#15-stu-06-дополнительные-графики-datasets-и-помощник), [рецепт](cookbook/report-datasets-and-assistant.md).
@@ -937,6 +971,9 @@ Observatory A+ — шаг релиза; строки журнала при ст�
 сверяйте их с фазой 5: часть пробелов закрыта общим runtime (ADR-0032).
 
 ### Подписанный staging prerelease — продолжение после bc559ddd
+
+Историческая запись реализации до `4a721df0`; текущий RC/CI и следующий gate
+указаны в начале §7. Упоминание будущего SHA ниже относится к тому этапу.
 
 Реализован [ADR-0040](adr/ADR-0040-signed-staging-prereleases.md): отдельный `prerelease.yml` для
 `vX.Y.Z-rc.N`, общий bundle builder, подпись/attestation SHA256SUMS,

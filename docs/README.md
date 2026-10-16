@@ -214,7 +214,9 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
   владельцы работ и критерии готовности по существующим FR/NFR/AC.
 - [Smartup-managed infrastructure acceptance](ops/managed-infrastructure-acceptance.md)
 - [Утверждённая staging-конфигурация и критерии приёмки](ops/staging-acceptance.md)
-- [Студия: сценарии staging-приёмки RC bc559ddd](ops/studio-staging-acceptance.md)
+- [Staging: настройка GitHub и минимальных доступов](ops/staging-access-setup.md) —
+  пошагово: protected environment, Hetzner SSH, Cloudflare/R2 scopes и отзыв.
+- [Студия: сценарии staging-приёмки RC 4a721df0](ops/studio-staging-acceptance.md)
 - [Rollback and recovery](ops/rollback.md)
 - [Migration failure repair](ops/migration-repair.md)
 - [GitHub repository settings](ops/repository-settings.md)

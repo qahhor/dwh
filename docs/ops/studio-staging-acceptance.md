@@ -1,13 +1,15 @@
-# Студия: staging-приёмка RC bc559ddd
+# Студия: staging-приёмка RC 4a721df0
 
-**Дата:** 2026-10-16. **RC:** `bc559ddd7f089e0505c4ed590e349df39b7c66de`.
+**Дата:** 2026-10-16. **RC:** `4a721df037e8274c3f1be56718e0319fec88c3dc`.
 **Статус:** план; все целевые cases ниже **NOT RUN**. Локальный CI этого SHA
-закрыт по сохранённому протоколу: 108/108 checks, включая 72 live E2E.
+закрыт по сохранённому протоколу: 116/116 checks, включая 72 live E2E.
 Он не заменяет проверки целевой инфраструктуры, отдельных процессов и recovery.
 
-Сценарии фиксируют функциональность bc559ddd. После добавления signed
-prerelease pipeline (ADR-0040) целевой прогон выполняется на новом одобренном
-DCO SHA с собственным полным CI; прежний SHA не подменяется новым evidence.
+Сценарии фиксируют функциональность `4a721df0`, включая signed prerelease
+pipeline/verifier (ADR-0040). Новая редакция этой матрицы находится вне RC tree:
+фиксировать её отдельно, запускать тесты из чистого checkout указанного SHA.
+До функциональных mutations закрыть PRC-01…06 основного плана; live E2E
+повторить в PRC-07 на настоящих подписанных digest, не на локальных image IDs.
 
 Этот документ детализирует [staging-план](staging-acceptance.md),
 [DoR/DoD/ACC Студии](../architecture/admin-studio-plan.md),
@@ -20,7 +22,7 @@ DCO SHA с собственным полным CI; прежний SHA не по�
 
 | Вход | Критерий перед стартом |
 |---|---|
-| Identity | Чистый checkout RC, шесть подписанных digest и verifier PASS по staging-плану §0; конфигурация/UTC/evidence привязаны к ним |
+| Identity | Чистый checkout `4a721df0`, шесть подписанных digest и verifier schemaVersion 2 PASS с Channel staging / полным ExpectedSourceSha по staging-плану §0.1; конфигурация/UTC/evidence привязаны к ним |
 | Модули | `studio` и `tasks` включены для сценариев; `example` временно включён только для прототипа Products. Записаны исходные и ожидаемые итоговые состояния |
 | Флаги | Начать с `SMC_STUDIO_ACTIVATION_ENABLED=false`, затем согласованно включить для live cases с restart. `SMC_STUDIO_ASSISTANT_ENABLED=false`, provider `none`, endpoint/model/key пусты весь прогон |
 | Роли | Отдельные admin/setup, автор (`md.settings.update` + entity.view), publisher (`studio.forms.publish`), author+publisher, читатель, читатель другой оргветви, без прав. Для assistant-off — пользователь с обоими assist+settings правами и варианты без одного из них |
@@ -109,7 +111,7 @@ capacity SLO. Второй процесс запускать последова�
 ```powershell
 $env:INSTANCE_BASE_URL = '<approved-staging-HTTPS>'
 $env:E2E_STUDIO_ACTIVATION_EXPECTED = 'true'
-npm test -- --project=instance tests/browser/instance/studio-live.spec.ts
+npm test -- --project=instance --workers=1 --retries=0 tests/browser/instance/studio-live.spec.ts
 ```
 
 `ADMIN_PASSWORD`/остальные credentials загружаются приватно по E2E env-контракту,
@@ -149,7 +151,7 @@ image digest/config revision, UTC, artifact hashes и reviewer по §8 осно
   правил данных/retention/egress/бюджета и разрешения; локальные HTTP fixtures
   не доказывают работу настоящего провайдера.
 - Для CLI-generated новой формы отдельный derived SHA/CI и собственная
-  приёмка; package preparation на bc559ddd не означает её доставку.
+  приёмка; package preparation на 4a721df0 не означает её доставку.
 - Blocker/High, нарушение ACL, потеря данных/изменений, неверный отчёт,
   непройденный restore/SLO или неизвестная artifact identity → **NO-GO**.
   Только некритичные косметические P1/P2 допускают явное решение с owner/date;

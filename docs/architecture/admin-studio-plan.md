@@ -452,14 +452,14 @@ DoR: пользователь — администратор с `md.settings.upd
 
 Сборка выполнена в `.local/studio-06-verify` отдельной рабочей копии; исходники сверены SHA256. Это нужно, поскольку текущий demo JAR занят процессом: демо на 4201/8081 не перезапускалось. Итоговые логи: `.local/studio06-server-verified.log`, `studio06-final-summary.json`, `studio06-coverage-floors.log`, `studio06-final-diff-coverage.log`, `studio06-platform-api-gate.log`, `studio06-web-accepted-ci-results.json`, `studio06-web-frozen-build.log`, `studio06-browser-frozen.log`, `studio06-browser-viewport.log`. Viewport-снимки обеих тем просмотрены; preview 4317 остановлен. `graphify update` недоступен (`No module named graphify`), инструмент не устанавливался.
 
-## 16. RC bc559ddd и целевая приёмка — 2026-10-16
+## 16. RC 4a721df0 и целевая приёмка — 2026-10-16
 
 Предыдущие разделы сохраняют результаты отдельных этапов до RC. Текущий
-DCO-кандидат — **`bc559ddd7f089e0505c4ed590e349df39b7c66de`**, API/SPI **2.0.0**.
-На этом SHA завершены **108/108** обязательных локальных проверок: backend
+DCO-кандидат — **`4a721df037e8274c3f1be56718e0319fec88c3dc`**, API/SPI **2.0.0**.
+На этом SHA завершены **116/116** обязательных локальных проверок: backend
 3306 тестов, web 2579, accessibility 143, live E2E 72 (37 + 35), без retries
 и quarantine. Первичный приватный протокол доступен через игнорируемый
-`.local/rc-studio-20261016/EVIDENCE.md`; там же ограничения локального
+`.local/rc-prerelease-final-20261016/EVIDENCE.md`; там же ограничения локального
 воспроизведения CI и security review. Исторические записи §15 про будущий
 коммит, 1.1.0 и незавершённый live/release CI не описывают текущий статус RC.
 
@@ -476,13 +476,19 @@ ACC-21 — N/A: текущие live definitions create-only. Реальный LL
 объявляется возможностью настройки field grants в редакторе. CLI-generated
 форма требует производного SHA, в отличие от DML activation того же RC.
 
-Целевой план обновлён после RC и не меняет его SHA. Подписанные staging-assets
-ещё не предоставлены. Владелец выбрал отдельный signed staging prerelease;
-реализация ниже требует нового DCO SHA и повторного полного CI. Stable release
-по-прежнему требует commit, достижимый из default branch.
-Публикация, merge, provision/deploy и вызовы внешнего LLM не выполнялись.
+Целевой план обновлён после RC и не меняет его SHA; редакцию runbook фиксировать
+отдельно. `4a721df0` уже включает prerelease pipeline/verifier и CRLF-исправление,
+весь CI повторён на нём. Следующий gate — PRC-01…07 staging-плана: GitHub
+protections, конкретный RC-tag, отдельно разрешённая публикация, verifier
+подписанного manifest/шести digest и runtime target evidence. Подписанные
+staging-assets ещё не предоставлены; DCO не заменяет Cosign. Stable release
+по-прежнему требует commit, достижимый из default branch. Публикация, merge,
+provision/deploy и вызовы внешнего LLM не выполнялись.
 
 ### Подписанный staging prerelease — продолжение после bc559ddd
+
+Историческая запись до `4a721df0`; текущий RC и завершённый полный CI указаны
+в начале §16. Упоминание будущего SHA ниже описывает состояние того этапа.
 
 Реализован [ADR-0040](../adr/ADR-0040-signed-staging-prereleases.md): отдельный `prerelease.yml` для
 `vX.Y.Z-rc.N`, общий bundle builder, подпись/attestation SHA256SUMS,

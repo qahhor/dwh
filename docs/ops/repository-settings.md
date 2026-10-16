@@ -165,7 +165,11 @@ onboarding smoke, свежие advisories (Trivy) и нагрузочные кр
 **Проверка.** Actions → nightly показывает запуск прошедшей ночи; при
 необходимости `gh workflow run nightly.yml` запускает его вручную.
 
-## 4. Подписанный staging RC (ADR-0040)
+## 6. Подписанный staging RC (ADR-0040)
+
+Пошаговая [инструкция настройки staging-release и доступов](staging-access-setup.md)
+связывает GitHub settings с правами verifier, Hetzner SSH и Cloudflare/R2.
+Она не заменяет отдельного разрешения на изменение settings или публикацию.
 
 Файл [prerelease.yml](../../.github/workflows/prerelease.yml) публикует только
 строгие теги `vX.Y.Z-rc.N`, N ≥ 1. Их покрывают существующие `v*` rulesets:
@@ -182,7 +186,8 @@ onboarding smoke, свежие advisories (Trivy) и нагрузочные кр
 GitHub settings. Подготовить GHCR permissions и доступ к attestations;
 долгоживущий signing key не требуется.
 
-Внутри environment задаются `STAGING_APPROVED_SOURCE_SHA` (одобренный
+До разрешения публикации approved variables остаются отсутствующими.
+После разрешения внутри environment задаются `STAGING_APPROVED_SOURCE_SHA` (одобренный
 полный commit SHA) и `STAGING_APPROVED_VERSION` (точный `vX.Y.Z-rc.N`).
 Запрещены одноимённые repository/organization vars: GitHub vars не позволяет
 скрипту установить scope значения. Оба write jobs требуют точного совпадения;

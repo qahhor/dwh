@@ -1,23 +1,38 @@
 # Staging: утверждённая конфигурация и приёмка
 
-**Обновлено:** 2026-10-16. Кандидат: **`bc559ddd7f089e0505c4ed590e349df39b7c66de`**.
+**Обновлено:** 2026-10-16. Кандидат: **`4a721df037e8274c3f1be56718e0319fec88c3dc`**.
 Конфигурация, бюджет, RPO/RTO и upload SLO 30/60 с утверждены владельцем
-2026-10-12; ниже они сохранены. Прежняя ссылка на `aa098672` заменена новым RC.
+2026-10-12; ниже они сохранены. RC `4a721df0` заменяет `bc559ddd` как
+основание следующей приёмки; старые результаты ему не приписываются.
 Это план будущей приёмки, а не протокол выполненных staging-проверок.
 Создание ресурсов, закупки, публикация, merge и выкладка этим документом
 не разрешены. Дата начала испытаний зависит от входов §6.
 
-## 0. Основа приёмки и открытый путь выпуска
+## 0. Основа приёмки и готовность кандидата
 
 По сохранённому протоколу от 2026-10-16 на указанном DCO SHA завершены
-**108/108 обязательных локальных проверок**: backend 3306 тестов, web 2579,
+**116/116 обязательных локальных проверок**: backend 3306 тестов, web 2579,
 accessibility 143, live E2E 72 (37 + 35), без E2E retries и quarantine.
 Указатель на проверенные результаты — игнорируемый
-`.local/rc-studio-20261016/EVIDENCE.md`; первичные `final-proof.json`,
+`.local/rc-prerelease-final-20261016/EVIDENCE.md`; первичные `final-proof.json`,
 `ci-report.md`, security review и журналы остаются приватными.
 Это результаты локального CI с описанными в отчёте адаптациями Windows/Linux,
 не подтверждение целевой инфраструктуры или идентичности GitHub-hosted runner.
 Настоящий план обновлён после RC и не входит в его проверенный commit tree.
+Source SHA выше остаётся неизменным; редакцию runbook фиксировать отдельно.
+При включении этих документов в новый commit/bundle потребуется новый кандидат
+и полный CI его SHA. Для испытаний использовать отдельный чистый checkout
+`4a721df0`, а не рабочее дерево с настоящими незакоммиченными изменениями.
+
+В RC входят prerelease pipeline, verifier и исправление LF/CRLF-контракта.
+Первый кандидат `9fceb040` отклонён из-за CRLF; все 116 checks повторены на
+`4a721df0`. Разобраны 44 сигнала CodeQL; подтверждённых блокеров не найдено.
+Actions проверен официальным suite через свежую JS DB с Workflow AST 8/8:
+native extractor был заблокирован Windows Execution Policy. GitHub OIDC,
+публикация GHCR/Release и release ARM64 этим локальным CI не подтверждены.
+Пять реальных остаточных рисков ZAP (inline CSS, COEP/COOP/CORP web и CORP API)
+сохраняются по ADR-0034 / threat-model; это не false positive и не новое
+разрешение production. Их target-проверка входит в S2/S6.
 
 | Gate | Состояние на 2026-10-16 | Что закрывает |
 |---|---|---|
@@ -36,18 +51,80 @@ Merge в default branch для RC не требуется; стабильный 
 своё ancestry-ограничение. Checksums manifest подписывается и attested,
 channel/tag/source SHA/workflow проверяются до запуска содержимого bundle.
 
-**Это изменение после bc559ddd.** Будущий тег ставится на новый DCO SHA,
-включающий pipeline и прошедший полный локальный CI. Прежние 108 PASS выше
-относятся только к bc559ddd. Для новой поставки требуется новое evidence.
-Код workflow не означает наличие подписанных assets: необходимы настройки
-`staging-release`, независимый approval и отдельное разрешение на push tag/
-публикацию. Сейчас GitHub settings, refs, GHCR и Releases не изменялись.
+**Кандидат для будущего тега уже определён: `4a721df0`.** Новый SHA не нужен,
+пока не меняется состав поставки. Точное имя свободного `vX.Y.Z-rc.N` выбирает
+Release owner; номер здесь не придумывается. DCO sign-off коммита не является
+Cosign-подписью артефакта. Код workflow не означает наличие подписанных assets:
+нужны настройки `staging-release`, независимый approval и отдельное разрешение
+на push tag/публикацию. GitHub settings, refs, GHCR и Releases не изменялись.
 
 Локальный Docker image ID не является registry digest. Даже сборка того же
 source SHA может получить новые базовые пакеты: будущие образы сканируются,
 проверяются и проходят runtime/E2E на своих digest. Неподписанный rehearsal
 не закрывает gate артефактов. Зафиксировать связь source SHA → шесть digest →
 конфигурация → evidence; не подменять её названием тега.
+
+### 0.1. P0: проверка подписанного prerelease
+
+Все строки ниже пока **NOT RUN**. Ответственные — Release + Security;
+допуск к deploy возможен только после PRC-01…06. PRC-07 проверяет уже
+развёрнутые digest до нагрузки. Наличие локальных fixture-тестов verifier
+не закрывает эти целевые проверки.
+
+| ID | Действие | Критерий готовности / evidence |
+|---|---|---|
+| PRC-01 | Администратор проверяет фактические GitHub protections до разрешённого push | `v*` tag ruleset запрещает update/delete, создание ограничено Release; `staging-release` имеет независимого required reviewer, prevent self-review, запрет bypass и tag policy `v*.*.*-rc.*`. Тариф/тип repo поддерживает эти защиты. В environment только утверждённые `STAGING_APPROVED_SOURCE_SHA=4a721df037e8274c3f1be56718e0319fec88c3dc` и точный `STAGING_APPROVED_VERSION`; одноимённых repo/org vars нет. Сохранены redacted settings и reviewer/UTC |
+| PRC-02 | После отдельного разрешения проверить tag-triggered run | Tag, event и checkout равны полному SHA; DCO и вызванный `ci.yml` PASS на нём. Run URL/ID/attempt, approvals и workflow identity сохранены; первая попытка, не rerun. После любого failed run — новый номер RC и новое одобрение, без передвижения tags/перезаписи assets |
+| PRC-03 | Проверить результаты build/sign/publish всех шести компонентов | `server/web/backup/postgres/typesense/clamav`: build и Trivy PASS на публикуемых digest, attestation и Cosign успешно выпущены; проверены заявленные платформы amd64/arm64. Release имеет `prerelease=true`, `draft=false`, не latest. Сохранены tar/zip, `release.json`, 24 image/SBOM/provenance файла, `SHA256SUMS` и его sigstore/provenance bundles. Никакого deploy/production promotion |
+| PRC-04 | Независимый verifier из доверенного checkout на настоящих assets | Явный `Channel=staging`, утверждённые repository/version и полный ExpectedSourceSha. Сначала Cosign + provenance manifest, затем hashes и все image signatures/provenance/SPDX/CycloneDX. Точный signer `prerelease.yml@refs/tags/<version>`, issuer GitHub Actions, source/signer digest совпадают с RC, self-hosted signer отклонён. Exit 0 и новый receipt schemaVersion 2, status PASS, channel/version/sourceSha/sourceRef/workflow, hash SHA256SUMS и шесть refs совпадают с утверждённой поставкой |
+| PRC-05 | Отрицательные проверки на отдельных локальных копиях assets | Неверные SHA/repository/tag/channel, отсутствие/подмена manifest signature или provenance, изменённый archive с пересчитанным неподписанным manifest, missing/mixed image refs/SBOM/provenance должны дать ненулевой exit до запуска bundle/Compose. Для корректного синтаксиса Version проверить удаление прежнего PASS в том же отдельном evidence-каталоге после неуспешного повтора. Исходные assets не менять; сохранить expected/actual и затем повторить positive PRC-04 |
+| PRC-06 | Повторить verifier под фактической deploy/restore OS identity | Есть read-only доступ к GitHub assets/attestations, GHCR и trust endpoints. Проверить аутентификацию с `become`, доступ к приватным `HOME`/`DOCKER_CONFIG`/`GH_CONFIG_DIR`; одного `GH_TOKEN` в интерактивном shell недостаточно — wrapper его не передаёт. Ansible: `smc_release_channel: staging`, `smc_staging: true`, expected SHA точно RC, checksum pin из независимого PRC-04 receipt; overlays проверены. `--check` Ansible и `deploy.ps1 -VerifyRelease` не заменяют этот gate |
+| PRC-07 | Связать проверенную поставку с target runtime | Шесть продуктовых refs совпадают с verifier; migrate/backup-bootstrap используют соответствующие server/backup digest. Остальные observability images отдельно закреплены по digest и входят в config evidence; фактические platform digest/revision labels соответствуют подписанному manifest/index. Сохранены цепочка index → platform digest, sanitized config revision и UTC. Runtime smoke, security headers и live E2E повторены на этих образах; локальные Docker IDs/результаты сборки не заменяют этот прогон |
+
+После окончания разрешённого выпуска удалить approval vars из environment;
+проверку этого cleanup сохранить вместе с approvals. Build amd64/arm64 и
+проверка multiarch metadata не являются runtime-тестом ARM64: утверждённый
+target x86_64 проверяет свою платформу, другая требует отдельного стенда.
+Проверка форматов SBOM не доказывает их полноту; scan receipts PRC-03 обязательны.
+Негативы выполняются без выпуска новых подписей для испорченных fixtures.
+Случаи, которым нужен специально подписанный неверный source/signer или набор,
+фиксируются как LOCAL из regression suite, а не как LIVE PASS; фактическое
+покрытие каждого сценария и причина ограничения записываются отдельно.
+
+Verifier требует сети к GitHub/GHCR и используемым Sigstore trust endpoints;
+полностью offline/air-gapped режим не заявлен. Версии `pwsh`, `gh`, `cosign`
+фиксируются в evidence по контракту поставки; скачивание assets/инструментов
+выполняется оператором только в разрешённом следующем этапе. Нужны scoped
+read credentials под реальной OS identity, не private signing key: подпись
+pipeline keyless. Секреты не вводить в команды и не прикладывать к отчёту.
+
+Команда ниже — шаблон PRC-04 после появления одобренных assets; сейчас она
+не выполняется. Repository/version/каталоги задаёт оператор из IN-03/09.
+`ExpectedSourceSha` нельзя получать из скачанного `release.json`.
+
+```powershell
+$trustedCheckout = '<absolute-clean-checkout-of-approved-RC>'
+$assetsDirectory = '<absolute-private-downloaded-assets-directory>'
+$evidenceDirectory = '<absolute-private-positive-evidence-directory>'
+$repository = '<approved-owner/repository>'
+$version = '<approved-unused-vX.Y.Z-rc.N>'
+$expectedSourceSha = '4a721df037e8274c3f1be56718e0319fec88c3dc'
+$actualSha = (& git -C $trustedCheckout rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $actualSha -cne $expectedSourceSha) { throw 'Wrong checkout SHA' }
+$dirty = @(& git -C $trustedCheckout status --porcelain=v1)
+if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Checkout is not clean' }
+pwsh -NoProfile -File (Join-Path $trustedCheckout 'scripts/release/verify-published-release.ps1') `
+  -ReleaseDirectory $assetsDirectory -Repository $repository -Version $version `
+  -Channel staging -ExpectedSourceSha $expectedSourceSha -EvidenceDirectory $evidenceDirectory
+if ($LASTEXITCODE -ne 0) { throw 'Prerelease verification failed' }
+```
+
+Receipt: `<evidenceDirectory>/release-integrity-<version>.json`. Security
+сверяет все поля PRC-04, hashes первичных файлов и утверждённую identity;
+одного наличия файла PASS недостаточно. Не запускать verifier или другие
+скрипты из скачанного bundle до аутентификации его manifest. Отрицательные
+проверки должны сохранять логи, но не credentials; shared positive evidence
+не использовать для destructive/tampering fixtures.
 
 ## 1. Топология и бюджет
 
@@ -262,6 +339,11 @@ PITR/HA не заявлены. Потеря всего R2 account не покр�
 
 ## 6. Входы и решения, необходимые от владельца
 
+Порядок настройки GitHub и выдачи прав — в
+[инструкции staging-доступов](staging-access-setup.md): роли, UI-шаги,
+точные permissions, проверка и отзыв. Текущий runner не требует Hetzner API
+token; его Cloudflare R2 REST read шире доступа только к metadata одного bucket.
+
 Повторное утверждение размеров, бюджетных потолков, NBG1, RPO/RTO и upload SLO
 не требуется. Нужны значения, ответственные и ссылки на доступы ниже.
 В чат передаются только несекретные идентификаторы и пути/ссылки на secret manager;
@@ -272,28 +354,36 @@ PITR/HA не заявлены. Потеря всего R2 account не покр�
 |---|---|---|---|
 | IN-01 | FQDN staging, Cloudflare account/zone ID, Hetzner project ID; app/ops/runner IP и private route | Назначенный оператор в отдельном project; SSH public key и проверенный host fingerprint, operator IP allowlist. Root/account-owner token не нужен для аудита | До provision/preflight |
 | IN-02 | Три имени R2 bucket: application, recovery, restore; endpoint и подтверждённое размещение | Утверждён default jurisdiction + `weur`; EU residency, если нужна, — отдельное решение. Lifecycle/lock/CORS как §3 | До storage preflight |
-| IN-03 | Ссылки на scoped Cloudflare/R2/registry credentials | CF read для проверки настроек зоны/account и отдельный write только оператору изменений; application key, source read-only, recovery writer, временный restore key отдельно, с expiry/revoke. Registry pull и доступ verifier к assets/attestations | До artifacts/preflight |
+| IN-03 | Ссылки на scoped Cloudflare/R2/registry credentials | CF read для проверки настроек зоны/account и отдельный write только оператору изменений; application key, source read-only, recovery writer, временный restore key отдельно, с expiry/revoke. Registry pull и доступ verifier к assets/attestations; GitHub repo/actions/attestations read и GHCR read:packages для закрытых пакетов, без publish/admin у тестировщика. Приватные gh/docker config под фактической deploy/restore OS identity и сетевой доступ PRC-06 | До artifacts/preflight |
 | IN-04 | Secret manager и ответственный за escrow | Разные DB users, `SMC_SECRETS_KEY`, age recipient; age identity хранится отдельно и доступна двум назначенным recovery-операторам. Приватный env/config путь, права 0600/0700, известный SSH host | До deploy и backup |
 | IN-05 | SMTP/контролируемые тестовые адреса, alert recipient и резервный канал | Scoped SMTP credential; проверка login/reset/MFA и доставки только на согласованные адреса; доступ к monitoring, logs и реальным receipts/ACK | До functional/fault checks |
 | IN-06 | Имена Release / Ops / QA / Security / DBA / Incident / Rollback owners, primary и secondary | Ответственные принимают evidence; окно нагрузки, остановки сервисов, тестовых записей и isolated restore согласовано | До target mutations |
 | IN-07 | Учётные записи отрицательной матрицы и нагрузочные пользователи | Отдельный временный Studio admin; автор, publisher, reader, пользователь другой ветви и пользователь без прав. 100 уникальных least-privilege API tokens для утверждённой нагрузки через secret manager | До доступа и нагрузки |
 | IN-08 | Корпус и режим Студии из [матрицы](studio-staging-acceptance.md#1-dor-целевого-прогона) | Согласовать предложенный объём Studio-записей/отчётов; выделить каталог кодов и изолированный clone для квоты/двух процессов. Включение activation только на время согласованной проверки; assistant остаётся off | До Studio target tests |
-| IN-09 | Новый SHA, RC-tag и настройки `staging-release` | Prerelease выбран; нужны DCO/полный CI нового SHA, protected environment/reviewer и отдельное разрешение на push tag/публикацию. GitHub settings пока не применены | До gate артефактов |
+| IN-09 | Repository `owner/name`, свободный точный RC-tag для `4a721df0`, Release administrator и независимый reviewer | SHA/DCO/локальный CI уже готовы. Нужны реальные protections и пара environment vars из PRC-01, запрет repo/org shadow vars, GHCR write/OIDC/attestation permissions только workflow jobs. Отдельное разрешение на settings и push tag/публикацию; пока они не выполнены | До PRC-01…03 |
 | IN-10 | Окно и полномочия следующего этапа | Отдельное разрешение на закупки/provision/deploy и load/fault/restore, когда готовы конфиги и checklist; merge/publication не подразумеваются утверждением бюджета | До выполнения этих действий |
+
+Удобный минимальный ответ владельца: repository и желаемый RC-tag; FQDN и
+project/zone/bucket IDs; имена Release/Ops и независимого reviewer; ссылки
+на secret manager/приватные config paths; тестовые получатели и окно;
+решение по предложенному Studio workload IN-08. Если стенд ещё не создан,
+достаточно статуса каждого входа и ответственного. Разрешение на публикацию
+или изменения инфраструктуры не запрашивается этим обновлением плана.
 
 ## 7. Последовательность приёмки
 
 **Предположение для планирования:** 6–8 рабочих дней QA/Ops после готовности
 доступов, подписанных артефактов и тестового корпуса; без времени закупок,
-нового RC/полного CI, подготовки GitHub environment или исправления найденных дефектов. Операторы
+подготовки GitHub environment/подписанных assets или исправления найденных дефектов. Операторы
 работают в согласованное окно. Нагрузку, fault injection и backup не запускать
 одновременно; полные capture на ops выполняются вместо k6.
 
 | Этап / приоритет | Работа и evidence | Зависимость | Роль / оценка |
 |---|---|---|---|
 | S0 / P0 | Закрыть IN-01…10; сохранить конфигурацию без секретов, конкретный workload и расписание. Проверить release path и готовность probes/exporter | Входы владельца | Release + Ops + QA, 0.5–1 день |
-| S1 / P0 | Verifier шести digest, clean checkout SHA; Ansible clean install/update rehearsal, миграции CMS/DWH, host и внешний HTTPS/R2/edge preflight | S0, подписанные assets | Ops + Security, 1 день |
-| S2 / P0 | Базовые login/reset/MFA, роли/scopes/revoke/hidden fields; вся применимая матрица Студии, live browser, restart и два процесса на изолированном контуре | S1, роли и synthetic fixture | QA + Security + Backend, 1–2 дня |
+| S1a / P0 | PRC-01…06: protected settings, tag/CI/signing receipts, positive/negative verifier и проверка deploy identity | S0 и отдельные разрешения; публикация пока запрещена | Release + Security, 0.5–1 день вне оценки target trials |
+| S1b / P0 | Ansible clean install/update rehearsal, CMS/DWH migrations, host/HTTPS/R2/edge preflight; PRC-07 runtime/E2E на подписанных digest | S1a, target preflight и чистый checkout RC | Ops + Security, 1 день |
+| S2 / P0 | Login/reset/MFA, scopes/revoke/hidden fields; матрица Студии, live browser, restart/два процесса; CSP/origin risks, embed compatibility и HTTPS cookie/header checks | S1b, роли и synthetic fixture | QA + Security + Backend, 1–2 дня |
 | S3 / P0 | Полный backup rehearsal и cache guard; затем 15 мин interactive, 20 uploads, 4 ч soak и отдельный Studio workload; метрики/UX за то же окно | S2, полный корпус, работающие exporter/probes | QA + Ops, 1 день |
 | S4 / P0 | Scanner/DB/backup/R2 и потеря app/collector/ops: отказ, восстановление, настоящая доставка ≤120 с и ACK≤10 мин. До R2 drill согласовать точный endpoint/egress rule | S3, окно отказов | Ops + On-call, 0.5–1 день |
 | S5 / P0 | Два согласованных полных комплекта и два isolated restore; отрицательные restore; Studio definitions/records/grants/reports; RPO/RTO и rollback decision | S3–S4, доступ escrow | DBA + Ops + QA, 1 день; temporary host ≤48 ч |
@@ -336,6 +426,9 @@ DoR target-прогона: входы §6 закрыты, реальные SHA/d
 До этого target acceptance остаётся BLOCKED/NOT RUN; локальные PASS сохраняются.
 Локальные контракты не закрывают целевые `AC-09`, `AC-11`, `AC-12` или production GO.
 
+- PRC-01…07 выполнены; подписанный prerelease допущен только к staging.
+  Неизвестные source/signer/digest, unsigned manifest, недействующие protections
+  или непроверенный runtime означают NO-GO независимо от зелёного локального CI.
 - Все P0 из [production launch checklist](production-launch-checklist.md) и
   применимые Studio cases выполнены на утверждённом target; нет открытых
   Blocker/High, нарушений доступа, порчи данных или потери изменений.
@@ -350,7 +443,9 @@ DoR target-прогона: входы §6 закрыты, реальные SHA/d
   rollback owner подтверждает процедуру; CEO отдельно разрешает запуск.
 
 Приватный acceptance index содержит case/gate ID, полный source SHA, шесть
-registry digest, revision и hash конфигурации без секретов, hashed target ID,
+registry digest (и platform digests), release tag/channel/workflow, run ID/URL,
+approvals, hash подписанного SHA256SUMS и receipt verifier, отдельную редакцию
+runbook, revision и hash конфигурации без секретов, hashed target ID,
 UTC start/end, роль, expected/actual, статус, hash/путь артефакта, reviewer и
 решение по отклонениям. Capacity manifest связывается hash с host/preflight
 manifest и той же конфигурацией: сам он не доказывает всю identity стенда.
