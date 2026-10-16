@@ -85,12 +85,12 @@
 
 .smt-modal__title {
   margin: 0;
-  overflow: hidden;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
   font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .smt-modal__close {
@@ -118,6 +118,22 @@
   min-height: 0;
   padding: 18px;
   overflow-y: auto;
+}
+
+/* The close button follows the content in keyboard order; its visual position stays in the header. */
+.smt-dialog {
+  position: relative;
+}
+
+.smt-dialog--dismissible > .smt-modal__header {
+  min-height: 61px;
+  padding-inline-end: 62px;
+}
+
+.smt-dialog > .smt-modal__close {
+  position: absolute;
+  inset-block-start: 14px;
+  inset-inline-end: 18px;
 }
 
 .smt-modal-confirm {
@@ -273,5 +289,19 @@
     bottom: -14px;
     margin: 14px -12px -14px;
     padding: 12px 14px;
+  }
+}
+
+@media (max-width: 767px) {
+  .smt-modal__close {
+    width: var(--control-touch-height);
+    height: var(--control-touch-height);
+  }
+  .smt-dialog--dismissible > .smt-modal__header {
+    min-height: 69px;
+    padding-inline-end: 74px;
+  }
+  .smt-dialog > .smt-modal__close {
+    inset-block-start: 12px;
   }
 }

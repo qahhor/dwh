@@ -67,7 +67,12 @@
       </div>
 
       <smt-control class="form-group" [smtLabel]="'upl.source.field.name' | t" [smtError]="fieldErrorText('name')">
-        <smt-input smtFieldId="upl-source-name" smtTestId="upl-field-name" [formField]="store.requisites.name" />
+        <smt-input
+          smtFieldId="upl-source-name"
+          smtTestId="upl-field-name"
+          [formField]="store.requisites.name"
+          (edited)="store.clearFieldError('name')"
+        />
       </smt-control>
 
       <smt-control
@@ -79,6 +84,7 @@
           smtFieldId="upl-source-owner-org"
           smtTestId="upl-field-ownerOrg"
           [formField]="store.requisites.ownerOrg"
+          (edited)="store.clearFieldError('ownerOrg')"
         />
       </smt-control>
 
@@ -91,16 +97,22 @@
           smtFieldId="upl-source-owner-contact"
           smtTestId="upl-field-ownerContact"
           [formField]="store.requisites.ownerContact"
+          (edited)="store.clearFieldError('ownerContact')"
         />
       </smt-control>
 
-      <smt-control class="form-group" [smtLabel]="'upl.source.field.periodicity' | t">
+      <smt-control
+        class="form-group"
+        [smtLabel]="'upl.source.field.periodicity' | t"
+        [smtError]="fieldErrorText('periodicity')"
+      >
         <smt-select
           smtTriggerId="upl-source-periodicity"
           data-testid="upl-field-periodicity"
           [options]="periodicityOptions()"
           [allowClear]="false"
           [formField]="store.requisites.periodicity"
+          (valueChange)="store.clearFieldError('periodicity')"
         ></smt-select>
       </smt-control>
 
@@ -116,16 +128,22 @@
           [smtMax]="366"
           smtTestId="upl-field-slaDays"
           [formField]="store.requisites.slaDays"
+          (edited)="store.clearFieldError('slaDays')"
         />
       </smt-control>
 
-      <smt-control class="form-group" [smtLabel]="'upl.source.field.strictness' | t">
+      <smt-control
+        class="form-group"
+        [smtLabel]="'upl.source.field.strictness' | t"
+        [smtError]="fieldErrorText('reconciliationStrictness')"
+      >
         <smt-select
           smtTriggerId="upl-source-strictness"
           data-testid="upl-field-strictness"
           [options]="strictnessOptions()"
           [allowClear]="false"
           [formField]="store.requisites.reconciliationStrictness"
+          (valueChange)="store.clearFieldError('reconciliationStrictness')"
         ></smt-select>
       </smt-control>
     </form>

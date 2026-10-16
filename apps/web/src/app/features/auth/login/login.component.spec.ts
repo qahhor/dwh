@@ -50,7 +50,7 @@ describe('LoginComponent', () => {
 
     const main = fixture.nativeElement.querySelector('main.login-wrapper') as HTMLElement;
     expect(main).not.toBeNull();
-    expect(main.querySelector('h1')?.textContent).toContain('Корпоративный вход');
+    expect(main.querySelector('h1')?.textContent).toContain('Вход в систему');
   });
 
   it('renders the product name outside the fixed-size brand mark', () => {

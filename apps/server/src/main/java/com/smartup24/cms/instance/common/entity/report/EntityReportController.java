@@ -1,7 +1,11 @@
 package com.smartup24.cms.instance.common.entity.report;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.entity.api.ReportDatasetDtos;
 import com.smartup24.cms.instance.common.query.QueryAggregateResult;
+import com.smartup24.cms.instance.common.query.QueryCompiler;
+import com.smartup24.cms.instance.common.query.QueryMetaController.FieldMeta;
+import com.smartup24.cms.instance.common.query.QueryMetaController.ListMeta;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.jspecify.annotations.Nullable;
@@ -23,9 +27,37 @@ import org.springframework.web.bind.annotation.RestController;
 public class EntityReportController {
 
     private final EntityReports reports;
+    private final EntityReportDatasets datasets;
 
-    public EntityReportController(EntityReports reports) {
+    public EntityReportController(EntityReports reports, EntityReportDatasets datasets) {
         this.reports = reports;
+        this.datasets = datasets;
+    }
+
+    @Operation(
+            summary = "List available prepared report datasets",
+            description = "Lists up to 16 trusted datasets after checking root, reference and target access.")
+    @GetMapping("/{code}/report-datasets")
+    @RequiresPermission(form = "md.profile", action = "view")
+    public ReportDatasetDtos.Catalog datasets(@PathVariable String code) {
+        return datasets.catalog(code);
+    }
+
+    @Operation(
+            summary = "Describe the authorized report source",
+            description = "Returns current visible fields and report capabilities for the entity or a named dataset.")
+    @GetMapping("/{code}/report-meta")
+    @RequiresPermission(form = "md.profile", action = "view")
+    public ListMeta metadata(@PathVariable String code, @RequestParam(required = false) @Nullable String dataset) {
+        var list = reports.list(code, dataset);
+        return new ListMeta(
+                list.code(),
+                list.viewerFields().stream().map(FieldMeta::of).toList(),
+                (list.defaultDescending() ? "-" : "") + list.defaultSort(),
+                list.defaultLimit(),
+                list.maxLimit(),
+                QueryCompiler.MAX_CONDITIONS,
+                QueryCompiler.MAX_IN_VALUES);
     }
 
     @Operation(
@@ -48,13 +80,16 @@ public class EntityReportController {
                     @Nullable
                     String measures,
             @Parameter(description = "The list's filter DSL (JSON array)") @RequestParam(required = false) @Nullable
-                    String filter) {
-        return ResponseEntity.ok(reports.run(code, groupBy, measures, filter));
+                    String filter,
+            @RequestParam(required = false) @Nullable String dataset) {
+        return ResponseEntity.ok(
+                reports.execute(code, dataset, groupBy, measures, filter).data());
     }
 
     @Operation(
             summary = "Run a saved report",
-            description = "Runs a report or widget the viewer saved as a view of the entity's list.")
+            description =
+                    "Runs an owned or role-shared report or widget using the current reader's data and field access.")
     @GetMapping("/{code}/reports/{viewId}")
     @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<QueryAggregateResult> saved(@PathVariable String code, @PathVariable long viewId) {

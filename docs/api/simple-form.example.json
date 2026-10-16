@@ -1,0 +1,135 @@
+{
+  "formatVersion": 1,
+  "kind": "simple-form",
+  "module": {
+    "code": "catalog",
+    "title": {
+      "ru": "Справочники",
+      "uz": "Lugʻatlar",
+      "en": "Catalog"
+    }
+  },
+  "entity": {
+    "name": "locations",
+    "title": {
+      "ru": "Локации",
+      "uz": "Joylar",
+      "en": "Locations"
+    }
+  },
+  "fields": [
+    {
+      "id": "address",
+      "type": "text",
+      "labels": {
+        "ru": "address",
+        "uz": "address",
+        "en": "address"
+      },
+      "required": true,
+      "listed": true,
+      "maxLength": 255
+    },
+    {
+      "id": "details",
+      "type": "textarea",
+      "labels": {
+        "ru": "details",
+        "uz": "details",
+        "en": "details"
+      },
+      "required": false,
+      "listed": false,
+      "maxLength": 4000
+    },
+    {
+      "id": "capacity",
+      "type": "number",
+      "labels": {
+        "ru": "capacity",
+        "uz": "capacity",
+        "en": "capacity"
+      },
+      "required": true,
+      "listed": true,
+      "scale": 2
+    },
+    {
+      "id": "opened",
+      "type": "date",
+      "labels": {
+        "ru": "opened",
+        "uz": "opened",
+        "en": "opened"
+      },
+      "required": false,
+      "listed": true
+    },
+    {
+      "id": "meeting",
+      "type": "datetime",
+      "labels": {
+        "ru": "meeting",
+        "uz": "meeting",
+        "en": "meeting"
+      },
+      "required": false,
+      "listed": true
+    },
+    {
+      "id": "closing",
+      "type": "time",
+      "labels": {
+        "ru": "closing",
+        "uz": "closing",
+        "en": "closing"
+      },
+      "required": false,
+      "listed": true
+    },
+    {
+      "id": "active",
+      "type": "bool",
+      "labels": {
+        "ru": "active",
+        "uz": "active",
+        "en": "active"
+      },
+      "required": false,
+      "listed": true
+    },
+    {
+      "id": "email",
+      "type": "email",
+      "labels": {
+        "ru": "email",
+        "uz": "email",
+        "en": "email"
+      },
+      "required": false,
+      "listed": true
+    },
+    {
+      "id": "phone",
+      "type": "phone",
+      "labels": {
+        "ru": "phone",
+        "uz": "phone",
+        "en": "phone"
+      },
+      "required": false,
+      "listed": true
+    },
+    {
+      "id": "website",
+      "type": "url",
+      "labels": {
+        "ru": "website",
+        "uz": "website",
+        "en": "website"
+      },
+      "required": false,
+      "listed": true
+    }
+  ]
+}

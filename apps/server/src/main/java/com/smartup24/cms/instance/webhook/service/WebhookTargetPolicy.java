@@ -49,7 +49,7 @@ public class WebhookTargetPolicy {
 
         String scheme = uri.getScheme();
         String host = normalizeHost(uri.getHost());
-        if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+        if (!"https".equalsIgnoreCase(scheme)) {
             throw invalid("error.webhook.url_scheme");
         }
         if (host == null || host.isBlank() || uri.getUserInfo() != null || uri.getFragment() != null) {

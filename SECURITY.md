@@ -25,7 +25,8 @@ otherwise.
 ## Security controls
 
 - Server-side session and permission checks protect application APIs.
-- Mutating browser requests use CSRF protection; API tokens are scoped.
+- Mutating browser requests use CSRF protection. API tokens use their owner's
+  current effective permissions; they do not have separately configurable scopes.
 - Audit records cover security-sensitive administrative actions.
 - Production Compose exposes one web origin and keeps data services on an
   internal network.

@@ -80,9 +80,9 @@ describe('field values', () => {
       extra: { a: 1 },
     });
     expect(payload).not.toHaveProperty('doubled');
-    // A new record leaves an always read-only field to the server's default; an edit sends it back as it is.
+    // Read-only fields are left to the server on creation and update.
     expect(recordPayload(META, { title: 'Order', number: 'T-0001' })).not.toHaveProperty('number');
-    expect(recordPayload(META, { title: 'Order', number: 'T-0001' }, { id: 1 })).toMatchObject({ number: 'T-0001' });
+    expect(recordPayload(META, { title: 'Order', number: 'T-0001' }, { id: 1 })).not.toHaveProperty('number');
     expect(recordPayload(META, { total: { amount: '', currency: 'UZS' }, tagIds: [], extra: '' })).toMatchObject({
       total: null,
       tagIds: [],

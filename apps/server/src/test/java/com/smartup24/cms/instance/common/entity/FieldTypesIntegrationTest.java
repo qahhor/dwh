@@ -246,16 +246,22 @@ class FieldTypesIntegrationTest {
     void aFileIsAttachedToItsRecordAndReadThroughIt() {
         attachments.attach(CODE, beta, "attachment", bobPdf);
 
-        assertThat(attachments.attachable(bobPdf, CODE, beta, ann))
+        assertThat(attachments.attachable(
+                        bobPdf, CODE, beta, ann, EntityFieldRights.visibleFiles(FieldTypesFixture.DEFINITION)))
                 .as("attached to this record")
                 .isPresent();
-        assertThat(attachments.attachable(bobPdf, CODE, alpha, ann))
+        assertThat(attachments.attachable(
+                        bobPdf, CODE, alpha, ann, EntityFieldRights.visibleFiles(FieldTypesFixture.DEFINITION)))
                 .as("another record")
                 .isEmpty();
-        assertThat(attachments.attachable(annPdf, CODE, null, ann))
+        assertThat(attachments.attachable(
+                        annPdf, CODE, null, ann, EntityFieldRights.visibleFiles(FieldTypesFixture.DEFINITION)))
                 .as("the person's own upload")
                 .isPresent();
-        assertThat(attachments.attached(CODE, beta, bobPdf).orElseThrow().name())
+        assertThat(attachments
+                        .attached(CODE, beta, bobPdf, EntityFieldRights.visibleFiles(FieldTypesFixture.DEFINITION))
+                        .orElseThrow()
+                        .name())
                 .isEqualTo("bob.pdf");
         assertThatThrownBy(() -> jdbc.sql("delete from mf_files where id = :id")
                         .param("id", bobPdf)
@@ -264,10 +270,14 @@ class FieldTypesIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         attachments.attach(CODE, beta, "attachment", null);
-        assertThat(attachments.attached(CODE, beta, bobPdf)).isEmpty();
+        assertThat(attachments.attached(
+                        CODE, beta, bobPdf, EntityFieldRights.visibleFiles(FieldTypesFixture.DEFINITION)))
+                .isEmpty();
         attachments.attach(CODE, beta, "photo", annPhoto);
         attachments.detachAll(CODE, beta);
-        assertThat(attachments.attached(CODE, beta, annPhoto)).isEmpty();
+        assertThat(attachments.attached(
+                        CODE, beta, annPhoto, EntityFieldRights.visibleFiles(FieldTypesFixture.DEFINITION)))
+                .isEmpty();
     }
 
     private static Map<String, String> codes(Map<String, Object> body, Map<String, Object> current) {

@@ -137,6 +137,12 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_SSE_MAX_CONNECTIONS_PER_USER` | `smc.sse.max-connections-per-user` | `5` |
 | `SMC_SSE_TIMEOUT_MS` | `smc.sse.timeout-ms` | `1800000` |
 | `SMC_STORAGE_LOCAL_PATH` | `smc.storage.local-path` | `./data/storage` |
+| `SMC_STUDIO_ACTIVATION_ENABLED` | `smc.studio.activation-enabled` | `false` |
+| `SMC_STUDIO_ASSISTANT_API_KEY` | `smc.studio.assistant.api-key` | пусто |
+| `SMC_STUDIO_ASSISTANT_ENABLED` | `smc.studio.assistant.enabled` | `false` |
+| `SMC_STUDIO_ASSISTANT_ENDPOINT` | `smc.studio.assistant.endpoint` | пусто |
+| `SMC_STUDIO_ASSISTANT_MODEL` | `smc.studio.assistant.model` | пусто |
+| `SMC_STUDIO_ASSISTANT_PROVIDER` | `smc.studio.assistant.provider` | `none` |
 | `SMC_SYSTEM_HEALTH_TIMEOUT` | `smc.system.health-timeout` | `2s` |
 | `SMC_TYPESENSE_API_KEY` | `smc.typesense.api-key` | `smartupcms_typesense_local_dev` |
 | `SMC_TYPESENSE_ENABLED` | `smc.typesense.enabled` | `true` |

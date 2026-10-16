@@ -17,7 +17,7 @@ export function moduleActiveGuard(moduleCode: string): CanActivateFn {
         return true;
       }
       toast.warning(i18n.translate('modules.module_disabled_redirect', { module: moduleCode }));
-      return router.createUrlTree(['/tasks']);
+      return router.createUrlTree(['/iam/profile']);
     };
 
     if (!moduleService.isLoaded()) {

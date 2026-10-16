@@ -33,13 +33,13 @@ public class MsProjectMemberService {
     }
 
     /**
-     * Adds a member or changes their access; the new member must be someone the actor sees.
+     * Adds a member, changing existing access only on explicit request; the member must be someone the actor sees.
      *
-     * @return the problem of the action's parameters, or null when the member was added
+     * @return the problem of the action's parameters, or null when the requested operation succeeded
      */
     @Transactional
     public @Nullable FieldErrorItem addMember(
-            long projectId, @Nullable Long userId, @Nullable String accessKind, long actorId) {
+            long projectId, @Nullable Long userId, @Nullable String accessKind, boolean updateExisting, long actorId) {
         if (userId == null || !scopeService.canAccessUser(actorId, userId)) {
             return FieldErrorItem.keyed("params.userId", "not_found", "error.field.ref_not_found");
         }
@@ -50,7 +50,11 @@ public class MsProjectMemberService {
                     "error.field.one_of",
                     Map.of("values", String.join(", ", ACCESS_KINDS)));
         }
-        if (projectRepository.addMember(projectId, userId, accessKind)) {
+        boolean changed = projectRepository.addMember(projectId, userId, accessKind, updateExisting);
+        if (!changed && !updateExisting) {
+            return FieldErrorItem.keyed("params.userId", "taken", "error.project.member_exists");
+        }
+        if (changed) {
             auditLogService.logChange(
                     "ms_task_project_members",
                     projectId + ":" + userId,

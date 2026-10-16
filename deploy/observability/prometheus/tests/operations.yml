@@ -1,0 +1,85 @@
+rule_files: [../rules/operations.yml]
+evaluation_interval: 15s
+tests:
+  - name: recovery age warns before the approved RPO and clears after a verified set
+    interval: 15s
+    input_series:
+      - series: 'smc_recovery_point_timestamp_seconds{installation="smartupcms-staging"}'
+        values: '0x5759 86400+15x12'
+    alert_rule_test:
+      - {eval_time: 14h, alertname: SmartupcmsRecoveryAging, exp_alerts: []}
+      - eval_time: 14h1m15s
+        alertname: SmartupcmsRecoveryAging
+        exp_alerts:
+          - exp_labels: {severity: warning, installation: smartupcms-staging}
+            exp_annotations: {summary: "Verified recovery point is older than 14 hours", runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md"}
+      - {eval_time: 20h, alertname: SmartupcmsRecoveryUrgent, exp_alerts: []}
+      - eval_time: 20h1m15s
+        alertname: SmartupcmsRecoveryUrgent
+        exp_alerts:
+          - exp_labels: {severity: critical, installation: smartupcms-staging}
+            exp_annotations: {summary: "Verified recovery point is older than 20 hours", runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md"}
+      - {eval_time: 20h1m15s, alertname: SmartupcmsRecoveryAging, exp_alerts: []}
+      - {eval_time: 24h1m, alertname: SmartupcmsRecoveryAging, exp_alerts: []}
+      - {eval_time: 24h1m, alertname: SmartupcmsRecoveryUrgent, exp_alerts: []}
+      - {eval_time: 24h1m, alertname: SmartupcmsRecoveryUnverified, exp_alerts: []}
+  - name: missing external telemetry fails closed
+    interval: 15s
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SmartupcmsExternalUnavailable
+        exp_alerts:
+          - exp_labels: {severity: critical, job: smartupcms-external}
+            exp_annotations: {summary: "External HTTPS API probe failed", runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md"}
+      - eval_time: 2m
+        alertname: SmartupcmsCollectorStale
+        exp_alerts:
+          - exp_labels: {severity: critical, job: smartupcms, installation: smartupcms-staging}
+            exp_annotations: {summary: "App collector is missing or stale", runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md"}
+      - eval_time: 2m
+        alertname: SmartupcmsRecoveryUnverified
+        exp_alerts:
+          - exp_labels: {severity: critical, installation: smartupcms-staging}
+            exp_annotations: {summary: "No verified recovery point within the approved RPO", runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md"}
+      - eval_time: 2m
+        alertname: SmartupcmsAlertDeliveryFailed
+        exp_alerts:
+          - exp_labels: {severity: critical, job: smartupcms-alertmanager}
+            exp_annotations: {summary: "Alert delivery needs an independent escalation", runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md"}
+  - name: stale up one does not mask a lost collector
+    interval: 15s
+    input_series:
+      - series: 'up{job="smartupcms",installation="smartupcms-staging"}'
+        values: '1 _x12'
+      - series: 'smc_recovery_last_attempt_success{installation="smartupcms-staging"}'
+        values: '0x12'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: SmartupcmsCollectorStale
+        exp_alerts:
+          - exp_labels: {severity: critical, installation: smartupcms-staging}
+            exp_annotations: {summary: "App collector is missing or stale", runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md"}
+      - eval_time: 2m
+        alertname: SmartupcmsRecoveryFailed
+        exp_alerts:
+          - exp_labels: {severity: critical, installation: smartupcms-staging}
+            exp_annotations: {summary: "Consistent recovery capture failed", runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-12-ops-recovery-and-alerting.md"}
+  - name: fresh healthy external telemetry
+    interval: 15s
+    input_series:
+      - series: 'up{job="smartupcms",installation="smartupcms-staging"}'
+        values: '1x12'
+      - series: 'probe_success{job="smartupcms-external"}'
+        values: '1x12'
+      - series: 'up{job="smartupcms-alertmanager"}'
+        values: '1x12'
+      - series: 'smc_recovery_last_attempt_success{installation="smartupcms-staging"}'
+        values: '1x12'
+      - series: 'smc_recovery_point_timestamp_seconds{installation="smartupcms-staging"}'
+        values: '0x12'
+    alert_rule_test:
+      - {eval_time: 2m, alertname: SmartupcmsCollectorStale, exp_alerts: []}
+      - {eval_time: 2m, alertname: SmartupcmsExternalUnavailable, exp_alerts: []}
+      - {eval_time: 2m, alertname: SmartupcmsRecoveryUnverified, exp_alerts: []}
+      - {eval_time: 2m, alertname: SmartupcmsRecoveryFailed, exp_alerts: []}
+      - {eval_time: 2m, alertname: SmartupcmsAlertDeliveryFailed, exp_alerts: []}

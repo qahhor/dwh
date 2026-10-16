@@ -64,7 +64,7 @@ describe('form-meta helpers', () => {
       [
         { field: 'title', code: 'too_long', message: 'server words' },
         { field: 'attributes.budget', code: 'invalid_number', message: 'Поле Бюджет должно быть числом' },
-        { field: 'unknown', code: 'required', message: 'ignored' },
+        { field: 'unknown', code: 'required', message: 'Server constraint failed' },
       ],
       translateTest,
     );
@@ -72,6 +72,7 @@ describe('form-meta helpers', () => {
     expect(problems).toEqual({
       title: translateTest('ui.entity_form.too_long', { count: 255 }),
       cfBudget: 'Поле Бюджет должно быть числом',
+      unknown: 'Server constraint failed',
     });
   });
 

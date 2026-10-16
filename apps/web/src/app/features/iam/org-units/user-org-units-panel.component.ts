@@ -20,8 +20,8 @@ import { PermissionService } from '@core/services/permission.service';
 import { safeNumericRecordId } from '@core/services/search-target';
 import { ToastService } from '@core/services/toast.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { OrgUnitDraft } from './org-unit-draft';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
 import { SMTTreeTableComponent } from '@shared/ui-kit/components/tree-table/tree-table.component';
 import { TreeRow } from '@shared/ui-kit/components/tree-table/tree.utils';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
@@ -43,15 +43,7 @@ import { OrgUnit, UserScope } from './org-units.models';
 @Component({
   selector: 'app-user-org-units-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    TranslatePipe,
-    SMTButtonComponent,
-    SMTDialogComponent,
-    SMTDialogContentDirective,
-    SMTTreeTableComponent,
-    SMTInputComponent,
-    UiFormActionsComponent,
-  ],
+  imports: [TranslatePipe, SMTButtonComponent, SMTTreeTableComponent, SMTInputComponent, UiFormActionsComponent],
   templateUrl: './user-org-units-panel.component.html',
   styleUrl: './user-org-units-panel.component.css',
 })
@@ -114,6 +106,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     () => this.dirty,
     () => this.pending(),
     () => this.restoreDraft(),
+    discardChangesQuestion(),
   );
 
   constructor() {

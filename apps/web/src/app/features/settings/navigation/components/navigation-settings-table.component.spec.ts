@@ -104,6 +104,17 @@ describe('NavigationSettingsTableComponent', () => {
     expect(asked).toEqual(['search:wiki', 'search:', 'clear']);
   });
 
+  it('distinguishes a filtered empty result and offers clearing its query', () => {
+    const { host, asked } = render([], 'missing');
+
+    expect(host.textContent).toContain('Ничего не найдено');
+    expect(host.textContent).not.toContain('Нет данных для отображения');
+    const reset = host.querySelector('[data-testid="navigation-clear-search"]') as HTMLButtonElement;
+    expect(reset?.textContent).toContain('Очистить поиск');
+    reset.click();
+    expect(asked).toEqual(['clear']);
+  });
+
   it('says there is nothing to show when there are no items', () => {
     const { host, rows } = render([]);
 

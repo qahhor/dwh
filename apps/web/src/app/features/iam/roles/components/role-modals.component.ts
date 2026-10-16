@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, Injector, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, Injector, input, model, output } from '@angular/core';
 import { FieldTree, FormField } from '@angular/forms/signals';
 
 import { Role } from '@core/models/rbac.models';
@@ -72,10 +72,8 @@ export class RoleModalsComponent {
   readonly editForm = input.required<FieldTree<EditRoleForm>>();
 
   readonly isCreateModalOpen = input(false);
-  readonly createErrors = input<RoleFormErrors>(NO_ERRORS);
 
   readonly isEditModalOpen = input(false);
-  readonly editErrors = input<RoleFormErrors>(NO_ERRORS);
   readonly editingRole = input<Role | null>(null);
 
   readonly isDeleteModalOpen = input(false);
@@ -101,12 +99,30 @@ export class RoleModalsComponent {
   readonly confirmDiscardAndSwitch = output<void>();
   readonly saveAndSwitch = output<void>();
 
+  readonly createErrors = model<RoleFormErrors>(NO_ERRORS);
+  readonly editErrors = model<RoleFormErrors>(NO_ERRORS);
+
+  private readonly editedErrors: Partial<Record<'create' | 'edit', RoleFormErrors>> = {};
+
   private readonly stateMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   constructor() {
     // A refused save marks fields invalid from the server's answer: focus goes to the first of them.
-    effect(() => this.focusServerErrors('role-create-form', this.createErrors()));
-    effect(() => this.focusServerErrors('role-edit-form', this.editErrors()));
+    effect(() => this.focusServerErrors('create', this.createErrors()));
+    effect(() => this.focusServerErrors('edit', this.editErrors()));
+  }
+
+  /** Keep the summary and field in sync without stealing focus while typing. */
+  edited(mode: 'create' | 'edit', field: string): void {
+    const target = mode === 'create' ? this.createErrors : this.editErrors;
+    const errors = target();
+    if (!(field in errors.fields)) return;
+    const next = {
+      ...errors,
+      fields: Object.fromEntries(Object.entries(errors.fields).filter(([name]) => name !== field)),
+    };
+    this.editedErrors[mode] = next;
+    target.set(next);
   }
 
   stateOptions(): SMTSelectOption<string>[] {
@@ -125,9 +141,9 @@ export class RoleModalsComponent {
     ];
   }
 
-  private focusServerErrors(formId: string, errors: RoleFormErrors): void {
-    if (Object.keys(errors.fields).length === 0) return;
-    const form = document.getElementById(formId);
+  private focusServerErrors(mode: 'create' | 'edit', errors: RoleFormErrors): void {
+    if (errors === this.editedErrors[mode] || Object.keys(errors.fields).length === 0) return;
+    const form = document.getElementById(`role-${mode}-form`);
     if (form) focusFirstInvalid(form, this.injector);
   }
 }

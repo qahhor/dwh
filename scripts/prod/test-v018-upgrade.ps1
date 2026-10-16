@@ -11,6 +11,8 @@ $composeFile = Join-Path $repositoryRoot "deploy/compose/docker-compose.prod.yml
 $temporaryDirectory = Join-Path ([IO.Path]::GetTempPath()) ("smartupcms-upgrade-" + [Guid]::NewGuid().ToString("N"))
 $envFile = Join-Path $temporaryDirectory "upgrade.env"
 $databasePasswordFile = Join-Path $temporaryDirectory "database-password"
+$postgresPasswordFile = Join-Path $temporaryDirectory "postgres-password"
+$migratePasswordFile = Join-Path $temporaryDirectory "migrate-database-password"
 $backupPasswordFile = Join-Path $temporaryDirectory "backup-database-password"
 $composeArguments = @("compose", "-p", $ProjectName, "-f", $composeFile, "--env-file", $envFile)
 
@@ -48,6 +50,8 @@ try {
     New-Item -ItemType Directory -Path $temporaryDirectory | Out-Null
 
     $databasePassword = "Db!" + [Guid]::NewGuid().ToString("N") + "aA1"
+    $postgresPassword = [Guid]::NewGuid().ToString("N")
+    $migratePassword = [Guid]::NewGuid().ToString("N")
     $backupPassword = "Backup!" + [Guid]::NewGuid().ToString("N") + "aA1"
     $adminPassword = "Admin!" + [Guid]::NewGuid().ToString("N") + "aA1"
     $typesenseKey = "Typesense-" + [Guid]::NewGuid().ToString("N")
@@ -79,6 +83,8 @@ try {
     }
 
     [IO.File]::WriteAllText($databasePasswordFile, $databasePassword)
+    [IO.File]::WriteAllText($postgresPasswordFile, $postgresPassword)
+    [IO.File]::WriteAllText($migratePasswordFile, $migratePassword)
     [IO.File]::WriteAllText($backupPasswordFile, $backupPassword)
     $databaseSecretPath = $databasePasswordFile.Replace('\', '/')
     $backupSecretPath = $backupPasswordFile.Replace('\', '/')
@@ -92,10 +98,15 @@ try {
         "ORGANIZATION_CODE=upgrade-test",
         "ORGANIZATION_NAME=Upgrade Test Organization",
         "DB_NAME=smartupcms",
+        "POSTGRES_PASSWORD=$postgresPassword",
+        "POSTGRES_PASSWORD_FILE=$($postgresPasswordFile.Replace('\', '/'))",
+        "MIGRATE_DB_PASSWORD=$migratePassword",
+        "MIGRATE_DB_PASSWORD_FILE=$($migratePasswordFile.Replace('\', '/'))",
         "DB_USER=smartupcms",
         "DB_PASSWORD=$databasePassword",
         "DB_PASSWORD_FILE=$databaseSecretPath",
         "BACKUP_DB_USER=smartupcms_backup",
+        "BACKUP_DB_PASSWORD=$backupPassword",
         "BACKUP_DB_PASSWORD_FILE=$backupSecretPath",
         "ADMIN_LOGIN=admin",
         "ADMIN_EMAIL=admin@upgrade.test",

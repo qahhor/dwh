@@ -62,21 +62,11 @@ export class SMTDialogContentDirective {
   imports: [NgTemplateOutlet],
   template: `
     <ng-template #shell>
-      <div class="smt-modal smt-dialog">
+      <div class="smt-modal smt-dialog" [class.smt-dialog--dismissible]="dismissible()">
         @if (title() || dismissible()) {
           <div class="smt-modal__header">
             @if (title()) {
               <h2 class="smt-modal__title" [id]="titleId">{{ title() }}</h2>
-            }
-            @if (dismissible()) {
-              <button
-                type="button"
-                class="smt-modal__close"
-                [attr.aria-label]="i18n.messages().common.close"
-                (click)="dismiss()"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">close</span>
-              </button>
             }
           </div>
         }
@@ -85,6 +75,16 @@ export class SMTDialogContentDirective {
             <ng-container [ngTemplateOutlet]="body.template" />
           }
         </div>
+        @if (dismissible()) {
+          <button
+            type="button"
+            class="smt-modal__close"
+            [attr.aria-label]="i18n.messages().common.close"
+            (click)="dismiss()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        }
       </div>
     </ng-template>
   `,

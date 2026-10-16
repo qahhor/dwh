@@ -28,7 +28,7 @@ const blank = (): CustomFieldFormData => ({
       [showModal]="open()"
       [editingField]="editing()"
       [fieldForm]="fieldForm"
-      [serverErrors]="errors()"
+      [(serverErrors)]="errors"
       [saving]="saving()"
       (closeModal)="closes = closes + 1"
       (saveField)="save()"
@@ -94,6 +94,24 @@ describe('CustomFieldsModalsComponent', () => {
     const { screen } = await setup((host) => host.open.set(false));
 
     expect(screen.querySelector('.smt-modal')).toBeNull();
+  });
+
+  it('clears the changed field refusal in the control and summary, keeping unrelated messages', async () => {
+    const { screen, host, settle } = await setup();
+    host.errors.set({ fields: { name: 'Name refused', defaultValue: 'Default refused' }, other: ['Unknown refused'] });
+    await settle();
+    const name = screen.querySelector('#custom-field-name') as HTMLInputElement;
+    name.focus();
+    name.value = 'Corrected';
+    name.dispatchEvent(new Event('input'));
+    await settle();
+    await settle();
+    expect(document.activeElement).toBe(name);
+    expect(name.closest('smt-control')?.textContent).not.toContain('Name refused');
+    const summary = screen.querySelector('[data-testid="form-error-summary"]');
+    expect(summary.textContent).not.toContain('Name refused');
+    expect(summary.textContent).toContain('Default refused');
+    expect(summary.textContent).toContain('Unknown refused');
   });
 
   it('creates a field with its entity and type chosen from labelled pickers, required fields marked', async () => {

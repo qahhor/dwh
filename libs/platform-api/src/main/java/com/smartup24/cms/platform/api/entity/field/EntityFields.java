@@ -187,6 +187,11 @@ public final class EntityFields {
             return from(new FieldSource.Computed(sql));
         }
 
+        /** An ordinary field stored in a JSONB column (ADR-0038). */
+        public Builder jsonProperty(String column, String key) {
+            return from(new FieldSource.JsonProperty(column, key));
+        }
+
         /** A value in the record's {@code attributes} under {@code code}. */
         public Builder attribute(String code) {
             return from(new FieldSource.Attribute(code));

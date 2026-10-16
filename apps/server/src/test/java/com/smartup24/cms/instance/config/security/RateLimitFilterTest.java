@@ -32,6 +32,7 @@ import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchMetrics;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
+import com.smartup24.cms.instance.support.TestModules;
 import io.github.bucket4j.TimeMeter;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
@@ -62,6 +63,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(controllers = SecurityTestController.class)
 @AutoConfigureMockMvc(print = MockMvcPrint.NONE)
 @Import({
+    TestModules.Enabled.class,
     SecurityConfig.class,
     ProblemDetailAuthHandlers.class,
     KauthAuthenticationFilter.class,

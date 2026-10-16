@@ -79,7 +79,7 @@ public class ExampleOrderEntity {
                             "unpost", "example.orders.rights.unpost",
                             "cancel", "example.orders.rights.cancel",
                             "import", "example.orders.rights.import"))
-            .menu(new EntityMenu("nav.example_orders", "receipt_long", "workspace", 90, "example"))
+            .menu(new EntityMenu("nav.example_orders", "receipt_long", "examples", 90, "example"))
             .field(text("number", "example.orders.col.number")
                     .column("number")
                     .defaultValue(FieldDefault.sequence("ex_orders_number_seq", "ORD-{000000}"))

@@ -122,9 +122,11 @@ try {
     }
 
     $alertUri = [uri](Get-Required $config 'ACCEPTANCE_ALERT_TEST_URL')
+    if ($alertUri.Scheme -ne 'https') { throw 'Alert drill endpoint must use HTTPS.' }
     $alert = Invoke-WebRequest -Uri $alertUri -Method Post -TimeoutSec 20 -SkipHttpErrorCheck
     if ([int]$alert.StatusCode -lt 200 -or [int]$alert.StatusCode -ge 300) { throw 'Alert drill endpoint did not accept the event.' }
-    Add-Result 'alert-delivery' 'PASS' 'Alert drill endpoint accepted the scenario event.'
+    Add-Result 'alert-endpoint-accepted' 'PASS' 'Alert drill endpoint accepted the scenario event.'
+    Add-Result 'alert-delivery-receipt' 'UNVERIFIED' 'Independent recipient receipt and delivery latency are still required.'
 }
 catch {
     $failure = $_.Exception.Message
@@ -144,7 +146,8 @@ finally {
     New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
     $evidence = [ordered]@{
         schemaVersion = 1
-        status = if ($failure -or @($checks | Where-Object status -eq 'FAIL').Count -gt 0) { 'UNVERIFIED' } else { 'PASS' }
+        status = if ($failure -or @($checks | Where-Object { $_.status -notin @('PASS', 'NOT_APPLICABLE') }).Count -gt 0) { 'UNVERIFIED' } else { 'PASS' }
+        automatedStatus = if ($failure -or @($checks | Where-Object status -eq 'FAIL').Count -gt 0) { 'FAIL' } else { 'PASS' }
         scenario = $Scenario
         startedAt = $startedAt.ToString('o')
         finishedAt = (Get-Date).ToUniversalTime().ToString('o')
@@ -159,4 +162,4 @@ finally {
 
 if ($failure) { throw $failure }
 if (@($checks | Where-Object status -eq 'FAIL').Count -gt 0) { throw 'Automatic service recovery failed.' }
-Write-Host "Failure scenario '$Scenario' passed." -ForegroundColor Green
+Write-Host "Automated failure scenario '$Scenario' passed; alert delivery remains UNVERIFIED until independent receipt." -ForegroundColor Yellow

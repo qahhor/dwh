@@ -102,6 +102,34 @@ describe('EmbeddedReportComponent', () => {
     expect(errorAlert).not.toBeNull();
   });
 
+  it('does not claim readiness or offer frame actions after a failed read', () => {
+    const { fixture } = setup(
+      'not-found',
+      throwError(() => new Error('Not found')),
+    );
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('.status-indicator.ready')).toBeNull();
+    expect(host.querySelector('.report-fallback-bar')).toBeNull();
+    expect(host.querySelector('iframe')).toBeNull();
+    expect(host.querySelector<HTMLButtonElement>('button[aria-label="Обновить"]')?.disabled).toBe(true);
+    expect(host.querySelector<HTMLButtonElement>('button[aria-label="Открыть в окне"]')?.disabled).toBe(true);
+    expect(host.querySelectorAll('h1')).toHaveLength(1);
+    expect(host.querySelector('h1')?.textContent).toBe('Встроенный отчёт');
+  });
+
+  it('announces frame loading until its load event', () => {
+    const { fixture } = setup();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('.report-loading[role="status"]')?.textContent).toContain('Загрузка');
+    host.querySelector('iframe')!.dispatchEvent(new Event('load'));
+    fixture.detectChanges();
+    expect(host.querySelector('.report-loading')).toBeNull();
+  });
+
   it('retries a failed read from the error alert and then shows the report', async () => {
     const { fixture, navService } = setup();
     navService.getItemByCode.mockReturnValueOnce(throwError(() => new Error('Unavailable')));

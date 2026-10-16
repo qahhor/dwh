@@ -1,0 +1,37 @@
+name: smartupcms-staging-ops
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    restart: unless-stopped
+    user: "65534:65534"
+    command:
+      - --config.file=/etc/prometheus/staging.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=10GB
+      - --web.enable-remote-write-receiver
+    ports: ["127.0.0.1:19090:9090"]
+    volumes:
+      - type: bind
+        source: ${STAGING_OPS_PROMETHEUS_CONFIG:?Prepared ops config is required}
+        target: /etc/prometheus/staging.yml
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${STAGING_PROMETHEUS_RULES_DIR:?Absolute release rules directory is required}
+        target: /etc/prometheus/rules
+        read_only: true
+        bind: {create_host_path: false}
+      - ops-prometheus-data:/prometheus
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    read_only: true
+    deploy:
+      resources:
+        limits: {cpus: "0.5", memory: 2G}
+        reservations: {memory: 512M}
+    logging:
+      driver: json-file
+      options: {max-size: "100m", max-file: "5", compress: "true"}
+volumes:
+  ops-prometheus-data:

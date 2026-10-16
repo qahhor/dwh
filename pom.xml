@@ -51,7 +51,7 @@
         <!-- The platform's public API (ADR-0033, 4): its own SemVer version, apart from the application's. The
              platform-api and provider-spi poms state the same value as their version; the baseline is the jar of the
              last released API version that japicmp compares them with (libs/<artifact>/baseline). -->
-        <platform-api.version>1.0.0</platform-api.version>
+        <platform-api.version>2.0.0</platform-api.version>
         <platform-api.baseline.version>1.0.0</platform-api.baseline.version>
         <japicmp.version>0.26.3</japicmp.version>
         <!-- The embedded PostgreSQL of the tests and of the test kit (ADR-0032, 11.3). -->

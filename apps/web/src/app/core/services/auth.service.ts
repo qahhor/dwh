@@ -44,14 +44,16 @@ export class AuthService {
       tap((res) => {
         if (!res) return;
         this.currentUser.set(res.user);
-        this.i18n.useAuthenticatedPreference(res.user.language);
         this.permissionService.setPermissions(res.permissions, res.permissionsVersion);
+        this.i18n.useAccessContext(res.user.id, res.permissionsVersion, res.permissions);
+        this.i18n.useAuthenticatedPreference(res.user.language);
         this.isLoading.set(false);
       }),
       catchError(() => {
         if (generation !== this.sessionGeneration) return of(null);
         this.currentUser.set(null);
         this.permissionService.clear();
+        this.i18n.useAccessContext(null);
         this.isLoading.set(false);
         return of(null);
       }),
@@ -98,8 +100,9 @@ export class AuthService {
       filter(() => generation === this.sessionGeneration),
       tap((res) => {
         this.currentUser.set(res.user);
-        this.i18n.useAuthenticatedPreference(res.user.language);
         this.permissionService.setPermissions(res.permissions, res.permissionsVersion);
+        this.i18n.useAccessContext(res.user.id, res.permissionsVersion, res.permissions);
+        this.i18n.useAuthenticatedPreference(res.user.language);
       }),
     );
   }
@@ -178,6 +181,7 @@ export class AuthService {
     this.sessionGeneration++;
     this.currentUser.set(null);
     this.permissionService.clear();
+    this.i18n.useAccessContext(null);
     this.isLoading.set(false);
     for (const notification of this.toast.toasts()) this.toast.dismiss(notification.id);
   }

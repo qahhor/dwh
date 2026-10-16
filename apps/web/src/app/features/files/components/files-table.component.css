@@ -111,6 +111,7 @@
 }
 
 .action-btn {
+  flex: 0 0 auto;
   width: 28px;
   height: 28px;
   border-radius: 4px;
@@ -166,4 +167,11 @@
   font-size: 13px;
   color: var(--text-light);
   margin: 0;
+}
+
+@media (max-width: 767px) {
+  .action-btn {
+    width: 44px;
+    height: 44px;
+  }
 }

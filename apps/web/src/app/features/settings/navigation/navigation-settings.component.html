@@ -1,6 +1,10 @@
 <div class="nav-settings-page">
   <!-- Header -->
-  <ui-page-header [title]="'nav.settings.navigation_title' | t" [subtitle]="'nav.settings.navigation_subtitle' | t">
+  <ui-page-header
+    [headingLevel]="embedded() ? 2 : 1"
+    [title]="'nav.settings.navigation_title' | t"
+    [subtitle]="'nav.settings.navigation_subtitle' | t"
+  >
     <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
       {{ 'nav.settings.add_item' | t }}
     </button>
@@ -14,18 +18,37 @@
     [externalCount]="store.externalCount()"
   ></app-navigation-settings-stats>
 
+  @if (store.loadError()) {
+    <smt-alert smtTone="danger" data-testid="navigation-load-error">
+      <span>{{ 'nav.settings.load_error' | t }}</span>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        data-testid="navigation-retry"
+        [disabled]="store.isLoading()"
+        (click)="store.loadItems()"
+      >
+        {{ 'common.retry' | t }}
+      </button>
+    </smt-alert>
+  }
+
   <!-- Table & Filters -->
-  <app-navigation-settings-table
-    [items]="filteredItems()"
-    [isLoading]="store.isLoading()"
-    [searchQuery]="searchQuery"
-    (searchQueryChange)="searchQuery = $event"
-    (clearSearch)="searchQuery = ''"
-    (toggleItem)="store.toggleItem($event)"
-    (previewItem)="previewItem($event)"
-    (editItem)="openEditModal($event)"
-    (deleteItem)="store.confirmDelete($event)"
-  ></app-navigation-settings-table>
+  @if (!store.loadError() || store.items().length > 0) {
+    <app-navigation-settings-table
+      [items]="filteredItems()"
+      [isLoading]="store.isLoading()"
+      [searchQuery]="searchQuery"
+      (searchQueryChange)="searchQuery = $event"
+      (clearSearch)="searchQuery = ''"
+      (toggleItem)="store.toggleItem($event)"
+      (previewItem)="previewItem($event)"
+      (editItem)="openEditModal($event)"
+      (deleteItem)="store.confirmDelete($event)"
+    ></app-navigation-settings-table>
+  }
 
   <!-- Modals (Create/Edit & Delete) -->
   <app-navigation-settings-modal
@@ -34,6 +57,8 @@
     [isSubmitting]="store.isSubmitting()"
     [itemForm]="itemForm"
     [serverErrors]="store.fieldErrors()"
+    [otherErrors]="store.otherErrors()"
+    (fieldEdited)="store.clearFieldError($event)"
     [permissionChoices]="store.permissionChoices()"
     [popularIcons]="popularIcons"
     (titleChange)="onTitleChange($event)"

@@ -25,61 +25,70 @@ export interface EventTypeRow {
       (closed)="requestClose()"
     >
       <ng-template smtDialogContent>
-        <form body id="notification-preferences" novalidate (submit)="$event.preventDefault(); onSave()">
+        <form
+          body
+          id="notification-preferences"
+          novalidate
+          [attr.aria-busy]="isSaving()"
+          (submit)="$event.preventDefault(); onSave()"
+        >
           <p class="modal-desc">
             {{ 'notifications.preferences_desc' | t }}
           </p>
 
-          <div class="table-wrap">
+          <div class="table-wrap" role="region" [attr.aria-label]="'notifications.preferences_title' | t" tabindex="0">
             <table class="pref-table" [attr.aria-label]="'notifications.preferences_title' | t">
               <thead>
                 <tr>
                   <th scope="col" class="event-col">{{ 'notifications.event_type' | t }}</th>
                   <th scope="col" class="channel-col">
                     <span class="material-symbols-outlined channel-icon" aria-hidden="true">notifications</span>
-                    In-App
+                    {{ 'notifications.channel.in_app' | t }}
                   </th>
                   <th scope="col" class="channel-col">
                     <span class="material-symbols-outlined channel-icon" aria-hidden="true">mail</span>
-                    Email
+                    {{ 'notifications.channel.email' | t }}
                   </th>
                   <th scope="col" class="channel-col">
                     <span class="material-symbols-outlined channel-icon" aria-hidden="true">send</span>
-                    Telegram
+                    {{ 'notifications.channel.telegram' | t }}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                @for (row of eventRows; track row) {
+                @for (row of eventRows; track row.code) {
                   <tr>
-                    <td class="event-title">
+                    <th scope="row" class="event-title">
                       {{ row.titleKey | t }}
-                    </td>
+                    </th>
                     <td class="channel-cell">
                       <span
                         smt-checkbox
                         smtHideLabel
+                        [disabled]="isSaving()"
                         [checked]="isEnabled(row.code, 'in_app')"
                         (checkedChange)="toggle(row.code, 'in_app', $event)"
-                        [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"
+                        [smtAriaLabel]="(row.titleKey | t) + ' — ' + ('notifications.channel.in_app' | t)"
                       ></span>
                     </td>
                     <td class="channel-cell">
                       <span
                         smt-checkbox
                         smtHideLabel
+                        [disabled]="isSaving()"
                         [checked]="isEnabled(row.code, 'email')"
                         (checkedChange)="toggle(row.code, 'email', $event)"
-                        [smtAriaLabel]="(row.titleKey | t) + ' - Email'"
+                        [smtAriaLabel]="(row.titleKey | t) + ' — ' + ('notifications.channel.email' | t)"
                       ></span>
                     </td>
                     <td class="channel-cell">
                       <span
                         smt-checkbox
                         smtHideLabel
+                        [disabled]="isSaving()"
                         [checked]="isEnabled(row.code, 'telegram')"
                         (checkedChange)="toggle(row.code, 'telegram', $event)"
-                        [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"
+                        [smtAriaLabel]="(row.titleKey | t) + ' — ' + ('notifications.channel.telegram' | t)"
                       ></span>
                     </td>
                   </tr>
@@ -155,6 +164,7 @@ export class NotificationPreferencesModalComponent implements OnInit {
   }
 
   toggle(eventType: string, channel: string, enabled: boolean): void {
+    if (this.isSaving()) return;
     this.prefsMap.set(`${eventType}:${channel}`, enabled);
   }
 

@@ -1,0 +1,69 @@
+@if (store.draft(); as draft) {
+  <div class="dashboard-editor" data-testid="dashboard-editor">
+    <smt-control [smtLabel]="'analytics.panels.name' | t" [required]="true">
+      <smt-input
+        [value]="draft.name"
+        [maxLength]="80"
+        [disabled]="store.busy()"
+        (valueChange)="store.rename($event === null ? '' : '' + $event)"
+      />
+    </smt-control>
+    @for (widget of draft.widgets; track widget.viewId; let index = $index) {
+      <app-dashboard-widget-editor
+        [item]="widget"
+        [report]="report(widget.viewId)"
+        [index]="index"
+        [count]="draft.widgets.length"
+        [disabled]="store.busy()"
+        (changed)="configure(index, $event)"
+        (moved)="store.move(index, $event)"
+        (removed)="store.takeOff(index)"
+      />
+    }
+    <div class="add-report">
+      <smt-control [smtLabel]="'analytics.panels.report' | t"
+        ><smt-select
+          [options]="options()"
+          [value]="selected()"
+          (valueChange)="selected.set($event)"
+          [disabled]="store.busy() || reports.loading() || reports.failed() || draft.widgets.length >= limit"
+      /></smt-control>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        smtIcon="add"
+        [disabled]="selected() === null || store.busy() || draft.widgets.length >= limit"
+        (click)="add()"
+      >
+        {{ 'analytics.panels.add' | t }}
+      </button>
+    </div>
+    <p class="hint">{{ 'analytics.panels.limit' | t }}</p>
+    @if (reports.loading()) {
+      <p role="status">{{ 'common.loading' | t }}</p>
+    }
+    @if (reports.failed() || reports.loadMoreFailed()) {
+      <p role="alert">
+        {{ 'common.operation_failed' | t }}
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="reports.retry()">
+          {{ 'common.retry' | t }}
+        </button>
+      </p>
+    }
+    @if (reports.hasMore()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        data-testid="dashboard-reports-more"
+        [smtLoading]="reports.loadingMore()"
+        (click)="reports.loadMore()"
+      >
+        {{ 'common.load_more' | t }}
+      </button>
+    }
+  </div>
+}

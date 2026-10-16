@@ -44,6 +44,27 @@ describe('application route permissions', () => {
     expect(orgUnits?.canDeactivate).toContain(recordNavigationGuard);
   });
 
+  it.each(['settings/form-studio', 'settings/form-studio/new'])(
+    'requires authoring permission for %s and protects the unsaved declaration',
+    (path) => {
+      const studio = routes.find((route) => route.path === '')?.children?.find((route) => route.path === path);
+      const guard = studio?.canActivate?.[0] as CanActivateFn;
+      expect(guard).toBeTypeOf('function');
+      const run = () =>
+        TestBed.runInInjectionContext(() => guard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot));
+      permissions.setPermissions(['md.settings.view']);
+      expect(run()).toBe('settings-redirect');
+      permissions.setPermissions(['md.settings.update']);
+      expect(run()).toBe(true);
+      expect(studio?.canDeactivate).toContain(recordNavigationGuard);
+    },
+  );
+
+  it('protects unsaved named dashboard changes when leaving analytics', () => {
+    const analytics = routes.find((route) => route.path === '')?.children?.find((route) => route.path === 'analytics');
+    expect(analytics?.canDeactivate).toEqual([recordNavigationGuard]);
+  });
+
   function runAuditGuard(): unknown {
     const shell = routes.find((route) => route.path === '');
     const audit = shell?.children?.find((route) => route.path === 'audit');

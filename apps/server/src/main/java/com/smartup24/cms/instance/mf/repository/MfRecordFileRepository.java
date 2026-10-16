@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.entity.EntityFiles.FileFacts;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -24,26 +25,38 @@ public class MfRecordFileRepository {
         this.jdbc = jdbc;
     }
 
-    /** The file, when {@code userId} uploaded it or it is attached to the record ({@code recordId} may be null). */
-    public Optional<FileFacts> attachable(UUID fileId, String entity, @Nullable Long recordId, long userId) {
+    /** The file uploaded by the user or attached to a visible file/image field of the record. */
+    public Optional<FileFacts> attachable(
+            UUID fileId, String entity, @Nullable Long recordId, long userId, Set<String> visibleFields) {
+        if (visibleFields.isEmpty() || recordId == null) {
+            return jdbc.sql("select " + FACTS + " from mf_files f where f.id = :fileId and f.created_by = :userId")
+                    .param("fileId", fileId)
+                    .param("userId", userId)
+                    .query((rs, rowNum) -> facts(rs))
+                    .optional();
+        }
         return jdbc.sql("select " + FACTS + " from mf_files f where f.id = :fileId and (f.created_by = :userId"
                         + " or exists (select 1 from mf_record_files r where r.file_id = f.id and r.entity = :entity"
-                        + " and r.record_id = :recordId))")
+                        + " and r.record_id = :recordId and r.field_key in (:visibleFields)))")
                 .param("fileId", fileId)
                 .param("userId", userId)
                 .param("entity", entity)
-                .param("recordId", recordId == null ? -1L : recordId)
+                .param("recordId", recordId)
+                .param("visibleFields", visibleFields)
                 .query((rs, rowNum) -> facts(rs))
                 .optional();
     }
 
-    /** The file, when it is attached to the record. */
-    public Optional<FileFacts> attached(String entity, long recordId, UUID fileId) {
+    /** The file attached to a visible file/image field of the record. */
+    public Optional<FileFacts> attached(String entity, long recordId, UUID fileId, Set<String> visibleFields) {
+        if (visibleFields.isEmpty()) return Optional.empty();
         return jdbc.sql("select " + FACTS + " from mf_record_files r join mf_files f on f.id = r.file_id"
-                        + " where r.entity = :entity and r.record_id = :recordId and r.file_id = :fileId limit 1")
+                        + " where r.entity = :entity and r.record_id = :recordId and r.file_id = :fileId"
+                        + " and r.field_key in (:visibleFields) limit 1")
                 .param("entity", entity)
                 .param("recordId", recordId)
                 .param("fileId", fileId)
+                .param("visibleFields", visibleFields)
                 .query((rs, rowNum) -> facts(rs))
                 .optional();
     }

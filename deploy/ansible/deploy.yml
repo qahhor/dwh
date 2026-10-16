@@ -1,0 +1,230 @@
+---
+- name: Deploy a verified SmartupCMS release on prepared Linux hosts
+  hosts: smartupcms
+  gather_facts: false
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  vars:
+    ansible_host_key_checking: true
+    ansible_ssh_host_key_checking: true
+  pre_tasks:
+    - name: Require the reviewed controller version
+      ansible.builtin.assert:
+        that: ansible_version.full == '2.21.5'
+        fail_msg: Use the pinned controller dependency file in a prepared Linux environment.
+    - name: Validate explicit non-secret deployment inputs
+      ansible.builtin.assert:
+        that:
+          - smc_private_root is match('^/[A-Za-z0-9_/-]+$')
+          - smc_private_root not in ['/', '/etc', '/var', '/var/lib', '/opt', '/tmp']
+          - smc_project is match('^[a-z0-9][a-z0-9_-]*$')
+          - smc_repository is match('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')
+          - smc_release_channel | default('stable') in ['stable', 'staging']
+          - smc_expected_source_sha is defined
+          - smc_expected_source_sha is match('^[a-f0-9]{40}$')
+          - smc_version is match('^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)' + ('-rc\.[1-9][0-9]*$' if smc_release_channel | default('stable') == 'staging' else '$'))
+          - smc_release_channel | default('stable') != 'staging' or (smc_staging | default(false)) is sameas true
+          - smc_release_checksums_sha256 is match('^[a-f0-9]{64}$')
+          - smc_recovery_host is match('^[A-Za-z0-9][A-Za-z0-9_-]{0,62}$')
+          - smc_recovery_host in groups['smartupcms_recovery']
+          - smc_action | default('deploy') in ['deploy', 'rollback-plan']
+          - smc_health_timeout | default(180) | int >= 1
+          - smc_health_timeout | default(180) | int <= 3600
+          - "['POSTGRES_PASSWORD_FILE', 'MIGRATE_DB_PASSWORD_FILE', 'DB_PASSWORD_FILE', 'BACKUP_DB_PASSWORD_FILE'] | difference(smc_secret_files | map(attribute='variable') | list) | length == 0"
+        fail_msg: Deployment inputs must explicitly select the trusted release and private configuration.
+    - name: Validate credential destinations before staging files
+      ansible.builtin.assert:
+        that:
+          - item.name is match('^[a-z0-9][a-z0-9-]*$')
+          - item.variable is match('^[A-Z][A-Z0-9_]*_FILE$')
+          - item.source is match('^/')
+          - smc_secret_files | map(attribute='name') | unique | length == smc_secret_files | length
+          - smc_secret_files | map(attribute='variable') | unique | length == smc_secret_files | length
+        fail_msg: Credential destinations must be unique simple filenames and explicit file variables.
+      loop: "{{ smc_secret_files }}"
+      no_log: true
+    - name: Require pinned versions of already installed tools
+      ansible.builtin.assert:
+        that:
+          - smc_prerequisites[item] is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+        fail_msg: Pin the approved installed version; this playbook never installs or upgrades host packages.
+      loop: [docker, compose, powershell, cosign, gh]
+    - name: Inspect the trusted local assets without transferring them
+      ansible.builtin.stat:
+        path: "{{ smc_release_assets_source }}/SHA256SUMS"
+        checksum_algorithm: sha256
+      delegate_to: localhost
+      become: false
+      register: smc_local_manifest
+      no_log: true
+    - name: Require the separately approved manifest digest
+      ansible.builtin.assert:
+        that:
+          - smc_local_manifest.stat.isreg | default(false)
+          - smc_local_manifest.stat.checksum == smc_release_checksums_sha256
+        fail_msg: The local release assets do not match the independently trusted manifest.
+      no_log: true
+  tasks:
+    - name: Explain the non-mutating check result
+      ansible.builtin.debug:
+        msg: "Structural inputs checked only. No target writes, registry verification, recovery capture or deployment ran."
+      when: ansible_check_mode
+    - name: Stage and deploy under the target process lock
+      when: not ansible_check_mode
+      block:
+        - name: Prepare the fixed private OPS snapshot installer directory
+          ansible.builtin.file:
+            path: /opt/smartupcms/deployment
+            state: directory
+            owner: root
+            group: root
+            mode: '0700'
+          delegate_to: "{{ smc_recovery_host }}"
+        - name: Install the reviewed fixed OPS snapshot helper
+          ansible.builtin.copy:
+            src: "files/{{ item }}"
+            dest: "/opt/smartupcms/deployment/{{ item }}"
+            owner: root
+            group: root
+            mode: '0600'
+          loop: [install_recovery_snapshot.py, release_contract.py]
+          delegate_to: "{{ smc_recovery_host }}"
+          no_log: true
+          diff: false
+        - name: Install the reviewed shared OPS source identity verifier
+          ansible.builtin.copy:
+            src: ../../scripts/prod/recovery_support.py
+            dest: /opt/smartupcms/deployment/recovery_support.py
+            owner: root
+            group: root
+            mode: '0600'
+          delegate_to: "{{ smc_recovery_host }}"
+          no_log: true
+          diff: false
+        - name: Prepare the private deployment roots
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            owner: root
+            group: root
+            mode: '0700'
+          loop:
+            - "{{ smc_private_root }}"
+            - "{{ smc_private_root }}/incoming"
+        - name: Allocate an isolated incoming directory
+          ansible.builtin.tempfile:
+            state: directory
+            path: "{{ smc_private_root }}/incoming"
+            prefix: session-
+          register: smc_incoming
+          changed_when: false
+          no_log: true
+        - name: Prepare private staging subdirectories
+          ansible.builtin.file:
+            path: "{{ smc_incoming.path }}/{{ item }}"
+            state: directory
+            mode: '0700'
+          loop: [assets, secrets, overlays]
+          changed_when: false
+          no_log: true
+        - name: Transfer release assets from the trusted controller directory
+          ansible.builtin.copy:
+            src: "{{ smc_release_assets_source }}/"
+            dest: "{{ smc_incoming.path }}/assets/"
+            owner: root
+            group: root
+            mode: '0600'
+            directory_mode: '0700'
+            local_follow: false
+          changed_when: false
+          no_log: true
+          diff: false
+        - name: Transfer the trusted runner and independent strong verifier
+          ansible.builtin.copy:
+            src: "{{ item.source }}"
+            dest: "{{ smc_incoming.path }}/{{ item.name }}"
+            owner: root
+            group: root
+            mode: '0600'
+          loop:
+            - {source: files/deploy_release.py, name: deploy_release.py}
+            - {source: files/release_contract.py, name: release_contract.py}
+            - {source: '../../scripts/prod/recovery_support.py', name: recovery_support.py}
+            - {source: '../../scripts/release/verify-published-release.ps1', name: verify-published-release.ps1}
+          changed_when: false
+          no_log: true
+          diff: false
+        - name: Transfer the private environment separately from the release
+          ansible.builtin.copy:
+            src: "{{ smc_environment_source }}"
+            dest: "{{ smc_incoming.path }}/environment"
+            owner: root
+            group: root
+            mode: '0600'
+          changed_when: false
+          no_log: true
+          diff: false
+        - name: Transfer private credential files
+          ansible.builtin.copy:
+            src: "{{ item.source }}"
+            dest: "{{ smc_incoming.path }}/secrets/{{ item.name }}"
+            owner: root
+            group: root
+            mode: '0600'
+          loop: "{{ smc_secret_files }}"
+          changed_when: false
+          no_log: true
+          diff: false
+        - name: Transfer the reviewed staging overlays
+          ansible.builtin.copy:
+            src: "{{ item.source }}"
+            dest: "{{ smc_incoming.path }}/overlays/{{ item.name }}"
+            mode: '0600'
+          loop:
+            - {source: '../observability/docker-compose.observability.yml', name: observability.yml}
+            - {source: '../staging/docker-compose.staging.yml', name: staging.yml}
+          when: smc_staging | default(false) | bool
+          changed_when: false
+          no_log: true
+          diff: false
+        - name: Transfer explicit rollback test evidence for plan generation
+          ansible.builtin.copy:
+            src: "{{ smc_rollback_approval_source }}"
+            dest: "{{ smc_incoming.path }}/rollback-approval.json"
+            mode: '0600'
+          when: smc_action | default('deploy') == 'rollback-plan'
+          changed_when: false
+          no_log: true
+          diff: false
+        - name: Write the private deployment specification
+          ansible.builtin.template:
+            src: deployment-spec.json.j2
+            dest: "{{ smc_incoming.path }}/spec.json"
+            owner: root
+            group: root
+            mode: '0600'
+          changed_when: false
+          no_log: true
+          diff: false
+        - name: Verify, recover when needed, and deploy under a process lock
+          ansible.builtin.command:
+            argv:
+              - /usr/bin/python3
+              - "{{ smc_incoming.path }}/deploy_release.py"
+              - --spec
+              - "{{ smc_incoming.path }}/spec.json"
+          register: smc_deployment
+          changed_when: (smc_deployment.stdout | from_json).changed | default(false)
+          no_log: true
+        - name: Report only the public deployment outcome
+          ansible.builtin.debug:
+            msg: "{{ (smc_deployment.stdout | from_json).status }}"
+      always:
+        - name: Remove only this private incoming directory
+          ansible.builtin.file:
+            path: "{{ smc_incoming.path }}"
+            state: absent
+          when: smc_incoming.path is defined
+          changed_when: false
+          no_log: true

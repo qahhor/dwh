@@ -26,6 +26,7 @@ import { isRevisionConflict, SaveErrorNotifier } from '@shared/ui/save-errors';
 import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { latestRevision } from './org-unit-assignments';
 import { OrgUnitDraft } from './org-unit-draft';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
 import { OrgUnitsApiService } from './org-units.api';
 import { ScopeRule } from './org-units.models';
 
@@ -103,6 +104,7 @@ export class RoleScopePanelComponent implements OnChanges {
     () => this.dirty,
     () => this.pending(),
     () => this.restoreDraft(),
+    discardChangesQuestion(),
   );
 
   constructor() {

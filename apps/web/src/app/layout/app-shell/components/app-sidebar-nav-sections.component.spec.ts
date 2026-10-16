@@ -73,7 +73,9 @@ describe('AppSidebarNavSectionsComponent', () => {
     expect(headers).toHaveLength(1);
     expect(headers[0].textContent).toContain(PACKAGED_RUSSIAN['nav.section.workspace']);
     expect(headers[0].getAttribute('aria-expanded')).toBe('true');
-    expect(headers[0].getAttribute('aria-label')).toBe(PACKAGED_RUSSIAN['layout.app_shell.collapse_section']);
+    expect(headers[0].getAttribute('aria-label')).toBe(
+      `${PACKAGED_RUSSIAN['layout.app_shell.collapse_section']}: ${PACKAGED_RUSSIAN['nav.section.workspace']}`,
+    );
     expect(element.querySelector(`#${headers[0].getAttribute('aria-controls')}`)).not.toBeNull();
 
     headers[0].click();
@@ -86,7 +88,11 @@ describe('AppSidebarNavSectionsComponent', () => {
     const header = element.querySelector('.nav-section-header')!;
 
     expect(header.getAttribute('aria-expanded')).toBe('false');
-    expect(header.getAttribute('aria-label')).toBe(PACKAGED_RUSSIAN['layout.app_shell.expand_section']);
+    expect(header.getAttribute('aria-label')).toBe(
+      `${PACKAGED_RUSSIAN['layout.app_shell.expand_section']}: ${PACKAGED_RUSSIAN['nav.section.workspace']}`,
+    );
+    expect(element.querySelector('#section-content-workspace')?.hasAttribute('inert')).toBe(true);
+    expect(element.querySelector('#section-content-workspace')?.getAttribute('aria-hidden')).toBe('true');
     expect(header.querySelector('.section-active-dot')).not.toBeNull();
   });
 

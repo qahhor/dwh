@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -53,6 +54,11 @@ public class MfFileMetadataService {
     @Transactional(readOnly = true)
     public Optional<MfFileRepository.FileRecord> findBySha256(String sha256) {
         return fileRepository.findBySha256(sha256);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean visible(Set<UUID> ids, ScopeFilter scope) {
+        return fileRepository.visible(ids, scope);
     }
 
     @Transactional(readOnly = true)

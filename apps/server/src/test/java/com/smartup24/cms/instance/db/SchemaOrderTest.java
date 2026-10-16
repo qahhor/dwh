@@ -149,7 +149,8 @@ class SchemaOrderTest {
                         "ms_task_projects",
                         "ms_task_statuses",
                         "ms_task_types",
-                        "ms_tasks")
+                        "ms_tasks",
+                        "studio_records")
                 .allSatisfy((table, checked) -> assertThat(checked).as(table).isTrue());
     }
 

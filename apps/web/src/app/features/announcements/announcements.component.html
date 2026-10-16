@@ -141,7 +141,7 @@
   <app-announcements-modals
     [isEditorOpen]="store.isEditorOpen()"
     [editingId]="store.editingId()"
-    [draftErrors]="store.draftErrors()"
+    [(draftErrors)]="store.draftErrors"
     [draftError]="store.draftError()"
     [isSaving]="store.isSaving()"
     [draftTitles]="store.draftTitles()"

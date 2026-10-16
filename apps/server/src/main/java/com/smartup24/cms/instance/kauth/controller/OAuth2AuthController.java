@@ -19,8 +19,9 @@ public class OAuth2AuthController {
     }
 
     @Operation(
-            summary = "List sign-in providers",
-            description = "The external OAuth 2 providers a user may sign in with.")
+            summary = "List configured OAuth 2 providers",
+            description =
+                    "Administrative provider metadata. OAuth 2 sign-in and callback exchange are not implemented.")
     @GetMapping("/providers")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
     public ResponseEntity<List<OAuth2AuthService.SsoProviderPublicDto>> getProviders() {

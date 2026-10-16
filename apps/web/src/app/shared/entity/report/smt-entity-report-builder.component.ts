@@ -1,7 +1,24 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  viewChild,
+  untracked,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { catchError, debounceTime, map, of, switchMap } from 'rxjs';
-import { fieldLabel, type QueryFieldMeta, type QueryListMeta } from '@core/models/query-meta.models';
+import { Observable, catchError, debounceTime, map, of, switchMap } from 'rxjs';
+import {
+  fieldLabel,
+  type QueryFieldMeta,
+  type QueryListMeta,
+  type QueryCondition,
+  type QueryMatch,
+} from '@core/models/query-meta.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { filterDsl, readFilterDsl } from '@core/services/query-meta.service';
 import type { ListViewState } from '@shared/list-views/list-views';
@@ -23,12 +40,16 @@ import {
   type ReportResult,
   type ReportState,
   type ReportTrunc,
+  type SavedReport,
   EntityReportsApi,
   dated,
   emptyReport,
   groupable,
   measurable,
 } from './entity-reports';
+import { ReportSourcesStore } from './report-sources.store';
+import { ReportExportComponent } from './report-export.component';
+import type { ReportExportSource } from './report-export.api';
 import { SMTEntityReportSavedComponent } from './smt-entity-report-saved.component';
 import { SMTEntityReportComponent } from './smt-entity-report.component';
 
@@ -56,156 +77,19 @@ interface ReportRun {
     SMTControlComponent,
     SMTEntityReportComponent,
     SMTEntityReportSavedComponent,
+    ReportExportComponent,
     SMTRadioGroupComponent,
     SMTSelectComponent,
     TranslatePipe,
     UiFilterBarComponent,
   ],
+  providers: [ReportSourcesStore],
   host: { class: 'smt-entity-report-builder' },
-  template: `
-    <section class="builder" [attr.aria-labelledby]="ids + '-title'" data-testid="report-builder">
-      <h2 class="sr-only" [id]="ids + '-title'">{{ 'ui.report.title' | t }}</h2>
-      @if (canSave()) {
-        <smt-entity-report-saved [listCode]="meta().code" [state]="state()" (opened)="open($event)" />
-      }
-      <ui-filter-bar
-        [meta]="meta()"
-        [conditions]="views().filter()"
-        [match]="views().match()"
-        (conditionsChange)="views().setFilter($event)"
-        (filterChange)="views().setFilter($event.conditions, $event.match)"
-      />
-      <div class="builder-controls">
-        @for (slot of groupSlots(); track $index; let i = $index) {
-          <smt-control class="builder-field" [smtLabel]="(i === 0 ? 'ui.report.group_by' : 'ui.report.then_by') | t">
-            <smt-select
-              [smtTriggerId]="ids + '-group-' + i"
-              [options]="groupOptions()"
-              [placeholder]="'ui.report.no_grouping' | t"
-              [value]="slot?.field ?? null"
-              (valueChange)="setGroup(i, $event)"
-            />
-          </smt-control>
-          @if (slot && isDated(slot.field)) {
-            <smt-control class="builder-field" [smtLabel]="'ui.report.bucket' | t">
-              <smt-select
-                [smtTriggerId]="ids + '-trunc-' + i"
-                [options]="truncOptions()"
-                [allowClear]="false"
-                [value]="slot.trunc ?? 'month'"
-                (valueChange)="setTrunc(i, $event)"
-              />
-            </smt-control>
-          }
-        }
-      </div>
-      <div class="builder-controls">
-        @for (measure of measures(); track $index; let i = $index) {
-          <fieldset class="builder-measure" [attr.data-testid]="'report-measure-' + i">
-            <legend class="sr-only">{{ 'ui.report.measure_n' | t: { n: i + 1 } }}</legend>
-            <smt-control class="builder-field" [smtLabel]="'ui.report.measure' | t">
-              <smt-select
-                [smtTriggerId]="ids + '-op-' + i"
-                [options]="opOptions()"
-                [allowClear]="false"
-                [value]="measure.op"
-                (valueChange)="setOp(i, $event)"
-              />
-            </smt-control>
-            @if (measure.op !== 'count') {
-              <smt-control class="builder-field" [smtLabel]="'ui.report.of_field' | t">
-                <smt-select
-                  [smtTriggerId]="ids + '-field-' + i"
-                  [options]="measureOptions()"
-                  [allowClear]="false"
-                  [value]="measure.field ?? null"
-                  (valueChange)="setMeasureField(i, $event)"
-                />
-              </smt-control>
-            }
-            @if (measures().length > 1) {
-              <button
-                smt-button
-                type="button"
-                smtVariant="ghost"
-                smtSize="sm"
-                smtIcon="close"
-                smtIconOnly
-                [attr.aria-label]="'ui.report.remove_measure' | t: { n: i + 1 }"
-                (click)="removeMeasure(i)"
-              ></button>
-            }
-          </fieldset>
-        }
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          smtSize="sm"
-          smtIcon="add"
-          data-testid="report-add-measure"
-          [disabled]="measures().length >= maxMeasures"
-          (click)="addMeasure()"
-        >
-          {{ 'ui.report.add_measure' | t }}
-        </button>
-      </div>
-      <smt-radio-group
-        smtAppearance="segmented"
-        smtOrientation="horizontal"
-        [options]="chartOptions()"
-        [value]="effectiveChart()"
-        [smtAriaLabel]="'ui.report.chart' | t"
-        (valueChange)="chart.set($event ?? 'table')"
-      />
-      <div class="builder-result" aria-live="polite" [attr.aria-busy]="run().loading || null">
-        @if (run().error) {
-          <p class="builder-error" role="alert" data-testid="report-error">{{ run().error }}</p>
-        } @else {
-          <smt-entity-report [result]="run().result" [meta]="meta()" [chart]="effectiveChart()" [caption]="caption()" />
-        }
-      </div>
-    </section>
-  `,
-  styles: [
-    `
-      :host {
-        display: block;
-        min-width: 0;
-      }
-      .builder {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-      }
-      .builder-controls {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-end;
-        gap: 12px;
-      }
-      .builder-field {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 180px;
-      }
-      .builder-measure {
-        display: flex;
-        align-items: flex-end;
-        gap: 8px;
-        margin: 0;
-        padding: 0;
-        border: 0;
-      }
-      .builder-error {
-        margin: 0;
-        color: var(--danger-text, var(--danger));
-      }
-    `,
-  ],
+  templateUrl: './smt-entity-report-builder.component.html',
+  styleUrl: './smt-entity-report-builder.component.css',
 })
 export class SMTEntityReportBuilderComponent {
+  readonly sources = inject(ReportSourcesStore);
   private readonly i18n = inject(I18nService);
   private readonly reports = inject(EntityReportsApi);
 
@@ -214,10 +98,15 @@ export class SMTEntityReportBuilderComponent {
   readonly meta = input.required<QueryListMeta>();
   /** The list's views: the report takes the filter on screen. */
   readonly views = input.required<ListViewState>();
+
   /** The title of the list, the start of the report's accessible name. */
   readonly title = input('');
   /** The person may save reports of this list. */
   readonly canSave = input(false);
+
+  private readonly savedReports = viewChild(SMTEntityReportSavedComponent);
+
+  readonly source = signal<SavedReport | null>(null);
 
   readonly groupBy = signal<ReportGroup[]>([]);
   readonly measures = signal<ReportMeasure[]>(emptyReport().measures);
@@ -225,6 +114,20 @@ export class SMTEntityReportBuilderComponent {
   readonly chart = signal<ReportChart>('bar');
 
   readonly run = signal<ReportRun>({ result: null, error: '', loading: false });
+
+  readonly refresh = signal(0);
+  readonly completedRequest = signal('');
+  private readonly projectedFilter = signal<QueryCondition[]>([]);
+  private readonly projectedMatch = signal<QueryMatch>('all');
+
+  readonly reportFilter = computed(() => (this.sources.dataset() ? this.projectedFilter() : this.views().filter()));
+  readonly reportMatch = computed(() => (this.sources.dataset() ? this.projectedMatch() : this.views().match()));
+  readonly reportMeta = computed(() =>
+    this.sources.dataset() ? (this.sources.projected() ?? { ...this.meta(), fields: [] }) : this.meta(),
+  );
+  readonly displayResult = computed(() =>
+    JSON.stringify(this.request()) === this.completedRequest() ? this.run().result : null,
+  );
 
   /** The grouping slots: the chosen ones, and one more empty while there is room. */
   readonly groupSlots = computed<(ReportGroup | null)[]>(() => {
@@ -245,13 +148,16 @@ export class SMTEntityReportBuilderComponent {
   readonly state = computed<ReportState>(() => ({
     groupBy: this.groupBy(),
     measures: this.measures(),
-    filter: filterDsl(this.views().filter(), this.views().match(), true),
+    filter: filterDsl(this.reportFilter(), this.reportMatch(), true),
     chart: this.effectiveChart(),
+    ...(this.sources.dataset() ? { dataset: this.sources.dataset()! } : {}),
   }));
 
-  readonly groupOptions = computed<SMTSelectOption<string>[]>(() => this.options(this.meta().fields.filter(groupable)));
+  readonly groupOptions = computed<SMTSelectOption<string>[]>(() =>
+    this.options(this.reportMeta().fields.filter(groupable)),
+  );
   readonly measureOptions = computed<SMTSelectOption<string>[]>(() =>
-    this.options(this.meta().fields.filter(measurable)),
+    this.options(this.reportMeta().fields.filter(measurable)),
   );
   readonly truncOptions = computed<SMTSelectOption<ReportTrunc>[]>(() => {
     this.i18n.currentLang();
@@ -272,29 +178,77 @@ export class SMTEntityReportBuilderComponent {
     return [
       { value: 'table', label: this.i18n.translate('ui.report.chart_table'), icon: 'table' },
       { value: 'bar', label: this.i18n.translate('ui.report.chart_bar'), icon: 'bar_chart', disabled: !grouped },
+      {
+        value: 'line',
+        label: this.i18n.translate('ui.report.chart_line'),
+        icon: 'show_chart',
+        disabled:
+          this.groupBy().length !== 1 || !this.isDated(this.groupBy()[0]?.field ?? '') || this.measures().length !== 1,
+      },
+      {
+        value: 'horizontalBar',
+        label: this.i18n.translate('ui.report.chart_horizontal_bar'),
+        icon: 'bar_chart',
+        disabled:
+          this.groupBy().length !== 1 || this.isDated(this.groupBy()[0]?.field ?? '') || this.measures().length !== 1,
+      },
       { value: 'kpi', label: this.i18n.translate('ui.report.chart_kpi'), icon: 'pin', disabled: grouped },
     ];
   });
 
   readonly caption = computed(() => this.i18n.translate('ui.report.caption', { list: this.title() }));
+  readonly request = computed(() => ({
+    code: this.code(),
+    dataset: this.sources.dataset() ?? undefined,
+    metadataLoading: this.sources.loading(),
+    metadataError: this.sources.error(),
+    groupBy: this.groupBy(),
+    measures: this.measures(),
+    filter: filterDsl(this.reportFilter(), this.reportMatch()),
+    source: this.source()?.id ?? null,
+    revision: this.source()?.lockVersion ?? null,
+    refresh: this.refresh(),
+  }));
+  readonly exportSource = computed<ReportExportSource | null>(() => {
+    const asked = this.request();
+    if (
+      !this.run().result ||
+      this.run().loading ||
+      this.run().error ||
+      JSON.stringify(asked) !== this.completedRequest()
+    )
+      return null;
+    return asked.source !== null
+      ? { kind: 'saved', code: asked.code, id: asked.source }
+      : { kind: 'query', code: asked.code, state: { ...this.state(), filter: asked.filter } };
+  });
 
   readonly ids = `report-builder-${nextBuilderId++}`;
   readonly maxMeasures = MAX_MEASURES;
 
   constructor() {
-    const request = computed(() => ({
-      code: this.code(),
-      groupBy: this.groupBy(),
-      measures: this.measures(),
-      filter: filterDsl(this.views().filter(), this.views().match()),
-    }));
-    toObservable(request)
+    effect(() => {
+      const code = this.code();
+      untracked(() => this.sources.configure(code));
+    });
+    toObservable(this.request)
       .pipe(
         debounceTime(250),
         switchMap((asked) => {
+          if (asked.metadataLoading || asked.metadataError)
+            return of<ReportRun>({
+              result: null,
+              loading: asked.metadataLoading,
+              error: asked.metadataError,
+            });
           this.run.update((current) => ({ ...current, loading: true }));
-          return this.reports.run(asked.code, asked).pipe(
-            map((result): ReportRun => ({ result, error: '', loading: false })),
+          const response =
+            asked.source !== null ? this.reports.saved(asked.code, asked.source) : this.reports.run(asked.code, asked);
+          return response.pipe(
+            map((result): ReportRun => {
+              this.completedRequest.set(JSON.stringify(asked));
+              return { result, error: '', loading: false };
+            }),
             catchError((failure: unknown) =>
               of<ReportRun>({
                 result: null,
@@ -309,17 +263,36 @@ export class SMTEntityReportBuilderComponent {
       .subscribe((run) => this.run.set(run));
     // A measure of a number needs a number field; a list without one keeps the count only.
     effect(() => {
-      if (this.measureOptions().length === 0 && this.measures().some((measure) => measure.op !== 'count')) {
+      if (
+        !this.source() &&
+        !this.sources.loading() &&
+        !this.sources.error() &&
+        this.measureOptions().length === 0 &&
+        this.measures().some((measure) => measure.op !== 'count')
+      ) {
         this.measures.set(emptyReport().measures);
       }
     });
   }
 
+  canLeaveRecordPage(): Observable<boolean> {
+    return this.savedReports()?.canLeaveRecordPage() ?? of(true);
+  }
+  openSaved(report: SavedReport): void {
+    this.open(report.state);
+    this.source.set(report);
+    this.refresh.update((value) => value + 1);
+  }
+  detachSource(): void {
+    this.source.set(null);
+  }
+
   isDated(key: string): boolean {
-    return dated(this.meta().fields.find((field) => field.key === key));
+    return dated(this.reportMeta().fields.find((field) => field.key === key));
   }
 
   setGroup(index: number, key: string | null): void {
+    if (this.source()) return;
     const groups = [...this.groupBy()];
     if (!key) {
       groups.splice(index, 1);
@@ -331,12 +304,14 @@ export class SMTEntityReportBuilderComponent {
   }
 
   setTrunc(index: number, trunc: ReportTrunc | null): void {
+    if (this.source()) return;
     this.groupBy.update((groups) =>
       groups.map((group, at) => (at === index ? { ...group, trunc: trunc ?? 'month' } : group)),
     );
   }
 
   setOp(index: number, op: ReportOp | null): void {
+    if (this.source()) return;
     const chosen = op ?? 'count';
     const first = this.measureOptions()[0]?.id;
     this.measures.update((measures) =>
@@ -349,27 +324,51 @@ export class SMTEntityReportBuilderComponent {
   }
 
   setMeasureField(index: number, field: string | null): void {
+    if (this.source()) return;
     this.measures.update((measures) =>
       measures.map((measure, at) => (at === index ? { ...measure, field: field ?? measure.field } : measure)),
     );
   }
 
   addMeasure(): void {
+    if (this.source()) return;
     const first = this.measureOptions()[0]?.id;
     this.measures.update((measures) => [...measures, first ? { op: 'sum', field: first } : { op: 'count' }]);
   }
 
   removeMeasure(index: number): void {
+    if (this.source()) return;
     this.measures.update((measures) => measures.filter((_measure, at) => at !== index));
   }
 
   /** Shows a saved report: its grouping, measures and chart, and its filter in the list's filter bar. */
   open(state: ReportState): void {
+    this.source.set(null);
+    this.sources.select(state.dataset ?? null);
     this.groupBy.set(state.groupBy ?? []);
     this.measures.set(state.measures?.length ? state.measures : emptyReport().measures);
     this.chart.set(state.chart ?? 'bar');
     const saved = readFilterDsl(state.filter ?? []);
-    this.views().setFilter(saved.conditions, saved.match);
+    this.setFilter(saved.conditions, saved.match);
+  }
+
+  selectDataset(dataset: string | null): void {
+    if (this.source()) return;
+    if (dataset) {
+      this.projectedFilter.set([...this.views().filter()]);
+      this.projectedMatch.set(this.views().match());
+    }
+    this.sources.select(dataset || null);
+    this.groupBy.set([]);
+    this.measures.set(emptyReport().measures);
+  }
+
+  setFilter(conditions: QueryCondition[], match?: QueryMatch): void {
+    if (this.source()) return;
+    if (this.sources.dataset()) {
+      this.projectedFilter.set(conditions);
+      if (match) this.projectedMatch.set(match);
+    } else this.views().setFilter(conditions, match);
   }
 
   private options(fields: QueryFieldMeta[]): SMTSelectOption<string>[] {

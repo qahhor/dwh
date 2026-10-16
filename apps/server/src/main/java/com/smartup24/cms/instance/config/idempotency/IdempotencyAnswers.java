@@ -2,17 +2,22 @@ package com.smartup24.cms.instance.config.idempotency;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.ProblemDetailRecord;
+import com.smartup24.cms.instance.common.entity.RetainedRecordAccess;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.config.error.ProblemMessages;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /** What the idempotency filter writes itself: its refusals as problem details, and a stored answer replayed. */
@@ -22,10 +27,14 @@ final class IdempotencyAnswers {
 
     private final ObjectMapper objectMapper;
     private final ProblemMessages messages;
+    private final @Nullable RetainedRecordAccess access;
+    private final JsonColumns accessJson;
 
-    IdempotencyAnswers(ObjectMapper objectMapper, ProblemMessages messages) {
+    IdempotencyAnswers(ObjectMapper objectMapper, ProblemMessages messages, @Nullable RetainedRecordAccess access) {
         this.objectMapper = objectMapper;
         this.messages = messages;
+        this.access = access;
+        this.accessJson = new JsonColumns(objectMapper, "idempotency_keys.response_access");
     }
 
     void problem(HttpServletRequest request, HttpServletResponse response, int status, ErrorCode code, String key)
@@ -46,6 +55,18 @@ final class IdempotencyAnswers {
             throws IOException {
         switch (claim.state()) {
             case REPLAY -> {
+                Map<String, Set<Long>> records = objectMapper.convertValue(
+                        accessJson.readObject(claim.existing().responseAccess()),
+                        new TypeReference<Map<String, Set<Long>>>() {});
+                if (!records.isEmpty() && (access == null || !access.visible(records))) {
+                    problem(
+                            request,
+                            response,
+                            HttpServletResponse.SC_CONFLICT,
+                            ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH,
+                            "error.idempotency_key_payload_mismatch");
+                    return true;
+                }
                 replay(response, claim.existing());
                 return true;
             }
@@ -122,13 +143,14 @@ final class IdempotencyAnswers {
     }
 
     /** What a replay repeats: status, body, and the Location, Content-Type and ETag of the original answer. */
-    static IdempotencyRepository.StoredAnswer answer(HttpServletResponse response, int status, byte[] body) {
+    IdempotencyRepository.StoredAnswer answer(HttpServletResponse response, int status, byte[] body) {
         return new IdempotencyRepository.StoredAnswer(
                 status,
                 new String(body, StandardCharsets.UTF_8),
                 response.getHeader(HttpHeaders.LOCATION),
                 body.length == 0 ? null : response.getContentType(),
-                response.getHeader(HttpHeaders.ETAG));
+                response.getHeader(HttpHeaders.ETAG),
+                accessJson.object(RetainedRecordAccess.captured()));
     }
 
     /** The largest request body kept for a replay: 512 KB for an entity record (ADR-0032, 6.2), 64 KB for the rest. */

@@ -7,6 +7,7 @@ import { User } from '@core/models/auth.models';
 import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { ToastService } from '@core/services/toast.service';
+import { translateTest } from '@testing/i18n-test.stub';
 import { LoginComponent } from './login.component';
 
 describe('Login form interactions', () => {
@@ -205,6 +206,20 @@ describe('Login form interactions', () => {
   it.each(['otp', 'must_change_password'] as const)('moves focus to the first field on %s transition', async (step) => {
     await enterStep(step);
     expect(document.activeElement).toBe(input(step === 'otp' ? 'otp-code' : 'new-password'));
+  });
+
+  it.each([
+    ['otp', 'auth.otp_title'],
+    ['must_change_password', 'auth.login.change_temporary_password'],
+  ] as const)('names the active %s challenge in the page heading', async (step, titleKey) => {
+    await enterStep(step);
+    const headings = fixture.nativeElement.querySelectorAll('h1');
+    expect(headings).toHaveLength(1);
+    expect(headings[0].textContent.trim()).toBe(translateTest(titleKey));
+    const field = input(step === 'otp' ? 'otp-code' : 'new-password');
+    const hintId = step === 'otp' ? 'otp-hint' : 'password-policy-hint';
+    expect(field.getAttribute('aria-describedby')).toContain(hintId);
+    expect(fixture.nativeElement.querySelector(`#${hintId}`).textContent.trim()).not.toBe('');
   });
 
   it('rejects incomplete and non-numeric OTP locally', async () => {

@@ -10,86 +10,17 @@
       [smtAriaLabel]="'tasks.list.display_mode' | t"
       (valueChange)="filterService.viewMode = $event ?? filterService.viewMode"
     />
-    <!-- Dictionary Settings Button -->
-    <button
-      smt-button
-      smtVariant="secondary"
-      type="button"
-      class="compact-secondary-action"
-      [title]="'tasks.list.manage_dictionaries' | t"
-      (click)="dictService.openSettingsModal()"
-    >
-      <span class="material-symbols-outlined" aria-hidden="true">tune</span>
-      <span>{{ 'tasks.list.dictionaries' | t }}</span>
-    </button>
-    <!-- Export Dropdown -->
-    <div class="export-dropdown-container" style="position: relative; display: inline-block">
-      <button
-        smt-button
-        smtVariant="secondary"
-        type="button"
-        class="compact-secondary-action"
-        [title]="'tasks.export_all_accessible' | t"
-        (click)="filterService.showExportMenu = !filterService.showExportMenu"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">download</span>
-        <span>{{ 'analytics.dashboard.export' | t }}</span>
-        <span class="material-symbols-outlined" style="font-size: 16px" aria-hidden="true">arrow_drop_down</span>
-      </button>
-      @if (filterService.showExportMenu) {
-        <div class="export-popover">
-          <strong class="export-scope-title">{{ 'tasks.export_all_accessible' | t }}</strong>
-          <span class="export-scope-note">{{ 'tasks.export_filters_not_applied' | t }}</span>
-          <button
-            type="button"
-            class="export-item-btn"
-            style="
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              padding: 8px 12px;
-              font-size: 12px;
-              background: none;
-              border: none;
-              width: 100%;
-              text-align: left;
-              cursor: pointer;
-              color: var(--text-main);
-            "
-            (click)="exportTasks('xlsx')"
-          >
-            <span class="material-symbols-outlined" style="color: var(--success); font-size: 18px" aria-hidden="true"
-              >table_view</span
-            >
-            <span>Excel (.xlsx)</span>
-          </button>
-          <button
-            type="button"
-            class="export-item-btn"
-            style="
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              padding: 8px 12px;
-              font-size: 12px;
-              background: none;
-              border: none;
-              width: 100%;
-              text-align: left;
-              cursor: pointer;
-              color: var(--text-main);
-              border-top: 1px solid var(--border-subtle);
-            "
-            (click)="exportTasks('csv')"
-          >
-            <span class="material-symbols-outlined" style="color: var(--primary); font-size: 18px" aria-hidden="true"
-              >description</span
-            >
-            <span>CSV (UTF-8)</span>
-          </button>
-        </div>
-      }
-    </div>
+    <smt-dropdown-button
+      class="task-page-actions"
+      icon="more_horiz"
+      [label]="'common.actions' | t"
+      [items]="[
+        { id: 'dictionaries', label: ('tasks.list.dictionaries' | t), icon: 'tune' },
+        { id: 'xlsx', label: ('tasks.list.export_all_xlsx' | t), icon: 'table_view', separated: true },
+        { id: 'csv', label: ('tasks.list.export_all_csv' | t), icon: 'description' },
+      ]"
+      (itemSelect)="runPageAction($event)"
+    />
     <!-- Create Task Button -->
     @if (canCreateTask()) {
       <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateTaskModal()">
@@ -98,7 +29,7 @@
     }
   </ui-page-header>
 
-  <!-- Linear-Style Toolbar -->
+  <!-- Search and quick filters are shared by table and kanban. -->
   <app-task-filter-bar
     [activePreset]="filterService.activePreset"
     [searchQuery]="filterService.searchQuery"
@@ -276,7 +207,7 @@
   [createForm]="createForm"
   [isSubmitting]="formsService.isSubmitting()"
   [isCreateSubmitted]="formsService.isCreateSubmitted"
-  [serverErrors]="formsService.createErrors()"
+  [(serverErrors)]="formsService.createErrors"
   [taskTypes]="taskTypes()"
   [taskCustomFields]="list.customFields()"
   (closeModal)="requestCloseCreate()"
@@ -294,7 +225,7 @@
   [editLoadError]="formsService.editLoadError()"
   [isSubmitting]="formsService.isSubmitting()"
   [isEditSubmitted]="formsService.isEditSubmitted"
-  [serverErrors]="formsService.editErrors()"
+  [(serverErrors)]="formsService.editErrors"
   [taskTypes]="taskTypes()"
   [taskCustomFields]="list.customFields()"
   (closeModal)="requestCloseEdit()"

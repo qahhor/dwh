@@ -113,3 +113,14 @@
   -webkit-appearance: none;
   appearance: none;
 }
+
+@media (max-width: 767px) {
+  .smt-input {
+    min-height: var(--control-touch-height);
+  }
+  .smt-input__action {
+    width: var(--control-touch-height);
+    height: var(--control-touch-height);
+    margin-right: 0;
+  }
+}

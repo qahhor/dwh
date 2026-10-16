@@ -328,7 +328,7 @@
     {
       "id": 6,
       "type": "timeseries",
-      "title": "API latency",
+      "title": "API latency (excluding POST upload)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -544,6 +544,56 @@
       "fieldConfig": {
         "defaults": {
           "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Upload latency (POST /api/v1/files/upload; SLO 30/60 s)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "smc:upload_latency_seconds:p95_5m",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "smc:upload_latency_seconds:p99_5m",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
         },
         "overrides": []
       },

@@ -136,7 +136,8 @@
 }
 
 @media (max-width: 767px) {
-  .smt-button--md {
+  .smt-button {
+    min-width: var(--control-touch-height);
     min-height: var(--control-touch-height);
   }
 }

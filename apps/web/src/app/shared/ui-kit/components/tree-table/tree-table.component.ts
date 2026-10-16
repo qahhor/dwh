@@ -82,7 +82,7 @@ export interface TreeTableColumns<T> {
             type="button"
             tabindex="-1"
             aria-hidden="true"
-            class="inline-flex h-[24px] w-[24px] shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-gray-600 hover:bg-gray-100"
+            class="inline-flex h-[24px] w-[24px] max-md:h-[44px] max-md:w-[44px] shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-gray-600 hover:bg-gray-100"
             [disabled]="searching()"
             (click)="$event.stopPropagation(); toggle(row)"
           >
@@ -91,7 +91,10 @@ export interface TreeTableColumns<T> {
             }}</span>
           </button>
         } @else {
-          <span class="inline-block h-[24px] w-[24px] shrink-0" aria-hidden="true"></span>
+          <span
+            class="inline-block h-[24px] w-[24px] max-md:h-[44px] max-md:w-[44px] shrink-0"
+            aria-hidden="true"
+          ></span>
         }
         <div
           class="min-w-0 flex-1 break-normal [overflow-wrap:anywhere]"
@@ -224,7 +227,7 @@ export class SMTTreeTableComponent<T> {
   });
 
   protected readonly toolbarButton =
-    'inline-flex min-h-[32px] items-center rounded border border-gray-300 bg-white px-3 text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60';
+    'inline-flex min-h-[32px] max-md:min-h-[44px] items-center rounded border border-gray-300 bg-white px-3 text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60';
 
   toggle(row: TreeRow<T>): void {
     if (!row.hasChildren || this.searching()) return;

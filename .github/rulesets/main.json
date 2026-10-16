@@ -48,6 +48,7 @@
           { "context": "Verify commit sign-offs", "integration_id": 15368 },
           { "context": "codeql (java-kotlin)", "integration_id": 15368 },
           { "context": "codeql (javascript-typescript)", "integration_id": 15368 },
+          { "context": "codeql (python)", "integration_id": 15368 },
           { "context": "codeql (actions)", "integration_id": 15368 }
         ]
       }

@@ -56,6 +56,17 @@ function customItems(held: string[]): NavItem[] {
   return buildNavSections(options(held)).find((section) => section.id === 'custom-reports')!.items;
 }
 
+describe('record navigation', () => {
+  it.each([
+    ['/tasks', 'tasks'],
+    ['/tasks/items/42?view=board', 'tasks'],
+    ['/tasks/projects/17', 'projects'],
+  ])('keeps the owning menu item active on %s', (url, expected) => {
+    const sections = buildNavSections({ ...options([]), canViewTasks: () => true, canViewProjects: () => true });
+    expect(activeNavItemId(sections, url)).toBe(expected);
+  });
+});
+
 function entity(code: string, section: string, order: number, module: string | null): EntityMenuItem {
   return {
     code,
@@ -121,6 +132,39 @@ describe('buildNavSections — items of declared entities (roadmap item 57)', ()
 
     expect(workspace.find((one) => one.id === 'notes')!.permission()).toBe(true);
     expect(workspace.find((one) => one.id === 'later')!.permission()).toBe(false);
+  });
+});
+
+describe('example module navigation', () => {
+  const items = (['requests', 'orders', 'products'] as const).map((name) => ({
+    ...entity(`example.${name}`, 'examples', { orders: 90, products: 91, requests: 92 }[name]!, 'example'),
+    form: `example.${name}`,
+    route: `/e/example.${name}`,
+  }));
+
+  it('separates the examples and keeps their order, view permissions and active record route', () => {
+    const sections = buildNavSections(options(['example.products.view'], items, ['example']));
+    const examples = sections.find((section) => section.id === 'examples');
+
+    expect(examples?.items.map((nav) => nav.id)).toEqual(['orders', 'products', 'requests']);
+    expect(
+      sections
+        .find((section) => section.id === 'workspace')!
+        .items.filter((nav) => ['orders', 'products', 'requests'].includes(nav.id)),
+    ).toEqual([]);
+    expect(examples?.items.filter((nav) => nav.permission()).map((nav) => nav.id)).toEqual(['products']);
+    expect(activeNavItemId(sections, '/e/example.products/12')).toBe('products');
+    expect(activeNavItemId(sections, '/e/example.orders/12')).toBeNull();
+  });
+
+  it('removes the whole section when disabled, even with menu metadata and view rights still present', () => {
+    const sections = buildNavSections(options(['example.products.view'], items));
+
+    expect(sections.some((section) => section.id === 'examples')).toBe(false);
+    expect(sections.flatMap((section) => section.items).some((nav) => nav.route?.startsWith('/e/example.'))).toBe(
+      false,
+    );
+    expect(activeNavItemId(sections, '/e/example.products/12')).toBeNull();
   });
 });
 

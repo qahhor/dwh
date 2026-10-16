@@ -185,6 +185,7 @@
   margin-bottom: 6px;
 }
 .font-mono {
+  white-space: nowrap;
   font-family: ui-monospace, monospace;
 }
 .tabular-nums {

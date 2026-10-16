@@ -297,7 +297,7 @@ Invoke-Control 'r2-private-round-trip' {
 foreach ($probe in @(
     @{ Id = 'scanner-health'; Key = 'ACCEPTANCE_SCANNER_HEALTH_URL'; Method = 'Get' },
     @{ Id = 'alert-health'; Key = 'ACCEPTANCE_ALERT_HEALTHCHECK_URL'; Method = 'Get' },
-    @{ Id = 'alert-delivery-drill'; Key = 'ACCEPTANCE_ALERT_TEST_URL'; Method = 'Post' }
+    @{ Id = 'alert-endpoint-accepted'; Key = 'ACCEPTANCE_ALERT_TEST_URL'; Method = 'Post' }
 )) {
     Invoke-Control $probe.Id {
         $uri = [uri](Get-RequiredValue $config $probe.Key)
@@ -310,10 +310,13 @@ foreach ($probe in @(
     }
 }
 
+Add-Check 'alert-delivery-receipt' 'UNVERIFIED' 'Independent recipient receipt and delivery latency are still required.'
 $failed = @($checks | Where-Object { $_.status -eq 'FAIL' })
+$unverified = @($checks | Where-Object { $_.status -notin @('PASS', 'NOT_APPLICABLE') })
 $evidence = [ordered]@{
     schemaVersion = 1
-    status = if ($failed.Count -eq 0) { 'PASS' } else { 'UNVERIFIED' }
+    status = if ($unverified.Count -eq 0) { 'PASS' } else { 'UNVERIFIED' }
+    automatedStatus = if ($failed.Count -eq 0) { 'PASS' } else { 'FAIL' }
     generatedAt = $generatedAt.ToString('o')
     gitSha = $gitSha
     expectedImages = $expectedImages
@@ -346,4 +349,4 @@ if ($failed.Count -gt 0) {
     exit 1
 }
 
-Write-Host 'Managed infrastructure preflight passed.' -ForegroundColor Green
+Write-Host 'Automated preflight passed; alert delivery remains UNVERIFIED until independent receipt.' -ForegroundColor Yellow

@@ -96,22 +96,35 @@ export const me = {
 
 /** Keyed by API path; `path#cursor` answers a follow-up page. */
 export const fixtures = {
+  '/studio/assistant': { available: false },
+  '/entities/example.orders/report-datasets': { items: [] },
+  '/entities/ms.tasks/report-datasets': { items: [] },
   '/i18n/ru': catalog('ru'),
   '/i18n/languages': [
     { code: 'ru', name: 'Русский', builtin: true, active: true, revision: 1, translated: 1929, total: 1929, coverage: 100 },
     { code: 'en', name: 'English', builtin: true, active: true, revision: 1, translated: 1751, total: 1929, coverage: 91 },
   ],
+  '/i18n/admin/languages/en/translations': {
+    language: { code: 'en', name: 'English', builtin: true, active: true, revision: 1, translated: 2, total: 2, coverage: 100 },
+    entries: [
+      { key: 'common.save', russianValue: 'Сохранить', bundledValue: 'Save', overrideValue: null, effectiveValue: 'Save', translated: true },
+      { key: 'common.cancel', russianValue: 'Отмена', bundledValue: 'Cancel', overrideValue: null, effectiveValue: 'Cancel', translated: true },
+    ],
+  },
   '/settings/system': {
     values: { 'system.company_name': 'Smartup Distribution', 'system.default_language': 'ru' },
     revision: 1,
   },
   '/settings/user': {},
   '/modules/active': [
+    { code: 'tasks', name: 'Задачи', version: '1.0.0', route: '/tasks', icon: 'task_alt', isSystem: false, status: 'ACTIVE', isActive: true },
     { code: 'notes', name: 'Заметки', version: '1.0.0', route: '/notes', icon: 'description', isSystem: false, status: 'ACTIVE', isActive: true },
     { code: 'example', name: 'Эталон', version: '1.0.0', route: '/e/example.orders', icon: 'receipt_long', isSystem: false, status: 'ACTIVE', isActive: true },
   ],
   '/navigation/items/active': [],
   '/notifications/unread-count': { unread_count: 0 },
+  '/notifications/inbox': page([]),
+  '/notifications/preferences': [{ eventType: 'task_status', channel: 'email', isEnabled: false }],
   '/announcements/active': [],
   '/iam/org-units': orgUnits(),
   '/iam/org-units/users/1': { userId: 1, orgUnitIds: [2, 5], legacyOrgUnitId: null, revision: 1 },
@@ -276,7 +289,9 @@ export const fixtures = {
   '/entities/menu': [
     { code: 'ms.notes', form: 'notes', route: '/notes', labelKey: 'nav.notes', icon: 'description', section: 'workspace', order: 30, module: 'notes' },
     { code: 'md.users', form: 'md.users', route: '/e/md.users', labelKey: 'nav.users', icon: 'people', section: 'iam', order: 10, module: null },
-    { code: 'example.orders', form: 'example.orders', route: '/e/example.orders', labelKey: 'nav.example_orders', icon: 'receipt_long', section: 'workspace', order: 90, module: 'example' },
+    { code: 'example.orders', form: 'example.orders', route: '/e/example.orders', labelKey: 'nav.example_orders', icon: 'receipt_long', section: 'examples', order: 90, module: 'example' },
+    { code: 'example.products', form: 'example.products', route: '/e/example.products', labelKey: 'nav.example_products', icon: 'inventory_2', section: 'examples', order: 91, module: 'example' },
+    { code: 'example.requests', form: 'example.requests', route: '/e/example.requests', labelKey: 'nav.example_requests', icon: 'approval', section: 'examples', order: 92, module: 'example' },
   ],
   '/history/ms.notes/1': page([
     { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'title', labelKey: 'notes.col.title', oldValue: 'Планёрка', newValue: 'Планёрка филиала 1' }] },
@@ -340,6 +355,8 @@ export const fixtures = {
     ],
   },
   '/list-views/example.orders': [],
+  '/report-views': { items: [], hasMore: false, nextCursor: null, totalReturned: 0 },
+  '/dashboards': { items: [], hasMore: false, nextCursor: null, totalReturned: 0 },
   '/entities/example.orders': page(range(6, 1).map(order), null, 6),
   '/entities/example.orders/1': {
     ...order(1), actions: ['create', 'update', 'post', 'cancel'],

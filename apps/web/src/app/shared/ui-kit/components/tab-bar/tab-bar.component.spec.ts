@@ -2,7 +2,7 @@
 import '@angular/compiler';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SMTTabBarComponent, SMTTabItem } from './tab-bar.component';
 
 type Section = 'general' | 'security' | 'audit' | 'about';
@@ -33,7 +33,10 @@ function setup() {
 }
 
 describe('SMTTabBarComponent', () => {
-  afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    vi.useRealTimers();
+  });
 
   it('names the tablist, marks the chosen tab and keeps it the only tab stop', () => {
     const { fixture, tabs } = setup();
@@ -61,6 +64,40 @@ describe('SMTTabBarComponent', () => {
     tabs()[1].click();
     fixture.detectChanges();
     expect(host.section).toBe('audit');
+  });
+
+  it('keeps the pointer target still between pointer-down focus and click', () => {
+    vi.useFakeTimers();
+    const { fixture, host, tabs } = setup();
+    const target = tabs()[2];
+    target.scrollIntoView = vi.fn();
+
+    target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }));
+    target.focus();
+    vi.advanceTimersByTime(0);
+
+    expect(document.activeElement).toBe(target);
+    expect(target.scrollIntoView).not.toHaveBeenCalled();
+    target.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse' }));
+    target.click();
+    fixture.detectChanges();
+    expect(host.section).toBe('audit');
+  });
+
+  it('still centres a keyboard-focused tab after a pointer selection', () => {
+    vi.useFakeTimers();
+    const { tabs, press } = setup();
+    const target = tabs()[3];
+    target.scrollIntoView = vi.fn();
+    tabs()[2].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }));
+    tabs()[2].focus();
+    tabs()[2].click();
+
+    press(tabs()[2], 'ArrowRight');
+    vi.advanceTimersByTime(0);
+
+    expect(document.activeElement).toBe(target);
+    expect(target.scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'nearest', inline: 'center' });
   });
 
   it('moves with arrows past disabled tabs, wraps, and goes to the ends with Home and End', () => {

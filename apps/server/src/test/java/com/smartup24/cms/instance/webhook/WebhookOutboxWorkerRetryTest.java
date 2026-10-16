@@ -22,12 +22,12 @@ import com.smartup24.cms.instance.webhook.service.WebhookTargetPolicy;
 import com.smartup24.cms.instance.webhook.worker.WebhookOutboxWorker;
 import com.sun.net.httpserver.HttpServer;
 import io.micrometer.observation.ObservationRegistry;
-import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +39,8 @@ import tools.jackson.databind.ObjectMapper;
  * The delivery round against a live receiver: a 2xx marks the item sent, a refusal waits for a doubling pause, the
  * last attempt makes a dead letter, and a failure to write the delivery log stops neither the round nor the retry.
  */
+@org.junit.jupiter.api.extension.ExtendWith(WebhookTlsExtension.class)
+@org.junit.jupiter.api.parallel.ResourceLock("javax.net.ssl.SSLContext.default")
 class WebhookOutboxWorkerRetryTest {
 
     private HttpServer server;
@@ -47,7 +49,7 @@ class WebhookOutboxWorkerRetryTest {
 
     @BeforeEach
     void start() throws Exception {
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server = WebhookTlsExtension.server();
         server.createContext("/ok", exchange -> {
             exchange.getRequestBody().readAllBytes();
             exchange.sendResponseHeaders(204, -1);
@@ -124,6 +126,33 @@ class WebhookOutboxWorkerRetryTest {
     }
 
     @Test
+    void retryKeepsTheDeliveryIdentityAtTheReceiver() {
+        var deliveryIds = new ConcurrentLinkedQueue<String>();
+        var payloads = new ConcurrentLinkedQueue<String>();
+        server.createContext("/retry", exchange -> {
+            try {
+                deliveryIds.add(String.valueOf(exchange.getRequestHeaders().getFirst("X-Delivery-Id")));
+                payloads.add(
+                        new String(exchange.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+                exchange.sendResponseHeaders(deliveryIds.size() == 1 ? 503 : 204, -1);
+            } finally {
+                exchange.close();
+            }
+        });
+        var first = item(6L, "/retry", 0);
+        var retry = item(6L, "/retry", 1);
+        when(repository.fetchPending(20)).thenReturn(List.of(first), List.of(retry));
+
+        worker.processWebhooks();
+        worker.processWebhooks();
+
+        assertThat(deliveryIds).containsExactly("6", "6");
+        assertThat(payloads).hasSize(2).containsOnly("{\"id\":6}");
+        verify(repository).markFailed(eq(6L), eq(first.claimToken()), eq(1), any(), eq(0), anyString(), eq(false));
+        verify(repository).markSuccess(6L, retry.claimToken(), 204);
+    }
+
+    @Test
     @DisplayName("A failing delivery log neither stops the round nor loses the outcome")
     void failingDeliveryLogIsSurvived() {
         var sent = item(4L, "/ok", 0);
@@ -166,7 +195,7 @@ class WebhookOutboxWorkerRetryTest {
                 null,
                 UUID.randomUUID(),
                 Instant.now(),
-                "http://127.0.0.1:" + server.getAddress().getPort() + path,
+                "https://127.0.0.1:" + server.getAddress().getPort() + path,
                 "signing-secret");
     }
 }

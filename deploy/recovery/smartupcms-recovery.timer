@@ -1,0 +1,11 @@
+[Unit]
+Description=Capture SmartupCMS twice daily in UTC
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00 UTC
+Persistent=true
+AccuracySec=1min
+Unit=smartupcms-recovery.service
+
+[Install]
+WantedBy=timers.target

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Public UI-copy reads. These endpoints never expose instance or user data. */
+/** UI-copy reads; live form labels require the current viewer's permission (ADR-0038). */
 @RestController
 @RequestMapping("/api/v1/i18n")
 public class MdI18nController {
@@ -31,6 +31,8 @@ public class MdI18nController {
     @Operation(summary = "Get a dictionary", description = "The interface texts of one language, key to text.")
     @GetMapping("/{lang}")
     public ResponseEntity<Map<String, String>> getDictionary(@PathVariable(name = "lang") String lang) {
-        return ResponseEntity.ok(i18nService.effectiveDictionary(lang));
+        return ResponseEntity.ok()
+                .header("Cache-Control", "private, no-store")
+                .body(i18nService.effectiveDictionary(lang));
     }
 }

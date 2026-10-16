@@ -19,8 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 /**
- * Plan 10/10, item 3.1: moving the sign-in, reset and webhook errors to catalog keys keeps the Russian words users
- * and clients saw before, parameters included.
+ * Plan 10/10, item 3.1: sign-in and reset catalog keys preserve Russian messages and their parameters. Webhook
+ * messages reflect the HTTPS requirement in NFR-SEC-06.
  */
 class KauthErrorTextsTest {
 
@@ -77,9 +77,8 @@ class KauthErrorTextsTest {
     }
 
     @Test
-    @DisplayName("Webhook texts read as before in Russian")
-    void webhookTextsAreUnchanged() {
-        assertThat(russian("error.webhook.url_scheme", Map.of()))
-                .isEqualTo("URL вебхука должен начинаться с http:// или https://");
+    @DisplayName("Webhook scheme errors describe the HTTPS requirement in Russian")
+    void webhookTextsRequireHttps() {
+        assertThat(russian("error.webhook.url_scheme", Map.of())).isEqualTo("URL вебхука должен начинаться с https://");
     }
 }

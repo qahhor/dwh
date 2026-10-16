@@ -38,8 +38,7 @@ groups:
     rules:
       # Availability SLO 99.9 % over 30 days (approved, docs/technical-specification.md): the error budget is
       # 0.1 % of API requests. Multiwindow burn rates: 14.4x spends 2 % of the monthly budget in an hour, 6x spends
-      # 5 % in six hours. The latency thresholds below are proposed defaults until the installation approves its
-      # own (NFR-PERF-02, AC-12; docs/ops/slo.md).
+      # 5 % in six hours. NFR-PERF-02 defines separate API and upload latency thresholds (docs/ops/slo.md).
       - alert: SmartupcmsApiErrorBudgetBurnFast
         expr: smc:api_error_ratio:rate1h > (14.4 * 0.001) and smc:api_error_ratio:rate5m > (14.4 * 0.001)
         for: 2m
@@ -75,6 +74,24 @@ groups:
         annotations:
           summary: "API p99 latency above 1 s"
           description: "The 99th percentile of API requests has been {{ $value | humanizeDuration }} for 15 minutes (SLO 1 s)."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - alert: SmartupcmsUploadLatencyP95High
+        expr: smc:upload_latency_seconds:p95_5m > 30
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Upload p95 latency above 30 s"
+          description: "The 95th percentile of POST /api/v1/files/upload has been {{ $value | humanizeDuration }} for 15 minutes (SLO 30 s)."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
+      - alert: SmartupcmsUploadLatencyP99High
+        expr: smc:upload_latency_seconds:p99_5m > 60
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Upload p99 latency above 60 s"
+          description: "The 99th percentile of POST /api/v1/files/upload has been {{ $value | humanizeDuration }} for 15 minutes (SLO 60 s)."
           runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-02-api-errors-and-latency.md"
       - alert: SmartupcmsEntityRuntimeLatencyHigh
         expr: smc:entity_latency_seconds:p95_5m > 0.3

@@ -14,7 +14,7 @@
     <artifactId>provider-spi</artifactId>
     <!-- Part of the platform's public API (ADR-0033, 3): versioned with platform-api, the root pom's
          platform-api.version. -->
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <name>Provider SPI</name>
     <description>Pluggable provider interfaces for SMS, Email, Messenger and Storage (ADR-0011)</description>
 

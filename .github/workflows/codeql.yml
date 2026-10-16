@@ -1,5 +1,6 @@
 # Static analysis (plan 10/10, item 1.6): CodeQL reads the server (Java), the web application and the E2E suite
-# (TypeScript) and these workflows, on every pull request, on main and weekly for newly published queries.
+# (TypeScript), deployment/recovery automation (Python), and these workflows on every pull request, on main,
+# and weekly for newly published queries.
 # Findings land in Security -> Code scanning; the main ruleset requires this check with no high-severity alert.
 name: codeql
 
@@ -29,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         # build-mode none: the sources are read without compiling them, so the analysis needs no JDK or npm install.
-        language: [java-kotlin, javascript-typescript, actions]
+        language: [java-kotlin, javascript-typescript, python, actions]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 

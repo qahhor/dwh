@@ -4,7 +4,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 
 /** Asks whether to drop unsaved changes; emits true when they may be dropped. */
-export type DiscardChangesQuestion = (dirty: boolean) => Observable<boolean>;
+export type DiscardChangesQuestion = (dirty: boolean, closeWhen?: Observable<void>) => Observable<boolean>;
 
 /**
  * The one "discard changes?" question of the forms (docs/guidelines/forms-ux-standard.md, section 8; texts
@@ -17,7 +17,7 @@ export type DiscardChangesQuestion = (dirty: boolean) => Observable<boolean>;
 export function discardChangesQuestion(): DiscardChangesQuestion {
   const modal = inject(SMTModalService);
   const i18n = inject(I18nService);
-  return (dirty) =>
+  return (dirty, closeWhen) =>
     dirty
       ? modal.confirm({
           title: i18n.translate('common.discard.title'),
@@ -25,6 +25,7 @@ export function discardChangesQuestion(): DiscardChangesQuestion {
           yesLabel: i18n.translate('common.discard.confirm'),
           noLabel: i18n.translate('common.discard.keep'),
           destructive: true,
+          ...(closeWhen ? { closeWhen } : {}),
         })
       : of(true);
 }

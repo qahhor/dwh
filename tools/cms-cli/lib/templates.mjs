@@ -21,7 +21,13 @@ export function javaText(value) {
 
 /** A Javadoc-safe English line. */
 function doc(value) {
-  return String(value).replace(/\*\//g, '').trim();
+  return String(value).replace(/\*\//g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/\\/g, '&#92;').trim();
+}
+
+/** Literal text in a Markdown table cell, including markup punctuation and HTML entity introducers. */
+function markdownCell(value) {
+  return String(value).replace(/[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]/g, (character) => `&#${character.charCodeAt(0)};`);
 }
 
 /** The two lines every migration starts with (MigrationFileRulesTest). */
@@ -47,7 +53,7 @@ function sqlComment(text) {
 
 export function packageInfo(module) {
   return `/**
- * Module {@code ${module.code}}: ${doc(module.title.en)}.
+ * Module {@code ${module.code}}: ${doc(module.documentationTitle ?? module.title.en)}.
  *
  * <p>Its entities are declarations on the general entity runtime (ADR-0019, ADR-0032): {@code tools/cms-cli} writes
  * them with {@code cms entity new ${module.code} <entity>}, and the runtime serves their records at
@@ -88,7 +94,7 @@ export function moduleKeys(module) {
 
 export function moduleMapRow(module) {
   return (
-    `| \`${module.code}\` | \`${module.package}\` | ${module.title.ru}: сущности на общем runtime ` +
+    `| \`${module.code}\` | \`${module.package}\` | ${markdownCell(module.title.ru)}: сущности на общем runtime ` +
     `([ADR-0032](../adr/ADR-0032-low-code-platform-v2.md), §6), созданы \`tools/cms-cli\`; опишите назначение модуля | ` +
     `\`${module.tablePrefix}_*\` | \`${module.area}\` | runtime \`/api/v1/entities/${module.area}.*\` |`
   );
@@ -126,7 +132,7 @@ export function starterFields(entity) {
 }
 
 export function entityDeclaration(module, entity, options) {
-  const fields = starterFields(entity);
+  const fields = options.fields ?? starterFields(entity);
   const fieldLines = fields.flatMap((field) => fieldDeclaration(entity, field).lines);
   const rightsKey = (action) => `${entity.code}.rights.${action}`;
   return `package ${entity.servicePackage};
@@ -146,7 +152,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Entity {@code ${entity.code}}: ${doc(options.title.en).slice(0, 80)}.
+ * Entity {@code ${entity.code}}: ${doc(options.documentationTitle ?? options.title.en).slice(0, 80)}.
  *
  * <p>Every field is declared once (ADR-0019, ADR-0032). The general runtime serves the records at
  * {@code /api/v1/entities/${entity.code}} with their scope, field rules, revision, archive, audit and events; the
@@ -181,7 +187,7 @@ ${fieldLines.join('\n')}
             .field(instant("modifiedAt", "${labelKey(entity, 'modifiedAt')}")
                     .system(SystemColumn.MODIFIED_AT)
                     .list(sortable()))
-${sectionLine(['name', 'code'])}
+${sectionLine(fields.map((field) => field.key))}
             .actions("create", "update")
             .archivable()
             .actions("delete")
@@ -234,11 +240,28 @@ public class ${entity.hooksClass} implements EntityHooks {
 `;
 }
 
-export function contractTest(module, entity) {
+export function contractTest(module, entity, { expectedFormOnly } = {}) {
+  const studio = expectedFormOnly !== undefined;
+  const beforeImports = studio ? `import static org.assertj.core.api.Assertions.assertThat;
+
+import ${entity.servicePackage}.${entity.entityClass};
+` : '';
+  const afterImports = studio ? `import ${PLATFORM.field}.EntityField;
+import java.util.Objects;
+import org.junit.jupiter.api.Test;
+` : '';
+  const visibility = studio ? `
+    @Test
+    void listVisibilityMatchesStudioPackage() {
+        var model = Objects.requireNonNull(${entity.entityClass}.DEFINITION.model());
+        assertThat(model.fields().stream().filter(field -> field.list() == null).map(EntityField::key))
+${wrapCall('                ', '.containsExactly', expectedFormOnly.map((key) => `"${key}"`))};
+    }
+` : '';
   return `package ${module.package};
 
-import ${PLATFORM.kit}.EntityContractTestKit;
-
+${beforeImports}import ${PLATFORM.kit}.EntityContractTestKit;
+${afterImports}
 /**
  * The ${entity.code} entity passes the entity contract (ADR-0032, 11; plan 10/10, item 6.2) on the general runtime
  * /api/v1/entities/${entity.code}. Values the kit cannot make up (a reference, a file, an enumeration item) go into
@@ -250,7 +273,7 @@ class ${entity.testClass} extends EntityContractTestKit {
     protected String entity() {
         return "${entity.code}";
     }
-}
+${visibility}}
 `;
 }
 
@@ -349,6 +372,7 @@ export function fieldDeclaration(entity, field) {
   if (field.max != null || field.min != null) calls.push(`length(${field.min ?? 'null'}, ${field.max ?? 'null'})`);
   if (field.pattern) calls.push(`matching("${javaText(field.pattern)}")`);
   if (field.type === 'number') calls.push(`scale(${field.scale})`);
+  if (field.formOnly) calls.push('formOnly()');
   if (field.list) {
     calls.push(`list(${field.list})`);
     staticImports.push(`${PLATFORM.field}.EntityFields.${field.list.split('(')[0]}`);
@@ -454,7 +478,7 @@ ${[...after, `create index ${t}_archived_by_idx on ${t} (archived_by);`, `create
 `;
 }
 
-export function rightsMigration(module, entity, tableVersion, title) {
+export function rightsMigration(module, entity, tableVersion, title, { administratorsOnly = false } = {}) {
   const form = entity.form;
   return `${MIGRATION_HEADER}
 ${sqlComment(
@@ -472,21 +496,22 @@ insert into md_form_actions (form_code, action, name) values
 ('${form}', 'delete', 'Delete')
 on conflict (form_code, action) do nothing;
 
--- Administrators and managers get every action
+-- ${administratorsOnly ? 'Only administrators receive initial access' : 'Administrators and managers get every action'}
 insert into md_role_permissions (role_id, form_code, action)
 select r.id, fa.form_code, fa.action
 from md_roles r
 cross join md_form_actions fa
-where r.pcode in ('chief_admin', 'admin', 'manager') and fa.form_code = '${form}'
+where r.pcode in (${administratorsOnly ? "'chief_admin', 'admin'" : "'chief_admin', 'admin', 'manager'"}) and fa.form_code = '${form}'
 on conflict do nothing;
 
--- The user and auditor roles only view; analyst (V110) gets a module's rights from an administrator
+${administratorsOnly ? '' : `-- The user and auditor roles only view; analyst (V110) gets a module's rights from an administrator
 insert into md_role_permissions (role_id, form_code, action)
 select r.id, fa.form_code, fa.action
 from md_roles r
 cross join md_form_actions fa
 where r.pcode in ('user', 'auditor') and fa.form_code = '${form}' and fa.action = 'view'
 on conflict do nothing;
+`}
 
 insert into md_installed_modules (code, name, description, icon, route, is_system, status, sort_order) values
 ('${module.area}', '${sqlText(module.title.ru)}', '${sqlText(module.description ?? module.title.ru)}', '${sqlText(module.icon)}', '${entity.route}', false, 'ACTIVE', 100)

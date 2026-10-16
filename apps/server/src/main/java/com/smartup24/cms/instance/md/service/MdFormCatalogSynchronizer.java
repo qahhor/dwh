@@ -60,7 +60,7 @@ public class MdFormCatalogSynchronizer {
         declared.addAll(entityPairs(entities));
         var result = permissionService.syncFormCatalog(declared);
 
-        log.info("permission_catalog_synced declared={} deprecatedNow={}", declared.size(), result.deprecated());
+        log.info("permission_catalog_synced declared={} deprecatedNow={}", result.declared(), result.deprecated());
 
         if (!result.deprecatedPairs().isEmpty()) {
             log.warn(

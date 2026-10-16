@@ -117,6 +117,19 @@ public final class EntitySchemaCheck {
             require(problems, entity, table, columns, "archived_at", MOMENT, "the archive (ADR-0032, 5.4)");
             require(problems, entity, table, columns, "archived_by", KEY, "the archive (ADR-0032, 5.4)");
         }
+        if (model.partition() != null) {
+            String partition = model.partition().column();
+            require(
+                    problems,
+                    entity,
+                    table,
+                    columns,
+                    partition,
+                    Set.of("bigint"),
+                    "the server-owned partition (ADR-0038)");
+            requireNotNull(problems, entity, table, columns, partition);
+            written.add(partition);
+        }
         scope(problems, entity, model, columns, written);
         for (EntityField field : model.fields()) {
             fieldColumns(problems, entity, table, columns, field, written);
@@ -181,6 +194,10 @@ public final class EntitySchemaCheck {
             case FieldSource.SystemValue system ->
                 require(problems, entity, table, columns, system.column().column(), systemType(system), why);
             case FieldSource.Link link -> link(problems, entity, link, why);
+            case FieldSource.JsonProperty property -> {
+                require(problems, entity, table, columns, property.column(), Set.of("jsonb"), why);
+                written.add(property.column());
+            }
             case FieldSource.Attribute attribute -> {
                 // Kept in the attributes: no column of its own.
             }

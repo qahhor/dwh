@@ -78,6 +78,12 @@ if (Test-Path -LiteralPath $preflightPath -PathType Leaf) {
 }
 
 $capacityPath = Join-Path $repoRoot 'scripts/acceptance/run-capacity.ps1'
+foreach ($relative in @('scripts/acceptance/invoke-managed-preflight.ps1', 'scripts/acceptance/run-failure-scenario.ps1')) {
+    $source = Get-Content -LiteralPath (Join-Path $repoRoot $relative) -Raw
+    Assert-Matches $source "'alert-delivery-receipt' 'UNVERIFIED'" "$relative must not infer recipient receipt from HTTP acceptance."
+    Assert-Matches $source 'automatedStatus' "$relative must distinguish automation from full acceptance."
+    Assert-Matches $source "-notin @\('PASS', 'NOT_APPLICABLE'\)" "$relative must retain incomplete controls in its overall status."
+}
 if (Test-Path -LiteralPath $capacityPath -PathType Leaf) {
     $capacity = Get-Content -LiteralPath $capacityPath -Raw
     Assert-Matches $capacity 'grafana/k6:[^\s"'']+@sha256:[a-f0-9]{64}' 'Capacity runner must pin the k6 image by digest.'
@@ -92,8 +98,9 @@ foreach ($loadFile in @('common.js', 'interactive.js', 'upload-contention.js', '
     $loadPath = Join-Path $repoRoot "scripts/acceptance/load/$loadFile"
     if (Test-Path -LiteralPath $loadPath -PathType Leaf) {
         $load = Get-Content -LiteralPath $loadPath -Raw
-        Assert-Matches $load 'ACCEPTANCE_MAX_P95_MS' "$loadFile must bind thresholds to approved acceptance values."
-        Assert-Matches $load 'ACCEPTANCE_MAX_P99_MS' "$loadFile must bind p99 to approved acceptance values."
+        $latencyPrefix = if ($loadFile -eq 'upload-contention.js') { 'ACCEPTANCE_MAX_UPLOAD' } else { 'ACCEPTANCE_MAX' }
+        Assert-Matches $load "$($latencyPrefix)_P95_MS" "$loadFile must bind thresholds to approved acceptance values."
+        Assert-Matches $load "$($latencyPrefix)_P99_MS" "$loadFile must bind p99 to approved acceptance values."
         Assert-Matches $load 'ACCEPTANCE_MAX_ERROR_RATE' "$loadFile must bind error rate to approved acceptance values."
     }
 }
@@ -112,7 +119,7 @@ if (Test-Path -LiteralPath $restoreCombinedPath -PathType Leaf) {
     foreach ($pattern in @(
         'IsolatedProjectName', 'ObjectBackupFile', 'AgeIdentityFile', 'manifest.json',
         'Get-FileHash', 'pg_restore', 'rowCounts', 'objectCount', 'rpoSeconds',
-        'rtoSeconds', 'sampleDownloads', 'git rev-parse HEAD', 'partial'
+        'rtoSeconds', 'sampleDownloads', 'git -C \$repoRoot rev-parse HEAD', 'REVISION', 'partial'
     )) {
         Assert-Matches $restoreCombined $pattern "Combined restore is missing '$pattern'."
     }

@@ -30,11 +30,13 @@ export const routes: Routes = [
       },
       {
         matcher: projectRecordMatcher,
+        canActivate: [moduleActiveGuard('tasks')],
         canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/tasks/projects/projects.component').then((m) => m.ProjectsComponent),
       },
       {
         matcher: taskRecordMatcher,
+        canActivate: [moduleActiveGuard('tasks')],
         canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/tasks/tasks.component').then((m) => m.TasksComponent),
       },
@@ -78,6 +80,7 @@ export const routes: Routes = [
       },
       {
         path: 'analytics',
+        canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/analytics/analytics.component').then((m) => m.AnalyticsComponent),
       },
       {
@@ -139,6 +142,20 @@ export const routes: Routes = [
         path: 'e/:code',
         canActivate: [entityGuard],
         loadChildren: () => import('./features/entity-screens.routes').then((m) => m.ENTITY_SCREEN_ROUTES),
+      },
+      {
+        path: 'settings/form-studio/new',
+        canActivate: [permissionGuard('md.settings', 'update')],
+        canDeactivate: [recordNavigationGuard],
+        loadComponent: () =>
+          import('./features/settings/form-studio/new-form/new-form.component').then((m) => m.NewFormComponent),
+      },
+      {
+        path: 'settings/form-studio',
+        canActivate: [permissionGuard('md.settings', 'update')],
+        canDeactivate: [recordNavigationGuard],
+        loadComponent: () =>
+          import('./features/settings/form-studio/form-studio.component').then((m) => m.FormStudioComponent),
       },
       {
         path: 'settings/modules',

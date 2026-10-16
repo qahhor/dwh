@@ -85,6 +85,15 @@ describe('NoteFormDialogComponent', () => {
     expect(form.problem('title')).toBe(component.problems()['title']);
   });
 
+  it('keeps dialog problems synchronized when the field is corrected after a failed save', () => {
+    const { component, fixture, form } = setup();
+    component.save();
+    fixture.detectChanges();
+    expect(component.problems()['title']).toBeTruthy();
+    form.fill('title', 'Corrected');
+    expect(component.problems()['title']).toBeUndefined();
+  });
+
   // Plan 10/10, item 6.2: the form is filled as a person fills it, by field key and type.
   it('submits what a person types and toggles in the form', () => {
     const { component, api, form } = setup();

@@ -162,7 +162,7 @@ final class IdempotentExecution {
             int status,
             byte[] body) {
         if (IdempotencyAnswers.storable(response, status, body, IdempotencyAnswers.answerLimit(request))) {
-            idempotencyService.complete(key, reservationToken, IdempotencyAnswers.answer(response, status, body));
+            idempotencyService.complete(key, reservationToken, answers.answer(response, status, body));
         } else {
             idempotencyService.release(key, reservationToken);
         }

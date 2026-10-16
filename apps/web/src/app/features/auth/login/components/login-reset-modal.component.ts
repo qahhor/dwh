@@ -69,6 +69,7 @@ import { problemFieldErrors } from '@shared/ui/problem-fields';
           }
         </form>
         <ui-form-actions
+          class="reset-actions"
           footer
           form="login-reset-form"
           [submitLabel]="'auth.reset.send_link' | t"

@@ -94,8 +94,8 @@ class WebhookServiceTest {
                 Mockito.mock(AuditLogService.class),
                 policy(true, Set.of("127.0.0.1"), false));
 
-        assertThatThrownBy(() ->
-                        privateTargetService.updateSubscription(10L, null, "http://127.0.0.1/internal", null, null, 1L))
+        assertThatThrownBy(() -> privateTargetService.updateSubscription(
+                        10L, null, "https://127.0.0.1/internal", null, null, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.webhook.host_private");
         Mockito.verifyNoInteractions(subscriptionRepository);

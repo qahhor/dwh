@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
+import { ModuleService } from '@core/services/module.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { ModulesComponent, InstalledModule } from './modules.component';
@@ -12,7 +13,6 @@ describe('ModulesComponent', () => {
   const mockModules: InstalledModule[] = [
     {
       code: 'iam',
-      moduleCode: 'iam',
       name: 'IAM & Security',
       description: 'Identity and access management',
       version: '1.0.0',
@@ -23,7 +23,6 @@ describe('ModulesComponent', () => {
     },
     {
       code: 'notes',
-      moduleCode: 'notes',
       name: 'Notes & Memos',
       description: 'Personal and team notes',
       version: '1.0.0',
@@ -140,5 +139,6 @@ describe('ModulesComponent', () => {
     fixture.componentInstance.toggleModule(appModule, false);
 
     expect(apiMock.put).toHaveBeenCalledWith('/modules/notes/enabled', { enabled: false });
+    expect(TestBed.inject(ModuleService).isModuleActive('notes')).toBe(false);
   });
 });

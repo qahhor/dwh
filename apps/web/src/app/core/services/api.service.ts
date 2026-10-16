@@ -1,6 +1,6 @@
 import { Injectable, untracked, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, from, of, switchMap, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ProblemDetail } from '../models/common.models';
 import { ToastService } from './toast.service';
@@ -54,10 +54,50 @@ export class ApiService {
     return this.http
       .get<T>(`${this.baseUrl}${path}`, {
         params: httpParams,
-        headers: this.getHeaders(),
+        headers: this.getHeaders(options.ifMatch),
         withCredentials: true,
       })
       .pipe(catchError((err) => this.handleError(err, options)));
+  }
+
+  getBlob(path: string, params?: QueryParams, options: ApiRequestOptions = {}): Observable<Blob> {
+    let httpParams = new HttpParams();
+    for (const [key, value] of Object.entries(params ?? {})) {
+      if (value !== undefined && value !== null && value !== '') httpParams = httpParams.set(key, String(value));
+    }
+    return this.http
+      .get(`${this.baseUrl}${path}`, {
+        params: httpParams,
+        headers: this.getHeaders(options.ifMatch),
+        withCredentials: true,
+        responseType: 'blob',
+      })
+      .pipe(
+        catchError((failure: HttpErrorResponse) => {
+          if (!(failure.error instanceof Blob)) return this.handleError(failure, options);
+          return from(failure.error.text()).pipe(
+            catchError(() => of('')),
+            switchMap((text) => {
+              let body: unknown;
+              try {
+                body = JSON.parse(text);
+              } catch {
+                body = null;
+              }
+              return this.handleError(
+                new HttpErrorResponse({
+                  error: body,
+                  status: failure.status,
+                  statusText: failure.statusText,
+                  headers: failure.headers,
+                  url: failure.url ?? undefined,
+                }),
+                options,
+              );
+            }),
+          );
+        }),
+      );
   }
 
   post<T>(path: string, body?: unknown, options: ApiRequestOptions = {}): Observable<T> {

@@ -70,6 +70,11 @@ x-server-common: &server-common
     SMC_SYSTEM_HEALTH_TIMEOUT: ${SMC_SYSTEM_HEALTH_TIMEOUT:-2s}
     SMC_BACKUP_MAX_AGE: ${SMC_BACKUP_MAX_AGE:-0s}
     SMC_WEBHOOKS_ENABLED: ${SMC_WEBHOOKS_ENABLED:-false}
+    SMC_STUDIO_ASSISTANT_ENABLED: ${SMC_STUDIO_ASSISTANT_ENABLED:-false}
+    SMC_STUDIO_ASSISTANT_PROVIDER: ${SMC_STUDIO_ASSISTANT_PROVIDER:-none}
+    SMC_STUDIO_ASSISTANT_ENDPOINT: ${SMC_STUDIO_ASSISTANT_ENDPOINT:-}
+    SMC_STUDIO_ASSISTANT_MODEL: ${SMC_STUDIO_ASSISTANT_MODEL:-}
+    SMC_STUDIO_ASSISTANT_API_KEY: ${SMC_STUDIO_ASSISTANT_API_KEY:-}
     SMC_WEBHOOKS_ALLOWED_HOSTS: ${SMC_WEBHOOKS_ALLOWED_HOSTS:-}
     SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES: ${SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false}
     SMC_WEBHOOKS_CONNECT_TIMEOUT: ${SMC_WEBHOOKS_CONNECT_TIMEOUT:-3s}
@@ -88,6 +93,7 @@ x-server-common: &server-common
     SMC_PROVIDER_SMS: ${SMC_PROVIDER_SMS:-console_sms}
     SMC_PROVIDER_MESSENGER: ${SMC_PROVIDER_MESSENGER:-console_messenger}
     SMC_DELIVERY_ENFORCE: ${SMC_DELIVERY_ENFORCE:-true}
+    SMC_STUDIO_ACTIVATION_ENABLED: ${SMC_STUDIO_ACTIVATION_ENABLED:-false}
     # ADR-0029: encrypts the secrets kept in the database; the server refuses to start without it.
     SMC_SECRETS_KEY: ${SMC_SECRETS_KEY:?SMC_SECRETS_KEY is required}
     SMC_S3_ENDPOINT: ${SMC_S3_ENDPOINT:-}
@@ -143,14 +149,14 @@ services:
       POSTGRES_DB: ${DB_NAME:-smartupcms}
       WAREHOUSE_DB_NAME: ${WAREHOUSE_DB_NAME:-smartupcms_dwh}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_INITDB_ARGS: "--data-checksums"
       MIGRATE_DB_USER: ${MIGRATE_DB_USER:-smartupcms_migrator}
-      MIGRATE_DB_PASSWORD: ${MIGRATE_DB_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      MIGRATE_DB_PASSWORD: ${MIGRATE_DB_PASSWORD:?MIGRATE_DB_PASSWORD is required}
       APP_DB_USER: ${DB_USER:-smartupcms}
       APP_DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       BACKUP_DB_USER: ${BACKUP_DB_USER:-smartupcms_backup}
-      BACKUP_DB_PASSWORD: ${BACKUP_DB_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      BACKUP_DB_PASSWORD: ${BACKUP_DB_PASSWORD:?BACKUP_DB_PASSWORD is required}
     volumes:
       - postgres-data:/var/lib/postgresql
     networks: [backend]
@@ -180,7 +186,7 @@ services:
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-smartupcms}
       DB_USER: ${MIGRATE_DB_USER:-smartupcms_migrator}
-      DB_PASSWORD: ${MIGRATE_DB_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      DB_PASSWORD: ${MIGRATE_DB_PASSWORD:?MIGRATE_DB_PASSWORD is required}
       WAREHOUSE_URL: jdbc:postgresql://postgres:5432/${WAREHOUSE_DB_NAME:-smartupcms_dwh}
       WAREHOUSE_USERNAME: ${DB_USER:?DB_USER is required}
       WAREHOUSE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
@@ -328,12 +334,16 @@ services:
       WAREHOUSE_DB_NAME: ${WAREHOUSE_DB_NAME:-smartupcms_dwh}
       PGUSER: ${POSTGRES_USER:-postgres}
       PGPASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       MIGRATE_DB_USER: ${MIGRATE_DB_USER:-smartupcms_migrator}
       MIGRATE_DB_PASSWORD_FILE: /run/secrets/migrate_database_password
+      MIGRATE_DB_PASSWORD: ${MIGRATE_DB_PASSWORD:?MIGRATE_DB_PASSWORD is required}
       APP_DB_USER: ${DB_USER:-smartupcms}
       APP_DB_PASSWORD_FILE: /run/secrets/database_password
+      APP_DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       BACKUP_DB_USER: ${BACKUP_DB_USER:-smartupcms_backup}
       BACKUP_DB_PASSWORD_FILE: /run/secrets/backup_database_password
+      BACKUP_DB_PASSWORD: ${BACKUP_DB_PASSWORD:?BACKUP_DB_PASSWORD is required}
     secrets:
       - postgres_password
       - migrate_database_password
@@ -358,6 +368,7 @@ services:
       PGPASSWORD_FILE: /run/secrets/backup_database_password
       AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:?BACKUP_AGE_RECIPIENT is required}
       BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_COORDINATED_ONLY: ${BACKUP_COORDINATED_ONLY:-false}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
       BACKUP_STORAGE_MODE: ${BACKUP_STORAGE_MODE:-local}
       BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
@@ -407,9 +418,9 @@ networks:
 
 secrets:
   postgres_password:
-    file: ${POSTGRES_PASSWORD_FILE:-${DB_PASSWORD_FILE:?DB_PASSWORD_FILE is required}}
+    file: ${POSTGRES_PASSWORD_FILE:?POSTGRES_PASSWORD_FILE is required}
   migrate_database_password:
-    file: ${MIGRATE_DB_PASSWORD_FILE:-${DB_PASSWORD_FILE:?DB_PASSWORD_FILE is required}}
+    file: ${MIGRATE_DB_PASSWORD_FILE:?MIGRATE_DB_PASSWORD_FILE is required}
   database_password:
     file: ${DB_PASSWORD_FILE:?DB_PASSWORD_FILE is required}
   backup_database_password:

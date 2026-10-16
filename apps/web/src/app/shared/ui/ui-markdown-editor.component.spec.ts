@@ -24,10 +24,9 @@ describe('UiMarkdownEditorComponent', () => {
     fixture.detectChanges();
 
     const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
-    const label = fixture.nativeElement.querySelector(`label[for="${textarea.id}"]`) as HTMLLabelElement;
     const tabs = Array.from(fixture.nativeElement.querySelectorAll('[role="tab"]')) as HTMLButtonElement[];
 
-    expect(label.textContent).toContain('Описание задачи');
+    expect(textarea.getAttribute('aria-label')).toBe('Описание задачи');
     expect(tabs[0].getAttribute('aria-selected')).toBe('true');
     expect(
       fixture.nativeElement.querySelector(`#${tabs[0].getAttribute('aria-controls')}[role="tabpanel"]`),

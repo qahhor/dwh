@@ -130,15 +130,13 @@ abstract class SearchDeliveryTestSupport {
                 "update search_index_state set active_generation_id=null,initialized=false,version=1,worker_owner=null",
                 "delete from search_generations",
                 "delete from search_projection_versions",
-                "truncate ms_tasks,ms_task_projects,md_users cascade",
-                // The cascade follows search_settings.updated_by to md_users (plan 10/10, item 4.6) and takes the
-                // singleton settings row along; it comes back as the migration seeds it.
-                "insert into search_settings(id) values(1) on conflict (id) do nothing",
-                // It also follows the author of the task statuses (ADR-0032, 14.1): the status a new task starts in
-                // comes back as the product ships it.
-                "insert into ms_task_statuses (code, name, color, sort_order, is_system) select 'new', 'Новая',"
-                        + " '#3b82f6', 10, true where not exists (select 1 from ms_task_statuses where code = 'new')"))
-            jdbc.sql(sql).update();
+                "delete from ms_tasks",
+                "delete from ms_task_projects",
+                // Delete only mutable fixture rows: truncating users cascades to immutable version tables even
+                // when those tables contain no rows (ADR-0035). Reset settings before deleting their author.
+                "delete from search_settings",
+                "delete from md_users",
+                "insert into search_settings(id) values(1)")) jdbc.sql(sql).update();
         publisher = SearchRevisionIntegrationTest.proxied(new SearchChangePublisher(jdbc), manager);
         reader = new SearchProjectionReader(jdbc, mapper, entities);
         delivery = SearchRevisionIntegrationTest.proxied(new SearchDeliveryRepository(jdbc), manager);

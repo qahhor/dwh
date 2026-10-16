@@ -38,6 +38,11 @@ class MigrationFileRulesTest {
     private static final Pattern DESTRUCTIVE_DML =
             Pattern.compile("(?im)^\\s*(DELETE\\s+FROM|UPDATE\\s+\\S+\\s+SET)\\b");
 
+    /** A trigger's event list declares when a function runs; it does not execute TRUNCATE. */
+    private static final Pattern TRIGGER_EVENTS =
+            Pattern.compile("(?i)\\bcreate\\s+(?:or\\s+replace\\s+)?trigger\\s+\\S+\\s+(?:before|after)\\s+"
+                    + "(?:insert|update|delete|truncate)(?:\\s+or\\s+(?:insert|update|delete|truncate))*\\s+on\\b");
+
     private static final Pattern DDL = Pattern.compile("(?i)^\\s*(CREATE|ALTER|DROP)\\b", Pattern.MULTILINE);
     private static final Pattern SEED = Pattern.compile("(?i)^\\s*(INSERT|COPY)\\b", Pattern.MULTILINE);
     private static final Pattern DOLLAR_BODY = Pattern.compile("\\$\\$.*?\\$\\$", Pattern.DOTALL);
@@ -89,6 +94,10 @@ class MigrationFileRulesTest {
                 "delete from t where id = 1;",
                 "update t set a = 1;",
                 "truncate t;",
+                "create trigger guard before truncate on t for each statement execute function f(); truncate t;",
+                "create trigger guard after truncate on t for each statement execute function f();\ntruncate table t;",
+                "create trigger guard before truncate on t for each statement execute function f();"
+                        + " do $$ begin truncate t; end $$;",
                 "alter table t drop column c;",
                 "do $$ begin execute format('drop table %I', 'audit_log_2027_01'); end $$;",
                 "do $$ begin delete from t where id = 1; end $$;"
@@ -106,7 +115,12 @@ class MigrationFileRulesTest {
                 "create or replace function f() returns trigger language plpgsql as $$\nbegin\n"
                         + "  delete from t; execute 'drop trigger x on y'; update t set a = 1;\nend $$;",
                 "insert into t (a) values (1) on conflict (a) do update set b = excluded.b;",
-                "create trigger trg before update or delete on t for each row execute function f();"
+                "create trigger trg before update or delete on t for each row execute function f();",
+                "create trigger guard before truncate on t for each statement execute function f();",
+                "create trigger guard after truncate on t for each statement execute function f();",
+                "create trigger guard before insert or truncate on t for each statement execute function f();",
+                "CREATE OR REPLACE TRIGGER guard BEFORE TRUNCATE OR DELETE ON t FOR EACH STATEMENT EXECUTE FUNCTION f();",
+                "create trigger guard before\ntruncate\non t for each statement execute function f();"
             })
     @DisplayName("AC-2: create or replace function, do update, тела функций и триггеры — не деструктивны")
     void nonDestructiveIsGreen(String sql) {
@@ -160,6 +174,7 @@ class MigrationFileRulesTest {
     /** Whether a migration is destructive: the top level with function bodies ($$…$$) cut out, plus DO blocks. */
     static boolean destructive(String text) {
         String topLevel = DOLLAR_BODY.matcher(text).replaceAll("\\$\\$body\\$\\$");
+        topLevel = TRIGGER_EVENTS.matcher(topLevel).replaceAll("create trigger on");
         if (DESTRUCTIVE_DDL.matcher(topLevel).find()
                 || DESTRUCTIVE_DML.matcher(topLevel).find()) {
             return true;

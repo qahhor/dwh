@@ -23,6 +23,8 @@ export class ProjectMembersService {
 
   readonly selectedProjectForMembers = signal<Project | null>(null);
   readonly isAddingMember = signal<boolean>(false);
+  /** Successful additions reset the picker; refusals keep the selected person. */
+  readonly addedCount = signal(0);
   readonly removingMemberId = signal<number | null>(null);
   /** The server's refusal of the last added member, by field (`userId`, `accessKind`). */
   readonly addErrors = signal<Readonly<Record<string, string>>>({});
@@ -56,6 +58,7 @@ export class ProjectMembersService {
   }
 
   closeMembersModal(): void {
+    if (this.isAddingMember() || this.removingMemberId() !== null) return;
     this.selectedProjectForMembers.set(null);
     this.pager.cancel();
     this.pager.items.set([]);
@@ -72,13 +75,17 @@ export class ProjectMembersService {
     this.projectsApi.addMember(event.projectId, event.userId, event.accessKind).subscribe({
       next: () => {
         this.isAddingMember.set(false);
+        this.addedCount.update((count) => count + 1);
         this.toast.success(this.uiI18n.translate('projects.members.added'));
         this.pager.first();
       },
       error: (err: unknown) => {
         this.isAddingMember.set(false);
         // A refusal about the person or the access level goes under that field (forms standard, section 5).
-        const { fields, other } = problemFieldErrors(err, { known: ['userId', 'accessKind'] });
+        const { fields, other } = problemFieldErrors(err, {
+          known: ['userId', 'accessKind'],
+          rename: { 'params.userId': 'userId', 'params.accessKind': 'accessKind' },
+        });
         this.addErrors.set(fields);
         if (Object.keys(fields).length === 0 || other.length > 0) {
           this.toast.error(other[0] ?? (problemText(err) || this.uiI18n.translate('projects.members.add_failed')));

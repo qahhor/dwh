@@ -89,6 +89,98 @@ describe('SMTEntityLinesComponent', () => {
     expect(lines.rows()[0]['qty']).toBe(1);
   });
 
+  it('checks a row field after leaving it and immediately clears a corrected range error', () => {
+    const { fixture, host } = render([{ ...row('A'), qty: 0 }], {
+      collection: {
+        ...LINES,
+        fields: LINES.fields.map((field) => (field.key === 'qty' ? { ...field, min: 1 } : field)),
+      },
+    });
+    const input = host.querySelector('[data-field="qty"] input') as HTMLInputElement;
+    expect(host.textContent).not.toContain(translateTest('ui.entity_form.out_of_range'));
+    input.focus();
+    input.blur();
+    fixture.detectChanges();
+    expect(host.textContent).toContain(translateTest('ui.entity_form.out_of_range'));
+
+    input.value = '3';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(host.textContent).not.toContain(translateTest('ui.entity_form.out_of_range'));
+  });
+
+  it('keeps row errors attached to their row when moving or removing rows', () => {
+    const { lines, click } = render([row('A'), row('B')], {
+      problems: { 'lines[0].qty': 'First row error', 'lines[1].product': 'Second row error', other: 'Unrelated' },
+    });
+    click('entity-line-down', 0);
+    expect(lines.problemOf(1, 'qty')).toBe('First row error');
+    expect(lines.problemOf(0, 'product')).toBe('Second row error');
+    click('entity-line-remove', 0);
+    expect(lines.problemOf(0, 'qty')).toBe('First row error');
+    expect(lines.problemOf(0, 'product')).toBe('');
+    expect(lines.problems()['other']).toBe('Unrelated');
+  });
+
+  it('retains touched row feedback across a move and does not transfer it to the other row', () => {
+    const { fixture, host, click } = render(
+      [
+        { ...row('A'), qty: 0 },
+        { ...row('B'), qty: 0 },
+      ],
+      {
+        collection: {
+          ...LINES,
+          fields: LINES.fields.map((field) => (field.key === 'qty' ? { ...field, min: 1 } : field)),
+        },
+      },
+    );
+    const qty = host.querySelector('[data-line="0"] [data-field="qty"] input') as HTMLInputElement;
+    qty.focus();
+    qty.blur();
+    fixture.detectChanges();
+    click('entity-line-down', 0);
+    expect(host.querySelector('[data-line="0"]')?.textContent).not.toContain(
+      translateTest('ui.entity_form.out_of_range'),
+    );
+    expect(host.querySelector('[data-line="1"]')?.textContent).toContain(translateTest('ui.entity_form.out_of_range'));
+  });
+
+  it('treats amount and currency as one row field and clears its feedback when the rows become read-only', () => {
+    const { fixture, host } = render([row('A')], {
+      values: {},
+      collection: {
+        ...LINES,
+        fields: LINES.fields.map((field) => (field.key === 'price' ? { ...field, required: true } : field)),
+      },
+    });
+    const field = host.querySelector('[data-field="price"]') as HTMLElement;
+    const amount = field.querySelector('input') as HTMLInputElement;
+    const currency = field.querySelector('[role="combobox"]') as HTMLElement;
+    amount.focus();
+    currency.focus();
+    fixture.detectChanges();
+    expect(field.textContent).not.toContain(translateTest('ui.entity_form.required'));
+    currency.blur();
+    fixture.detectChanges();
+    expect(field.textContent).toContain(translateTest('ui.entity_form.required'));
+    fixture.componentRef.setInput('readonly', true);
+    fixture.detectChanges();
+    expect(field.textContent).not.toContain(translateTest('ui.entity_form.required'));
+  });
+
+  it('clears a changed row field server error without hiding the other row errors', () => {
+    const { fixture, lines, host } = render([row('A')], {
+      problems: { 'lines[0].qty': 'Server quantity problem', 'lines[0].product': 'Server product problem' },
+    });
+    const input = host.querySelector('[data-field="qty"] input') as HTMLInputElement;
+    input.value = '2';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(lines.problemOf(0, 'qty')).toBe('');
+    expect(lines.problemOf(0, 'product')).toBe('Server product problem');
+  });
+
   it('offers only the document currency for its money, and the field own list without one', () => {
     const { lines, fixture } = render([row('A')]);
     const price = LINES.fields[2];

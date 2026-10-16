@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
@@ -48,8 +49,9 @@ public class MfAttachments implements EntityFiles {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<FileFacts> attachable(UUID fileId, String entity, @Nullable Long recordId, long userId) {
-        return attachments.attachable(fileId, entity, recordId, userId);
+    public Optional<FileFacts> attachable(
+            UUID fileId, String entity, @Nullable Long recordId, long userId, Set<String> visibleFields) {
+        return attachments.attachable(fileId, entity, recordId, userId, visibleFields);
     }
 
     @Override
@@ -73,8 +75,8 @@ public class MfAttachments implements EntityFiles {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<FileFacts> attached(String entity, long recordId, UUID fileId) {
-        return attachments.attached(entity, recordId, fileId);
+    public Optional<FileFacts> attached(String entity, long recordId, UUID fileId, Set<String> visibleFields) {
+        return attachments.attached(entity, recordId, fileId, visibleFields);
     }
 
     private static Map<String, Object> row(@Nullable UUID fileId) {

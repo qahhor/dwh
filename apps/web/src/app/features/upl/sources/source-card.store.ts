@@ -202,6 +202,13 @@ export class SourceCardStore {
     this.reload();
   }
 
+  clearFieldError(key: string): void {
+    this.fieldErrors.update(({ [key]: _previous, ...rest }) => rest);
+    if (!Object.keys(this.fieldErrors()).length && this.saveError() === 'upl.err.VALIDATION_FAILED') {
+      this.saveError.set(null);
+    }
+  }
+
   openDraftDialog(): void {
     this.draftError.set(null);
     this.draftExists.set(false);

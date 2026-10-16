@@ -51,6 +51,8 @@ const TESTS = [
   // The generated entity: its contract kit, every entity has one, the schema has every declared column, and its API
   // description builds (written as the CLI tells the developer to).
   'MsProbeItemsContractTest',
+  'CatalogLocationsContractTest',
+  'CatalogLocationsDeliveryTest',
   'EntityContractCoverageTest',
   'EntitySchemaDiffTest',
   'EntitySchemaContractTest',
@@ -104,6 +106,29 @@ function generate() {
   cmsOk('entity', 'add-field', 'probe.items', 'dueOn', '--type', 'date', '--label', 'Срок', '--label-en', 'Due on');
   cmsOk('entity', 'add-field', 'probe.items', 'amount', '--type', 'number', '--required', '--label', 'Сумма');
   cmsOk('entity', 'add-field', 'probe.items', 'stage', '--type', 'select', '--options', 'draft,ready', '--label', 'Этап');
+}
+
+function generateStudio() {
+  const fixture = 'apps/server/src/test/resources/studio/simple-form.json';
+  const declaration = JSON.parse(read(fixture));
+  const checksum = read(fixture.replace(/\.json$/, '.sha256')).trim();
+  const delivery = { formatVersion: 1, kind: 'simple-form-package', declaration, checksum };
+  const file = path.join(work, 'studio-package.json');
+  fs.writeFileSync(file, JSON.stringify(delivery));
+  cmsOk('form', 'apply', file);
+  fs.copyFileSync(resolve(work, 'tools/cms-cli/test/fixtures/CatalogLocationsDeliveryTest.java'),
+    resolve(work, 'apps/server/src/test/java/com/smartup24/cms/instance/catalog/CatalogLocationsDeliveryTest.java'));
+  const declarationPath = 'apps/server/src/main/java/com/smartup24/cms/instance/catalog/service/CatalogLocationsEntity.java';
+  const original = read(declarationPath);
+  fs.writeFileSync(resolve(work, declarationPath), original.replace('Generated reference form', 'Edited reference form'));
+  const before = read(declarationPath);
+  check(cmsOk('form', 'apply', file).includes('Nothing to change'), 'Studio replay writes nothing');
+  check(read(declarationPath) === before, 'Studio replay preserves manual edits');
+  fs.writeFileSync(resolve(work, declarationPath), original);
+  delivery.declaration.fields[0].required = false;
+  fs.writeFileSync(file, JSON.stringify(delivery));
+  check(cms('form', 'apply', file).status !== 0, 'a tampered Studio package is rejected');
+  fs.unlinkSync(file);
 }
 
 function checkRerunAndEdits() {
@@ -185,7 +210,7 @@ function build() {
   const args = ['-B', '-ntp', '-pl', 'apps/server', '-am', 'spotless:check', 'test', 'checkstyle:check'];
   // The generated entity joins the exact list of declared entities of EntityActionPermissionContractTest.
   args.push(`-Dtest=${TESTS.join(',')}`, '-Dsurefire.failIfNoSpecifiedTests=false', '-Dopenapi.update=true');
-  args.push('-Dcms.smoke.entities=probe.items');
+  args.push('-Dcms.smoke.entities=probe.items,catalog.locations');
   console.log(`Building the server with the generated module (${TESTS.length} test classes); log ${log}`);
   const status = runMaven(work, args, log);
   if (status !== 0) {
@@ -244,6 +269,7 @@ try {
   console.log(`Copying the repository to ${work}`);
   copyRepository();
   generate();
+  generateStudio();
   checkRerunAndEdits();
   checkGenerated();
   if (!skipBuild) {

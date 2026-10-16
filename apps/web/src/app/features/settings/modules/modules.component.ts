@@ -2,13 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, sig
 import { rxResource } from '@angular/core/rxjs-interop';
 import { catchError, map, of } from 'rxjs';
 
-import { ModulesApi } from './modules.api';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
-import { moduleDescription, moduleTitle } from '@core/services/module.service';
+import { ModuleService, moduleDescription, moduleTitle } from '@core/services/module.service';
 import { InstalledModule, ModuleFilterTab } from './modules.models';
 import { ModulesStatsComponent } from './components/modules-stats.component';
 import { ModulesToolbarComponent } from './components/modules-toolbar.component';
@@ -101,7 +100,7 @@ node tools/cms-cli/bin/cms.mjs entity new crm deals --title "Deals" --title-en "
   styleUrl: './modules.component.css',
 })
 export class ModulesComponent {
-  private readonly modulesApi = inject(ModulesApi);
+  private readonly modulesApi = inject(ModuleService);
   private readonly permissions = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
@@ -138,7 +137,7 @@ export class ModulesComponent {
     const q = this.searchQuery().trim().toLowerCase();
     if (q) {
       list = list.filter((m) => {
-        const code = (m.code || m.moduleCode || '').toLowerCase();
+        const code = m.code.toLowerCase();
         return (
           this.title(m).toLowerCase().includes(q) ||
           code.includes(q) ||
@@ -152,7 +151,7 @@ export class ModulesComponent {
 
   private readonly modulesResource = rxResource({
     stream: () =>
-      this.modulesApi.list().pipe(
+      this.modulesApi.loadAllModules().pipe(
         map((list) => list || []),
         catchError(() => {
           this.toast.error(this.i18n.translate('modules.load_error'));
@@ -173,28 +172,25 @@ export class ModulesComponent {
 
   /** Shows the change at once and takes it back if the server refuses it. */
   toggleModule(mod: InstalledModule, targetActive: boolean): void {
+    if (this.togglingCode() || !this.canManage()) return;
     if (mod.isSystem) {
       this.toast.error(this.i18n.translate('modules.system_cannot_disable'));
       return;
     }
 
-    const code = mod.code || mod.moduleCode || '';
+    const code = mod.code;
     if (!code) return;
 
     const setActive = (active: boolean) =>
-      this.modules.update((list) =>
-        list.map((m) => (m.code === code || m.moduleCode === code ? { ...m, isActive: active } : m)),
-      );
+      this.modules.update((list) => list.map((m) => (m.code === code ? { ...m, isActive: active } : m)));
     setActive(targetActive);
     this.togglingCode.set(code);
-    this.modulesApi.setEnabled(code, targetActive).subscribe({
+    this.modulesApi.toggleModule(code, targetActive).subscribe({
       next: (updated) => {
         this.togglingCode.set(null);
         this.modules.update((list) =>
           list.map((m) =>
-            m.code === code || m.moduleCode === code
-              ? { ...m, ...updated, isActive: updated.isActive ?? updated.status === 'ACTIVE' }
-              : m,
+            m.code === code ? { ...m, ...updated, isActive: updated.isActive ?? updated.status === 'ACTIVE' } : m,
           ),
         );
         this.toast.success(
@@ -212,7 +208,7 @@ export class ModulesComponent {
   }
 
   trackByModuleCode(_index: number, item: InstalledModule): string {
-    return item.code || item.moduleCode || '';
+    return item.code;
   }
 
   private title(mod: InstalledModule): string {

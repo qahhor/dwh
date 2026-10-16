@@ -2,6 +2,7 @@ package com.smartup24.cms.spi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.platform.api.PlatformVersion;
 import com.smartup24.cms.platform.api.contract.ApiPolicy;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,15 @@ class ProviderSpiContractTest {
     @Test
     void sinceIsAFeatureVersionNoLaterThanTheCurrentOne() {
         assertThat(POLICY.sinceProblems()).isEmpty();
+    }
+
+    @Test
+    void sealedHierarchyChangesRequireANewMajorVersion() {
+        Path baseline = Path.of("baseline", "provider-spi-" + BASELINE + ".jar");
+        Path api = Path.of("..", "platform-api", "baseline", "platform-api-" + BASELINE + ".jar");
+        assertThat(POLICY.sealedChangesWithoutMajor(
+                        baseline, PlatformVersion.parse(BASELINE), PlatformVersion.current(), api))
+                .isEmpty();
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.api.CreateTokenRequest;
 import com.smartup24.cms.instance.kauth.controller.KauthApiTokenController;
+import com.smartup24.cms.instance.support.TestModules;
 import com.smartup24.cms.instance.webhook.controller.WebhookSubscriptionController;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,7 +38,8 @@ class IdempotencyFilterTest {
     void setup() {
         idempotencyService = Mockito.mock(IdempotencyService.class);
         objectMapper = new ObjectMapper();
-        filter = new IdempotencyFilter(idempotencyService, objectMapper, PackagedProblemMessages.russian());
+        filter = new IdempotencyFilter(
+                idempotencyService, objectMapper, PackagedProblemMessages.russian(), TestModules.replayAccess());
     }
 
     @Test
@@ -110,8 +112,12 @@ class IdempotencyFilterTest {
         @SuppressWarnings("unchecked")
         ObjectProvider<RequestMappingHandlerMapping> provider = Mockito.mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(mapping);
-        IdempotencyFilter secretAware =
-                new IdempotencyFilter(idempotencyService, objectMapper, PackagedProblemMessages.russian(), provider);
+        IdempotencyFilter secretAware = new IdempotencyFilter(
+                idempotencyService,
+                objectMapper,
+                PackagedProblemMessages.russian(),
+                provider,
+                TestModules.replayAccess());
 
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/iam/profile/tokens");
         request.addHeader(
@@ -216,7 +222,8 @@ class IdempotencyFilterTest {
                 .complete(
                         eq(key),
                         eq(token),
-                        eq(new IdempotencyRepository.StoredAnswer(201, "{\"id\":10}", "/api/v1/tasks/10", null, null)));
+                        eq(new IdempotencyRepository.StoredAnswer(
+                                201, "{\"id\":10}", "/api/v1/tasks/10", null, null, "{}")));
     }
 
     @Test
@@ -238,7 +245,8 @@ class IdempotencyFilterTest {
                 IdempotencyRepository.State.COMPLETED,
                 Instant.now(),
                 null,
-                null);
+                null,
+                "{}");
 
         when(idempotencyService.computeRequestHash(anyString(), anyString(), any(), any()))
                 .thenReturn("hash123");

@@ -122,6 +122,35 @@ describe('OrgUnitEditorComponent', () => {
     expect(document.activeElement).toBe(input);
     expect(field('parent')).toBeNull();
   });
+  it('clears only the changed field refusal without turning it into a general error', async () => {
+    const { fixture, field, errors, settle } = await setup();
+    fixture.componentRef.setInput('error', {
+      status: 422,
+      detail: 'Invalid record',
+      errors: [
+        { field: 'name', message: 'Name refused' },
+        { field: 'orderNo', message: 'Order refused' },
+      ],
+    });
+    await settle();
+    const name = field('name') as HTMLInputElement;
+    name.focus();
+    name.value = 'Corrected';
+    name.dispatchEvent(new Event('input'));
+    await settle();
+    await settle();
+    expect(document.activeElement).toBe(name);
+    expect(errors()).toEqual(['Order refused']);
+    const order = field('order') as HTMLInputElement;
+    order.value = '7';
+    order.dispatchEvent(new Event('input'));
+    await settle();
+    expect(errors()).toEqual([]);
+    expect(fixture.nativeElement.textContent).not.toContain('Invalid record');
+    fixture.componentRef.setInput('error', { status: 422, errors: [{ field: 'name', message: 'New refusal' }] });
+    await settle();
+    expect(errors()).toEqual(['New refusal']);
+  });
   it('shows a refusal of no field above the fields', async () => {
     const { fixture, settle } = await setup();
     fixture.componentRef.setInput('error', { status: 500, title: 'Error', code: 'X', detail: 'Сервер недоступен' });

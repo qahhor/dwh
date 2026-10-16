@@ -330,6 +330,13 @@ export class SourcesListComponent implements OnInit {
     return code ? this.i18n.translate(code) : '';
   }
 
+  clearFieldError(key: string): void {
+    this.fieldErrors.update(({ [key]: _previous, ...rest }) => rest);
+    if (!Object.keys(this.fieldErrors()).length && this.createError() === 'upl.err.VALIDATION_FAILED') {
+      this.createError.set(null);
+    }
+  }
+
   private handleCreateError(problem: ProblemDetail): void {
     if (problem?.status === 422) {
       const errors: Record<string, string> = {};

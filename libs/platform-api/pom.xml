@@ -14,7 +14,7 @@
     <artifactId>platform-api</artifactId>
     <!-- The version of the platform's API (ADR-0033, 4): the root pom's platform-api.version, apart from the
          application's version. -->
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <name>SmartupCMS Platform API</name>
     <description>The public API a SmartupCMS module builds against: the entity declaration, hooks, rules, actions and
         events (ADR-0033)</description>

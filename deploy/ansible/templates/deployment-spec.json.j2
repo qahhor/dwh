@@ -1,0 +1,25 @@
+{
+  "root": {{ smc_private_root | to_json }},
+  "incoming": {{ smc_incoming.path | to_json }},
+  "assets": {{ (smc_incoming.path + '/assets') | to_json }},
+  "environment": {{ (smc_incoming.path + '/environment') | to_json }},
+  "verifier": {{ (smc_incoming.path + '/verify-published-release.ps1') | to_json }},
+  "repository": {{ smc_repository | to_json }},
+  "version": {{ smc_version | to_json }},
+  "release_channel": {{ smc_release_channel | default('stable') | to_json }},
+  "expected_source_sha": {{ smc_expected_source_sha | to_json }},
+  "staging": {{ smc_staging | default(false) | bool | to_json }},
+  "checksums_sha256": {{ smc_release_checksums_sha256 | to_json }},
+  "project": {{ smc_project | to_json }},
+  "action": {{ smc_action | default('deploy') | to_json }},
+  "rollback_approval": {{ (smc_incoming.path + '/rollback-approval.json') | to_json }},
+  "health_timeout": {{ smc_health_timeout | default(180) | int }},
+  "prerequisites": {{ smc_prerequisites | to_json }},
+  "recovery_host": {{ smc_recovery_host | default('') | to_json }},
+  "overlays": {{ ([smc_incoming.path + '/overlays/observability.yml', smc_incoming.path + '/overlays/staging.yml'] if smc_staging | default(false) | bool else []) | to_json }},
+  "secrets": [
+{% for item in smc_secret_files %}
+    {"variable": {{ item.variable | to_json }}, "name": {{ item.name | to_json }}, "source": {{ (smc_incoming.path + '/secrets/' + item.name) | to_json }}}{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}

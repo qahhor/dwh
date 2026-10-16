@@ -7,9 +7,7 @@ import com.smartup24.cms.instance.webhook.service.WebhookProperties;
 import com.smartup24.cms.instance.webhook.service.WebhookService;
 import com.smartup24.cms.instance.webhook.service.WebhookTargetPolicy;
 import com.smartup24.cms.instance.webhook.worker.WebhookOutboxWorker;
-import com.sun.net.httpserver.HttpServer;
 import io.micrometer.observation.ObservationRegistry;
-import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -20,6 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tools.jackson.databind.ObjectMapper;
 
+@org.junit.jupiter.api.extension.ExtendWith(WebhookTlsExtension.class)
+@org.junit.jupiter.api.parallel.ResourceLock("javax.net.ssl.SSLContext.default")
 class WebhookOutboxWorkerSecurityTest {
 
     @Test
@@ -76,7 +76,7 @@ class WebhookOutboxWorkerSecurityTest {
                 null,
                 claimToken,
                 Instant.now(),
-                "http://127.0.0.1/internal",
+                "https://127.0.0.1/internal",
                 "signing-secret");
         Mockito.when(repository.fetchPending(20)).thenReturn(List.of(item));
         var worker = new WebhookOutboxWorker(
@@ -104,9 +104,11 @@ class WebhookOutboxWorkerSecurityTest {
 
     @Test
     void boundsDeliveryTimeWhenTheRemoteEndpointStalls() throws Exception {
-        var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        var received = new java.util.concurrent.atomic.AtomicBoolean();
+        var server = WebhookTlsExtension.server();
         server.createContext("/slow", exchange -> {
             try {
+                received.set(true);
                 Thread.sleep(2_000);
                 exchange.sendResponseHeaders(204, -1);
             } catch (InterruptedException exception) {
@@ -119,8 +121,8 @@ class WebhookOutboxWorkerSecurityTest {
         try {
             var repository = Mockito.mock(WebhookOutboxRepository.class);
             var properties = properties(true, Set.of("127.0.0.1"), true);
-            properties.setConnectTimeout(Duration.ofMillis(100));
-            properties.setReadTimeout(Duration.ofMillis(100));
+            properties.setConnectTimeout(Duration.ofSeconds(1));
+            properties.setReadTimeout(Duration.ofMillis(500));
             UUID claimToken = UUID.randomUUID();
             var item = new WebhookOutboxRepository.OutboxRecord(
                     11L,
@@ -137,7 +139,7 @@ class WebhookOutboxWorkerSecurityTest {
                     null,
                     claimToken,
                     Instant.now(),
-                    "http://127.0.0.1:" + server.getAddress().getPort() + "/slow",
+                    "https://127.0.0.1:" + server.getAddress().getPort() + "/slow",
                     "signing-secret");
             Mockito.when(repository.fetchPending(20)).thenReturn(List.of(item));
             var worker = new WebhookOutboxWorker(
@@ -150,6 +152,8 @@ class WebhookOutboxWorkerSecurityTest {
             long startedAt = System.nanoTime();
             worker.processWebhooks();
             long elapsedMillis = Duration.ofNanos(System.nanoTime() - startedAt).toMillis();
+
+            assertThat(received).isTrue();
 
             Mockito.verify(repository)
                     .markFailed(
@@ -172,7 +176,7 @@ class WebhookOutboxWorkerSecurityTest {
         var receivedTimestamp = new java.util.concurrent.atomic.AtomicReference<String>();
         var receivedBody = new java.util.concurrent.atomic.AtomicReference<String>();
 
-        var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        var server = WebhookTlsExtension.server();
         server.createContext("/webhook", exchange -> {
             try {
                 receivedSig.set(exchange.getRequestHeaders().getFirst("X-Signature-SHA256"));
@@ -204,7 +208,7 @@ class WebhookOutboxWorkerSecurityTest {
                     null,
                     claimToken,
                     Instant.now(),
-                    "http://127.0.0.1:" + server.getAddress().getPort() + "/webhook",
+                    "https://127.0.0.1:" + server.getAddress().getPort() + "/webhook",
                     "my-test-secret");
             Mockito.when(repository.fetchPending(20)).thenReturn(List.of(item));
             var worker = new WebhookOutboxWorker(

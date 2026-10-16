@@ -3,11 +3,27 @@ set -eu
 
 PGDATABASE="${POSTGRES_DB:-smartupcms}"
 MIGRATE_USER="${MIGRATE_DB_USER:-smartupcms_migrator}"
-MIGRATE_PASSWORD="${MIGRATE_DB_PASSWORD:-${POSTGRES_PASSWORD}}"
+MIGRATE_PASSWORD="${MIGRATE_DB_PASSWORD:?MIGRATE_DB_PASSWORD is required}"
 APP_USER="${APP_DB_USER:-${DB_USER:-smartupcms}}"
-APP_PASSWORD="${APP_DB_PASSWORD:-${DB_PASSWORD:-${POSTGRES_PASSWORD}}}"
+APP_PASSWORD="${APP_DB_PASSWORD:?APP_DB_PASSWORD is required}"
 BACKUP_USER="${BACKUP_DB_USER:-smartupcms_backup}"
-BACKUP_PASSWORD="${BACKUP_DB_PASSWORD:-${POSTGRES_PASSWORD}}"
+BACKUP_PASSWORD="${BACKUP_DB_PASSWORD:?BACKUP_DB_PASSWORD is required}"
+
+require_distinct() {
+    while [ "$#" -gt 0 ]; do
+        current="$1"
+        shift
+        for other do
+            if [ "$current" = "$other" ]; then
+                echo 'database role names and credentials must be distinct' >&2
+                exit 64
+            fi
+        done
+    done
+}
+
+require_distinct "${POSTGRES_USER:?POSTGRES_USER is required}" "$MIGRATE_USER" "$APP_USER" "$BACKUP_USER"
+require_distinct "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}" "$MIGRATE_PASSWORD" "$APP_PASSWORD" "$BACKUP_PASSWORD"
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$PGDATABASE" \
     --set=migrate_user="$MIGRATE_USER" --set=migrate_password="$MIGRATE_PASSWORD" \

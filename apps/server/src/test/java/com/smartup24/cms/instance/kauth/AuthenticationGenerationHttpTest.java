@@ -6,6 +6,8 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.smartup24.cms.instance.common.module.InstalledModules;
+import com.smartup24.cms.instance.common.module.ModuleCatalog;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.idempotency.*;
@@ -15,6 +17,7 @@ import com.smartup24.cms.instance.kauth.controller.*;
 import com.smartup24.cms.instance.kauth.security.*;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
+import com.smartup24.cms.instance.support.TestModules;
 import jakarta.servlet.http.Cookie;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -25,6 +28,7 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.MapPropertySource;
@@ -684,5 +688,20 @@ class AuthenticationGenerationHttpTest {
         KauthApiTokenController.class,
         KauthChannelController.class
     })
-    static class HttpConfiguration {}
+    static class HttpConfiguration {
+        @Bean
+        ModuleCatalog moduleCatalog() {
+            return TestModules.catalog();
+        }
+
+        @Bean
+        InstalledModules installedModules() {
+            return code -> true;
+        }
+
+        @Bean
+        IdempotencyModuleAccess idempotencyModuleAccess() {
+            return TestModules.replayAccess();
+        }
+    }
 }

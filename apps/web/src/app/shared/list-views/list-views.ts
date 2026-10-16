@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, catchError, map, of, tap } from 'rxjs';
+import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 import { QueryCondition, QueryMatch, QuerySort } from '@core/models/query-meta.models';
 import { ApiService } from '@core/services/api.service';
 import { filterDsl, formatSort, parseSort, readFilterDsl } from '@core/services/query-meta.service';
@@ -45,11 +45,15 @@ export class ListViewsApi {
   }
 
   update(listCode: string, id: number, body: ListViewRequest): Observable<SavedListView> {
-    return this.api.put<SavedListView>(`${this.path(listCode)}/${id}`, body, { notifyError: false });
+    const { lockVersion, ...payload } = body;
+    return this.api.put<SavedListView>(`${this.path(listCode)}/${id}`, payload, {
+      notifyError: false,
+      ifMatch: lockVersion,
+    });
   }
 
-  remove(listCode: string, id: number): Observable<void> {
-    return this.api.delete<void>(`${this.path(listCode)}/${id}`, { notifyError: false });
+  remove(listCode: string, id: number, revision: number): Observable<void> {
+    return this.api.delete<void>(`${this.path(listCode)}/${id}`, { notifyError: false, ifMatch: revision });
   }
 
   private path(listCode: string): string {
@@ -145,6 +149,7 @@ export class ListViewState {
   saveAs(name: string, isDefault: boolean): Observable<SavedListView> {
     this.busy.set(true);
     return this.api.create(this.listCode, { name, state: this.current(), isDefault }).pipe(
+      switchMap((saved) => this.refreshDefaults(saved)),
       tap({
         next: (saved) => {
           this.replace(saved);
@@ -167,7 +172,7 @@ export class ListViewState {
 
   remove(view: SavedListView): Observable<void> {
     this.busy.set(true);
-    return this.api.remove(this.listCode, view.id).pipe(
+    return this.api.remove(this.listCode, view.id, view.lockVersion).pipe(
       tap({
         next: () => {
           this.views.update((views) => views.filter((item) => item.id !== view.id));
@@ -181,9 +186,21 @@ export class ListViewState {
   private update(view: SavedListView, body: ListViewRequest): Observable<SavedListView> {
     this.busy.set(true);
     return this.api.update(this.listCode, view.id, { ...body, lockVersion: view.lockVersion }).pipe(
+      switchMap((saved) => this.refreshDefaults(saved)),
       tap({
         next: (saved) => this.replace(saved),
         finalize: () => this.busy.set(false),
+      }),
+    );
+  }
+
+  private refreshDefaults(saved: SavedListView): Observable<SavedListView> {
+    if (!saved.isDefault) return of(saved);
+    this.views.set([saved]);
+    return this.api.list(this.listCode).pipe(
+      map((views) => {
+        this.views.set(views);
+        return saved;
       }),
     );
   }

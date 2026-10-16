@@ -134,6 +134,19 @@ describe('ListViewState', () => {
     expect(state.views().map((view) => view.name)).toEqual(['Monthly']);
   });
 
+  it('refreshes the former default revision before it can be edited again', async () => {
+    const { state, api } = setup();
+    await firstValueFrom(state.load());
+    api.list.mockReturnValue(
+      of([
+        { ...monthly, isDefault: true, lockVersion: 1 },
+        { ...all, isDefault: false, lockVersion: 1 },
+      ]),
+    );
+    await firstValueFrom(state.setDefault(monthly, true));
+    expect(api.list).toHaveBeenCalledTimes(2);
+    expect(state.views().find((view) => view.id === all.id)?.lockVersion).toBe(1);
+  });
   it('remembers column changes of the standard view only', async () => {
     const { state, store } = setup([]);
     await firstValueFrom(state.load());

@@ -244,7 +244,7 @@ class EntityReportIntegrationTest extends EmbeddedPostgresTest {
         state.put("filter", List.of(Map.of("field", "customer", "op", "contains", "value", tag)));
         state.put("chart", "bar");
 
-        MockHttpServletResponse saved = session.send(post(views), view("By status " + tag, state, "widget"));
+        MockHttpServletResponse saved = session.send(post(views), view("By status " + tag, state, "widget"), null);
         assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(201);
         Map<String, Object> widget = TestSession.object(saved);
         assertThat(widget).containsEntry("kind", "widget").containsEntry("isDefault", false);
@@ -272,7 +272,7 @@ class EntityReportIntegrationTest extends EmbeddedPostgresTest {
         assertThat(TestSession.array(neighbour.send(get("/api/v1/report-widgets"))))
                 .isEmpty();
 
-        MockHttpServletResponse table = session.send(post(views), view("Table " + tag, Map.of(), null));
+        MockHttpServletResponse table = session.send(post(views), view("Table " + tag, Map.of(), null), null);
         assertThat(table.getStatus()).as(table.getContentAsString()).isEqualTo(201);
         assertThat(session.send(get(
                                 ORDERS + "/reports/" + TestSession.object(table).get("id")))
@@ -280,8 +280,8 @@ class EntityReportIntegrationTest extends EmbeddedPostgresTest {
                 .isEqualTo(404);
 
         Map<String, Object> asReport = view("By status " + tag, state, "report");
-        asReport.put("lockVersion", widget.get("lockVersion"));
-        MockHttpServletResponse unpinned = session.send(put(views + "/" + id), asReport);
+        MockHttpServletResponse unpinned =
+                session.send(put(views + "/" + id).header("If-Match", widget.get("lockVersion")), asReport, null);
         assertThat(unpinned.getStatus()).as(unpinned.getContentAsString()).isEqualTo(200);
         assertThat(TestSession.array(session.send(get("/api/v1/report-widgets"))))
                 .isEmpty();
@@ -300,21 +300,22 @@ class EntityReportIntegrationTest extends EmbeddedPostgresTest {
                                 "measures", List.of(Map.of("op", "sum", "field", "status")),
                                 "chart", "pie",
                                 "columns", Map.of()),
-                        "report"));
+                        "report"),
+                null);
         assertThat(bad.getStatus()).isEqualTo(422);
         assertThat(bad.getContentAsString())
                 .contains("state.groupBy[0].field", "state.measures[0].field", "state.chart", "state.columns");
 
         Map<String, Object> defaulted = view("Default " + tag, Map.of("chart", "kpi"), "report");
         defaulted.put("isDefault", true);
-        MockHttpServletResponse notDefault = session.send(post(views), defaulted);
+        MockHttpServletResponse notDefault = session.send(post(views), defaulted, null);
         assertThat(notDefault.getStatus()).isEqualTo(422);
         assertThat(notDefault.getContentAsString()).contains("\"field\":\"isDefault\"");
 
         TestUser auditor = users.withRights(
                 Map.of("upl.sources", Set.of("view"), "md.profile", Set.of("view", "update")), clerk.unit());
         MockHttpServletResponse notEntity = TestSession.signIn(wac, auditor.login())
-                .send(post("/api/v1/list-views/upl.sources"), view("Report " + tag, Map.of(), "report"));
+                .send(post("/api/v1/list-views/upl.sources"), view("Report " + tag, Map.of(), "report"), null);
         assertThat(notEntity.getStatus()).as(notEntity.getContentAsString()).isEqualTo(422);
         assertThat(notEntity.getContentAsString()).contains("\"field\":\"kind\"");
         assertThat(session.send(get(views).param("kind", "chart")).getStatus()).isEqualTo(422);
@@ -325,12 +326,12 @@ class EntityReportIntegrationTest extends EmbeddedPostgresTest {
     void widgetsAreLimited() throws Exception {
         String views = "/api/v1/list-views/" + ExampleOrderEntity.CODE;
         for (int i = 0; i < 12; i++) {
-            assertThat(session.send(post(views), view("W" + i + " " + tag, Map.of("chart", "kpi"), "widget"))
+            assertThat(session.send(post(views), view("W" + i + " " + tag, Map.of("chart", "kpi"), "widget"), null)
                             .getStatus())
                     .isEqualTo(201);
         }
         MockHttpServletResponse thirteenth =
-                session.send(post(views), view("W12 " + tag, Map.of("chart", "kpi"), "widget"));
+                session.send(post(views), view("W12 " + tag, Map.of("chart", "kpi"), "widget"), null);
         assertThat(thirteenth.getStatus()).isEqualTo(422);
         assertThat(thirteenth.getContentAsString()).contains("error.md.widget_limit");
         assertThat(TestSession.array(session.send(get("/api/v1/report-widgets"))))

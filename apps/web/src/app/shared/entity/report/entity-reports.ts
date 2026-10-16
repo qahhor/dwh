@@ -13,7 +13,7 @@ export type ReportOp = 'count' | 'sum' | 'avg' | 'min' | 'max';
 export const REPORT_OPS: readonly ReportOp[] = ['count', 'sum', 'avg', 'min', 'max'];
 
 /** How a report is drawn: a table, bars (it needs a grouping) or one figure (it has none). */
-export type ReportChart = 'table' | 'bar' | 'kpi';
+export type ReportChart = 'table' | 'bar' | 'kpi' | 'line' | 'horizontalBar';
 
 /** A saved report is a report; a widget is a report shown on the person's dashboard. */
 export type ReportKind = 'report' | 'widget';
@@ -30,6 +30,7 @@ export interface ReportMeasure {
 
 /** What a report asks for, as a saved view keeps it (ADR-0032 10.2). */
 export interface ReportState {
+  dataset?: string;
   groupBy: ReportGroup[];
   measures: ReportMeasure[];
   /** The list's filter DSL (ADR-0016). */
@@ -48,6 +49,9 @@ export interface SavedReport {
   name: string;
   state: ReportState;
   lockVersion: number;
+  canEdit?: boolean;
+  canShare?: boolean;
+  shared?: boolean;
 }
 
 /** A widget of the person's dashboard: a report saved on an entity's list. */
@@ -144,22 +148,23 @@ export class EntityReportsApi {
   private readonly api = inject(ApiService);
 
   /** The report as asked, under the entity's scope and field rights. */
-  run(code: string, state: Pick<ReportState, 'groupBy' | 'measures' | 'filter'>): Observable<ReportResult> {
+  run(code: string, state: Pick<ReportState, 'groupBy' | 'measures' | 'filter' | 'dataset'>): Observable<ReportResult> {
     const params = {
+      dataset: state.dataset,
       groupBy: JSON.stringify(state.groupBy),
       measures: JSON.stringify(state.measures),
       filter: state.filter.length > 0 ? JSON.stringify(state.filter) : undefined,
     };
     return this.api
       .get<ApiSchema<'QueryAggregateResult'>>(`${entityPath(code)}/report`, params, { notifyError: false })
-      .pipe(map(result));
+      .pipe(map(reportResult));
   }
 
   /** A report or widget the person saved, run now. */
   saved(code: string, id: number): Observable<ReportResult> {
     return this.api
       .get<ApiSchema<'QueryAggregateResult'>>(`${entityPath(code)}/reports/${id}`, undefined, { notifyError: false })
-      .pipe(map(result));
+      .pipe(map(reportResult));
   }
 
   /** The person's widgets, by name. */
@@ -184,17 +189,17 @@ export class EntityReportsApi {
   update(listCode: string, report: SavedReport): Observable<SavedReport> {
     return this.api.put<SavedReport>(
       `${viewsPath(listCode)}/${report.id}`,
-      { name: report.name, kind: report.kind, state: report.state, isDefault: false, lockVersion: report.lockVersion },
-      { notifyError: false },
+      { name: report.name, kind: report.kind, state: report.state, isDefault: false },
+      { notifyError: false, ifMatch: report.lockVersion },
     );
   }
 
-  remove(listCode: string, id: number): Observable<void> {
-    return this.api.delete<void>(`${viewsPath(listCode)}/${id}`, { notifyError: false });
+  remove(listCode: string, id: number, revision: number): Observable<void> {
+    return this.api.delete<void>(`${viewsPath(listCode)}/${id}`, { notifyError: false, ifMatch: revision });
   }
 }
 
-function result(raw: ApiSchema<'QueryAggregateResult'>): ReportResult {
+export function reportResult(raw: ApiSchema<'QueryAggregateResult'>): ReportResult {
   return {
     groups: (raw.groups ?? []).map((group) => ({
       field: group.field ?? '',

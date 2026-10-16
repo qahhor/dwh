@@ -115,6 +115,7 @@ for (const [route, href] of [
   ['/settings/modules', '/settings/modules'],
   ['/settings', '/settings'],
   ['/tasks/projects', '/tasks/projects'],
+  ['/tasks/items', '/tasks'],
 ] as const) {
   test(`the side menu marks exactly one item on ${route}`, async ({ page }) => {
     await loginToInstance(page);

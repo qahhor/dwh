@@ -117,7 +117,7 @@ describe('the rows of a document on the form', () => {
         { field: 'lines[0].qty', code: 'out_of_range', message: '' },
         { field: 'lines', code: 'required', message: '' },
         { field: 'lines[2]', code: 'invalid', message: 'Bad row' },
-        { field: 'unknown[0].x', code: 'invalid', message: 'ignored' },
+        { field: 'unknown[0].x', code: 'invalid', message: 'Unknown collection error' },
       ],
       translateTest,
     );
@@ -125,6 +125,33 @@ describe('the rows of a document on the form', () => {
       'lines[0].qty': translateTest('ui.entity_form.out_of_range'),
       lines: translateTest('ui.entity_lines.required'),
       'lines[2]': 'Bad row',
+      'unknown[0].x': 'Unknown collection error',
+    });
+  });
+
+  it('excludes hidden and read-only row fields from the pre-submit checks', () => {
+    const meta = {
+      ...DOC,
+      collections: [
+        {
+          ...DOC.collections![0],
+          fields: [
+            formField('hidden', 'text', {
+              required: true,
+              visibleWhen: [{ field: 'currency', op: 'eq' as const, values: ['USD'] }],
+            }),
+            formField('locked', 'text', { required: true, readonly: true }),
+            formField('fixed', 'text', { required: true, readonlyOnUpdate: true }),
+          ],
+        },
+      ],
+    };
+    expect(formProblems(meta, { customer: 'Shop', currency: 'UZS', lines: [{ id: 1 }] }, translateTest)).toEqual({});
+    expect(
+      formProblems(meta, { customer: 'Shop', currency: 'USD', lines: [{ id: null }] }, translateTest, true),
+    ).toEqual({
+      'lines[0].hidden': translateTest('ui.entity_form.required'),
+      'lines[0].fixed': translateTest('ui.entity_form.required'),
     });
   });
 

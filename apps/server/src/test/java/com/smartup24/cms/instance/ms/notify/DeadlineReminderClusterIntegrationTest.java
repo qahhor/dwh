@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.ms.notify;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.instance.common.module.InstalledModules;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
 import com.smartup24.cms.instance.ms.task.worker.TaskDeadlineReminderWorker;
@@ -44,6 +45,9 @@ class DeadlineReminderClusterIntegrationTest extends EmbeddedPostgresTest {
 
     @Autowired
     private JdbcClient jdbc;
+
+    @Autowired
+    private InstalledModules modules;
 
     @Test
     @DisplayName("FR-TASK-8: the second of two concurrent senders waits for the first and sends nothing")
@@ -89,8 +93,10 @@ class DeadlineReminderClusterIntegrationTest extends EmbeddedPostgresTest {
         long user = systemUser();
         long task = taskDueSoon(user);
         String source = "task_deadline_" + task;
-        TaskDeadlineReminderWorker secondNode = new TaskDeadlineReminderWorker(taskStats, events, transactionManager);
-        TaskDeadlineReminderWorker firstNode = new TaskDeadlineReminderWorker(taskStats, events, transactionManager);
+        TaskDeadlineReminderWorker secondNode =
+                new TaskDeadlineReminderWorker(taskStats, events, transactionManager, modules);
+        TaskDeadlineReminderWorker firstNode =
+                new TaskDeadlineReminderWorker(taskStats, events, transactionManager, modules);
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             for (int round = 0; round < 3; round++) {

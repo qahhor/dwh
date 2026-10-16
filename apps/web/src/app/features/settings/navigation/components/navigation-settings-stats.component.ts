@@ -27,7 +27,7 @@ import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
       }
       .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
         gap: 14px;
       }
     `,

@@ -22,17 +22,12 @@
       @if (title) {
         <h2 class="smt-drawer__title" [id]="titleId">{{ title }}</h2>
       }
-      <button
-        type="button"
-        class="smt-drawer__close"
-        (click)="close()"
-        [attr.aria-label]="i18n.messages().common.close"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">close</span>
-      </button>
     </div>
     <div class="smt-drawer__body">
       <ng-container #contentContainer></ng-container>
     </div>
+    <button type="button" class="smt-drawer__close" (click)="close()" [attr.aria-label]="i18n.messages().common.close">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
   </div>
 </div>

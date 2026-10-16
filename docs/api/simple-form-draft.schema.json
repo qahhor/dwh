@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SmartupCMS unfinished local simple form draft v1",
+  "description": "Structure only, no delivery checksum or activation. Same raw JSON/UTF-8/depth limits as a complete declaration. Empty names/labels and unfinished finite numeric values may be recovered; prepare independently enforces all complete-declaration constraints.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formatVersion",
+    "kind",
+    "module",
+    "entity",
+    "fields"
+  ],
+  "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "kind": {
+      "const": "simple-form"
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "title"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "title": {
+          "$ref": "#/$defs/labels"
+        }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "title"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "title": {
+          "$ref": "#/$defs/labels"
+        }
+      }
+    },
+    "fields": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/field"
+      }
+    }
+  },
+  "$defs": {
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ru",
+        "uz",
+        "en"
+      ],
+      "properties": {
+        "ru": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80
+        },
+        "uz": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80
+        },
+        "en": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "labels",
+        "required",
+        "listed"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "type": {
+          "enum": [
+            "text",
+            "textarea",
+            "number",
+            "date",
+            "datetime",
+            "time",
+            "bool",
+            "email",
+            "phone",
+            "url"
+          ]
+        },
+        "labels": {
+          "$ref": "#/$defs/labels"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "listed": {
+          "type": "boolean"
+        },
+        "maxLength": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "text",
+                  "textarea"
+                ]
+              }
+            }
+          },
+          "then": {},
+          "else": {
+            "not": {
+              "required": [
+                "maxLength"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            }
+          },
+          "then": {},
+          "else": {
+            "not": {
+              "required": [
+                "scale"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

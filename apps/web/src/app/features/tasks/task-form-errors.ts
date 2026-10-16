@@ -36,3 +36,17 @@ export function taskErrorSummary(
   });
   return [...items, ...errors.other.map((message) => ({ message }))];
 }
+
+/** Drop only the edited field's refusal, keeping all other server messages. */
+export function clearTaskFieldError(errors: ProblemFieldErrors, field: string): ProblemFieldErrors {
+  if (!(field in errors.fields)) return errors;
+  return { ...errors, fields: clearTaskErrors(errors.fields, [field]) };
+}
+
+/** The dictionary and member forms keep the same field map without a summary wrapper. */
+export function clearTaskErrors(
+  errors: Readonly<Record<string, string>>,
+  fields: readonly string[],
+): Readonly<Record<string, string>> {
+  return Object.fromEntries(Object.entries(errors).filter(([field]) => !fields.includes(field)));
+}

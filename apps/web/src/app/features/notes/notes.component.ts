@@ -81,6 +81,10 @@ export class NotesComponent {
   /** The note in the form dialog: 'new' creates one, null means the dialog is closed. */
   readonly editing = signal<Note | 'new' | null>(null);
 
+  readonly loadError = computed(() => this.form.value() === null || this.firstPage.value() === null);
+  readonly loading = computed(() => this.form.isLoading() || this.firstPage.isLoading());
+  readonly hasFilters = computed(() => !!this.search().trim() || this.views.filter().length > 0);
+
   readonly meta = computed(() => this.form.value() ?? null);
   readonly listMeta = computed(() => this.listFields.value() ?? null);
 
@@ -123,6 +127,17 @@ export class NotesComponent {
     stream: ({ params }) => this.notesApi.page(params).pipe(catchError(() => this.loadFailed(null))),
   });
 
+  retry(): void {
+    if (!this.meta()) this.form.reload();
+    if (!this.listMeta()) this.listFields.reload();
+    this.firstPage.reload();
+  }
+
+  resetFilters(): void {
+    this.search.set('');
+    this.views.setFilter([]);
+  }
+
   setTab(tab: NoteTab): void {
     const others = this.views.filter().filter((condition) => !isPinnedFilter(condition));
     this.views.filter.set(tab === 'pinned' ? [...others, PINNED] : others);
@@ -138,13 +153,17 @@ export class NotesComponent {
       .page(query, cursor)
       .pipe(finalize(() => this.loadingMore.set(false)))
       .subscribe({
-        next: (page) =>
+        next: (page) => {
+          if (this.query() !== query) return;
           this.list.update((list) => ({
             ...list,
             items: [...list.items, ...(page.items ?? [])],
             nextCursor: page.nextCursor ?? null,
-          })),
-        error: () => this.loadFailed(null),
+          }));
+        },
+        error: () => {
+          if (this.query() === query) this.loadFailed(null);
+        },
       });
   }
 

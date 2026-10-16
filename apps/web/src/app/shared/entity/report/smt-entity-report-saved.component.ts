@@ -2,15 +2,24 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
+  effect,
+  untracked,
   inject,
   Injector,
   input,
   linkedSignal,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
-import { catchError, of } from 'rxjs';
+import { Observable, of, switchMap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { ReportCatalogApi } from './report-catalog.api';
+import { ReportSharingComponent } from './report-sharing.component';
+import type { ReportSharing } from './report-catalog.api';
+import { PermissionService } from '@core/services/permission.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { problemText } from '@shared/ui/problem-text';
@@ -39,6 +48,7 @@ let nextSavedId = 0;
   selector: 'smt-entity-report-saved',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ReportSharingComponent,
     SMTButtonComponent,
     SMTCheckboxComponent,
     SMTControlComponent,
@@ -50,129 +60,8 @@ let nextSavedId = 0;
     UiFocusFirstInvalidDirective,
     UiFormActionsComponent,
   ],
-  template: `
-    <div class="saved" data-testid="report-saved">
-      <smt-control class="saved-field" [smtLabel]="'ui.report.saved' | t">
-        <smt-select
-          [smtTriggerId]="ids + '-pick'"
-          [options]="options()"
-          [placeholder]="'ui.report.saved_none' | t"
-          [value]="activeId()"
-          (valueChange)="pick($event)"
-        />
-      </smt-control>
-      @if (active(); as report) {
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          smtSize="sm"
-          smtIcon="save"
-          [smtLoading]="busy()"
-          (click)="saveActive(report)"
-        >
-          {{ 'common.save' | t }}
-        </button>
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          smtSize="sm"
-          [smtIcon]="report.kind === 'widget' ? 'dashboard_customize' : 'dashboard'"
-          [attr.aria-pressed]="report.kind === 'widget'"
-          data-testid="report-pin"
-          (click)="togglePin(report)"
-        >
-          {{ 'ui.report.on_dashboard' | t }}
-        </button>
-        <button smt-button type="button" smtVariant="ghost" smtSize="sm" smtIcon="delete" (click)="remove(report)">
-          {{ 'common.delete' | t }}
-        </button>
-      }
-      <button
-        smt-button
-        type="button"
-        smtVariant="primary"
-        smtSize="sm"
-        smtIcon="bookmark_add"
-        data-testid="report-save-as"
-        (click)="openSaveAs()"
-      >
-        {{ 'ui.report.save_as' | t }}
-      </button>
-    </div>
-
-    <smt-dialog
-      [open]="saveAsOpen()"
-      [smtTitle]="'ui.report.save_as' | t"
-      smtSize="sm"
-      [dismissible]="!busy()"
-      (closed)="closeSaveAs()"
-    >
-      <ng-template smtDialogContent>
-        <form
-          class="saved-form"
-          [id]="ids + '-form'"
-          uiFocusFirstInvalid
-          (submit)="$event.preventDefault(); submitSaveAs()"
-          novalidate
-        >
-          @if (saveError(); as text) {
-            <div class="saved-alert" role="alert" data-testid="report-save-error">{{ text }}</div>
-          }
-          <smt-control [smtLabel]="'ui.report.name' | t" [smtError]="error()" [required]="true">
-            <smt-input
-              smtTestId="report-name"
-              smtFocusInitial
-              [smtFieldId]="ids + '-name'"
-              [maxLength]="nameMax"
-              [value]="name()"
-              (valueChange)="name.set($event === null ? '' : '' + $event)"
-            />
-          </smt-control>
-          <div smt-checkbox data-testid="report-widget" [checked]="asWidget()" (checkedChange)="asWidget.set($event)">
-            {{ 'ui.report.show_on_dashboard' | t }}
-          </div>
-        </form>
-        <ui-form-actions
-          footer
-          [form]="ids + '-form'"
-          data-testid="report-save-as-actions"
-          [submitting]="busy()"
-          (cancelled)="closeSaveAs()"
-        />
-      </ng-template>
-    </smt-dialog>
-  `,
-  styles: [
-    `
-      .saved {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-end;
-        gap: 8px;
-      }
-      .saved-field {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 220px;
-      }
-      .saved-form {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .saved-alert {
-        padding: 8px 10px;
-        border: 1px solid var(--danger-border);
-        border-radius: var(--radius-md);
-        background: var(--danger-bg);
-        color: var(--danger-text);
-        font-size: 13px;
-      }
-    `,
-  ],
+  templateUrl: './smt-entity-report-saved.component.html',
+  styleUrl: './smt-entity-report-saved.component.css',
 })
 export class SMTEntityReportSavedComponent {
   private readonly i18n = inject(I18nService);
@@ -180,16 +69,23 @@ export class SMTEntityReportSavedComponent {
   private readonly modal = inject(SMTModalService);
   private readonly reports = inject(EntityReportsApi);
   private readonly injector = inject(Injector);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly catalog = inject(ReportCatalogApi);
+  private readonly permissions = inject(PermissionService);
 
   readonly listCode = input.required<string>();
   /** What is on screen now: what a save writes. */
   readonly state = input.required<ReportState>();
 
   /** A saved report was chosen: the builder shows it. */
-  readonly opened = output<ReportState>();
+  readonly opened = output<SavedReport>();
 
-  /** The reports on screen: the read, then the person's saves and deletions over it. */
-  readonly saved = linkedSignal<SavedReport[]>(() => (this.list.hasValue() ? this.list.value() : []));
+  private readonly sharing = viewChild(ReportSharingComponent);
+
+  readonly saved = linkedSignal<SavedReport[]>(() => this.list.items());
+  readonly selectedSnapshot = signal<SavedReport | null>(null);
+  readonly renaming = signal(false);
+  readonly conflict = signal(false);
   readonly activeId = signal<number | null>(null);
   readonly busy = signal(false);
   readonly saveAsOpen = signal(false);
@@ -200,35 +96,105 @@ export class SMTEntityReportSavedComponent {
   /** A refusal of the save that names no field: an alert at the top of the dialog. */
   readonly saveError = signal('');
 
-  readonly active = computed(() => this.saved().find((report) => report.id === this.activeId()) ?? null);
+  readonly active = computed(() =>
+    this.list.failed()
+      ? null
+      : (this.saved().find((report) => report.id === this.activeId()) ??
+        (this.selectedSnapshot()?.id === this.activeId() ? this.selectedSnapshot() : null)),
+  );
+  readonly sharingPath = computed(() => `/list-views/${encodeURIComponent(this.listCode())}/${this.activeId()}`);
   readonly options = computed<SMTSelectOption<number>[]>(() => {
     this.i18n.currentLang();
-    return this.saved().map((report) => ({
+    const current = this.active();
+    const rows =
+      current && !this.saved().some((item) => item.id === current.id) ? [...this.saved(), current] : this.saved();
+    return (this.list.failed() ? [] : rows).map((report) => ({
       id: report.id,
       label: report.name,
       icon: report.kind === 'widget' ? 'dashboard' : 'summarize',
-      subLabel: report.kind === 'widget' ? this.i18n.translate('ui.report.on_dashboard') : undefined,
+      subLabel: report.shared
+        ? this.i18n.translate('ui.report.shared')
+        : report.kind === 'widget'
+          ? this.i18n.translate('ui.report.on_dashboard')
+          : undefined,
     }));
+  });
+
+  /** The reports on screen: the read, then the person's saves and deletions over it. */
+  readonly list = new KeysetPager((cursor, limit) => this.catalog.list(this.listCode(), cursor, limit), {
+    destroyRef: this.destroyRef,
   });
 
   private readonly askDiscard = discardChangesQuestion();
 
-  /** The person's reports of the list, read again when the list changes; a failed read shows none. */
-  private readonly list = rxResource({
-    params: () => this.listCode(),
-    stream: ({ params }) => this.reports.list(params).pipe(catchError(() => of<SavedReport[]>([]))),
-  });
-
   readonly ids = `report-saved-${nextSavedId++}`;
   readonly nameMax = NAME_MAX;
 
+  constructor() {
+    effect(() => {
+      this.listCode();
+      untracked(() => {
+        this.activeId.set(null);
+        this.selectedSnapshot.set(null);
+        this.list.items.set([]);
+        this.list.first();
+      });
+    });
+  }
+
+  reload(): void {
+    this.canLeaveRecordPage().subscribe((allow) => {
+      if (!allow) return;
+      this.saveAsOpen.set(false);
+      this.conflict.set(false);
+      this.saveError.set('');
+      this.list.first();
+    });
+  }
+
+  sharingChanged(sharing: ReportSharing): void {
+    const active = this.active();
+    if (active) this.replace({ ...active, lockVersion: sharing.revision, shared: sharing.roleIds.length > 0 });
+    this.list.first();
+  }
+
+  openRename(): void {
+    const active = this.active();
+    if (!active?.canEdit || this.busy()) return;
+    this.openSaveAs();
+    this.renaming.set(true);
+    this.name.set(active.name);
+    this.asWidget.set(active.kind === 'widget');
+  }
+
+  canLeaveRecordPage(): Observable<boolean> {
+    if (this.busy()) return of(false);
+    return (this.sharing()?.canLeaveRecordPage() ?? of(true)).pipe(
+      switchMap((allow) =>
+        allow
+          ? this.askDiscard(
+              this.saveAsOpen() &&
+                (this.renaming()
+                  ? this.name().trim() !== this.active()?.name
+                  : !!this.name().trim() || this.asWidget()),
+            )
+          : of(false),
+      ),
+    );
+  }
+
   pick(id: number | null): void {
-    this.activeId.set(id);
-    const report = this.active();
-    if (report) this.opened.emit(report.state);
+    if (id === this.activeId()) return;
+    this.canLeaveRecordPage().subscribe((allow) => {
+      if (!allow) return;
+      this.activeId.set(id);
+      const report = this.active();
+      if (report) this.opened.emit(report);
+    });
   }
 
   openSaveAs(): void {
+    this.renaming.set(false);
     this.name.set('');
     this.asWidget.set(false);
     this.error.set('');
@@ -239,14 +205,16 @@ export class SMTEntityReportSavedComponent {
   /** Escape, the backdrop, the cross and "Cancel" ask before a typed name is dropped (forms standard, 8). */
   closeSaveAs(): void {
     if (this.busy()) return;
-    this.askDiscard(!!this.name().trim() || this.asWidget()).subscribe((discard) => {
+    this.askDiscard(
+      this.renaming() ? this.name().trim() !== this.active()?.name : !!this.name().trim() || this.asWidget(),
+    ).subscribe((discard) => {
       if (discard) this.saveAsOpen.set(false);
     });
   }
 
   /** Enter and "Save" land here; one request while a save runs; an empty name says so and takes the focus. */
   submitSaveAs(): void {
-    if (this.busy()) return;
+    if (this.busy() || (this.renaming() && (!this.active()?.canEdit || this.conflict()))) return;
     const name = this.name().trim();
     this.saveError.set('');
     if (!name) {
@@ -255,16 +223,30 @@ export class SMTEntityReportSavedComponent {
     }
     this.error.set('');
     this.busy.set(true);
-    this.reports.save(this.listCode(), name, this.asWidget() ? 'widget' : 'report', this.state()).subscribe({
+    const active = this.active();
+    const request =
+      this.renaming() && active?.canEdit
+        ? this.reports.update(this.listCode(), { ...active, name })
+        : this.reports.save(this.listCode(), name, this.asWidget() ? 'widget' : 'report', this.state());
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (report) => {
         this.busy.set(false);
         this.saveAsOpen.set(false);
-        this.replace(report);
+        this.replace({
+          ...(this.renaming() ? active : null),
+          ...report,
+          canEdit: true,
+          canShare: active?.canShare ?? this.permissions.canUpdate('md.settings'),
+        });
         this.activeId.set(report.id);
+        this.list.first();
         this.toast.success(this.i18n.translate('ui.report.saved_done'));
       },
       error: (failure: unknown) => {
         this.busy.set(false);
+        this.conflict.set(
+          typeof failure === 'object' && failure !== null && (failure as { status?: number }).status === 409,
+        );
         // The server's word on the name goes under it (forms standard, section 5); anything else is the alert.
         const { fields, other } = problemFieldErrors(failure, { known: ['name'] });
         if (fields['name']) {
@@ -280,19 +262,22 @@ export class SMTEntityReportSavedComponent {
   }
 
   saveActive(report: SavedReport): void {
+    if (!report.canEdit) return;
     this.write({ ...report, state: this.state() });
   }
 
   togglePin(report: SavedReport): void {
+    if (!report.canEdit) return;
     this.write({ ...report, kind: report.kind === 'widget' ? 'report' : 'widget' });
   }
 
   remove(report: SavedReport): void {
+    if (!report.canEdit || this.busy()) return;
     this.modal
       .confirm({ message: this.i18n.translate('ui.report.delete_confirm', { name: report.name }), destructive: true })
       .subscribe((confirmed) => {
         if (!confirmed) return;
-        this.reports.remove(this.listCode(), report.id).subscribe({
+        this.reports.remove(this.listCode(), report.id, report.lockVersion).subscribe({
           next: () => {
             this.saved.update((reports) => reports.filter((item) => item.id !== report.id));
             this.activeId.set(null);
@@ -304,21 +289,29 @@ export class SMTEntityReportSavedComponent {
   }
 
   private write(report: SavedReport): void {
+    if (this.busy() || this.conflict() || this.list.loading()) return;
+    this.saveError.set('');
     this.busy.set(true);
     this.reports.update(this.listCode(), report).subscribe({
       next: (written) => {
         this.busy.set(false);
-        this.replace(written);
+        this.replace({ ...report, ...written });
+        this.list.first();
         this.toast.success(this.i18n.translate('ui.report.saved_done'));
       },
       error: (failure: unknown) => {
         this.busy.set(false);
-        this.toast.error(problemText(failure) || this.i18n.translate('ui.report.save_failed'));
+        this.conflict.set(
+          typeof failure === 'object' && failure !== null && (failure as { status?: number }).status === 409,
+        );
+        this.saveError.set(problemText(failure) || this.i18n.translate('ui.report.save_failed'));
+        this.toast.error(this.saveError());
       },
     });
   }
 
   private replace(report: SavedReport): void {
+    this.selectedSnapshot.set(report);
     this.saved.update((reports) =>
       [...reports.filter((item) => item.id !== report.id), report].sort(
         (a, b) => a.name.localeCompare(b.name) || a.id - b.id,

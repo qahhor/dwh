@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Human-readable names of forms and actions (FR-PERM-1).
+ * Dictionary keys naming forms and actions (FR-PERM-1, ADR-0031).
  *
  * The split of responsibility is deliberate: the **existence** of a "form x action" pair
  * is defined by {@code @RequiresPermission} annotations in controllers; they are the
@@ -26,8 +26,8 @@ public final class MdFormCatalog {
 
     private MdFormCatalog() {}
 
-    /** A form: its name and the names of its actions. */
-    public record FormMeta(String name, Map<String, String> actionNames) {}
+    /** A form: the dictionary keys of its name and action names. */
+    public record FormMeta(String nameKey, Map<String, String> actionKeys) {}
 
     private static final Map<String, FormMeta> FORMS = buildForms();
 
@@ -43,23 +43,23 @@ public final class MdFormCatalog {
         return PermissionAreas.ownerOf(formCode).orElseGet(() -> PermissionAreas.areaOf(formCode));
     }
 
-    public static String formNameOf(String formCode) {
+    public static String formNameKeyOf(String formCode) {
         var meta = FORMS.get(formCode);
-        return meta != null ? meta.name() : formCode;
+        return meta != null ? meta.nameKey() : formCode;
     }
 
-    public static String actionNameOf(String formCode, String action) {
+    public static String actionNameKeyOf(String formCode, String action) {
         var meta = FORMS.get(formCode);
         if (meta == null) {
             return action;
         }
-        return meta.actionNames().getOrDefault(action, action);
+        return meta.actionKeys().getOrDefault(action, action);
     }
 
     /** Whether the pair has a name; used by the catalog completeness test. */
     public static boolean hasHumanName(String formCode, String action) {
         var meta = FORMS.get(formCode);
-        return meta != null && meta.actionNames().containsKey(action);
+        return meta != null && meta.actionKeys().containsKey(action);
     }
 
     private static Map<String, FormMeta> buildForms() {
@@ -77,173 +77,179 @@ public final class MdFormCatalog {
         forms.put(
                 MdPref.FORM_PROFILE,
                 new FormMeta(
-                        "Мой профиль",
+                        "md.profile.rights.form",
                         ordered(
-                                "view", "Просмотр профиля",
-                                "update", "Изменение данных профиля",
-                                "manage_channels", "Управление каналами связи",
-                                "manage_tokens", "Управление API-токенами")));
+                                "view", "md.profile.rights.view",
+                                "update", "md.profile.rights.update",
+                                "manage_channels", "md.profile.rights.manage_channels",
+                                "manage_tokens", "md.profile.rights.manage_tokens")));
 
         forms.put(
                 MdPref.FORM_ROLES,
                 new FormMeta(
-                        "Роли и права",
+                        "md.roles.rights.form",
                         ordered(
-                                "view", "Просмотр ролей",
-                                "create", "Создание роли",
-                                "update", "Редактирование",
-                                "delete", "Удаление",
-                                "grant", "Настройка матрицы прав")));
+                                "view", "md.roles.rights.view",
+                                "create", "md.roles.rights.create",
+                                "update", "md.roles.rights.update",
+                                "delete", "md.roles.rights.delete",
+                                "grant", "md.roles.rights.grant")));
 
         forms.put(
                 MdPref.FORM_ASSIGNMENTS,
                 new FormMeta(
-                        "Назначение прав",
+                        "md.assignments.rights.form",
                         ordered(
-                                "view", "Просмотр назначений",
-                                "assign", "Назначение ролей и прав")));
+                                "view", "md.assignments.rights.view",
+                                "assign", "md.assignments.rights.assign")));
     }
 
     private static void putAdministrationForms(Map<String, FormMeta> forms) {
         forms.put(
                 MdPref.FORM_CUSTOM_FIELDS,
                 new FormMeta(
-                        "Динамические поля",
+                        "md.custom_fields.rights.form",
                         ordered(
-                                "view", "Просмотр полей",
-                                "create", "Создание поля",
-                                "update", "Редактирование",
-                                "delete", "Удаление")));
+                                "view", "md.custom_fields.rights.view",
+                                "create", "md.custom_fields.rights.create",
+                                "update", "md.custom_fields.rights.update",
+                                "delete", "md.custom_fields.rights.delete")));
 
         forms.put(
                 MdPref.FORM_ORG_UNITS,
                 new FormMeta(
-                        "Оргструктура",
+                        "md.org_units.rights.form",
                         ordered(
-                                "view", "Просмотр оргструктуры",
-                                "create", "Создание узла",
-                                "update", "Редактирование узла",
-                                "delete", "Удаление узла",
-                                "assign", "Назначение сотрудников и правил видимости")));
+                                "view", "md.org_units.rights.view",
+                                "create", "md.org_units.rights.create",
+                                "update", "md.org_units.rights.update",
+                                "delete", "md.org_units.rights.delete",
+                                "assign", "md.org_units.rights.assign")));
 
         forms.put(
                 MdPref.FORM_SETTINGS,
                 new FormMeta(
-                        "Настройки платформы",
+                        "md.settings.rights.form",
                         ordered(
-                                "view", "Просмотр настроек",
-                                "update", "Изменение настроек")));
+                                "view", "md.settings.rights.view",
+                                "update", "md.settings.rights.update")));
 
-        forms.put("audit.log", new FormMeta("Аудит и security-журнал", ordered("view", "Просмотр журналов")));
+        forms.put("audit.log", new FormMeta("audit.log.rights.form", ordered("view", "audit.log.rights.view")));
     }
 
     private static void putUploadAndTaskForms(Map<String, FormMeta> forms) {
         forms.put(
                 "upl.sources",
                 new FormMeta(
-                        "Manbalar va formatlar",
+                        "upl.sources.rights.form",
                         ordered(
-                                "view", "Ko'rish",
-                                "create", "Yaratish",
-                                "edit", "Tahrirlash",
-                                "publish", "E'lon qilish")));
+                                "view", "upl.sources.rights.view",
+                                "create", "upl.sources.rights.create",
+                                "edit", "upl.sources.rights.edit",
+                                "publish", "upl.sources.rights.publish")));
 
         forms.put(
                 "upl.packages",
                 new FormMeta(
-                        "Загрузки файлов",
+                        "upl.packages.rights.form",
                         ordered(
-                                "view", "Просмотр",
-                                "upload", "Загрузка файла",
-                                "apply", "Применение")));
+                                "view", "upl.packages.rights.view",
+                                "upload", "upl.packages.rights.upload",
+                                "apply", "upl.packages.rights.apply")));
 
         forms.put(
                 "tasks.projects",
                 new FormMeta(
-                        "Проекты",
+                        "tasks.projects.rights.form",
                         ordered(
-                                "view", "Просмотр проектов",
-                                "create", "Создание проекта",
-                                "update", "Редактирование проекта")));
+                                "view", "tasks.projects.rights.view",
+                                "create", "tasks.projects.rights.create",
+                                "update", "tasks.projects.rights.update")));
 
         forms.put(
                 "tasks.items",
                 new FormMeta(
-                        "Задачи",
+                        "tasks.items.rights.form",
                         ordered(
-                                "view", "Просмотр задач",
-                                "create", "Создание задачи",
-                                "update", "Редактирование задачи")));
+                                "view", "tasks.items.rights.view",
+                                "create", "tasks.items.rights.create",
+                                "update", "tasks.items.rights.update")));
 
         forms.put(
                 "tasks.comments",
                 new FormMeta(
-                        "Комментарии к задачам",
+                        "tasks.comments.rights.form",
                         ordered(
-                                "view", "Просмотр комментариев",
-                                "create", "Создание комментария")));
+                                "view", "tasks.comments.rights.view",
+                                "create", "tasks.comments.rights.create")));
     }
 
     /** Notifications, announcements, files and search. */
     private static void putCommunicationForms(Map<String, FormMeta> forms) {
-        forms.put("notify.inbox", new FormMeta("Входящие оповещения", ordered("view", "Просмотр входящих")));
+        forms.put(
+                "notify.inbox", new FormMeta("notify.inbox.rights.form", ordered("view", "notify.inbox.rights.view")));
 
         forms.put(
                 "notify.announcements",
                 new FormMeta(
-                        "Объявления",
+                        "notify.announcements.rights.form",
                         ordered(
-                                "view", "Просмотр объявлений",
-                                "create", "Создание объявления",
-                                "update", "Редактирование объявления",
-                                "publish", "Публикация объявления",
-                                "archive", "Архивация объявления")));
+                                "view", "notify.announcements.rights.view",
+                                "create", "notify.announcements.rights.create",
+                                "update", "notify.announcements.rights.update",
+                                "publish", "notify.announcements.rights.publish",
+                                "archive", "notify.announcements.rights.archive")));
 
         forms.put(
                 "mf.files",
                 new FormMeta(
-                        "Файлы",
+                        "mf.files.rights.form",
                         ordered(
-                                "view", "Просмотр и скачивание",
-                                "upload", "Загрузка файлов",
-                                "delete", "Удаление файлов")));
+                                "view", "mf.files.rights.view",
+                                "upload", "mf.files.rights.upload",
+                                "delete", "mf.files.rights.delete")));
 
-        forms.put("search", new FormMeta("Поиск", ordered("view", "Полнотекстовый поиск")));
+        forms.put("search", new FormMeta("search.rights.form", ordered("view", "search.rights.view")));
     }
 
     /** Webhooks, analytics, modules and navigation. */
     private static void putPlatformForms(Map<String, FormMeta> forms) {
         forms.put(
+                "studio.forms",
+                new FormMeta(
+                        "studio.forms.rights.form",
+                        ordered("publish", "studio.forms.rights.publish", "assist", "studio.forms.rights.assist")));
+        forms.put(
                 "webhook.subscriptions",
                 new FormMeta(
-                        "Исходящие вебхуки",
+                        "webhook.subscriptions.rights.form",
                         ordered(
-                                "view", "Просмотр подписок",
-                                "manage", "Управление подписками")));
+                                "view", "webhook.subscriptions.rights.view",
+                                "manage", "webhook.subscriptions.rights.manage")));
 
         forms.put(
                 "analytics.dashboard",
                 new FormMeta(
-                        "Аналитика и дашборды",
+                        "analytics.dashboard.rights.form",
                         ordered(
-                                "view", "Просмотр аналитики",
-                                "manage", "Управление дашбордами")));
+                                "view", "analytics.dashboard.rights.view",
+                                "manage", "analytics.dashboard.rights.manage")));
 
         forms.put(
                 MdPref.FORM_MODULES,
                 new FormMeta(
-                        "Модули системы",
+                        "md.modules.rights.form",
                         ordered(
-                                "view", "Просмотр установленных модулей",
-                                "manage", "Управление активностью модулей")));
+                                "view", "md.modules.rights.view",
+                                "manage", "md.modules.rights.manage")));
 
         forms.put(
                 MdPref.FORM_NAVIGATION,
                 new FormMeta(
-                        "Навигация и меню",
+                        "md.navigation.rights.form",
                         ordered(
-                                "view", "Просмотр меню и отчетов",
-                                "manage", "Управление пунктами меню и отчетами")));
+                                "view", "md.navigation.rights.view",
+                                "manage", "md.navigation.rights.manage")));
     }
 
     private static Map<String, String> ordered(String... keyValues) {

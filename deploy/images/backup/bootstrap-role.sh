@@ -18,32 +18,44 @@ if [ -n "$WAREHOUSE_DB_NAME" ] && [ "$WAREHOUSE_DB_NAME" = "$PGDATABASE" ]; then
     exit 64
 fi
 
-if [ -z "${PGPASSWORD_FILE:-}" ] || [ ! -f "$PGPASSWORD_FILE" ]; then
-    echo 'admin database credential file is required' >&2
-    exit 64
-fi
-if [ -z "${BACKUP_DB_PASSWORD_FILE:-}" ] || [ ! -f "$BACKUP_DB_PASSWORD_FILE" ]; then
-    echo 'backup database credential file is required' >&2
-    exit 64
-fi
+read_credential() {
+    if [ -z "$1" ] || [ ! -f "$1" ] || [ ! -r "$1" ]; then
+        echo 'each database role requires a readable credential file' >&2
+        exit 64
+    fi
+    value="$(cat "$1")"
+    if [ "$3" = set ] && [ "$value" != "$2" ]; then
+        echo 'inline database credentials must match their credential files' >&2
+        exit 64
+    fi
+    printf '%s' "$value"
+}
 
-admin_password="$(cat "$PGPASSWORD_FILE")"
-backup_password="$(cat "$BACKUP_DB_PASSWORD_FILE")"
-
-migrate_password="$admin_password"
-if [ -n "${MIGRATE_DB_PASSWORD_FILE:-}" ] && [ -f "$MIGRATE_DB_PASSWORD_FILE" ]; then
-    migrate_password="$(cat "$MIGRATE_DB_PASSWORD_FILE")"
-fi
-
-app_password="$admin_password"
-if [ -n "${APP_DB_PASSWORD_FILE:-}" ] && [ -f "$APP_DB_PASSWORD_FILE" ]; then
-    app_password="$(cat "$APP_DB_PASSWORD_FILE")"
-fi
+admin_password="$(read_credential "${PGPASSWORD_FILE:-}" "${POSTGRES_PASSWORD:-}" "${POSTGRES_PASSWORD+set}")"
+migrate_password="$(read_credential "${MIGRATE_DB_PASSWORD_FILE:-}" "${MIGRATE_DB_PASSWORD:-}" "${MIGRATE_DB_PASSWORD+set}")"
+app_password="$(read_credential "${APP_DB_PASSWORD_FILE:-}" "${APP_DB_PASSWORD:-}" "${APP_DB_PASSWORD+set}")"
+backup_password="$(read_credential "${BACKUP_DB_PASSWORD_FILE:-}" "${BACKUP_DB_PASSWORD:-}" "${BACKUP_DB_PASSWORD+set}")"
 
 if [ -z "$admin_password" ] || [ -z "$backup_password" ] || [ -z "$migrate_password" ] || [ -z "$app_password" ]; then
     echo 'database credentials must not be empty' >&2
     exit 64
 fi
+
+require_distinct() {
+    while [ "$#" -gt 0 ]; do
+        current="$1"
+        shift
+        for other do
+            if [ "$current" = "$other" ]; then
+                echo 'database role names and credentials must be distinct' >&2
+                exit 64
+            fi
+        done
+    done
+}
+
+require_distinct "$PGUSER" "$MIGRATE_DB_USER" "$APP_DB_USER" "$BACKUP_DB_USER"
+require_distinct "$admin_password" "$migrate_password" "$app_password" "$backup_password"
 
 umask 077
 pgpass_file="$(mktemp /tmp/.pgpass.XXXXXX)"

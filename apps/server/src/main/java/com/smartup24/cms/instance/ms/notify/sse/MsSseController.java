@@ -32,10 +32,10 @@ public class MsSseController {
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public SseEmitter stream() {
-        Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) {
+        var principal = SecurityContext.getPrincipal();
+        if (principal == null) {
             throw ApiException.unauthorized("error.notify.sse_auth_required");
         }
-        return registry.subscribe(userId);
+        return registry.subscribe(principal);
     }
 }

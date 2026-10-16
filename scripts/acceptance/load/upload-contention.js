@@ -1,13 +1,13 @@
 import http from 'k6/http';
 import {
   ACCEPTANCE_MAX_ERROR_RATE,
-  ACCEPTANCE_MAX_P95_MS,
-  ACCEPTANCE_MAX_P99_MS,
+  ACCEPTANCE_MAX_UPLOAD_P95_MS,
+  ACCEPTANCE_MAX_UPLOAD_P99_MS,
   authHeaders,
   baseUrl,
   expectStatus,
   required,
-  standardThresholds,
+  uploadThresholds,
 } from './common.js';
 
 const uploadUsers = Number(__ENV.UPLOAD_USERS || '20');
@@ -23,11 +23,14 @@ export const options = {
       maxDuration: '15m',
     },
   },
-  thresholds: standardThresholds('upload_contention'),
+  thresholds: {
+    ...uploadThresholds('upload_contention'),
+    iterations: [`count==${uploadUsers}`],
+  },
 };
 
-void ACCEPTANCE_MAX_P95_MS;
-void ACCEPTANCE_MAX_P99_MS;
+void ACCEPTANCE_MAX_UPLOAD_P95_MS;
+void ACCEPTANCE_MAX_UPLOAD_P99_MS;
 void ACCEPTANCE_MAX_ERROR_RATE;
 
 export default function () {

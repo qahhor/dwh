@@ -119,12 +119,21 @@ const TARGET_FIELD_PATTERN = /^[a-z][a-z0-9_]{0,62}$/;
  */
 export function localFormatErrors(model: UplFormatDraftRequest): UplFieldError[] {
   const found: FieldErrorItem[] = [];
+  if (model.fileKind === 'csv' && (model.delimiter ?? '').trim().length > 1) {
+    found.push({ field: 'delimiter', code: 'Size', message: '' });
+  }
   model.sheets.forEach((sheet, s) => {
     const row = Number(sheet.headerRow);
     if (sheet.headerRow === null || !Number.isInteger(row) || row < 1) {
       found.push({ field: `sheets[${s}].headerRow`, code: 'Min', message: '' });
     }
     sheet.columns.forEach((column, c) => {
+      for (const field of ['filePosition', 'keyPadLength', 'keyPadMax'] as const) {
+        const value = column[field];
+        if (value !== null && (!Number.isInteger(value) || value < 1)) {
+          found.push({ field: `sheets[${s}].columns[${c}].${field}`, code: 'Positive', message: '' });
+        }
+      }
       if ((column.nameInFile ?? '').trim().length === 0) {
         found.push({ field: `sheets[${s}].columns[${c}].nameInFile`, code: 'NotBlank', message: '' });
       }
@@ -137,6 +146,30 @@ export function localFormatErrors(model: UplFormatDraftRequest): UplFieldError[]
     });
   });
   return parseUplFieldErrors(found);
+}
+
+/** Matches one edited field, including individual entries of its array value. */
+export function uplSameField(
+  error: UplFieldError,
+  field: string,
+  sheet: number | null = null,
+  column: number | null = null,
+): boolean {
+  return (
+    error.sheet === sheet && error.column === column && (error.field === field || error.field.startsWith(field + '['))
+  );
+}
+
+/** Blur validates one field without replacing errors at other addresses or dismissing a server refusal. */
+export function touchUplField(
+  model: UplFormatDraftRequest,
+  errors: UplFieldError[],
+  field: string,
+  sheet: number | null = null,
+  column: number | null = null,
+): UplFieldError[] {
+  const local = localFormatErrors(model).filter((error) => uplSameField(error, field, sheet, column));
+  return local.length ? [...errors.filter((error) => !uplSameField(error, field, sheet, column)), ...local] : errors;
 }
 
 /** Field of a column error (the tail after `columns[n].`) → key of that column's table header. */

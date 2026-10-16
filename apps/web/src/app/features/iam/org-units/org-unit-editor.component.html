@@ -9,22 +9,38 @@
       [smtHint]="editing ? ('iam.org_units.code_readonly' | t) : ''"
       [smtError]="serverError('code')"
     >
-      <smt-input [smtFieldId]="formId + '-code'" [smtFocusInitial]="!editing" [formField]="unitForm.code" />
+      <smt-input
+        [smtFieldId]="formId + '-code'"
+        [smtFocusInitial]="!editing"
+        [formField]="unitForm.code"
+        (edited)="edited('code')"
+      />
     </smt-control>
     <smt-control [smtLabel]="'iam.org_units.name' | t" [smtError]="serverError('name')">
-      <smt-input [smtFieldId]="formId + '-name'" [smtFocusInitial]="editing" [formField]="unitForm.name" />
+      <smt-input
+        [smtFieldId]="formId + '-name'"
+        [smtFocusInitial]="editing"
+        [formField]="unitForm.name"
+        (edited)="edited('name')"
+      />
     </smt-control>
     <smt-control [smtLabel]="'iam.org_units.kind' | t" [smtError]="serverError('kind')">
       <smt-select
         [smtTriggerId]="formId + '-kind'"
         [formField]="unitForm.kind"
+        (valueChange)="edited('kind')"
         [allowClear]="false"
         [options]="kindOptions()"
       />
     </smt-control>
     @if (editing && original.parentId !== null) {
       <smt-control [smtLabel]="'iam.org_units.parent' | t" [smtError]="serverError('parentId')">
-        <smt-tree-select [smtTriggerId]="formId + '-parent'" [formField]="unitForm.parentId" [nodes]="parentTree" />
+        <smt-tree-select
+          [smtTriggerId]="formId + '-parent'"
+          [formField]="unitForm.parentId"
+          (valueChange)="edited('parentId')"
+          [nodes]="parentTree"
+        />
       </smt-control>
     } @else {
       <p>
@@ -37,6 +53,7 @@
         <smt-select
           [smtTriggerId]="formId + '-state'"
           [formField]="unitForm.state"
+          (valueChange)="edited('state')"
           [allowClear]="false"
           [options]="stateOptions()"
         />
@@ -50,6 +67,7 @@
         [smtMin]="-2147483648"
         [smtMax]="2147483647"
         [formField]="unitForm.orderNo"
+        (edited)="edited('orderNo')"
       />
     </smt-control>
   </fieldset>

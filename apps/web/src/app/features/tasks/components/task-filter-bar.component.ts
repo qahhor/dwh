@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 
 import { TranslatePipe } from '@core/services/i18n.service';
 import { TaskStatus } from '@core/models/task.models';
@@ -9,92 +9,22 @@ import { TaskLookupsService } from '../services/task-lookups.service';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '@core/services/i18n.service';
 import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
 export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue';
 
 @Component({
   selector: 'app-task-filter-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe, SMTSelectComponent, SMTDataSelectComponent],
-  template: `
-    <div class="toolbar">
-      <div class="toolbar-left-row">
-        <!-- Smart View Presets -->
-        <smt-radio-group
-          smtAppearance="chips"
-          class="preset-filter"
-          [options]="presetOptions()"
-          [value]="activePreset()"
-          [smtAriaLabel]="'tasks.filter.quick_filters' | t"
-          (valueChange)="onPresetClick($event ?? activePreset())"
-        />
-        <smt-input
-          class="search-field"
-          smtFieldId="task-search"
-          [smtAriaLabel]="'tasks.filter.search_tasks' | t"
-          name="taskSearch"
-          type="search"
-          smtIcon="search"
-          smtSize="sm"
-          clearable
-          [placeholder]="'projects.common.search_placeholder' | t"
-          [value]="searchQuery()"
-          (valueChange)="onSearchValue($event)"
-          (keydown.enter)="searchApply.emit(); $event.preventDefault()"
-        />
-      </div>
-
-      <div class="toolbar-controls">
-        <!-- Status Filter Tabs -->
-        <smt-radio-group
-          smtAppearance="chips"
-          class="status-filter"
-          [options]="statusOptions()"
-          [value]="statusFilterMode()"
-          [smtAriaLabel]="'tasks.filter.filter_by_status' | t"
-          (valueChange)="statusFilterModeChange.emit($event ?? statusFilterMode())"
-        />
-
-        <!-- Project Filter: searched on the server, 20 projects a page (plan 10/10, item 3.5). -->
-        <smt-data-select
-          class="project-filter"
-          smtTriggerId="task-project-filter"
-          [ariaLabel]="'tasks.filter.filter_by_project' | t"
-          [source]="lookups.projects"
-          [knownRows]="lookups.knownProjectRows()"
-          [value]="selectedProjectId()"
-          (valueChange)="selectedProjectIdChange.emit($event)"
-          [placeholder]="'tasks.filter.all_projects' | t"
-          [searchPlaceholder]="'tasks.search_project' | t"
-          [emptyLabel]="'tasks.filter.all_projects' | t"
-        />
-
-        <!-- Priority Filter -->
-        <smt-select
-          class="priority-filter"
-          smtTriggerId="task-priority-filter"
-          [ariaLabel]="'tasks.filter.filter_by_priority' | t"
-          [value]="selectedPriority() || null"
-          (valueChange)="selectedPriorityChange.emit($event ?? '')"
-          [options]="priorityOptions()"
-          [placeholder]="'tasks.filter.all_priorities' | t"
-          [emptyLabel]="'tasks.filter.all_priorities' | t"
-        ></smt-select>
-
-        @if (hasActiveFilters()) {
-          <button
-            type="button"
-            class="reset-filters-btn"
-            [attr.aria-label]="'tasks.common.reset_all_filters' | t"
-            (click)="resetFilters.emit()"
-            [title]="'tasks.common.reset_all_filters' | t"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
-          </button>
-        }
-      </div>
-    </div>
-  `,
+  imports: [
+    SMTRadioGroupComponent,
+    SMTInputComponent,
+    TranslatePipe,
+    SMTSelectComponent,
+    SMTDataSelectComponent,
+    SMTButtonComponent,
+  ],
+  templateUrl: './task-filter-bar.component.html',
   styleUrl: './task-filter-bar.component.css',
 })
 export class TaskFilterBarComponent {
@@ -120,9 +50,17 @@ export class TaskFilterBarComponent {
   readonly selectedPriorityChange = output<string>();
   readonly resetFilters = output<void>();
 
+  readonly moreFiltersOpen = signal(false);
+  readonly secondaryFilterCount = computed(
+    () =>
+      Number(this.activePreset() !== 'all') +
+      Number(this.selectedProjectId() !== null) +
+      Number(!!this.selectedPriority()),
+  );
+
   private readonly presetMemo = optionsMemo<SMTRadioOption<TaskPreset>[]>();
 
-  private readonly statusMemo = optionsMemo<SMTRadioOption<TaskStatusFilter>[]>();
+  private readonly statusMemo = optionsMemo<SMTSelectOption<TaskStatusFilter>[]>();
 
   private readonly priorityMemo = optionsMemo<SMTSelectOption<string>[]>();
 
@@ -152,20 +90,18 @@ export class TaskFilterBarComponent {
   }
 
   /** Active, all, then each status with its colour mark. */
-  statusOptions(): SMTRadioOption<TaskStatusFilter>[] {
+  statusOptions(): SMTSelectOption<TaskStatusFilter>[] {
     return this.statusMemo([this.statuses(), this.optionText.currentLang()], () => [
       {
-        value: 'active',
+        id: 'active',
         label: this.optionText.translate('iam.common.active_plural'),
-        title: this.optionText.translate('tasks.filter.only_active'),
       },
       {
-        value: 'all',
+        id: 'all',
         label: this.optionText.translate('common.all'),
-        title: this.optionText.translate('tasks.filter.include_completed'),
       },
       ...this.statuses().map((status) => ({
-        value: statusFilter(status.code),
+        id: statusFilter(status.code),
         label: status.name,
         color: status.color || undefined,
       })),

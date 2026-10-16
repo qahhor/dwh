@@ -157,6 +157,8 @@ export interface FormTabMeta {
 export interface FormSectionMeta {
   key: string;
   labelKey: string;
+  /** A literal section name in a validated layout preview. */
+  label?: string | null;
   fields: string[];
 }
 

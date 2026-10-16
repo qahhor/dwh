@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, model, output, signal } from '@angular/core';
 
 import { A11yModule } from '@angular/cdk/a11y';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -78,6 +78,7 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 smtFocusInitial
                 [value]="titleRu"
                 (valueChange)="onDraftTitleChange('ru', $event)"
+                (touch)="titleTouched.set(true)"
               />
             </smt-control>
             <span class="char-count" aria-live="polite"
@@ -98,6 +99,7 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 [maxLength]="10000"
                 [value]="bodyRu"
                 (valueChange)="onDraftBodyChange('ru', $event)"
+                (touch)="bodyTouched.set(true)"
               />
             </smt-control>
           }
@@ -144,7 +146,7 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
               [options]="bannerTypeOptions()"
               [allowClear]="false"
               [value]="bannerType()"
-              (valueChange)="$event && bannerTypeChange.emit($event)"
+              (valueChange)="$event && changeBannerType($event)"
             />
           </smt-control>
         </form>
@@ -174,8 +176,6 @@ export class AnnouncementsModalsComponent {
   readonly bannerType = input.required<AnnouncementBannerType>();
 
   readonly editingId = input<number | null>(null);
-  /** The server's refusal of the draft by field (`titleRu`, `bodyRu`, `bannerType`). */
-  readonly draftErrors = input<Readonly<Record<string, string>>>({});
   /** A refusal that names no field, shown at the top of the editor. */
   readonly draftError = input<string | null>(null);
 
@@ -185,10 +185,16 @@ export class AnnouncementsModalsComponent {
   readonly draftTitlesChange = output<Record<string, string>>();
   readonly draftBodiesChange = output<Record<string, string>>();
 
+  /** The server's refusal of the draft by field (`titleRu`, `bodyRu`, `bannerType`). */
+  readonly draftErrors = model<Readonly<Record<string, string>>>({});
+
   readonly selectedLang = signal('ru');
 
   /** A save was tried in this opening of the editor, so the empty required fields show their errors. */
   readonly saveTried = linkedSignal({ source: this.isEditorOpen, computation: () => false });
+
+  readonly titleTouched = linkedSignal({ source: this.isEditorOpen, computation: () => false });
+  readonly bodyTouched = linkedSignal({ source: this.isEditorOpen, computation: () => false });
 
   readonly availableLanguages = () => this.uiI18n.languages().filter((l) => l.active);
 
@@ -206,10 +212,12 @@ export class AnnouncementsModalsComponent {
 
   /** The kit field types its value as text, a number or null; the draft keeps text. */
   onDraftTitleChange(lang: string, val: SMTInputValue): void {
+    if (lang === 'ru') this.clearError('titleRu');
     this.draftTitlesChange.emit({ ...this.draftTitles(), [lang]: val === null ? '' : String(val) });
   }
 
   onDraftBodyChange(lang: string, val: string): void {
+    if (lang === 'ru') this.clearError('bodyRu');
     this.draftBodiesChange.emit({ ...this.draftBodies(), [lang]: val });
   }
 
@@ -224,12 +232,14 @@ export class AnnouncementsModalsComponent {
 
   /** "Required" after a save with an empty Russian title, else the server's word on it (forms standard, 4). */
   titleRuError(): string {
-    if (this.saveTried() && !this.titleRu.trim()) return this.uiI18n.translate('ui.control.required');
+    if ((this.saveTried() || this.titleTouched()) && !this.titleRu.trim())
+      return this.uiI18n.translate('ui.control.required');
     return this.draftErrors()['titleRu'] ?? '';
   }
 
   bodyRuError(): string {
-    if (this.saveTried() && !this.bodyRu.trim()) return this.uiI18n.translate('ui.control.required');
+    if ((this.saveTried() || this.bodyTouched()) && !this.bodyRu.trim())
+      return this.uiI18n.translate('ui.control.required');
     return this.draftErrors()['bodyRu'] ?? '';
   }
 
@@ -245,6 +255,11 @@ export class AnnouncementsModalsComponent {
       return;
     }
     this.saveDraft.emit();
+  }
+
+  changeBannerType(value: AnnouncementBannerType): void {
+    this.clearError('bannerType');
+    this.bannerTypeChange.emit(value);
   }
 
   localizedValue(values: Record<string, string> | null | undefined): string {
@@ -272,5 +287,10 @@ export class AnnouncementsModalsComponent {
           label: language.code === 'ru' ? `${language.name} *` : language.name,
         })),
     );
+  }
+
+  private clearError(key: string): void {
+    if (!this.draftErrors()[key]) return;
+    this.draftErrors.update(({ [key]: _changed, ...remaining }) => remaining);
   }
 }

@@ -8,7 +8,8 @@ param(
     [string]$S3Region = 'auto',
     [string]$RecoveryS3Endpoint,
     [string]$RecoveryS3Bucket,
-    [string]$RecoveryS3Prefix = 'object-backups'
+    [string]$RecoveryS3Prefix = 'object-backups',
+    [ValidatePattern('^(sha256:[a-f0-9]{64}|[^\s]+@sha256:[a-f0-9]{64})$')][string]$BackupImage
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +36,9 @@ function Invoke-Aws([string[]]$Arguments) {
 if ($AgeRecipient -notmatch '^age1[0-9a-z]{50,}$') { throw 'A valid age recipient is required.' }
 $ageCommand = Get-Command 'age' -ErrorAction SilentlyContinue
 $script:hasHostAge = $null -ne $ageCommand
+if (-not $script:hasHostAge -and -not $BackupImage) {
+    throw 'Host age or an explicitly verified immutable BackupImage is required.'
+}
 $agePath = if ($script:hasHostAge) { $ageCommand.Source } else { $null }
 $tarPath = Require-Command 'tar'
 $script:awsPath = if ($Provider -eq 's3' -or $RecoveryS3Bucket) { Require-Command 'aws' } else { $null }
@@ -54,7 +58,7 @@ function Invoke-AgeEncrypt([string]$Recipient, [string]$InputFile, [string]$Outp
         & docker run --rm --entrypoint age `
             -v "${inDir}:/in:ro" `
             -v "${outDir}:/out" `
-            smartupcms/backup:release-config-test `
+            $BackupImage `
             --encrypt --recipient $Recipient --output "/out/$outLeaf" "/in/$inLeaf"
         if ($LASTEXITCODE -ne 0) { throw 'Containerized age encryption failed.' }
     }
@@ -191,6 +195,10 @@ catch {
     throw
 }
 finally {
+    $expectedParent = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd('\', '/')
+    if ((Split-Path -Parent ([System.IO.Path]::GetFullPath($workingRoot))).TrimEnd('\', '/') -ne $expectedParent) {
+        throw 'Refusing cleanup outside the object backup scratch directory.'
+    }
     Remove-Item -LiteralPath $workingRoot -Recurse -Force -ErrorAction SilentlyContinue
     $env:AWS_ACCESS_KEY_ID = $previousAccessKey
     $env:AWS_SECRET_ACCESS_KEY = $previousSecretKey

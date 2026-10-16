@@ -64,7 +64,7 @@ export interface EntityMenuItem {
   route: string;
   labelKey: string;
   icon: string;
-  /** The menu section: `workspace`, `iam` or `administration`. */
+  /** The menu section: `workspace`, `iam`, `administration` or `examples`. */
   section: string;
   order: number;
   /** The installed module whose switch hides the item; none — always on. */

@@ -24,7 +24,9 @@ describe('upl packages route', () => {
         PermissionService,
         {
           provide: Router,
-          useValue: { createUrlTree: (commands: unknown[]) => (commands[0] === '/tasks' ? 'to-tasks' : 'redirect') },
+          useValue: {
+            createUrlTree: (commands: unknown[]) => (commands[0] === '/iam/profile' ? 'to-profile' : 'redirect'),
+          },
         },
         {
           provide: ModuleService,
@@ -72,10 +74,10 @@ describe('upl packages route', () => {
     expect(await runGuard(packagesRoute()!, 0)).toBe(true);
   });
 
-  it('redirects the packages route to tasks when the upl module is disabled', async () => {
+  it('redirects the packages route to profile when the upl module is disabled', async () => {
     activeModules = new Set(['notes']);
 
-    expect(await runGuard(packagesRoute()!, 0)).toBe('to-tasks');
+    expect(await runGuard(packagesRoute()!, 0)).toBe('to-profile');
   });
 
   async function runGuard(route: Route, index: number): Promise<unknown> {

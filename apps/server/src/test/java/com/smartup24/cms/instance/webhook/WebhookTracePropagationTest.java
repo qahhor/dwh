@@ -6,7 +6,6 @@ import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
 import com.smartup24.cms.instance.webhook.service.WebhookProperties;
 import com.smartup24.cms.instance.webhook.service.WebhookTargetPolicy;
 import com.smartup24.cms.instance.webhook.worker.WebhookOutboxWorker;
-import com.sun.net.httpserver.HttpServer;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationHandler;
 import io.micrometer.observation.ObservationRegistry;
@@ -19,7 +18,6 @@ import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
-import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -32,13 +30,15 @@ import org.mockito.Mockito;
 import tools.jackson.databind.ObjectMapper;
 
 /** Plan 10/10, item 7.2: a webhook delivery carries the W3C traceparent of the job's trace to the receiver. */
+@org.junit.jupiter.api.extension.ExtendWith(WebhookTlsExtension.class)
+@org.junit.jupiter.api.parallel.ResourceLock("javax.net.ssl.SSLContext.default")
 class WebhookTracePropagationTest {
 
     @Test
     @DisplayName("7.2: доставка вебхука передаёт получателю traceparent трассы задания")
     void aDeliveryPropagatesTheTraceOfItsJob() throws Exception {
         var received = new AtomicReference<String>();
-        var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        var server = WebhookTlsExtension.server();
         server.createContext("/webhook", exchange -> {
             try {
                 received.set(exchange.getRequestHeaders().getFirst("traceparent"));
@@ -99,7 +99,7 @@ class WebhookTracePropagationTest {
                 null,
                 claimToken,
                 Instant.now(),
-                "http://127.0.0.1:" + port + "/webhook",
+                "https://127.0.0.1:" + port + "/webhook",
                 "signing-secret");
     }
 }

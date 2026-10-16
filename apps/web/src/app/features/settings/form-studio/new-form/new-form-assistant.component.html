@@ -1,0 +1,74 @@
+@if (store.mayAssist()) {
+  <section class="assistant" data-testid="new-form-assistant" aria-labelledby="assistant-title">
+    <h2 id="assistant-title">{{ 'settings.simple_form.assistant_title' | t }}</h2>
+    <p class="assistant-hint">{{ 'settings.simple_form.assistant_hint' | t }}</p>
+    @if (store.checking()) {
+      <p role="status">{{ 'settings.simple_form.assistant_checking' | t }}</p>
+    } @else if (!store.available()) {
+      @if (!store.error()) {
+        <smt-alert smtTone="info" smtLive="off">{{ 'error.studio.assistant_disabled' | t }}</smt-alert>
+      }
+      <button smt-button type="button" smtVariant="secondary" (click)="store.load()">{{ 'common.retry' | t }}</button>
+    } @else {
+      <smt-control
+        [smtLabel]="'settings.simple_form.assistant_prompt' | t"
+        [smtHint]="'settings.simple_form.assistant_length' | t: { n: store.length() }"
+      >
+        <smt-textarea
+          [value]="store.prompt()"
+          (valueChange)="store.setPrompt($event); applied.set(false)"
+          [disabled]="confirming()"
+          [rows]="3"
+          [maxRows]="6"
+          data-testid="assistant-prompt"
+        />
+      </smt-control>
+      @if (store.length() > 2000) {
+        <p role="alert">{{ 'error.studio.assistant_prompt' | t }}</p>
+      }
+      <div class="assistant-actions">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          [disabled]="!store.canGenerate() || confirming()"
+          [smtLoading]="store.busy()"
+          (click)="store.generate(); applied.set(false)"
+          data-testid="assistant-generate"
+        >
+          {{ 'settings.simple_form.assistant_generate' | t }}
+        </button>
+        @if (store.busy() || store.proposal()) {
+          <button smt-button type="button" smtVariant="ghost" [disabled]="confirming()" (click)="store.cancel()">
+            {{ 'common.cancel' | t }}
+          </button>
+        }
+      </div>
+    }
+    @if (store.error()) {
+      <smt-alert smtTone="danger">{{ store.error() }}</smt-alert>
+    }
+    @if (store.proposal(); as proposal) {
+      <div class="assistant-proposal" data-testid="assistant-proposal">
+        <h3>{{ title() }}</h3>
+        <p>{{ 'settings.simple_form.assistant_proposal' | t: { n: proposal.fields.length } }}</p>
+        <details>
+          <summary>{{ 'settings.simple_form.assistant_json' | t }}</summary>
+          <pre>{{ json() }}</pre>
+        </details>
+        <button
+          smt-button
+          type="button"
+          [disabled]="!store.canApply() || confirming()"
+          (click)="apply()"
+          data-testid="assistant-apply"
+        >
+          {{ 'settings.simple_form.assistant_apply' | t }}
+        </button>
+      </div>
+    }
+    @if (applied()) {
+      <p role="status">{{ 'settings.simple_form.assistant_applied' | t }}</p>
+    }
+  </section>
+}

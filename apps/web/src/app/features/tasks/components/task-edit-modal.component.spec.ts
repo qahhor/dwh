@@ -59,6 +59,18 @@ function click(fixture: ComponentFixture<TaskEditModalComponent>, node: HTMLElem
 }
 
 describe('TaskEditModalComponent', () => {
+  it('removes a server refusal when the edited title changes', () => {
+    const { fixture, screen } = render({
+      editingTask: TASK,
+      serverErrors: { fields: { title: 'Title refused' }, other: ['Unknown refused'] },
+    });
+    const title = screen.querySelector('#task-edit-title') as HTMLInputElement;
+    title.value = 'Corrected';
+    title.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(screen.querySelector('smt-control:has(#task-edit-title)')?.textContent).not.toContain('Title refused');
+    expect(screen.querySelector('[data-testid="form-error-summary"]')?.textContent).toContain('Unknown refused');
+  });
   it('says it is loading and offers no form or save until the task is in', () => {
     const { screen } = render({ editLoading: true });
 

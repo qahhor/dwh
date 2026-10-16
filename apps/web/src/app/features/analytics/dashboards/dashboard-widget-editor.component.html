@@ -1,0 +1,60 @@
+<fieldset class="widget-editor" [disabled]="disabled()" [attr.data-testid]="'dashboard-edit-widget-' + item().viewId">
+  <legend>{{ title() }}</legend>
+  <div class="widget-actions">
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="arrow_upward"
+      smtIconOnly
+      [disabled]="disabled() || index() === 0"
+      [attr.aria-label]="'analytics.panels.up' | t: { name: title() }"
+      (click)="move(-1)"
+    ></button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="arrow_downward"
+      smtIconOnly
+      [disabled]="disabled() || index() === count() - 1"
+      [attr.aria-label]="'analytics.panels.down' | t: { name: title() }"
+      (click)="move(1)"
+    ></button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="close"
+      smtIconOnly
+      [disabled]="disabled()"
+      [attr.aria-label]="'analytics.widgets.remove' | t: { name: title() }"
+      (click)="removed.emit()"
+    ></button>
+  </div>
+  <div class="widget-fields">
+    <smt-control [smtLabel]="'analytics.panels.field' | t">
+      <smt-select
+        [options]="fields()"
+        [value]="item().periodField ?? null"
+        [placeholder]="'analytics.panels.no_field' | t"
+        [disabled]="disabled() || !report() || meta.isLoading() || !!meta.error()"
+        (valueChange)="setField($event)"
+      />
+    </smt-control>
+    <smt-control [smtLabel]="'analytics.panels.width' | t"
+      ><smt-select [options]="widths()" [value]="item().width" [disabled]="disabled()" (valueChange)="setWidth($event)"
+    /></smt-control>
+  </div>
+  @if (meta.error()) {
+    <p role="alert">
+      {{ 'common.operation_failed' | t }}
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="meta.reload()">
+        {{ 'common.retry' | t }}
+      </button>
+    </p>
+  }
+</fieldset>

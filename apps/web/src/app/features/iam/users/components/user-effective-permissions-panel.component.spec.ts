@@ -33,6 +33,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
       putHandler?: (path: string, body: any) => any;
       canAssign?: boolean;
       userId?: number;
+      translate?: (key: string) => string;
     } = {},
   ) {
     const api = {
@@ -50,7 +51,11 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     };
 
     const toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn(), show: vi.fn() };
-    const i18n = { translate: vi.fn((key: string) => key), hasKey: vi.fn(() => true), currentLang: signal('ru') };
+    const i18n = {
+      translate: vi.fn(options.translate ?? ((key: string) => key)),
+      hasKey: vi.fn(() => true),
+      currentLang: signal('ru'),
+    };
 
     await TestBed.configureTestingModule({
       imports: [UserEffectivePermissionsPanelComponent],
@@ -88,6 +93,53 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     expect(host.querySelector('.stat-val.primary')?.textContent?.trim()).toBe('3');
     expect(host.querySelector('.stat-val.role')?.textContent?.trim()).toBe('2');
     expect(host.querySelector('.stat-val.personal')?.textContent?.trim()).toBe('1');
+  });
+
+  it('updates translated permission choices without resetting an unsaved grant', async () => {
+    const dictionary = signal<Record<string, string>>({
+      'md.roles.rights.form': 'Роли и права',
+      'md.roles.rights.grant': 'Настройка матрицы прав',
+    });
+    const { fixture, api } = await createFixture({
+      translate: (key) => dictionary()[key] ?? key,
+      getHandler: (path) => {
+        if (path === '/iam/forms')
+          return of([
+            {
+              formCode: 'md.roles',
+              module: 'md',
+              formName: 'Роли и права',
+              formNameKey: 'md.roles.rights.form',
+              action: 'grant',
+              actionName: 'Настройка матрицы прав',
+              actionNameKey: 'md.roles.rights.grant',
+            },
+          ]);
+        if (path.endsWith('/effective-permissions')) return of({ items: [] });
+        return of({ grants: [] });
+      },
+    });
+    const page = fixture.componentInstance;
+    expect(page.formOptions()[0].label).toBe('Роли и права (md.roles)');
+    page.onFormSelect('md.roles');
+    page.selectedAction.set('grant');
+    page.addPersonalGrant();
+    page.onFormSelect('md.roles');
+    page.selectedAction.set('grant');
+
+    dictionary.set({
+      'md.roles.rights.form': 'Roles and permissions',
+      'md.roles.rights.grant': 'Configure permission matrix',
+    });
+    fixture.detectChanges();
+
+    expect(page.formOptions()[0].label).toBe('Roles and permissions (md.roles)');
+    expect(page.actionOptions()[0].label).toBe('Configure permission matrix (grant)');
+    expect(page.selectedFormCode()).toBe('md.roles');
+    expect(page.selectedAction()).toBe('grant');
+    expect(page.personalGrants()).toEqual([{ form: 'md.roles', action: 'grant' }]);
+    expect(page.hasUnsavedChanges()).toBe(true);
+    expect(api.get.mock.calls.filter(([path]) => path === '/iam/forms')).toHaveLength(1);
   });
 
   it('filters effective permissions by search query and source filter', async () => {

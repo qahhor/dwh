@@ -2,7 +2,7 @@
 
 **Версия:** 1.0
 
-**Обновлено:** 2026-10-10
+**Обновлено:** 2026-10-12
 
 **Основание:** план 10/10, п. 7.3; [ADR-0009](../adr/ADR-0009-observability.md)
 (каталог алертов и дисциплина телеметрии), `NFR-OBS-01`, `NFR-OBS-02`,
@@ -20,6 +20,7 @@
 |---|---|---|
 | Доступность API | 99.9 % за 30 дней | **утверждён** (ТЗ, раздел 7) |
 | Задержка API и entity runtime, p95 / p99 | 300 мс / 1 с | **утверждён** владельцем продукта 2026-10-10 (`NFR-PERF-02`) |
+| Задержка `POST /api/v1/files/upload`, p95 / p99 | 30 с / 60 с | **утверждён** владельцем продукта 2026-10-12 (`NFR-PERF-02`); только этот метод и URI имеют отдельный бюджет |
 | Очередь заданий, отставание головы | 5 мин (предупреждение), 15 мин (инцидент) | значение по умолчанию |
 | Outbox вебхуков и уведомлений, отставание головы | 15 мин (предупреждение, ADR-0009), 1 ч (инцидент) | значение по умолчанию |
 | Свежесть бэкапа | `SMC_BACKUP_MAX_AGE`, без него 26 ч | значение установки (RPO, `AC-12`) |
@@ -30,7 +31,7 @@
 | Рост базы, мёртвые строки (postgres-exporter) | база > 1 ГиБ выросла > 50 % за сутки; > 100 000 и > 20 % мёртвых строк таблицы 1 ч | значение по умолчанию |
 
 Утверждённые пороги (доступность 99.9 %, задержка API p95 ≤ 300 мс и
-p99 ≤ 1 с) едины для всех установок и меняются только новым решением
+p99 ≤ 1 с, upload p95 ≤ 30 с / p99 ≤ 60 с) едины для всех установок и меняются только новым решением
 владельца продукта вместе с `NFR-PERF-02`. Пороги со статусом «значение по
 умолчанию» в это решение не входили: это рабочие значения правил, пока
 владельцы эксплуатации установки не утвердили свои (`AC-12`). Любое значение
@@ -77,6 +78,7 @@ p99 ≤ 1 с) едины для всех установок и меняются 
 |---|---|---|
 | Доступность API | доля запросов `/api/…` без ответа 5xx: `1 - smc:api_error_ratio:rate*` | 99.9 % за 30 дней; бюджет ошибок 0.1 % |
 | Задержка API | `smc:api_latency_seconds:p95_5m`, `…:p99_5m`; доля ответов ≤ 300 мс `smc:api_requests_within_300ms:ratio_rate5m` | p95 ≤ 300 мс, p99 ≤ 1 с (утверждено 2026-10-10) |
+| Задержка upload | `smc:upload_latency_seconds:p95_5m`, `…:p99_5m` | p95 ≤ 30 с, p99 ≤ 60 с (утверждено 2026-10-12) |
 | Задержка entity runtime | `smc:entity_latency_seconds:p95_5m`, `…:p99_5m` (`/api/v1/entities/…`, ADR-0032) | p95 ≤ 300 мс (утверждённый порог API) |
 | Очередь заданий | `smc:jobs_queue_lag_seconds:max` | голова ждёт не дольше 5 мин |
 | Outbox вебхуков и уведомлений | `smc:outbox_lag_seconds:max`; рост `smc_outbox_dead_letters_total` | голова не старше 15 мин; новых dead letters нет |
@@ -85,9 +87,19 @@ p99 ≤ 1 с) едины для всех установок и меняются 
 | Насыщение | `smc:db_pool_utilisation:ratio`, `hikaricp_connections_pending`, `smc:disk_free:ratio` | пул занят < 90 %, нет ожидания соединения, диска > 20 % |
 
 Из SLI API исключён поток событий `/api/v1/events` (SSE): один запрос живёт,
-пока открыта вкладка. Длинные выгрузки и загрузки файлов входят в SLI
-задержки; если они смещают p99 установки, их `uri` исключают тем же способом
-(«предположение»: на эталонной нагрузке это не проверено).
+пока открыта вкладка. Только задержка `POST /api/v1/files/upload` имеет
+отдельный SLI 30/60 с; его ошибки и число запросов остаются в доступности API.
+Выгрузки, download, import и остальные файловые маршруты сохраняют 300/1000 мс.
+HTTP-гистограмма имеет отдельные границы 30/60 с и конечный диапазон до 120 с.
+Prometheus оценивает server-side перцентили за 5 минут; k6 проверяет client-side
+HTTP duration за профиль нагрузки. Время WAF/edge/сети проверяется на staging,
+а оценка гистограммы не заменяет результат k6 для 20 near-limit uploads.
+
+При успешном API-трафике до первого ответа 5xx доля ошибок равна нулю:
+recording rules подставляют нулевой числитель для того же `application`
+и API-селектора. Для отсутствующих API-рядов такая подстановка не создаётся;
+недоступность scrape проверяется отдельными алертами. Это правило одинаково
+для окон 5 мин, 30 мин, 1 ч и 6 ч и проверяется promtool.
 
 Сгорание бюджета доступности считается по двум окнам (ADR-0009, раздел 4):
 ×14.4 за 1 ч и 5 мин — инцидент (2 % месячного бюджета за час), ×6 за 6 ч и
@@ -104,6 +116,7 @@ p99 ≤ 1 с) едины для всех установок и меняются 
 | `SmartupcmsInstanceDown`, `SmartupcmsScrapeTargetMissing`, `SmartupcmsReadinessDown` | critical | [RB-01](../runbooks/RB-01-instance-unavailable.md) |
 | `SmartupcmsApiErrorBudgetBurnFast`, `SmartupcmsApiLatencyP99High` | critical | [RB-02](../runbooks/RB-02-api-errors-and-latency.md) |
 | `SmartupcmsApiErrorBudgetBurnSlow`, `SmartupcmsApiLatencyP95High`, `SmartupcmsEntityRuntimeLatencyHigh` | warning | [RB-02](../runbooks/RB-02-api-errors-and-latency.md) |
+| `SmartupcmsUploadLatencyP95High` / `SmartupcmsUploadLatencyP99High` | warning / critical | [RB-02](../runbooks/RB-02-api-errors-and-latency.md) |
 | `SmartupcmsBackupFailed`, `SmartupcmsBackupStale` | critical | [RB-03](../runbooks/RB-03-backup.md) |
 | `SmartupcmsBackupMissing` | warning | [RB-03](../runbooks/RB-03-backup.md) |
 | `SmartupcmsJobQueueStalled` | critical | [RB-05](../runbooks/RB-05-job-queue.md) |

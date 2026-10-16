@@ -99,7 +99,7 @@ public class MdListViewRepository {
     }
 
     /** @return 0 if the view does not exist or was already changed (a different {@code lock_version}) */
-    public int update(long userId, String listCode, long id, int lockVersion, ListView data) {
+    public int update(long userId, String listCode, long id, long lockVersion, ListView data) {
         return jdbc.sql("""
                         update md_list_views
                         set kind = :kind, name = :name, state = cast(:state as jsonb), is_default = :def,
@@ -120,7 +120,7 @@ public class MdListViewRepository {
     /** Clears the "default" flag on the list's other views. */
     public void clearDefault(long userId, String listCode, Long exceptId) {
         jdbc.sql("""
-                        update md_list_views set is_default = false, modified_at = now()
+                        update md_list_views set is_default = false, modified_at = now(), lock_version = lock_version + 1
                         where user_id = :u and list_code = :l and is_default
                           and (cast(:except as bigint) is null or id <> :except)
                         """)
@@ -130,11 +130,20 @@ public class MdListViewRepository {
                 .update();
     }
 
-    public int delete(long userId, String listCode, long id) {
-        return jdbc.sql("delete from md_list_views where id = :id and user_id = :u and list_code = :l")
+    public int delete(long userId, String listCode, long id, long revision) {
+        return jdbc.sql(
+                        "delete from md_list_views where id = :id and user_id = :u and list_code = :l and lock_version = :revision")
                 .param("id", id)
                 .param("u", userId)
                 .param("l", listCode)
+                .param("revision", revision)
+                .update();
+    }
+
+    /** A table view cannot retain a role policy that would revive on a later kind change (ADR-0036). */
+    public void clearSharing(long id) {
+        jdbc.sql("delete from md_list_view_roles where view_id = :id")
+                .param("id", id)
                 .update();
     }
 

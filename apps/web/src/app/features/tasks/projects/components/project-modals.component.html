@@ -74,7 +74,7 @@
             smtFocusInitial
             name="projectCreateName"
             [value]="createForm().name"
-            (valueChange)="createForm().name = $event?.toString() ?? ''"
+            (valueChange)="setCreateField('name', $event?.toString() ?? '')"
             (touch)="createNameTouched.set(true)"
             [placeholder]="'projects.editor.name_placeholder' | t"
           />
@@ -88,7 +88,7 @@
             smtFieldId="project-create-description"
             name="projectCreateDescription"
             [value]="createForm().description"
-            (valueChange)="createForm().description = $event"
+            (valueChange)="setCreateField('description', $event)"
             [placeholder]="'projects.editor.description_placeholder' | t"
           />
         </smt-control>
@@ -167,7 +167,7 @@
               smtFocusInitial
               name="projectEditName"
               [value]="editForm().name"
-              (valueChange)="editForm().name = $event?.toString() ?? ''"
+              (valueChange)="setEditField('name', $event?.toString() ?? '')"
               (touch)="editNameTouched.set(true)"
             />
           </smt-control>
@@ -180,7 +180,7 @@
               smtTriggerId="project-edit-state"
               name="projectEditState"
               [value]="editForm().state"
-              (valueChange)="editForm().state = $event ?? editForm().state"
+              (valueChange)="setEditField('state', $event ?? editForm().state)"
               [options]="stateOptions()"
               [allowClear]="false"
             ></smt-select>
@@ -194,7 +194,7 @@
               smtFieldId="project-edit-description"
               name="projectEditDescription"
               [value]="editForm().description"
-              (valueChange)="editForm().description = $event"
+              (valueChange)="setEditField('description', $event)"
             />
           </smt-control>
           @if (projectCustomFields().length > 0) {

@@ -10,6 +10,7 @@ import {
   output,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { CustomNavigationItem, NavigationTargetType } from '@core/models/navigation.models';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
@@ -24,7 +25,7 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 @Component({
   selector: 'app-navigation-settings-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, TranslatePipe, UiLocalTableComponent, NgClass],
+  imports: [SMTButtonComponent, SMTInputComponent, TranslatePipe, UiLocalTableComponent, NgClass],
   template: `
     <!-- Search & Filter Bar -->
     <div class="filter-bar">
@@ -90,7 +91,11 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
     <ng-template #actionsCell let-item>
       <div class="actions-cell">
         <button
+          smt-button
           type="button"
+          smtVariant="ghost"
+          smtSize="sm"
+          smtIconOnly
           class="action-icon-btn preview-btn"
           (click)="previewItem.emit(item)"
           [title]="'nav.settings.open' | t"
@@ -99,7 +104,11 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
           <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
         </button>
         <button
+          smt-button
           type="button"
+          smtVariant="ghost"
+          smtSize="sm"
+          smtIconOnly
           class="action-icon-btn"
           (click)="editItem.emit(item)"
           [title]="'common.edit' | t"
@@ -108,7 +117,11 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
           <span class="material-symbols-outlined" aria-hidden="true">edit</span>
         </button>
         <button
+          smt-button
           type="button"
+          smtVariant="ghost"
+          smtSize="sm"
+          smtIconOnly
           class="action-icon-btn danger"
           (click)="deleteItem.emit(item)"
           [title]="'common.delete' | t"
@@ -118,9 +131,25 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
         </button>
       </div>
     </ng-template>
-    <ng-template #emptyState
-      ><p class="empty-cell">{{ 'common.no_data' | t }}</p></ng-template
-    >
+    <ng-template #emptyState>
+      <div class="empty-cell">
+        @if (searchQuery().trim()) {
+          <p>{{ 'ui.table.nothing_found' | t }}</p>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            data-testid="navigation-clear-search"
+            (click)="clearSearch.emit()"
+          >
+            {{ 'ui.searchable_select.clear_search' | t }}
+          </button>
+        } @else {
+          <p>{{ 'common.no_data' | t }}</p>
+        }
+      </div>
+    </ng-template>
   `,
   styleUrl: './navigation-settings-table.component.css',
 })
@@ -169,8 +198,8 @@ export class NavigationSettingsTableComponent {
           width: '90px',
           align: 'center',
         },
-        status: { header: header('common.status'), content: cell(this.statusCell), width: '110px', align: 'center' },
-        actions: { header: header('common.actions'), content: cell(this.actionsCell), width: '140px', align: 'right' },
+        status: { header: header('common.status'), content: cell(this.statusCell), width: '150px', align: 'center' },
+        actions: { header: header('common.actions'), content: cell(this.actionsCell), width: '180px', align: 'right' },
       },
       columnsOrder: ['icon', 'title', 'type', 'section', 'target', 'order', 'status', 'actions'],
     };

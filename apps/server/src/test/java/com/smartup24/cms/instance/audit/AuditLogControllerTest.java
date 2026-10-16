@@ -16,7 +16,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
-import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
+import com.smartup24.cms.instance.support.TestModules;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -115,7 +115,7 @@ class AuditLogControllerTest {
 
     private static MockMvc securedMvc(AuditLogService service, AuditListService lists) {
         return MockMvcBuilders.standaloneSetup(new AuditLogController(service, lists))
-                .addInterceptors(new RequiresPermissionInterceptor())
+                .addInterceptors(TestModules.permissions())
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }

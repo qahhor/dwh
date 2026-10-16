@@ -139,7 +139,7 @@ export class TaskTableViewComponent {
     const header = (value: string) => ({ type: 'primitive' as const, value });
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
-    const rest = '(100% - 750px)';
+    const rest = '(100% - 830px)';
     const base = registryTableConfig<Task>(meta, {
       translate: (key) => this.i18n.translate(key),
       trackBy: (_index, task) => task.id,
@@ -154,10 +154,10 @@ export class TaskTableViewComponent {
         endTime: cell(this.deadlineCell),
       },
       widths: {
-        id: '70px',
+        id: '110px',
         title: `max(220px, calc(${rest} * 0.6))`,
         projectId: `max(140px, calc(${rest} * 0.4))`,
-        priority: '130px',
+        priority: '170px',
         statusCode: '150px',
         endTime: '180px',
       },

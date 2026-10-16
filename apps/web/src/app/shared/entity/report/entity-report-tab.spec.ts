@@ -48,7 +48,10 @@ async function render() {
   return renderEntityScreen(`/e/${CODE}`, {
     meta: META,
     list: LIST,
-    answers: { [`/entities/${CODE}/report`]: answer },
+    answers: {
+      [`/entities/${CODE}/report`]: answer,
+      '/report-views': () => of({ items: [], hasMore: false, nextCursor: null }),
+    },
     changes: {
       [`POST /list-views/${CODE}`]: (body) =>
         of({ id: 7, kind: 'widget', lockVersion: 0, ...(body as Record<string, unknown>) }),

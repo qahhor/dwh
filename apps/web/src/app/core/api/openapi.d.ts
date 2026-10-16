@@ -97,7 +97,7 @@ export interface paths {
          * Create an announcement
          * @description Adds an announcement.
          */
-        post: operations["create_3"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -156,7 +156,7 @@ export interface paths {
          * Update an announcement
          * @description Replaces an announcement.
          */
-        put: operations["update_2"];
+        put: operations["update_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -352,8 +352,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List sign-in providers
-         * @description The external OAuth 2 providers a user may sign in with.
+         * List configured OAuth 2 providers
+         * @description Administrative provider metadata. OAuth 2 sign-in and callback exchange are not implemented.
          */
         get: operations["getProviders"];
         put?: never;
@@ -490,6 +490,122 @@ export interface paths {
          * @description Changes the name, requirement, default, options or order of a custom field; names the revision it was read at.
          */
         patch: operations["updateField"];
+        trace?: never;
+    };
+    "/api/v1/dashboards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List accessible dashboards
+         * @description Returns owned and active-role-shared dashboard summaries. The default limit is 20 and maximum 100; all access is checked for the current reader.
+         */
+        get: operations["list_4"];
+        put?: never;
+        /**
+         * Create a named dashboard
+         * @description Creates an owned dashboard containing up to 12 distinct accessible saved reports. Names are unique per owner; each owner may create at most 20 dashboards. Returns Location and ETag.
+         */
+        post: operations["create_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a named dashboard
+         * @description Reads the current persisted layout and revalidates every source for the reader. An unavailable widget retains only its identifier and width; no source name, fields or definition are disclosed.
+         */
+        get: operations["get_2"];
+        /**
+         * Update a named dashboard
+         * @description Only the owner may replace a layout with its current If-Match revision. A retained unavailable slot preserves its stored period binding without exposing it; missing revision returns 428 and stale revision 409.
+         */
+        put: operations["update_3"];
+        post?: never;
+        /**
+         * Delete a named dashboard
+         * @description Only the owner may delete the layout with its current If-Match revision. Referenced reports remain intact. Missing revision returns 428 and stale revision 409.
+         */
+        delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboards/{id}/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read dashboard sharing
+         * @description Only the owner with settings-update permission reads the explicit role policy. ETag identifies the dashboard revision, shared with layout changes.
+         */
+        get: operations["sharing_1"];
+        /**
+         * Replace dashboard sharing
+         * @description The owner with settings-update permission assigns up to 20 active roles. If-Match checks the layout revision; policy and incremented revision are committed atomically.
+         */
+        put: operations["share_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboards/{id}/widgets/{viewId}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export a dashboard widget
+         * @description Requires the current dashboard revision in If-Match. Uses its source and UTC period mapping with the same authorization as the widget result.
+         */
+        get: operations["dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboards/{id}/widgets/{viewId}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run a dashboard widget
+         * @description Requires the current layout revision in If-Match and rechecks report, field and data access. Both ISO dates or neither are accepted. DATE bounds are inclusive; timestamps use UTC start through the exclusive next day.
+         */
+        get: operations["result"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/entities/example.orders": {
@@ -1504,6 +1620,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entities/{code}/report-datasets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available prepared report datasets
+         * @description Lists up to 16 trusted datasets after checking root, reference and target access.
+         */
+        get: operations["datasets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/{code}/report-meta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Describe the authorized report source
+         * @description Returns current visible fields and report capabilities for the entity or a named dataset.
+         */
+        get: operations["metadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/{code}/report/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export aggregate report rows
+         * @description Exports the report's original groups and measures, with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.
+         */
+        get: operations["report_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/entities/{code}/reports/{viewId}": {
         parameters: {
             query?: never;
@@ -1513,9 +1689,29 @@ export interface paths {
         };
         /**
          * Run a saved report
-         * @description Runs a report or widget the viewer saved as a view of the entity's list.
+         * @description Runs an owned or role-shared report or widget using the current reader's data and field access.
          */
         get: operations["saved"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/entities/{code}/reports/{viewId}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export a saved report
+         * @description Rechecks current source sharing and the reader's data and field rights.
+         */
+        get: operations["saved_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1723,7 +1919,179 @@ export interface paths {
          * Get a form description
          * @description The fields, layout and rules of an entity form, built from its declaration; the entity's own right is checked.
          */
-        get: operations["get_4"];
+        get: operations["get_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-studio/drafts/{entityCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the shared form layout draft
+         * @description Returns the saved draft, or null when none exists, with current authorized form metadata. A saved draft is revalidated against visible fields and its revision is returned as ETag.
+         */
+        get: operations["get_1"];
+        /**
+         * Save a shared form layout draft
+         * @description Replaces the shared declaration only when If-Match names its current revision. Both the stored and submitted layouts must remain visible and valid. Returns the new ETag; missing If-Match causes 428 and a stale revision causes 409.
+         */
+        put: operations["update_2"];
+        /**
+         * Create a shared form layout draft
+         * @description Validates the declaration against current authorized metadata and creates one shared draft for the prototype form. Returns its Location and ETag; an existing draft causes 409.
+         */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-studio/drafts/{entityCode}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List prepared form layout versions
+         * @description Returns version, source revision, checksum and creation time in descending keyset order. The default limit is 20, the maximum is 100 and an invalid limit causes 422. Each request checks current access; declaration contents are not included.
+         */
+        get: operations["versions_1"];
+        put?: never;
+        /**
+         * Prepare an immutable form layout version
+         * @description Requires If-Match for the current draft and seals its declaration, dependency fingerprint and checksum atomically. Repeating preparation of the same current revision returns its existing compatible package. Returns 201 with Location and never activates the package.
+         */
+        post: operations["prepare_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-studio/drafts/{entityCode}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a prepared form layout package
+         * @description Returns the immutable stored package after checking current permissions and field visibility. Use the verification action to check its dependency compatibility. Reading a package never changes the draft or activates a runtime definition.
+         */
+        get: operations["version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-studio/drafts/{entityCode}/versions/{version}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify a prepared form package
+         * @description Checks a strict JSON package of at most 64 KiB against the trusted stored version, checksum and current authorized metadata. Returns 200 with the verification result, 422 for an invalid package or 409 for changed dependencies. This action stores and activates nothing.
+         */
+        post: operations["verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-studio/new-forms/check-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check an unfinished local simple form draft
+         * @description Checks bounded JSON structure and known field types, preserving empty identifiers, labels and unfinished numeric limits. Returns authoring input only, never a checksum or delivery package. Preparation independently enforces the complete declaration contract. Nothing is stored or activated.
+         */
+        post: operations["check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-studio/new-forms/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepare a simple new form for CLI delivery
+         * @description Validates a bounded create-only declaration and returns a deterministic SHA-256 package. Requires current settings update permission. No draft, entity or schema is created. The CLI independently validates the package and target checkout before generating sources and Flyway migrations.
+         */
+        post: operations["prepare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-studio/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate a form layout preview
+         * @description Validates a presentation-only declaration against current authorized metadata, without persistence or publication.
+         */
+        post: operations["preview_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-studio/prototype": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the form layout prototype
+         * @description Current authorized product form metadata and its initial presentation declaration; no records are read.
+         */
+        get: operations["prototype"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1913,7 +2281,7 @@ export interface paths {
          * Create an org unit
          * @description Adds a unit to the organisation structure.
          */
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2006,14 +2374,14 @@ export interface paths {
          * Delete an org unit
          * @description Removes a unit of the organisation structure.
          */
-        delete: operations["delete_1"];
+        delete: operations["delete_2"];
         options?: never;
         head?: never;
         /**
          * Update an org unit
          * @description Changes the name, parent or state of a unit; names the revision it was read at.
          */
-        patch: operations["update_3"];
+        patch: operations["update_5"];
         trace?: never;
     };
     "/api/v1/iam/profile/channels": {
@@ -2457,15 +2825,15 @@ export interface paths {
         };
         /**
          * List saved views
-         * @description The saved views of a list of the given kinds: table views (filters, columns, sort) when no kind is named, reports and widgets (grouping, measures, chart) when asked for.
+         * @description The owner's saved views of a list: table views by default, or requested reports and widgets. Stored report state is revalidated for the current viewer before it is returned.
          */
         get: operations["list_2"];
         put?: never;
         /**
          * Save a view
-         * @description Saves the current filters, columns and sort of a list as a named view.
+         * @description Saves a named view after validating its state and current field access. Returns Location and ETag.
          */
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2482,15 +2850,39 @@ export interface paths {
         get?: never;
         /**
          * Update a saved view
-         * @description Replaces a saved view of a list.
+         * @description Only the owner replaces a saved view with its current If-Match revision. Missing revision returns 428 and stale revision 409; the answer carries the new ETag.
          */
         put: operations["update_1"];
         post?: never;
         /**
          * Delete a saved view
-         * @description Removes a saved view of a list.
+         * @description Only the owner removes a saved view with its current If-Match revision. Missing revision returns 428 and stale revision 409. Dashboard references become unavailable placeholders.
          */
         delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/list-views/{listCode}/{id}/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a report sharing policy
+         * @description Only the owner with settings-update permission reads the assigned role identifiers. Table views cannot be shared. ETag identifies the current view revision.
+         */
+        get: operations["sharing"];
+        /**
+         * Replace a report sharing policy
+         * @description The owner assigns up to 20 distinct active roles with If-Match. The view revision and policy change atomically; an empty role list revokes sharing. Missing revision returns 428 and stale revision 409.
+         */
+        put: operations["share"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2827,7 +3219,47 @@ export interface paths {
          * Get a list description
          * @description The fields, filters, sorts and defaults of a registry list, including custom fields; the list's own right is checked.
          */
-        get: operations["get_3"];
+        get: operations["get_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-sharing/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List active sharing roles
+         * @description Returns only role identifiers and names under settings-update permission. The default limit is 20, maximum 100; larger limits return 422.
+         */
+        get: operations["roles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List accessible report definitions
+         * @description Returns owned and role-shared reports with current visible fields. The default limit is 20, maximum 100. An incomplete or empty page can still have a next cursor when inaccessible definitions are omitted.
+         */
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2847,7 +3279,7 @@ export interface paths {
          * List my widgets
          * @description The viewer's widgets for the dashboard, at most 12, over the entities the viewer may see.
          */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3152,6 +3584,86 @@ export interface paths {
         patch: operations["updateUserSettings"];
         trace?: never;
     };
+    "/api/v1/studio/activation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read simple-form activation availability
+         * @description Requires studio.forms.publish. Reports the activation switch and bounded namespace/form limit; an inactive module returns 404.
+         */
+        get: operations["availability_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/assistant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read assistant availability
+         * @description Requires studio.forms.assist and md.settings.update. Disabled by default; no provider request is made.
+         */
+        get: operations["availability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/assistant/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Propose a validated simple-form draft
+         * @description Requires studio.forms.assist and md.settings.update. Sends only the explicit prompt to the configured provider. No save, package, activation or replay; 200 returns an unsaved declaration.
+         */
+        post: operations["propose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate an immutable simple form
+         * @description Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. Exact package repeats return the same result; different packages at an occupied code return 409.
+         */
+        post: operations["activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/info": {
         parameters: {
             query?: never;
@@ -3331,7 +3843,7 @@ export interface paths {
          * Get the upload overview
          * @description Uploads and their outcomes over the requested number of days, for the overview screen.
          */
-        get: operations["get_2"];
+        get: operations["get_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3375,7 +3887,7 @@ export interface paths {
          * Get a data package
          * @description One uploaded package with its state and counts.
          */
-        get: operations["get_1"];
+        get: operations["get_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3461,7 +3973,7 @@ export interface paths {
          * Create a data source
          * @description Adds an upload source.
          */
-        post: operations["create"];
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3591,7 +4103,7 @@ export interface paths {
          * List units of measure
          * @description The units of measure.
          */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4037,6 +4549,55 @@ export interface components {
             orderNo?: number;
             /** Format: int64 */
             revision?: number;
+        };
+        DashboardDetail: {
+            canEdit: boolean;
+            canShare: boolean;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            modifiedAt: string;
+            name: string;
+            /** Format: int64 */
+            revision: number;
+            shared: boolean;
+            /** Format: int32 */
+            widgetCount: number;
+            widgets: components["schemas"]["DashboardWidget"][];
+        };
+        DashboardRequest: {
+            name: string;
+            widgets: components["schemas"]["DashboardWidgetRequest"][];
+        };
+        DashboardSummary: {
+            canEdit: boolean;
+            canShare: boolean;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            modifiedAt: string;
+            name: string;
+            /** Format: int64 */
+            revision: number;
+            shared: boolean;
+            /** Format: int32 */
+            widgetCount: number;
+        };
+        DashboardWidget: {
+            available: boolean;
+            periodField?: string;
+            report?: components["schemas"]["ReportViewItem"];
+            /** Format: int64 */
+            viewId: number;
+            /** Format: int32 */
+            width: number;
+        };
+        DashboardWidgetRequest: {
+            periodField?: string;
+            /** Format: int64 */
+            viewId: number;
+            /** Format: int32 */
+            width: number;
         };
         DayRow: {
             /** Format: int64 */
@@ -4498,6 +5059,28 @@ export interface components {
             type?: string;
             visibleWhen?: components["schemas"]["ConditionItemMeta"][];
         };
+        FormLayoutDeclaration: {
+            /** @enum {string} */
+            entityCode: "example.products";
+            /** Format: int32 */
+            formatVersion: number;
+            /** @enum {string} */
+            kind: "form-layout";
+            sections: components["schemas"]["FormLayoutSection"][];
+        };
+        FormLayoutField: {
+            fieldId: string;
+            labels?: components["schemas"]["LocalizedLabels"];
+        };
+        FormLayoutPreview: {
+            declaration: components["schemas"]["FormLayoutDeclaration"];
+            meta: components["schemas"]["FormMeta"];
+        };
+        FormLayoutSection: {
+            fields: components["schemas"]["FormLayoutField"][];
+            id: string;
+            labels?: components["schemas"]["LocalizedLabels"];
+        };
         FormMeta: {
             actions?: string[];
             capabilities?: string[];
@@ -4521,6 +5104,60 @@ export interface components {
             labelKey?: string;
             locks?: string[];
             terminal?: boolean;
+        };
+        FormStudioDependencies: {
+            /** Format: int32 */
+            contractVersion: number;
+            metadataChecksum: string;
+        };
+        FormStudioDraft: {
+            declaration: components["schemas"]["FormLayoutDeclaration"];
+            entityCode: string;
+            /** Format: int64 */
+            revision: number;
+        };
+        FormStudioDraftResponse: {
+            draft: components["schemas"]["FormStudioDraft"] | null;
+            meta: components["schemas"]["FormMeta"];
+        };
+        FormStudioPublicationPackage: {
+            declaration: components["schemas"]["FormLayoutDeclaration"];
+            dependencies: components["schemas"]["FormStudioDependencies"];
+            /** @enum {string} */
+            entityCode: "example.products";
+            /** Format: int32 */
+            formatVersion: number;
+            /** @enum {string} */
+            kind: "form-layout-package";
+            /** Format: int64 */
+            sourceRevision: number;
+            /** Format: int64 */
+            version: number;
+        };
+        FormStudioVerification: {
+            checksum: string;
+            /** Format: int64 */
+            sourceRevision: number;
+            valid: boolean;
+            /** Format: int64 */
+            version: number;
+        };
+        FormStudioVersionPackage: {
+            checksum: string;
+            package: components["schemas"]["FormStudioPublicationPackage"];
+            /** Format: int64 */
+            sourceRevision: number;
+            /** Format: int64 */
+            version: number;
+        };
+        FormStudioVersionSummary: {
+            checksum: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            sourceRevision: number;
+            /** Format: int64 */
+            version: number;
         };
         FormTabMeta: {
             collection?: string;
@@ -4721,9 +5358,25 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageDashboardSummary: {
+            hasMore?: boolean;
+            items?: components["schemas"]["DashboardSummary"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageFileListItem: {
             hasMore?: boolean;
             items?: components["schemas"]["FileListItem"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        KeysetPageFormStudioVersionSummary: {
+            hasMore?: boolean;
+            items?: components["schemas"]["FormStudioVersionSummary"][];
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
@@ -4769,9 +5422,25 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageReportViewItem: {
+            hasMore?: boolean;
+            items?: components["schemas"]["ReportViewItem"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageSecurityEventView: {
             hasMore?: boolean;
             items?: components["schemas"]["SecurityEventView"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        KeysetPageSharingRole: {
+            hasMore?: boolean;
+            items?: components["schemas"]["SharingRole"][];
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
@@ -4819,6 +5488,11 @@ export interface components {
             maxInValues?: number;
             /** Format: int32 */
             maxLimit?: number;
+        };
+        LocalizedLabels: {
+            en: string;
+            ru: string;
+            uz: string;
         };
         LoginAttemptView: {
             /** Format: date-time */
@@ -5594,6 +6268,32 @@ export interface components {
         ReplacePermissionsDto: {
             grants: components["schemas"]["GrantDto"][];
         };
+        ReportDatasetCatalog: {
+            items: components["schemas"]["ReportDatasetItem"][];
+        };
+        ReportDatasetItem: {
+            code: string;
+            titleKey: string;
+        };
+        ReportViewItem: {
+            canEdit: boolean;
+            canShare: boolean;
+            entity: string;
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "report" | "widget";
+            listCode: string;
+            /** Format: int32 */
+            lockVersion: number;
+            /** Format: date-time */
+            modifiedAt: string;
+            name: string;
+            shared: boolean;
+            state: {
+                [key: string]: unknown;
+            };
+        };
         RequestDto: {
             email: string;
         };
@@ -5719,6 +6419,19 @@ export interface components {
             /** Format: int64 */
             version?: number;
         };
+        SharingRequest: {
+            roleIds: number[];
+        };
+        SharingResponse: {
+            /** Format: int64 */
+            revision: number;
+            roleIds: number[];
+        };
+        SharingRole: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+        };
         SheetDto: {
             columns: components["schemas"]["ColumnDto"][];
             /** Format: int32 */
@@ -5729,6 +6442,82 @@ export interface components {
             ordinal?: number;
             sheetName?: string;
             totalRowMarker?: string;
+        };
+        SimpleFormDeclaration: {
+            entity: components["schemas"]["SimpleFormEntity"];
+            fields: components["schemas"]["SimpleFormField"][];
+            /** Format: int32 */
+            formatVersion: number;
+            /** @enum {string} */
+            kind: "simple-form";
+            module: components["schemas"]["SimpleFormModule"];
+        };
+        SimpleFormDeliveryPackage: {
+            checksum: string;
+            declaration: components["schemas"]["SimpleFormDeclaration"];
+            /** Format: int32 */
+            formatVersion: number;
+            /** @enum {string} */
+            kind: "simple-form-package";
+        };
+        SimpleFormDraftDeclaration: {
+            entity: components["schemas"]["SimpleFormDraftEntity"];
+            fields: components["schemas"]["SimpleFormDraftField"][];
+            /** Format: int32 */
+            formatVersion: number;
+            /** @enum {string} */
+            kind: "simple-form";
+            module: components["schemas"]["SimpleFormDraftModule"];
+        };
+        SimpleFormDraftEntity: {
+            name: string;
+            title: components["schemas"]["SimpleFormDraftLabels"];
+        };
+        SimpleFormDraftField: {
+            id: string;
+            labels: components["schemas"]["SimpleFormDraftLabels"];
+            listed: boolean;
+            /** Format: double */
+            maxLength?: number;
+            required: boolean;
+            /** Format: double */
+            scale?: number;
+            /** @enum {string} */
+            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url";
+        };
+        SimpleFormDraftLabels: {
+            en: string;
+            ru: string;
+            uz: string;
+        };
+        SimpleFormDraftModule: {
+            code: string;
+            title: components["schemas"]["SimpleFormDraftLabels"];
+        };
+        SimpleFormEntity: {
+            name: string;
+            title: components["schemas"]["SimpleFormLabels"];
+        };
+        SimpleFormField: {
+            id: string;
+            labels: components["schemas"]["SimpleFormLabels"];
+            listed: boolean;
+            /** Format: int32 */
+            maxLength?: number;
+            required: boolean;
+            /** Format: int32 */
+            scale?: number;
+            /** @enum {string} */
+            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url";
+        };
+        SimpleFormLabels: {
+            en: string;
+            ru: string;
+            uz: string;
+        };
+        SimpleFormModule: {
+            code: string;
+            title: components["schemas"]["SimpleFormLabels"];
         };
         SourceFreshness: {
             code?: string;
@@ -5834,6 +6623,22 @@ export interface components {
             userQuotaBytes?: number;
             /** Format: int64 */
             userUsedBytes?: number;
+        };
+        StudioActivatedForm: {
+            checksum?: string;
+            entityCode?: string;
+        };
+        StudioAssistantAvailability: {
+            available: boolean;
+        };
+        StudioAssistantRequest: {
+            prompt: string;
+        };
+        StudioAvailability: {
+            enabled?: boolean;
+            /** Format: int32 */
+            maxForms?: number;
+            namespace?: string;
         };
         SubscriptionView: {
             /** Format: date-time */
@@ -6063,8 +6868,6 @@ export interface components {
             isDefault?: boolean;
             /** @enum {string} */
             kind?: "table" | "report" | "widget";
-            /** Format: int32 */
-            lockVersion?: number;
             name?: string;
             state?: {
                 [key: string]: unknown;
@@ -6235,7 +7038,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_5: {
         parameters: {
             query?: never;
             header?: {
@@ -6345,7 +7148,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_4: {
         parameters: {
             query?: never;
             header?: {
@@ -7002,6 +7805,415 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageDashboardSummary"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardDetail"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardDetail"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardDetail"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    sharing_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharingResponse"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    share_1: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SharingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharingResponse"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    dashboard: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                lang?: string;
+            };
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                id: number;
+                viewId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    result: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                id: number;
+                viewId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryAggregateResult"];
+                };
             };
             /** @description The record changed since the revision named in If-Match */
             409: {
@@ -10259,6 +11471,7 @@ export interface operations {
                 measures?: string;
                 /** @description The list's filter DSL (JSON array) */
                 filter?: string;
+                dataset?: string;
             };
             header?: never;
             path: {
@@ -10275,6 +11488,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QueryAggregateResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    datasets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDatasetCatalog"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    metadata: {
+        parameters: {
+            query?: {
+                dataset?: string;
+            };
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListMeta"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    report_1: {
+        parameters: {
+            query?: {
+                groupBy?: string;
+                measures?: string;
+                filter?: string;
+                dataset?: string;
+                lang?: string;
+            };
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -10307,6 +11621,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QueryAggregateResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    saved_1: {
+        parameters: {
+            query?: {
+                lang?: string;
+            };
+            header?: never;
+            path: {
+                code: string;
+                viewId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -10675,7 +12023,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -10693,6 +12041,418 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FormMeta"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormStudioDraftResponse"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    update_2: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormLayoutDeclaration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormStudioDraftResponse"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormLayoutDeclaration"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormStudioDraftResponse"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    versions_1: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageFormStudioVersionSummary"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    prepare_1: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormStudioVersionPackage"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    version: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityCode: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormStudioVersionPackage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityCode: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormStudioVersionPackage"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormStudioVerification"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimpleFormDraftDeclaration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimpleFormDraftDeclaration"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    prepare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimpleFormDeclaration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimpleFormDeliveryPackage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    preview_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormLayoutDeclaration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormLayoutPreview"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    prototype: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormLayoutPreview"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -11039,7 +12799,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: {
@@ -11323,7 +13083,7 @@ export interface operations {
             };
         };
     };
-    delete_1: {
+    delete_2: {
         parameters: {
             query?: never;
             header?: {
@@ -11355,7 +13115,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_5: {
         parameters: {
             query?: never;
             header?: {
@@ -12432,13 +14192,10 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
+            header?: never;
             path: {
                 listCode: string;
             };
@@ -12453,21 +14210,14 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     /** @description Path of the created resource, when it has one */
                     Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ViewResponse"];
-                };
-            };
-            /** @description The record changed since the revision the body names */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -12485,8 +14235,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
+                "If-Match"?: string;
             };
             path: {
                 listCode: string;
@@ -12503,14 +14252,25 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["ViewResponse"];
                 };
             };
-            /** @description The record changed since the revision the body names */
+            /** @description The record changed since the revision named in If-Match */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12533,8 +14293,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
+                "If-Match"?: string;
             };
             path: {
                 listCode: string;
@@ -12550,6 +14309,116 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    sharing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listCode: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharingResponse"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    share: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                listCode: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SharingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharingResponse"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -13264,7 +15133,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -13295,7 +15164,72 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    roles: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageSharingRole"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    list_7: {
+        parameters: {
+            query?: {
+                listCode?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageReportViewItem"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -13933,6 +15867,132 @@ export interface operations {
             };
         };
     };
+    availability_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioAvailability"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    availability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioAssistantAvailability"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    propose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioAssistantRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimpleFormDeclaration"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    activate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimpleFormDeliveryPackage"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioActivatedForm"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
     getInfo: {
         parameters: {
             query?: never;
@@ -14264,7 +16324,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_4: {
         parameters: {
             query?: {
                 days?: number;
@@ -14370,7 +16430,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -14534,7 +16594,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: {
@@ -14883,7 +16943,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: never;
             header?: never;

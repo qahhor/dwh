@@ -11,8 +11,8 @@ import tools.jackson.databind.JsonNode;
 public interface EntityReportViews {
 
     /**
-     * The report or widget {@code viewId} that the user saved on the list; empty when there is none of theirs — a view
-     * of another person, of another list and a table view answer the same.
+     * An owned or explicitly role-shared report or widget, revalidated for the current reader (ADR-0036).
+     * Missing access, unavailable fields or state, another list and a table view all answer empty.
      */
     Optional<SavedReport> report(long userId, String listCode, long viewId);
 
@@ -26,5 +26,6 @@ public interface EntityReportViews {
     record SavedReport(
             @Nullable JsonNode groupBy,
             @Nullable JsonNode measures,
-            @Nullable String filter) {}
+            @Nullable String filter,
+            @Nullable String dataset) {}
 }

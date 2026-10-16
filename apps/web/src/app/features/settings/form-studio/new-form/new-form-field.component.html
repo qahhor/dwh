@@ -1,0 +1,100 @@
+<fieldset class="field-box" [attr.data-testid]="'new-field-' + index()">
+  <legend>{{ 'settings.simple_form.field_number' | t: { number: index() + 1 } }}</legend>
+  <div class="field-actions">
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="arrow_upward"
+      [disabled]="disabled() || index() === 0"
+      [attr.aria-label]="'settings.simple_form.move_up' | t: { number: index() + 1 }"
+      (click)="moved.emit(-1)"
+    ></button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="arrow_downward"
+      [disabled]="disabled() || index() === count() - 1"
+      [attr.aria-label]="'settings.simple_form.move_down' | t: { number: index() + 1 }"
+      (click)="moved.emit(1)"
+    ></button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="delete"
+      [disabled]="disabled()"
+      [attr.aria-label]="'settings.simple_form.remove_field' | t: { number: index() + 1 }"
+      (click)="removed.emit()"
+    ></button>
+  </div>
+  <div class="field-grid">
+    <smt-control
+      [smtLabel]="'settings.simple_form.field_id' | t"
+      [required]="true"
+      [smtHint]="'settings.simple_form.field_id_hint' | t"
+    >
+      <smt-input
+        [value]="field().id"
+        [disabled]="disabled()"
+        [maxLength]="20"
+        (valueChange)="patch({ id: text($event) })"
+      />
+    </smt-control>
+    <smt-control [smtLabel]="'settings.simple_form.field_type' | t">
+      <smt-select
+        [options]="options()"
+        [value]="field().type"
+        [allowClear]="false"
+        [disabled]="disabled()"
+        (valueChange)="changeType($event)"
+      />
+    </smt-control>
+  </div>
+  <app-new-form-labels
+    [labels]="field().labels"
+    [disabled]="disabled()"
+    (changed)="setLabel($event.language, $event.value)"
+  />
+  @if (field().type === 'text' || field().type === 'textarea') {
+    <smt-control [smtLabel]="'settings.simple_form.max_length' | t" [required]="true">
+      <smt-input
+        type="number"
+        [value]="field().maxLength ?? null"
+        [smtMin]="1"
+        [smtMax]="4000"
+        [disabled]="disabled()"
+        (valueChange)="patch({ maxLength: number($event) })"
+      />
+    </smt-control>
+  }
+  @if (field().type === 'number') {
+    <smt-control [smtLabel]="'settings.simple_form.scale' | t" [required]="true">
+      <smt-input
+        type="number"
+        [value]="field().scale ?? null"
+        [smtMin]="0"
+        [smtMax]="6"
+        [disabled]="disabled()"
+        (valueChange)="patch({ scale: number($event) })"
+      />
+    </smt-control>
+  }
+  <div class="field-flags">
+    <div
+      smt-checkbox
+      [checked]="field().required"
+      [disabled]="disabled()"
+      (checkedChange)="patch({ required: $event })"
+    >
+      {{ 'settings.simple_form.required' | t }}
+    </div>
+    <div smt-checkbox [checked]="field().listed" [disabled]="disabled()" (checkedChange)="patch({ listed: $event })">
+      {{ 'settings.simple_form.listed' | t }}
+    </div>
+  </div>
+</fieldset>

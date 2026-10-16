@@ -7,8 +7,8 @@ services:
       - "127.0.0.1:${API_SMOKE_HTTP_PORT:-8080}:8080"
       - "127.0.0.1:${API_SMOKE_MANAGEMENT_PORT:-9090}:9090"
     environment:
-      # The smoke subscribes a webhook to the server itself: the operator allow-list names that one host, and the
-      # disposable network is private.
+      # The subscription lifecycle uses a DNS-resolvable host on the disposable private network. It checks HTTPS
+      # target validation and HTTP rejection without dispatching events; delivery has separate TLS integration tests.
       SMC_WEBHOOKS_ENABLED: "true"
       SMC_WEBHOOKS_ALLOWED_HOSTS: server
       SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES: "true"

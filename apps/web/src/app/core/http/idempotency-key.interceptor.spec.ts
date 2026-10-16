@@ -30,6 +30,28 @@ describe('idempotencyKeyInterceptor', () => {
     request.flush({});
   });
 
+  it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('does not replay %s report or dashboard mutations', (method) => {
+    for (const path of [
+      '/api/v1/list-views/test.list/4/sharing',
+      '/api/v1/dashboards',
+      '/api/v1/dashboards/7/sharing',
+    ]) {
+      http.request(method, path, { body: {} }).subscribe();
+      const request = backend.expectOne(path);
+      expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
+      request.flush({});
+    }
+  });
+
+  it('keeps keys outside the exact report and dashboard namespaces', () => {
+    for (const path of ['/api/v1/list-views-other/4', '/api/v1/dashboards-other']) {
+      http.post(path, {}).subscribe();
+      const request = backend.expectOne(path);
+      expect(request.request.headers.get(IDEMPOTENCY_HEADER)).toMatch(UUID);
+      request.flush({});
+    }
+  });
+
   it('uses a new key for every change', () => {
     http.post('/api/v1/ms/tasks', {}).subscribe();
     http.post('/api/v1/ms/tasks', {}).subscribe();
@@ -77,6 +99,62 @@ describe('idempotencyKeyInterceptor', () => {
     const request = backend.expectOne(url);
     expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
     request.flush(request.request.responseType === 'blob' ? new Blob() : {});
+  });
+
+  it.each([
+    '/api/v1/form-studio/preview',
+    '/api/v1/form-studio/preview?lang=ru',
+    'https://cms.example.test/api/v1/form-studio/preview',
+  ])('does not persist or replay read-only preview metadata at %s', (url) => {
+    http.post(url, { formatVersion: 1 }).subscribe();
+    const request = backend.expectOne(url);
+    expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
+    request.flush({});
+  });
+
+  it.each(['POST', 'PUT'])('keeps %s studio authoring requests out of response replay', (method) => {
+    http.request(method, '/api/v1/form-studio/drafts/example.products', { body: {} }).subscribe();
+    const request = backend.expectOne('/api/v1/form-studio/drafts/example.products');
+    expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
+    request.flush({});
+  });
+
+  it.each(['/api/v1/studio/forms', '/api/v1/studio/forms?language=ru', 'https://cms.example.test/api/v1/studio/forms'])(
+    'lets activation validate its package and current access without response replay at %s',
+    (url) => {
+      http.post(url, { formatVersion: 1 }).subscribe();
+      const request = backend.expectOne(url);
+      expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
+      request.flush({});
+    },
+  );
+
+  it('never stores or automatically retries an assistant prompt', async () => {
+    vi.useFakeTimers();
+    const failed = vi.fn();
+    http.post('/api/v1/studio/assistant/drafts', { prompt: 'A form' }).subscribe({ error: failed });
+    const request = backend.expectOne('/api/v1/studio/assistant/drafts');
+    expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
+    request.flush({}, { status: 503, statusText: 'Unavailable' });
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(failed).toHaveBeenCalledOnce();
+    backend.expectNone('/api/v1/studio/assistant/drafts');
+  });
+
+  it('keeps keys for mutations outside the exact activation endpoint', () => {
+    for (const path of ['/api/v1/studio/forms-other', '/api/v1/studio/forms/1', '/api/v1/e/studio.locations']) {
+      http.post(path, {}).subscribe();
+      const request = backend.expectOne(path);
+      expect(request.request.headers.get(IDEMPOTENCY_HEADER)).toMatch(UUID);
+      request.flush({});
+    }
+  });
+
+  it('does not widen the no-replay prefix to other endpoints', () => {
+    http.post('/api/v1/form-studio-other/create', {}).subscribe();
+    const request = backend.expectOne('/api/v1/form-studio-other/create');
+    expect(request.request.headers.get(IDEMPOTENCY_HEADER)).toMatch(UUID);
+    request.flush({});
   });
 
   it.each([

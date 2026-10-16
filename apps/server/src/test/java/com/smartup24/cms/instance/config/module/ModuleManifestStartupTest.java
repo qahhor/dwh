@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.config.module;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.module.ModuleManifestException;
+import com.smartup24.cms.platform.api.PlatformVersion;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -58,7 +59,7 @@ class ModuleManifestStartupTest {
                     ModuleManifestException cause = causeOf(failure);
                     assertThat(cause.getMessage())
                             .contains("module shelf 2.1.0 needs platform API >= 99.0.0 (major 99)")
-                            .contains("this platform provides 1.");
+                            .contains("this platform provides " + PlatformVersion.current());
                     FailureAnalysis analysis = new ModuleManifestFailureAnalyzer().analyze(failure);
                     assertThat(analysis).isNotNull();
                     assertThat(analysis.getDescription()).contains("module shelf 2.1.0");
@@ -69,9 +70,9 @@ class ModuleManifestStartupTest {
     @Test
     void aModuleMissingADependencyStopsTheStart() throws IOException {
         ClassLoader loader = moduleOnClasspath("""
-                {"code": "shelf", "version": "1.0.0", "minPlatform": "1.0.0",
+                {"code": "shelf", "version": "1.0.0", "minPlatform": "%s",
                  "dependencies": [{"code": "library", "version": "1.0.0"}]}
-                """);
+                """.formatted(PlatformVersion.current()));
         new ApplicationContextRunner()
                 .withClassLoader(loader)
                 .withUserConfiguration(ModuleConfiguration.class)
@@ -82,9 +83,9 @@ class ModuleManifestStartupTest {
     @Test
     void aModuleThatFitsHasItsConfigurationImported() throws IOException {
         ClassLoader loader = moduleOnClasspath("""
-                {"code": "shelf", "version": "1.0.0", "minPlatform": "1.0.0",
+                {"code": "shelf", "version": "1.0.0", "minPlatform": "%s",
                  "dependencies": [{"code": "iam", "version": "1.0.0"}], "configuration": "%s"}
-                """.formatted(ShelfModule.class.getName()));
+                """.formatted(PlatformVersion.current(), ShelfModule.class.getName()));
         new ApplicationContextRunner()
                 .withClassLoader(loader)
                 .withUserConfiguration(ModuleConfiguration.class)

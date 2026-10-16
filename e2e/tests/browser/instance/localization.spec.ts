@@ -9,6 +9,8 @@ test('translation override repaints live, persists across sessions, and keeps Ru
   const languageSelector = page.locator('#app-language-selector');
   const originalLanguage = await languageSelector.getAttribute('data-value');
   let originalGerman = '';
+  let originalHeading = '';
+  const headingTranslation = () => page.locator('[data-translation-key="settings.languages.title"] input');
   let overrideSaved = false;
 
   const openGermanEditor = async (addIfMissing = false) => {
@@ -51,8 +53,10 @@ test('translation override repaints live, persists across sessions, and keeps Ru
   try {
     const translation = await openGermanEditor(true);
     originalGerman = await translation.inputValue();
+    originalHeading = await headingTranslation().inputValue();
+    await headingTranslation().fill('');
     await translation.fill(marker);
-    await page.getByTestId('language-editor-save').click();
+    await page.getByTestId('language-editor-actions').getByTestId('form-submit').click();
     await expect(page.getByText('Переводы успешно сохранены')).toBeVisible();
     overrideSaved = true;
 
@@ -63,7 +67,7 @@ test('translation override repaints live, persists across sessions, and keeps Ru
     await expect(page.getByRole('button', { name: marker, exact: true })).toBeVisible();
     await page.locator('#settings-languages-tab').click();
     await expect(page.getByRole('heading', {
-      name: /Sprachpakete und Lokalisierung verwalten|Управление языковыми пакетами и локализацией/
+      name: 'Управление языковыми пакетами и локализацией', exact: true
     })).toBeVisible();
 
     const secondContext = await browser.newContext();
@@ -76,12 +80,24 @@ test('translation override repaints live, persists across sessions, and keeps Ru
     } finally {
       await secondContext.close();
     }
+
+    const overridden = await openGermanEditor();
+    await overridden.fill('');
+    await page.getByTestId('language-editor-actions').getByTestId('form-submit').click();
+    await expect(page.getByText('Переводы успешно сохранены')).toBeVisible();
+    await page.getByTestId('language-editor-close').click();
+    await page.goto('/settings');
+    await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeVisible();
   } finally {
     if (overrideSaved) {
       const translation = await openGermanEditor();
       await translation.fill(originalGerman);
-      await page.getByTestId('language-editor-save').click();
-      await expect(page.getByText('Переводы успешно сохранены')).toBeVisible();
+      await headingTranslation().fill(originalHeading);
+      const submit = page.getByTestId('language-editor-actions').getByTestId('form-submit');
+      if (await submit.isEnabled()) {
+        await submit.click();
+        await expect(page.getByText('Переводы успешно сохранены')).toBeVisible();
+      }
     }
     await persistLanguageChange(originalLanguage || 'ru',
       () => chooseOption(page.locator('#app-language-selector'), originalLanguage || 'ru'));

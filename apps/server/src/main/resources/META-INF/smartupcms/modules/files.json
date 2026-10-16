@@ -2,6 +2,7 @@
   "code": "files",
   "version": "${project.version}",
   "minPlatform": "${platform-api.version}",
+  "areas": ["mf"],
   "dependencies": [
     {
       "code": "iam",

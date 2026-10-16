@@ -77,8 +77,11 @@ connection is part of the runtime.
 
 `SMC_PROVIDER_STORAGE=local_disk` stores uploaded objects in `server-data`. This
 survives container recreation but not loss of the Docker volume or host.
-Production operators using local disk must implement an independent encrypted
-copy and restore drill for that volume.
+The optional `docker-compose.local-storage.yml` profile uses a private bind
+directory for new same-host installations, allowing the recovery coordinator
+to bind and encrypt that exact object source. It must be selected before files
+exist in the named volume; see the [deployment guide](deployment-guide.md).
+An independent complete-set copy and restore drill remains required.
 
 `SMC_PROVIDER_STORAGE=s3` supports S3-compatible endpoints. Smartup-managed
 installations use Cloudflare R2; self-hosters may select another compatible

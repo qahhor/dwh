@@ -2,7 +2,7 @@
 <button
   type="button"
   role="switch"
-  class="smt-switch__track"
+  class="smt-switch__control"
   [id]="customId() || buttonId"
   [attr.aria-checked]="checked() ? 'true' : 'false'"
   [attr.aria-labelledby]="labelledBy()"
@@ -14,7 +14,9 @@
   (click)="toggle()"
   (blur)="onBlur()"
 >
-  <span class="smt-switch__thumb" aria-hidden="true"></span>
+  <span class="smt-switch__track" aria-hidden="true">
+    <span class="smt-switch__thumb"></span>
+  </span>
 </button>
 @if (label()) {
   <!-- The label toggles for the mouse like a native label; the keyboard uses the switch button it names. -->

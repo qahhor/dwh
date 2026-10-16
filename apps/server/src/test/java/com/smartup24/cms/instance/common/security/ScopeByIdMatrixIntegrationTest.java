@@ -77,17 +77,27 @@ class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
 
     private ScopeFixture fixture;
     private TestSession viewer;
+    private ScopeFormStudioCases studio;
+    private ScopeReportDashboardCases reportDashboards;
 
     @BeforeAll
     void setUp() throws Exception {
         fixture = new ScopeFixture(jdbc, users, scopes, scopeRepository, roles, files);
         viewer = TestSession.signIn(wac, fixture.viewerLogin);
+        studio = new ScopeFormStudioCases(wac);
+        reportDashboards = new ScopeReportDashboardCases(wac);
     }
 
     @Test
     @DisplayName("ADR-0013: every handler with a path variable is in the scope matrix or allowlisted with a reason")
     void everyByIdHandlerIsCoveredOrAllowlisted() {
         Set<String> covered = ScopeByIdCases.CASES.stream().map(Case::handler).collect(Collectors.toSet());
+        covered.addAll(ScopeFormStudioCases.CASES.stream()
+                .map(ScopeFormStudioCases.Case::handler)
+                .toList());
+        covered.addAll(ScopeReportDashboardCases.CASES.stream()
+                .map(ScopeReportDashboardCases.Case::handler)
+                .toList());
         Set<String> uncovered = new TreeSet<>();
         for (String handler : byIdHandlers().keySet()) {
             if (!covered.contains(handler) && !ScopeByIdCases.ALLOWLIST.containsKey(handler)) {
@@ -122,6 +132,32 @@ class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
                     assertThat(allowed.getStatus())
                             .as("%s for a record inside the scope: %s", c.name(), allowed.getContentAsString())
                             .isIn(c.inScope());
+                }));
+    }
+
+    @TestFactory
+    @DisplayName("ADR-0035: declaration handlers check current author, entity, module and version access")
+    Stream<DynamicTest> formStudioAccessMatrix() {
+        Map<String, RequestMappingInfo> handlers = byIdHandlers();
+        return ScopeFormStudioCases.CASES.stream()
+                .map(c -> DynamicTest.dynamicTest(c.handler(), () -> {
+                    assertThat(handlers.get(c.handler()))
+                            .as("handler %s of a declaration access case", c.handler())
+                            .isNotNull();
+                    studio.verify(c);
+                }));
+    }
+
+    @TestFactory
+    @DisplayName("ADR-0036: reports, panels and downloads enforce current ownership and source access")
+    Stream<DynamicTest> reportDashboardAccessMatrix() {
+        Map<String, RequestMappingInfo> handlers = byIdHandlers();
+        return ScopeReportDashboardCases.CASES.stream()
+                .map(c -> DynamicTest.dynamicTest(c.handler(), () -> {
+                    assertThat(handlers.get(c.handler()))
+                            .as("handler %s of a report access case", c.handler())
+                            .isNotNull();
+                    reportDashboards.verify(c);
                 }));
     }
 

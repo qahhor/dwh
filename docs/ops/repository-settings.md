@@ -1,6 +1,6 @@
 # Настройки репозитория GitHub
 
-**Обновлено:** 2026-10-03
+**Обновлено:** 2026-10-16
 
 **Основание:** план 10/10, фаза 1 (пункты 1.5, 1.6, 1.8, 1.9).
 
@@ -101,7 +101,8 @@ gh auth login
 `observability (promtool rules + unit tests, dashboards)` (план 10/10, п. 7.3),
 `e2e (clean deploy + Playwright Chromium, shard 1/2)` и `… shard 2/2`,
 `security (gitleaks + trivy)`, `Verify commit sign-offs`,
-`codeql (java-kotlin)`, `codeql (javascript-typescript)`, `codeql (actions)`.
+`codeql (java-kotlin)`, `codeql (javascript-typescript)`, `codeql (python)`,
+`codeql (actions)`.
 `test-rulesets.ps1` в CI сверяет список в обе стороны: падает, если
 обязательной проверке не соответствует ни один джоб (переименование джоба без
 правки `main.json` не пройдёт), и если джоб, который запускается на PR, не
@@ -163,3 +164,46 @@ onboarding smoke, свежие advisories (Trivy) и нагрузочные кр
 
 **Проверка.** Actions → nightly показывает запуск прошедшей ночи; при
 необходимости `gh workflow run nightly.yml` запускает его вручную.
+
+## 6. Подписанный staging RC (ADR-0040)
+
+Пошаговая [инструкция настройки staging-release и доступов](staging-access-setup.md)
+связывает GitHub settings с правами verifier, Hetzner SSH и Cloudflare/R2.
+Она не заменяет отдельного разрешения на изменение settings или публикацию.
+
+Файл [prerelease.yml](../../.github/workflows/prerelease.yml) публикует только
+строгие теги `vX.Y.Z-rc.N`, N ≥ 1. Их покрывают существующие `v*` rulesets:
+создание только release-администратором, перемещение/удаление запрещены.
+Отдельного разрешения на публикацию не заменяют ни право создать тег,
+ни утверждение бюджета staging.
+
+До первого запуска администратор создаёт `staging-release` environment:
+назначает independent required reviewer, включает prevent self-review,
+запрещает обход protection rules и ограничивает deployment tags шаблоном
+`v*.*.*-rc.*`. Семантику версии дополнительно проверяет gate. Проверить,
+что тариф/тип репозитория действительно поддерживает эти защиты; отсутствие
+действующего approval gate блокирует публикацию. YAML-файл не применяет
+GitHub settings. Подготовить GHCR permissions и доступ к attestations;
+долгоживущий signing key не требуется.
+
+До разрешения публикации approved variables остаются отсутствующими.
+После разрешения внутри environment задаются `STAGING_APPROVED_SOURCE_SHA` (одобренный
+полный commit SHA) и `STAGING_APPROVED_VERSION` (точный `vX.Y.Z-rc.N`).
+Запрещены одноимённые repository/organization vars: GitHub vars не позволяет
+скрипту установить scope значения. Оба write jobs требуют точного совпадения;
+пустое или устаревшее значение блокирует запись. Настраивать следующую пару
+только после окончания предыдущего запуска; удалять approval vars после
+выпуска. Это дополнительный gate, а не доказательство required reviewers.
+
+Тег должен указывать на новый DCO SHA, включающий pipeline и прошедший полный
+локальный CI. CI workflow повторяется на теге. Reviewer сверяет tag/SHA,
+diff, артефакты локальных проверок и окно; `main` ancestry не требуется для RC.
+Результат — prerelease, не latest, без deploy. После неудачного запуска
+использовать следующий номер RC; не перемещать тег и не перезаписывать assets.
+Только затем независимый verifier с `-Channel staging -ExpectedSourceSha ...`
+проверяет реально опубликованные assets по
+[ADR-0040](../adr/ADR-0040-signed-staging-prereleases.md).
+
+На момент локальной реализации настройки GitHub не изменялись, workflow
+не запускался и публикация не выполнялась. Первый live OIDC/GHCR/Release
+прогон остаётся отдельным эксплуатационным gate.

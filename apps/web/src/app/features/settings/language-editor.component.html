@@ -2,14 +2,15 @@
   <header class="editor-header">
     <div class="editor-heading">
       <button
+        smt-button
+        smtVariant="ghost"
+        smtIcon="arrow_back"
         type="button"
-        class="icon-action"
+        [disabled]="isSaving()"
         data-testid="language-editor-close"
         [attr.aria-label]="'settings.languages.back_to_list' | t"
         (click)="requestClose()"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-      </button>
+      ></button>
       <div>
         <h3 id="translation-editor-title">
           {{ 'settings.translations_for' | t: { name: editor()?.language?.name || languageCode().toUpperCase() } }}
@@ -44,7 +45,7 @@
   @if (loadError()) {
     <div class="editor-error" role="alert">
       <span>{{ loadError() }}</span>
-      <button type="button" class="text-action" (click)="load()">{{ 'announcements.list.retry' | t }}</button>
+      <button smt-button smtVariant="secondary" type="button" (click)="load()">{{ 'common.retry' | t }}</button>
     </div>
   }
 
@@ -67,9 +68,16 @@
         (checkedChange)="missingOnly.set($event)"
         [smtLabel]="'settings.languages.only_untranslated' | t"
       />
-      @if (canEdit) {
-        <button type="button" class="import-action" data-testid="language-import" (click)="importInput.click()">
-          <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+      @if (canEdit()) {
+        <button
+          smt-button
+          smtVariant="secondary"
+          smtIcon="upload_file"
+          type="button"
+          data-testid="language-import"
+          [disabled]="isSaving()"
+          (click)="importInput.click()"
+        >
           <span>{{ 'settings.import_json' | t }}</span>
         </button>
         <input
@@ -82,103 +90,103 @@
           (change)="importFile($event)"
         />
       }
-      <button type="button" class="secondary-action" (click)="exportDraft()">
-        <span class="material-symbols-outlined" aria-hidden="true">download</span>
+      <button smt-button smtVariant="secondary" smtIcon="download" type="button" (click)="exportDraft()">
         {{ 'settings.languages.export_json_short' | t }}
       </button>
     </div>
 
-    <div
-      class="translation-table"
-      role="region"
-      [attr.aria-label]="'settings.languages.translation_table' | t"
-      tabindex="0"
+    <form
+      id="translation-editor-form"
+      novalidate
+      [attr.aria-busy]="isSaving()"
+      (submit)="$event.preventDefault(); save()"
     >
-      <div class="translation-row header-row" aria-hidden="true">
-        <span>{{ 'settings.languages.key' | t }}</span>
-        <span>{{ (languageCode() === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t }}</span>
-        <span>{{ (languageCode() === 'ru' ? 'settings.interface_text' : 'settings.translation') | t }}</span>
-        <span>{{ 'common.status' | t }}</span>
+      <div
+        class="translation-table"
+        role="region"
+        [attr.aria-label]="'settings.languages.translation_table' | t"
+        tabindex="0"
+      >
+        <div class="translation-row header-row" aria-hidden="true">
+          <span>{{ 'settings.languages.key' | t }}</span>
+          <span>{{ (languageCode() === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t }}</span>
+          <span>{{ (languageCode() === 'ru' ? 'settings.interface_text' : 'settings.translation') | t }}</span>
+          <span>{{ 'common.status' | t }}</span>
+        </div>
+
+        @for (entry of filteredEntries(); track trackByKey($index, entry)) {
+          <div class="translation-row" [attr.data-translation-key]="entry.key">
+            <code class="translation-key">{{ entry.key }}</code>
+            <div
+              class="source-value"
+              [attr.data-label]="
+                (languageCode() === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t
+              "
+            >
+              {{ languageCode() === 'ru' ? entry.bundledValue : entry.russianValue }}
+            </div>
+            <div class="target-value" [attr.data-label]="'settings.translation' | t">
+              <!-- (edited) reports every keystroke, not only a new value: typing clears a save error. -->
+              <smt-input
+                [smtFieldId]="inputId(entry.key)"
+                [smtAriaLabel]="'settings.translation_for_key' | t: { key: entry.key }"
+                type="text"
+                [disabled]="!canEdit() || isSaving()"
+                [value]="valueFor(entry.key)"
+                (edited)="setValue(entry.key, $event === null ? '' : '' + $event)"
+                [placeholder]="languageCode() === 'ru' ? entry.bundledValue || '' : entry.russianValue"
+                [maxLength]="4000"
+              />
+              @if (canEdit() && canReset(entry)) {
+                <button
+                  smt-button
+                  smtVariant="ghost"
+                  smtSize="sm"
+                  smtIcon="restart_alt"
+                  type="button"
+                  [disabled]="isSaving()"
+                  [attr.aria-label]="'settings.restore_packaged_value' | t: { key: entry.key }"
+                  (click)="resetValue(entry)"
+                ></button>
+              }
+            </div>
+            <span
+              class="translation-status"
+              [class.ready]="isTranslated(entry)"
+              [attr.data-status]="isTranslated(entry) ? 'translated' : 'missing'"
+              [attr.data-label]="'common.status' | t"
+            >
+              {{ (isTranslated(entry) ? 'settings.translated' : 'settings.fallback_ru') | t }}
+            </span>
+          </div>
+        }
+
+        @if (filteredEntries().length === 0) {
+          <div class="empty-filter">
+            {{ 'settings.languages.no_matching_rows' | t }}
+          </div>
+        }
       </div>
-
-      @for (entry of filteredEntries(); track trackByKey($index, entry)) {
-        <div class="translation-row" [attr.data-translation-key]="entry.key">
-          <code class="translation-key">{{ entry.key }}</code>
-          <div
-            class="source-value"
-            [attr.data-label]="(languageCode() === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t"
-          >
-            {{ languageCode() === 'ru' ? entry.bundledValue : entry.russianValue }}
-          </div>
-          <div class="target-value" [attr.data-label]="'settings.translation' | t">
-            <!-- (edited) reports every keystroke, not only a new value: typing clears a save error. -->
-            <smt-input
-              [smtFieldId]="inputId(entry.key)"
-              [smtAriaLabel]="'settings.translation_for_key' | t: { key: entry.key }"
-              type="text"
-              [disabled]="!canEdit"
-              [value]="valueFor(entry.key)"
-              (edited)="setValue(entry.key, $event === null ? '' : '' + $event)"
-              [placeholder]="languageCode() === 'ru' ? entry.bundledValue || '' : entry.russianValue"
-              [maxLength]="4000"
-            />
-            @if (canEdit && canReset(entry)) {
-              <button
-                type="button"
-                class="reset-action"
-                [attr.aria-label]="'settings.restore_packaged_value' | t: { key: entry.key }"
-                (click)="resetValue(entry)"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
-              </button>
-            }
-          </div>
-          <span
-            class="translation-status"
-            [class.ready]="isTranslated(entry)"
-            [attr.data-status]="isTranslated(entry) ? 'translated' : 'missing'"
-            [attr.data-label]="'common.status' | t"
-          >
-            {{ (isTranslated(entry) ? 'settings.translated' : 'settings.fallback_ru') | t }}
-          </span>
-        </div>
-      }
-
-      @if (filteredEntries().length === 0) {
-        <div class="empty-filter">
-          {{ 'settings.languages.no_matching_rows' | t }}
-        </div>
-      }
-    </div>
+    </form>
 
     @if (saveError()) {
       <div class="save-error" role="alert">{{ saveError() }}</div>
     }
 
-    @if (canEdit) {
-      <footer class="editor-actions">
-        <span class="dirty-count" aria-live="polite">{{ 'settings.changed_count' | t: { count: dirtyCount() } }}</span>
-        <div>
-          <button
-            type="button"
-            class="secondary-action"
-            [disabled]="dirtyCount() === 0 || isSaving()"
-            (click)="cancelChanges()"
-          >
-            {{ 'settings.languages.cancel_changes' | t }}
-          </button>
-          <button
-            type="button"
-            class="primary-action"
-            data-testid="language-editor-save"
-            [disabled]="dirtyCount() === 0 || isSaving()"
-            (click)="save()"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">save</span>
-            {{ (isSaving() ? 'common.saving' : 'settings.save_translations') | t }}
-          </button>
-        </div>
-      </footer>
+    @if (canEdit()) {
+      <ui-form-actions
+        class="editor-actions"
+        form="translation-editor-form"
+        data-testid="language-editor-actions"
+        [submitLabel]="'settings.save_translations' | t"
+        [submitDisabled]="dirtyCount() === 0"
+        [submitting]="isSaving()"
+        (cancelled)="requestClose()"
+      >
+        <span uiFormActionsStart class="dirty-count" aria-live="polite">{{
+          'settings.changed_count' | t: { count: dirtyCount() }
+        }}</span>
+      </ui-form-actions>
     }
   }
 </section>

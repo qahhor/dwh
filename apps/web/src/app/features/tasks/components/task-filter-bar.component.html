@@ -1,0 +1,102 @@
+<div class="toolbar">
+  <div class="toolbar-main">
+    <smt-input
+      class="search-field"
+      smtFieldId="task-search"
+      [smtAriaLabel]="'tasks.filter.search_tasks' | t"
+      name="taskSearch"
+      type="search"
+      smtIcon="search"
+      smtSize="sm"
+      clearable
+      [placeholder]="'projects.common.search_placeholder' | t"
+      [value]="searchQuery()"
+      (valueChange)="onSearchValue($event)"
+      (keydown.enter)="searchApply.emit(); $event.preventDefault()"
+    />
+    <smt-select
+      class="status-filter"
+      smtTriggerId="task-status-filter"
+      [options]="statusOptions()"
+      [value]="statusFilterMode()"
+      [allowClear]="false"
+      [ariaLabel]="'tasks.filter.filter_by_status' | t"
+      (valueChange)="statusFilterModeChange.emit($event ?? statusFilterMode())"
+    />
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtSize="sm"
+      smtIcon="tune"
+      id="task-more-filters"
+      class="more-filters-btn"
+      [class.has-active-filters]="secondaryFilterCount() > 0"
+      [attr.aria-expanded]="moreFiltersOpen()"
+      aria-controls="task-secondary-filters"
+      [attr.aria-label]="
+        ('tasks.filter.more' | t) +
+        (secondaryFilterCount() ? ': ' + ('tasks.filter.active_secondary' | t: { count: secondaryFilterCount() }) : '')
+      "
+      (click)="moreFiltersOpen.set(!moreFiltersOpen())"
+    >
+      {{ 'tasks.filter.more' | t }}
+      @if (secondaryFilterCount()) {
+        <span class="active-filter-count" aria-hidden="true">{{ secondaryFilterCount() }}</span>
+      }
+      <span class="material-symbols-outlined" aria-hidden="true">{{
+        moreFiltersOpen() ? 'expand_less' : 'expand_more'
+      }}</span>
+    </button>
+    @if (hasActiveFilters()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="filter_alt_off"
+        smtIconOnly
+        class="reset-filters-btn"
+        [attr.aria-label]="'tasks.common.reset_all_filters' | t"
+        [title]="'tasks.common.reset_all_filters' | t"
+        (click)="resetFilters.emit()"
+      ></button>
+    }
+  </div>
+  @if (moreFiltersOpen()) {
+    <div id="task-secondary-filters" class="secondary-filters" role="group" [attr.aria-label]="'tasks.filter.more' | t">
+      <smt-radio-group
+        smtAppearance="chips"
+        class="preset-filter"
+        [options]="presetOptions()"
+        [value]="activePreset()"
+        [smtAriaLabel]="'tasks.filter.quick_filters' | t"
+        (valueChange)="onPresetClick($event ?? activePreset())"
+      />
+      <div class="secondary-filter-fields">
+        <smt-data-select
+          class="project-filter"
+          smtTriggerId="task-project-filter"
+          [ariaLabel]="'tasks.filter.filter_by_project' | t"
+          [source]="lookups.projects"
+          [knownRows]="lookups.knownProjectRows()"
+          [value]="selectedProjectId()"
+          (valueChange)="selectedProjectIdChange.emit($event)"
+          [placeholder]="'tasks.filter.all_projects' | t"
+          [searchPlaceholder]="'tasks.search_project' | t"
+          [emptyLabel]="'tasks.filter.all_projects' | t"
+        />
+        <smt-select
+          class="priority-filter"
+          smtTriggerId="task-priority-filter"
+          [ariaLabel]="'tasks.filter.filter_by_priority' | t"
+          [value]="selectedPriority() || null"
+          (valueChange)="selectedPriorityChange.emit($event ?? '')"
+          [options]="priorityOptions()"
+          [placeholder]="'tasks.filter.all_priorities' | t"
+          [emptyLabel]="'tasks.filter.all_priorities' | t"
+        />
+      </div>
+    </div>
+  }
+</div>

@@ -2,7 +2,10 @@ package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.LiveEntities;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.module.InstalledModules;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.i18n.I18nModels.CreateLanguageRequest;
 import com.smartup24.cms.instance.md.i18n.I18nModels.LanguageRecord;
 import com.smartup24.cms.instance.md.i18n.I18nModels.LanguageSummary;
@@ -18,6 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,12 +34,31 @@ public class MdI18nService {
     private final MdI18nRepository repository;
     private final MdI18nCatalog catalog;
     private final AuditLogService auditLogService;
+    private final LiveEntities live;
+    private final InstalledModules modules;
     private final Map<String, CachedDictionary> cache = new ConcurrentHashMap<>();
 
-    public MdI18nService(MdI18nRepository repository, MdI18nCatalog catalog, AuditLogService auditLogService) {
+    @Autowired
+    public MdI18nService(
+            MdI18nRepository repository,
+            MdI18nCatalog catalog,
+            AuditLogService auditLogService,
+            LiveEntities live,
+            InstalledModules modules) {
         this.repository = repository;
         this.catalog = catalog;
         this.auditLogService = auditLogService;
+        this.live = live;
+        this.modules = modules;
+    }
+
+    public MdI18nService(
+            MdI18nRepository repository, MdI18nCatalog catalog, AuditLogService auditLogService, LiveEntities live) {
+        this(repository, catalog, auditLogService, live, module -> true);
+    }
+
+    public MdI18nService(MdI18nRepository repository, MdI18nCatalog catalog, AuditLogService auditLogService) {
+        this(repository, catalog, auditLogService, LiveEntities.empty());
     }
 
     @Transactional(readOnly = true)
@@ -57,7 +80,7 @@ public class MdI18nService {
         if (cached != null
                 && cached.languageRevision() == language.revision()
                 && cached.russianRevision() == russian.revision()) {
-            return cached.values();
+            return withLiveLabels(language.code(), cached.values());
         }
 
         Map<String, String> russianValues = mergedRussian();
@@ -72,7 +95,25 @@ public class MdI18nService {
         }
 
         cache.put(language.code(), new CachedDictionary(language.revision(), russian.revision(), merged));
-        return merged;
+        return withLiveLabels(language.code(), merged);
+    }
+
+    /** User-visible live labels are never stored in the shared base dictionary cache (ADR-0038). */
+    private Map<String, String> withLiveLabels(String language, Map<String, String> base) {
+        if (!SecurityContext.isAuthenticated()) return base;
+        Map<String, String> added = live.messages(
+                language,
+                entity -> SecurityContext.hasPermission("md.roles", "view")
+                        || (entity.rights() != null
+                                && modules.active(entity.rights().module())
+                                && SecurityContext.hasPermission(entity.form(), "view")));
+        if (added.isEmpty()) return base;
+        Map<String, String> result = new LinkedHashMap<>(base);
+        added.forEach((key, value) -> {
+            if (result.putIfAbsent(key, value) != null)
+                throw new IllegalStateException("Live translation shadows a base key " + key);
+        });
+        return Collections.unmodifiableMap(result);
     }
 
     /** Whether the code names an active language; {@code false} for null or a malformed code. */

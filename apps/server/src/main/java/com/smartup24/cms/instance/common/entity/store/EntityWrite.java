@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.entity.store;
 
+import com.smartup24.cms.instance.common.entity.EntityReferenceValues;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.EntityModel;
@@ -35,7 +36,15 @@ public record EntityWrite(
 
     /** One column and its value; {@code cast} wraps the parameter ({@code cast(:p0 as jsonb)}) or is null. */
     public record Column(
-            String name, @Nullable Object value, @Nullable String cast) {
+            String name, @Nullable Object value, @Nullable String cast, boolean merging) {
+        public Column(String name, @Nullable Object value, @Nullable String cast) {
+            this(name, value, cast, false);
+        }
+
+        public String assignment(String parameter) {
+            return name + " = " + (merging ? "coalesce(" + name + ", '{}'::jsonb) || " : "") + parameter(parameter);
+        }
+
         public String parameter(String name) {
             return cast == null ? ":" + name : "cast(:" + name + " as " + cast + ")";
         }
@@ -62,6 +71,7 @@ public record EntityWrite(
         List<Column> columns = new ArrayList<>();
         Map<FieldSource.Link, List<Long>> links = new LinkedHashMap<>();
         Map<String, @Nullable UUID> files = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> properties = new LinkedHashMap<>();
         for (EntityField field : fields) {
             if (!values.containsKey(field.key())) continue;
             Object value = values.get(field.key());
@@ -81,11 +91,17 @@ public record EntityWrite(
                     }
                 }
                 case FieldSource.Link link -> links.put(link, keys(value));
+                case FieldSource.JsonProperty property ->
+                    properties
+                            .computeIfAbsent(property.column(), column -> new LinkedHashMap<>())
+                            .put(property.key(), columnValue(field, value, json));
                 default -> {
                     // An attribute is written with the record's attributes; the rest is never written.
                 }
             }
         }
+        properties.forEach(
+                (column, valuesByKey) -> columns.add(new Column(column, json.object(valuesByKey), "jsonb", true)));
         return new EntityWrite(columns, links, files);
     }
 
@@ -112,7 +128,9 @@ public record EntityWrite(
             case DATETIME -> text.isEmpty() ? null : OffsetDateTime.parse(text);
             case TIME -> text.isEmpty() ? null : LocalTime.parse(text);
             case BOOLEAN -> value instanceof Boolean flag ? flag : Boolean.valueOf(text);
-            case REF -> value instanceof Number number ? (Object) number.longValue() : refKey(text);
+            case REF ->
+                EntityReferenceValues.value(
+                        Objects.requireNonNull(field.options().ref()), value);
             case FILE, IMAGE -> uuid(value);
             case JSON -> json.write(value);
             default -> value instanceof String string ? string : String.valueOf(value);
@@ -121,11 +139,6 @@ public record EntityWrite(
 
     private static @Nullable String cast(EntityField field) {
         return field.type() == FieldType.JSON ? "jsonb" : null;
-    }
-
-    /** A reference by its key, or by a code for a column that keeps codes. */
-    private static Object refKey(String text) {
-        return text.chars().allMatch(Character::isDigit) && !text.isEmpty() ? (Object) Long.valueOf(text) : text;
     }
 
     private static @Nullable BigDecimal decimal(@Nullable Object value) {

@@ -55,7 +55,7 @@ class ModuleRegistryIntegrationTest {
         newModule = new ModuleManifest(
                 "library",
                 PlatformVersion.parse("1.2.0"),
-                PlatformVersion.parse("1.0.0"),
+                PlatformVersion.current(),
                 List.of(new ModuleManifest.Dependency("iam", PlatformVersion.parse("1.0.0"))),
                 List.of(),
                 "com.acme.library.LibraryModule",
@@ -111,7 +111,7 @@ class ModuleRegistryIntegrationTest {
         assertThat(library.titleKey()).isEqualTo("library.module.name");
         assertThat(library.descriptionKey()).isEqualTo("library.module.description");
         assertThat(library.version()).isEqualTo("1.2.0");
-        assertThat(library.minPlatform()).isEqualTo("1.0.0");
+        assertThat(library.minPlatform()).isEqualTo(PlatformVersion.current().toString());
         assertThat(library.dependencies())
                 .containsExactly(new ModuleRegistryService.ModuleDependencyView("iam", "1.0.0"));
         assertThat(withNewModule.toggleModuleStatus("library", false).status()).isEqualTo("DISABLED");
@@ -142,11 +142,22 @@ class ModuleRegistryIntegrationTest {
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.system_module_disable_forbidden")
                 .hasFieldOrPropertyWithValue("params", Map.of("code", "iam"));
+    }
 
-        assertThatThrownBy(() -> moduleService.toggleModuleStatus("tasks", false))
-                .isInstanceOf(ApiException.class)
-                .hasFieldOrPropertyWithValue("messageKey", "error.md.system_module_disable_forbidden")
-                .hasFieldOrPropertyWithValue("params", Map.of("code", "tasks"));
+    @Test
+    void tasksAndProjectsCanBeSwitchedOffAndBackOn() {
+        var before = moduleService.getModule("tasks").orElseThrow();
+        assertThat(before.isSystem()).isFalse();
+        try {
+            assertThat(moduleService.toggleModuleStatus("tasks", false).status())
+                    .isEqualTo("DISABLED");
+            assertThat(moduleService.isModuleActive("tasks")).isFalse();
+            assertThat(moduleService.getModule("tasks").orElseThrow().attributes())
+                    .isEqualTo(before.attributes());
+        } finally {
+            moduleService.toggleModuleStatus("tasks", true);
+        }
+        assertThat(moduleService.isModuleActive("tasks")).isTrue();
     }
 
     @Test

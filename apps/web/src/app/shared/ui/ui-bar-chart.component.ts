@@ -65,31 +65,33 @@ let nextChartId = 0;
         <span>{{ points()[points().length - 1]?.label }}</span>
       </div>
       <figcaption class="sr-only" [id]="captionId">{{ caption() }}</figcaption>
-      <table class="sr-only" data-testid="bar-chart-table">
-        <caption>
-          {{
-            caption()
-          }}
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">{{ axisLabel() }}</th>
-            @for (s of series(); track s.key) {
-              <th scope="col">{{ s.label }}</th>
-            }
-          </tr>
-        </thead>
-        <tbody>
-          @for (point of points(); track $index) {
+      <div class="sr-only">
+        <table data-testid="bar-chart-table">
+          <caption>
+            {{
+              caption()
+            }}
+          </caption>
+          <thead>
             <tr>
-              <th scope="row">{{ point.label }}</th>
+              <th scope="col">{{ axisLabel() }}</th>
               @for (s of series(); track s.key) {
-                <td>{{ point.values[s.key] ?? 0 }}</td>
+                <th scope="col">{{ s.label }}</th>
               }
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (point of points(); track $index) {
+              <tr>
+                <th scope="row">{{ point.label }}</th>
+                @for (s of series(); track s.key) {
+                  <td>{{ point.values[s.key] ?? 0 }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </figure>
   `,
   styles: [

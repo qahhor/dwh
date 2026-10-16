@@ -112,6 +112,7 @@ export async function renderEntityScreen(url: string, options: EntityScreenOptio
           loadChildren: () => import('../app/shared/entity/page/entity.routes').then((m) => m.ENTITY_ROUTES),
         },
         { path: 'tasks', children: [] },
+        { path: 'iam/profile', children: [] },
       ]),
       { provide: ApiService, useValue: api },
       { provide: ToastService, useValue: toast },

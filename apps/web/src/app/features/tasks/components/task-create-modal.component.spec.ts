@@ -5,6 +5,7 @@ import { CustomField } from '@core/models/custom-field.models';
 import { TaskType } from '@core/models/task.models';
 import { ApiService } from '@core/services/api.service';
 import { inScreen, Screen } from '@testing/in-screen';
+import { focusFirstInvalid } from '@shared/ui/focus-first-invalid';
 import { TaskCreateFormValue, createDefaultTaskCreateForm } from '../tasks.models';
 import { TaskCreateModalComponent } from './task-create-modal.component';
 
@@ -42,6 +43,20 @@ function click(fixture: ComponentFixture<TaskCreateModalComponent>, node: HTMLEl
 }
 
 describe('TaskCreateModalComponent', () => {
+  it('removes only the edited field refusal from the control and summary', () => {
+    const { fixture, screen } = render({
+      serverErrors: { fields: { title: 'Title refused', priority: 'Priority refused' }, other: ['Unknown refused'] },
+    });
+    const title = screen.querySelector('#task-create-title') as HTMLInputElement;
+    title.value = 'Corrected';
+    title.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(titleError(screen)).toBe('');
+    const summary = text(screen.querySelector('[data-testid="form-error-summary"]'));
+    expect(summary).not.toContain('Title refused');
+    expect(summary).toContain('Priority refused');
+    expect(summary).toContain('Unknown refused');
+  });
   it('is titled for a new task, or for a subtask of the parent the form names', () => {
     const { screen } = render();
     expect(text(screen.querySelector('.smt-modal__title'))).toBe('Создание новой задачи');
@@ -113,7 +128,7 @@ describe('TaskCreateModalComponent', () => {
     expect(screen.querySelector(`label[for="${title.id}"]`)).not.toBeNull();
     expect(title.getAttribute('aria-required')).toBe('true');
     expect(title.getAttribute('aria-invalid')).toBe('true');
-    expect(text(screen.querySelector(`label[for="${description.id}"]`))).toBe('Описание');
+    expect(description.getAttribute('aria-label')).toBe('Описание');
     expect(project.getAttribute('role')).toBe('combobox');
     expect(text(screen.querySelector('label[for="task-create-project"]'))).toContain('Проект');
     for (const [id, name] of [
@@ -154,9 +169,9 @@ describe('TaskCreateModalComponent', () => {
     expect(document.activeElement?.id).toBe('task-create-title');
   });
 
-  it('points to the custom fields menu when the tasks have none, and shows the fields when they do', () => {
+  it('shows configured custom fields and omits administration tips when there are none', () => {
     const { fixture, screen } = render();
-    expect(text(screen.querySelector('.custom-fields-empty-tip'))).toContain('Динамические поля');
+    expect(screen.querySelector('.custom-fields-empty-tip')).toBeNull();
     expect(screen.querySelector('ui-custom-fields')).toBeNull();
 
     const budget = {
@@ -173,5 +188,93 @@ describe('TaskCreateModalComponent', () => {
     fixture.detectChanges();
     expect(screen.querySelector('.custom-fields-empty-tip')).toBeNull();
     expect(screen.querySelector('ui-custom-fields')).not.toBeNull();
+  });
+});
+
+const additionalToggle = (screen: Screen) =>
+  screen.querySelector('[data-testid="task-create-additional-toggle"]') as HTMLButtonElement;
+const additionalFields = (screen: Screen) => screen.querySelector('#task-create-additional') as HTMLElement;
+
+describe('TaskCreateModalComponent compact flow', () => {
+  it('keeps the common fields visible and starts secondary options collapsed', () => {
+    const { screen } = render();
+    expect(additionalToggle(screen)?.getAttribute('aria-expanded')).toBe('false');
+    expect(additionalFields(screen)?.hidden).toBe(true);
+    for (const id of ['title', 'responsible', 'deadline', 'project']) {
+      expect(screen.querySelector(`#task-create-${id}`)).not.toBeNull();
+      expect(additionalFields(screen).querySelector(`#task-create-${id}`)).toBeNull();
+    }
+    expect(additionalFields(screen).querySelector('ui-markdown-editor')).toBeNull();
+    expect(additionalFields(screen).querySelector('#task-create-parent')).not.toBeNull();
+  });
+
+  it('preserves secondary values through collapse and submits the same complete draft', () => {
+    const { fixture, form, screen } = render();
+    const toggle = additionalToggle(screen);
+    expect(toggle).not.toBeNull();
+    click(fixture, toggle);
+    click(fixture, radios(screen, 'task-create-type')[1]);
+    click(fixture, radios(screen, 'task-create-priority')[2]);
+    fixture.componentInstance.setField('title', 'Plan delivery');
+    fixture.componentInstance.setField('parentTaskId', 42);
+    fixture.componentInstance.setField('executorUserIds', [3, 5]);
+    fixture.componentInstance.setField('observerUserIds', [7]);
+    click(fixture, toggle);
+    expect(additionalFields(screen).hidden).toBe(true);
+    expect(text(toggle)).toContain('Ошибка');
+    expect(text(toggle)).toContain('Высокий');
+    const submitted = vi.fn(() => ({ ...form }));
+    fixture.componentInstance.submitForm.subscribe(submitted);
+    click(fixture, footerButton(screen, 'Создать задачу'));
+    expect(submitted).toHaveBeenCalledOnce();
+    expect(submitted.mock.results[0].value).toMatchObject({
+      title: 'Plan delivery',
+      taskType: 'bug',
+      priority: 'high',
+      parentTaskId: 42,
+      executorUserIds: [3, 5],
+      observerUserIds: [7],
+    });
+    click(fixture, toggle);
+    expect(radios(screen, 'task-create-priority')[2].getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('reveals a server-rejected secondary field before the existing focus step', async () => {
+    const { fixture, screen } = render();
+    const form = screen.querySelector('form#task-create-form') as HTMLFormElement;
+    expect(additionalFields(screen)?.hidden).toBe(true);
+    fixture.componentRef.setInput('serverErrors', { fields: { parentTaskId: 'Parent is unavailable' }, other: [] });
+    focusFirstInvalid(form, fixture.debugElement.injector);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    TestBed.tick();
+    expect(additionalToggle(screen).getAttribute('aria-expanded')).toBe('true');
+    expect(additionalFields(screen).hidden).toBe(false);
+    expect(document.activeElement?.id).toBe('task-create-parent');
+    expect(additionalToggle(screen).disabled).toBe(true);
+    fixture.componentInstance.setField('parentTaskId', 55);
+    fixture.detectChanges();
+    expect(additionalFields(screen).hidden).toBe(false);
+    expect(additionalToggle(screen).disabled).toBe(false);
+  });
+
+  it('resets disclosure only when a new draft is opened', () => {
+    const { fixture, screen } = render();
+    expect(additionalToggle(screen)).not.toBeNull();
+    click(fixture, additionalToggle(screen));
+    fixture.componentInstance.setField('title', 'Draft');
+    fixture.detectChanges();
+    expect(additionalFields(screen).hidden).toBe(false);
+    fixture.componentRef.setInput('createForm', createDefaultTaskCreateForm());
+    fixture.detectChanges();
+    expect(additionalFields(screen).hidden).toBe(true);
+  });
+
+  it('locks secondary radio choices while saving', () => {
+    const { fixture, form, screen } = render({ isSubmitting: true });
+    click(fixture, radios(screen, 'task-create-type')[1]);
+    click(fixture, radios(screen, 'task-create-priority')[3]);
+    expect(form.taskType).toBe('task');
+    expect(form.priority).toBe('medium');
   });
 });

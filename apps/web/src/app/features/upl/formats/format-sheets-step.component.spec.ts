@@ -83,6 +83,38 @@ function choose(fixture: ComponentFixture<FormatSheetsStepComponent>, host: HTML
 }
 
 describe('FormatSheetsStepComponent', () => {
+  it('clears an edited cell error while preserving other addresses and validates that cell on blur', () => {
+    const errors: UplFieldError[] = [
+      { sheet: 0, column: 0, field: 'targetField', code: 'X', key: 'upl.err.X', message: 'Occupied' },
+      { sheet: 1, column: null, field: 'sheetName', code: 'X', key: 'upl.err.X', message: 'Other sheet' },
+    ];
+    const { fixture } = render(draft(), { errors });
+    const target = all(fixture, 'upl-cell-target-field')[0] as HTMLInputElement;
+    target.value = '';
+    target.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.errors()).toEqual([errors[1]]);
+    target.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.cellError(0, 0, 'targetField')?.code).toBe('NotBlank');
+    expect(target.closest('td')?.getAttribute('title')).toContain(PACKAGED_RUSSIAN['upl.err.NotBlank']);
+    expect(fixture.componentInstance.sheetError(1, 'sheetName')).toEqual(errors[1]);
+  });
+
+  it('validates a sheet header row on blur and clears its error after correction', () => {
+    const { fixture } = render(draft());
+    const row = el(fixture).querySelector('#upl-header-row') as HTMLInputElement;
+    row.value = '0';
+    row.dispatchEvent(new Event('input'));
+    row.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.sheetError(0, 'headerRow')?.code).toBe('Min');
+    row.value = '1';
+    row.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.sheetError(0, 'headerRow')).toBeNull();
+  });
+
   it('shows the sheets as tabs and the active sheet with its columns', () => {
     const { fixture } = render(draft());
 
@@ -127,24 +159,25 @@ describe('FormatSheetsStepComponent', () => {
     );
   });
 
-  it('moves and removes columns in the draft and drops the server errors, which no longer fit', () => {
+  it('moves error addresses with their columns and removes only errors of a deleted column', () => {
     const model = draft();
     const errors: UplFieldError[] = [
-      { sheet: 0, column: 2, field: 'targetField', code: 'X', key: 'upl.err.X', message: 'Поле занято' },
+      { sheet: 0, column: 0, field: 'targetField', code: 'X', key: 'upl.err.X', message: 'Поле занято' },
+      { sheet: 0, column: 2, field: 'nameInFile', code: 'X', key: 'upl.err.X', message: 'Третья колонка' },
+      { sheet: 1, column: null, field: 'sheetName', code: 'X', key: 'upl.err.X', message: 'Другой лист' },
     ];
     const { fixture } = render(model, { errors });
-    const errorsChange = vi.fn();
-    fixture.componentInstance.errors.subscribe(errorsChange);
 
     expect(all(fixture, 'upl-column-up')[0].hasAttribute('disabled')).toBe(true);
     expect(all(fixture, 'upl-column-down')[2].hasAttribute('disabled')).toBe(true);
     click(fixture, all(fixture, 'upl-column-down')[0]);
     expect(model.sheets[0].columns.map((item) => item.nameInFile)).toEqual(['Volume', 'STIR', 'Comment']);
-    expect(errorsChange).toHaveBeenCalledWith([]);
+    expect(fixture.componentInstance.errors()).toEqual([{ ...errors[0], column: 1 }, errors[1], errors[2]]);
 
-    click(fixture, all(fixture, 'upl-column-remove')[2]);
-    expect(model.sheets[0].columns.map((item) => item.nameInFile)).toEqual(['Volume', 'STIR']);
-    expect(namesInFile(fixture)).toEqual(['Volume', 'STIR']);
+    click(fixture, all(fixture, 'upl-column-remove')[1]);
+    expect(model.sheets[0].columns.map((item) => item.nameInFile)).toEqual(['Volume', 'Comment']);
+    expect(namesInFile(fixture)).toEqual(['Volume', 'Comment']);
+    expect(fixture.componentInstance.errors()).toEqual([{ ...errors[1], column: 1 }, errors[2]]);
   });
 
   it('clears the unit of a column that stops being a number and says so, and drops the server errors', () => {
@@ -184,7 +217,12 @@ describe('FormatSheetsStepComponent', () => {
 
   it('removes a sheet only after the person confirms it, naming the columns lost', () => {
     const model = draft();
-    const { fixture, modal } = render(model);
+    const errors: UplFieldError[] = [
+      { sheet: 0, column: 1, field: 'sourceUnit', code: 'X', key: 'upl.err.X', message: 'Removed sheet' },
+      { sheet: 1, column: null, field: 'sheetName', code: 'X', key: 'upl.err.X', message: 'Kept sheet' },
+      { sheet: null, column: null, field: 'fileKind', code: 'X', key: 'upl.err.X', message: 'File' },
+    ];
+    const { fixture, modal } = render(model, { errors });
 
     click(fixture, all(fixture, 'upl-remove-sheet')[0]);
 
@@ -192,6 +230,7 @@ describe('FormatSheetsStepComponent', () => {
       expect.objectContaining({ message: 'Лист и его колонки будут удалены (3)', destructive: true }),
     );
     expect(model.sheets.map((sheet) => sheet.sheetName)).toEqual(['Остатки']);
+    expect(fixture.componentInstance.errors()).toEqual([{ ...errors[1], sheet: 0 }, errors[2]]);
 
     modal.confirm.mockReturnValueOnce(of(false));
     click(fixture, all(fixture, 'upl-remove-sheet')[0]);

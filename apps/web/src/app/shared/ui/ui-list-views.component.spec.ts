@@ -150,7 +150,34 @@ describe('ui-list-views', () => {
     expect(confirm).toHaveBeenCalledWith(
       expect.objectContaining({ destructive: true, message: expect.stringContaining('Месячные') }),
     );
-    expect(api.remove).toHaveBeenCalledWith('upl.sources', 1);
+    expect(api.remove).toHaveBeenCalledWith('upl.sources', 1, 0);
     expect(fixture.componentInstance.state.views()).toEqual([]);
+  });
+
+  it('checks the name on blur and clears a stale refusal as the name changes', async () => {
+    const { fixture, openMenu, item } = await render();
+    openMenu();
+    item('views-save-as')!.click();
+    fixture.detectChanges();
+    const input = document.querySelector('[data-testid="views-name"]') as HTMLInputElement;
+    input.focus();
+    input.blur();
+    fixture.detectChanges();
+    const field = input.closest('smt-control')!;
+    expect(field.textContent).toContain(PACKAGED_RUSSIAN['ui.views.name_required']);
+    input.value = 'Valid';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(field.textContent).not.toContain(PACKAGED_RUSSIAN['ui.views.name_required']);
+    api.create.mockReturnValueOnce(throwError(() => ({ status: 422, messageKey: 'error.md.list_view_name_taken' })));
+    (
+      document.querySelector('[data-testid="views-save-as-actions"] [data-testid="form-submit"]') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(field.textContent).toContain(PACKAGED_RUSSIAN['ui.views.name_taken']);
+    input.value = 'Corrected';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(field.textContent).not.toContain(PACKAGED_RUSSIAN['ui.views.name_taken']);
   });
 });
