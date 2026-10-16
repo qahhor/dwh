@@ -175,7 +175,7 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 **Объединение веток (2026-10-16):** владелец разрешил объединить все ветки
 в `main`; прежнее ограничение «без merge» заменено этим указанием.
 Публикация релиза/образов, release tags и облачный deploy не разрешены.
-В основном checkout `D:/PROJECTS/dwh` создана `codex/unify-branches` от
+В основном checkout создана `codex/unify-branches` от
 `d406d6963bd01c0b4359d53b251eb8286ac930e5`. Через DCO merge-коммиты включены
 `codex/admin-studio`, старые release/staging ветки и пять веток Dependabot;
 прочие локальные ветки уже входят в эту историю. В 23 конфликтах старого
