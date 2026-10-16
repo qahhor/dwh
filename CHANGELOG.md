@@ -94,6 +94,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Consolidated the Studio, release-readiness and staging work with preserved Git
+  history; updated Jackson to 3.2.3 / 2.22.3, AWS SDK to 2.55.13, Spotless to
+  3.10.4, CodeQL Action to 4.38.3 and Playwright to 1.64.0.
+
 - Release verification now requires an independently approved `ExpectedSourceSha`;
   the explicit staging channel pins its own workflow identity. Unsigned historical
   bundles are rejected. PASS evidence records the verified channel, ref and source SHA.
