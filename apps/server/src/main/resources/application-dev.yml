@@ -3,8 +3,8 @@
 logging:
   structured:
     format:
-      # Readable text on the developer's console; the file, when SMC_LOG_FILE is set, stays JSON (plan 10/10, item 7.1).
-      console: ""
+      # Masked, single-line text on the developer's console; the file stays ECS JSON (ADR-0009).
+      console: com.smartup24.cms.instance.config.observability.SafeTextLogFormatter
 smc:
   public-url: http://localhost:4200
   delivery:

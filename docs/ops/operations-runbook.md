@@ -119,7 +119,12 @@ after such a key inside a text (`password=...`, `"token":"..."`,
 `Authorization: Bearer ...`, `#token=` of invitation and reset links,
 `?code=`) is replaced by `***`. It is a safety net: code still logs
 identifiers only (CODE_STYLE, section 5). The `dev` profile prints readable
-text on the console; every other profile prints JSON.
+text on the console through `SafeTextLogFormatter`: masking also applies there,
+and control characters in the entire event, including exception chains, appear
+as escapes such as `\n` and `\t`. Each event occupies one physical line.
+Every other profile and the optional file in `dev` use ECS JSON. Unicode line
+and paragraph separators in ECS text values appear as visible `\u2028` and
+`\u2029` sequences, so line-oriented consumers do not split the event.
 
 **Traces** (plan 10/10, item 7.2) are off by default: trace ids are made and
 logged, but no span is recorded or sent. To record them, point the server at
@@ -234,6 +239,12 @@ Use `backup-objects.ps1` and `restore-combined.ps1` for the release drill; the
 combined evidence must reject a missing/wrong age key, partial object archive,
 inventory mismatch, or RPO/RTO breach.
 
+После `pg_restore --no-owner --no-acl` сначала выполняется `backup-bootstrap`:
+он восстанавливает владельцев таблиц и права приложения/мигратора по принятой
+модели ролей. Только затем запускаются миграции и проверяется приложение.
+Успешное чтение от `postgres` не доказывает работоспособность восстановленной
+CMS: combined drill выполняет контрольные запросы от роли приложения.
+
 ## Search failure
 
 If PostgreSQL-backed workflows work but search fails, inspect Typesense and
@@ -254,7 +265,8 @@ host is present in `SMC_WEBHOOKS_ALLOWED_HOSTS`. Do not add wildcard hosts. Keep
 `SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false` on Smartup-managed or
 internet-facing installations. A client-owned private target may opt in only
 after the destination and network boundary are reviewed. The API returns a
-signing secret only when the subscription is created; rotate by replacing the
+signing secret only when the subscription is created. HTTPS is mandatory even
+for private targets; stored HTTP destinations are refused before dispatch. Rotate by replacing the
 subscription if that one-time value is lost or exposed.
 
 ## Storage failure

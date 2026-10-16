@@ -1,7 +1,15 @@
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, model } from '@angular/core';
 import type { FormCollectionMeta, FormFieldMeta, FormProblems, FormValues } from '@core/models/form-meta.models';
 import type { MoneyValue } from '@core/services/field-values';
-import { fieldLabel, optionLabel, rowMoney, rowValues } from '@core/services/form-meta.service';
+import {
+  fieldLabel,
+  fieldReadonly,
+  fieldVisible,
+  formProblems,
+  optionLabel,
+  rowMoney,
+  rowValues,
+} from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
 import { SMTButtonComponent } from '../ui-kit/components/button';
@@ -11,6 +19,7 @@ import { SMTDynamicFieldComponent, type SMTDynamicFieldDef } from '../ui-kit/com
 import { ENTITY_CONTROLS } from './smt-entity-form.component';
 import { fieldText } from './entity-values';
 import { SMTMoneyFieldComponent } from './smt-money-field.component';
+import { EntityFormFeedback } from './entity-form-feedback';
 
 interface DrawnRowField {
   meta: FormFieldMeta;
@@ -47,32 +56,38 @@ let nextLinesId = 0;
               <legend class="entity-line-title">{{ 'ui.entity_lines.line' | t: { n: index + 1 } }}</legend>
               <div class="entity-line-grid">
                 @for (field of drawn(); track field.meta.key) {
-                  <div class="entity-line-field" [attr.data-field]="field.meta.key">
-                    @if (field.meta.computed) {
-                      <smt-control [smtLabel]="field.label">
-                        <output class="entity-line-computed">{{ computedText(field.meta, row) }}</output>
-                      </smt-control>
-                    } @else if (field.meta.type === 'money') {
-                      <smt-money-field
-                        [label]="field.label"
-                        [currencies]="currenciesOf(field.meta)"
-                        [required]="field.meta.required"
-                        [disabled]="locked()"
-                        [error]="problemOf(index, field.meta.key)"
-                        [value]="moneyOf(field.meta, row)"
-                        (valueChange)="set(index, field.meta.key, $event)"
-                      />
-                    } @else {
-                      <smt-dynamic-field
-                        [field]="field.def"
-                        [source]="field.source"
-                        [disabled]="locked()"
-                        [error]="problemOf(index, field.meta.key)"
-                        [value]="row[field.meta.key] ?? null"
-                        (valueChange)="set(index, field.meta.key, $event)"
-                      />
-                    }
-                  </div>
+                  @if (shown(field.meta, row)) {
+                    <div
+                      class="entity-line-field"
+                      [attr.data-field]="field.meta.key"
+                      (focusout)="feedback.leave(address(index, field.meta.key), $event)"
+                    >
+                      @if (field.meta.computed) {
+                        <smt-control [smtLabel]="field.label">
+                          <output class="entity-line-computed">{{ computedText(field.meta, row) }}</output>
+                        </smt-control>
+                      } @else if (field.meta.type === 'money') {
+                        <smt-money-field
+                          [label]="field.label"
+                          [currencies]="currenciesOf(field.meta)"
+                          [required]="field.meta.required"
+                          [disabled]="locked() || readonlyField(field.meta, row)"
+                          [error]="problemOf(index, field.meta.key)"
+                          [value]="moneyOf(field.meta, row)"
+                          (valueChange)="set(index, field.meta.key, $event)"
+                        />
+                      } @else {
+                        <smt-dynamic-field
+                          [field]="field.def"
+                          [source]="field.source"
+                          [disabled]="locked() || readonlyField(field.meta, row)"
+                          [error]="problemOf(index, field.meta.key)"
+                          [value]="row[field.meta.key] ?? null"
+                          (valueChange)="set(index, field.meta.key, $event)"
+                        />
+                      }
+                    </div>
+                  }
                 }
               </div>
               @if (rowProblem(index); as problem) {
@@ -153,13 +168,15 @@ export class SMTEntityLinesComponent {
   /** The record's values on the form: the currency of a row's money is the document's (`currencyFrom`). */
   readonly values = input<FormValues>({});
 
-  /** Problems by address (`lines[3].qty`, `lines`), from `formProblems` or the server's answer. */
-  readonly problems = input<FormProblems>({});
-
   readonly disabled = input(false, { transform: booleanAttribute });
+
+  readonly submitted = input(false, { transform: booleanAttribute });
 
   /** The rows cannot be changed now: a state of the process locks them (ADR-0032 9.2). */
   readonly readonly = input(false, { transform: booleanAttribute });
+
+  /** Problems by address (`lines[3].qty`, `lines`), from `formProblems` or the server's answer. */
+  readonly problems = model<FormProblems>({});
 
   /** The rows as the form edits them. */
   readonly rows = model<FormValues[]>([]);
@@ -205,8 +222,46 @@ export class SMTEntityLinesComponent {
 
   readonly headingId = `smt-entity-lines-${nextLinesId++}`;
 
+  readonly feedback = new EntityFormFeedback(
+    this.problems,
+    () => {
+      this.i18n.currentLang();
+      if (this.readonly()) return {};
+      return Object.fromEntries(
+        this.rows().flatMap((row, index) => {
+          const fields = this.collection().fields;
+          const values = {
+            ...this.values(),
+            ...row,
+            ...Object.fromEntries(fields.map((field) => [field.key, rowMoney(field, row[field.key], this.values())])),
+          };
+          const problems = formProblems(
+            { code: '', fields, layout: [], actions: [], capabilities: [] },
+            values,
+            (key, params) => this.i18n.translate(key, params),
+            row['id'] == null,
+          );
+          return Object.entries(problems).map(([key, message]) => [this.address(index, key), message]);
+        }),
+      );
+    },
+    this.submitted,
+  );
+
+  address(index: number, key: string): string {
+    return `${this.collection().key}[${index}].${key}`;
+  }
+
+  shown(field: FormFieldMeta, row: FormValues): boolean {
+    return fieldVisible(field, { ...this.values(), ...row });
+  }
+
+  readonlyField(field: FormFieldMeta, row: FormValues): boolean {
+    return fieldReadonly(field, { ...this.values(), ...row }, row['id'] == null);
+  }
+
   problemOf(index: number, key: string): string {
-    return this.problems()[`${this.collection().key}[${index}].${key}`] ?? '';
+    return this.problems()[this.address(index, key)] ?? '';
   }
 
   rowProblem(index: number): string {
@@ -232,7 +287,9 @@ export class SMTEntityLinesComponent {
   }
 
   set(index: number, key: string, value: unknown): void {
+    if (Object.is(this.rows()[index]?.[key], value)) return;
     this.rows.update((rows) => rows.map((row, at) => (at === index ? { ...row, [key]: value } : row)));
+    this.feedback.changed(this.address(index, key));
   }
 
   add(): void {
@@ -241,12 +298,15 @@ export class SMTEntityLinesComponent {
   }
 
   remove(index: number): void {
+    this.feedback.remap(this.collection().key, (at) => (at === index ? null : at > index ? at - 1 : at));
     this.rows.update((rows) => rows.filter((_row, at) => at !== index));
   }
 
   /** Moves a row one place up (-1) or down (1). */
   move(index: number, step: -1 | 1): void {
     const target = index + step;
+    if (target < 0 || target >= this.rows().length) return;
+    this.feedback.remap(this.collection().key, (at) => (at === index ? target : at === target ? index : at));
     this.rows.update((rows) => {
       if (target < 0 || target >= rows.length) return rows;
       const moved = [...rows];

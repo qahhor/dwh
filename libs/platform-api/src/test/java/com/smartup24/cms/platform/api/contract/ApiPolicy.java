@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -122,6 +123,40 @@ public final class ApiPolicy {
      * @param alongside the baseline jars of the API artifacts it depends on, so their marks read
      */
     public List<String> removedWithoutDeprecation(Path baselineJar, Path... alongside) {
+        return compareBaseline(baselineJar, this::compare, alongside);
+    }
+
+    /** Changing sealed variants breaks an exhaustive source switch even when japicmp accepts the binaries. */
+    public List<String> sealedChangesWithoutMajor(
+            Path baselineJar, PlatformVersion baselineVersion, PlatformVersion currentVersion, Path... alongside) {
+        if (currentVersion.major() > baselineVersion.major()) return List.of();
+        return compareBaseline(baselineJar, this::sealedChanges, alongside);
+    }
+
+    private List<String> sealedChanges(Class<?> old) {
+        if (!old.isSealed()) return List.of();
+        Class<?> now;
+        try {
+            now = Class.forName(old.getName(), false, ApiPolicy.class.getClassLoader());
+        } catch (ClassNotFoundException gone) {
+            return List.of();
+        }
+        Set<String> previous = permitted(old);
+        return previous.equals(permitted(now))
+                ? List.of()
+                : List.of(old.getName() + " sealed variants changed without a new MAJOR version");
+    }
+
+    private static Set<String> permitted(Class<?> type) {
+        return type.isSealed()
+                ? Arrays.stream(type.getPermittedSubclasses())
+                        .map(Class::getName)
+                        .collect(Collectors.toSet())
+                : Set.of();
+    }
+
+    private List<String> compareBaseline(
+            Path baselineJar, Function<Class<?>, List<String>> comparison, Path... alongside) {
         List<URL> urls = new ArrayList<>();
         for (Path jar : prepend(baselineJar, alongside)) {
             if (!Files.isRegularFile(jar)) {
@@ -144,7 +179,7 @@ public final class ApiPolicy {
             for (String name : names) {
                 Class<?> old = Class.forName(name, false, baseline);
                 if (!isPublicApi(old)) continue;
-                problems.addAll(compare(old));
+                problems.addAll(comparison.apply(old));
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

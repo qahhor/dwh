@@ -56,7 +56,7 @@ describe('moduleActiveGuard', () => {
     expect(toastService.warning).not.toHaveBeenCalled();
   });
 
-  it('redirects to /tasks and shows toast warning when module is loaded but disabled', async () => {
+  it('redirects to the core profile when every optional module is disabled', async () => {
     const { toastService } = setup({ isLoaded: true, isModuleActive: () => false });
 
     const guard = moduleActiveGuard('notes');
@@ -64,7 +64,7 @@ describe('moduleActiveGuard', () => {
 
     const value = isObservable(result) ? await firstValueFrom(result) : result;
     expect(value instanceof UrlTree).toBe(true);
-    expect((value as UrlTree).toString()).toBe('/tasks');
+    expect((value as UrlTree).toString()).toBe('/iam/profile');
     expect(toastService.warning).toHaveBeenCalled();
   });
 

@@ -272,6 +272,110 @@ describe('SearchSettingsComponent', () => {
     expect(button(fixture, 'start-rebuild')).not.toBeNull();
   });
 
+  it('checks only the policy field left, and clears feedback when corrected', async () => {
+    const { fixture, management } = await createFixture(ADMIN);
+    const limit = type(fixture, '#search-global-limit', '0');
+    type(fixture, '#search-requests-per-minute', '0');
+    expect(limit.getAttribute('aria-invalid')).not.toBe('true');
+    limit.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    TestBed.tick();
+    expect(limit.getAttribute('aria-invalid')).toBe('true');
+    expect(find(fixture, '#search-requests-per-minute')?.getAttribute('aria-invalid')).not.toBe('true');
+    type(fixture, '#search-global-limit', '10');
+    TestBed.tick();
+    expect(limit.getAttribute('aria-invalid')).not.toBe('true');
+    expect(management['save']).not.toHaveBeenCalled();
+  });
+
+  it('validates each search field on blur without exposing untouched row errors', async () => {
+    const { fixture } = await createFixture(ADMIN);
+    const selector = 'input[aria-label="' + translateTest('settings.search.fields.weight') + '"]';
+    const weight = type(fixture, selector, '128');
+    expect(weight.getAttribute('aria-invalid')).not.toBe('true');
+    weight.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    TestBed.tick();
+    expect(weight.getAttribute('aria-invalid')).toBe('true');
+    const other = fixture.nativeElement.querySelectorAll(selector)[1] as HTMLInputElement;
+    expect(other.getAttribute('aria-invalid')).not.toBe('true');
+    type(fixture, selector, '10');
+    TestBed.tick();
+    expect(weight.getAttribute('aria-invalid')).not.toBe('true');
+  });
+
+  it('submits every policy section through one native form without sending a duplicate while pending', async () => {
+    const { fixture, management } = await createFixture(ADMIN, {
+      save: vi.fn(() => new Subject<SearchSettingsSnapshot>()),
+    });
+    const limit = type(fixture, '#search-global-limit', '12');
+    const rate = type(fixture, '#search-requests-per-minute', '150');
+    const burst = type(fixture, '#search-burst', '25');
+    const form = limit.form;
+    expect(form).not.toBeNull();
+    expect(rate.form).toBe(form);
+    expect(burst.form).toBe(form);
+    expect(button(fixture, 'save-search-settings')!.form).toBe(form);
+    expect(button(fixture, 'save-search-settings')!.type).toBe('submit');
+    const event = new Event('submit', { bubbles: true, cancelable: true });
+
+    form!.dispatchEvent(event);
+    form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(management['save']).toHaveBeenCalledTimes(1);
+    expect(management['save']).toHaveBeenCalledWith({
+      version: 7,
+      policy: expect.objectContaining({ globalLimit: 12, requestsPerMinute: 150, burst: 25 }),
+    });
+    expect(button(fixture, 'save-search-settings')!.disabled).toBe(true);
+  });
+
+  it('keeps preview submission outside the settings form and does not save the edited policy', async () => {
+    const { fixture, management } = await createFixture(ADMIN);
+    const limit = type(fixture, '#search-global-limit', '12');
+    const query = type(fixture, '#search-preview-query', 'report');
+    expect(query.form).not.toBeNull();
+    expect(query.form).not.toBe(limit.form);
+    expect(query.form!.closest('form')?.parentElement?.closest('form')).toBeNull();
+    expect(button(fixture, 'preview-search-settings')!.form).toBe(query.form);
+    expect(button(fixture, 'preview-search-settings')!.type).toBe('submit');
+
+    query.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+    expect(management['preview']).toHaveBeenCalledTimes(1);
+    expect(management['save']).not.toHaveBeenCalled();
+  });
+
+  it('keeps a native settings submission harmless without update permission', async () => {
+    const { fixture, management } = await createFixture(READ);
+    const limit = type(fixture, '#search-global-limit', '12');
+    expect(limit.form).not.toBeNull();
+
+    limit.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+    expect(management['save']).not.toHaveBeenCalled();
+  });
+
+  it('focuses the first invalid policy field after a native submit', async () => {
+    const { fixture, management } = await createFixture(ADMIN);
+    document.body.appendChild(fixture.nativeElement);
+    const limit = type(fixture, '#search-global-limit', '0');
+    expect(limit.form).not.toBeNull();
+    try {
+      limit.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      fixture.detectChanges();
+      TestBed.tick();
+
+      expect(management['save']).not.toHaveBeenCalled();
+      expect(limit.getAttribute('aria-invalid')).toBe('true');
+      expect(document.activeElement).toBe(limit);
+    } finally {
+      fixture.nativeElement.remove();
+    }
+  });
+
   it('blocks an invalid policy before issuing a save request', async () => {
     const { fixture, management } = await createFixture(ADMIN);
     type(fixture, '#search-global-limit', '0');
@@ -424,10 +528,11 @@ describe('SearchSettingsComponent', () => {
     });
     const typoInputs = Array.from(
       inScreen(fixture.nativeElement).querySelectorAll(
-        '.field-grid:not(.field-grid-head) smt-input:nth-of-type(2) input',
+        'input[aria-label="' + translateTest('settings.search.fields.typos') + '"]',
       ),
     ) as HTMLInputElement[];
-    const editedValues = [1, 2, 2, 2, 2, 2, 2, 0, 0, 0];
+    expect(typoInputs).toHaveLength(8);
+    const editedValues = [1, 2, 2, 2, 2, 2, 0, 0];
     typoInputs.forEach((input, index) => {
       input.value = String(editedValues[index]);
       input.dispatchEvent(new Event('input'));

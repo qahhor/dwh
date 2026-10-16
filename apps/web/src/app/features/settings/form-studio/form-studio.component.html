@@ -1,0 +1,170 @@
+<div class="studio-page" data-testid="form-studio">
+  <ui-page-header [title]="'settings.form_studio.title' | t" [subtitle]="'settings.form_studio.subtitle' | t">
+    <a smt-button routerLink="/settings/form-studio/new">{{ 'settings.simple_form.title' | t }}</a>
+    <a smt-button smtVariant="secondary" routerLink="/settings">{{ 'settings.form_studio.back' | t }}</a>
+  </ui-page-header>
+  <app-form-studio-lifecycle [blocked]="busy()" (reload)="reloadDraft()" />
+  <smt-alert smtTone="info" smtLive="off">{{ 'settings.form_studio.notice' | t }}</smt-alert>
+  @if (store.loading()) {
+    <p role="status">{{ 'settings.form_studio.loading' | t }}</p>
+  }
+  @if (store.error()) {
+    <smt-alert smtTone="danger">
+      {{ store.error() }}
+      @if (store.issues().length) {
+        <ul>
+          @for (issue of store.issues(); track $index) {
+            <li>
+              <code>{{ issue.path }}</code
+              >: {{ issue.message }}
+            </li>
+          }
+        </ul>
+      }
+      @if (!store.draft()) {
+        <p>{{ 'settings.form_studio.unavailable_hint' | t }}</p>
+        <button smt-button smtVariant="secondary" type="button" (click)="store.load()">{{ 'common.retry' | t }}</button>
+      }
+    </smt-alert>
+  }
+  @if (store.draft(); as draft) {
+    <div class="studio-toolbar">
+      <button smt-button type="button" [smtLoading]="busy()" (click)="store.validate()">
+        {{ 'settings.form_studio.validate' | t }}
+      </button>
+      <button smt-button type="button" smtVariant="secondary" [disabled]="!preview() || busy()" (click)="exportFile()">
+        {{ 'settings.form_studio.export' | t }}
+      </button>
+      <button smt-button type="button" smtVariant="secondary" [disabled]="busy()" (click)="filePicker.click()">
+        {{ 'settings.form_studio.import' | t }}
+      </button>
+      <input
+        #filePicker
+        data-testid="studio-import"
+        type="file"
+        accept=".json,application/json"
+        hidden
+        (change)="importFile($event)"
+      />
+    </div>
+    <p class="studio-status" role="status">
+      {{ (preview() ? 'settings.form_studio.validated' : 'settings.form_studio.changed') | t }}
+    </p>
+    <div class="studio-columns">
+      <section class="studio-panel" data-testid="form-studio-editor" aria-labelledby="studio-editor-title">
+        <div class="studio-heading">
+          <h2 id="studio-editor-title">{{ 'settings.form_studio.editor' | t }}</h2>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            [disabled]="!canAddSection() || busy()"
+            (click)="addSection()"
+          >
+            {{ 'settings.form_studio.add_section' | t }}
+          </button>
+        </div>
+        <p class="studio-hint">{{ 'settings.form_studio.labels_hint' | t }}</p>
+        @for (section of draft.sections; track section.id; let sectionIndex = $index) {
+          <fieldset class="studio-section" [attr.data-testid]="'studio-section-' + section.id">
+            <legend>{{ sectionName(section) }}</legend>
+            <div class="studio-actions">
+              <button
+                smt-button
+                type="button"
+                smtVariant="ghost"
+                smtSize="sm"
+                smtIcon="arrow_upward"
+                [attr.aria-label]="'settings.form_studio.up' | t: { name: sectionName(section) }"
+                [disabled]="sectionIndex === 0 || busy()"
+                (click)="moveSection(section.id, -1)"
+              ></button>
+              <button
+                smt-button
+                type="button"
+                smtVariant="ghost"
+                smtSize="sm"
+                smtIcon="arrow_downward"
+                [attr.aria-label]="'settings.form_studio.down' | t: { name: sectionName(section) }"
+                [disabled]="sectionIndex === draft.sections.length - 1 || busy()"
+                (click)="moveSection(section.id, 1)"
+              ></button>
+              <button
+                smt-button
+                type="button"
+                smtVariant="ghost"
+                smtSize="sm"
+                smtIcon="merge"
+                [attr.aria-label]="'settings.form_studio.remove_section' | t"
+                [disabled]="draft.sections.length === 1 || busy()"
+                (click)="removeSection(section.id)"
+              ></button>
+            </div>
+            <app-form-studio-labels
+              [labels]="section.labels"
+              [disabled]="busy()"
+              (changed)="setLabel(section.id, null, $event.language, $event.value)"
+            />
+            @for (field of section.fields; track field.fieldId; let fieldIndex = $index) {
+              <fieldset class="studio-field" [attr.data-testid]="'studio-field-' + field.fieldId">
+                <legend>{{ fieldName(field) }}</legend>
+                <div class="studio-actions">
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="ghost"
+                    smtSize="sm"
+                    smtIcon="arrow_upward"
+                    [attr.aria-label]="'settings.form_studio.up' | t: { name: fieldName(field) }"
+                    [disabled]="fieldIndex === 0 || busy()"
+                    (click)="moveField(section.id, field.fieldId, -1)"
+                  ></button>
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="ghost"
+                    smtSize="sm"
+                    smtIcon="arrow_downward"
+                    [attr.aria-label]="'settings.form_studio.down' | t: { name: fieldName(field) }"
+                    [disabled]="fieldIndex === section.fields.length - 1 || busy()"
+                    (click)="moveField(section.id, field.fieldId, 1)"
+                  ></button>
+                </div>
+                <app-form-studio-labels
+                  [labels]="field.labels"
+                  [disabled]="busy()"
+                  (changed)="setLabel(section.id, field.fieldId, $event.language, $event.value)"
+                />
+                @if (draft.sections.length > 1) {
+                  <smt-control [smtLabel]="'settings.form_studio.section_destination' | t: { id: field.fieldId }">
+                    <smt-select
+                      [options]="sectionOptions()"
+                      [value]="section.id"
+                      [allowClear]="false"
+                      [disabled]="busy()"
+                      (valueChange)="moveToSection(section.id, field.fieldId, $event)"
+                    />
+                  </smt-control>
+                }
+              </fieldset>
+            }
+          </fieldset>
+        }
+      </section>
+      <section
+        class="studio-panel studio-preview"
+        data-testid="form-studio-preview"
+        aria-labelledby="studio-preview-title"
+      >
+        <h2 id="studio-preview-title">{{ 'settings.form_studio.preview' | t }}</h2>
+        @if (preview(); as meta) {
+          <p class="studio-hint">{{ 'settings.form_studio.preview_hint' | t }}</p>
+          <smt-entity-form [meta]="meta" [(value)]="values" />
+        } @else {
+          <p class="studio-hint">{{ 'settings.form_studio.changed' | t }}</p>
+        }
+      </section>
+    </div>
+  }
+</div>

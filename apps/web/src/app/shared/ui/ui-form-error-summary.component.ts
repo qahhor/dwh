@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { TranslatePipe } from '@core/services/i18n.service';
+import { focusFormField } from './form-field-focus';
 
 /** One error of the summary: its field's id (to jump to it), the field's label and the message. */
 export interface UiFormErrorItem {
@@ -95,7 +96,6 @@ export class UiFormErrorSummaryComponent {
     const field = document.getElementById(fieldId);
     if (!field) return;
     event.preventDefault();
-    field.scrollIntoView?.({ block: 'center' });
-    field.focus({ preventScroll: true });
+    focusFormField(field);
   }
 }

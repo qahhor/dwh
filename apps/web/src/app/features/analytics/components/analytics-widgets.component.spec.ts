@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { metaField, queryMetaFixture } from '@testing/entity-page';
+import { translateTest } from '@testing/i18n-test.stub';
 import type { ReportWidget } from '@shared/entity/report/entity-reports';
 import { AnalyticsWidgetsComponent } from './analytics-widgets.component';
 
@@ -51,6 +52,97 @@ describe('AnalyticsWidgetsComponent', () => {
       fixture.detectChanges();
     }
   }
+
+  it('announces loading without claiming the list is empty', async () => {
+    const { fixture, host } = await render();
+    const request = http.expectOne('/api/v1/report-widgets');
+    await drain(fixture);
+
+    expect(host.querySelector('[data-testid="analytics-widgets"]')?.getAttribute('aria-busy')).toBe('true');
+    expect(host.querySelector('[role="status"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="analytics-widgets-empty"]')).toBeNull();
+    request.flush([]);
+    await drain(fixture);
+  });
+
+  it.each([403, 500])('shows an actionable error instead of an empty list after HTTP %i', async (status) => {
+    const { fixture, host } = await render();
+    http
+      .expectOne('/api/v1/report-widgets')
+      .flush({ detail: 'Widget list unavailable' }, { status, statusText: 'Failed' });
+    await drain(fixture);
+
+    const alert = host.querySelector('[role="alert"]');
+    expect(alert?.textContent ?? '').toContain('Widget list unavailable');
+    expect(alert?.querySelector('button')?.textContent?.trim()).toBe(translateTest('common.retry'));
+    expect(host.querySelector('[data-testid="analytics-widgets-empty"]')).toBeNull();
+    expect(host.querySelector('[role="status"]')).toBeNull();
+    expect(host.querySelector('[data-testid="analytics-widgets"]')?.getAttribute('aria-busy')).not.toBe('true');
+  });
+
+  it('offers retry when the widget list cannot reach the server', async () => {
+    const { fixture, host } = await render();
+    http.expectOne('/api/v1/report-widgets').error(new ProgressEvent('error'));
+    await drain(fixture);
+
+    expect(host.querySelector('[role="alert"] button')?.textContent?.trim()).toBe(translateTest('common.retry'));
+    expect(host.querySelector('[data-testid="analytics-widgets-empty"]')).toBeNull();
+  });
+
+  it('retries a failed list and renders the successfully loaded widget', async () => {
+    const { fixture, host } = await render();
+    http
+      .expectOne('/api/v1/report-widgets')
+      .flush({ detail: 'Temporary outage' }, { status: 500, statusText: 'Failed' });
+    await drain(fixture);
+
+    const retry = host.querySelector('[role="alert"] button') as HTMLButtonElement | null;
+    expect(retry).not.toBeNull();
+    retry!.click();
+    await drain(fixture);
+    expect(host.querySelector('[role="status"]')).not.toBeNull();
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    http.expectOne('/api/v1/report-widgets').flush([WIDGET]);
+    await drain(fixture);
+    http.match('/api/v1/query-meta/example.orders').forEach((request) => request.flush(LIST));
+    http.expectOne('/api/v1/entities/example.orders/reports/7').flush({
+      groups: [],
+      measures: [{ op: 'count' }],
+      rows: [{ groups: [], values: [3] }],
+      truncated: false,
+    });
+    await drain(fixture);
+
+    expect(host.querySelector('[data-testid="analytics-widget"]')?.textContent).toContain(WIDGET.name);
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host.querySelector('[data-testid="analytics-widgets-empty"]')).toBeNull();
+  });
+
+  it('hides previously loaded widgets when refreshing fails', async () => {
+    const { fixture, host } = await render();
+    http.expectOne('/api/v1/report-widgets').flush([WIDGET]);
+    await drain(fixture);
+    http.match('/api/v1/query-meta/example.orders').forEach((request) => request.flush(LIST));
+    http.expectOne('/api/v1/entities/example.orders/reports/7').flush({
+      groups: [],
+      measures: [{ op: 'count' }],
+      rows: [{ groups: [], values: [3] }],
+      truncated: false,
+    });
+    await drain(fixture);
+    expect(host.querySelector('[data-testid="analytics-widget"]')).not.toBeNull();
+
+    fixture.componentInstance.list.reload();
+    await drain(fixture);
+    http
+      .expectOne('/api/v1/report-widgets')
+      .flush({ detail: 'Access revoked' }, { status: 403, statusText: 'Forbidden' });
+    await drain(fixture);
+
+    expect(host.querySelector('[role="alert"]')?.textContent ?? '').toContain('Access revoked');
+    expect(host.querySelector('[data-testid="analytics-widget"]')).toBeNull();
+    expect(host.querySelector('[data-testid="analytics-widgets-empty"]')).toBeNull();
+  });
 
   it('says how to add a widget when the viewer has none', async () => {
     const { fixture, host } = await render();
@@ -110,8 +202,8 @@ describe('AnalyticsWidgetsComponent', () => {
       kind: 'report',
       state: WIDGET.state,
       isDefault: false,
-      lockVersion: 2,
     });
+    expect(update.request.headers.get('If-Match')).toBe('"2"');
     update.flush({ ...WIDGET, kind: 'report', lockVersion: 3 });
     await drain(fixture);
 

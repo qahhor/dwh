@@ -102,6 +102,7 @@ class MsOutboxRepositoryIntegrationTest {
         var recovered = secondWorkerRepository.fetchPending(1).getFirst();
 
         assertThat(recovered.id()).isEqualTo(firstClaim.id());
+        assertThat(recovered.idempotencyKey()).isEqualTo(firstClaim.idempotencyKey());
         assertThat(recovered.claimToken()).isNotEqualTo(firstClaim.claimToken());
     }
 }

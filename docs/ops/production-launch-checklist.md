@@ -1,145 +1,74 @@
-# SmartupCMS production launch checklist
+# Критерии GO / NO-GO первого production выпуска
 
-**Version:** 2.0
+Версия: 2026-10-16. Любой незакрытый P0 означает NO-GO.
+Отметки PASS заполняет ответственный по сохранённому evidence, а не по наличию
+конфига/теста в Git. Текущий комплект сам по себе не разрешает публикацию.
 
-**Updated:** 2026-09-18
+| Приоритет | Gate | Критерий и evidence | Владелец |
+|---|---|---|---|
+| P0 | Кандидат | Один DCO SHA, clean tree; CI повторён на этом SHA, все jobs PASS, no-skips/coverage/API gates не ослаблены | Tech lead |
+| P0 | Артефакты | Шесть immutable OCI refs, подписанный checksum manifest и bundle; exact channel/tag/source SHA/workflow, attestations и SBOM проверены по ADR-0040. Staging RC не является production GO | Release |
+| P0 | Студия | [Целевая матрица RC](studio-staging-acceptance.md): live формы/отчёты/панели, revoke, разные процессы/restart, target workload и восстановление; assistant off, fixture-only и N/A явно отделены | QA + Security + Ops |
+| P0 | Доступ | Отзыв session/token/role, data scope, hidden fields, SSRF/upload ограничения, login budgets PASS | Security |
+| P0 | Секреты | Разные DB-role credentials, scoped R2/SMTP/registry keys, encryption keys escrow, 0600, нет secret leaks | Security + Ops |
+| P0 | Edge | HTTPS, origin bypass denied, management/DB/exporters private, trust proxy и rate limits проверены | Ops |
+| P0 | Install/update | Ansible rehearsal на чистом host и обновление; повтор не меняет release, missing signatures/secret/backup → fail closed | Ops |
+| P0 | Миграции | CMS+DWH migration success, immutable manifest, schema-compatible rollback rehearsal либо full restore plan | DBA |
+| P0 | Recovery | Два комплекта и два restore на полном корпусе; remote read-back SHA-256, Object Lock и независимые ключи | DBA + Ops |
+| P0 | RPO/RTO | RPO ≤24 ч от consistent point; полный RTO ≤2 ч; capture ≤60 мин, время остановки измерено | Incident owner |
+| P0 | Нагрузка | 100 активных пользователей, 4 ч soak; обычный API p95≤300 мс/p99≤1000 мс/error≤0.1% | QA + Ops |
+| P0 | Upload | 20 одновременных near-limit upload, 20/20 успешных; p95≤30 с/p99≤60 с | QA |
+| P0 | Ёмкость | CPU<80%, heap≤80%, Hikari pending=0, app RAM free≥4 GiB, disk free≥50 GiB и >20%, scratch peak измерен | Ops |
+| P0 | Алерты | Реальная доставка ≤120 с, ACK≤10 мин; потеря app host/collector, recovery failure и ops/receiver loss обнаруживаются | On-call |
+| P0 | Логи | Sanitized off-host collection/retention проверены; доступ ограничен; correlation trace_id работает | Ops + Security |
+| P0 | Эксплуатация | Имена primary/secondary, incident/rollback owners; SSH/secret escrow и аварийный канал проверены | CEO + Ops |
+| P0 | Решение | Release owner фиксирует GO и окно; CEO разрешает публикацию/переключение трафика отдельно | CEO + Release |
+| P1 | Автоматизация ОС | Проверенный patch/reboot cadence, baseline CIS по выбранной ОС; drift detection | Ops |
+| P1 | Улучшение RPO | При бизнес-потребности: WAL/PITR, versioned objects и сверка единого recovery point | DBA |
+| P1 | HA | При утверждённом SLO/budget: отдельный DB failover, второй app, независимый ops и fault drills | CTO |
+| P1 | Continuous delivery | Автоматический promotion одного digest через environment protection после PASS evidence | Release |
 
-Every unchecked blocking item means **NO-GO** for that installation. Evidence
-must identify the release tag, environment, UTC time, command/check, result, and
-owner. A commercial SLA cannot override a failed safety gate.
+Запись решения содержит SHA, digests, env revision без секретов, ссылки на
+локальные/приватные результаты, время и подписи ответственных. Недоступный
+staging, неподписанные артефакты, неизвестные контакты и непройденный restore
+не закрываются обещанием выполнить проверку после запуска.
 
-## Release integrity
+## Детализация обязательных проверок
 
-- [ ] Release tag is immutable SemVer and resolves to the reviewed commit.
-- [ ] Required CI and DCO checks are green on that commit.
-- [ ] Server, web, and backup image digests match the release manifest.
-- [ ] Managed host evidence confirms all six running release containers were
-      configured by complete `image@sha256` references, not tags alone.
-- [ ] Image signatures, provenance, and SBOMs verify successfully.
-- [ ] Target-side `verify-published-release.ps1` evidence verifies checksums,
-      six image signatures/attestations, and both SBOM formats.
-- [ ] No Critical/High accepted vulnerability lacks a documented owner,
-      mitigation, expiry date, and release decision.
-- [ ] Changelog, migration notes, known limits, and rollback path are published.
+Эти пункты входят в P0-строки таблицы; переход на краткую таблицу не отменяет
+ранее действовавшие проверки первого выпуска.
 
-## Installation and network
-
-- [ ] Production Compose renders successfully with no default or blank required
-      credential and no `latest` tag.
-- [ ] Explicit container CPU and RAM limits and reservations (`deploy.resources.limits`)
-      are configured for all services (`server`, `postgres`, `typesense`, `clamav`,
-      `web`, `backup`), and `/tmp` tmpfs is bounded (`size=1024m`).
-- [ ] Trusted proxies are explicit for the ingress topology (ADR-0034): the pinned frontend
-      network (`SMC_FRONTEND_SUBNET`) covers a host-side edge; a proxy elsewhere is listed in
-      `SMC_WEB_TRUSTED_PROXIES`; `SMC_SECURITY_TRUSTED_PROXIES` names only the web container's
-      network. Spoofed `X-Forwarded-For` headers cannot bypass rate limiting.
-- [ ] Hosts that embedded reports frame are listed in `SMC_WEB_FRAME_SOURCES` (empty: none).
-- [ ] Only the web origin is published; PostgreSQL, Typesense, server, management
-      endpoints, secret files, and Docker socket are unreachable externally.
-- [ ] Mozilla HTTP Observatory (https://developer.mozilla.org/en-US/observatory) grades the
-      public address A+; `scripts/security/test-security-headers.ps1 -BaseUrl https://<host>`
-      passes against it (the offline rules run in CI, ADR-0034).
-- [ ] HTTPS, certificate renewal, security headers, upload limits, and edge rate
-      limits are tested from an external network.
-- [ ] `.env.production` and `.secrets` have restricted ownership/permissions and
-      are excluded from source control and support artifacts.
-- [ ] Host capacity covers forecast data, 50 GB/month object growth assumption,
-      database growth, logs, backup retention, and restore workspace with alert
-      thresholds below exhaustion.
-
-## Data and recovery
-
-- [ ] Flyway migration succeeds from the oldest supported release and from an
-      empty database using `smartupcms_migrator`.
-- [ ] Runtime user `smartupcms` is verified to lack DDL, TRUNCATE, and superuser
-      privileges. Monthly partition runway is established via `V033` functions.
-- [ ] Upgrade stops before migration when the mandatory encrypted backup fails.
-- [ ] A fresh encrypted database archive passes checksum and isolated restore.
-- [ ] The age identity is recoverable by authorized operators if the application
-      host is lost and is not stored only with the encrypted backup.
-- [ ] Uploaded-object recovery is tested for the selected local or S3-compatible
-      provider; database restore alone is not accepted.
-- [ ] Combined restore evidence (`restore-combined.ps1`) reports matching database/object inventories,
-      zero missing/orphan objects, successful sample downloads, row counts,
-      and RPO/RTO inside approved limits.
-- [ ] Measured RPO/RTO and retention are documented and fit the customer/SLA.
-- [ ] Restore and rollback drills (`rollback.sh` / `rollback.ps1`) have named evidence
-      and an operator who can execute them without repository authors.
-
-## Security and access
-
-- [ ] Initial administrator password is changed and removed from bootstrap
-      configuration where supported.
-- [ ] Least-privilege administrator, operator, auditor, and normal-user scenarios
-      are tested; denied operations are rejected by the API.
-- [ ] Configured `ALL/SUBTREE/UNITS/SELF` roles pass cross-branch task, comment,
-      file metadata/download/delete and direct-ID negative tests; unexpected
-      identifiers return `404`, not entity metadata.
-- [ ] Idempotency filter strictly ignores secret-bearing endpoints (auth login, password reset)
-      and enforces 24-hour retention with hourly background cleanup.
-- [ ] File upload admission control is active (`SMC_FILES_MAX_CONCURRENT_UPLOADS: 10`)
-      and task export streaming bounds (`LIMIT :maxExportRows`) are enforced.
-- [ ] Session revocation, password recovery, CSRF, rate limits, and audit events
-      pass the release test suite.
-- [ ] Mail (`SMTP_HOST`, `SMC_PROVIDER_MAIL=smtp`) or Telegram
-      (`TELEGRAM_BOT_TOKEN`, `SMC_PROVIDER_MESSENGER=telegram`) is configured:
-      password reset and two-factor codes travel only through them, and the
-      server refuses to start while two-factor users depend on a `console_*`
-      stub (`SMC_DELIVERY_ENFORCE`).
-- [ ] `SMC_SECRETS_KEY` is a key of this installation (base64 of 32 bytes) and
-      a copy is stored outside the host with the backup age identity: stored
-      webhook and SSO secrets are encrypted with it (ADR-0029), and a restore
-      without it loses them.
-- [ ] `SMC_PUBLIC_URL` is the public HTTPS address of the web application:
-      password reset links are built from it (never from the request's Host
-      header), and with it empty no reset link is sent.
-- [ ] Real delivery-provider and object-storage credentials are least-privilege,
-      scoped to this installation, and successfully rotated in a drill.
-- [ ] Named operational roles (Privacy Owner, Incident Response Lead, Backup Operator,
-      Release Manager) are designated according to [privacy and retention annex](privacy-and-retention-annex.md).
-- [ ] Private vulnerability reporting and the security response owner are live.
-
-## Product workflows and UX
-
-- [ ] Clean-install E2E covers sign-in, forced password change, navigation,
-      users/roles, tasks, files, notifications, announcements, and System status.
-- [ ] Authorization tests include cross-role and direct-API negative cases.
-- [ ] Loading, empty, success, error, keyboard, screen-reader, and narrow-viewport
-      states pass for critical workflows.
-- [ ] A representative upload/download succeeds at the configured production
-      size limit and interrupted upload behavior is understood.
-- [ ] `SMC_FILE_SCANNER_REQUIRED=true`; the ClamAV EICAR test is rejected,
-      scanner outage fails closed, and quarantine objects are removed.
-- [ ] No unsafe placeholder provider or disabled module is presented as a
-      working production capability.
-
-## Operations
-
-- [ ] `SMC_BACKUP_MAX_AGE` contains the approved non-zero recovery-point age;
-      the System page reports a current backup after a verified run and becomes
-      stale when a controlled test exceeds the threshold.
-- [ ] Health, latency/error, capacity, certificate, backup age/failure, database,
-      object storage, and delivery dead-letter alerts reach the on-call owner.
-- [ ] Logs are retained, access-controlled, time-synchronized, searchable by
-      request/audit identifiers, and verified free of secrets/personal payloads.
-- [ ] Incident severity, escalation, maintenance window, customer communication,
-      and security disclosure owners are named.
-- [ ] Daily/weekly/monthly tasks in the
-      [maintenance guide](maintenance-guide.md) are scheduled.
-- [ ] A clean deployment on the target class of infrastructure runs for the
-      agreed soak period without unexplained errors or resource growth.
-- [ ] Smartup-managed installations attach passing preflight/capacity/failure
-      manifests from the
-      [managed infrastructure runbook](managed-infrastructure-acceptance.md);
-      every omitted target-only check remains `UNVERIFIED` and blocks GO.
-
-## Explicit release record
-
-Record one of:
-
-- **GO:** every blocking item is evidenced; link the evidence bundle.
-- **NO-GO:** list failed items, owner, and next review date.
-
-There is no implied GO. As of this document update, the repository itself does
-not contain target-environment evidence, an approved production SLO/SLA, or a
-completed four-month launch sign-off; those remain installation-specific inputs.
+- [ ] SemVer tag неизменяем, соответствует проверенному DCO SHA; target verifier
+  проверил checksum, подписи/provenance и оба формата SBOM всех шести образов.
+- [ ] Для любой принятой Critical/High уязвимости есть owner, mitigation,
+  expiry и явное решение выпуска; changelog, migration notes и ограничения готовы.
+- [ ] CPU/RAM limits/reservations и bounded tmpfs заданы всем контейнерам;
+  доверенные proxy сети явные, поддельный X-Forwarded-For не обходит rate limit.
+- [ ] `SMC_WEB_FRAME_SOURCES` содержит только разрешённые hosts; security headers
+  тестируются на публичном HTTPS адресе, Observatory A+ проверен внешним сканированием.
+- [ ] Публичны только разрешённые web endpoints; secret files и Docker socket
+  недоступны извне. Проверено продление TLS и план дискового роста/retention.
+- [ ] Пустая CMS/DWH мигрируют; upgrade из предыдущего проверенного кандидата
+  репетируется. Runtime DB user не имеет DDL/TRUNCATE/superuser; partition runway готов.
+- [ ] Initial admin password изменён, bootstrap credential удалён где поддерживается;
+  least-privilege admin/operator/auditor/user сценарии проверены.
+- [ ] ALL/SUBTREE/UNITS/SELF: cross-branch/direct-ID deny для tasks/comments/files,
+  metadata/download/delete; чужой ID не раскрывает metadata.
+- [ ] Login/reset не сохраняются idempotency filter; 24-часовая retention
+  и hourly cleanup подтверждены. Export streaming bounds и upload admission действуют.
+- [ ] CSRF, password recovery, audit events, rate limits, session/token revoke
+  и MFA проверены. SMTP/Telegram настроены; console providers не доставляют секреты.
+- [ ] `SMC_PUBLIC_URL` — утверждённый HTTPS URL; reset link не использует request Host.
+  `SMC_SECRETS_KEY` и age identity восстановимы независимо от app host.
+- [ ] Ротация scoped delivery/storage credentials пройдена; Privacy Owner,
+  Incident Response Lead, Backup Operator, Release Manager и security reporting назначены.
+- [ ] E2E покрывает login, forced password change, navigation, users/roles,
+  доступные прикладные модули, files, notifications, announcements, System.
+- [ ] Loading/empty/success/error, keyboard/screen-reader/narrow viewport,
+  near-limit и interrupted upload проверены.
+- [ ] `SMC_FILE_SCANNER_REQUIRED=true`: EICAR отклонён, scanner outage
+  закрывает загрузку, quarantine очищается; отключённые модули не выглядят доступными.
+- [ ] Preflight/capacity/failure manifests относятся к целевому контуру;
+  zero missing/orphan objects, download checksum и CMS/DWH inventories подтверждены.
+- [ ] Maintenance cadence, внешний сбор логов и независимый канал эскалации
+  проверены; отсутствующие target проверки отмечены UNVERIFIED и блокируют GO.

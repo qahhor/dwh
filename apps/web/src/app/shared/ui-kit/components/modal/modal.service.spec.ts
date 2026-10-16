@@ -6,7 +6,7 @@ import '@angular/compiler';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { tickInZone } from '@shared/ui-kit/testing/zone-tick';
-import { Subject, firstValueFrom } from 'rxjs';
+import { Subject, firstValueFrom, of } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { testI18n } from '@shared/ui-kit/i18n/test-messages';
@@ -86,6 +86,24 @@ describe('SMTModalService', () => {
         disableClose: true,
       }),
     );
+  });
+
+  it('closes an obsolete confirmation as a decline and releases its cancellation listener', () => {
+    const { dialogRef, service } = createHarness();
+    const closeWhen = new Subject<void>();
+    const answer = vi.fn();
+    service.confirm({ message: 'Discard?', ...{ closeWhen } }).subscribe(answer);
+    closeWhen.next();
+    expect(dialogRef.close).toHaveBeenCalledOnce();
+    expect(answer).toHaveBeenCalledWith(false);
+    expect(closeWhen.observed).toBe(false);
+  });
+
+  it('delivers a decline even when the host is already obsolete before subscribing', () => {
+    const { service } = createHarness();
+    const answer = vi.fn();
+    service.confirm({ message: 'Discard?', closeWhen: of(undefined) }).subscribe(answer);
+    expect(answer).toHaveBeenCalledWith(false);
   });
 
   it('passes timer and cancel settings through to the confirm dialog and resolves confirm actions', async () => {

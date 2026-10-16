@@ -159,7 +159,7 @@ describe('the general entity list /e/:code', () => {
       answers: { '/modules/active': [{ code: 'notes', isActive: true, status: 'ACTIVE' }] },
     });
 
-    expect(router.url).toBe('/tasks');
+    expect(router.url).toBe('/iam/profile');
   });
 
   it('draws a cell of the entity own from provideEntityOverrides', async () => {

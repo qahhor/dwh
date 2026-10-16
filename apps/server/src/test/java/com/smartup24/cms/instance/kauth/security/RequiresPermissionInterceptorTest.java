@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.support.TestModules;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,7 +18,7 @@ import org.springframework.web.method.HandlerMethod;
 
 class RequiresPermissionInterceptorTest {
 
-    private final RequiresPermissionInterceptor interceptor = new RequiresPermissionInterceptor();
+    private final RequiresPermissionInterceptor interceptor = TestModules.permissions();
     private final HttpServletRequest request = mock(HttpServletRequest.class);
     private final HttpServletResponse response = mock(HttpServletResponse.class);
 

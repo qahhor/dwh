@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.config.security;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.smartup24.cms.instance.common.security.RequestBudget;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.BucketConfiguration;
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Service;
  * automatic W-TinyLFU eviction / expireAfterAccess(10 minutes).
  */
 @Service
-public class RateLimitService {
+public class RateLimitService implements RequestBudget {
 
     public static final int DEFAULT_MAX_ENTRIES = 10_000;
     private static final Duration DEFAULT_EXPIRE_AFTER_ACCESS = Duration.ofMinutes(10);
@@ -50,6 +51,11 @@ public class RateLimitService {
                 .maximumSize(capacity)
                 .expireAfterAccess(DEFAULT_EXPIRE_AFTER_ACCESS)
                 .build();
+    }
+
+    @Override
+    public boolean consume(String key, int perMinute, int capacity) {
+        return tryConsume(key, perMinute, capacity).isConsumed();
     }
 
     /** Tries to consume 1 token; returns a probe with the remainder and the time until refill. */

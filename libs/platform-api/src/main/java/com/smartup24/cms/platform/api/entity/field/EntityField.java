@@ -137,6 +137,7 @@ public record EntityField(
 
     /** The value as SQL over the table aliased {@code alias}: an attribute cast to the field's type. */
     public String sql(String alias) {
+        if (source instanceof FieldSource.JsonProperty property) return JsonPropertyCasts.read(property, alias, type);
         return source instanceof FieldSource.Attribute attribute
                 ? AttributeCasts.read(alias, attribute.code(), type)
                 : source.sql(alias);

@@ -31,6 +31,7 @@ Write-Host "=== SmartupCMS Production Environment Initializer ===" -ForegroundCo
 if ([string]::IsNullOrWhiteSpace($PublicUrl)) {
     throw "-PublicUrl is required (e.g. https://cms.example.com): invitation and reset links are built from it."
 }
+if ($null -eq (Get-Command age-keygen -ErrorAction SilentlyContinue)) { throw 'Host age-keygen is required.' }
 $mailProvider = if ([string]::IsNullOrWhiteSpace($SmtpHost)) { 'console_mail' } else { 'smtp' }
 
 if ((Test-Path -LiteralPath $targetEnvPath) -and (-not $Force)) {
@@ -82,6 +83,8 @@ if (-not (Test-Path -LiteralPath $targetSecretsDir)) {
 
 # 2. Generate database and application passwords
 $dbPassword = New-SecureHexToken 32
+$postgresPassword = New-SecureHexToken 32
+$migrateDbPassword = New-SecureHexToken 32
 $backupDbPassword = New-SecureHexToken 32
 $typesenseApiKey = New-SecureHexToken 32
 $secretsKey = New-SecureBase64Key 32
@@ -89,9 +92,13 @@ $resolvedAdminPassword = if ([string]::IsNullOrWhiteSpace($AdminPassword)) { New
 
 # Write secret files
 $dbPasswordFile = Join-Path $targetSecretsDir 'database-password'
+$postgresPasswordFile = Join-Path $targetSecretsDir 'postgres-password'
+$migratePasswordFile = Join-Path $targetSecretsDir 'migrate-database-password'
 $backupPasswordFile = Join-Path $targetSecretsDir 'backup-database-password'
 
 [System.IO.File]::WriteAllText($dbPasswordFile, $dbPassword, [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText($postgresPasswordFile, $postgresPassword, [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText($migratePasswordFile, $migrateDbPassword, [System.Text.UTF8Encoding]::new($false))
 [System.IO.File]::WriteAllText($backupPasswordFile, $backupDbPassword, [System.Text.UTF8Encoding]::new($false))
 Write-Host "[+] Wrote database secrets to $targetSecretsDir" -ForegroundColor Green
 
@@ -114,42 +121,9 @@ if ($null -ne $ageKeygenCmd) {
 }
 
 if ([string]::IsNullOrWhiteSpace($ageRecipient)) {
-    $dockerCmd = Get-Command docker -ErrorAction SilentlyContinue
-    if ($null -ne $dockerCmd) {
-        Write-Host "[+] Generating Age keypair via ephemeral Docker container..." -ForegroundColor Gray
-        $prevEap = $ErrorActionPreference
-        $ErrorActionPreference = 'Continue'
-        $dockerOut = & docker run --rm alpine:latest sh -c "apk add --no-cache age >/dev/null 2>&1 && age-keygen" 2>&1
-        $ErrorActionPreference = $prevEap
-        if ($LASTEXITCODE -eq 0 -and $null -ne $dockerOut) {
-            $dockerLines = $dockerOut -split "`r?`n"
-            $privKey = ''
-            foreach ($line in $dockerLines) {
-                if ($line -match '^# public key:\s+(age1[a-z0-9]+)' -or $line -match '^Public key:\s+(age1[a-z0-9]+)') {
-                    $ageRecipient = $Matches[1]
-                }
-                if ($line -match '^AGE-SECRET-KEY-1') {
-                    $privKey = $line
-                }
-            }
-            if (-not [string]::IsNullOrWhiteSpace($privKey) -and -not [string]::IsNullOrWhiteSpace($ageRecipient)) {
-                $identityContent = "# created: $((Get-Date).ToUniversalTime().ToString('u'))`n# public key: $ageRecipient`n$privKey`n"
-                [System.IO.File]::WriteAllText($targetAgeIdentity, $identityContent, [System.Text.UTF8Encoding]::new($false))
-            }
-        }
-    }
+    throw 'A real age keypair is required. Install the approved age-keygen before initialization.'
 }
-
-if ([string]::IsNullOrWhiteSpace($ageRecipient)) {
-    $ageRecipient = 'age1' + (New-SecureHexToken 28)
-    Write-Host "[!] Warning: age-keygen not available. Generated placeholder Age recipient: $ageRecipient" -ForegroundColor Yellow
-    Write-Host "    Replace BACKUP_AGE_RECIPIENT with your real public key from age-keygen." -ForegroundColor Yellow
-} else {
-    Write-Host "[+] Age backup keypair generated successfully!" -ForegroundColor Green
-    Write-Host "    Public recipient: $ageRecipient" -ForegroundColor Gray
-    Write-Host "    Private key saved to: $targetAgeIdentity" -ForegroundColor Yellow
-    Write-Host "    IMPORTANT: Move $targetAgeIdentity off this server to secure offline storage." -ForegroundColor Yellow
-}
+Write-Host "[+] Age backup keypair generated; store the identity off-host: $targetAgeIdentity" -ForegroundColor Green
 
 # 4. Generate .env.production
 $envContent = @"
@@ -173,16 +147,17 @@ SMC_PUBLIC_URL=$PublicUrl
 # Database credentials (least-privilege role separation, NFR-SEC-02)
 DB_NAME=smartupcms
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=$dbPassword
-POSTGRES_PASSWORD_FILE=./.secrets/database-password
+POSTGRES_PASSWORD=$postgresPassword
+POSTGRES_PASSWORD_FILE=$($postgresPasswordFile.Replace('\', '/'))
 MIGRATE_DB_USER=smartupcms_migrator
-MIGRATE_DB_PASSWORD=$dbPassword
-MIGRATE_DB_PASSWORD_FILE=./.secrets/database-password
+MIGRATE_DB_PASSWORD=$migrateDbPassword
+MIGRATE_DB_PASSWORD_FILE=$($migratePasswordFile.Replace('\', '/'))
 DB_USER=smartupcms
 DB_PASSWORD=$dbPassword
-DB_PASSWORD_FILE=./.secrets/database-password
+DB_PASSWORD_FILE=$($dbPasswordFile.Replace('\', '/'))
 BACKUP_DB_USER=smartupcms_backup
-BACKUP_DB_PASSWORD_FILE=./.secrets/backup-database-password
+BACKUP_DB_PASSWORD=$backupDbPassword
+BACKUP_DB_PASSWORD_FILE=$($backupPasswordFile.Replace('\', '/'))
 
 ADMIN_LOGIN=$AdminLogin
 ADMIN_EMAIL=$AdminEmail
@@ -270,7 +245,6 @@ if ($Validate) {
     $ErrorActionPreference = $prevEap
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[-] Compose config validation failed:" -ForegroundColor Red
-        Write-Host ($composeConfigOut -join "`n") -ForegroundColor Red
         throw "Configuration validation failed."
     }
     Write-Host "[+] Docker Compose configuration validation PASSED." -ForegroundColor Green
@@ -279,7 +253,7 @@ if ($Validate) {
 Write-Host "`n=== Production Deployment Summary ===" -ForegroundColor Cyan
 Write-Host "Organization : $OrganizationName ($OrganizationCode)"
 Write-Host "Admin user   : $AdminLogin ($AdminEmail)"
-Write-Host "Admin pass   : $resolvedAdminPassword"
+Write-Host "Admin pass   : saved in the environment file"
 Write-Host "Environment  : $targetEnvPath"
 Write-Host "Secrets dir  : $targetSecretsDir"
 Write-Host "Age public   : $ageRecipient"

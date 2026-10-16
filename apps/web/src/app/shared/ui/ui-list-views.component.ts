@@ -161,7 +161,8 @@ const NAME_MAX = 80;
               [smtFieldId]="nameId"
               [maxLength]="nameMax"
               [value]="name()"
-              (valueChange)="name.set($event === null ? '' : '' + $event)"
+              (valueChange)="changeName($event === null ? '' : '' + $event)"
+              (touch)="nameTouched.set(true)"
             />
           </smt-control>
           <div
@@ -197,6 +198,7 @@ export class UiListViewsComponent {
 
   readonly saveAsOpen = signal(false);
   readonly name = signal('');
+  readonly nameTouched = signal(false);
   readonly makeDefault = signal(false);
   /** An i18n key shown under the name field. */
   readonly nameError = signal<string | null>(null);
@@ -206,6 +208,7 @@ export class UiListViewsComponent {
   /** The error under the name: ours by key, or the server's words. */
   readonly nameErrorText = computed(() => {
     this.i18n.currentLang();
+    if (this.nameTouched() && !this.name().trim()) return this.i18n.translate('ui.views.name_required');
     const key = this.nameError();
     return key ? this.i18n.translate(key) : this.nameProblem();
   });
@@ -221,10 +224,19 @@ export class UiListViewsComponent {
 
   openSaveAs(): void {
     this.name.set('');
+    this.nameTouched.set(false);
     this.makeDefault.set(false);
     this.nameError.set(null);
     this.nameProblem.set('');
     this.saveAsOpen.set(true);
+  }
+
+  /** Editing the name clears its previous server refusal. */
+  changeName(value: string): void {
+    if (this.name() === value) return;
+    this.name.set(value);
+    this.nameError.set(null);
+    this.nameProblem.set('');
   }
 
   /** Escape, the backdrop, the cross and "Cancel" ask before a typed name is dropped (forms standard, 8). */
@@ -238,6 +250,7 @@ export class UiListViewsComponent {
   /** Enter and "Save" land here; one request while a save runs; an empty name says so and takes the focus. */
   submitSaveAs(): void {
     if (this.state().busy()) return;
+    this.nameTouched.set(true);
     const name = this.name().trim();
     this.nameProblem.set('');
     if (name.length === 0) {

@@ -74,6 +74,7 @@ describe('tab sync of the session and the language', () => {
     const i18n = {
       translate: (key: string) => key,
       useAuthenticatedPreference: vi.fn(),
+      useAccessContext: vi.fn(),
       currentLang: () => 'ru',
       languageChosen: chosen.asObservable(),
       setLanguage: vi.fn(() => of(undefined)),

@@ -2,6 +2,7 @@
   "code": "tasks",
   "version": "${project.version}",
   "minPlatform": "${platform-api.version}",
+  "areas": ["analytics"],
   "dependencies": [
     {
       "code": "iam",

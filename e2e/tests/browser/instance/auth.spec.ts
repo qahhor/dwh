@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { mkdtemp, open, rm } from 'node:fs/promises';
+import { mkdtemp, open, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -12,7 +12,7 @@ test('protected route redirects to the accessible login form', async ({ page }) 
   await page.goto('/e/md.users');
 
   await expect(page).toHaveURL(/\/login$/u);
-  await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Вход в систему' })).toBeVisible();
   await expect(page.getByLabel('Логин или Email')).toBeVisible();
   await expect(page.getByLabel(fieldName('Пароль'))).toBeVisible();
 });
@@ -32,7 +32,7 @@ test('login applies the saved dark theme with accessible mobile controls', async
   await page.addInitScript(() => localStorage.setItem('smc_theme', 'dark'));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/login');
-  await expect(page.getByRole('heading', { name: 'Корпоративный вход' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Вход в систему' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expectNoSeriousAccessibilityViolations(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -141,6 +141,7 @@ test('administrator can create and anonymise a user and upload and delete a file
   const login = `e2e${suffix}`.toLowerCase();
   const email = `${login}@example.test`;
   const fileName = `smartupcms-${suffix}.txt`;
+  const fileBytes = Buffer.from(`SmartupCMS browser release verification ${suffix}.\n`, 'utf8');
 
   await loginToInstance(page);
   const origin = new URL(page.url()).origin;
@@ -191,7 +192,7 @@ test('administrator can create and anonymise a user and upload and delete a file
   await uploadDialog.locator('input[type="file"]').setInputFiles({
     name: fileName,
     mimeType: 'text/plain',
-    buffer: Buffer.from(`SmartupCMS browser release verification ${suffix}.\n`, 'utf8'),
+    buffer: fileBytes,
   });
   const uploadedFile = await uploadResponse;
   expect(uploadedFile.ok()).toBe(true);
@@ -202,6 +203,14 @@ test('administrator can create and anonymise a user and upload and delete a file
 
   const fileTable = page.getByRole('region', { name: 'Таблица файлов' });
   await expect(fileTable.getByRole('button', { name: `Скачать файл ${fileName}` }).first()).toBeVisible();
+  const downloadEvent = page.waitForEvent('download');
+  await fileTable.getByRole('button', { name: `Скачать файл ${fileName}` }).first().click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toBe(fileName);
+  expect(await download.failure()).toBeNull();
+  const downloadedPath = await download.path();
+  if (!downloadedPath) throw new Error('The browser did not save the downloaded file');
+  expect(await readFile(downloadedPath)).toEqual(fileBytes);
   await fileTable.getByRole('button', { name: `Удалить файл ${fileName}` }).click();
   const deleteFileDialog = page.getByRole('alertdialog', { name: 'Подтверждение удаления' });
   const deleteFileResponse = page.waitForResponse(response =>

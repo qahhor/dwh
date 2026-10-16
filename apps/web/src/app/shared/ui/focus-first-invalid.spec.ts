@@ -1,7 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, Injector, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, describe, expect, it } from 'vitest';
-import { UiFocusFirstInvalidDirective } from './focus-first-invalid';
+import { focusFirstInvalid, UiFocusFirstInvalidDirective } from './focus-first-invalid';
 
 @Component({
   imports: [UiFocusFirstInvalidDirective],
@@ -29,6 +29,23 @@ describe('uiFocusFirstInvalid', () => {
     (element.querySelector('#go') as HTMLButtonElement).click();
     await fixture.whenStable();
     expect(document.activeElement?.id).toBe('first');
+  });
+
+  it('skips unavailable errors and focuses the selected option of an invalid radio group', async () => {
+    const fixture = TestBed.createComponent(Host);
+    fixture.autoDetectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    root.innerHTML =
+      '<div hidden><input aria-invalid="true" id="hidden-error"></div>' +
+      '<input disabled aria-invalid="true" id="disabled-error">' +
+      '<div aria-invalid="true" role="radiogroup">' +
+      '<div role="radio" tabindex="-1" id="unselected">First</div>' +
+      '<div role="radio" tabindex="0" id="selected">Second</div></div>';
+    document.body.appendChild(root);
+    focusFirstInvalid(root, fixture.debugElement.injector.get(Injector));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement?.id).toBe('selected');
   });
 
   it('leaves focus alone when nothing is invalid', async () => {

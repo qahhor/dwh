@@ -85,6 +85,14 @@ export class QueryMetaService {
   private readonly api = inject(ApiService);
   private readonly cache = new MetaCache<QueryListMeta>(inject(MetaCacheState));
 
+  report(entity: string, dataset: string): Observable<QueryListMeta> {
+    return this.api.get<QueryListMeta>(
+      `/entities/${encodeURIComponent(entity)}/report-meta`,
+      { dataset },
+      { notifyError: false },
+    );
+  }
+
   get(list: string): Observable<QueryListMeta> {
     return this.cache.get(list, () =>
       this.api.get<QueryListMeta>(`/query-meta/${encodeURIComponent(list)}`, undefined, { notifyError: false }),

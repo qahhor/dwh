@@ -49,6 +49,8 @@ export interface SMTModalConfig {
 
 /** Config for confirm - prompts user with Yes/No, returns Observable<boolean> */
 export interface SMTModalConfirmConfig {
+  /** Cancels an obsolete question when its host is removed or its access is revoked. */
+  closeWhen?: Observable<void>;
   /** Question or message to show. Rendered as text, never as HTML. */
   message: string;
   /** Modal title */

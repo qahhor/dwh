@@ -1,0 +1,104 @@
+<div class="embedded-report-container" [class.fullscreen]="isFullscreen()">
+  <ui-page-header
+    class="report-toolbar"
+    [title]="report()?.title || (errorMessage() ? ('reports.embedded_report' | t) : ('reports.loading' | t))"
+    [subtitle]="urlHost()"
+  >
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="refresh"
+      [disabled]="!report() || !!errorMessage()"
+      (click)="reloadIframe()"
+      [attr.aria-label]="'common.refresh' | t"
+    >
+      {{ 'common.refresh' | t }}
+    </button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      [smtIcon]="isFullscreen() ? 'fullscreen_exit' : 'fullscreen'"
+      [attr.aria-pressed]="isFullscreen()"
+      (click)="toggleFullscreen()"
+    >
+      {{ (isFullscreen() ? 'reports.exit_fullscreen' : 'reports.fullscreen') | t }}
+    </button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="open_in_browser"
+      [disabled]="!report() || !!errorMessage()"
+      (click)="openPopup()"
+      [attr.aria-label]="'reports.open_popup' | t"
+    >
+      {{ 'reports.open_popup' | t }}
+    </button>
+    @if (report()?.url && !errorMessage()) {
+      <a
+        smt-button
+        smtVariant="primary"
+        smtIcon="open_in_new"
+        [href]="report()?.url"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ 'reports.open_external' | t }}
+      </a>
+    }
+  </ui-page-header>
+
+  <div class="report-viewport" [attr.aria-busy]="isLoading()">
+    @if (errorMessage()) {
+      <smt-alert class="report-error" smtTone="danger">
+        <p>{{ errorMessage() }}</p>
+        <button smt-button smtVariant="secondary" type="button" smtIcon="refresh" (click)="loadReport()">
+          {{ 'common.retry' | t }}
+        </button>
+      </smt-alert>
+    } @else {
+      @if (isLoading()) {
+        <div class="report-loading" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>{{ 'common.loading' | t }}</span>
+        </div>
+      }
+
+      @if (safeUrl()) {
+        <iframe
+          [src]="safeUrl()"
+          class="report-iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+          referrerpolicy="no-referrer-when-downgrade"
+          (load)="onIframeLoaded()"
+          [attr.title]="report()?.title || ('reports.embedded_report' | t)"
+        ></iframe>
+      }
+
+      @if (report() && !isLoading() && showTip()) {
+        <div class="report-fallback-bar">
+          <div class="fallback-tip">
+            <span class="material-symbols-outlined tip-icon" aria-hidden="true">info</span>
+            <span>{{ 'reports.iframe_blocked_hint' | t }}</span>
+          </div>
+          <div class="fallback-actions">
+            <button smt-button type="button" smtVariant="secondary" smtIcon="open_in_browser" (click)="openPopup()">
+              {{ 'reports.open_popup' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="ghost"
+              smtIcon="close"
+              smtIconOnly
+              (click)="showTip.set(false)"
+              [attr.aria-label]="'common.close' | t"
+            ></button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

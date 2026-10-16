@@ -3,9 +3,14 @@ import { check, fail } from 'k6';
 import { SharedArray } from 'k6/data';
 import exec from 'k6/execution';
 
-export const ACCEPTANCE_MAX_P95_MS = requiredNumber('ACCEPTANCE_MAX_P95_MS', 1);
-export const ACCEPTANCE_MAX_P99_MS = requiredNumber('ACCEPTANCE_MAX_P99_MS', 1);
+export const ACCEPTANCE_MAX_P95_MS = requiredNumber('ACCEPTANCE_MAX_P95_MS', 1, 300);
+export const ACCEPTANCE_MAX_P99_MS = requiredNumber('ACCEPTANCE_MAX_P99_MS', 1, 1000);
+export const ACCEPTANCE_MAX_UPLOAD_P95_MS = requiredNumber('ACCEPTANCE_MAX_UPLOAD_P95_MS', 1, 30000);
+export const ACCEPTANCE_MAX_UPLOAD_P99_MS = requiredNumber('ACCEPTANCE_MAX_UPLOAD_P99_MS', 1, 60000);
 export const ACCEPTANCE_MAX_ERROR_RATE = requiredNumber('ACCEPTANCE_MAX_ERROR_RATE', 0, 1);
+if (ACCEPTANCE_MAX_P95_MS > ACCEPTANCE_MAX_P99_MS || ACCEPTANCE_MAX_UPLOAD_P95_MS > ACCEPTANCE_MAX_UPLOAD_P99_MS) {
+  throw new Error('Latency p95 must not exceed p99.');
+}
 
 export const baseUrl = required('ACCEPTANCE_PUBLIC_ORIGIN').replace(/\/$/, '');
 if (!baseUrl.startsWith('https://')) {
@@ -74,12 +79,20 @@ export function jsonRequest(method, path, body, expected, name) {
 }
 
 export function standardThresholds(scenarioName) {
+  return latencyThresholds(scenarioName, ACCEPTANCE_MAX_P95_MS, ACCEPTANCE_MAX_P99_MS, ACCEPTANCE_MAX_ERROR_RATE);
+}
+
+export function uploadThresholds(scenarioName) {
+  return latencyThresholds(scenarioName, ACCEPTANCE_MAX_UPLOAD_P95_MS, ACCEPTANCE_MAX_UPLOAD_P99_MS, 0);
+}
+
+function latencyThresholds(scenarioName, p95, p99, maxErrorRate) {
   return {
     [`http_req_duration{scenario:${scenarioName}}`]: [
-      `p(95)<${ACCEPTANCE_MAX_P95_MS}`,
-      `p(99)<${ACCEPTANCE_MAX_P99_MS}`,
+      `p(95)<=${p95}`,
+      `p(99)<=${p99}`,
     ],
-    [`http_req_failed{scenario:${scenarioName}}`]: [`rate<${ACCEPTANCE_MAX_ERROR_RATE}`],
-    checks: [`rate>${1 - ACCEPTANCE_MAX_ERROR_RATE}`],
+    [`http_req_failed{scenario:${scenarioName}}`]: [`rate<=${maxErrorRate}`],
+    checks: [`rate>=${1 - maxErrorRate}`],
   };
 }

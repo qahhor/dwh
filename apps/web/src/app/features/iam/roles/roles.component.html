@@ -91,10 +91,10 @@
 <app-role-modals
   [isCreateModalOpen]="roleForms.isCreateModalOpen()"
   [createForm]="roleForms.createForm"
-  [createErrors]="roleForms.createErrors()"
+  [(createErrors)]="roleForms.createErrors"
   [isEditModalOpen]="roleForms.isEditModalOpen()"
   [editForm]="roleForms.editForm"
-  [editErrors]="roleForms.editErrors()"
+  [(editErrors)]="roleForms.editErrors"
   [editingRole]="roleForms.editingRole()"
   [isDeleteModalOpen]="roleForms.isDeleteModalOpen()"
   [deletingRole]="roleForms.deletingRole"

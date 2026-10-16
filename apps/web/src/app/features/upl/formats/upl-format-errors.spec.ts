@@ -7,7 +7,10 @@ import {
   uplFieldErrorText,
   uplSheetError,
   uplSheetHasErrors,
+  localFormatErrors,
+  touchUplField,
 } from './upl-format-errors';
+import { emptyColumn, emptyModel, emptySheet } from './upl-format-model';
 
 function problem(extra: Partial<ProblemDetail>): ProblemDetail {
   return {
@@ -21,6 +24,29 @@ function problem(extra: Partial<ProblemDetail>): ProblemDetail {
 }
 
 describe('upl format field errors', () => {
+  it('allows a partial CSV draft but validates the delimiter and optional positive numeric values when supplied', () => {
+    const model = { ...emptyModel(), fileKind: 'csv' as const };
+    expect(localFormatErrors(model)).toEqual([]);
+    model.delimiter = ';;';
+    const column = {
+      ...emptyColumn(),
+      nameInFile: 'A',
+      targetField: 'a',
+      filePosition: 0,
+      keyPadLength: 1.5,
+      keyPadMax: -1,
+    };
+    model.sheets = [{ ...emptySheet(), columns: [column] }];
+    expect(localFormatErrors(model).map(({ field, code }) => [field, code])).toEqual([
+      ['delimiter', 'Size'],
+      ['filePosition', 'Positive'],
+      ['keyPadLength', 'Positive'],
+      ['keyPadMax', 'Positive'],
+    ]);
+    const errors = parseUplFieldErrors([{ field: 'sheets[0].columns[0].nameInFile', code: 'X', message: 'Refused' }]);
+    expect(touchUplField(model, errors, 'nameInFile', 0, 0)).toEqual(errors);
+  });
+
   it('reads sheet and column indexes of a column address', () => {
     const [error] = parseUplFieldErrors([
       { field: 'sheets[0].columns[2].keyMask', code: 'UPL_KEY_MASK_REQUIRED', message: 'нужна маска' },

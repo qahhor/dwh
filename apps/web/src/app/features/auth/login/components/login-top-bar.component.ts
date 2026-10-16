@@ -23,34 +23,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
       </div>
     </div>
   `,
-  styles: [
-    `
-      .login-top-bar {
-        position: absolute;
-        top: 20px;
-        right: 24px;
-        display: flex;
-        align-items: center;
-        z-index: 10;
-      }
-
-      .lang-selector-login {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .lang-selector-login .lang-icon {
-        font-size: 18px;
-        color: var(--text-muted);
-      }
-
-      .lang-select-login {
-        width: 180px;
-        box-shadow: var(--shadow-sm);
-      }
-    `,
-  ],
+  styleUrl: './login-top-bar.component.css',
 })
 export class LoginTopBarComponent {
   readonly i18n = inject(I18nService);

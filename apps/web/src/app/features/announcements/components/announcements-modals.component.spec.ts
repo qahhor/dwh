@@ -102,6 +102,24 @@ describe('AnnouncementsModalsComponent', () => {
     ).toBe('Слишком длинный текст');
   });
 
+  it('checks required fields on blur and clears only the edited server error', async () => {
+    const { host, screen, settle, type } = await render();
+    const title = screen.querySelector('#announcement-title-ru') as HTMLInputElement;
+    title.focus();
+    title.blur();
+    await settle();
+    expect(screen.querySelector('smt-control:has(#announcement-title-ru)')?.textContent).toContain('Обязательное поле');
+    await type('#announcement-title-ru', 'Valid');
+    expect(screen.querySelector('smt-control:has(#announcement-title-ru)')?.textContent).not.toContain(
+      'Обязательное поле',
+    );
+    host.draftErrors.set({ titleRu: 'Title refusal', bodyRu: 'Body refusal' });
+    await settle();
+    await type('#announcement-title-ru', 'Corrected');
+    expect(screen.querySelector('smt-control:has(#announcement-title-ru)')?.textContent).not.toContain('Title refusal');
+    expect(screen.querySelector('smt-control:has(#announcement-body-ru)')?.textContent).toContain('Body refusal');
+  });
+
   it('asks to save a valid draft once, and not while a save is running', async () => {
     const { host, settle, save } = await render((host) => {
       host.titles.set({ ru: 'Плановые работы' });

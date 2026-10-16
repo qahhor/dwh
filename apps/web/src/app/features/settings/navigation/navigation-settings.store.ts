@@ -29,7 +29,7 @@ export class NavigationSettingsStore {
   private readonly saveErrors = inject(SaveErrorNotifier);
 
   /** A failed reload keeps the list on screen. */
-  readonly items = linkedSignal<CustomNavigationItem[] | undefined, CustomNavigationItem[]>({
+  readonly items = linkedSignal<CustomNavigationItem[] | null | undefined, CustomNavigationItem[]>({
     source: () => this.itemsResource.value(),
     computation: (loaded, previous) => loaded ?? previous?.value ?? [],
   });
@@ -37,7 +37,10 @@ export class NavigationSettingsStore {
   /** The server's refusal of the item dialog by field (forms standard, section 5); a new opening clears it. */
   readonly fieldErrors = signal<Readonly<Record<string, string>>>({});
 
+  readonly otherErrors = signal<readonly string[]>([]);
+
   readonly isLoading = computed(() => this.itemsResource.isLoading());
+  readonly loadError = computed(() => this.itemsResource.value() === null);
   readonly activeCount = computed(() => this.items().filter((i) => i.state === 'A').length);
   readonly embeddedCount = computed(() => this.items().filter((i) => i.targetType === 'EMBEDDED_IFRAME').length);
   readonly externalCount = computed(() => this.items().filter((i) => i.targetType === 'EXTERNAL_LINK').length);
@@ -55,10 +58,7 @@ export class NavigationSettingsStore {
     stream: () =>
       this.navService.loadAllItems().pipe(
         map((data) => data || []),
-        catchError((err: unknown) => {
-          this.showError(err);
-          return of(undefined);
-        }),
+        catchError(() => of(null)),
       ),
   });
 
@@ -115,10 +115,15 @@ export class NavigationSettingsStore {
       .subscribe();
   }
 
+  clearFieldError(key: string): void {
+    this.fieldErrors.update(({ [key]: _previous, ...rest }) => rest);
+  }
+
   private submit(request: Observable<unknown>, onSaved: () => void, reload?: () => void): void {
     if (this.isSubmitting()) return;
     this.isSubmitting.set(true);
     this.fieldErrors.set({});
+    this.otherErrors.set([]);
     request.subscribe({
       next: () => {
         this.toast.success(this.i18n.translate('common.saved'));
@@ -130,8 +135,9 @@ export class NavigationSettingsStore {
         this.isSubmitting.set(false);
         const { fields, other } = problemFieldErrors(err, { known: NAVIGATION_ITEM_FIELDS });
         this.fieldErrors.set(fields);
-        // Errors of drawn fields stay under them; anything else (a conflict, a hidden field) is a toast.
-        if (Object.keys(fields).length === 0 || other.length > 0) {
+        this.otherErrors.set(other);
+        // Field refusals remain in the form; conflicts and request failures use the shared notifier.
+        if (Object.keys(fields).length === 0 && other.length === 0) {
           this.saveErrors.show(err, { fallbackKey: 'common.error', reload });
         }
       },

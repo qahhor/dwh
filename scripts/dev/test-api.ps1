@@ -442,7 +442,7 @@ try {
 # 18.5 OpenAPI Specification verification
 # The description is for signed-in users only (product owner, 2026-10-03).
 $openApiSpec = Invoke-RestMethod -Uri "$BaseUrl/api/v1/openapi.json" -Method Get -WebSession $session
-Write-Host "   OpenAPI Spec verified: Version=$($openApiSpec.openapi), Title='$($openApiSpec.info.title)', Paths count=$($openApiSpec.paths.PSObject.Properties.Count)" -ForegroundColor Green
+Write-Host "   OpenAPI Spec verified: Version=$($openApiSpec.openapi), Title='$($openApiSpec.info.title)', Paths count=$(@($openApiSpec.paths.PSObject.Properties).Count)" -ForegroundColor Green
 
 # 19. Fleet Observability & Metrics (NFR-OBS-01)
 Write-Host "`n19. Fleet Observability & Metrics (W3C Traceparent, Actuator Info, Prometheus)..." -ForegroundColor Yellow
@@ -469,11 +469,28 @@ Write-Host "   Prometheus Metrics verified: JVM metrics=$hasJvmMetrics, Uptime m
 # 20. Outbound Webhooks (FR-COMM-03, module webhook)
 Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (FR-COMM-03, module webhook)..." -ForegroundColor Yellow
 
+function Assert-HttpWebhookRejected([string]$Method, [string]$Path, [string]$Body, [hashtable]$Headers) {
+    $rejected = $false
+    try {
+        Invoke-RestMethod -Uri "$BaseUrl/api/v1$Path" -Method $Method -Body $Body -ContentType "application/json" -WebSession $session -Headers $Headers | Out-Null
+    } catch {
+        if (-not $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 400) { throw }
+        $problem = $_.ErrorDetails.Message | ConvertFrom-Json
+        if ($problem.code -ne 'invalid_url' -or $problem.messageKey -ne 'error.webhook.url_scheme') {
+            throw 'HTTP webhook failed for an unexpected reason.'
+        }
+        $rejected = $true
+    }
+    if (-not $rejected) { throw 'An unencrypted webhook target was accepted.' }
+    Write-Host "   $Method HTTP webhook correctly rejected (HTTP 400, invalid_url)" -ForegroundColor Green
+}
+
 $randWh = Get-Random -Minimum 1000 -Maximum 9999
 $whBody = @{
     name = "Integration Webhook $randWh"
-    # The server itself, allowed by scripts/dev/api-smoke.compose.yml (SMC_WEBHOOKS_ALLOWED_HOSTS=server).
-    targetUrl = "http://server:9090/actuator/health"
+    # A DNS-resolvable allow-listed host for subscription validation; this lifecycle does not dispatch events.
+    # Delivery over verified TLS is exercised by the webhook integration tests (NFR-SEC-06).
+    targetUrl = "https://server/events"
     # Only events of GET /api/v1/webhooks/events: any other is 422 (ADR-0032, 6.9).
     subscribedEvents = @("tasks.items.created", "md.users.created", "notes.created")
 } | ConvertTo-Json
@@ -483,6 +500,9 @@ if (-not ($whEvents | ForEach-Object { $_ } | Where-Object { $_.code -eq 'tasks.
 }
 
 # 20.1 Create Subscription
+$httpWhBody = $whBody | ConvertFrom-Json
+$httpWhBody.targetUrl = 'http://server/events'
+Assert-HttpWebhookRejected -Method Post -Path '/webhooks/subscriptions' -Body ($httpWhBody | ConvertTo-Json) -Headers (Get-CsrfHeaders)
 $newSub = Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions" -Method Post -Body $whBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 # The signing secret is never printed, not even a prefix: nightly logs of a public repository are public.
 if ([string]::IsNullOrEmpty($newSub.secretToken)) { throw "The subscription was created without a signing secret." }
@@ -495,7 +515,7 @@ Write-Host "   Active Webhook Subscriptions count: $($subsList.Count)" -Foregrou
 # 20.3 Update Subscription
 $updateWhBody = @{
     name = "Integration Webhook $randWh (Updated)"
-    targetUrl = "http://server:9090/actuator/health/liveness"
+    targetUrl = "https://server/updated-events"
     subscribedEvents = @("tasks.items.created", "tasks.items.set_status")
     state = "A"
 } | ConvertTo-Json
@@ -504,6 +524,9 @@ $listedSub = @($subsList) | Where-Object { $_.id -eq $newSub.id } | Select-Objec
 if (-not $listedSub) { throw "Webhook subscription $($newSub.id) is missing from the list." }
 $whHeaders = Get-CsrfHeaders
 $whHeaders["If-Match"] = "`"$($listedSub.revision)`""
+$httpUpdateWhBody = $updateWhBody | ConvertFrom-Json
+$httpUpdateWhBody.targetUrl = 'http://server/updated-events'
+Assert-HttpWebhookRejected -Method Patch -Path "/webhooks/subscriptions/$($newSub.id)" -Body ($httpUpdateWhBody | ConvertTo-Json) -Headers $whHeaders
 Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions/$($newSub.id)" -Method Patch -Body $updateWhBody -ContentType "application/json" -WebSession $session -Headers $whHeaders
 Write-Host "   Webhook Subscription $($newSub.id) updated successfully" -ForegroundColor Green
 

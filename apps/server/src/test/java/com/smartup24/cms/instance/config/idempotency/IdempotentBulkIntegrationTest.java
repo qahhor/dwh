@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.common.bulk.BulkRunner;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.instance.support.TestModules;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
@@ -81,7 +82,8 @@ class IdempotentBulkIntegrationTest {
                 JSON,
                 PackagedProblemMessages.russian(),
                 transactions,
-                null);
+                null,
+                TestModules.replayAccess());
         StaticListableBeanFactory beans = new StaticListableBeanFactory(Map.of("transactionManager", transactions));
         scope = new BulkItemScope(beans.getBeanProvider(PlatformTransactionManager.class));
         target = new ClosingService();

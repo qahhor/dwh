@@ -179,9 +179,9 @@ export class SMTCellHeaderComponent implements OnInit, OnDestroy {
       case 'html':
         return this.stripHtml(data.value);
       case 'date':
-        return this.formatHeaderDate(data.value, data.format || 'd MMM y');
+        return this.formatHeaderDate(data.value, data.format || 'dd.MM.yyyy');
       case 'date-time':
-        return this.formatHeaderDate(data.value, data.format || 'd MMM y, H:mm a');
+        return this.formatHeaderDate(data.value, data.format || 'dd.MM.yyyy HH:mm');
       default:
         return '';
     }

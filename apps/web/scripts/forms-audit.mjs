@@ -33,7 +33,8 @@ const SCOPES = ['features', 'layout', 'shared/entity', 'shared/ui'];
  */
 const OWN_CONTROLS = {
   'shared/entity/smt-money-field.component.ts': 'the money control: amount input beside the currency select',
-  'shared/ui/ui-markdown-editor.component.html': 'the markdown control: its textarea with a visually hidden label',
+  'shared/ui/ui-markdown-editor.component.html':
+    'the markdown control: its textarea uses the control label or an aria-label fallback',
   'layout/command-palette/command-palette.component.html': 'the palette combobox: its search input and hidden label',
 };
 const NATIVE_RULES = new Set(['raw-control', 'raw-label']);

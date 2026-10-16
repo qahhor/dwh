@@ -27,12 +27,14 @@ test('project to task to comment works through the visible UI', async ({ page })
   await expect(page).toHaveURL(/\/tasks\?project_id=\d+$/u);
   const projectId = new URL(page.url()).searchParams.get('project_id');
   // The project pickers search the paged project list and name a chosen project by its card (plan 10/10, item 3.5).
+  await page.locator('#task-more-filters').click();
   const projectFilter = page.getByRole('combobox', { name: 'Фильтр по проекту' });
   await expect(projectFilter).toContainText(projectName);
   await page.getByRole('button', { name: 'Новая задача' }).click();
   await expect(page.getByRole('dialog').getByRole('combobox', { name: 'Проект', exact: true })).toContainText(projectName);
   await page.getByLabel('Название задачи').fill(taskName);
   // Priority is a segmented radio group (smt-radio-group).
+  await page.getByTestId('task-create-additional-toggle').click();
   await page.getByRole('radio', { name: 'Высокий' }).click();
   await page.getByLabel('Описание', { exact: true }).fill('Created by the browser E2E suite.');
   const taskResponse = page.waitForResponse(response =>

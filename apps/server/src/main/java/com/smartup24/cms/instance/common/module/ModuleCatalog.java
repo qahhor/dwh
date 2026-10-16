@@ -77,4 +77,15 @@ public class ModuleCatalog {
         if (own != null) return Optional.of(own);
         return manifests.stream().filter(manifest -> manifest.holds(area)).findFirst();
     }
+
+    /** The installed module whose switch governs a form's permission area (ADR-0033, 6.2). */
+    public Optional<ModuleManifest> holdingForm(String form) {
+        int dot = form.indexOf('.');
+        return holding(dot > 0 ? form.substring(0, dot) : form);
+    }
+
+    /** Whether the form belongs to an installed module that is currently switched on. */
+    public boolean activeForm(String form, InstalledModules modules) {
+        return holdingForm(form).map(module -> modules.active(module.code())).orElse(false);
+    }
 }

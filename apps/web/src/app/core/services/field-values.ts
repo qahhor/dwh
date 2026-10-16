@@ -17,8 +17,8 @@ export interface FieldValueRules {
   empty(value: unknown): boolean;
   /** The problem code of a value that is not empty, or null. */
   problem(field: FormFieldMeta, value: unknown): string | null;
-  /** The value as the server takes it. */
-  payload(field: FormFieldMeta, value: unknown): unknown;
+  /** The value as the server takes it, keeping the original precision of an unchanged moment. */
+  payload(field: FormFieldMeta, value: unknown, original?: unknown): unknown;
   /** The value of a record as the form edits it. */
   formValue(field: FormFieldMeta, value: unknown): unknown;
 }
@@ -168,7 +168,10 @@ export const FIELD_VALUE_RULES: Record<FormFieldType, FieldValueRules> = {
     ...plain,
     problem: (_field, value) => (utcMoment(value) ? null : 'invalid'),
     // A moment travels with its offset (plan 10/10, item 5.0); what is not one goes as typed, for the server's 422.
-    payload: (_field, value) => utcMoment(trimmed(value)) ?? trimmed(value),
+    payload: (_field, value, original) => {
+      const shown = localMoment(original);
+      return shown !== null && value === shown ? original : (utcMoment(trimmed(value)) ?? trimmed(value));
+    },
     formValue: (_field, value) => localMoment(value) ?? value ?? null,
   },
   time: { ...plain, problem: (_field, value) => (TIME_OF_DAY.test(String(value)) ? null : 'invalid') },

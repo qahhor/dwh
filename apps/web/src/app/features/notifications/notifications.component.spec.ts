@@ -1,9 +1,9 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotificationItem } from '@core/models/notification.models';
+import { NotificationItem, NotificationPrefItem } from '@core/models/notification.models';
 import { NotificationService } from '@core/services/notification.service';
 import { ToastService } from '@core/services/toast.service';
 import { NotificationsComponent } from './notifications.component';
@@ -20,8 +20,8 @@ describe('NotificationsComponent', () => {
     fetchUnreadCount: vi.fn(() => of(1)),
     markAllAsRead: vi.fn(() => of(undefined)),
     markAsRead: vi.fn(() => of(undefined)),
-    fetchPreferences: vi.fn(() => of([])),
-    updatePreferences: vi.fn(() => of(undefined)),
+    fetchPreferences: vi.fn<() => Observable<NotificationPrefItem[]>>(() => of([])),
+    updatePreferences: vi.fn<(prefs: NotificationPrefItem[]) => Observable<void>>(() => of(undefined)),
   };
   const router = { navigateByUrl: vi.fn() };
 
@@ -86,6 +86,32 @@ describe('NotificationsComponent', () => {
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
+  it.each(['Enter', ' '])('keeps %s on the mark-read button from opening the notification', (key) => {
+    const { host } = render([item(9, { title: 'Задача', targetUrl: '/tasks/99' })]);
+    const button = host.querySelector<HTMLButtonElement>('.mark-read-btn')!;
+    const keydown = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+
+    button.dispatchEvent(keydown);
+
+    expect(keydown.defaultPrevented).toBe(false);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(notificationService.markAsRead).not.toHaveBeenCalled();
+    button.click();
+    expect(notificationService.markAsRead).toHaveBeenCalledWith(9);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
+  it.each(['Enter', ' '])('opens the focused notification row with %s', (key) => {
+    const { host } = render([item(5, { title: 'Задача назначена', targetUrl: '/tasks/100' })]);
+    const keydown = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+
+    host.querySelector<HTMLElement>('.notif-item.clickable')!.dispatchEvent(keydown);
+
+    expect(keydown.defaultPrevented).toBe(true);
+    expect(notificationService.markAsRead).toHaveBeenCalledWith(5);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/tasks/100');
+  });
+
   it('opens preferences modal and saves updated preferences', () => {
     const { component } = render([]);
 
@@ -98,5 +124,57 @@ describe('NotificationsComponent', () => {
       { eventType: 'task_assigned', channel: 'in_app', isEnabled: true },
     ]);
     expect(component.isPreferencesOpen()).toBe(false);
+  });
+
+  it('keeps failed preferences closed and retries without replacing saved choices with defaults', () => {
+    const { component } = render([]);
+    const saved = [{ eventType: 'task_status', channel: 'email', isEnabled: false }];
+    component.preferences.set(saved);
+    notificationService.fetchPreferences.mockReturnValueOnce(throwError(() => new Error('offline')));
+
+    component.openPreferencesModal();
+
+    expect(component.isPreferencesOpen()).toBe(false);
+    expect(component.preferences()).toEqual(saved);
+    expect(TestBed.inject(ToastService).error).toHaveBeenCalledWith(
+      'Не удалось загрузить настройки уведомлений. Попробуйте ещё раз.',
+    );
+    expect(notificationService.updatePreferences).not.toHaveBeenCalled();
+
+    notificationService.fetchPreferences.mockReturnValueOnce(of(saved));
+    component.openPreferencesModal();
+    expect(component.isPreferencesOpen()).toBe(true);
+    expect(component.preferences()).toEqual(saved);
+  });
+
+  it('loads preferences once while pending and does not reload an open draft', () => {
+    const { component, fixture, host } = render([]);
+    const request = new Subject<NotificationPrefItem[]>();
+    notificationService.fetchPreferences.mockReturnValueOnce(request);
+
+    component.openPreferencesModal();
+    component.openPreferencesModal();
+    fixture.detectChanges();
+
+    expect(notificationService.fetchPreferences).toHaveBeenCalledTimes(1);
+    expect(host.querySelector<HTMLButtonElement>('[aria-label="Настройки уведомлений"]')!.disabled).toBe(true);
+    request.next([]);
+    request.complete();
+    component.openPreferencesModal();
+    expect(notificationService.fetchPreferences).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends a save once while pending and keeps the editor open after failure', () => {
+    const { component } = render([]);
+    const request = new Subject<void>();
+    notificationService.updatePreferences.mockReturnValueOnce(request);
+    component.openPreferencesModal();
+
+    component.savePreferences([]);
+    component.savePreferences([]);
+    expect(notificationService.updatePreferences).toHaveBeenCalledTimes(1);
+    request.error(new Error('offline'));
+    expect(component.isPreferencesOpen()).toBe(true);
+    expect(component.isSavingPreferences()).toBe(false);
   });
 });

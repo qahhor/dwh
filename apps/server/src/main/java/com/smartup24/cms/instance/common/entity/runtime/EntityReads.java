@@ -5,6 +5,7 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
+import com.smartup24.cms.instance.common.entity.RetainedRecordAccess;
 import com.smartup24.cms.instance.common.entity.store.EntityStoreRepository;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
@@ -103,6 +104,7 @@ public class EntityReads {
      * may take (ADR-0032, 4.6 and 6.2).
      */
     public EntityRecordView view(EntityDefinition entity, Map<String, Object> record) {
+        RetainedRecordAccess.remember(entity.code(), id(record));
         Map<String, Object> projected = EntityFieldRights.project(entity, record);
         Map<String, Object> labels = resolver.resolve(entity, projected, userId());
         return new EntityRecordView(projected, actions(entity, record), labels);

@@ -71,6 +71,8 @@ export class SettingsStore {
     stream: () => this.settingsApi.userSettings().pipe(tap((values) => this.applyTheme(values['user.theme']))),
   });
 
+  private readonly touchedSystem = new Set<string>();
+
   canManageSystemSettings(): boolean {
     return (
       this.permService.hasPermission('md.settings', 'view') || this.permService.hasPermission('md.settings', 'update')
@@ -119,6 +121,7 @@ export class SettingsStore {
   saveSystemSettings(): void {
     if (!this.canUpdateSystemSettings() || this.isSaving()) return;
 
+    Object.keys(this.systemSettings()).forEach((key) => this.touchedSystem.add(key));
     const errors = systemSettingErrors(this.systemSettings());
     this.systemErrors.set(errors);
     if (Object.keys(errors).length > 0) return;
@@ -172,9 +175,15 @@ export class SettingsStore {
   /** A panel edited one setting; it is kept here and saved with the others. */
   setSystemSetting(key: string, value: string): void {
     this.systemSettings.update((settings) => ({ ...settings, [key]: value }));
-    if (key in this.systemErrors()) {
-      this.systemErrors.update(({ [key]: _fixed, ...rest }) => rest);
-    }
+    if (this.touchedSystem.has(key) || key in this.systemErrors()) this.touchSystemSetting(key);
+  }
+
+  /** Validate the field the person left, and keep checking it while corrected. */
+  touchSystemSetting(key: string): void {
+    if (!this.canUpdateSystemSettings() || this.isSaving()) return;
+    this.touchedSystem.add(key);
+    const error = systemSettingErrors(this.systemSettings())[key];
+    this.systemErrors.update(({ [key]: _previous, ...rest }) => (error ? { ...rest, [key]: error } : rest));
   }
 
   toggleRequire2fa(enabled: boolean): void {
@@ -200,6 +209,7 @@ export class SettingsStore {
 
 /** The limits of the numeric system settings; the server checks them again. */
 const RANGES: Readonly<Record<string, { min: number; max: number; key: string }>> = {
+  'security.idle_lock_minutes': { min: 0, max: 1440, key: 'settings.validation.idle_lock' },
   'security.session_lifetime_hours': { min: 1, max: 8760, key: 'settings.validation.session_lifetime' },
   'storage.default_user_quota_mb': { min: 100, max: 102400, key: 'settings.validation.quota' },
 };
@@ -212,7 +222,13 @@ export function systemSettingErrors(values: SettingsValues): Record<string, stri
     if (raw === undefined) continue;
     const trimmed = String(raw).trim();
     const value = trimmed === '' ? NaN : Number(trimmed);
-    if (!Number.isFinite(value) || value < range.min || value > range.max) errors[setting] = range.key;
+    if (
+      !Number.isFinite(value) ||
+      value < range.min ||
+      value > range.max ||
+      (setting === 'security.idle_lock_minutes' && !Number.isInteger(value))
+    )
+      errors[setting] = range.key;
   }
   return errors;
 }

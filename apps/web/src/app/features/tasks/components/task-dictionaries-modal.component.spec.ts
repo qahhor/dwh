@@ -53,6 +53,38 @@ function openStatuses(fixture: ComponentFixture<TaskDictionariesModalComponent>,
 }
 
 describe('TaskDictionariesModalComponent', () => {
+  it.each(['type', 'status'] as const)('keeps the dialog open during a pending %s addition', (kind) => {
+    const { fixture, screen } = render();
+    const state = kind === 'type' ? fixture.componentInstance.typeAdd() : fixture.componentInstance.statusAdd();
+    const closed = vi.fn();
+    fixture.componentInstance.closeModal.subscribe(closed);
+    state.saving.set(true);
+    fixture.detectChanges();
+    expect(screen.querySelector('.smt-modal__close')).toBeNull();
+    press(fixture, screen, 'Закрыть');
+    expect(closed).not.toHaveBeenCalled();
+    state.saving.set(false);
+    fixture.detectChanges();
+    press(fixture, screen, 'Закрыть');
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['type', 'status'] as const)('checks a %s name on blur and clears its server error after editing', (kind) => {
+    const { fixture, screen } = render();
+    const state = newAddState();
+    fixture.componentRef.setInput(kind === 'type' ? 'typeAdd' : 'statusAdd', state);
+    if (kind === 'status') openStatuses(fixture, screen);
+    const name = screen.querySelector(`#task-${kind}-name`) as HTMLInputElement;
+    name.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(name.closest('smt-control')?.textContent).toContain('Обязательное поле');
+    type(fixture, screen, `task-${kind}-name`, 'Valid');
+    state.errors.set({ name: 'Name refused', color: 'Color refused' });
+    fixture.detectChanges();
+    type(fixture, screen, `task-${kind}-name`, 'Corrected');
+    expect(name.closest('smt-control')?.textContent).not.toContain('Name refused');
+    expect(state.errors()['color']).toBe('Color refused');
+  });
   it('names the tabs with their counts and lists the types, marking the system one', () => {
     const { screen } = render();
 

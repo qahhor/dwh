@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.RetainedRecordAccess;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.DataScopes;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
@@ -328,6 +329,7 @@ public class MdScopeService implements DataScopes {
         if (userId == null || !canAccessUser(viewerId, userId) || !scopeRepository.userExists(userId)) {
             throw new ApiException(ErrorCode.USER_NOT_FOUND);
         }
+        RetainedRecordAccess.remember(MdUserEntity.CODE, userId);
     }
 
     /** Validates assignees before a scoped actor can add them to a task. */

@@ -12,7 +12,7 @@ const tokenSentinel = `e2e-token-sentinel-${randomBytes(24).toString('hex')}`;
 const rotatedPasswordSentinel = `E2e!${createHash('sha256')
   .update(passwordSentinel)
   .digest('base64url')
-  .slice(0, 24)}`;
+  .slice(0, 16)}`;
 const sentinels = [passwordSentinel, tokenSentinel, rotatedPasswordSentinel];
 const unexpectedReportDirectories = [
   resolve(e2eDirectory, 'playwright-report'),

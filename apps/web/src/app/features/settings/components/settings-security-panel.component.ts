@@ -64,13 +64,19 @@ import { SettingChange } from '../settings.models';
             [disabled]="!canUpdateSystemSettings() || isSaving()"
             [value]="systemSettings()['security.session_lifetime_hours']"
             (valueChange)="changeSetting('security.session_lifetime_hours', $event)"
+            (touch)="settingTouched.emit('security.session_lifetime_hours')"
           />
           @if (sessionUnit(); as unit) {
             <span class="unit-badge" data-testid="session-lifetime-unit">{{ unit }}</span>
           }
         </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'settings.idle_lock' | t" [smtHint]="'settings.idle_lock_hint' | t">
+        <smt-control
+          class="form-group"
+          [smtLabel]="'settings.idle_lock' | t"
+          [smtHint]="'settings.idle_lock_hint' | t"
+          [smtError]="errorOf('security.idle_lock_minutes')"
+        >
           <smt-input
             smtFieldId="settings-idle-lock"
             name="settingsIdleLock"
@@ -80,6 +86,7 @@ import { SettingChange } from '../settings.models';
             [disabled]="!canUpdateSystemSettings() || isSaving()"
             [value]="systemSettings()['security.idle_lock_minutes']"
             (valueChange)="changeSetting('security.idle_lock_minutes', $event)"
+            (touch)="settingTouched.emit('security.idle_lock_minutes')"
           />
         </smt-control>
 
@@ -128,6 +135,7 @@ export class SettingsSecurityPanelComponent {
   readonly save = output<void>();
   /** The settings object belongs to the store, so an edit goes up and the store keeps it. */
   readonly settingChange = output<SettingChange>();
+  readonly settingTouched = output<string>();
   readonly toggleRequire2fa = output<boolean>();
 
   readonly passwordPolicy = PASSWORD_POLICY;
@@ -148,7 +156,7 @@ export class SettingsSecurityPanelComponent {
 
   /** Enter in a field and the Save button both save; nothing is sent twice while a save runs. */
   onSubmit(): void {
-    if (!this.isSaving()) this.save.emit();
+    if (this.canUpdateSystemSettings() && !this.isSaving()) this.save.emit();
   }
 
   /** The store's refusal of a setting as words under its field (forms standard, section 4). */

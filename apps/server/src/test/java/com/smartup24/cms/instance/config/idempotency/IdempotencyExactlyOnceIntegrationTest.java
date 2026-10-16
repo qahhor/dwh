@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.instance.support.TestModules;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
@@ -53,7 +54,8 @@ class IdempotencyExactlyOnceIntegrationTest {
                 new ObjectMapper(),
                 PackagedProblemMessages.russian(),
                 transactions,
-                null);
+                null,
+                TestModules.replayAccess());
     }
 
     @BeforeEach

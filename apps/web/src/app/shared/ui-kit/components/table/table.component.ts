@@ -603,8 +603,11 @@ export class SMTTableComponent<T> {
     value: '',
   };
 
+  private readonly skeletonKeys = Array.from({ length: MAX_SKELETON_ROWS }, () => Symbol('skeleton'));
+
   protected readonly trackByRow = (index: number, row: unknown): unknown => {
-    return this.config().trackBy(index, row as T);
+    // Sentinels are not records; their stable keys must not collide with a record's id on completion.
+    return row === 2 ? this.skeletonKeys[index] : this.config().trackBy(index, row as T);
   };
 
   private lastVirtualColRange: { start: number; end: number } | null = null;
@@ -626,23 +629,24 @@ export class SMTTableComponent<T> {
 
       this.syncHorizontalScrollPosition(container, true);
 
-      // Absent in jsdom and some embedded webviews; sizing then stays at its first measurement.
-      if (typeof ResizeObserver === 'undefined') return;
-
       this.ngZone.runOutsideAngular(() => {
-        const observer = new ResizeObserver(() => {
-          this.updateResizeContainerWidth();
-          this.syncHorizontalScrollPosition(container, false);
-          this.updateHorizontalHint(container);
-        });
-        observer.observe(container);
-        if (tableSurface) observer.observe(tableSurface);
+        // Scrolling still works in webviews without automatic resize observation.
+        const observer =
+          typeof ResizeObserver === 'undefined'
+            ? null
+            : new ResizeObserver(() => {
+                this.updateResizeContainerWidth();
+                this.syncHorizontalScrollPosition(container, false);
+                this.updateHorizontalHint(container);
+              });
+        observer?.observe(container);
+        if (tableSurface) observer?.observe(tableSurface);
 
         const onScroll = (event: Event) => this.onScrollContainerScroll(event);
         container.addEventListener('scroll', onScroll, { passive: true });
 
         this.destroyRef.onDestroy(() => {
-          observer.disconnect();
+          observer?.disconnect();
           container.removeEventListener('scroll', onScroll);
         });
       });
@@ -896,6 +900,14 @@ export class SMTTableComponent<T> {
   protected scrollContainerToTop(el: HTMLElement | null) {
     if (!el) return;
     el.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  protected scrollHorizontally(direction: 'left' | 'right'): void {
+    const el = this.scrollContainer()?.nativeElement;
+    if (!el) return;
+    this.stopHorizontalAutoScroll();
+    el.focus({ preventScroll: true });
+    el.scrollBy({ left: Math.max(100, el.clientWidth * 0.75) * (direction === 'left' ? -1 : 1), behavior: 'smooth' });
   }
 
   protected startHorizontalAutoScroll(direction: 'left' | 'right') {

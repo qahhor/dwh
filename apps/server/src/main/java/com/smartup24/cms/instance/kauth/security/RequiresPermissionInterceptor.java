@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.kauth.security;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.module.InstalledModules;
+import com.smartup24.cms.instance.common.module.ModuleCatalog;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +15,14 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
 public class RequiresPermissionInterceptor implements HandlerInterceptor {
+
+    private final ModuleCatalog catalog;
+    private final InstalledModules modules;
+
+    public RequiresPermissionInterceptor(ModuleCatalog catalog, InstalledModules modules) {
+        this.catalog = catalog;
+        this.modules = modules;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -45,6 +55,10 @@ public class RequiresPermissionInterceptor implements HandlerInterceptor {
                 && SecurityContext.getPrincipal().forcePasswordChange()) {
             throw ApiException.forbidden(
                     ErrorCode.MUST_CHANGE_PASSWORD, "error.auth.temporary_password_change_required");
+        }
+
+        if (!catalog.activeForm(annotation.form(), modules)) {
+            throw new ApiException(ErrorCode.NOT_FOUND);
         }
 
         if (!SecurityContext.hasPermission(annotation.form(), annotation.action())) {

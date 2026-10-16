@@ -24,6 +24,131 @@ function stateTitle(root: HTMLElement): string | undefined {
 
 /* Creating or changing a record of a declared entity (ADR-0032 7.1). */
 describe('SMTEntityEditPageComponent', () => {
+  it('patches a title without rounding untouched moments or sending the read-only resolved time', async () => {
+    const fields = [
+      formField('title', 'text', { required: true }),
+      formField('startsAt', 'datetime'),
+      formField('resolvedTime', 'datetime', { readonly: true }),
+      formField('cfDueAt', 'datetime', { attribute: 'due_at' }),
+    ];
+    const record = entityRecord(4, {
+      title: 'Before',
+      startsAt: '2026-10-13T04:15:37.123456Z',
+      resolvedTime: '2026-10-13T04:15:48.987654Z',
+      attributes: { due_at: '2026-10-13T04:15:59.654321Z' },
+    });
+    const { root, api, router, settle } = await renderEntityScreen(`/e/${CODE}/4/edit`, {
+      meta: {
+        ...META,
+        fields,
+        layout: [{ key: 'main', labelKey: 'entity.section.main', fields: fields.map((f) => f.key) }],
+      },
+      records: [record],
+    });
+    const title = root.querySelector('[data-field="title"] input') as HTMLInputElement;
+    title.value = 'After';
+    title.dispatchEvent(new Event('input'));
+    await settle();
+    (root.querySelector('[data-testid="form-submit"]') as HTMLButtonElement).click();
+    await settle();
+
+    expect(api.patch).toHaveBeenCalledExactlyOnceWith(
+      `/entities/${CODE}/4`,
+      {
+        title: 'After',
+        startsAt: '2026-10-13T04:15:37.123456Z',
+        attributes: { due_at: '2026-10-13T04:15:59.654321Z' },
+      },
+      { notifyError: false, ifMatch: 1 },
+    );
+    expect(router.url).toBe(`/e/${CODE}/4`);
+  });
+
+  it('keeps every editable field checked after a failed submit, including previously valid fields', async () => {
+    const { root, settle } = await renderEntityScreen(`/e/${CODE}/new`, {
+      meta: {
+        ...META,
+        fields: [...META.fields, formField('title', 'text', { required: true })],
+        layout: [{ key: 'main', labelKey: 'entity.section.main', fields: ['number', 'title'] }],
+      },
+    });
+    const number = root.querySelector('[data-field="number"] input') as HTMLInputElement;
+    number.value = 'Valid';
+    number.dispatchEvent(new Event('input'));
+    await settle();
+    (root.querySelector('[data-testid="form-submit"]') as HTMLButtonElement).click();
+    await settle();
+    number.focus();
+    number.value = '';
+    number.dispatchEvent(new Event('input'));
+    await settle();
+    expect(root.querySelector('[data-field="number"]')?.textContent).toContain(
+      translateTest('ui.entity_form.required'),
+    );
+  });
+
+  it('keeps an unknown 422 field in the summary without exposing it as a field label', async () => {
+    const { root, settle, toast } = await renderEntityScreen(`/e/${CODE}/4/edit`, {
+      meta: META,
+      records: [ORDER],
+      changes: {
+        [`PATCH /entities/${CODE}/4`]: () =>
+          throwError(() =>
+            problem(422, {
+              errors: [{ field: 'internalField', code: 'required', message: 'Server constraint failed' }],
+            }),
+          ),
+      },
+    });
+    (root.querySelector('[data-testid="form-submit"]') as HTMLButtonElement).click();
+    await settle();
+    const summary = root.querySelector('[data-testid="form-error-summary"]');
+    expect(summary?.textContent).toContain('Server constraint failed');
+    expect(summary?.textContent).not.toContain('internalField');
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('keeps the summary synchronized with document row feedback before and after correction', async () => {
+    const { root, settle } = await renderEntityScreen(`/e/${CODE}/new`, {
+      meta: {
+        ...META,
+        collections: [
+          {
+            key: 'lines',
+            labelKey: 'ui.entity_lines.number',
+            maxRows: 10,
+            fields: [
+              formField('qty', 'number', { labelKey: '', label: 'Quantity', required: true, min: 1 }),
+              formField('unit', 'text', { required: true }),
+            ],
+          },
+        ],
+      },
+    });
+    (root.querySelector('[data-testid="entity-line-add"]') as HTMLButtonElement).click();
+    await settle();
+    const qty = root.querySelector('[data-field="qty"] input') as HTMLInputElement;
+    qty.focus();
+    qty.blur();
+    await settle();
+    expect(root.querySelector('[data-testid="form-error-summary"]')).toBeNull();
+
+    (root.querySelector('[data-testid="form-submit"]') as HTMLButtonElement).click();
+    await settle();
+    const summary = root.querySelector('[data-testid="form-error-summary"]') as HTMLElement;
+    expect(summary.textContent).toContain(translateTest('ui.entity_form.required'));
+    expect(summary.textContent).toContain(translateTest('ui.entity_lines.line', { n: 1 }));
+    const link = [...summary.querySelectorAll('a')].find((item) => item.textContent?.includes('Quantity'));
+    expect(link?.getAttribute('href')).toBe(`#${qty.id}`);
+    link?.click();
+    expect(document.activeElement).toBe(qty);
+
+    qty.value = '2';
+    qty.dispatchEvent(new Event('input'));
+    await settle();
+    expect(root.querySelector('[data-testid="form-error-summary"]')).toBeNull();
+  });
+
   it('titles a new record and a change by the record name', async () => {
     const created = await renderEntityScreen(`/e/${CODE}/new`, { meta: META });
     expect(created.root.querySelector('h1')?.textContent?.trim()).toBe(translateTest('ui.entity_page.create_title'));

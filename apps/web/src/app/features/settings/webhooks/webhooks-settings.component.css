@@ -1,4 +1,10 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
 .webhooks-container {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -7,9 +13,20 @@
 .webhooks-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-3);
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border-color);
+}
+.header-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex: 1 1 280px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .section-title {
   margin: 0 0 4px 0;
@@ -23,7 +40,12 @@
 }
 .header-right {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
 }
 
 .loading-state {
@@ -46,6 +68,7 @@
 
 .error-banner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
@@ -170,11 +193,13 @@
 }
 
 .create-form-body {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 .form-row {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -213,7 +238,7 @@
 }
 .events-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   max-height: 200px;
   overflow-y: auto;
@@ -223,6 +248,7 @@
   background: var(--bg-hover);
 }
 .event-checkbox-label {
+  min-width: 0;
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -230,6 +256,9 @@
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
+}
+.event-opt-code {
+  overflow-wrap: anywhere;
 }
 .event-checkbox-label:hover {
   background: rgba(0, 0, 0, 0.03);
@@ -247,6 +276,7 @@
   font-size: 0.84rem;
 }
 .callout-icon {
+  flex-shrink: 0;
   font-size: 24px;
   color: var(--warning-text);
 }
@@ -258,11 +288,14 @@
   margin-top: 14px;
 }
 .secret-input-row {
+  min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .secret-input {
-  flex: 1;
+  min-width: 0;
+  flex: 1 1 180px;
   font-weight: 600;
   color: var(--text-main);
   background: rgba(0, 0, 0, 0.03);
@@ -275,6 +308,37 @@
   border: 1px solid var(--border-color);
 }
 .hmac-info-box code {
+  overflow-wrap: anywhere;
   font-size: 0.75rem;
   color: var(--primary);
+}
+
+@media (max-width: 640px) {
+  .webhooks-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex-basis: auto;
+  }
+  .header-right {
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+  .events-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .secret-input-row {
+    flex-direction: column;
+  }
+  .secret-input {
+    flex-basis: auto;
+  }
 }

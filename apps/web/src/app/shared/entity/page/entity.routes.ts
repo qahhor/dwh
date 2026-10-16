@@ -14,6 +14,7 @@ export const ENTITY_ROUTES: Routes = [
     children: [
       {
         path: '',
+        canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./smt-entity-list-page.component').then((m) => m.SMTEntityListPageComponent),
       },
       {

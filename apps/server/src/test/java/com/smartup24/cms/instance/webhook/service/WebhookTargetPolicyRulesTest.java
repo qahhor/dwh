@@ -43,7 +43,7 @@ class WebhookTargetPolicyRulesTest {
         var policy = policy(false, host -> List.of(InetAddress.getByAddress(host, new byte[] {93, (byte) 184, 1, 1})));
 
         assertThat(policy.validate("HTTPS://Hooks.Example./events").getHost()).isEqualTo("Hooks.Example.");
-        assertThat(policy.validate("http://hooks.example:8443/events").getPort())
+        assertThat(policy.validate("https://hooks.example:8443/events").getPort())
                 .isEqualTo(8443);
     }
 

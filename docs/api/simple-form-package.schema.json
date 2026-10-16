@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SmartupCMS simple form delivery package v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formatVersion",
+    "kind",
+    "declaration",
+    "checksum"
+  ],
+  "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "kind": {
+      "const": "simple-form-package"
+    },
+    "declaration": {
+      "$ref": "simple-form.schema.json"
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

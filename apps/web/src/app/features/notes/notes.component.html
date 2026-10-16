@@ -1,4 +1,4 @@
-<div class="notes-view" role="region" [attr.aria-label]="'notes.title' | t">
+<div class="notes-view" [attr.aria-busy]="loading()" role="region" [attr.aria-label]="'notes.title' | t">
   <ui-page-header [title]="'notes.title' | t" [count]="list().total">
     <smt-tab-bar
       pageHeaderAside
@@ -36,6 +36,24 @@
     />
   </div>
 
+  @if (loading()) {
+    <p role="status">{{ 'common.loading' | t }}</p>
+  }
+  @if (loadError()) {
+    <div class="inline-feedback" role="alert">
+      <span>{{ 'notes.load_error' | t }}</span>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        data-testid="notes-retry"
+        [disabled]="loading()"
+        (click)="retry()"
+      >
+        {{ 'common.retry' | t }}
+      </button>
+    </div>
+  }
   @if (meta(); as form) {
     @if (list().items.length > 0) {
       <div class="notes-grid">
@@ -53,13 +71,26 @@
           />
         }
       </div>
-    } @else if (firstPage.status() === 'resolved') {
+    } @else if (firstPage.status() === 'resolved' && !loadError()) {
       <div class="empty-state">
         <span class="material-symbols-outlined empty-icon" aria-hidden="true">description</span>
-        <h3>{{ 'notes.empty_title' | t }}</h3>
-        <p>{{ 'notes.empty_desc' | t }}</p>
-        @if (canCreate()) {
-          <ng-container [ngTemplateOutlet]="createButton" />
+        @if (hasFilters()) {
+          <h3>{{ 'notes.list.no_matches' | t }}</h3>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            data-testid="notes-reset-filters"
+            (click)="resetFilters()"
+          >
+            {{ 'notes.list.reset_filters' | t }}
+          </button>
+        } @else {
+          <h3>{{ 'notes.empty_title' | t }}</h3>
+          <p>{{ 'notes.empty_desc' | t }}</p>
+          @if (canCreate()) {
+            <ng-container [ngTemplateOutlet]="createButton" />
+          }
         }
       </div>
     }
@@ -82,6 +113,7 @@
         smtVariant="secondary"
         data-testid="notes-load-more"
         [smtLoading]="loadingMore()"
+        [disabled]="loading() || loadError()"
         (click)="loadMore()"
       >
         {{ 'notes.load_more' | t }}

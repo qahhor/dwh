@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.config.openapi;
 
+import com.smartup24.cms.instance.common.annotation.NoIdempotency;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Revisioned;
@@ -41,6 +42,7 @@ public class ApiHeadersDocs {
     private static final String REVISIONED_ANSWER = "x-smc-revisioned-answer";
 
     private static final String RETURNS_SECRET = "x-smc-returns-secret";
+    private static final String NO_IDEMPOTENCY = "x-smc-no-idempotency";
 
     private static final Set<PathItem.HttpMethod> CHANGES = Set.of(
             PathItem.HttpMethod.POST, PathItem.HttpMethod.PUT, PathItem.HttpMethod.PATCH, PathItem.HttpMethod.DELETE);
@@ -59,6 +61,9 @@ public class ApiHeadersDocs {
             }
             if (handler.hasMethodAnnotation(ReturnsSecret.class)) {
                 operation.addExtension(RETURNS_SECRET, true);
+            }
+            if (handler.hasMethodAnnotation(NoIdempotency.class)) {
+                operation.addExtension(NO_IDEMPOTENCY, true);
             }
             return operation;
         };
@@ -80,6 +85,7 @@ public class ApiHeadersDocs {
         Map<String, Object> marks = operation.getExtensions();
         boolean revisionedAnswer = marks != null && marks.remove(REVISIONED_ANSWER) != null;
         boolean returnsSecret = marks != null && marks.remove(RETURNS_SECRET) != null;
+        boolean noIdempotency = marks != null && marks.remove(NO_IDEMPOTENCY) != null;
         if (marks != null && marks.isEmpty()) {
             operation.setExtensions(null);
         }
@@ -105,6 +111,7 @@ public class ApiHeadersDocs {
         if (CHANGES.contains(method)
                 && IdempotencyFilter.supportsPath(path)
                 && !returnsSecret
+                && !noIdempotency
                 && !multipart(operation)
                 && !hasHeader(operation, IDEMPOTENCY_KEY)) {
             operation.addParametersItem(new Parameter()

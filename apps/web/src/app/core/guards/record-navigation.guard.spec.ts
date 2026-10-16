@@ -40,6 +40,7 @@ describe('Record routes with the actual router and actual templates', () => {
           requests.set(path, response);
           return response.asObservable();
         }
+        if (path === '/modules/active') return of([{ code: 'tasks', status: 'ACTIVE' }]);
         if (path === '/query-meta/ms.tasks') return of(TASKS_META);
         if (path === '/query-meta/ms.projects') return of(PROJECTS_META);
         return of(

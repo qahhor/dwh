@@ -81,7 +81,7 @@
     }
 
     <section class="upl-block" id="upl-step-file" data-testid="upl-step-file" [hidden]="store.step() !== 'file'">
-      <app-upl-format-file-step [model]="store.model()" [editable]="store.editable()" />
+      <app-upl-format-file-step [model]="store.model()" [editable]="store.editable()" [(errors)]="store.errors" />
     </section>
 
     <section class="upl-block" id="upl-step-sheets" data-testid="upl-step-sheets" [hidden]="store.step() !== 'sheets'">
@@ -154,6 +154,7 @@
 
     <smt-dialog
       [open]="store.isPublishOpen()"
+      [dismissible]="!store.isPublishing()"
       [smtTitle]="'upl.version.publish_title' | t"
       smtSize="sm"
       (closed)="store.closePublish()"
@@ -179,7 +180,9 @@
               smtInputId="upl-valid-from"
               data-testid="upl-valid-from"
               [value]="store.validFrom()"
-              (valueChange)="store.validFrom.set($event ?? '')"
+              [disabled]="store.isPublishing()"
+              (valueChange)="store.setValidFrom($event)"
+              (touch)="store.touchValidFrom()"
             />
           </smt-control>
           <p>{{ 'upl.version.publish_note' | t }}</p>

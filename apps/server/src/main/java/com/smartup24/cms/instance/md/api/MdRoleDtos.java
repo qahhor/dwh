@@ -30,9 +30,9 @@ public final class MdRoleDtos {
             @NotBlank String formCode, @NotBlank String action) {}
 
     /**
-     * One pair of the permission catalog. A declared entity names its right by dictionary keys (ADR-0031, plan
-     * 10/10, item 5.0): {@code formNameKey} and {@code actionNameKey} are then set and the screen shows them in the
-     * viewer's language; otherwise they are null and {@code formName}/{@code actionName} are the stored words.
+     * One pair of the permission catalog. Entities and the static form catalog name rights by dictionary keys
+     * (ADR-0031): {@code formNameKey} and {@code actionNameKey} let the screen use the viewer's language. Unknown
+     * names have null keys and keep the stored {@code formName}/{@code actionName} words.
      */
     public record FormCatalogItem(
             String formCode,

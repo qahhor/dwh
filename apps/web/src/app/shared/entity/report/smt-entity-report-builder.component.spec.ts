@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -23,15 +25,19 @@ const COUNT: ReportResult = {
 
 /* The report tab of an entity list (ADR-0032 10.2): groupings, measures and a chart, run as they change. */
 describe('SMTEntityReportBuilderComponent', () => {
-  const reports = { run: vi.fn(() => of(COUNT)), list: () => of([]) };
+  const reports = { run: vi.fn(() => of(COUNT)), saved: vi.fn(() => of(COUNT)), list: () => of([]) };
   let views: ListViewState;
 
   beforeEach(() => {
+    reports.saved.mockReset();
+    reports.saved.mockReturnValue(of(COUNT));
     reports.run.mockReset();
     reports.run.mockReturnValue(of(COUNT));
     const api = { list: () => of([]), create: vi.fn(), update: vi.fn(), remove: vi.fn() } as unknown as ListViewsApi;
     views = new ListViewState('test.orders', api, { defaultSort: () => null, onApply: () => undefined });
-    TestBed.configureTestingModule({ providers: [{ provide: EntityReportsApi, useValue: reports }] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: EntityReportsApi, useValue: reports }],
+    });
   });
 
   async function render(meta = LIST) {
@@ -50,6 +56,47 @@ describe('SMTEntityReportBuilderComponent', () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     fixture.detectChanges();
   }
+
+  it('runs a selected saved definition by ID and never falls back to an ad hoc clone on denial', async () => {
+    const { fixture, builder } = await render();
+    reports.run.mockClear();
+    reports.saved.mockReturnValue(throwError(() => ({ status: 403, detail: 'Revoked' })));
+    builder.openSaved({
+      id: 9,
+      name: 'Shared report',
+      kind: 'report',
+      state: { groupBy: [], measures: [{ op: 'count' }], filter: [], chart: 'kpi' },
+      lockVersion: 1,
+    });
+    await afterDebounce(fixture);
+    expect(reports.saved).toHaveBeenCalledWith('test.orders', 9);
+    expect(reports.run).not.toHaveBeenCalled();
+    expect(builder.run().error).toBe('Revoked');
+    expect(builder.run().result).toBeNull();
+  });
+
+  it('requires an explicit detach before editing a saved definition query', async () => {
+    const { fixture, builder } = await render();
+    builder.openSaved({
+      id: 9,
+      name: 'Shared report',
+      kind: 'report',
+      state: { groupBy: [], measures: [{ op: 'count' }], filter: [], chart: 'kpi' },
+      lockVersion: 1,
+    });
+    await afterDebounce(fixture);
+    builder.setGroup(0, 'status');
+    expect(builder.groupBy()).toEqual([]);
+    builder.detachSource();
+    builder.setGroup(0, 'status');
+    await afterDebounce(fixture);
+    expect(builder.source()).toBeNull();
+    expect(builder.groupBy()).toEqual([{ field: 'status' }]);
+    expect(reports.run).toHaveBeenLastCalledWith(
+      'test.orders',
+      expect.objectContaining({ groupBy: [{ field: 'status' }] }),
+    );
+  });
 
   it('runs the count of the whole list at first and shows one figure', async () => {
     const { builder } = await render();

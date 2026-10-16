@@ -560,6 +560,12 @@ describe('SourcesListComponent', () => {
     expect(testId(fixture, 'upl-create-error')).toHaveLength(1);
     await fixture.whenStable();
     expect(document.activeElement?.id).toBe('upl-source-name');
+    const name = document.getElementById('upl-source-name') as HTMLInputElement;
+    name.value = 'Corrected name';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fieldError(document.body, 'upl-source-name')).toBeNull();
+    expect(testId(fixture, 'upl-create-error')).toHaveLength(0);
   });
 
   it('кнопка «Новый источник», и в пустом списке тоже, есть только при праве create', async () => {

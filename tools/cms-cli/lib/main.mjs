@@ -1,5 +1,6 @@
 // The command line of the SmartupCMS developer CLI (plan 10/10, item 6.1): help, parsing and dispatch.
 import { parse } from './args.mjs';
+import { formApply } from './form-delivery.mjs';
 import { entityAddField, entityNew, moduleNew } from './commands.mjs';
 import { CliError, findRoot } from './layout.mjs';
 import { Plan } from './plan.mjs';
@@ -16,6 +17,7 @@ Usage:
                        [--label-uz <uz>] [--max <n>] [--scale <n>] [--options a,b] [--currencies UZS,USD]
                        [--target <entity code>] [--target-label <field>] [--column <name>] [--section <key>]
                        [--no-list] [--version V<n>] [--no-sync]
+  cms form apply <package.json> [--no-sync]
   cms migration diff [--write <name>] [--version V<n>] [--no-libs]
   cms doctor
 
@@ -71,6 +73,7 @@ export const OPTIONS = {
     version: { type: 'string' },
     'no-sync': { type: 'boolean' },
   },
+  'form apply': { 'no-sync': { type: 'boolean' } },
   'migration diff': {
     write: { type: 'string' },
     version: { type: 'string' },
@@ -95,7 +98,11 @@ export function main(argv, log = console.log) {
   if (command === 'entity new') entityNew(plan, positionals[0], positionals[1], values);
   if (command === 'entity add-field') entityAddField(plan, positionals[0], positionals[1], values);
   if (command === 'migration diff') migrationDiff(plan, values, log);
-  plan.apply({ dryRun: values['dry-run'], log });
+  if (command === 'form apply') {
+    if (positionals.length !== 1) throw new CliError('Usage: cms form apply <package.json>');
+    formApply(plan, positionals[0], values);
+  }
+  plan.apply({ dryRun: values['dry-run'], log, atomic: command === 'form apply' });
   return 0;
 }
 

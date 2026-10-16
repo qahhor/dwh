@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, linkedSignal, model, output } from '@angular/core';
 
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -13,6 +13,7 @@ import { Project } from '@core/models/task.models';
 import { CustomField } from '@core/models/custom-field.models';
 import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../projects.models';
 import { RecordAttributes } from '@features/tasks/tasks.models';
+import { clearTaskFieldError } from '@features/tasks/task-form-errors';
 import { ProblemFieldErrors } from '@shared/ui/problem-fields';
 import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { UiFocusFirstInvalidDirective } from '@shared/ui/focus-first-invalid';
@@ -48,13 +49,10 @@ export class ProjectModalsComponent {
   // Create Modal
   readonly isCreateModalOpen = input(false);
   readonly isCreateSubmitted = input(false);
-  /** The server's field errors of the last create; refusals without a field come as `createSaveError`. */
-  readonly createErrors = input<ProblemFieldErrors>(NO_PROJECT_ERRORS);
 
   // Edit Modal
   readonly isEditModalOpen = input(false);
   readonly isEditSubmitted = input(false);
-  readonly editErrors = input<ProblemFieldErrors>(NO_PROJECT_ERRORS);
   readonly editLoading = input(false);
   readonly editLoadError = input(false);
   readonly editingProject = input<Project | null>(null);
@@ -77,6 +75,10 @@ export class ProjectModalsComponent {
   readonly requestCloseEdit = output<void>();
   readonly submitEditProject = output<void>();
   readonly retryEditLoad = output<void>();
+
+  /** The server's field errors of the last create; refusals without a field come as `createSaveError`. */
+  readonly createErrors = model<ProblemFieldErrors>(NO_PROJECT_ERRORS);
+  readonly editErrors = model<ProblemFieldErrors>(NO_PROJECT_ERRORS);
 
   /** The new project's name was visited this opening (a new form object is a new opening). */
   readonly createNameTouched = linkedSignal({ source: this.createForm, computation: () => false });
@@ -108,6 +110,22 @@ export class ProjectModalsComponent {
       'projects.editor.name_not_empty',
       this.editErrors(),
     );
+  }
+
+  /** Editing a field clears only its previous server refusal. */
+  setCreateField<K extends keyof ProjectCreateForm>(key: K, value: ProjectCreateForm[K]): void {
+    const form = this.createForm();
+    if (Object.is(form[key], value)) return;
+    form[key] = value;
+    this.createErrors.update((errors) => clearTaskFieldError(errors, key));
+  }
+
+  /** Editing a field clears only its previous server refusal. */
+  setEditField<K extends keyof ProjectEditForm>(key: K, value: ProjectEditForm[K]): void {
+    const form = this.editForm();
+    if (Object.is(form[key], value)) return;
+    form[key] = value;
+    this.editErrors.update((errors) => clearTaskFieldError(errors, key));
   }
 
   /** Project states for the edit form; translated again when the language changes. */

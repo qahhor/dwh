@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
+import { translateTest } from '@testing/i18n-test.stub';
 import { ComponentFixture } from '@angular/core/testing';
 import { ResetPasswordComponent } from './reset-password.component';
 
@@ -15,9 +16,20 @@ function errors(fixture: ComponentFixture<ResetPasswordComponent>): string[] {
 describe('ResetPasswordComponent', () => {
   const api = { post: vi.fn() };
   const router = { navigate: vi.fn(() => Promise.resolve(true)) };
+  let savedTheme: string | null;
+  let appliedTheme: string | null;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    savedTheme = localStorage.getItem('smc_theme');
+    appliedTheme = document.documentElement.getAttribute('data-theme');
+  });
+
+  afterEach(() => {
+    if (savedTheme === null) localStorage.removeItem('smc_theme');
+    else localStorage.setItem('smc_theme', savedTheme);
+    if (appliedTheme === null) document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', appliedTheme);
   });
 
   async function open(hash: string) {
@@ -33,6 +45,31 @@ describe('ResetPasswordComponent', () => {
     fixture.detectChanges();
     return fixture;
   }
+
+  it('applies the saved dark theme when a reset link opens before login or the app shell', async () => {
+    localStorage.setItem('smc_theme', 'dark');
+    document.documentElement.removeAttribute('data-theme');
+
+    const fixture = await open('#token=link-token');
+    await fixture.whenStable();
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+  });
+
+  it('names the reset form with one page heading and connects its policy hint to the password', async () => {
+    const fixture = await open('#token=link-token');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelectorAll('h1')).toHaveLength(1);
+    expect(host.querySelector('h1')?.textContent?.trim()).toBe(translateTest('auth.reset.title'));
+    expect(host.querySelectorAll('#reset-password-hint')).toHaveLength(1);
+    expect(host.querySelector('#reset-password-hint')?.textContent).toContain('от 8 до 20');
+    expect(host.querySelector('#reset-new-password')?.getAttribute('aria-describedby')).toContain(
+      'reset-password-hint',
+    );
+  });
 
   it('takes the token from the fragment, drops it from the address and sets the password', async () => {
     api.post.mockReturnValue(of(undefined));
@@ -50,6 +87,12 @@ describe('ResetPasswordComponent', () => {
     );
     expect(component.state()).toBe('done');
     expect(component.model().newPassword).toBe('');
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelectorAll('h1')).toHaveLength(1);
+    expect(host.querySelector('h1')?.textContent?.trim()).toBe(translateTest('auth.reset.done_title'));
+    expect(host.querySelector('[role="status"]')?.textContent?.trim()).toBe(translateTest('auth.reset.done'));
+    expect(host.querySelector('form')).toBeNull();
   });
 
   it('shows an invalid link without a token and sends nothing', async () => {
@@ -58,6 +101,13 @@ describe('ResetPasswordComponent', () => {
     expect(fixture.componentInstance.state()).toBe('invalid');
     expect(fixture.nativeElement.querySelector('form')).toBeNull();
     expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('h1')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelector('h1')?.textContent?.trim()).toBe(
+      translateTest('auth.reset.invalid_title'),
+    );
+    expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent?.trim()).toBe(
+      translateTest('auth.reset.invalid_link'),
+    );
   });
 
   it('marks both fields required and explains an empty submit under each field', async () => {
@@ -132,6 +182,14 @@ describe('ResetPasswordComponent', () => {
     component.submit();
 
     expect(component.state()).toBe('invalid');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelector('h1')?.textContent?.trim()).toBe(
+      translateTest('auth.reset.invalid_title'),
+    );
+    expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent?.trim()).toBe(
+      translateTest('auth.reset.invalid_link'),
+    );
   });
 
   it('keeps the form and shows the reason for a refusal of no field above the button', async () => {

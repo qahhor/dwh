@@ -56,7 +56,7 @@ public class QueryMetaController {
             @Nullable String format,
             @Nullable Map<String, String> enumLabels) {
 
-        static FieldMeta of(QueryField field) {
+        public static FieldMeta of(QueryField field) {
             List<String> ops = field.ops().stream().map(QueryOp::wire).toList();
             return new FieldMeta(
                     field.key(),

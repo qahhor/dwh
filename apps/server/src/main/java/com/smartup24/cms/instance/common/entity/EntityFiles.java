@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
@@ -18,12 +19,14 @@ public interface EntityFiles {
 
     /**
      * The file, when {@code userId} may put it in a field of the record: a file that passed the content and virus
-     * checks (only such files are stored) and that the person uploaded, or one already attached to this record.
+     * checks (only such files are stored) and that the person uploaded, or one attached to a visible file/image field
+     * of this record. The caller supplies the currently declared visible field keys.
      * Empty for a file that does not exist and for one of somebody else: the two read alike.
      *
      * @param recordId the record, or null when it is being created
      */
-    Optional<FileFacts> attachable(UUID fileId, String entity, @Nullable Long recordId, long userId);
+    Optional<FileFacts> attachable(
+            UUID fileId, String entity, @Nullable Long recordId, long userId, Set<String> visibleFields);
 
     /** Makes {@code fileId} the attachment of the record's field, replacing the one it had; null leaves none. */
     void attach(String entity, long recordId, String fieldKey, @Nullable UUID fileId);
@@ -31,8 +34,8 @@ public interface EntityFiles {
     /** Removes the attachments of a deleted record; the files without attachments go with the files' cleanup. */
     void detachAll(String entity, long recordId);
 
-    /** The file when it is attached to the record, empty otherwise. */
-    Optional<FileFacts> attached(String entity, long recordId, UUID fileId);
+    /** The file attached to at least one currently declared visible file/image field of the record. */
+    Optional<FileFacts> attached(String entity, long recordId, UUID fileId, Set<String> visibleFields);
 
     /** The stored content of a file. */
     FileDownloadStream open(UUID fileId);

@@ -299,6 +299,95 @@ class EntityRuntimeIntegrationTest extends EmbeddedPostgresTest {
         assertThat(ownerSession.send(get(NOTES)).getStatus()).isEqualTo(200);
     }
 
+    @Test
+    void aHookCannotClearARequiredFieldEvenWhenItsColumnIsNullable() throws Exception {
+        long rows = count();
+        long audits = auditCount();
+        int events = EntityRuntimeFixture.EVENTS.size();
+        int saves = EntityRuntimeFixture.SAVES.size();
+        MockHttpServletResponse refused =
+                ownerSession.send(post(ITEMS), Map.of("title", EntityRuntimeFixture.CLEARS_REQUIRED));
+        assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(422);
+        assertThat(errors(refused)).containsExactly("title:required");
+        assertThat(count()).isEqualTo(rows);
+        assertThat(auditCount()).isEqualTo(audits);
+        assertThat(EntityRuntimeFixture.EVENTS).hasSize(events);
+        assertThat(EntityRuntimeFixture.SAVES).hasSize(saves);
+    }
+
+    @Test
+    void aHookCannotClearARequiredFieldOnUpdate() throws Exception {
+        long id = item(ownerSession, "kept title");
+        Map<String, Object> before = TestSession.object(ownerSession.send(get(ITEMS + "/" + id)));
+        long audits = auditCount();
+        int events = EntityRuntimeFixture.EVENTS.size();
+        MockHttpServletResponse refused = ownerSession.send(
+                patch(ITEMS + "/" + id).header("If-Match", "\"1\""),
+                Map.of("title", EntityRuntimeFixture.CLEARS_REQUIRED));
+        assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(422);
+        assertThat(errors(refused)).containsExactly("title:required");
+        assertThat(TestSession.object(ownerSession.send(get(ITEMS + "/" + id)))).isEqualTo(before);
+        assertThat(auditCount()).isEqualTo(audits);
+        assertThat(EntityRuntimeFixture.EVENTS).hasSize(events);
+    }
+
+    @Test
+    void anActionCannotClearARequiredField() throws Exception {
+        long id = item(ownerSession, EntityRuntimeFixture.CLEARS_IN_ACTION);
+        long audits = auditCount();
+        int events = EntityRuntimeFixture.EVENTS.size();
+        MockHttpServletResponse refused =
+                ownerSession.send(post(ITEMS + "/" + id + "/actions/star").header("If-Match", "\"1\""), Map.of());
+        assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(422);
+        assertThat(errors(refused)).containsExactly("title:required");
+        assertThat(TestSession.object(ownerSession.send(get(ITEMS + "/" + id))))
+                .containsEntry("title", EntityRuntimeFixture.CLEARS_IN_ACTION)
+                .containsEntry("starred", false)
+                .containsEntry("revision", 1);
+        assertThat(auditCount()).isEqualTo(audits);
+        assertThat(EntityRuntimeFixture.EVENTS).hasSize(events);
+    }
+
+    @Test
+    void aFieldMadeVisibleByAHookIsRequiredInTheFinalRecord() throws Exception {
+        long rows = count();
+        long audits = auditCount();
+        int events = EntityRuntimeFixture.EVENTS.size();
+        MockHttpServletResponse refused =
+                ownerSession.send(post(ITEMS), Map.of("title", EntityRuntimeFixture.SHOWS_REQUIRED));
+        assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(422);
+        assertThat(errors(refused)).containsExactly("detail:required");
+        assertThat(count()).isEqualTo(rows);
+        assertThat(auditCount()).isEqualTo(audits);
+        assertThat(EntityRuntimeFixture.EVENTS).hasSize(events);
+    }
+
+    @Test
+    void aHookMayFillTheFieldItMakesVisibleAndWriteReadonlyValues() throws Exception {
+        MockHttpServletResponse created =
+                ownerSession.send(post(ITEMS), Map.of("title", EntityRuntimeFixture.FILLS_REQUIRED));
+        assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
+        assertThat(TestSession.object(created))
+                .containsEntry("detail", "Filled by hook")
+                .containsEntry("detailsRequired", true)
+                .containsEntry("code", "RT-FILLS-REQUIRED-DETAIL");
+    }
+
+    @Test
+    void aHookMayTemporarilyClearAndThenRestoreARequiredValue() throws Exception {
+        MockHttpServletResponse created =
+                ownerSession.send(post(ITEMS), Map.of("title", EntityRuntimeFixture.RESTORES_REQUIRED));
+        assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
+        assertThat(TestSession.object(created)).containsEntry("title", EntityRuntimeFixture.RESTORES_REQUIRED);
+    }
+
+    private long auditCount() {
+        return jdbc.sql("select count(*) from audit_log where table_name = :table")
+                .param("table", EntityRuntimeFixture.TABLE)
+                .query(Long.class)
+                .single();
+    }
+
     private List<com.smartup24.cms.platform.api.entity.event.EntityChanged> events(long id) {
         return EntityRuntimeFixture.EVENTS.stream()
                 .filter(event -> event.id() == id)

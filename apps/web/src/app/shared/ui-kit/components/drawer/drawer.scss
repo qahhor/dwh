@@ -60,6 +60,7 @@
 }
 
 .smt-drawer__panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   max-width: 100%;
@@ -81,7 +82,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px;
+  min-height: 60px;
+  padding: 14px 62px 14px 18px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -96,6 +98,9 @@
 }
 
 .smt-drawer__close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -125,6 +130,15 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+@media (max-width: 767px) {
+  .smt-drawer__close {
+    top: 8px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+  }
 }
 
 @media (max-width: 640px) {

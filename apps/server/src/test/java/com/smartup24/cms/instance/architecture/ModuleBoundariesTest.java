@@ -58,6 +58,7 @@ class ModuleBoundariesTest {
             "ms.task",
             "report",
             "search",
+            "studio",
             "units",
             "upl",
             "warehouse",
@@ -356,6 +357,7 @@ class ModuleBoundariesTest {
         if (table.startsWith("fnd_load")) return Optional.of("warehouse");
         if (table.startsWith("kwh_")) return Optional.of("webhook");
         if (table.startsWith("ex_")) return Optional.of("example");
+        if (table.startsWith("studio_")) return Optional.of("studio");
         for (String module : List.of("kauth", "md", "mf", "report", "search", "upl")) {
             if (table.startsWith(module + "_")) return Optional.of(module);
         }

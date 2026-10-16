@@ -4,6 +4,10 @@
 
 **Updated:** 2026-09-06
 
+For the current automated path, use the [Russian handbook](production-handbook-ru.md)
+and [Ansible rollback-plan](ansible-deployment.md). That action prepares commands
+for review and never restores databases or executes an image downgrade automatically.
+
 Choose image rollback only when the previous server is compatible with the
 current database schema. If compatibility is unknown or data is damaged, use
 the encrypted pre-migration backup. Never reverse Flyway history or improvise

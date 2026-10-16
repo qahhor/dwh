@@ -88,7 +88,7 @@ describe('smt-entity-report', () => {
     expect(host.querySelector('[data-testid="report-chart"]')).toBeNull();
   });
 
-  it('draws bars stacked by the currency of money, and the same figures in a table with headers', () => {
+  it('draws a single-currency amount and the same figures in a table with headers', () => {
     const host = render(
       {
         groups: [
@@ -98,8 +98,7 @@ describe('smt-entity-report', () => {
         measures: [{ op: 'sum', field: 'total' }],
         rows: [
           { groups: ['draft', 'USD'], values: [10] },
-          { groups: ['draft', 'UZS'], values: [30] },
-          { groups: ['posted', 'UZS'], values: [7.4] },
+          { groups: ['posted', 'USD'], values: [7.4] },
         ],
         truncated: true,
       },
@@ -109,7 +108,7 @@ describe('smt-entity-report', () => {
     const bars = host.querySelectorAll('[data-testid="bar-chart-bar"]');
     expect(bars).toHaveLength(2);
     expect(bars[0].querySelector('title')?.textContent).toContain('Черновик');
-    expect(bars[0].querySelectorAll('rect')).toHaveLength(2);
+    expect(bars[0].querySelectorAll('rect')).toHaveLength(1);
     const table = host.querySelector('[data-testid="report-table"]') as HTMLTableElement;
     expect(table.querySelector('caption')?.textContent?.trim()).toBe('Отчёт: Заказы');
     expect(Array.from(table.querySelectorAll('thead th')).map((cell) => cell.getAttribute('scope'))).toEqual([
@@ -117,7 +116,7 @@ describe('smt-entity-report', () => {
       'col',
       'col',
     ]);
-    expect(table.querySelectorAll('tbody tr')).toHaveLength(3);
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
     expect(table.querySelector('tbody th')?.getAttribute('scope')).toBe('row');
     expect(host.querySelector('[role="note"]')).not.toBeNull();
   });

@@ -9,7 +9,7 @@ import { NavSection } from '../app-shell.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, TranslatePipe],
   template: `
-    @for (section of navSections(); track section; let first = $first) {
+    @for (section of navSections(); track section.id) {
       @if (hasVisibleItems()(section)) {
         <button
           type="button"
@@ -18,8 +18,10 @@ import { NavSection } from '../app-shell.models';
           [attr.aria-expanded]="isSectionExpanded()(section.id)"
           [attr.aria-controls]="'section-content-' + section.id"
           [attr.aria-label]="
-            (isSectionExpanded()(section.id) ? 'layout.app_shell.collapse_section' : 'layout.app_shell.expand_section')
-              | t
+            ((isSectionExpanded()(section.id) ? 'layout.app_shell.collapse_section' : 'layout.app_shell.expand_section')
+              | t) +
+            ': ' +
+            (section.titleKey | t)
           "
         >
           <span class="nav-section-title">{{ section.titleKey | t }}</span>
@@ -38,8 +40,10 @@ import { NavSection } from '../app-shell.models';
         [id]="'section-content-' + section.id"
         class="nav-section-content"
         [class.collapsed]="!isSectionExpanded()(section.id)"
+        [attr.inert]="!isSectionExpanded()(section.id) ? true : null"
+        [attr.aria-hidden]="!isSectionExpanded()(section.id) ? 'true' : null"
       >
-        @for (item of section.items; track item) {
+        @for (item of section.items; track item.id) {
           <!-- Internal link item -->
           @if (item.permission() && !item.children?.length && !item.external) {
             <a

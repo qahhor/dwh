@@ -50,6 +50,7 @@ $TypesensePort = Get-Setting 'TYPESENSE_PORT' '8108'
 $Project = Get-Setting 'SMC_LOCAL_PROJECT' 'smartupcms-local'
 # The development credentials of docker-compose.yml and .env.example.
 $DbPassword = Get-Setting 'DB_PASSWORD' 'smartupcms_local_dev'
+$MigrateDbPassword = Get-Setting 'MIGRATE_DB_PASSWORD' 'smartupcms_migrator_local_dev'
 $env:DB_PORT = $DbPort; $env:MAILPIT_HTTP_PORT = $MailpitHttpPort; $env:MAILPIT_SMTP_PORT = $MailpitSmtpPort
 $env:TYPESENSE_PORT = $TypesensePort; $env:PROJECT_NAME = $Project
 
@@ -183,6 +184,7 @@ function Invoke-Migrations {
     Set-ServerEnvironment
     # As the migrator role of the PostgreSQL image, the same steps as the migrate service of docker-compose.yml.
     $env:DB_USER = 'smartupcms_migrator'
+    $env:DB_PASSWORD = $MigrateDbPassword
     $env:SMC_MIGRATE_SCOPE = 'warehouse'
     try {
         Invoke-Native 'pg-dwh migrations' {
@@ -200,6 +202,7 @@ function Invoke-Migrations {
     } finally {
         Remove-Item Env:SMC_MIGRATE_SCOPE -ErrorAction SilentlyContinue
         $env:DB_USER = 'smartupcms'
+        $env:DB_PASSWORD = $DbPassword
     }
 }
 

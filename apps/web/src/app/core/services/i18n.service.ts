@@ -4,6 +4,7 @@ import {
   Observable,
   catchError,
   finalize,
+  filter,
   firstValueFrom,
   map,
   of,
@@ -105,6 +106,8 @@ export class I18nService {
   private readonly cache = new Map<string, CachedDictionary>();
   private readonly inFlight = new Map<string, Observable<TranslationDictionary>>();
   private initialization?: Promise<void>;
+  private accessContext?: string;
+  private accessGeneration = 0;
 
   private readonly chosen = new Subject<string>();
   /** Languages the person chose here (saved to their settings), for the other open tabs to follow. */
@@ -126,6 +129,7 @@ export class I18nService {
 
     const previousCode = this.currentLang();
     const previousDictionary = this.activeDictionary();
+    const generation = this.accessGeneration;
 
     return this.loadDictionary(normalized).pipe(
       tap((dictionary) => {
@@ -142,12 +146,13 @@ export class I18nService {
             )
           : of(undefined),
       ),
+      filter(() => generation === this.accessGeneration),
       tap(() => {
         if (persist) this.chosen.next(normalized);
       }),
       map(() => undefined),
       catchError((error) => {
-        this.activate(previousCode, previousDictionary);
+        if (generation === this.accessGeneration) this.activate(previousCode, previousDictionary);
         return throwError(() => error);
       }),
     );
@@ -161,6 +166,27 @@ export class I18nService {
     });
   }
 
+  /** Live declaration labels follow the authenticated viewer, including revocation (ADR-0038). */
+  useAccessContext(userId: number | null, version = 0, permissions: readonly string[] = []): void {
+    const context = JSON.stringify([userId, version, [...permissions].sort()]);
+    if (context === this.accessContext) return;
+    this.accessContext = context;
+    const generation = ++this.accessGeneration;
+    this.cache.clear();
+    this.inFlight.clear();
+    const publicValues = (values: TranslationDictionary): TranslationDictionary =>
+      Object.fromEntries(Object.entries(values).filter(([key]) => !key.startsWith('studio.live.')));
+    this.activeDictionary.update(publicValues);
+    this.russianDictionary.update(publicValues);
+    if (userId === null || !this.initialization || !this.http) return;
+    this.loadError.set(null);
+    this.refreshLanguage(RUSSIAN).subscribe({
+      error: () => {
+        if (generation === this.accessGeneration) this.loadError.set(this.translate('common.language_packs_failed'));
+      },
+    });
+  }
+
   refreshLanguages(): Observable<LanguageInfo[]> {
     return this.client
       .get<LanguageInfo[]>(`${API_ROOT}/i18n/languages`, {
@@ -171,8 +197,10 @@ export class I18nService {
 
   refreshLanguage(code: string): Observable<void> {
     const normalized = this.normalize(code);
-    const activeCode = this.currentLang();
+    const generation = this.accessGeneration;
+    const pending = new Map(this.inFlight);
     return this.refreshLanguages().pipe(
+      filter(() => generation === this.accessGeneration),
       tap(() => {
         if (normalized === RUSSIAN) {
           // Every effective non-Russian dictionary contains per-key Russian
@@ -180,6 +208,11 @@ export class I18nService {
           this.cache.clear();
         } else {
           this.cache.delete(normalized);
+        }
+        for (const [language, request] of pending) {
+          if ((normalized === RUSSIAN || language === normalized) && this.inFlight.get(language) === request) {
+            this.inFlight.delete(language);
+          }
         }
       }),
       switchMap(() => this.loadDictionary(normalized)),
@@ -191,11 +224,16 @@ export class I18nService {
           this.activeDictionary.set(dictionary);
         }
       }),
-      switchMap(() =>
-        normalized === RUSSIAN && activeCode !== RUSSIAN
-          ? this.loadDictionary(activeCode).pipe(tap((dictionary) => this.activeDictionary.set(dictionary)))
-          : of(undefined),
-      ),
+      switchMap(() => {
+        const activeCode = this.currentLang();
+        return normalized === RUSSIAN && activeCode !== RUSSIAN
+          ? this.loadDictionary(activeCode).pipe(
+              tap((dictionary) => {
+                if (this.currentLang() === activeCode) this.activeDictionary.set(dictionary);
+              }),
+            )
+          : of(undefined);
+      }),
       map(() => undefined),
     );
   }
@@ -390,18 +428,22 @@ export class I18nService {
     const existing = this.inFlight.get(normalized);
     if (existing) return existing;
 
-    const request = this.client
+    const generation = this.accessGeneration;
+    const request: Observable<TranslationDictionary> = this.client
       .get<TranslationDictionary>(`${API_ROOT}/i18n/${normalized}`, {
         withCredentials: true,
       })
       .pipe(
+        filter(() => generation === this.accessGeneration && this.inFlight.get(normalized) === request),
         tap((values) => {
           const immutable = { ...values };
           this.cache.set(normalized, { revision, values: immutable });
           if (normalized === RUSSIAN) this.russianDictionary.set(immutable);
         }),
         map((values) => this.cache.get(normalized)?.values ?? { ...values }),
-        finalize(() => this.inFlight.delete(normalized)),
+        finalize(() => {
+          if (this.inFlight.get(normalized) === request) this.inFlight.delete(normalized);
+        }),
         shareReplay({ bufferSize: 1, refCount: false }),
       );
     this.inFlight.set(normalized, request);

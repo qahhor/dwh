@@ -19,6 +19,9 @@ secrets/
 
 # Local evidence, credentials, caches, and tool installations are not build inputs.
 output
+deployments
+**/test-results
+**/artifact-security-results
 audit
 graphify-out
 .superpowers
@@ -33,6 +36,12 @@ graphify-out
 **/out
 **/coverage
 **/.cache
+**/.local
+**/.tools
+**/__pycache__
+**/.venv
+**/.pytest_cache
+**/*.py[cod]
 **/tmp
 **/*.dump
 **/*.dump.age

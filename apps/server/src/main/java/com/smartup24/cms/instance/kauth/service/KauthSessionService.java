@@ -36,7 +36,7 @@ public class KauthSessionService {
     public UserSecuritySummary getUserSecuritySummary(Long userId, MdUserService.AuthUser user) {
         var activeSessions = sessionRepository.findActiveByUserId(userId);
         var recentAttempts = loginAttemptRepository != null
-                ? loginAttemptRepository.findRecentAttemptsForLogin(user.login(), 10)
+                ? loginAttemptRepository.findRecentAttemptsForUser(userId, 10)
                 : List.<KauthLoginAttemptRepository.LoginAttemptRecord>of();
         return new UserSecuritySummary(
                 user.id(),

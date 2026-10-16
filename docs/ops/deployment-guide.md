@@ -2,9 +2,15 @@
 
 **Version:** 2.0
 
-**Updated:** 2026-09-05
+**Updated:** 2026-10-13
 
 **Supported path:** one organization on one Docker Compose host.
+
+The automated production path is [verified Ansible deployment](ansible-deployment.md).
+The [Russian production handbook](production-handbook-ru.md) covers APP/OPS
+preparation, complete recovery sets and operational acceptance. Low-level
+scripts described here are building blocks; they do not replace the verifier,
+complete backup, deployment lock or migration-boundary checks of that path.
 
 Deployment is not production-ready until every blocking item in the
 [production launch checklist](production-launch-checklist.md) is evidenced.
@@ -40,12 +46,17 @@ credential in `.env.production`. Create these files with mode `0600`:
 
 ```text
 deploy/compose/.secrets/database-password
+deploy/compose/.secrets/postgres-password
+deploy/compose/.secrets/migrate-database-password
 deploy/compose/.secrets/backup-database-password
 ```
 
-The first file must contain the same value as `DB_PASSWORD`. The second must be
-a distinct random password for the dedicated read-only backup role. Do not add a
-trailing explanatory line or commit the files.
+The files must match `DB_PASSWORD`, `POSTGRES_PASSWORD`, `MIGRATE_DB_PASSWORD`
+and `BACKUP_DB_PASSWORD`, respectively. All four values are required and
+pairwise distinct. Map each through its corresponding `*_PASSWORD_FILE`.
+Do not add a trailing explanatory line or commit the files. Bind-backed secret
+files consumed by backup containers need owner UID 10001 and mode 0600;
+the monitoring secret uses UID 65534. The deployment runner applies these owners.
 
 Set `SMC_SECRETS_KEY` to a key of this installation (`openssl rand -base64 32`;
 `init-production-env.*` generates one). The server encrypts the secrets it
@@ -86,8 +97,27 @@ ADR-0027 are not read. The server refuses to start without
 the `dev` profile while `TYPESENSE_API_KEY`, `ADMIN_PASSWORD` or `DB_PASSWORD`
 keeps a development value published in this repository.
 
-For application file storage, `SMC_PROVIDER_STORAGE=local_disk` requires an
-operator backup for `server-data`. With `SMC_PROVIDER_STORAGE=s3`, configure the
+For application file storage, the base `local_disk` profile keeps objects in
+`server-data`; its database backup alone does not protect uploaded files.
+For coordinated recovery on the same Linux host, add
+`deploy/compose/docker-compose.local-storage.yml` on the **first installation**.
+Set `SMC_LOCAL_STORAGE_HOST_PATH` to an absolute private object directory outside
+the recovery cache. Create it before Compose starts, for example:
+
+```sh
+sudo install -d -m 0750 -o 10001 -g 10001 /var/lib/smartupcms/objects
+```
+
+Use that exact path as `objects.localStoragePath` in the private recovery config,
+set its provider to `local_disk`, and include the overlay in both deployment and
+recovery `composeFiles`. `create_host_path: false` prevents an accidental empty
+directory from silently replacing the expected source. Run the coordinator on
+that host against its local Docker daemon; the separate APP/OPS deployment uses
+S3. Do not add this overlay over an existing named-volume installation: it would
+hide its files. Bind the approved source identity before capture and verify a
+complete CMS+DWH+objects restore.
+
+With `SMC_PROVIDER_STORAGE=s3`, configure the
 S3-compatible application variables and verify upload, download, delete, and
 recovery against the selected provider. Smartup-managed deployments use
 Cloudflare R2.
@@ -123,7 +153,8 @@ path, or wildcard, in comma-separated `SMC_WEBHOOKS_ALLOWED_HOSTS`. Keep
 `SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false` for Smartup-managed and public
 installations. Client-owned internal destinations require a documented network
 review before opting in. Host OS/firewall egress policy remains the final
-network boundary.
+network boundary. Every webhook target must use HTTPS, including private
+destinations; private-address opt-in does not permit HTTP.
 
 ```bash
 docker compose -f deploy/compose/docker-compose.prod.yml \
@@ -138,23 +169,15 @@ Confirm that only `web` contains `ports:` and that the bind address is loopback.
 
 ## 4. Deploy
 
-Linux/macOS:
+Use the inventory and reviewed variables in [the Ansible guide](ansible-deployment.md).
+It verifies the independently trusted release, captures a complete recovery set
+for an existing installation, quiesces writers and calls `scripts/prod/deploy.sh`
+under a lock. The low-level shell/PowerShell scripts validate Compose, pull images,
+run migrations, refresh the backup role and wait for health. Calling them directly
+does not provide the complete recovery or verified artifact contract.
 
-```bash
-bash scripts/prod/deploy.sh
-```
-
-PowerShell:
-
-```powershell
-./scripts/prod/deploy.ps1
-```
-
-The script validates Compose, pulls release images, creates a mandatory
-pre-migration encrypted backup when an existing database is present, starts
-dependencies, runs Flyway, refreshes the read-only backup role, and waits for
-all services. Any failed step exits non-zero. A failed backup prevents the
-migration.
+If migration or readiness fails, follow [rollback](rollback.md). Never start
+an old writer against an unverified partially migrated schema.
 
 ## 5. Configure TLS
 

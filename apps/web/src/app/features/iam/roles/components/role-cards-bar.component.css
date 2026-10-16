@@ -1,3 +1,8 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
 .roles-strip-container {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
@@ -8,6 +13,8 @@
   gap: 12px;
 }
 .roles-strip-header {
+  flex-wrap: wrap;
+  gap: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -19,11 +26,13 @@
 }
 .search-field {
   width: 220px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .roles-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
   gap: 10px;
 }
 .role-card-btn {
@@ -67,6 +76,8 @@
   gap: 6px;
 }
 .role-card-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-main);
@@ -202,4 +213,12 @@
 }
 .font-mono {
   font-family: monospace;
+}
+
+@media (max-width: 767px) {
+  .role-users-btn,
+  .mini-btn {
+    min-width: var(--control-touch-height);
+    min-height: var(--control-touch-height);
+  }
 }

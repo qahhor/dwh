@@ -5,7 +5,15 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { UPL_DATA_TYPES, UplColumn, UplDataType, UplFormatDraftRequest, UplSheet, UplUnit } from '../upl.api';
 import { UPL_DATA_TYPE_KEY } from '../upl-labels';
-import { UplFieldError, uplCellError, uplFieldErrorText, uplSheetError, uplSheetHasErrors } from './upl-format-errors';
+import {
+  UplFieldError,
+  uplCellError,
+  uplFieldErrorText,
+  uplSheetError,
+  uplSheetHasErrors,
+  uplSameField,
+  touchUplField,
+} from './upl-format-errors';
 import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './upl-format-model';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
@@ -49,6 +57,14 @@ export class FormatSheetsStepComponent {
 
   private readonly dataTypeMemo = optionsMemo<SMTSelectOption<UplDataType>[]>();
   private readonly unitMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  clearFieldError(field: string, column: number | null = null): void {
+    this.errors.update((errors) => errors.filter((error) => !uplSameField(error, field, this.activeSheet(), column)));
+  }
+
+  touchField(field: string, column: number | null = null): void {
+    this.errors.update((errors) => touchUplField(this.model(), errors, field, this.activeSheet(), column));
+  }
 
   /** The column data types; the labels are translated again when the language changes. */
   dataTypeOptions(): SMTSelectOption<UplDataType>[] {
@@ -156,7 +172,11 @@ export class FormatSheetsStepComponent {
     const sheets = this.model().sheets;
     if (!sheets[index]) return;
     sheets.splice(index, 1);
-    this.errors.set([]);
+    this.errors.update((errors) =>
+      errors
+        .filter((error) => error.sheet !== index)
+        .map((error) => (error.sheet !== null && error.sheet > index ? { ...error, sheet: error.sheet - 1 } : error)),
+    );
     if (this.activeSheet() >= sheets.length) {
       this.activeSheet.set(Math.max(0, sheets.length - 1));
     }
@@ -173,14 +193,36 @@ export class FormatSheetsStepComponent {
     if (target < 0 || target >= sheet.columns.length) return;
     const [column] = sheet.columns.splice(index, 1);
     sheet.columns.splice(target, 0, column);
-    this.errors.set([]);
+    this.errors.update((errors) =>
+      errors.map((error) => {
+        if (error.sheet !== this.activeSheet() || error.column === null) return error;
+        const position = error.column;
+        const column =
+          position === index
+            ? target
+            : position > index && position <= target
+              ? position - 1
+              : position < index && position >= target
+                ? position + 1
+                : position;
+        return { ...error, column };
+      }),
+    );
   }
 
   removeColumn(index: number): void {
     const sheet = this.activeSheetModel();
-    if (!sheet) return;
+    if (!sheet?.columns[index]) return;
     sheet.columns.splice(index, 1);
-    this.errors.set([]);
+    this.errors.update((errors) =>
+      errors
+        .filter((error) => error.sheet !== this.activeSheet() || error.column !== index)
+        .map((error) =>
+          error.sheet === this.activeSheet() && error.column !== null && error.column > index
+            ? { ...error, column: error.column - 1 }
+            : error,
+        ),
+    );
   }
 
   /** The type list cannot be cleared (no clear button), so an empty value never reaches the draft. */
@@ -192,8 +234,16 @@ export class FormatSheetsStepComponent {
 
   /** Fields the new type does not have are cleared: the only silent edit, so a toast tells about it. */
   onTypeChange(column: UplColumn): void {
+    const index = this.activeSheetModel()?.columns.indexOf(column) ?? -1;
+    const before = { ...column };
     const cleared = clearFieldsForType(column);
-    this.errors.set([]);
+    const changed = ['dataType'];
+    for (const field of ['sourceUnit', 'baseUnit', 'keyMask', 'keyPadLength', 'keyPadMax', 'refBookCode'] as const) {
+      if (before[field] !== column[field]) changed.push(field);
+    }
+    this.errors.update((errors) =>
+      errors.filter((error) => !changed.some((field) => uplSameField(error, field, this.activeSheet(), index))),
+    );
     if (cleared) {
       this.toast.info(this.i18n.translate('upl.format.cleared'));
     }

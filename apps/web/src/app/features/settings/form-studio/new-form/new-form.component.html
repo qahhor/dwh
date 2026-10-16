@@ -1,0 +1,242 @@
+<div class="new-form-page" data-testid="new-form-studio">
+  <ui-page-header [title]="'settings.simple_form.title' | t" [subtitle]="'settings.simple_form.subtitle' | t">
+    <a smt-button smtVariant="secondary" routerLink="/settings/form-studio">{{ 'settings.simple_form.back' | t }}</a>
+  </ui-page-header>
+  <app-new-form-assistant />
+  <smt-control [smtLabel]="'settings.simple_form.delivery' | t" class="new-form-delivery">
+    <smt-select
+      [options]="deliveryOptions()"
+      [value]="store.delivery()"
+      [allowClear]="false"
+      [disabled]="busy()"
+      data-testid="new-form-delivery"
+      (valueChange)="chooseDelivery($event)"
+    />
+  </smt-control>
+  <smt-alert smtTone="info" smtLive="off">{{
+    (store.delivery() === 'live' ? 'settings.simple_form.activation_hint' : 'settings.simple_form.delivery_hint') | t
+  }}</smt-alert>
+  @if (store.delivery() === 'live') {
+    @if (!activation.mayPublish()) {
+      <smt-alert smtTone="warning" data-testid="new-form-activation-denied">{{
+        'settings.simple_form.activation_denied' | t
+      }}</smt-alert>
+    } @else if (activation.availabilityLoading()) {
+      <p role="status" class="new-form-hint">{{ 'settings.simple_form.activation_checking' | t }}</p>
+    } @else if (activation.availabilityError()) {
+      <smt-alert smtTone="danger">{{ activation.availabilityError() }}</smt-alert>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        [disabled]="busy()"
+        (click)="activation.loadAvailability()"
+      >
+        {{ 'settings.simple_form.activation_check' | t }}
+      </button>
+    } @else if (!activation.availability()?.enabled) {
+      <smt-alert smtTone="warning">{{ 'settings.simple_form.activation_disabled' | t }}</smt-alert>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        [disabled]="busy()"
+        (click)="activation.loadAvailability()"
+      >
+        {{ 'settings.simple_form.activation_check' | t }}
+      </button>
+    }
+  }
+  <div class="new-form-toolbar">
+    <button
+      smt-button
+      type="button"
+      [smtVariant]="store.delivery() === 'live' ? 'secondary' : 'primary'"
+      [disabled]="busy()"
+      [smtLoading]="store.busy()"
+      data-testid="new-form-prepare"
+      (click)="store.prepare()"
+    >
+      {{ 'settings.simple_form.prepare' | t }}
+    </button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      [disabled]="busy() || !store.prepared()"
+      data-testid="new-form-download"
+      (click)="downloadPackage()"
+    >
+      {{ 'settings.simple_form.download' | t }}
+    </button>
+    @if (store.delivery() === 'live' && activation.mayPublish()) {
+      <button
+        smt-button
+        type="button"
+        [disabled]="!activation.canActivate()"
+        [smtLoading]="activation.publishing()"
+        data-testid="new-form-activate"
+        (click)="activation.activate()"
+      >
+        {{ 'settings.simple_form.activate' | t }}
+      </button>
+    }
+    <button smt-button type="button" smtVariant="secondary" [disabled]="busy()" (click)="downloadDraft()">
+      {{ 'settings.simple_form.save_draft' | t }}
+    </button>
+    <button smt-button type="button" smtVariant="secondary" [disabled]="busy()" (click)="filePicker.click()">
+      {{ 'settings.simple_form.open_draft' | t }}
+    </button>
+    <input
+      #filePicker
+      type="file"
+      hidden
+      accept=".json,application/json"
+      data-testid="new-form-import"
+      (change)="importFile($event)"
+    />
+  </div>
+  @if (activation.result(); as result) {
+    <smt-alert smtTone="success" data-testid="new-form-activated">
+      {{ 'settings.simple_form.activation_success' | t: { code: result.entityCode } }}
+      @if (activation.canOpen()) {
+        <a smt-button smtVariant="secondary" [routerLink]="['/e', result.entityCode]">{{
+          'settings.simple_form.activation_open' | t
+        }}</a>
+      } @else {
+        <p>{{ 'settings.simple_form.activation_no_view' | t }}</p>
+      }
+    </smt-alert>
+  }
+  @if (activation.refreshError()) {
+    <smt-alert smtTone="warning">{{ activation.refreshError() }}</smt-alert>
+    <button smt-button type="button" smtVariant="secondary" [disabled]="busy()" (click)="activation.refresh()">
+      {{ 'common.refresh' | t }}
+    </button>
+  }
+  @if (activation.error()) {
+    <smt-alert smtTone="danger" data-testid="new-form-activation-error">
+      {{ activation.error() }}
+      <p>{{ 'settings.simple_form.activation_retry' | t }}</p>
+    </smt-alert>
+  }
+  @if (store.error()) {
+    <smt-alert smtTone="danger" data-testid="new-form-error">
+      {{ store.error() }}
+      @if (store.issues().length) {
+        <ul>
+          @for (issue of store.issues(); track $index) {
+            <li>
+              <code>{{ issue.path }}</code
+              >: {{ issue.message }}
+            </li>
+          }
+        </ul>
+      }
+      <p>{{ 'settings.simple_form.retry_hint' | t }}</p>
+    </smt-alert>
+  }
+  @if (!activation.result()) {
+    <p class="new-form-status" role="status">
+      {{
+        (activation.publishing()
+          ? 'settings.simple_form.activating'
+          : busy()
+            ? 'settings.simple_form.preparing'
+            : store.prepared()
+              ? store.delivery() === 'live'
+                ? 'settings.simple_form.activation_ready'
+                : 'settings.simple_form.ready'
+              : 'settings.simple_form.unchecked'
+        ) | t
+      }}
+    </p>
+  }
+  <div class="new-form-columns">
+    <section class="new-form-panel" aria-labelledby="new-form-editor-title">
+      <h2 id="new-form-editor-title">{{ 'settings.simple_form.editor' | t }}</h2>
+      <fieldset class="new-form-group">
+        <legend>{{ (store.delivery() === 'live' ? 'studio.module.name' : 'settings.simple_form.module') | t }}</legend>
+        <smt-control
+          [smtLabel]="'settings.simple_form.module_code' | t"
+          [required]="true"
+          [smtHint]="'settings.simple_form.module_hint' | t"
+        >
+          <smt-input
+            smtTestId="new-module-code"
+            [value]="store.draft().module.code"
+            [maxLength]="12"
+            [disabled]="busy() || store.delivery() === 'live'"
+            (valueChange)="changeIdentifier('module', $event)"
+          />
+        </smt-control>
+        <app-new-form-labels
+          [labels]="store.draft().module.title"
+          [disabled]="busy() || store.delivery() === 'live'"
+          (changed)="setTitle('module', $event.language, $event.value)"
+        />
+      </fieldset>
+      <fieldset class="new-form-group">
+        <legend>{{ 'settings.simple_form.entity' | t }}</legend>
+        <smt-control
+          [smtLabel]="'settings.simple_form.entity_name' | t"
+          [required]="true"
+          [smtHint]="'settings.simple_form.entity_hint' | t"
+        >
+          <smt-input
+            smtTestId="new-entity-name"
+            [value]="store.draft().entity.name"
+            [maxLength]="20"
+            [disabled]="busy()"
+            (valueChange)="changeIdentifier('entity', $event)"
+          />
+        </smt-control>
+        <app-new-form-labels
+          [labels]="store.draft().entity.title"
+          [disabled]="busy()"
+          (changed)="setTitle('entity', $event.language, $event.value)"
+        />
+      </fieldset>
+      <p class="new-form-hint">{{ 'settings.simple_form.implicit_hint' | t }}</p>
+      <div class="new-form-heading">
+        <h3>{{ 'settings.simple_form.fields' | t }}</h3>
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          [disabled]="busy() || store.draft().fields.length >= 20"
+          data-testid="new-form-add"
+          (click)="addField()"
+        >
+          {{ 'settings.simple_form.add_field' | t }}
+        </button>
+      </div>
+      @if (!store.draft().fields.length) {
+        <p class="new-form-hint">{{ 'settings.simple_form.no_fields' | t }}</p>
+      }
+      @for (field of store.draft().fields; track $index; let index = $index) {
+        <app-new-form-field
+          [field]="field"
+          [index]="index"
+          [count]="store.draft().fields.length"
+          [disabled]="busy()"
+          (changed)="editField(index, $event)"
+          (moved)="moveField(index, $event)"
+          (removed)="removeField(index)"
+        />
+      }
+    </section>
+    <section class="new-form-panel new-form-preview" aria-labelledby="new-form-preview-title">
+      <h2 id="new-form-preview-title">{{ 'settings.form_studio.preview' | t }}</h2>
+      @if (preview(); as meta) {
+        <p class="new-form-hint">{{ 'settings.form_studio.preview_hint' | t }}</p>
+        <smt-entity-form [meta]="meta" [(value)]="values" />
+        <p class="new-form-hint">{{ 'settings.simple_form.checksum' | t }}</p>
+        <code class="new-form-checksum">{{ store.prepared()?.checksum }}</code>
+      } @else {
+        <p class="new-form-hint">{{ 'settings.simple_form.preview_hint' | t }}</p>
+      }
+    </section>
+  </div>
+</div>

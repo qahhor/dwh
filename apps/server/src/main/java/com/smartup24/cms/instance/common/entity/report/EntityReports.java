@@ -12,85 +12,86 @@ import com.smartup24.cms.instance.common.query.QueryAggregateRepository;
 import com.smartup24.cms.instance.common.query.QueryAggregateResult;
 import com.smartup24.cms.instance.common.query.QueryAggregates;
 import com.smartup24.cms.instance.common.query.QueryList;
+import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
-import java.util.Objects;
+import java.util.LinkedHashMap;
 import java.util.Optional;
-import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * The reports of an entity's list (ADR-0032, 10.2; plan 10/10, item 5.8): a grouped query built from the entity's
- * list declaration only ({@link QueryAggregates}), read with the same rules as the list — the entity answers only a
- * viewer who may see it (the same 404 otherwise, {@link EntityGate}), the data scope and the archive go into the same
- * SQL ({@link EntityScopes#listPredicate}) and a field the viewer may not see is no field of the report (422, as in the
- * filter). So a total never counts a record or a value the viewer could not read in the list itself.
- */
+/** Bounded aggregates of a current, authorized root or prepared dataset source (ADR-0032, ADR-0039). */
 @Component
 public class EntityReports {
-
     private final EntityGate gate;
     private final EntityRegistry registry;
-    private final EntityReads reads;
     private final EntityScopes scopes;
     private final QueryAggregateRepository aggregates;
-    /** Read when a saved report runs: the md module's views need these reports to list the dashboard's widgets. */
-    private final Supplier<@Nullable EntityReportViews> views;
-
-    @Autowired
-    public EntityReports(
-            EntityGate gate,
-            EntityRegistry registry,
-            EntityReads reads,
-            EntityScopes scopes,
-            QueryAggregateRepository aggregates,
-            ObjectProvider<EntityReportViews> views) {
-        this(gate, registry, reads, scopes, aggregates, views::getIfAvailable);
-    }
+    private final ObjectProvider<EntityReportViews> views;
+    private final EntityReportDatasets datasets;
 
     public EntityReports(
             EntityGate gate,
             EntityRegistry registry,
-            EntityReads reads,
             EntityScopes scopes,
             QueryAggregateRepository aggregates,
-            Supplier<@Nullable EntityReportViews> views) {
+            ObjectProvider<EntityReportViews> views,
+            EntityReportDatasets datasets) {
         this.gate = gate;
         this.registry = registry;
-        this.reads = reads;
         this.scopes = scopes;
         this.aggregates = aggregates;
         this.views = views;
+        this.datasets = datasets;
     }
 
-    /** A report asked for in the request: what the report builder shows before it is saved. */
+    /** Internal execution metadata stays with its result until export; controllers return data only. */
+    public record Execution(QueryList list, QueryAggregateResult data) {}
+
     @Transactional(readOnly = true)
     public QueryAggregateResult run(
             String code, @Nullable String groupBy, @Nullable String measures, @Nullable String filter) {
-        EntityDefinition entity = gate.viewable(code);
-        return run(entity, QueryAggregates.compile(reads.list(entity), groupBy, measures, filter));
+        return execute(code, null, groupBy, measures, filter).data();
     }
 
-    /**
-     * A report or widget the viewer saved on the entity's list, run now: a field that has since become restricted for
-     * the viewer fails it with the same 422 as a request would.
-     *
-     * @throws ApiException 404 {@code error.common.report_not_found} when the viewer has no such report on the list
-     */
+    @Transactional(readOnly = true)
+    public Execution execute(
+            String code,
+            @Nullable String dataset,
+            @Nullable String groupBy,
+            @Nullable String measures,
+            @Nullable String filter) {
+        var source = datasets.resolve(code, dataset);
+        return run(source, QueryAggregates.compile(source.list(), groupBy, measures, filter));
+    }
+
     @Transactional(readOnly = true)
     public QueryAggregateResult saved(String code, long viewId) {
-        EntityDefinition entity = gate.viewable(code);
-        QueryList list = reads.list(entity);
-        SavedReport report = Optional.ofNullable(views.get())
-                .flatMap(saved -> saved.report(EntityReads.userId(), list.code(), viewId))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.report_not_found"));
-        return run(entity, QueryAggregates.compile(list, report.groupBy(), report.measures(), report.filter()));
+        return executeSaved(code, viewId, null).data();
     }
 
-    /** The code of the entity whose list is {@code listCode}, when the viewer may see the entity. */
+    @Transactional(readOnly = true)
+    public QueryAggregateResult saved(String code, long viewId, @Nullable String extraFilter) {
+        return executeSaved(code, viewId, extraFilter).data();
+    }
+
+    @Transactional(readOnly = true)
+    public Execution executeSaved(String code, long viewId, @Nullable String extraFilter) {
+        QueryList base = list(code);
+        SavedReport report = Optional.ofNullable(views.getIfAvailable())
+                .flatMap(saved -> saved.report(EntityReads.userId(), base.code(), viewId))
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.report_not_found"));
+        var source = datasets.resolve(code, report.dataset());
+        return run(
+                source,
+                QueryAggregates.compile(
+                        source.list(),
+                        report.groupBy(),
+                        report.measures(),
+                        ReportFilters.and(report.filter(), extraFilter)));
+    }
+
     public Optional<String> entityOfList(String listCode) {
         return registry.all().stream()
                 .filter(entity -> entity.model() != null && listCode.equals(entity.listCode()))
@@ -99,12 +100,18 @@ public class EntityReports {
                 .map(EntityDefinition::code);
     }
 
-    /** The entity's list as the viewer reads it: what a report over it may group and measure. */
     public QueryList list(String entityCode) {
-        return reads.list(gate.viewable(Objects.requireNonNull(entityCode, "entityCode")));
+        return list(entityCode, null);
     }
 
-    private QueryAggregateResult run(EntityDefinition entity, QueryAggregate aggregate) {
-        return aggregates.run(aggregate, scopes.listPredicate(entity, aggregate.filter(), EntityReads.userId()));
+    public QueryList list(String entityCode, @Nullable String dataset) {
+        return datasets.resolve(entityCode, dataset).list();
+    }
+
+    private Execution run(EntityReportDatasets.Source source, QueryAggregate aggregate) {
+        var scope = scopes.listPredicate(source.entity(), aggregate.filter(), EntityReads.userId());
+        var params = new LinkedHashMap<>(source.params());
+        params.putAll(scope.params());
+        return new Execution(source.list(), aggregates.run(aggregate, new QueryPlan.SqlFragment(scope.sql(), params)));
     }
 }

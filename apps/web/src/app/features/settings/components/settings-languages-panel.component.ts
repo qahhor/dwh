@@ -9,9 +9,10 @@ import {
   untracked,
   viewChild,
   input,
+  model,
   output,
 } from '@angular/core';
-import { FormField, form, maxLength, required, validate } from '@angular/forms/signals';
+import { FormField, disabled, form, maxLength, required, validate } from '@angular/forms/signals';
 
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { LanguageInfo } from '@core/models/i18n.models';
@@ -78,8 +79,6 @@ export class SettingsLanguagesPanelComponent {
   private readonly i18n = inject(I18nService);
 
   readonly isAddingLang = input(false);
-  /** The server's refusal of the new language by field (`code`, `name`, `json`), already in words. */
-  readonly addServerErrors = input<Readonly<Record<string, string>>>({});
 
   readonly canUpdateSystemSettings = input(false);
   readonly editingLanguageCode = input<string | null>(null);
@@ -96,13 +95,23 @@ export class SettingsLanguagesPanelComponent {
   readonly exportLangJson = output<string>();
   readonly switchLanguage = output<string>();
 
+  /** The server's refusal of the new language by field (`code`, `name`, `json`), already in words. */
+  readonly addServerErrors = model<Readonly<Record<string, string>>>({});
+
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
   private readonly coverageCell = viewChild.required<TemplateRef<unknown>>('coverageCell');
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
+  private readonly editor = viewChild(LanguageEditorComponent);
   readonly addModel = signal<AddLanguageForm>({ ...EMPTY_LANGUAGE });
+  readonly hasUnsavedChanges = computed(
+    () =>
+      (this.editor()?.dirtyCount() ?? 0) > 0 ||
+      (this.isAddLangModalOpen() && Object.values(this.addModel()).some((value) => value.trim() !== '')),
+  );
+  readonly isSaving = computed(() => this.isAddingLang() || (this.editor()?.isSaving() ?? false));
 
   /**
    * Headers read the dictionary signal, so they follow a language switch.
@@ -164,6 +173,7 @@ export class SettingsLanguagesPanelComponent {
 
   /** Rules are always on; smt-control shows an error once a field is left or a save is tried. */
   readonly addForm = form(this.addModel, (path) => {
+    disabled(path, () => this.isAddingLang());
     required(path.code);
     maxLength(path.code, 10);
     validate(path.code, ({ value }) => {
@@ -193,6 +203,13 @@ export class SettingsLanguagesPanelComponent {
       name: name.trim(),
       dictionary: parseDictionary(json) ?? {},
     });
+  }
+
+  /** A changed field no longer shows the server's previous refusal. */
+  edited(field: string): void {
+    this.addServerErrors.update((errors) =>
+      Object.fromEntries(Object.entries(errors).filter(([name]) => name !== field)),
+    );
   }
 
   /** Escape, the backdrop, the cross and "Cancel" ask before typed values are dropped. */

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -21,7 +22,7 @@ import tools.jackson.databind.node.ObjectNode;
  * <pre>{"groupBy": [{"field": "status"}, {"field": "createdAt", "trunc": "month"}],
  *  "measures": [{"op": "count"}, {"op": "sum", "field": "total"}],
  *  "filter": [...], "chart": "bar"}</pre>
- * The chart is {@code table}, {@code bar} (needs a grouping) or {@code kpi} (one figure, no grouping). Errors point
+ * The chart is table, bar, kpi, line or horizontalBar; the last two need one group and one measure (ADR-0039). Errors point
  * inside {@code state}: {@code state.groupBy[0].field}, {@code state.chart}.
  */
 @Component
@@ -31,8 +32,8 @@ public class MdReportViewState {
     public static final String BAR_CHART = "bar";
     public static final String KPI_CHART = "kpi";
 
-    private static final Set<String> KEYS = Set.of("groupBy", "measures", "filter", "chart");
-    private static final Set<String> CHARTS = Set.of(TABLE_CHART, BAR_CHART, KPI_CHART);
+    private static final Set<String> KEYS = Set.of("groupBy", "measures", "filter", "chart", "dataset");
+    private static final Set<String> CHARTS = Set.of(TABLE_CHART, BAR_CHART, KPI_CHART, "line", "horizontalBar");
 
     /** Builds the canonical state tree (plan 10/10, item 3.11: the application's mapper). */
     private final ObjectMapper json;
@@ -83,6 +84,8 @@ public class MdReportViewState {
         }
         canonical.set("filter", noFilter ? json.createArrayNode() : filterNode);
         canonical.put("chart", chart);
+        String dataset = dataset(state);
+        if (dataset != null) canonical.put("dataset", dataset);
         return canonical.toString();
     }
 
@@ -92,12 +95,34 @@ public class MdReportViewState {
         boolean grouped = aggregate == null || aggregate.groups().stream().anyMatch(group -> !group.implicit());
         boolean fits = CHARTS.contains(chart)
                 && (!BAR_CHART.equals(chart) || grouped)
-                && (!KPI_CHART.equals(chart) || aggregate == null || !grouped);
+                && (!KPI_CHART.equals(chart) || aggregate == null || !grouped)
+                && additionalChartFits(chart, aggregate);
         if (!fits) {
             errors.add(FieldErrorItem.keyed(
                     "state.chart", MdListViewService.LIST_VIEW_INVALID, "error.md.field_list_view_chart_invalid"));
         }
         return chart;
+    }
+
+    /** A supplied dataset is a closed identifier, not an instruction or a SQL fragment (ADR-0039). */
+    public static @Nullable String dataset(JsonNode state) {
+        JsonNode node = state == null ? null : state.get("dataset");
+        if (node == null) return null;
+        if (!node.isString()
+                || node.asString().length() > 128
+                || !node.asString().matches("[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*){1,3}"))
+            throw invalid(List.of(FieldErrorItem.keyed(
+                    "state.dataset", MdListViewService.LIST_VIEW_INVALID, "error.md.field_list_view_state_invalid")));
+        return node.asString();
+    }
+
+    private static boolean additionalChartFits(String chart, @Nullable QueryAggregate aggregate) {
+        if (aggregate == null || !("line".equals(chart) || "horizontalBar".equals(chart))) return true;
+        var explicit =
+                aggregate.groups().stream().filter(group -> !group.implicit()).toList();
+        if (explicit.size() != 1 || aggregate.measures().size() != 1) return false;
+        boolean temporal = explicit.getFirst().trunc() != null;
+        return "line".equals(chart) == temporal;
     }
 
     private static ApiException invalid(List<FieldErrorItem> errors) {

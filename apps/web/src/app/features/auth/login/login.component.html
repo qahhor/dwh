@@ -1,7 +1,21 @@
 <main class="login-wrapper">
   <app-login-top-bar></app-login-top-bar>
   <div class="login-card">
-    <app-login-header></app-login-header>
+    @switch (step()) {
+      @case ('otp') {
+        <app-login-header [title]="'auth.otp_title' | t" [subtitle]="'auth.login.otp_hint' | t" subtitleId="otp-hint" />
+      }
+      @case ('must_change_password') {
+        <app-login-header
+          [title]="'auth.login.change_temporary_password' | t"
+          [subtitle]="'auth.set_permanent_password_hint' | t: passwordPolicy"
+          subtitleId="password-policy-hint"
+        />
+      }
+      @default {
+        <app-login-header />
+      }
+    }
 
     <!-- Step 1: Login & Password Form -->
     <!-- novalidate on each step: the screen shows its own errors instead of the browser's required/minlength bubbles. -->
@@ -25,7 +39,7 @@
           />
         </smt-control>
 
-        <div class="form-group">
+        <div class="form-group password-group">
           <smt-control [smtLabel]="'auth.password' | t" [smtError]="serverError('password')">
             <smt-input
               smtFieldId="password"
@@ -75,14 +89,6 @@
         class="login-form"
         [attr.aria-busy]="isLoading()"
       >
-        <div class="otp-banner">
-          <span class="material-symbols-outlined" aria-hidden="true">shield_person</span>
-          <div>
-            <strong>{{ 'auth.otp_title' | t }}</strong>
-            <p id="otp-hint">{{ 'auth.login.otp_hint' | t }}</p>
-          </div>
-        </div>
-
         <smt-control class="form-group" [smtLabel]="'auth.login.otp_code' | t" [smtError]="serverError('code')">
           <smt-input
             class="otp-input tabular-nums"
@@ -136,14 +142,6 @@
         class="login-form"
         [attr.aria-busy]="isLoading()"
       >
-        <div class="otp-banner warning-banner">
-          <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
-          <div>
-            <strong>{{ 'auth.login.change_temporary_password' | t }}</strong>
-            <p id="password-policy-hint">{{ 'auth.set_permanent_password_hint' | t: passwordPolicy }}</p>
-          </div>
-        </div>
-
         <div class="form-group">
           <smt-control [smtLabel]="'auth.password.new_password' | t" [smtError]="serverError('newPassword')">
             <smt-input

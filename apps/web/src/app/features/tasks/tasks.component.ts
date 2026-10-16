@@ -15,6 +15,7 @@ import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { PermissionService } from '@core/services/permission.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDropdownButtonComponent } from '@shared/ui-kit/components/dropdown-button';
 
 import { UiPaginationComponent } from '@shared/ui/ui-pagination.component';
 import { Task, TaskFile } from '@core/models/task.models';
@@ -50,6 +51,7 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
     SMTRadioGroupComponent,
     TranslatePipe,
     SMTButtonComponent,
+    SMTDropdownButtonComponent,
     UiPaginationComponent,
     SMTAlertComponent,
     TaskDictionariesModalComponent,
@@ -240,8 +242,12 @@ export class TasksComponent implements OnInit, OnDestroy {
     );
   }
 
+  runPageAction(action: string): void {
+    if (action === 'dictionaries') this.dictService.openSettingsModal();
+    else if (action === 'xlsx' || action === 'csv') this.exportTasks(action);
+  }
+
   exportTasks(format: 'xlsx' | 'csv'): void {
-    this.filterService.showExportMenu = false;
     window.open(`/api/v1/reports/tasks/export?format=${format}`, '_blank');
   }
 

@@ -95,7 +95,7 @@ export class ProjectsApi {
 
   /** Adds a member by the project's record action, from its current revision (ADR-0032 6.7). */
   addMember(projectId: number, userId: number, accessKind: string): Observable<EntityRecord> {
-    return this.memberAction(projectId, 'add_member', { userId, accessKind });
+    return this.memberAction(projectId, 'add_member', { userId, accessKind, updateExisting: false });
   }
 
   /** The confirmation shows the failure, so no general error toast. */

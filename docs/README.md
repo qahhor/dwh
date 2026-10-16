@@ -20,8 +20,15 @@ actions, menu item and permission names.
    commands.
 
 This index defines the authority and navigation order for active project
-documentation. Public operations documentation remains in English. The
+documentation. The production handbook requested by the product owner is in Russian;
+existing public operations documentation remains in English. The
 canonical requirements document is the Russian technical specification.
+
+- [Production handbook (Russian)](ops/production-handbook-ru.md) — deployment,
+  recovery, monitoring, incidents, rollback and maintenance.
+- [Production launch checklist](ops/production-launch-checklist.md) — explicit
+  go/no-go gates and required target evidence.
+- [Ansible deployment](ops/ansible-deployment.md) — controlled automation.
 
 ## Authority tier 1 — requirements
 
@@ -97,8 +104,8 @@ Current ADRs that are not superseded:
 - [ADR-0029 — encryption of secrets in the database](adr/ADR-0029-stored-secrets-encryption.md)
   — webhook signing keys and SSO client secrets are stored as AES-256-GCM
   `v1:` values under the installation key `SMC_SECRETS_KEY`; the server
-  refuses to start without the key outside dev and encrypts legacy plain
-  values at start.
+  refuses to start without the key outside the dev/migrate profiles and
+  rejects stored plaintext secrets. Startup does not convert plaintext values.
 - [ADR-0030 — splitting fnd into jobs, warehouse and units](adr/ADR-0030-fnd-split.md)
   — the shared job queue is the `jobs` module, the second database with its
   load ledger is `warehouse`, units of measure are `units`, versioning and the
@@ -135,6 +142,9 @@ Current ADRs that are not superseded:
   frontend network in production), and the absolute lifetime and idle timeout
   of a session are part of the active-session query; plan 10/10, items 7.4
   and 7.5.
+- [ADR-0035 — declaration drafts, immutable versions and publication packages](adr/ADR-0035-declaration-lifecycle.md)
+- [ADR-0036 — shared reports, aggregate exports and named dashboards](adr/ADR-0036-shared-reports-and-dashboards.md)
+- [ADR-0040 — signed staging prereleases and exact release identity](adr/ADR-0040-signed-staging-prereleases.md)
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
@@ -151,6 +161,10 @@ Historical, fully superseded decisions are retained for traceability only:
 [ADR-0004](adr/ADR-0004-deployment-model.md) and
 [ADR-0007](adr/ADR-0007-fleet-strategy.md).
 
+- [ADR-0037 — simple form CLI/Flyway delivery](adr/ADR-0037-simple-form-cli-delivery.md) — create-only declarations, server validation and developer delivery.
+- [ADR-0038 — live simple forms](adr/ADR-0038-live-simple-forms.md) — immutable activation, shared JSONB storage and request snapshots.
+- [Live form operations](cookbook/live-simple-forms.md) — enabling, access, retries and operational limits.
+
 ## Authority tier 3 — engineering guidance
 
 - [Developer onboarding](onboarding.md)
@@ -158,6 +172,8 @@ Historical, fully superseded decisions are retained for traceability only:
   locking and size limits, each rule with the check that enforces it.
 - [How the API behaves](api/README.md) — errors, paging, If-Match, idempotency,
   deprecations and where `openapi.json` comes from.
+- [Studio implementation plan](architecture/admin-studio-plan.md) — phased delivery, DoR, DoD and acceptance criteria; future capabilities are explicitly marked.
+- [Form layout prototype contract](architecture/admin-studio-contract.md) — bounded declarations, permissions and validation for one existing form.
 - [Extension points](architecture/extension-points.md)
 - [Module map](architecture/module-map.md) — one row per server module:
   purpose, owned tables, permission areas and entry points.
@@ -165,6 +181,8 @@ Historical, fully superseded decisions are retained for traceability only:
 - [Monorepo structure](architecture/monorepo-structure.md)
 - [Database migration guidelines](guidelines/database-migrations.md)
 - [Module development guide](guidelines/module-development-guide.md)
+- [Forms standard in one page](guidelines/forms-one-page.md) — the common CRUD, table and field contract.
+- [Forms catalog](guidelines/forms-catalog.md) — screens, entry points, nested editors and applicable actions.
 - [Forms UX standard](guidelines/forms-ux-standard.md) — layout, labels,
   errors, buttons and unsaved changes of every form; `npm run forms:audit`.
 - [Cookbook](cookbook/README.md) — recipes on the reference modules; the docs
@@ -192,7 +210,13 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [Operations runbook](ops/operations-runbook.md)
 - [Privacy, data protection, and retention annex](ops/privacy-and-retention-annex.md)
 - [Production launch checklist](ops/production-launch-checklist.md)
+- [План доведения до релиза](ops/release-readiness-plan.md) — порядок P0/P1,
+  владельцы работ и критерии готовности по существующим FR/NFR/AC.
 - [Smartup-managed infrastructure acceptance](ops/managed-infrastructure-acceptance.md)
+- [Утверждённая staging-конфигурация и критерии приёмки](ops/staging-acceptance.md)
+- [Staging: настройка GitHub и минимальных доступов](ops/staging-access-setup.md) —
+  пошагово: protected environment, Hetzner SSH, Cloudflare/R2 scopes и отзыв.
+- [Студия: сценарии staging-приёмки RC 4a721df0](ops/studio-staging-acceptance.md)
 - [Rollback and recovery](ops/rollback.md)
 - [Migration failure repair](ops/migration-repair.md)
 - [GitHub repository settings](ops/repository-settings.md)
@@ -208,6 +232,7 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [RB-09 search delivery](runbooks/RB-09-search-delivery.md)
 - [RB-10 host disk](runbooks/RB-10-host-disk.md)
 - [RB-11 PostgreSQL health](runbooks/RB-11-postgresql-health.md)
+- [RB-12 Ops recovery and alerting (Russian)](runbooks/RB-12-ops-recovery-and-alerting.md)
 - [Threat model and personal-data inventory](security/threat-model.md)
 
 These documents govern execution for a concrete installation but cannot supply
@@ -224,3 +249,5 @@ legal and ownership decisions.
 
 Dated audit reports and agent plans were removed from the tree; git history
 keeps them. The canonical ТЗ and current ADRs are the only authority.
+
+- [ADR-0039 — datasets and draft assistance](adr/ADR-0039-report-datasets-and-assistant.md) — scoped projections, accurate charts and an explicitly configured draft-only provider.

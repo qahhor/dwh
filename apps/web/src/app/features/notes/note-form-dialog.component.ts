@@ -79,6 +79,7 @@ export class NoteFormDialogComponent {
   readonly values = linkedSignal(() => recordValues(this.meta(), { ...(this.record() ?? NEW_NOTE) }));
   readonly problems = signal<FormProblems>({});
   readonly saving = signal(false);
+  readonly submitted = signal(false);
 
   readonly showHistory = computed(() => hasCapability(this.meta(), 'history'));
 
@@ -96,6 +97,7 @@ export class NoteFormDialogComponent {
   /** Checked by the note's declared rules first; the server checks them again and names the fields it rejects. */
   save(): void {
     if (this.saving()) return;
+    this.submitted.set(true);
     const meta = this.meta();
     const note = this.record();
     const translate = (key: string, params?: Record<string, string | number>) => this.i18n.translate(key, params);
@@ -135,6 +137,7 @@ export class NoteFormDialogComponent {
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (fresh) => {
+          this.submitted.set(false);
           this.problems.set({});
           this.record.set(fresh);
         },

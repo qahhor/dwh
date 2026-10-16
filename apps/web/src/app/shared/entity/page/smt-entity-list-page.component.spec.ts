@@ -1,6 +1,6 @@
 import { By } from '@angular/platform-browser';
 import { of, throwError } from 'rxjs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { FormMeta } from '@core/models/form-meta.models';
 import { formField } from '@testing/form-meta';
 import { entityRecord, metaField, problem, queryMetaFixture, renderEntityScreen } from '@testing/entity-page';
@@ -109,6 +109,27 @@ describe('SMTEntityListPageComponent', () => {
     expect(root.querySelector('ui-server-table')).not.toBeNull();
   });
 
+  it('protects navigation and mode changes while a report access editor refuses to leave', async () => {
+    const { harness, root, settle, router } = await renderEntityScreen(`/e/${CODE}`, {
+      meta: META,
+      list: LIST,
+      records: ORDERS,
+      answers: {
+        [`/entities/${CODE}/report`]: { groups: [], measures: [], rows: [], truncated: false },
+        '/report-views': { items: [], hasMore: false },
+      },
+    });
+    const page = harness.fixture.debugElement.query(By.css('smt-entity-list-page')).componentInstance;
+    page.setMode('report');
+    await settle();
+    const builder = harness.fixture.debugElement.query(By.css('smt-entity-report-builder')).componentInstance;
+    const leave = vi.spyOn(builder, 'canLeaveRecordPage').mockReturnValue(of(false));
+    page.setMode('list');
+    await settle();
+    expect(root.querySelector('smt-entity-report-builder')).not.toBeNull();
+    expect(await router.navigateByUrl('/tasks')).toBe(false);
+    expect(leave).toHaveBeenCalledTimes(2);
+  });
   it('offers no create button to a viewer who may not create', async () => {
     const { root } = await renderEntityScreen(`/e/${CODE}`, { meta: META, list: LIST, records: [] });
     expect(root.querySelector('[data-testid="entity-create"]')).toBeNull();

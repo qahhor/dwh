@@ -97,6 +97,7 @@
   <smt-dialog
     [open]="isAddLangModalOpen()"
     [smtTitle]="'settings.languages.add_title' | t"
+    [dismissible]="!isAddingLang()"
     (closed)="requestCloseAdd()"
   >
     <ng-template smtDialogContent>
@@ -113,7 +114,13 @@
           [smtHint]="'settings.languages.code_hint' | t"
           [smtError]="addServerErrors()['code'] ?? ''"
         >
-          <smt-input smtFieldId="new-lang-code" smtFocusInitial [formField]="addForm.code" placeholder="kk" />
+          <smt-input
+            smtFieldId="new-lang-code"
+            smtFocusInitial
+            [formField]="addForm.code"
+            (edited)="edited('code')"
+            placeholder="kk"
+          />
         </smt-control>
         <smt-control
           class="form-group"
@@ -123,6 +130,7 @@
           <smt-input
             smtFieldId="new-lang-name"
             [formField]="addForm.name"
+            (edited)="edited('name')"
             [placeholder]="'settings.languages.name_placeholder' | t"
           />
         </smt-control>
@@ -136,6 +144,7 @@
             smtFieldId="new-lang-json"
             [rows]="6"
             [formField]="addForm.json"
+            (edited)="edited('json')"
             [placeholder]="'settings.translation_json_example' | t"
           />
         </smt-control>

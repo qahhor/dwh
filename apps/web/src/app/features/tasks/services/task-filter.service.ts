@@ -22,7 +22,6 @@ export class TaskFilterService {
   selectedProjectId: number | null = null;
   statusFilterMode: TaskStatusFilter = 'active';
   readonly pageSize = 50;
-  showExportMenu = false;
 
   taskSearchTimer?: ReturnType<typeof setTimeout>;
 

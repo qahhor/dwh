@@ -26,7 +26,6 @@ export interface InstalledModule {
   createdAt?: string;
   modifiedAt?: string;
   isActive?: boolean;
-  moduleCode?: string;
 }
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
@@ -41,13 +40,10 @@ export function moduleDescription(module: InstalledModule, translate: Translate)
   return module.descriptionKey ? translate(module.descriptionKey) : (module.description ?? '');
 }
 
-/** A module as the server may send it: older answers name the code `moduleCode` and carry `isActive`, not `status`. */
-type RawModule = Partial<Omit<InstalledModule, 'status'>> & { status?: string };
-
-const SYSTEM_MODULES = new Set(['iam', 'tasks', 'files', 'audit', 'search']);
+const SYSTEM_MODULES = new Set(['iam', 'files', 'audit', 'search']);
 
 /** Modules with a built-in, permission-gated nav item: they must not be duplicated in the custom "Modules" section. */
-const BUILT_IN_NAV_MODULES = new Set(['notes', 'upl']);
+const BUILT_IN_NAV_MODULES = new Set(['tasks', 'notes', 'upl', 'example']);
 
 @Injectable({ providedIn: 'root' })
 export class ModuleService {
@@ -60,7 +56,7 @@ export class ModuleService {
 
   loadActiveModules(): Observable<InstalledModule[]> {
     this.isLoading.set(true);
-    return this.api.get<RawModule[]>('/modules/active').pipe(
+    return this.api.get<InstalledModule[]>('/modules/active').pipe(
       map((data) => this.normalizeModules(data || [])),
       tap({
         next: (list) => {
@@ -84,7 +80,7 @@ export class ModuleService {
 
   loadAllModules(): Observable<InstalledModule[]> {
     this.isLoading.set(true);
-    return this.api.get<RawModule[]>('/modules').pipe(
+    return this.api.get<InstalledModule[]>('/modules').pipe(
       map((data) => this.normalizeModules(data || [])),
       tap({
         next: (list) => {
@@ -125,8 +121,8 @@ export class ModuleService {
 
   toggleModule(code: string, enabled: boolean): Observable<InstalledModule> {
     const normalizedCode = code.toLowerCase().trim();
-    return this.api.put<RawModule | null>(`/modules/${encodeURIComponent(normalizedCode)}/enabled`, { enabled }).pipe(
-      map((updated) => this.normalizeSingle(updated, normalizedCode, enabled)),
+    return this.api.put<InstalledModule>(`/modules/${encodeURIComponent(normalizedCode)}/enabled`, { enabled }).pipe(
+      map((updated) => this.normalizeSingle(updated)),
       tap((normalized) => {
         this.modules.update((list) => {
           const existing = list.some((m) => m.code === normalizedCode);
@@ -149,22 +145,11 @@ export class ModuleService {
     );
   }
 
-  private normalizeModules(data: RawModule[]): InstalledModule[] {
-    return data.map((m) => this.normalizeSingle(m, '', true));
+  private normalizeModules(data: InstalledModule[]): InstalledModule[] {
+    return data.map((m) => this.normalizeSingle(m));
   }
 
-  private normalizeSingle(m: RawModule | null, fallbackCode: string, fallbackActive: boolean): InstalledModule {
-    const code = (m?.code || m?.moduleCode || fallbackCode).toLowerCase().trim();
-    const isActive = m?.status ? m.status === 'ACTIVE' : (m?.isActive ?? fallbackActive);
-    return {
-      name: '',
-      version: null,
-      isSystem: false,
-      ...m,
-      code,
-      moduleCode: code,
-      isActive,
-      status: isActive ? 'ACTIVE' : 'DISABLED',
-    };
+  private normalizeSingle(module: InstalledModule): InstalledModule {
+    return { ...module, code: module.code.toLowerCase().trim(), isActive: module.status === 'ACTIVE' };
   }
 }

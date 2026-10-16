@@ -3,8 +3,11 @@ package com.smartup24.cms.instance.mf.service;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.md.service.MdScopeService;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,10 +16,16 @@ import org.springframework.context.annotation.Configuration;
 public class MfListExporters {
 
     @Bean
-    QueryListExporter mfFilesExporter(MfFileService files) {
+    QueryListExporter mfFilesExporter(MfFileService files, MfFileMetadataService metadata, MdScopeService scopes) {
         return new QueryListExporter() {
             public String code() {
                 return "mf.files";
+            }
+
+            public boolean visible(Set<String> ids) {
+                return metadata.visible(
+                        ids.stream().map(UUID::fromString).collect(Collectors.toSet()),
+                        scopes.filterForFiles(SecurityContext.getCurrentUserId()));
             }
 
             public Set<String> options() {

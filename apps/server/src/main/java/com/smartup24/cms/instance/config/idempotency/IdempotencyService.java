@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.config.idempotency;
 
+import com.smartup24.cms.instance.common.security.AccessContextFingerprint;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -96,6 +97,8 @@ public class IdempotencyService {
     public String computeRequestHash(String method, String uri, String query, byte[] body) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(AccessContextFingerprint.current().getBytes(StandardCharsets.UTF_8));
+            digest.update((byte) ':');
             digest.update(method.toUpperCase().getBytes(StandardCharsets.UTF_8));
             digest.update((byte) ':');
             digest.update(uri.getBytes(StandardCharsets.UTF_8));

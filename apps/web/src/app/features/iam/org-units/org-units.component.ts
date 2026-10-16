@@ -27,6 +27,7 @@ import { TreeRow } from '@shared/ui-kit/components/tree-table/tree.utils';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import { OrgUnitDraft } from './org-unit-draft';
+import { discardChangesQuestion } from '@shared/ui/discard-changes';
 import { UiFormActionsComponent } from '@shared/ui/ui-form-actions.component';
 import { OrgUnit, OrgUnitCreate } from './org-units.models';
 import { OrgUnitEditorComponent, OrgUnitSubmission } from './org-unit-editor.component';
@@ -98,6 +99,7 @@ export class OrgUnitsComponent implements OnInit {
     () => this.editorOpen() && !!this.editor()?.dirty,
     () => this.pending(),
     () => this.clearEditor(),
+    discardChangesQuestion(),
   );
 
   constructor() {

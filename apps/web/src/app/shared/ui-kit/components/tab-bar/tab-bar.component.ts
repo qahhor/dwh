@@ -10,7 +10,7 @@
  * aria-selected and, when the caller names its panel, aria-controls; the
  * chosen tab is the only tab stop, arrows move and choose (Home and End go to
  * the ends), disabled tabs are skipped. A count is read as part of the tab's
- * name. A focused tab in a bar wider than its place scrolls to the middle
+ * name. A keyboard-focused tab in a bar wider than its place scrolls to the middle
  * (only the latest one, once focus settles). The panels stay the caller's: give each `role="tabpanel"` and
  * `aria-labelledby` the tab's id (`tabId(value)` or the item's own `id`).
  *
@@ -67,6 +67,7 @@ let nextTabBarId = 0;
           [attr.tabindex]="tabStop() === index ? 0 : -1"
           [disabled]="!!tab.disabled"
           (click)="choose(index)"
+          (pointerdown)="onPointerDown()"
           (focus)="centre($event)"
           (keydown)="onKeydown($event, index)"
         >
@@ -107,6 +108,7 @@ export class SMTTabBarComponent<K extends string = string> {
   });
 
   private pendingCentre: ReturnType<typeof setTimeout> | null = null;
+  private pointerFocus = false;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => {
@@ -114,10 +116,22 @@ export class SMTTabBarComponent<K extends string = string> {
     });
   }
 
-  /** Brings a focused tab to the middle of a scrolled bar, once focus has settled on it. */
+  /** Pointer focus must not move the tab out from under the pointer before its click arrives. */
+  onPointerDown(): void {
+    this.pointerFocus = true;
+    if (this.pendingCentre !== null) clearTimeout(this.pendingCentre);
+    this.pendingCentre = null;
+  }
+
+  /** Brings a keyboard-focused tab to the middle of a scrolled bar, once focus has settled on it. */
   centre(event: FocusEvent): void {
     const tab = event.target as HTMLElement;
     if (this.pendingCentre !== null) clearTimeout(this.pendingCentre);
+    this.pendingCentre = null;
+    if (this.pointerFocus) {
+      this.pointerFocus = false;
+      return;
+    }
     this.pendingCentre = setTimeout(() => {
       this.pendingCentre = null;
       if (!tab.isConnected || document.activeElement !== tab || typeof tab.scrollIntoView !== 'function') return;
@@ -136,12 +150,14 @@ export class SMTTabBarComponent<K extends string = string> {
   }
 
   choose(index: number): void {
+    this.pointerFocus = false;
     const tab = this.tabs()[index];
     if (!tab || tab.disabled) return;
     this.value.set(tab.value);
   }
 
   onKeydown(event: KeyboardEvent, index: number): void {
+    this.pointerFocus = false;
     const tabs = this.tabs();
     const available = tabs.map((tab, i) => (tab.disabled ? -1 : i)).filter((i) => i >= 0);
     if (available.length === 0) return;

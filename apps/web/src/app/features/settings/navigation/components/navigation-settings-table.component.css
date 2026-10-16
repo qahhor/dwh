@@ -107,27 +107,14 @@
 }
 
 .actions-cell {
-  text-align: right;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 .action-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-
-.action-icon-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-main);
+  flex: 0 0 auto;
 }
 
 .action-icon-btn.preview-btn:hover {
@@ -144,9 +131,23 @@
 }
 
 .empty-cell {
-  text-align: center;
-  padding: 48px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
   color: var(--text-muted);
+  text-align: center;
+}
+
+.empty-cell p {
+  margin: 0;
+}
+
+@media (max-width: 767px) {
+  .status-toggle-btn {
+    min-height: var(--control-touch-height);
+  }
 }
 
 @keyframes spin {

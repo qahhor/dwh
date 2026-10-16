@@ -1,0 +1,173 @@
+<section class="studio-lifecycle" data-testid="studio-lifecycle" aria-labelledby="studio-lifecycle-title">
+  <h2 id="studio-lifecycle-title">{{ 'settings.form_studio.lifecycle_title' | t }}</h2>
+  @if (lifecycle.loading()) {
+    <p role="status">{{ 'settings.form_studio.loading' | t }}</p>
+  }
+  @if (lifecycle.error()) {
+    <smt-alert smtTone="danger" data-testid="studio-lifecycle-error">
+      {{ lifecycle.error() }}
+      @if (lifecycle.issues().length) {
+        <ul>
+          @for (issue of lifecycle.issues(); track $index) {
+            <li>
+              <code>{{ issue.path }}</code
+              >: {{ issue.message }}
+            </li>
+          }
+        </ul>
+      }
+      @if (lifecycle.conflict()) {
+        <p data-testid="studio-draft-conflict">{{ 'settings.form_studio.draft_conflict' | t }}</p>
+      }
+      @if (!editor.draft()) {
+        <p>{{ 'settings.form_studio.unavailable_hint' | t }}</p>
+        <button smt-button type="button" smtVariant="secondary" [disabled]="blocked()" (click)="reload.emit()">
+          {{ 'common.retry' | t }}
+        </button>
+      }
+    </smt-alert>
+  }
+  @if (lifecycle.dependenciesChanged() && !lifecycle.conflict()) {
+    <smt-alert smtTone="warning" data-testid="studio-dependency-conflict">
+      {{ 'settings.form_studio.dependencies_changed_hint' | t }}
+    </smt-alert>
+  }
+  @if (editor.draft()) {
+    <div class="studio-draft-status" data-testid="studio-draft-status" role="status">
+      @if (lifecycle.revision(); as revision) {
+        <p>{{ 'settings.form_studio.draft_revision' | t: { revision } }}</p>
+      } @else {
+        <p>{{ 'settings.form_studio.draft_absent' | t }}</p>
+      }
+      @if (lifecycle.serverDirty()) {
+        <p>{{ 'settings.form_studio.draft_changed' | t }}</p>
+      } @else if (lifecycle.message()) {
+        <p>{{ lifecycle.message() }}</p>
+      }
+    </div>
+    <div class="studio-lifecycle-actions">
+      <button
+        smt-button
+        type="button"
+        [disabled]="blocked() || !lifecycle.canSave()"
+        [smtLoading]="lifecycle.saving()"
+        (click)="lifecycle.save()"
+      >
+        {{ 'settings.form_studio.draft_save' | t }}
+      </button>
+      <button smt-button type="button" smtVariant="secondary" [disabled]="blocked()" (click)="reload.emit()">
+        {{ 'settings.form_studio.draft_reload' | t }}
+      </button>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        [disabled]="blocked() || !lifecycle.canSeal()"
+        [smtLoading]="lifecycle.sealing()"
+        (click)="lifecycle.seal()"
+      >
+        {{ 'settings.form_studio.seal' | t }}
+      </button>
+    </div>
+    @if (lifecycle.revision() === null || lifecycle.serverDirty()) {
+      <p class="studio-lifecycle-hint">{{ 'settings.form_studio.seal_hint' | t }}</p>
+    }
+    <div class="studio-history-heading">
+      <h3>{{ 'settings.form_studio.versions_title' | t }}</h3>
+      <button smt-button type="button" smtVariant="ghost" [smtLoading]="versions.loading()" (click)="versions.load()">
+        {{ 'common.refresh' | t }}
+      </button>
+    </div>
+    @if (versions.error()) {
+      <smt-alert smtTone="danger"
+        >{{ versions.error() }}
+        <button smt-button type="button" smtVariant="secondary" (click)="versions.load()">
+          {{ 'common.retry' | t }}
+        </button>
+      </smt-alert>
+    } @else if (!versions.loading() && versions.items().length === 0) {
+      <p class="studio-lifecycle-hint">{{ 'settings.form_studio.versions_empty' | t }}</p>
+    }
+    <ul class="studio-version-list" data-testid="studio-version-list">
+      @for (version of versions.items(); track version.version) {
+        <li [attr.data-testid]="'studio-version-' + version.version">
+          <button
+            smt-button
+            type="button"
+            smtVariant="ghost"
+            [disabled]="blocked()"
+            [attr.aria-label]="'settings.form_studio.version_open' | t: { version: version.version }"
+            (click)="versions.select(version.version)"
+          >
+            {{ 'settings.form_studio.version_label' | t: { version: version.version } }}
+          </button>
+          <span>{{ 'settings.form_studio.version_source' | t: { revision: version.sourceRevision } }}</span>
+          <time [attr.datetime]="version.createdAt">{{
+            i18n.formatDate(version.createdAt, { dateStyle: 'short', timeStyle: 'short' })
+          }}</time>
+        </li>
+      }
+    </ul>
+    @if (versions.hasMore()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        [smtLoading]="versions.loading()"
+        (click)="versions.load(true)"
+      >
+        {{ 'common.load_more' | t }}
+      </button>
+    }
+    @if (versions.artifactError()) {
+      <smt-alert smtTone="danger">{{ versions.artifactError() }}</smt-alert>
+    }
+    @if (versions.selected(); as selected) {
+      <div class="studio-package" data-testid="studio-selected-version">
+        <h3>{{ 'settings.form_studio.version_label' | t: { version: selected.version } }}</h3>
+        <p>{{ 'settings.form_studio.version_source' | t: { revision: selected.sourceRevision } }}</p>
+        <p>
+          {{ 'settings.form_studio.checksum' | t }}: <code>{{ selected.checksum }}</code>
+        </p>
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          [disabled]="blocked()"
+          (click)="versions.downloadSelected()"
+        >
+          {{ 'settings.form_studio.package_download' | t }}
+        </button>
+      </div>
+    }
+    <div class="studio-package-check" data-testid="studio-package-check">
+      <p class="studio-lifecycle-hint">{{ 'settings.form_studio.package_hint' | t }}</p>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        [disabled]="blocked()"
+        [smtLoading]="versions.verifying()"
+        (click)="packageFile.click()"
+      >
+        {{ 'settings.form_studio.package_verify' | t }}
+      </button>
+      <input
+        #packageFile
+        type="file"
+        data-testid="studio-package-import"
+        hidden
+        accept=".json,application/json"
+        (change)="verifyFile($event)"
+      />
+      @if (versions.verificationError()) {
+        <smt-alert smtTone="danger">{{ versions.verificationError() }}</smt-alert>
+      }
+      @if (versions.verified(); as verified) {
+        <smt-alert smtTone="success">{{
+          'settings.form_studio.package_valid' | t: { version: verified.version }
+        }}</smt-alert>
+      }
+    </div>
+  }
+</section>

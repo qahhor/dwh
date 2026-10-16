@@ -20,6 +20,7 @@ public sealed interface FieldSource
                 FieldSource.Expression,
                 FieldSource.Computed,
                 FieldSource.Attribute,
+                FieldSource.JsonProperty,
                 FieldSource.SystemValue,
                 FieldSource.MoneyColumns,
                 FieldSource.Link {
@@ -97,6 +98,25 @@ public sealed interface FieldSource
         @Override
         public String sql(String alias) {
             return "(" + alias + ".attributes->>'" + code + "')";
+        }
+
+        @Override
+        public boolean writable() {
+            return true;
+        }
+    }
+
+    /** A typed ordinary field kept under a key of a JSONB column (ADR-0038). */
+    @PlatformApi(since = "2.0", stability = Stability.EXPERIMENTAL)
+    record JsonProperty(String column, String key) implements FieldSource {
+        public JsonProperty {
+            requireIdentifier(column);
+            requireIdentifier(key);
+        }
+
+        @Override
+        public String sql(String alias) {
+            return "(" + alias + "." + column + "->>'" + key + "')";
         }
 
         @Override

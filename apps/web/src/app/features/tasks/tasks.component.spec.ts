@@ -196,13 +196,39 @@ describe('TasksComponent', () => {
     open.mockRestore();
   });
 
-  it('explains that the export takes every accessible task and ignores the filters', async () => {
+  it('groups dictionaries and full exports in the actions menu, with an explicit unfiltered export scope', async () => {
     const { fixture, component, screen } = await setup();
-    component.filterService.showExportMenu = true;
+    const openDictionaries = vi.spyOn(component.dictService, 'openSettingsModal').mockImplementation(() => undefined);
+    const openExport = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const trigger = screen.querySelector('.task-page-actions button') as HTMLButtonElement;
+    const openMenu = () => {
+      trigger.click();
+      redraw(fixture);
+      return [...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+    };
+
+    const items = openMenu();
+    expect(items).toHaveLength(3);
+    expect(items[0].textContent).toContain('Справочники');
+    expect(items[1].textContent).toContain('без фильтров');
+    expect(items[2].textContent).toContain('без фильтров');
+    items[0].click();
     redraw(fixture);
-    const menu = screen.querySelector('.export-popover') as HTMLElement;
-    expect(menu.textContent).toContain('Экспорт всех доступных задач');
-    expect(menu.textContent).toContain('Текущие фильтры не применяются');
+    expect(openDictionaries).toHaveBeenCalledTimes(1);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+
+    openMenu()
+      .find((item) => item.textContent?.includes('Excel'))!
+      .click();
+    redraw(fixture);
+    expect(openExport).toHaveBeenLastCalledWith('/api/v1/reports/tasks/export?format=xlsx', '_blank');
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    openMenu()
+      .find((item) => item.textContent?.includes('CSV'))!
+      .click();
+    redraw(fixture);
+    expect(openExport).toHaveBeenLastCalledWith('/api/v1/reports/tasks/export?format=csv', '_blank');
+    openExport.mockRestore();
   });
 
   it('opens the list on the project of the address, and a malformed record id as not found', async () => {
@@ -530,20 +556,23 @@ describe('TasksComponent list', () => {
               of(page(String(params['filter'] ?? '').includes('terminal') ? [active] : [active, done]))
             : undefined,
     });
-    const statusRadio = (label: string) =>
-      ([...screen.querySelectorAll('.toolbar .status-filter [role="radio"]')] as HTMLElement[]).find(
-        (node) => node.textContent?.trim() === label,
-      )!;
+    const chooseStatus = (label: string) => {
+      (screen.querySelector('#task-status-filter') as HTMLButtonElement).click();
+      redraw(fixture);
+      [...document.querySelectorAll<HTMLElement>('.smt-select__option')]
+        .find((node) => node.querySelector('.smt-select__option-label')?.textContent?.trim() === label)!
+        .click();
+    };
 
     expect(component.tasks().map((item) => item.id)).toEqual([1]);
-    statusRadio('Все').click();
+    chooseStatus('Все');
     redraw(fixture);
     expect(component.tasks().map((item) => item.id)).toEqual([1, 2]);
 
     component.filterService.viewMode = 'kanban';
     redraw(fixture);
-    expect(screen.querySelector('.toolbar [role="radiogroup"][aria-label="Фильтр по статусу"]')).not.toBeNull();
-    statusRadio('Активные').click();
+    expect(screen.querySelector('.toolbar [role="combobox"][aria-label="Фильтр по статусу"]')).not.toBeNull();
+    chooseStatus('Активные');
     redraw(fixture);
     expect(component.tasks().map((item) => item.id)).toEqual([1]);
 

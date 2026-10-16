@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SmartupCMS simple form declaration v1",
+  "description": "Create-only CLI delivery or explicitly enabled studio.* live activation (ADR-0038). Server and CLI additionally reject duplicate keys, invalid UTF-8, depth above 8, input above 32768 bytes, Java keyword and nonportable Windows device module names, PostgreSQL keyword/system-column and runtime-reserved and secret-like field IDs (shared studio/simple-form-reserved-identifiers.json), duplicate field IDs, leading/trailing whitespace, Unicode control/format/separator characters and unpaired surrogates in labels. No external references are resolved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formatVersion",
+    "kind",
+    "module",
+    "entity",
+    "fields"
+  ],
+  "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "kind": {
+      "const": "simple-form"
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "title"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]{1,11}$"
+        },
+        "title": {
+          "$ref": "#/$defs/labels"
+        }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "title"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,19}$"
+        },
+        "title": {
+          "$ref": "#/$defs/labels"
+        }
+      }
+    },
+    "fields": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/field"
+      }
+    }
+  },
+  "$defs": {
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ru",
+        "uz",
+        "en"
+      ],
+      "properties": {
+        "ru": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "uz": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "labels",
+        "required",
+        "listed"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]{0,19}$"
+        },
+        "type": {
+          "enum": [
+            "text",
+            "textarea",
+            "number",
+            "date",
+            "datetime",
+            "time",
+            "bool",
+            "email",
+            "phone",
+            "url"
+          ]
+        },
+        "labels": {
+          "$ref": "#/$defs/labels"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "listed": {
+          "type": "boolean"
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4000
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "text",
+                  "textarea"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "maxLength"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "maxLength"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "scale"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "scale"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -13,7 +13,6 @@ import com.smartup24.cms.instance.config.security.RateLimitFilter;
 import com.smartup24.cms.instance.config.security.RateLimitProperties;
 import com.smartup24.cms.instance.config.security.RateLimitService;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
-import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.search.api.SearchManagementDtos;
 import com.smartup24.cms.instance.search.controller.SearchController;
 import com.smartup24.cms.instance.search.controller.SearchManagementController;
@@ -23,6 +22,7 @@ import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
 import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.service.SearchSettingsService;
 import com.smartup24.cms.instance.search.service.SearchStatusService;
+import com.smartup24.cms.instance.support.TestModules;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -207,7 +207,7 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
         var isolated = MockMvcBuilders.standaloneSetup(
                         context.getBean(SearchController.class), context.getBean(SearchManagementController.class))
                 .addFilters(context.getBean(KauthAuthenticationFilter.class), filter)
-                .addInterceptors(new RequiresPermissionInterceptor())
+                .addInterceptors(TestModules.permissions())
                 .build();
         org.assertj.core.api.Assertions.assertThatCode(
                         () -> isolated.perform(auth(get("/api/v1/search")).param("q", "query"))

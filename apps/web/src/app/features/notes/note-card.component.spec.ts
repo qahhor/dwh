@@ -37,6 +37,13 @@ describe('NoteCardComponent', () => {
     expect(host.querySelector('.card-actions button')?.getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('shows an unambiguous day-first date and a 24-hour local time', () => {
+    const { fixture, host } = setup();
+    fixture.componentRef.setInput('note', { ...note, modifiedAt: '2026-09-08T14:05:00' });
+    fixture.detectChanges();
+    expect(host.querySelector('.note-date')?.textContent?.trim()).toBe('08.09.2026 14:05');
+  });
+
   it('asks the screen to pin, edit, archive and delete through its buttons', () => {
     const { component, host } = setup();
     const asked: string[] = [];

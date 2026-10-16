@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -114,9 +115,8 @@ public final class EntityValidator {
                 }
             }
             case REF -> {
-                // A key, a number or a code; the row's existence and visibility are the module's to check with its
-                // own scope (until the runtime of plan 10/10, item 5.4 checks them in the target's scope).
-                if (!(value instanceof Number) && !(value instanceof String)) {
+                // Numeric ids must fit a long exactly; the runtime checks the target's existence and visibility.
+                if (!EntityReferenceValues.valid(Objects.requireNonNull(field.ref()), value)) {
                     return error(key, INVALID, "error.field.ref_invalid", Map.of());
                 }
             }

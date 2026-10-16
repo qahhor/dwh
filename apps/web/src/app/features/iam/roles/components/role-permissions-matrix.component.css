@@ -1,5 +1,6 @@
 :host {
   display: block;
+  min-width: 0;
 }
 .matrix-header-bar {
   position: sticky;
@@ -18,6 +19,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 .role-summary-box {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -29,6 +31,7 @@
   flex-wrap: wrap;
 }
 .role-name-text {
+  overflow-wrap: anywhere;
   font-size: 17px;
   font-weight: 600;
   margin: 0;
@@ -55,6 +58,7 @@
 }
 
 .role-meter-row {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -77,6 +81,7 @@
 }
 
 .matrix-actions-box {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -126,6 +131,7 @@
   max-width: 100%;
 }
 .matrix-search-input {
+  min-width: 0;
   flex: 1 1 auto;
   font-size: 12px;
 }
@@ -140,6 +146,7 @@
 }
 
 .expand-all-links {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -172,12 +179,15 @@
 }
 
 .mod-section-card {
+  min-width: 0;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   overflow: hidden;
   background-color: var(--bg-surface);
 }
 .mod-section-header {
+  flex-wrap: wrap;
+  gap: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -187,6 +197,7 @@
   user-select: none;
 }
 .mod-header-left {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -210,6 +221,7 @@
   color: var(--primary);
 }
 .mod-title {
+  overflow-wrap: anywhere;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-main);
@@ -221,6 +233,7 @@
 }
 
 .mod-header-right {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -291,6 +304,7 @@
 }
 
 .form-quick-toggles {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -397,4 +411,17 @@
 }
 .font-mono {
   font-family: monospace;
+}
+
+@media (max-width: 767px) {
+  .text-link,
+  .batch-btn,
+  .mini-toggle-btn,
+  .mod-toggle-btn,
+  .action-checkbox-card {
+    min-height: var(--control-touch-height);
+  }
+  .mini-toggle-btn {
+    min-width: var(--control-touch-height);
+  }
 }

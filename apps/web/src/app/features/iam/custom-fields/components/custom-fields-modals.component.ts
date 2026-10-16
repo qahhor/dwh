@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, Injector, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, Injector, input, model, output } from '@angular/core';
 import { FieldTree, FormField } from '@angular/forms/signals';
 
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
@@ -67,12 +67,15 @@ export class CustomFieldsModalsComponent {
   readonly saving = input(false);
 
   readonly showModal = input(false);
-  /** The server's messages of a refused save, shown under the fields and, for the others, in the summary. */
-  readonly serverErrors = input<ProblemFieldErrors>({ fields: {}, other: [] });
 
   readonly closeModal = output<void>();
   readonly saveField = output<void>();
   readonly codeInput = output<Event>();
+
+  /** The server's messages of a refused save, shown under the fields and, for the others, in the summary. */
+  readonly serverErrors = model<ProblemFieldErrors>({ fields: {}, other: [] });
+
+  private editedErrors: ProblemFieldErrors | null = null;
 
   private readonly entityMemo = optionsMemo<SMTSelectOption<string>[]>();
   private readonly fieldTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
@@ -80,10 +83,22 @@ export class CustomFieldsModalsComponent {
   constructor() {
     // A refused save marks fields invalid from the server's answer: focus goes to the first of them.
     effect(() => {
-      if (Object.keys(this.serverErrors().fields).length === 0) return;
+      const errors = this.serverErrors();
+      if (errors === this.editedErrors || Object.keys(errors.fields).length === 0) return;
       const form = document.getElementById('customFieldForm');
       if (form) focusFirstInvalid(form, this.injector);
     });
+  }
+
+  /** Editing clears that field's refusal without moving focus to another field. */
+  edited(field: string): void {
+    const errors = this.serverErrors();
+    if (!(field in errors.fields)) return;
+    this.editedErrors = {
+      ...errors,
+      fields: Object.fromEntries(Object.entries(errors.fields).filter(([name]) => name !== field)),
+    };
+    this.serverErrors.set(this.editedErrors);
   }
 
   serverError(field: string): string {

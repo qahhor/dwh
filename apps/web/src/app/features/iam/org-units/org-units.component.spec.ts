@@ -301,8 +301,12 @@ describe('OrgUnitsComponent lifecycle', () => {
     );
     fixture.detectChanges();
     expect(page.discard.open()).toBe(true);
+    const question = document.querySelector('[role="alertdialog"]');
+    expect(question?.textContent).toContain('Отменить изменения?');
+    expect(question?.textContent).toContain('Не сохранять');
     page.discard.cancel();
     fixture.detectChanges();
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
     expect(editor.draft().name).toBe('Unsaved');
   });
   it('unsubscribes a pending write on destruction and ignores a late success', () => {

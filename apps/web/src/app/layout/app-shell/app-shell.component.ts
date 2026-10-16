@@ -68,11 +68,15 @@ export class AppShellComponent implements OnDestroy {
   constructor() {
     if (this.breakpointObserver) {
       this.breakpointObserver
-        .observe('(max-width: 768px)')
+        .observe('(max-width: 767px)')
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((result) => {
           const wasMobile = this.isMobile();
           this.isMobile.set(result.matches);
+          if (wasMobile !== result.matches) {
+            this.flyout.closeFlyout();
+            this.flyout.closeProfileFlyout();
+          }
           if (wasMobile && !result.matches) {
             if (this.isMobileMenuOpen()) {
               this.isMobileMenuOpen.set(false);
@@ -97,7 +101,9 @@ export class AppShellComponent implements OnDestroy {
   handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
       if (this.flyout.isFlyoutVisible() || this.flyout.isProfileFlyoutVisible()) {
-        this.flyout.closeFlyout();
+        event.preventDefault();
+        event.stopPropagation();
+        this.flyout.closeFlyout(true);
         this.flyout.closeProfileFlyout();
         return;
       }
@@ -123,6 +129,8 @@ export class AppShellComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.flyout.closeFlyout();
+    this.flyout.closeProfileFlyout();
     this.notifService.resetSession();
   }
 
@@ -204,6 +212,7 @@ export class AppShellComponent implements OnDestroy {
   onNavClick() {
     if (this.isMobileMenuOpen()) {
       this.closeMobileMenu(false);
+      this.mainContent()?.nativeElement?.focus();
     }
   }
 }

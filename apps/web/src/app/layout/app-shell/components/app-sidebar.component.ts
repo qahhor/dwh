@@ -1,21 +1,46 @@
-import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  Injector,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 
 import { RouterModule } from '@angular/router';
-import { TranslatePipe } from '@core/services/i18n.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { NavSection } from '../app-shell.models';
 import { AppSidebarNavSectionsComponent } from './app-sidebar-nav-sections.component';
 import { AppSidebarFlyoutComponent } from './app-sidebar-flyout.component';
 import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 import { User } from '@core/models/auth.models';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
+import { countNavLinks, filterNavSections } from './filter-nav-sections';
 
 @Component({
   selector: 'app-sidebar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTAvatarComponent, RouterModule, TranslatePipe, AppSidebarNavSectionsComponent, AppSidebarFlyoutComponent],
+  imports: [
+    CdkTrapFocus,
+    SMTAvatarComponent,
+    SMTInputComponent,
+    RouterModule,
+    TranslatePipe,
+    AppSidebarNavSectionsComponent,
+    AppSidebarFlyoutComponent,
+  ],
   templateUrl: './app-sidebar.component.html',
   styleUrl: './app-sidebar.component.css',
 })
 export class AppSidebarComponent {
+  private readonly injector = inject(Injector);
+  private readonly i18n = inject(I18nService);
   readonly isSectionActive = input.required<(section: NavSection) => boolean>();
   readonly isRouteActive = input.required<(route: string, exact?: boolean) => boolean>();
   readonly getSectionIcon = input.required<(id: string) => string>();
@@ -70,4 +95,53 @@ export class AppSidebarComponent {
 
   readonly sidebarElement = viewChild<ElementRef<HTMLElement>>('sidebarElement');
   readonly mobileDrawerClose = viewChild<ElementRef<HTMLButtonElement>>('mobileDrawerClose');
+  private readonly flyout = viewChild(AppSidebarFlyoutComponent);
+
+  readonly navigationQuery = signal('');
+  private readonly searchCollapsedGroups = signal<ReadonlySet<string>>(new Set());
+  readonly searchingNavigation = computed(() => this.navigationQuery().trim().length > 0);
+  readonly visibleNavSections = computed(() =>
+    this.searchingNavigation()
+      ? filterNavSections(this.navSections(), this.navigationQuery(), (key) => this.i18n.translate(key))
+      : this.navSections(),
+  );
+  readonly navigationResultCount = computed(() => countNavLinks(this.visibleNavSections()));
+
+  readonly currentFlyoutSection = computed(() => {
+    const section = this.navSections().find((entry) => entry.id === this.hoveredFlyoutSection()?.id);
+    return section && this.hasVisibleItems()(section) ? section : null;
+  });
+
+  readonly displayedSectionExpanded = (id: string): boolean =>
+    this.searchingNavigation() ? !this.searchCollapsedGroups().has(`section:${id}`) : this.isSectionExpanded()(id);
+  readonly displayedSubmenuExpanded = (id: string): boolean =>
+    this.searchingNavigation() ? !this.searchCollapsedGroups().has(`submenu:${id}`) : this.isSubmenuExpanded()(id);
+
+  setNavigationQuery(value: SMTInputValue): void {
+    this.navigationQuery.set(value === null ? '' : String(value));
+    this.searchCollapsedGroups.set(new Set());
+  }
+
+  toggleNavigationGroup(kind: 'section' | 'submenu', value: { id: string; event: MouseEvent }): void {
+    if (!this.searchingNavigation()) {
+      (kind === 'section' ? this.toggleSection : this.toggleSubmenu).emit(value);
+      return;
+    }
+    value.event.preventDefault();
+    value.event.stopPropagation();
+    this.searchCollapsedGroups.update((previous) => {
+      const next = new Set(previous);
+      const key = `${kind}:${value.id}`;
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  openCategory(section: NavSection, event: MouseEvent): void {
+    this.categoryClick.emit({ section, event });
+    if (event.detail === 0) {
+      afterNextRender(() => this.flyout()?.focusFirstItem(), { injector: this.injector });
+    }
+  }
 }

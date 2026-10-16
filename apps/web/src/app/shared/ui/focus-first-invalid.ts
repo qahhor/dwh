@@ -1,4 +1,5 @@
 import { afterNextRender, Directive, ElementRef, inject, Injector } from '@angular/core';
+import { focusFormField } from './form-field-focus';
 
 /** The fields smt-control and the kit controls mark invalid. */
 const INVALID = '[aria-invalid="true"]';
@@ -11,10 +12,9 @@ const INVALID = '[aria-invalid="true"]';
 export function focusFirstInvalid(root: HTMLElement, injector: Injector): void {
   afterNextRender(
     () => {
-      const field = root.querySelector<HTMLElement>(INVALID);
-      if (!field) return;
-      field.scrollIntoView?.({ block: 'center' });
-      field.focus({ preventScroll: true });
+      for (const field of root.querySelectorAll<HTMLElement>(INVALID)) {
+        if (focusFormField(field)) break;
+      }
     },
     { injector },
   );

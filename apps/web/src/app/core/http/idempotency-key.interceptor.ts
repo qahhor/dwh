@@ -45,6 +45,13 @@ function wantsKey(request: HttpRequest<unknown>): boolean {
   const path = pathOf(request.url).split('?')[0];
   if (!path.startsWith('/api/v1/') || path === '/api/v1/auth' || UNSUPPORTED.some((prefix) => path.startsWith(prefix)))
     return false;
+  // Studio authoring checks current access and handles revision retries in its service (ADR-0035).
+  if (['POST', 'PUT'].includes(request.method) && path.startsWith('/api/v1/form-studio/')) return false;
+  // Activation uses the verified package checksum and rechecks access on every retry (ADR-0038).
+  if (request.method === 'POST' && ['/api/v1/studio/forms', '/api/v1/studio/assistant/drafts'].includes(path))
+    return false;
+  if (['/api/v1/list-views', '/api/v1/dashboards'].some((prefix) => path === prefix || path.startsWith(`${prefix}/`)))
+    return false;
   if (RETURNS_SECRET.has(`${request.method} ${path.replace(/\/+$/, '')}`)) return false;
   // A stored answer is replayed as JSON: downloads keep their own handling.
   if (request.responseType !== 'json' && request.responseType !== 'text') return false;

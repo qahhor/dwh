@@ -12,6 +12,7 @@ export class AppShellFlyoutService {
   private flyoutOpenTimer: ReturnType<typeof setTimeout> | null = null;
   private flyoutCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private profileFlyoutCloseTimer: ReturnType<typeof setTimeout> | null = null;
+  private categoryOpener: HTMLElement | null = null;
 
   onItemMouseEnter(section: NavSection, item: NavItem, event: MouseEvent, isCollapsed: boolean, isMobile: boolean) {
     if (!isCollapsed || isMobile) return;
@@ -55,7 +56,7 @@ export class AppShellFlyoutService {
     }, 150);
   }
 
-  closeFlyout() {
+  closeFlyout(restoreFocus = false) {
     if (this.flyoutOpenTimer) {
       clearTimeout(this.flyoutOpenTimer);
       this.flyoutOpenTimer = null;
@@ -67,6 +68,8 @@ export class AppShellFlyoutService {
     this.isFlyoutVisible.set(false);
     this.hoveredFlyoutSection.set(null);
     this.hoveredFlyoutItem.set(null);
+    if (restoreFocus) this.categoryOpener?.focus();
+    this.categoryOpener = null;
   }
 
   onFlyoutItemClick(onNavClick: () => void) {
@@ -123,6 +126,7 @@ export class AppShellFlyoutService {
       this.flyoutCloseTimer = null;
     }
     const target = (event.currentTarget || event.target) as HTMLElement;
+    this.categoryOpener = target;
     const rect = target.getBoundingClientRect();
     const top = Math.max(8, Math.min(rect.top, (typeof window !== 'undefined' ? window.innerHeight : 800) - 340));
 
@@ -140,7 +144,7 @@ export class AppShellFlyoutService {
       this.flyoutOpenTimer = null;
     }
     this.flyoutCloseTimer = setTimeout(() => {
-      this.closeFlyout();
+      if (!document.activeElement?.closest('#rail-section-menu')) this.closeFlyout();
     }, 180);
   }
 
@@ -158,6 +162,7 @@ export class AppShellFlyoutService {
         this.flyoutCloseTimer = null;
       }
       const target = (event.currentTarget || event.target) as HTMLElement;
+      this.categoryOpener = target;
       const rect = target.getBoundingClientRect();
       const top = Math.max(8, Math.min(rect.top, (typeof window !== 'undefined' ? window.innerHeight : 800) - 340));
       this.closeProfileFlyout();

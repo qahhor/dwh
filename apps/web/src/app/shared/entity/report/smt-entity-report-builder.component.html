@@ -1,0 +1,152 @@
+<section class="builder" [attr.aria-labelledby]="ids + '-title'" data-testid="report-builder">
+  <h2 class="sr-only" [id]="ids + '-title'">{{ 'ui.report.title' | t }}</h2>
+  @if (canSave()) {
+    <smt-entity-report-saved [listCode]="meta().code" [state]="state()" (opened)="openSaved($event)" />
+  }
+  @if (source(); as report) {
+    <div class="source-note" data-testid="report-source">
+      <strong>{{ 'ui.report.source' | t: { name: report.name } }}</strong>
+      <p>{{ 'ui.report.readonly' | t }}</p>
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="detachSource()">
+        {{ 'ui.report.detach' | t }}
+      </button>
+    </div>
+  }
+  @if (sources.catalog().length || sources.dataset()) {
+    <smt-control [smtLabel]="'ui.report.dataset' | t" class="builder-field">
+      <smt-select
+        data-testid="report-dataset"
+        [options]="sources.options()"
+        [value]="sources.dataset() ?? ''"
+        [allowClear]="false"
+        [disabled]="!!source() || sources.catalogLoading()"
+        (valueChange)="selectDataset($event)"
+      />
+    </smt-control>
+  }
+  @if (sources.catalogError()) {
+    <p role="alert">{{ sources.catalogError() }}</p>
+    <button smt-button type="button" smtVariant="secondary" (click)="sources.reloadCatalog()">
+      {{ 'common.retry' | t }}
+    </button>
+  }
+  @if (sources.loading()) {
+    <p role="status">{{ 'ui.report.dataset_loading' | t }}</p>
+  }
+  @if (sources.error()) {
+    <p role="alert">{{ sources.error() }}</p>
+    <button smt-button type="button" smtVariant="secondary" (click)="sources.select(sources.dataset())">
+      {{ 'common.retry' | t }}
+    </button>
+  }
+  <fieldset class="builder-form" [disabled]="!!source() || sources.loading() || !!sources.error()">
+    <ui-filter-bar
+      [meta]="reportMeta()"
+      [conditions]="reportFilter()"
+      [match]="reportMatch()"
+      (conditionsChange)="setFilter($event)"
+      (filterChange)="setFilter($event.conditions, $event.match)"
+    />
+    <div class="builder-controls">
+      @for (slot of groupSlots(); track $index; let i = $index) {
+        <smt-control class="builder-field" [smtLabel]="(i === 0 ? 'ui.report.group_by' : 'ui.report.then_by') | t">
+          <smt-select
+            [smtTriggerId]="ids + '-group-' + i"
+            [options]="groupOptions()"
+            [placeholder]="'ui.report.no_grouping' | t"
+            [value]="slot?.field ?? null"
+            (valueChange)="setGroup(i, $event)"
+          />
+        </smt-control>
+        @if (slot && isDated(slot.field)) {
+          <smt-control class="builder-field" [smtLabel]="'ui.report.bucket' | t">
+            <smt-select
+              [smtTriggerId]="ids + '-trunc-' + i"
+              [options]="truncOptions()"
+              [allowClear]="false"
+              [value]="slot.trunc ?? 'month'"
+              (valueChange)="setTrunc(i, $event)"
+            />
+          </smt-control>
+        }
+      }
+    </div>
+    <div class="builder-controls">
+      @for (measure of measures(); track $index; let i = $index) {
+        <fieldset class="builder-measure" [attr.data-testid]="'report-measure-' + i">
+          <legend class="sr-only">{{ 'ui.report.measure_n' | t: { n: i + 1 } }}</legend>
+          <smt-control class="builder-field" [smtLabel]="'ui.report.measure' | t">
+            <smt-select
+              [smtTriggerId]="ids + '-op-' + i"
+              [options]="opOptions()"
+              [allowClear]="false"
+              [value]="measure.op"
+              (valueChange)="setOp(i, $event)"
+            />
+          </smt-control>
+          @if (measure.op !== 'count') {
+            <smt-control class="builder-field" [smtLabel]="'ui.report.of_field' | t">
+              <smt-select
+                [smtTriggerId]="ids + '-field-' + i"
+                [options]="measureOptions()"
+                [allowClear]="false"
+                [value]="measure.field ?? null"
+                (valueChange)="setMeasureField(i, $event)"
+              />
+            </smt-control>
+          }
+          @if (measures().length > 1) {
+            <button
+              smt-button
+              type="button"
+              smtVariant="ghost"
+              smtSize="sm"
+              smtIcon="close"
+              smtIconOnly
+              [attr.aria-label]="'ui.report.remove_measure' | t: { n: i + 1 }"
+              (click)="removeMeasure(i)"
+            ></button>
+          }
+        </fieldset>
+      }
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        smtIcon="add"
+        data-testid="report-add-measure"
+        [disabled]="measures().length >= maxMeasures"
+        (click)="addMeasure()"
+      >
+        {{ 'ui.report.add_measure' | t }}
+      </button>
+    </div>
+    <smt-radio-group
+      smtAppearance="segmented"
+      smtOrientation="horizontal"
+      [options]="chartOptions()"
+      [value]="effectiveChart()"
+      [smtAriaLabel]="'ui.report.chart' | t"
+      (valueChange)="chart.set($event ?? 'table')"
+    />
+  </fieldset>
+  <smt-report-export [source]="exportSource()" [disabled]="!exportSource()" />
+  <div class="builder-result" aria-live="polite" [attr.aria-busy]="run().loading || null">
+    @if (run().error) {
+      <div class="builder-error" role="alert">
+        <span data-testid="report-error">{{ run().error }}</span>
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="refresh.set(refresh() + 1)">
+          {{ 'common.retry' | t }}
+        </button>
+      </div>
+    } @else {
+      <smt-entity-report
+        [result]="displayResult()"
+        [meta]="reportMeta()"
+        [chart]="effectiveChart()"
+        [caption]="caption()"
+      />
+    }
+  </div>
+</section>

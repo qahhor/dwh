@@ -3,8 +3,8 @@
  * base for comparing later work in the kit. See NOTICE.
  *
  * Differences from the kit: the panel is a modal `dialog` named by its
- * title (or `ariaLabel`); the close button sits in a header row with an
- * accessible name instead of floating over the content; motion is skipped
+ * title (or `ariaLabel`); the named close button sits visually in the header
+ * but follows the content in keyboard order; motion is skipped
  * when the user prefers reduced motion or the browser cannot animate;
  * styles come from our tokens (`drawer.scss`), so both themes work. */
 import {

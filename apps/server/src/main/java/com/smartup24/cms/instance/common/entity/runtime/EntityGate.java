@@ -36,6 +36,7 @@ public class EntityGate {
     private final EntityRegistry registry;
     private final @Nullable InstalledModules modules;
     private final Map<String, String> moduleOf;
+    private final @Nullable ModuleCatalog catalog;
 
     @Autowired
     public EntityGate(EntityRegistry registry, ObjectProvider<InstalledModules> modules, ModuleCatalog catalog) {
@@ -45,6 +46,7 @@ public class EntityGate {
     /** Without {@code catalog} no entity has a module to switch off: a registry of declarations alone. */
     public EntityGate(EntityRegistry registry, @Nullable InstalledModules modules, @Nullable ModuleCatalog catalog) {
         this.registry = registry;
+        this.catalog = catalog;
         this.modules = modules;
         this.moduleOf = catalog == null ? Map.of() : modules(registry.all(), catalog);
     }
@@ -62,12 +64,11 @@ public class EntityGate {
         Map<String, String> byEntity = new TreeMap<>();
         List<String> problems = new ArrayList<>();
         for (EntityDefinition entity : entities) {
-            String area = area(entity.form());
-            Optional<ModuleManifest> holder = catalog.holding(area);
+            Optional<ModuleManifest> holder = catalog.holdingForm(entity.form());
             if (holder.isPresent()) {
                 byEntity.put(entity.code(), holder.get().code());
             } else {
-                problems.add(entity.code() + " (form " + entity.form() + ", area " + area + ")");
+                problems.add(entity.code() + " (form " + entity.form() + ")");
             }
         }
         if (!problems.isEmpty()) {
@@ -78,14 +79,15 @@ public class EntityGate {
         return Map.copyOf(byEntity);
     }
 
-    private static String area(String form) {
-        int dot = form.indexOf('.');
-        return dot > 0 ? form.substring(0, dot) : form;
-    }
-
     /** The installed module the entity belongs to, or empty without a module catalog. */
     public Optional<String> moduleOf(String code) {
-        return Optional.ofNullable(moduleOf.get(code));
+        String fixed = moduleOf.get(code);
+        ModuleCatalog current = catalog;
+        return fixed != null || current == null
+                ? Optional.ofNullable(fixed)
+                : registry.find(code)
+                        .flatMap(entity -> current.holdingForm(entity.form()))
+                        .map(ModuleManifest::code);
     }
 
     /** The entity with its custom fields, when the viewer may see it (step 1). */
@@ -103,9 +105,12 @@ public class EntityGate {
      * right; else empty: what the bulk actions, the files, the form, the history and the export of an entity open with.
      */
     public Optional<EntityDefinition> findVisible(String code) {
-        return registry.find(code)
-                .filter(this::moduleActive)
-                .filter(entity -> SecurityContext.hasPermission(entity.form(), "view"));
+        return findActive(code).filter(entity -> SecurityContext.hasPermission(entity.form(), "view"));
+    }
+
+    /** An active declaration only; callers must still enforce the permission of their own endpoint. */
+    public Optional<EntityDefinition> findActive(String code) {
+        return registry.find(code).filter(this::moduleActive);
     }
 
     /** Whether the entity {@code code} is known and the viewer may see it: what a related list of a card needs. */
@@ -144,9 +149,9 @@ public class EntityGate {
     }
 
     private boolean moduleActive(EntityDefinition entity) {
-        String module = moduleOf.get(entity.code());
         InstalledModules installed = modules;
-        return module == null || installed == null || installed.active(module);
+        if (catalog == null || installed == null) return true;
+        return moduleOf(entity.code()).map(installed::active).orElse(false);
     }
 
     /** The answer to an entity the viewer may not see, the same as to an unknown code. */

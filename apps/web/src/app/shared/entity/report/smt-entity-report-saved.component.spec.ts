@@ -1,16 +1,17 @@
 import { TestBed } from '@angular/core/testing';
-import { Subject, of, throwError } from 'rxjs';
+import { Subject, of, throwError, map } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastService } from '@core/services/toast.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { translateTest } from '@testing/i18n-test.stub';
 import { EntityReportsApi, type ReportState, type SavedReport } from './entity-reports';
+import { ReportCatalogApi } from './report-catalog.api';
 import { SMTEntityReportSavedComponent } from './smt-entity-report-saved.component';
 
 const STATE: ReportState = { groupBy: [{ field: 'status' }], measures: [{ op: 'count' }], filter: [], chart: 'bar' };
 
 function report(id: number, name: string, kind: SavedReport['kind'] = 'report'): SavedReport {
-  return { id, name, kind, state: STATE, lockVersion: 1 } as SavedReport;
+  return { id, name, kind, state: STATE, lockVersion: 1, canEdit: true, canShare: false, shared: false } as SavedReport;
 }
 
 /* The person's saved reports of a list (ADR-0032 10.2). */
@@ -37,6 +38,13 @@ describe('SMTEntityReportSavedComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: EntityReportsApi, useValue: reports },
+        {
+          provide: ReportCatalogApi,
+          useValue: {
+            list: (code: string) =>
+              reports.list(code).pipe(map((items) => ({ items, hasMore: false, nextCursor: null }))),
+          },
+        },
         { provide: ToastService, useValue: toast },
         { provide: SMTModalService, useValue: modal },
       ],
@@ -60,6 +68,40 @@ describe('SMTEntityReportSavedComponent', () => {
     lists.get(code)!.next(items);
     lists.get(code)!.complete();
   }
+
+  it('shows retry on catalog failure instead of treating a failure as an empty catalog', async () => {
+    const { fixture, host } = render();
+    lists.get('test.orders')!.error({ status: 503, detail: 'Unavailable' });
+    await settle(fixture);
+    expect(host.querySelector('[role="alert"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="report-catalog-retry"]')).not.toBeNull();
+  });
+
+  it('retains a renamed report on conflict and blocks blind resubmission', async () => {
+    const { fixture, saved } = render();
+    answer('test.orders', [report(4, 'Original')]);
+    await settle(fixture);
+    saved.pick(4);
+    saved.openRename();
+    saved.name.set('My name');
+    reports.update.mockReturnValue(throwError(() => ({ status: 409, detail: 'Changed elsewhere' })));
+    saved.submitSaveAs();
+    expect(saved.name()).toBe('My name');
+    expect(saved.saveAsOpen()).toBe(true);
+    expect(saved.conflict()).toBe(true);
+    saved.submitSaveAs();
+    expect(reports.update).toHaveBeenCalledTimes(1);
+  });
+  it('does not modify a shared definition owned by another reader', async () => {
+    const { fixture, saved } = render();
+    const shared = { ...report(4, 'Shared'), canEdit: false, canShare: false, shared: true };
+    answer('test.orders', [shared]);
+    await settle(fixture);
+    reports.update.mockReturnValue(of(shared));
+    saved.saveActive(shared);
+    saved.togglePin(shared);
+    expect(reports.update).not.toHaveBeenCalled();
+  });
 
   it('reads the reports of the list and offers them by name, marking the widgets', async () => {
     const { fixture, saved } = render();
@@ -100,7 +142,7 @@ describe('SMTEntityReportSavedComponent', () => {
 
     saved.pick(1);
     expect(saved.active()?.name).toBe('Все');
-    expect(opened).toHaveBeenCalledWith(STATE);
+    expect(opened).toHaveBeenCalledWith(expect.objectContaining({ id: 1, state: STATE }));
     saved.pick(null);
     expect(opened).toHaveBeenCalledTimes(1);
   });
@@ -177,6 +219,8 @@ describe('SMTEntityReportSavedComponent', () => {
     saved.togglePin(saved.saved()[0]);
     expect(reports.update).toHaveBeenCalledWith('test.orders', expect.objectContaining({ id: 1, kind: 'widget' }));
     expect(saved.saved()[0].kind).toBe('widget');
+    answer('test.orders', [...saved.saved()]);
+    await settle(fixture);
 
     reports.update.mockReturnValue(throwError(() => ({})));
     saved.saveActive(saved.saved()[0]);
@@ -192,7 +236,7 @@ describe('SMTEntityReportSavedComponent', () => {
     reports.remove.mockReturnValue(of(undefined));
     saved.remove(saved.saved()[0]);
     expect(modal.confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
-    expect(reports.remove).toHaveBeenCalledWith('test.orders', 1);
+    expect(reports.remove).toHaveBeenCalledWith('test.orders', 1, 1);
     expect(saved.saved().map((item) => item.id)).toEqual([2]);
     expect(saved.activeId()).toBeNull();
   });

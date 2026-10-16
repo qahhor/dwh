@@ -51,7 +51,8 @@ public class EntityStoreRepository {
         Map<String, Object> params = new LinkedHashMap<>(scope.params());
         params.put("rid", id);
         String sql = "select " + list.select() + " from " + list.from() + " where " + model.alias() + ".id = :rid"
-                + scope.sql() + (lock ? " for update of " + model.alias() : "");
+                + scope.sql() + EntityPartitions.where(model, model.alias() + ".", params)
+                + (lock ? " for update of " + model.alias() : "");
         return jdbc.sql(sql)
                 .params(params)
                 .query(EntityRowMapper.of(entity, mapper))
@@ -61,7 +62,10 @@ public class EntityStoreRepository {
     /** A page of the entity's list by the plan; {@code predicate} is the scope and the archive of the list. */
     public KeysetPage<Map<String, Object>> page(
             EntityDefinition entity, QueryPlan plan, QueryPlan.SqlFragment predicate) {
-        return lists.page(plan, EntityRowMapper.of(entity, mapper), predicate);
+        Map<String, Object> params = new LinkedHashMap<>(predicate.params());
+        String sql = predicate.sql()
+                + EntityPartitions.where(model(entity), model(entity).alias() + ".", params);
+        return lists.page(plan, EntityRowMapper.of(entity, mapper), new QueryPlan.SqlFragment(sql, params));
     }
 
     /** Inserts the record as {@code userId}; {@code attributes} are its custom field values, or null for none. */
@@ -83,6 +87,7 @@ public class EntityStoreRepository {
             values.add("cast(:attributes as jsonb)");
             params.put("attributes", json(model).object(attributes));
         }
+        EntityPartitions.insert(model, names, values, params);
         String owner = EntityWrite.ownerColumn(model);
         if (owner != null && !names.contains(owner)) {
             names.add(owner);
@@ -116,7 +121,7 @@ public class EntityStoreRepository {
         int index = 0;
         for (EntityWrite.Column column : write.columns()) {
             String parameter = "p" + index++;
-            sets.add(column.name() + " = " + column.parameter(parameter));
+            sets.add(column.assignment(parameter));
             params.put(parameter, column.value());
         }
         if (attributes != null) {
@@ -130,7 +135,8 @@ public class EntityStoreRepository {
         params.put("rid", id);
         params.put("expected", expected);
         String sql = "update " + model.table() + " set " + String.join(", ", sets)
-                + " where id = :rid and revision = :expected returning revision";
+                + " where id = :rid and revision = :expected" + EntityPartitions.where(model, "", params)
+                + " returning revision";
         return jdbc.sql(sql).params(params).query(Long.class).optional();
     }
 
@@ -167,8 +173,9 @@ public class EntityStoreRepository {
                                 + link.kindSql("l"))
                         .param("rid", id)
                         .update());
-        return jdbc.sql("delete from " + model.table() + " where id = :rid")
-                        .param("rid", id)
+        Map<String, Object> params = new LinkedHashMap<>(Map.of("rid", id));
+        return jdbc.sql("delete from " + model.table() + " where id = :rid" + EntityPartitions.where(model, "", params))
+                        .params(params)
                         .update()
                 > 0;
     }
@@ -178,6 +185,8 @@ public class EntityStoreRepository {
      * its revision; empty when nothing was written.
      */
     public Optional<Long> archive(EntityDefinition entity, long id, boolean archived, long userId) {
+        EntityModel model = model(entity);
+        Map<String, Object> params = new LinkedHashMap<>(Map.of("rid", id, "archived", archived, "uid", userId));
         String sql = """
                 update %s
                 set archived_at = case when cast(:archived as boolean) then clock_timestamp() end,
@@ -185,15 +194,10 @@ public class EntityStoreRepository {
                     modified_by = :uid,
                     modified_at = clock_timestamp(),
                     revision = revision + 1
-                where id = :rid and (archived_at is not null) <> cast(:archived as boolean)
+                where id = :rid and (archived_at is not null) <> cast(:archived as boolean)%s
                 returning revision
-                """.formatted(model(entity).table());
-        return jdbc.sql(sql)
-                .param("archived", archived)
-                .param("uid", userId)
-                .param("rid", id)
-                .query(Long.class)
-                .optional();
+                """.formatted(model.table(), EntityPartitions.where(model, "", params));
+        return jdbc.sql(sql).params(params).query(Long.class).optional();
     }
 
     /**
@@ -209,7 +213,8 @@ public class EntityStoreRepository {
         params.put("ids", List.copyOf(ids));
         Map<Long, Boolean> rows = new LinkedHashMap<>();
         jdbc.sql("select " + model.alias() + ".id as rid, " + archived + " as archived from " + model.table() + " "
-                        + model.alias() + " where " + model.alias() + ".id in (:ids)" + scope.sql())
+                        + model.alias() + " where " + model.alias() + ".id in (:ids)" + scope.sql()
+                        + EntityPartitions.where(model, model.alias() + ".", params))
                 .params(params)
                 .query((rs, rowNum) -> Map.entry(rs.getLong("rid"), rs.getBoolean("archived")))
                 .list()

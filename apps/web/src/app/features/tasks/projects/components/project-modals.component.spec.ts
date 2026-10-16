@@ -66,6 +66,21 @@ function type(fixture: ComponentFixture<ProjectModalsComponent>, screen: Screen,
 }
 
 describe('ProjectModalsComponent', () => {
+  it.each(['create', 'edit'] as const)('clears the changed %s field refusal', (mode) => {
+    const { fixture, screen } = render({
+      [mode === 'create' ? 'isCreateModalOpen' : 'isEditModalOpen']: true,
+      editingProject: PROJECT,
+      [mode === 'create' ? 'createErrors' : 'editErrors']: {
+        fields: { name: 'Name refused', description: 'Description refused' },
+        other: [],
+      },
+    });
+    type(fixture, screen, `project-${mode}-name`, 'Corrected');
+    expect(nameError(screen, `project-${mode}-name`)).toBe('');
+    expect(screen.querySelector(`smt-control:has(#project-${mode}-description)`)?.textContent).toContain(
+      'Description refused',
+    );
+  });
   it('shows an opened project record with its custom fields named and their values as labels', () => {
     const { fixture, screen } = render({
       routeRecordId: '7',

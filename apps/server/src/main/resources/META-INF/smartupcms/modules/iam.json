@@ -3,5 +3,5 @@
   "version": "${project.version}",
   "minPlatform": "${platform-api.version}",
   "dependencies": [],
-  "areas": ["md"]
+  "areas": ["md", "notify", "webhook"]
 }

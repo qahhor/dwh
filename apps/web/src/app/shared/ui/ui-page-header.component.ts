@@ -22,7 +22,11 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         <p class="view-header__eyebrow">{{ eyebrow() }}</p>
       }
       <div class="view-header__title-row">
-        <h1 class="view-title" [id]="titleId() || null">{{ title() }}</h1>
+        @if (headingLevel() === 2) {
+          <h2 class="view-title" [id]="titleId() || null">{{ title() }}</h2>
+        } @else {
+          <h1 class="view-title" [id]="titleId() || null">{{ title() }}</h1>
+        }
         @if (count() !== null && count() !== undefined) {
           <span class="count-badge" [attr.title]="countLabel() || null" [attr.data-testid]="countTestId() || null">
             {{ count() }}
@@ -42,6 +46,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 })
 export class UiPageHeaderComponent {
   readonly title = input.required<string>();
+  /** Embedded screens are sections of their parent page, which already owns the level-one heading. */
+  readonly headingLevel = input<1 | 2>(1);
   readonly eyebrow = input('');
   readonly subtitle = input('');
   /** A number shown beside the title (records on screen, a total); nothing when null. */

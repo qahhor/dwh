@@ -14,8 +14,6 @@
   min-width: 0;
   max-width: 100%;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
 }
 
 .load-error-banner {
@@ -32,4 +30,9 @@
 .load-error-message {
   flex: 1;
   font-size: 14px;
+}
+
+.settings-tabs {
+  flex: 1;
+  min-width: 0;
 }

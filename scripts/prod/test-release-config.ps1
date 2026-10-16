@@ -35,6 +35,25 @@ function Assert-DoesNotMatch([string]$Text, [string]$Pattern, [string]$Message) 
     if ($Text -match $Pattern) { throw $Message }
 }
 
+function Assert-StudioActivation([string]$ComposeFile, [string]$EnvironmentFile) {
+    $previousActivation = $env:SMC_STUDIO_ACTIVATION_ENABLED
+    try {
+        foreach ($value in @('', 'false', 'true')) {
+            $env:SMC_STUDIO_ACTIVATION_ENABLED = $value
+            $rendered = & docker compose -f $ComposeFile --env-file $EnvironmentFile config --format json
+            if ($LASTEXITCODE -ne 0) { throw 'Studio Compose rendering failed.' }
+            $settings = $rendered | ConvertFrom-Json
+            $expected = if ($value -eq 'true') { 'true' } else { 'false' }
+            if ("$($settings.services.server.environment.SMC_STUDIO_ACTIVATION_ENABLED)" -ne $expected) {
+                throw "Studio activation must reach the server as '$expected' in $ComposeFile."
+            }
+        }
+    }
+    finally {
+        $env:SMC_STUDIO_ACTIVATION_ENABLED = $previousActivation
+    }
+}
+
 $composeSource = Get-Content -LiteralPath $composePath -Raw
 $webNginx = Get-Content -LiteralPath $webNginxPath -Raw
 $deploySh = Get-Content -LiteralPath $deployShPath -Raw
@@ -103,6 +122,8 @@ Assert-Matches $restoreSh 'age[\s\S]*pg_restore' 'Bash restore must stream age-d
 Assert-Matches $restorePs 'decryptArguments[\s\S]*pg_restore' 'PowerShell restore must stream age-decrypted data to pg_restore.'
 Assert-Matches $restoreSh 'sha256sum' 'Bash restore must verify the encrypted artifact checksum.'
 Assert-Matches $restorePs 'Get-FileHash' 'PowerShell restore must verify the encrypted artifact checksum.'
+Assert-Matches $restoreSh 'run --rm backup-bootstrap[\s\S]*run --rm migrate' 'Bash restore must restore ownership and grants before Flyway reads the restored schema.'
+Assert-Matches $restorePs 'run --rm backup-bootstrap[\s\S]*run --rm migrate' 'PowerShell restore must restore ownership and grants before Flyway reads the restored schema.'
 
 foreach ($scriptPath in @($deployPsPath, (Join-Path $PSScriptRoot 'backup.ps1'), $restorePsPath,
         $backupObjectsPsPath, $restoreCombinedPsPath, $rollbackPsPath, $testRecoveryPsPath,
@@ -117,19 +138,30 @@ $testSecretRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('smartupcms-relea
 New-Item -ItemType Directory -Path $testSecretRoot | Out-Null
 try {
     $databasePassword = Join-Path $testSecretRoot 'database-password'
+    $postgresPassword = Join-Path $testSecretRoot 'postgres-password'
+    $migratePassword = Join-Path $testSecretRoot 'migrate-database-password'
     $backupPassword = Join-Path $testSecretRoot 'backup-database-password'
     $unusedSecret = Join-Path $testSecretRoot 'unused'
     Set-Content -LiteralPath $databasePassword -Value 'obvious-test-database-value' -NoNewline
+    Set-Content -LiteralPath $postgresPassword -Value 'obvious-test-postgres-value' -NoNewline
+    Set-Content -LiteralPath $migratePassword -Value 'obvious-test-migrator-value' -NoNewline
     Set-Content -LiteralPath $backupPassword -Value 'obvious-test-backup-value' -NoNewline
     Set-Content -LiteralPath $unusedSecret -Value 'unused' -NoNewline
     $previousDbPasswordFile = $env:DB_PASSWORD_FILE
+    $previousPostgresPasswordFile = $env:POSTGRES_PASSWORD_FILE
+    $previousMigratePasswordFile = $env:MIGRATE_DB_PASSWORD_FILE
     $previousBackupPasswordFile = $env:BACKUP_DB_PASSWORD_FILE
     $previousAccessKeyFile = $env:BACKUP_S3_ACCESS_KEY_ID_FILE
     $previousSecretKeyFile = $env:BACKUP_S3_SECRET_ACCESS_KEY_FILE
     $env:DB_PASSWORD_FILE = $databasePassword
+    $env:POSTGRES_PASSWORD_FILE = $postgresPassword
+    $env:MIGRATE_DB_PASSWORD_FILE = $migratePassword
     $env:BACKUP_DB_PASSWORD_FILE = $backupPassword
     $env:BACKUP_S3_ACCESS_KEY_ID_FILE = $unusedSecret
     $env:BACKUP_S3_SECRET_ACCESS_KEY_FILE = $unusedSecret
+
+    Assert-StudioActivation (Join-Path $repoRoot 'docker-compose.yml') $envPath
+    Assert-StudioActivation $composePath $envPath
 
     $configJsonText = & docker compose -f $composePath --env-file $envPath --profile tools config --format json
     if ($LASTEXITCODE -ne 0) { throw 'Production Compose failed config validation.' }
@@ -236,6 +268,8 @@ try {
 }
 finally {
     $env:DB_PASSWORD_FILE = $previousDbPasswordFile
+    $env:POSTGRES_PASSWORD_FILE = $previousPostgresPasswordFile
+    $env:MIGRATE_DB_PASSWORD_FILE = $previousMigratePasswordFile
     $env:BACKUP_DB_PASSWORD_FILE = $previousBackupPasswordFile
     $env:BACKUP_S3_ACCESS_KEY_ID_FILE = $previousAccessKeyFile
     $env:BACKUP_S3_SECRET_ACCESS_KEY_FILE = $previousSecretKeyFile

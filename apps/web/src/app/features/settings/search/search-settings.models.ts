@@ -1,6 +1,7 @@
 import { ProblemDetail } from '@core/models/common.models';
 import {
   SearchEntityType,
+  SearchFieldPolicy,
   SearchJobAction,
   SearchQueryPolicy,
   SearchRetryJobRequest,
@@ -46,12 +47,18 @@ export function validateSearchPolicy(
     }
     if (!fields.some((field) => Number.isInteger(field.weight) && field.weight > 0))
       errors.push('settings.search.validation.searchable_field');
-    if (fields.some((field) => !Number.isInteger(field.weight) || field.weight < 0 || field.weight > 127))
-      errors.push('settings.search.validation.weight');
-    if (fields.some((field) => !Number.isInteger(field.numTypos) || field.numTypos < 0 || field.numTypos > 2))
-      errors.push('settings.search.validation.typos');
+    if (fields.some((field) => searchFieldError(field, 'weight'))) errors.push('settings.search.validation.weight');
+    if (fields.some((field) => searchFieldError(field, 'numTypos'))) errors.push('settings.search.validation.typos');
   }
   return [...new Set(errors)];
+}
+
+export function searchFieldError(field: SearchFieldPolicy, part: 'weight' | 'numTypos'): string {
+  const value = field[part];
+  const max = part === 'weight' ? 127 : 2;
+  return !Number.isInteger(value) || value < 0 || value > max
+    ? 'settings.search.validation.' + (part === 'weight' ? 'weight' : 'typos')
+    : '';
 }
 
 export function cloneSearchSnapshot(snapshot: SearchSettingsSnapshot): SearchSettingsSnapshot {

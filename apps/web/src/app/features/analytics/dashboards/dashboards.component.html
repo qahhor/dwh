@@ -1,0 +1,184 @@
+<section class="dashboards" aria-labelledby="dashboards-title" data-testid="dashboards">
+  <h2 id="dashboards-title">{{ 'analytics.panels.title' | t }}</h2>
+  <div class="toolbar">
+    <smt-control [smtLabel]="'analytics.panels.select' | t"
+      ><smt-select
+        [options]="options()"
+        [value]="store.selectedId() ?? 0"
+        [disabled]="store.busy()"
+        (valueChange)="choose($event)"
+    /></smt-control>
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtSize="sm"
+      smtIcon="add"
+      data-testid="dashboard-create"
+      [disabled]="store.busy() || !!store.draft()"
+      (click)="openName('create')"
+    >
+      {{ 'analytics.panels.create' | t }}
+    </button>
+    @if (store.panels.hasMore()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        data-testid="dashboards-more"
+        [smtLoading]="store.panels.loadingMore()"
+        (click)="store.panels.loadMore()"
+      >
+        {{ 'common.load_more' | t }}
+      </button>
+    }
+  </div>
+  @if (store.panels.failed() || store.panels.loadMoreFailed()) {
+    <p role="alert">
+      {{ 'common.operation_failed' | t }}
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="store.panels.retry()">
+        {{ 'common.retry' | t }}
+      </button>
+    </p>
+  }
+  @if (store.loading()) {
+    <p role="status">{{ 'common.loading' | t }}</p>
+  }
+  @if (store.error(); as message) {
+    <div class="problem" role="alert">
+      {{ store.conflict() ? ('analytics.panels.conflict' | t) : message }}
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" [disabled]="store.busy()" (click)="reload()">
+        {{ 'analytics.panels.reload' | t }}
+      </button>
+    </div>
+  }
+  @if (store.selected(); as panel) {
+    <div class="toolbar">
+      @if (!store.draft()) {
+        <smt-control [smtLabel]="'analytics.panels.period' | t"
+          ><smt-date-range-picker
+            [value]="period()"
+            (valueChange)="setPeriod($event)"
+            [smtAriaLabel]="'analytics.panels.period' | t"
+        /></smt-control>
+        <button
+          smt-button
+          type="button"
+          smtVariant="ghost"
+          smtSize="sm"
+          smtIcon="refresh"
+          (click)="refresh.set(refresh() + 1)"
+        >
+          {{ 'common.refresh' | t }}
+        </button>
+        @if (panel.canEdit) {
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            [disabled]="store.busy() || store.conflict()"
+            (click)="store.edit()"
+          >
+            {{ 'analytics.panels.configure' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="ghost"
+            smtSize="sm"
+            [disabled]="store.busy()"
+            (click)="openName('rename')"
+          >
+            {{ 'analytics.panels.rename' | t }}
+          </button>
+          <button smt-button type="button" smtVariant="ghost" smtSize="sm" [disabled]="store.busy()" (click)="remove()">
+            {{ 'common.delete' | t }}
+          </button>
+        }
+        @if (panel.canShare) {
+          <smt-report-sharing
+            [path]="'/dashboards/' + panel.id"
+            (changed)="store.sharingChanged($event.revision, $event.roleIds.length > 0)"
+          />
+        }
+      }
+    </div>
+    @if (store.draft()) {
+      <app-dashboard-editor />
+      <div class="toolbar">
+        <button
+          smt-button
+          type="button"
+          smtVariant="primary"
+          [smtLoading]="store.busy()"
+          [disabled]="store.conflict()"
+          (click)="store.save()"
+        >
+          {{ 'common.save' | t }}
+        </button>
+        <button smt-button type="button" smtVariant="secondary" [disabled]="store.busy()" (click)="cancelEdit()">
+          {{ 'common.cancel' | t }}
+        </button>
+      </div>
+    } @else {
+      <p class="hint">{{ 'analytics.panels.period_hint' | t }}</p>
+      @if (panel.widgets.length === 0) {
+        <p>{{ 'analytics.panels.empty' | t }}</p>
+      }
+      <div class="panel-grid">
+        @for (widget of panel.widgets; track widget.viewId) {
+          <app-dashboard-widget
+            [class.wide]="widget.width === 2"
+            [dashboardId]="panel.id"
+            [revision]="panel.revision"
+            [widget]="widget"
+            [period]="period()"
+            [refresh]="refresh()"
+            (stale)="store.markStale()"
+          />
+        }
+      </div>
+    }
+  } @else if (store.selectedId() === null && !store.loading()) {
+    <app-analytics-widgets />
+  }
+</section>
+<smt-dialog
+  [open]="nameMode() !== null"
+  [smtTitle]="(nameMode() === 'create' ? 'analytics.panels.create' : 'analytics.panels.rename') | t"
+  smtSize="sm"
+  [dismissible]="!store.busy()"
+  (closed)="closeName()"
+>
+  <ng-template smtDialogContent>
+    <form id="dashboard-name-form" (submit)="$event.preventDefault(); submitName()" novalidate>
+      @if (store.error(); as message) {
+        <div role="alert">
+          {{ message }}
+          @if (store.conflict()) {
+            <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="reload()">
+              {{ 'analytics.panels.reload' | t }}
+            </button>
+          }
+        </div>
+      }
+      <smt-control [smtLabel]="'analytics.panels.name' | t" [required]="true" [smtError]="nameError()"
+        ><smt-input
+          [value]="name()"
+          [maxLength]="80"
+          [disabled]="store.busy()"
+          (valueChange)="name.set($event === null ? '' : '' + $event)"
+          smtFocusInitial
+      /></smt-control>
+    </form>
+    <ui-form-actions
+      footer
+      form="dashboard-name-form"
+      [submitting]="store.busy()"
+      [submitDisabled]="store.conflict()"
+      (cancelled)="closeName()"
+    />
+  </ng-template>
+</smt-dialog>

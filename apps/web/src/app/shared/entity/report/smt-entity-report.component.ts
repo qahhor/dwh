@@ -3,6 +3,8 @@ import { fieldLabel, type QueryFieldMeta, type QueryListMeta } from '@core/model
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { RefLookups } from '@shared/lookups/ref-lookup';
 import { type BarChartPoint, type BarChartSeries, UiBarChartComponent } from '@shared/ui/ui-bar-chart.component';
+import { UiReportPlotComponent } from '@shared/ui/ui-report-plot.component';
+import { reportChartProjection } from './report-chart-projection';
 import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
 import { type ReportChart, type ReportResult, groupText, measureLabel } from './entity-reports';
 
@@ -29,7 +31,7 @@ interface ReportColumn {
 @Component({
   selector: 'smt-entity-report',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, UiBarChartComponent, UiKpiCardComponent],
+  imports: [TranslatePipe, UiBarChartComponent, UiKpiCardComponent, UiReportPlotComponent],
   host: { class: 'smt-entity-report' },
   template: `
     @if (result(); as result) {
@@ -42,7 +44,7 @@ interface ReportColumn {
               <ui-kpi-card [label]="kpi.label" [value]="kpi.value" goodWhen="neutral" />
             }
           </div>
-        } @else if (chart() === 'bar') {
+        } @else if (chart() === 'bar' && !tableFallback()) {
           <ui-bar-chart
             data-testid="report-chart"
             [series]="series()"
@@ -51,7 +53,17 @@ interface ReportColumn {
             [axisLabel]="axisLabel()"
           />
         }
-        @if (showTable()) {
+        @if (additionalChart(); as kind) {
+          @if (!tableFallback()) {
+            <ui-report-plot [kind]="kind" [points]="plotPoints()" [caption]="chartCaption()" />
+          }
+        }
+        @if (tableFallback()) {
+          <p class="report-note" role="note" data-testid="report-chart-fallback">
+            {{ 'ui.report.chart_table_fallback' | t }}
+          </p>
+        }
+        @if (showTable() || tableFallback() || additionalChart()) {
           <div class="report-table-wrap" tabindex="0" role="region" [attr.aria-label]="caption()">
             <table class="report-table" data-testid="report-table">
               <caption class="sr-only">
@@ -107,9 +119,28 @@ export class SMTEntityReportComponent {
   readonly groupCount = computed(() => (this.result()?.groups ?? []).length);
 
   /** The chart's own name, apart from the table's: a screen reader meets two tables with the same figures. */
-  readonly chartCaption = computed(() => `${this.caption()} — ${this.i18n.translate('ui.report.chart_bar')}`);
+  readonly chartCaption = computed(
+    () =>
+      `${this.caption()} — ${this.i18n.translate(this.chart() === 'line' ? 'ui.report.chart_line' : this.chart() === 'horizontalBar' ? 'ui.report.chart_horizontal_bar' : 'ui.report.chart_bar')}`,
+  );
 
-  readonly showKpi = computed(() => this.chart() === 'kpi' || this.chosenGroups().length === 0);
+  readonly showKpi = computed(
+    () => this.chart() === 'kpi' || (!this.additionalChart() && this.chosenGroups().length === 0),
+  );
+  readonly additionalChart = computed<'line' | 'horizontalBar' | null>(() =>
+    this.chart() === 'line' ? 'line' : this.chart() === 'horizontalBar' ? 'horizontalBar' : null,
+  );
+  readonly projection = computed(() => {
+    const kind = this.additionalChart();
+    return kind ? reportChartProjection(this.result(), this.meta(), kind) : null;
+  });
+  readonly plotPoints = computed(() =>
+    (this.projection() ?? []).map((point) => ({
+      ...point,
+      label: this.rowText(this.result()!.rows[point.row].groups),
+      text: this.number(point.value),
+    })),
+  );
 
   readonly kpis = computed(() => {
     const result = this.result();
@@ -120,7 +151,7 @@ export class SMTEntityReportComponent {
       result.measures.map((measure, index) => {
         const suffix = this.rowText(row.groups);
         const label = measureLabel(measure, meta, translate);
-        return { label: suffix ? `${label} (${suffix})` : label, value: row.values[index] ?? 0 };
+        return { label: suffix ? `${label} (${suffix})` : label, value: row.values[index] ?? '—' };
       }),
     );
   });
@@ -177,7 +208,8 @@ export class SMTEntityReportComponent {
     }
     return this.stackKeys().map((key, index) => ({
       key,
-      label: key === REST ? this.i18n.translate('ui.report.others') : key,
+      label:
+        key === REST ? this.i18n.translate('ui.report.others') : this.groupWord(this.stackGroups().get(key), stack),
       color: SERIES_COLORS[index],
     }));
   });
@@ -190,12 +222,40 @@ export class SMTEntityReportComponent {
     const points = new Map<string, BarChartPoint>();
     for (const row of result.rows) {
       const label = this.groupWord(row.groups[axis], axis);
-      const point = points.get(label) ?? { label, values: {} };
-      const key = stack < 0 ? 'value' : this.stackKey(this.groupWord(row.groups[stack], stack));
+      const axisKey = this.groupKey(row.groups[axis]);
+      const point = points.get(axisKey) ?? { label, values: {} };
+      const key = stack < 0 ? 'value' : this.stackKey(this.groupKey(row.groups[stack]));
       point.values[key] = (point.values[key] ?? 0) + Number(row.values[0] ?? 0);
-      points.set(label, point);
+      points.set(axisKey, point);
     }
     return [...points.values()];
+  });
+
+  /** Only additive measures may combine the remaining series. */
+  readonly tableFallback = computed(() => {
+    const result = this.result();
+    if (this.additionalChart()) return this.projection() === null;
+    if (!result || this.chart() !== 'bar' || this.showKpi()) return false;
+    if (result.groups.length > 2) return true;
+    if (
+      result.groups.some(
+        (group, index) =>
+          (group.implicit || this.field(group.field)?.format === 'currency') &&
+          new Set(result.rows.map((row) => this.groupKey(row.groups[index]))).size > 1,
+      )
+    ) {
+      return true;
+    }
+    if (result.rows.some((row) => row.values[0] == null || !Number.isFinite(row.values[0]) || row.values[0]! < 0)) {
+      return true;
+    }
+    const op = result.measures[0]?.op;
+    if (op === 'sum' || op === 'count') return false;
+    const stacks = this.stackGroups().size;
+    if (stacks > MAX_SERIES) return true;
+    const axis = this.chosenGroups()[0]?.index ?? 0;
+    const axes = new Set(result.rows.map((row) => this.groupKey(row.groups[axis]))).size;
+    return stacks > 1 && axes * stacks !== result.rows.length;
   });
 
   private readonly chosenGroups = computed(() =>
@@ -209,18 +269,29 @@ export class SMTEntityReportComponent {
     return groups.findIndex((_group, index) => index !== axis);
   });
 
-  /** The stack names in order of appearance; past {@link MAX_SERIES} the rest share one stack. */
-  private readonly stackKeys = computed(() => {
+  /** Original keys identify groups; translated names are only labels. */
+  private readonly stackGroups = computed(() => {
     const result = this.result();
     const stack = this.stackIndex();
-    if (!result || stack < 0) return [];
-    const names: string[] = [];
-    for (const row of result.rows) {
-      const name = this.groupWord(row.groups[stack], stack);
-      if (!names.includes(name)) names.push(name);
+    const groups = new Map<string, string | number | boolean | null>();
+    if (result && stack >= 0) {
+      for (const row of result.rows) {
+        const value = row.groups[stack];
+        groups.set(this.groupKey(value), value);
+      }
     }
-    return names.length <= MAX_SERIES ? names : [...names.slice(0, MAX_SERIES - 1), REST];
+    return groups;
   });
+
+  /** The raw keys in order of appearance; the remaining additive series share a reserved key. */
+  private readonly stackKeys = computed(() => {
+    const keys = [...this.stackGroups().keys()];
+    return keys.length <= MAX_SERIES ? keys : [...keys.slice(0, MAX_SERIES - 1), REST];
+  });
+
+  private groupKey(value: string | number | boolean | null | undefined): string {
+    return 'group:' + JSON.stringify(value ?? null);
+  }
 
   private stackKey(name: string): string {
     return this.stackKeys().includes(name) ? name : REST;

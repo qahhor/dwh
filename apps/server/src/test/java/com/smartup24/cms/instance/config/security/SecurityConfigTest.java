@@ -41,6 +41,7 @@ import com.smartup24.cms.instance.search.api.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
+import com.smartup24.cms.instance.support.TestModules;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.util.List;
@@ -80,6 +81,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
         })
 @AutoConfigureMockMvc(print = MockMvcPrint.NONE)
 @Import({
+    TestModules.Enabled.class,
     SecurityConfig.class,
     ProblemDetailAuthHandlers.class,
     KauthAuthenticationFilter.class,

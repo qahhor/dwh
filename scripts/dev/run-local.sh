@@ -64,6 +64,7 @@ export PROJECT_NAME="$PROJECT"
 # The development credentials of docker-compose.yml and .env.example; the local database is not reachable from outside
 # the machine's Docker network unless the host publishes DB_PORT.
 DB_PASSWORD_LOCAL="${DB_PASSWORD:-smartupcms_local_dev}"
+MIGRATE_DB_PASSWORD_LOCAL="${MIGRATE_DB_PASSWORD:-smartupcms_migrator_local_dev}"
 
 say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 fail() { printf '\n\033[1;31mError: %s\033[0m\n' "$*" >&2; exit 1; }
@@ -144,10 +145,10 @@ migrate() {
     jar="$(server_jar)"
     server_env
     # As the migrator role of the PostgreSQL image, the same steps as the migrate service of docker-compose.yml.
-    DB_USER="smartupcms_migrator" SMC_MIGRATE_SCOPE="warehouse" "$JAVA" -cp "$jar" \
+    DB_USER="smartupcms_migrator" DB_PASSWORD="$MIGRATE_DB_PASSWORD_LOCAL" SMC_MIGRATE_SCOPE="warehouse" "$JAVA" -cp "$jar" \
         -Dloader.main=com.smartup24.cms.instance.warehouse.migration.MigrateMain \
         org.springframework.boot.loader.launch.PropertiesLauncher
-    DB_USER="smartupcms_migrator" "$JAVA" -jar "$jar" --spring.profiles.active=migrate > "$STATE/migrate.log" 2>&1 \
+    DB_USER="smartupcms_migrator" DB_PASSWORD="$MIGRATE_DB_PASSWORD_LOCAL" "$JAVA" -jar "$jar" --spring.profiles.active=migrate > "$STATE/migrate.log" 2>&1 \
         || { tail -n 60 "$STATE/migrate.log"; fail "Migrations failed (full log: .local/migrate.log)."; }
 }
 

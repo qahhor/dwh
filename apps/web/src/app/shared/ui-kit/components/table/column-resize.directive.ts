@@ -13,6 +13,9 @@ import {
   output,
 } from '@angular/core';
 
+import { SMTI18nService } from '@shared/ui-kit/i18n';
+import { createColumnResizeHandle, installColumnResizeKeyboard } from './column-resize-keyboard';
+
 interface ResizeSession {
   startClientX: number;
   startWidthPx: number;
@@ -25,13 +28,15 @@ interface ResizeSession {
 // line being dragged takes the accent so the column under the pointer is clear.
 const RESIZE_LINE_ACTIVE_COLOR = 'var(--primary)';
 const RESIZE_LINE_PASSIVE_COLOR = 'var(--border-color)';
-const RESIZE_LINE_WIDTH_PX = 1;
 
 @Directive({
   selector: '[smtColumnResize]',
 })
 export class ColumnResizeDirective implements OnInit, OnDestroy {
   private el = inject(ElementRef<HTMLElement>);
+  private readonly i18n = inject(SMTI18nService);
+
+  readonly smtColumnResizeLabel = input('');
 
   readonly smtColumnResize = input(true, { transform: booleanAttribute });
 
@@ -62,6 +67,8 @@ export class ColumnResizeDirective implements OnInit, OnDestroy {
   resizeChange = output<{ widthPx: number; widthPercent: string }>();
 
   resizeEnd = output<{ widthPx: number; widthPercent: string }>();
+
+  private refreshKeyboard: (() => void) | null = null;
 
   private static activeResizer: ColumnResizeDirective | null = null;
 
@@ -117,39 +124,18 @@ export class ColumnResizeDirective implements OnInit, OnDestroy {
   }
 
   private createResizeHandle(): HTMLElement {
-    const handleWidth = Math.max(2, Math.round(this.smtColumnResizeHandleWidth()));
-    const handle = document.createElement('div');
-    handle.className = 'smt-column-resize-handle';
-    // Biruni `.tbl-cell-resizer`: `position:absolute; right:0; width:10px` (inside the cell).
-    handle.style.cssText = `
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: ${handleWidth}px;
-      cursor: col-resize;
-      z-index: 20;
-      touch-action: none;
-      user-select: none;
-    `;
-
-    const line = document.createElement('span');
-    line.style.cssText = `
-      position: absolute;
-      left: 50%;
-      top: 0;
-      bottom: 0;
-      width: ${RESIZE_LINE_WIDTH_PX}px;
-      margin-left: -${RESIZE_LINE_WIDTH_PX / 2}px;
-      background: transparent;
-      border-radius: 1px;
-      opacity: 0;
-      pointer-events: none;
-      transition:
-        background 120ms ease,
-        opacity 120ms ease;
-    `;
-
+    const { handle, line } = createColumnResizeHandle(this.smtColumnResizeHandleWidth());
+    this.refreshKeyboard = installColumnResizeKeyboard(handle, {
+      enabled: () => this.smtColumnResize(),
+      label: () =>
+        this.i18n
+          .messages()
+          .table.resizeColumn(this.smtColumnResizeLabel() || this.el.nativeElement.textContent?.trim() || ''),
+      current: () => this.el.nativeElement.getBoundingClientRect().width,
+      minimum: () => this.smtColumnResizeMin(),
+      maximum: (width) => this.getDragMaxWidth(width),
+      resize: (width) => this.resizeEnd.emit(this.toResizePayload(width)),
+    });
     this.line = line;
     handle.appendChild(line);
     handle.addEventListener('pointerdown', (e: PointerEvent) => this.onResizeStart(e));
@@ -303,6 +289,7 @@ export class ColumnResizeDirective implements OnInit, OnDestroy {
     if (!this.handle) return;
     const enabled = this.smtColumnResize();
     this.handle.style.display = enabled ? 'block' : 'none';
+    this.refreshKeyboard?.();
     if (!enabled || !this.session) {
       this.setLineVisible(false);
     }

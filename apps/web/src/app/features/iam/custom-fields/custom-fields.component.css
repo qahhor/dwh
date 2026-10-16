@@ -3,38 +3,3 @@
   max-width: 1400px;
   margin: 0 auto;
 }
-
-.icon-refresh-btn {
-  width: 38px;
-  height: 38px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.icon-refresh-btn:hover:not(:disabled) {
-  background: var(--bg-hover);
-  color: var(--text-main);
-  border-color: var(--border-strong, var(--border-color));
-}
-
-.icon-refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.icon-refresh-btn.spinning .material-symbols-outlined {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  100% {
-    transform: rotate(360deg);
-  }
-}

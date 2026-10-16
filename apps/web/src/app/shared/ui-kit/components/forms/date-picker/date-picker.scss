@@ -294,3 +294,10 @@
     flex-basis: 100%;
   }
 }
+
+@media (max-width: 767px) {
+  .smt-date-picker__toggle {
+    width: var(--control-touch-height);
+    height: var(--control-touch-height);
+  }
+}

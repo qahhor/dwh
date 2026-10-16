@@ -66,7 +66,10 @@ public class RecordHistoryService {
      */
     @Transactional(readOnly = true)
     public KeysetPage<HistoryEntry> history(String key, String recordId, Integer limit, String cursor) {
-        RecordHistorySource source = sources.get(key);
+        RecordHistorySource source = entities.historySources().stream()
+                .filter(item -> item.key().equals(key))
+                .findFirst()
+                .orElse(sources.get(key));
         if (source == null || !opens(source)) {
             throw EntityGate.unknownEntity();
         }
@@ -100,9 +103,10 @@ public class RecordHistoryService {
 
     /** The kinds of records with a history the viewer may open, for the UI to know where to offer it. */
     public List<String> availableKinds() {
-        return sources.values().stream()
+        return Stream.concat(sources.values().stream(), entities.historySources().stream())
                 .filter(this::opens)
                 .map(RecordHistorySource::key)
+                .distinct()
                 .sorted()
                 .toList();
     }

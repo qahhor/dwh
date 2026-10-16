@@ -190,7 +190,7 @@ public final class EntityRequestReader {
         return switch (field.type()) {
             case NUMBER -> node.isNumber() || node.isString();
             case BOOLEAN -> node.isBoolean();
-            case REF -> node.isIntegralNumber() || node.isString();
+            case REF -> (node.isIntegralNumber() && node.canConvertToLong()) || node.isString();
             case MULTI_REF -> node.isArray();
             // Money in the document's currency may come as its amount alone (ADR-0032, 9.1).
             case MONEY ->

@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.common.entity.runtime;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityAttributes;
 import com.smartup24.cms.instance.common.entity.EntityFieldValues;
+import com.smartup24.cms.instance.common.entity.EntityReferenceValues;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.EntityScopes;
 import com.smartup24.cms.instance.common.entity.FieldValueRules;
@@ -100,12 +101,7 @@ public class EntitySaveChecks {
         Set<Long> keys = new LinkedHashSet<>();
         if (value == null) return keys;
         for (Object item : value instanceof List<?> list ? list : List.of(value)) {
-            if (item instanceof Number number) {
-                keys.add(number.longValue());
-            } else {
-                String text = String.valueOf(item).strip();
-                keys.add(!text.isEmpty() && text.chars().allMatch(Character::isDigit) ? Long.parseLong(text) : -1L);
-            }
+            keys.add(EntityReferenceValues.key(item).orElse(-1L));
         }
         return keys;
     }

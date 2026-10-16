@@ -1,5 +1,6 @@
 :host {
   display: block;
+  padding: 16px;
 }
 .filter-panel {
   display: flex;
@@ -98,6 +99,7 @@
 }
 .filter-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding-top: 12px;
@@ -105,4 +107,15 @@
 }
 .filter-spacer {
   flex: 1;
+}
+
+@media (max-width: 767px) {
+  .filter-row {
+    padding-right: 60px;
+  }
+
+  .filter-remove {
+    width: 44px;
+    height: 44px;
+  }
 }

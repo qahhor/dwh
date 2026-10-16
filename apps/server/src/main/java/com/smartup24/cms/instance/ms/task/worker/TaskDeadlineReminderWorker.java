@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.task.worker;
 
+import com.smartup24.cms.instance.common.module.InstalledModules;
 import com.smartup24.cms.instance.ms.task.api.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
 import java.time.Duration;
@@ -34,19 +35,25 @@ public class TaskDeadlineReminderWorker {
     private final MsTaskStatsRepository taskRepository;
     private final ApplicationEventPublisher events;
     private final TransactionTemplate transactions;
+    private final InstalledModules modules;
 
     public TaskDeadlineReminderWorker(
             MsTaskStatsRepository taskRepository,
             ApplicationEventPublisher events,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            InstalledModules modules) {
         this.taskRepository = taskRepository;
         this.events = events;
         this.transactions = new TransactionTemplate(transactionManager);
+        this.modules = modules;
     }
 
     /** A failure on one task is logged and the scan goes on with the next one. */
     @Scheduled(fixedDelay = 600000, initialDelay = 30000)
     public void scanAndNotifyDeadlines() {
+        if (!modules.active("tasks")) {
+            return;
+        }
         List<MsTaskStatsRepository.TaskDeadlineCandidate> rows;
         try {
             rows = taskRepository.findUpcomingDeadlines(DEADLINE_WINDOW);

@@ -10,10 +10,12 @@
     #sidebarElement
     [id]="sidebarId()"
     class="sidebar"
-    [class.collapsed]="isCollapsed()"
+    [class.collapsed]="isCollapsed() && !isMobile()"
     [class.mobile-open]="isMobile() && isMobileMenuOpen()"
     [attr.role]="isMobile() && isMobileMenuOpen() ? 'dialog' : null"
     [attr.aria-modal]="isMobile() && isMobileMenuOpen() ? 'true' : null"
+    [attr.aria-label]="isMobile() && isMobileMenuOpen() ? ('layout.app_shell.main_navigation' | t) : null"
+    [cdkTrapFocus]="isMobile() && isMobileMenuOpen()"
     [attr.aria-hidden]="isMobile() && !isMobileMenuOpen() ? 'true' : null"
     [attr.inert]="isMobile() && !isMobileMenuOpen() ? true : null"
   >
@@ -59,13 +61,35 @@
       }
     </div>
 
+    @if (!isCollapsed() || isMobileMenuOpen()) {
+      <div class="sidebar-search">
+        <smt-input
+          class="sidebar-navigation-search"
+          smtFieldId="sidebar-navigation-search"
+          type="search"
+          smtSize="sm"
+          smtIcon="search"
+          clearable
+          [smtAriaLabel]="'layout.app_shell.search_navigation' | t"
+          [placeholder]="'layout.app_shell.search_navigation' | t"
+          [value]="navigationQuery()"
+          (valueChange)="setNavigationQuery($event)"
+        />
+        <span class="sr-only navigation-search-status" aria-live="polite">
+          @if (searchingNavigation()) {
+            {{ 'layout.app_shell.navigation_search_results' | t: { count: navigationResultCount() } }}
+          }
+        </span>
+      </div>
+    }
+
     <!-- Delegation: a followed link (by mouse or Enter) bubbles a click here and closes the mobile menu. -->
     <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
     <nav class="sidebar-nav" [attr.aria-label]="'layout.app_shell.main_navigation' | t" (click)="navClick.emit()">
       <!-- Collapsed Mode: Categories Rail (Main Categories of the Menu) -->
       @if (isCollapsed() && !isMobileMenuOpen()) {
         <div class="rail-category-list">
-          @for (section of navSections(); track section) {
+          @for (section of navSections(); track section.id) {
             @if (hasVisibleItems()(section)) {
               <button
                 type="button"
@@ -73,8 +97,13 @@
                 [class.active]="isSectionActive()(section)"
                 [class.open]="isFlyoutVisible() && hoveredFlyoutSection()?.id === section.id"
                 [attr.aria-label]="section.titleKey | t"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="isFlyoutVisible() && hoveredFlyoutSection()?.id === section.id"
+                [attr.aria-controls]="
+                  isFlyoutVisible() && hoveredFlyoutSection()?.id === section.id ? 'rail-section-menu' : null
+                "
                 [attr.title]="section.titleKey | t"
-                (click)="categoryClick.emit({ section: section, event: $event })"
+                (click)="openCategory(section, $event)"
                 (mouseenter)="categoryMouseEnter.emit({ section: section, event: $event })"
                 (mouseleave)="categoryMouseLeave.emit()"
               >
@@ -98,15 +127,18 @@
 
       <!-- Expanded Mode / Mobile Drawer: Full Sections Hierarchy -->
       @if (!isCollapsed() || isMobileMenuOpen()) {
+        @if (searchingNavigation() && !visibleNavSections().length) {
+          <p class="navigation-search-empty">{{ 'layout.app_shell.navigation_no_results' | t }}</p>
+        }
         <app-sidebar-nav-sections
-          [navSections]="navSections()"
+          [navSections]="visibleNavSections()"
           [hasVisibleItems]="hasVisibleItems()"
-          [isSectionExpanded]="isSectionExpanded()"
+          [isSectionExpanded]="displayedSectionExpanded"
           [isSectionActive]="isSectionActive()"
-          [isSubmenuExpanded]="isSubmenuExpanded()"
+          [isSubmenuExpanded]="displayedSubmenuExpanded"
           [activeItemId]="activeItemId()"
-          (toggleSection)="toggleSection.emit($event)"
-          (toggleSubmenu)="toggleSubmenu.emit($event)"
+          (toggleSection)="toggleNavigationGroup('section', $event)"
+          (toggleSubmenu)="toggleNavigationGroup('submenu', $event)"
         ></app-sidebar-nav-sections>
       }
     </nav>
@@ -143,10 +175,11 @@
     [isCollapsed]="isCollapsed()"
     [isMobile]="isMobile()"
     [isFlyoutVisible]="isFlyoutVisible()"
-    [hoveredFlyoutSection]="hoveredFlyoutSection()"
+    [hoveredFlyoutSection]="currentFlyoutSection()"
     [flyoutAnchorTop]="flyoutAnchorTop()"
     [isProfileFlyoutVisible]="isProfileFlyoutVisible()"
     [currentUser]="currentUser()"
+    [activeItemId]="activeItemId()"
     (flyoutMouseEnter)="flyoutMouseEnter.emit()"
     (flyoutMouseLeave)="flyoutMouseLeave.emit()"
     (flyoutItemClick)="flyoutItemClick.emit()"

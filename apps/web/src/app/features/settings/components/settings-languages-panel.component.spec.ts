@@ -33,6 +33,26 @@ async function render(currentLang = 'ru', languages = LANGUAGES) {
 }
 
 describe('SettingsLanguagesPanelComponent on the vendored table', () => {
+  it('clears only the edited server refusal without moving focus', async () => {
+    const fixture = await render();
+    fixture.componentRef.setInput('isAddLangModalOpen', true);
+    fixture.componentRef.setInput('addServerErrors', { name: 'Name refused', json: 'Dictionary refused' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const name = document.body.querySelector('#new-lang-name') as HTMLInputElement;
+    name.focus();
+    name.value = 'Corrected';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(name.closest('smt-control')?.textContent).not.toContain('Name refused');
+    expect(fixture.componentInstance.addServerErrors()['json']).toBe('Dictionary refused');
+    expect(document.activeElement).toBe(name);
+    fixture.destroy();
+  });
+
   it('renders one row per language through smt-table', async () => {
     const el: HTMLElement = (await render()).nativeElement;
 

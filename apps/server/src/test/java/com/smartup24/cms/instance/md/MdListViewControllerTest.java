@@ -84,7 +84,7 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
 
     @Test
     @DisplayName(
-            "своё представление: создаётся в канонической форме, одно по умолчанию, правится с lockVersion, удаляется")
+            "своё представление: создаётся в канонической форме, одно по умолчанию, правится с If-Match, удаляется")
     void ownViewLifecycle() throws Exception {
         Session analyst = login(user("analyst"));
         var filter = List.of(Map.of("field", "periodicity", "op", "in", "value", List.of("month")));
@@ -129,15 +129,19 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
         assertThat((String) read(duplicate, "$.errors[0].code")).isEqualTo(MdListViewService.LIST_VIEW_NAME_TAKEN);
 
         var renamed =
-                send(analyst, put(BASE + "/" + first), view("Месячные по имени", Map.of("sort", "name"), false, 0));
+                send(analyst, put(BASE + "/" + first), view("Месячные по имени", Map.of("sort", "name"), false, 1));
         assertThat(renamed.getStatus()).as(renamed.getContentAsString()).isEqualTo(200);
-        assertThat((Integer) read(renamed, "$.lockVersion")).isEqualTo(1);
-        var stale = send(analyst, put(BASE + "/" + first), view("Снова", Map.of(), false, 0));
+        assertThat((Integer) read(renamed, "$.lockVersion")).isEqualTo(2);
+        var stale = send(analyst, put(BASE + "/" + first), view("Снова", Map.of(), false, 1));
         assertThat(stale.getStatus()).isEqualTo(409);
-        assertThat((String) read(stale, "$.messageKey")).isEqualTo("error.md.list_view_stale");
+        assertThat((String) read(stale, "$.messageKey")).isEqualTo("error.common.revision_conflict");
 
-        assertThat(send(analyst, delete(BASE + "/" + first), null).getStatus()).isEqualTo(204);
-        assertThat(send(analyst, delete(BASE + "/" + first), null).getStatus()).isEqualTo(404);
+        assertThat(send(analyst, delete(BASE + "/" + first).header("If-Match", "2"), null)
+                        .getStatus())
+                .isEqualTo(204);
+        assertThat(send(analyst, delete(BASE + "/" + first).header("If-Match", "2"), null)
+                        .getStatus())
+                .isEqualTo(404);
         assertThat((List<String>) read(send(analyst, get(BASE), null), "$[*].name"))
                 .containsExactly("Все");
         assertThat(jdbc.sql(
@@ -191,7 +195,9 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
         assertThat(send(other, put(BASE + "/" + id), view("Чужое", Map.of(), false, 0))
                         .getStatus())
                 .isEqualTo(404);
-        assertThat(send(other, delete(BASE + "/" + id), null).getStatus()).isEqualTo(404);
+        assertThat(send(other, delete(BASE + "/" + id).header("If-Match", "0"), null)
+                        .getStatus())
+                .isEqualTo(404);
 
         Session outsider = login(user("user"));
         var hidden = send(outsider, get(BASE), null);
@@ -251,9 +257,14 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
 
     private MockHttpServletResponse send(Session s, MockHttpServletRequestBuilder request, Object body)
             throws Exception {
-        request.cookie(s.session(), s.csrf())
-                .header("X-XSRF-TOKEN", s.csrf().getValue())
-                .header("Idempotency-Key", UUID.randomUUID().toString());
+        request.cookie(s.session(), s.csrf()).header("X-XSRF-TOKEN", s.csrf().getValue());
+        if (body instanceof Map<?, ?> original) {
+            Map<String, Object> wire = new LinkedHashMap<>();
+            original.forEach((key, value) -> wire.put(key.toString(), value));
+            Object revision = wire.remove("lockVersion");
+            if (revision != null) request.header("If-Match", revision.toString());
+            body = wire;
+        }
         if (body != null) {
             request.contentType("application/json").content(json(body));
         }

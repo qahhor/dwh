@@ -1,0 +1,39 @@
+{
+  "formatVersion": 1,
+  "kind": "form-layout",
+  "entityCode": "example.products",
+  "sections": [
+    {
+      "id": "main",
+      "fields": [
+        {
+          "fieldId": "name",
+          "labels": {
+            "ru": "Название товара",
+            "uz": "Mahsulot nomi",
+            "en": "Product name"
+          }
+        },
+        {
+          "fieldId": "code"
+        }
+      ]
+    },
+    {
+      "id": "pricing",
+      "labels": {
+        "ru": "Цена и единица",
+        "uz": "Narx va birlik",
+        "en": "Price and unit"
+      },
+      "fields": [
+        {
+          "fieldId": "price"
+        },
+        {
+          "fieldId": "unit"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.widget-editor {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin: 0;
+  min-width: 0;
+}
+legend {
+  font-weight: 600;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.widget-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.widget-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .widget-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

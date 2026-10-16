@@ -10,6 +10,7 @@ import { CustomNavigationItem } from '@core/models/navigation.models';
 import { ComponentFixture } from '@angular/core/testing';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { NavigationItemForm } from './navigation-item-form';
+import { inScreen, redraw } from '@testing/in-screen';
 
 /** Types into the dialog's model, as the bound fields do. */
 function edit(fixture: ComponentFixture<NavigationSettingsComponent>, values: Partial<NavigationItemForm>): void {
@@ -103,6 +104,53 @@ describe('NavigationSettingsComponent', () => {
     expect(rows).toHaveLength(2);
     expect(fixture.nativeElement.textContent).toContain('Отчет по продажам (Superset)');
     expect(fixture.nativeElement.textContent).toContain('Внешняя CRM');
+  });
+
+  it('shows a persistent first-load error and retries without claiming an empty result', () => {
+    const { fixture, navService } = setup();
+    navService.loadAllItems.mockReturnValueOnce(throwError(() => ({ status: 503 })));
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('[data-testid="navigation-load-error"]')).not.toBeNull();
+    expect(host.querySelector('app-navigation-settings-table')).toBeNull();
+    expect(host.textContent).not.toContain('Нет данных для отображения');
+    (host.querySelector('[data-testid="navigation-retry"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(navService.loadAllItems).toHaveBeenCalledTimes(2);
+    expect(host.querySelector('[data-testid="navigation-load-error"]')).toBeNull();
+    expect(host.querySelectorAll('.nav-table [role="rowgroup"] > [role="row"]')).toHaveLength(2);
+  });
+
+  it('keeps loaded menu items after a failed refresh and clears the error on retry', () => {
+    const { fixture, navService } = setup();
+    fixture.detectChanges();
+    navService.loadAllItems.mockReturnValueOnce(throwError(() => ({ status: 503 })));
+    fixture.componentInstance.store.loadItems();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('[data-testid="navigation-load-error"]')).not.toBeNull();
+    expect(host.querySelectorAll('.nav-table [role="rowgroup"] > [role="row"]')).toHaveLength(2);
+    (host.querySelector('[data-testid="navigation-retry"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(navService.loadAllItems).toHaveBeenCalledTimes(3);
+    expect(host.querySelector('[data-testid="navigation-load-error"]')).toBeNull();
+    expect(fixture.componentInstance.store.items()).toEqual(sampleItems);
+  });
+
+  it('uses a section heading only when embedded in the settings page', () => {
+    const { fixture } = setup();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('h1')?.textContent).toBe(translateTest('nav.settings.navigation_title'));
+
+    fixture.componentRef.setInput('embedded', true);
+    fixture.detectChanges();
+    expect(host.querySelector('h1')).toBeNull();
+    expect(host.querySelector('h2')?.textContent).toBe(translateTest('nav.settings.navigation_title'));
   });
 
   it('opens create modal with default values', () => {
@@ -282,6 +330,38 @@ describe('NavigationSettingsComponent', () => {
     expect(toast.show).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
     expect(fixture.componentInstance.isModalOpen()).toBe(true);
+  });
+
+  it('clears only an edited refusal, retains unknown errors in the summary and leaves focus on the edit', async () => {
+    const { fixture, navService, toast } = setup();
+    fixture.detectChanges();
+    navService.createItem.mockReturnValueOnce(
+      throwError(() => ({
+        status: 422,
+        errors: [
+          { field: 'code', message: 'Code already exists' },
+          { field: 'url', message: 'Address refused' },
+          { field: 'policy', message: 'Review this item policy' },
+        ],
+      })),
+    );
+    fixture.componentInstance.openCreateModal();
+    edit(fixture, { title: 'A', code: 'a', url: '/a' });
+    fixture.componentInstance.saveItem();
+    redraw(fixture);
+    const root = inScreen(fixture.nativeElement);
+    expect(root.querySelector('[data-testid="form-error-summary"]')?.textContent).toContain('Review this item policy');
+    await fixture.whenStable();
+    const code = root.querySelector('#nav-code') as HTMLInputElement;
+    code.focus();
+    code.value = 'new-code';
+    code.dispatchEvent(new Event('input'));
+    redraw(fixture);
+    TestBed.tick();
+    expect(fixture.componentInstance.store.fieldErrors()).toEqual({ url: 'Address refused' });
+    expect(document.activeElement).toBe(code);
+    expect(navService.createItem).toHaveBeenCalledTimes(1);
+    expect(toast.show).not.toHaveBeenCalled();
   });
 
   it('closes an untouched dialog at once and asks before dropping a changed one', () => {

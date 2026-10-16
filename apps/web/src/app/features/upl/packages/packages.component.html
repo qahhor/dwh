@@ -22,7 +22,13 @@
     </ui-page-header>
 
     @if (canUpload()) {
-      <form class="upl-pkg-form" data-testid="upl-pkg-form" (ngSubmit)="submit()" novalidate>
+      <form
+        class="upl-pkg-form"
+        data-testid="upl-pkg-form"
+        uiFocusFirstInvalid
+        (submit)="$event.preventDefault(); submit()"
+        novalidate
+      >
         <h2 class="upl-pkg-form-title">{{ 'upl.pkg.form.title' | t }}</h2>
 
         @if (formErrors().form.length > 0) {
@@ -47,6 +53,7 @@
               [disabled]="isSending()"
               [value]="form().sourceId"
               (valueChange)="patchForm({ sourceId: $event })"
+              (touch)="touchField('sourceId')"
               [options]="sourceOptions()"
               [placeholder]="'upl.pkg.form.source_placeholder' | t"
               [searchPlaceholder]="'upl.pkg.form.source_search' | t"
@@ -78,6 +85,7 @@
               [disabled]="isSending()"
               [value]="form().periodFrom"
               (valueChange)="patchForm({ periodFrom: $event ?? '' })"
+              (touch)="touchField('periodFrom')"
             />
           </smt-control>
 
@@ -93,6 +101,7 @@
               [disabled]="isSending()"
               [value]="form().periodTo"
               (valueChange)="patchForm({ periodTo: $event ?? '' })"
+              (touch)="touchField('periodTo')"
             />
           </smt-control>
 
@@ -113,12 +122,11 @@
         <div class="upl-pkg-form-actions">
           <button
             smt-button
-            type="button"
+            type="submit"
             smtVariant="primary"
             [disabled]="!isReady()"
             [smtLoading]="isSending()"
             data-testid="upl-pkg-submit"
-            (click)="submit()"
           >
             {{ 'upl.pkg.form.submit' | t }}
           </button>

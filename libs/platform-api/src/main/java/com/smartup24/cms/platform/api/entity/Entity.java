@@ -56,6 +56,7 @@ public final class Entity {
     private @Nullable String table;
     private @Nullable String alias;
     private @Nullable EntityScope scope;
+    private @Nullable EntityPartition partition;
     private @Nullable EntityRights rights;
     private @Nullable EntityMenu menu;
     private @Nullable String customEntity;
@@ -88,6 +89,12 @@ public final class Entity {
     public Entity table(String name, String tableAlias) {
         this.table = name;
         this.alias = tableAlias;
+        return this;
+    }
+
+    /** Binds shared-table rows to a server-owned partition (ADR-0038). */
+    public Entity partition(String column, long value) {
+        this.partition = new EntityPartition(column, value);
         return this;
     }
 
@@ -255,39 +262,10 @@ public final class Entity {
     }
 
     public EntityDefinition build() {
-        @Nullable EntityModel model = null;
-        if (table != null) {
-            if (scope == null) {
-                throw new IllegalArgumentException(
-                        "Entity " + code + " declares which rows a viewer sees: .scope(...) (ADR-0032, 5.1)");
-            }
-            model = new EntityModel(
-                    table,
-                    Objects.requireNonNull(alias, "alias"),
-                    fields,
-                    Objects.requireNonNull(defaultSort, "Entity " + code + " names its list's default sort"),
-                    defaultDescending,
-                    scope,
-                    reference,
-                    rules,
-                    collections,
-                    workflow,
-                    tabs,
-                    importing,
-                    search);
-        } else if (importing != null || capabilities.contains(EntityCapability.IMPORT)) {
-            throw new IllegalArgumentException("Entity " + code + ": an import writes the records of its table");
-        } else if (search != null) {
-            throw new IllegalArgumentException("Entity " + code + ": the search finds the records of its table");
-        } else if (!collections.isEmpty() || workflow != null || !tabs.isEmpty()) {
-            throw new IllegalArgumentException("Entity " + code + ": collections, a process and tabs need its table");
-        } else if (!rules.isEmpty()) {
-            throw new IllegalArgumentException("Entity " + code + ": a rule checks the records of its table");
-        } else if (reference != null || fields.stream().anyMatch(field -> field.list() != null)) {
-            throw new IllegalArgumentException("Entity " + code + ": a list field needs the entity's table");
-        } else if (scope != null) {
-            throw new IllegalArgumentException("Entity " + code + ": a scope restricts the rows of its table");
+        if (partition != null && customEntity != null) {
+            throw new IllegalArgumentException("A partitioned entity has no administrator custom fields");
         }
+        EntityModel model = buildModel();
         if (capabilities.contains(EntityCapability.IMPORT)
                 && (importing == null || actions.stream().noneMatch(action -> isWrite(action.code())))) {
             throw new IllegalArgumentException("Entity " + code
@@ -311,6 +289,44 @@ public final class Entity {
                 actions,
                 capabilities,
                 model);
+    }
+
+    private @Nullable EntityModel buildModel() {
+        @Nullable EntityModel model = null;
+        if (table != null) {
+            if (scope == null) {
+                throw new IllegalArgumentException(
+                        "Entity " + code + " declares which rows a viewer sees: .scope(...) (ADR-0032, 5.1)");
+            }
+            model = new EntityModel(
+                    table,
+                    Objects.requireNonNull(alias, "alias"),
+                    fields,
+                    Objects.requireNonNull(defaultSort, "Entity " + code + " names its list's default sort"),
+                    defaultDescending,
+                    scope,
+                    reference,
+                    rules,
+                    collections,
+                    workflow,
+                    tabs,
+                    importing,
+                    search,
+                    partition);
+        } else if (importing != null || capabilities.contains(EntityCapability.IMPORT)) {
+            throw new IllegalArgumentException("Entity " + code + ": an import writes the records of its table");
+        } else if (search != null) {
+            throw new IllegalArgumentException("Entity " + code + ": the search finds the records of its table");
+        } else if (!collections.isEmpty() || workflow != null || !tabs.isEmpty()) {
+            throw new IllegalArgumentException("Entity " + code + ": collections, a process and tabs need its table");
+        } else if (!rules.isEmpty()) {
+            throw new IllegalArgumentException("Entity " + code + ": a rule checks the records of its table");
+        } else if (reference != null || fields.stream().anyMatch(field -> field.list() != null)) {
+            throw new IllegalArgumentException("Entity " + code + ": a list field needs the entity's table");
+        } else if (scope != null || partition != null) {
+            throw new IllegalArgumentException("Entity " + code + ": a scope restricts the rows of its table");
+        }
+        return model;
     }
 
     private static boolean isWrite(String action) {

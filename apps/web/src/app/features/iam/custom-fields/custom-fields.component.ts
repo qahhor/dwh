@@ -12,7 +12,7 @@ import { CustomFieldsToolbarComponent } from './components/custom-fields-toolbar
 import { CustomFieldsTableComponent } from './components/custom-fields-table.component';
 import { CustomFieldsModalsComponent } from './components/custom-fields-modals.component';
 import { CustomFieldsFormService } from './services/custom-fields-form.service';
-import { catchError, finalize, map, of, tap } from 'rxjs';
+import { finalize, map, tap } from 'rxjs';
 import { lastLoaded } from '@features/iam/last-loaded';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
@@ -36,72 +36,7 @@ const FIELD_NAMES = ['entityType', 'code', 'name', 'fieldType', 'isRequired', 'd
     CustomFieldsTableComponent,
     CustomFieldsModalsComponent,
   ],
-  template: `
-    <div class="custom-fields-page">
-      <!-- Header -->
-      <ui-page-header
-        [title]="'iam.custom_fields.title' | t"
-        [subtitle]="'iam.custom_fields.delete_warning' | t"
-        [count]="filteredFields().length"
-        [countLabel]="'iam.custom_fields.total_fields' | t"
-      >
-        <button
-          type="button"
-          class="icon-refresh-btn"
-          [class.spinning]="isLoading()"
-          [disabled]="isLoading()"
-          (click)="loadFields()"
-          [attr.aria-label]="'iam.custom_fields.refresh' | t"
-          [title]="'common.refresh' | t"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-        </button>
-        @if (canCreate()) {
-          <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
-            {{ 'iam.custom_fields.add_field' | t }}
-          </button>
-        }
-      </ui-page-header>
-
-      <!-- Toolbar: Filter Tabs and Search -->
-      <app-custom-fields-toolbar
-        [availableEntities]="availableEntities()"
-        [selectedEntity]="selectedEntity()"
-        [searchQuery]="searchQuery()"
-        [entityCounts]="entityCounts()"
-        (entityChange)="filterByEntity($event)"
-        (searchQueryChange)="onSearchQueryChange($event)"
-        (clearSearch)="clearSearch()"
-      ></app-custom-fields-toolbar>
-
-      <!-- Table / Grid -->
-      <app-custom-fields-table
-        [fields]="filteredFields()"
-        [isLoading]="isLoading()"
-        [canManage]="canCreate()"
-        [canEdit]="canEdit()"
-        [canDelete]="canDelete()"
-        [searchQuery]="searchQuery()"
-        (copyCode)="copyCode($event)"
-        (editField)="openEditModal($event)"
-        (deleteField)="requestDeleteField($event)"
-        (clearSearch)="clearSearch()"
-        (createField)="openCreateModal()"
-      ></app-custom-fields-table>
-
-      <!-- Modals (Create/Edit & Delete) -->
-      <app-custom-fields-modals
-        [showModal]="showModal()"
-        [editingField]="editingField()"
-        [fieldForm]="fieldForm"
-        [serverErrors]="serverErrors()"
-        [saving]="saving()"
-        (closeModal)="requestCloseModal()"
-        (saveField)="saveField()"
-        (codeInput)="onCodeInput($event)"
-      ></app-custom-fields-modals>
-    </div>
-  `,
+  templateUrl: './custom-fields.component.html',
   styleUrl: './custom-fields.component.css',
 })
 export class CustomFieldsComponent {
@@ -125,6 +60,7 @@ export class CustomFieldsComponent {
 
   // --- Non-signal UI state ---
   readonly isLoading = computed(() => this.fieldsRead.isLoading());
+  readonly loadError = computed(() => !!this.fieldsRead.error());
 
   readonly availableEntities = computed(() => {
     const base = ['ALL', 'USER', 'PROJECT', 'TASK', 'NOTE'];
@@ -179,18 +115,14 @@ export class CustomFieldsComponent {
 
   /** The definitions; a failed load says so and keeps the table on screen. */
   private readonly fieldsRead = rxResource({
-    stream: () =>
-      this.customFields.list().pipe(
-        map((data) => data || []),
-        catchError(() => {
-          this.toast.error(this.uiI18n.translate('iam.custom_fields.load_failed'));
-          return of(null);
-        }),
-      ),
+    stream: () => this.customFields.list().pipe(map((data) => data || [])),
   });
 
   // --- Reactive state via signals ---
-  readonly fields = lastLoaded<CustomField[]>(() => this.fieldsRead.value(), []);
+  readonly fields = lastLoaded<CustomField[]>(
+    () => (this.fieldsRead.hasValue() ? this.fieldsRead.value() : undefined),
+    [],
+  );
 
   sortColumn = 'orderNo';
   sortDirection: 'asc' | 'desc' = 'asc';

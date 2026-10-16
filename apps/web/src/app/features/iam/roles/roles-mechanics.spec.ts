@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FormTreeItem, Role } from '@core/models/rbac.models';
 import { PermissionService } from '@core/services/permission.service';
+import { I18nService } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { RolesComponent } from './roles.component';
 
@@ -35,8 +36,24 @@ const roles: Role[] = [
   },
 ];
 const forms: FormTreeItem[] = [
-  { formCode: 'tasks.items', module: 'ms.task', formName: 'Tasks', action: 'view', actionName: 'View' },
-  { formCode: 'tasks.items', module: 'ms.task', formName: 'Tasks', action: 'update', actionName: 'Update' },
+  {
+    formCode: 'tasks.items',
+    module: 'ms.task',
+    formName: 'Задачи',
+    formNameKey: 'tasks.items.rights.form',
+    action: 'view',
+    actionName: 'Просмотр задач',
+    actionNameKey: 'tasks.items.rights.view',
+  },
+  {
+    formCode: 'tasks.items',
+    module: 'ms.task',
+    formName: 'Задачи',
+    formNameKey: 'tasks.items.rights.form',
+    action: 'update',
+    actionName: 'Редактирование задачи',
+    actionNameKey: 'tasks.items.rights.update',
+  },
 ];
 
 describe('RolesComponent permission matrix lifecycle', () => {
@@ -66,6 +83,60 @@ describe('RolesComponent permission matrix lifecycle', () => {
   });
 
   afterEach(() => http.verify());
+
+  it('retranslates and searches the open matrix without losing its draft or collapsed groups', async () => {
+    await loadRoleA();
+    const page = fixture.componentInstance;
+    const i18n = TestBed.inject(I18nService);
+    const languages = ['ru', 'en', 'uz'].map((code) => ({
+      code,
+      name: code,
+      active: true,
+      builtin: true,
+      revision: 1,
+      translated: 3,
+      total: 3,
+      coverage: 100,
+    }));
+    i18n.languages.set(languages);
+    page.matrix.togglePermission('tasks.items', 'update', true);
+    page.setAllModulesExpanded(false);
+
+    i18n.setLanguage('en', false).subscribe();
+    http.expectOne('/api/v1/i18n/en').flush({
+      'tasks.items.rights.form': 'Tasks',
+      'tasks.items.rights.view': 'View tasks',
+      'tasks.items.rights.update': 'Edit task',
+    });
+    await settle();
+
+    expect(page.moduleGroups[0].forms[0].formName).toBe('Tasks');
+    expect(page.moduleGroups[0].isExpanded).toBe(false);
+    const search = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+    search.value = 'Edit task';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    await settle();
+    expect(page.matchingFormsCount()).toBe(1);
+    host.querySelector<HTMLButtonElement>('.expand-all-links button')!.click();
+    await settle();
+    expect(host.querySelector('.form-name-text')?.textContent).toBe('Tasks');
+    expect(checkbox('update').checked).toBe(true);
+    const updateControl = checkbox('update');
+
+    i18n.refreshLanguage('en').subscribe();
+    http.expectOne('/api/v1/i18n/languages').flush(languages);
+    http.expectOne('/api/v1/i18n/en').flush({
+      'tasks.items.rights.form': 'Work items',
+      'tasks.items.rights.view': 'View tasks',
+      'tasks.items.rights.update': 'Edit task',
+    });
+    await settle();
+    expect(host.querySelector('.form-name-text')?.textContent).toBe('Work items');
+    expect(checkbox('update')).toBe(updateControl);
+    expect([...page.matrix.rolePermissions()]).toEqual(['tasks.items.view', 'tasks.items.update']);
+    expect(page.matrix.isPermissionsDirty()).toBe(true);
+    http.expectNone('/api/v1/iam/forms');
+  });
 
   /** The matrix is a resource: its request starts, and its answer lands, on a later task. */
   async function settle() {

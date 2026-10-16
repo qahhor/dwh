@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+      - '!v*.*.*-*'
 
 permissions: {}
 
@@ -24,22 +25,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Require a stable SemVer tag on the default branch
+      - name: Fetch the default branch and validate the release source
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          STABLE_SEMVER: '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
         shell: bash
         run: |
           set -euo pipefail
-          [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" =~ ${STABLE_SEMVER} ]] || {
-            echo "Release ref must be a stable SemVer tag such as v1.2.3." >&2
-            exit 1
-          }
           git fetch --no-tags origin "+refs/heads/${DEFAULT_BRANCH}:refs/remotes/origin/${DEFAULT_BRANCH}"
-          git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${DEFAULT_BRANCH}" || {
-            echo "Release commit is not reachable from ${DEFAULT_BRANCH}." >&2
-            exit 1
-          }
+          python3 scripts/release/release_policy.py --channel stable
 
       # Plan 10/10, item 7.6: no release with a threat model reviewed more than 30 days before the release commit.
       - name: Require a threat model reviewed within 30 days
@@ -98,6 +91,9 @@ jobs:
     steps:
       - name: Check out release source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Refuse release reruns and mismatched source before writes
+        run: python3 scripts/release/release_policy.py --channel stable --write-only
 
       - name: Resolve lowercase image reference
         id: reference
@@ -227,9 +223,14 @@ jobs:
     permissions:
       actions: read
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Check out release source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Refuse release reruns and mismatched source before writes
+        run: python3 scripts/release/release_policy.py --channel stable --write-only
 
       - name: Download image metadata
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -239,71 +240,36 @@ jobs:
           merge-multiple: true
 
       - name: Build versioned Compose bundle and checksums
-        shell: bash
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+          SOURCE_SHA: ${{ github.sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
-          set -euo pipefail
-          bundle="smartupcms-${GITHUB_REF_NAME}"
-          owner="${GITHUB_REPOSITORY_OWNER,,}"
-          mkdir -p "dist/${bundle}/scripts/prod" \
-            "dist/${bundle}/scripts/acceptance/load" \
-            "dist/${bundle}/scripts/release" \
-            "dist/${bundle}/deploy/acceptance"
-          cp deploy/compose/docker-compose.prod.yml "dist/${bundle}/docker-compose.yml"
-          cp deploy/compose/.env.example "dist/${bundle}/.env.example"
-          sed -i "s|^IMAGE_REGISTRY=.*|IMAGE_REGISTRY=ghcr.io/${owner}/smartupcms|" \
-            "dist/${bundle}/.env.example"
-          sed -i "s|^APP_VERSION=.*|APP_VERSION=${GITHUB_REF_NAME}|" \
-            "dist/${bundle}/.env.example"
-          for component in server web backup postgres typesense clamav; do
-            variable="${component^^}_IMAGE"
-            image_ref="$(cat "dist/smartupcms-${component}-${GITHUB_REF_NAME}.image.txt")"
-            sed -i "s|^${variable}=.*|${variable}=${image_ref}|" \
-              "dist/${bundle}/.env.example"
-          done
-          cp scripts/prod/deploy.sh scripts/prod/backup.sh scripts/prod/restore.sh \
-            scripts/prod/deploy.ps1 scripts/prod/backup.ps1 scripts/prod/restore.ps1 \
-            scripts/prod/backup-objects.ps1 scripts/prod/restore-combined.ps1 \
-            scripts/prod/rollback.sh scripts/prod/rollback.ps1 scripts/prod/test-recovery.ps1 \
-            "dist/${bundle}/scripts/prod/"
-          cp scripts/acceptance/invoke-managed-preflight.ps1 \
-            scripts/acceptance/invoke-managed-host-check.ps1 \
-            scripts/acceptance/run-capacity.ps1 \
-            scripts/acceptance/run-failure-scenario.ps1 \
-            "dist/${bundle}/scripts/acceptance/"
-          cp scripts/acceptance/load/*.js "dist/${bundle}/scripts/acceptance/load/"
-          cp scripts/release/verify-published-release.ps1 scripts/release/test-release-gates.ps1 "dist/${bundle}/scripts/release/"
-          cp deploy/acceptance/.env.managed.example \
-            deploy/acceptance/runtime-metrics.example.json \
-            "dist/${bundle}/deploy/acceptance/"
-          for component in server web backup postgres typesense clamav; do
-            variable="ACCEPTANCE_EXPECTED_${component^^}_IMAGE"
-            image_ref="$(cat "dist/smartupcms-${component}-${GITHUB_REF_NAME}.image.txt")"
-            sed -i "s|^${variable}=.*|${variable}=${image_ref}|" \
-              "dist/${bundle}/deploy/acceptance/.env.managed.example"
-          done
-          cp -R docs "dist/${bundle}/"
-          cp README.md LICENSE NOTICE SECURITY.md SUPPORT.md CHANGELOG.md \
-            CODE_OF_CONDUCT.md CONTRIBUTING.md GOVERNANCE.md RELICENSE.md \
-            "dist/${bundle}/"
-          cat dist/*.image.txt | sort > "dist/${bundle}/IMAGES.txt"
-          tar -C dist -czf "dist/${bundle}.tar.gz" "${bundle}"
-          (cd dist && zip -qr "${bundle}.zip" "${bundle}")
-          checksums="${RUNNER_TEMP}/smartupcms-SHA256SUMS"
-          (
-            cd dist
-            find . -maxdepth 1 -type f -printf '%P\0' \
-              | sort -z \
-              | xargs -0 sha256sum
-          ) > "${checksums}"
-          mv "${checksums}" dist/SHA256SUMS
+          python3 scripts/release/build_release_bundle.py --channel stable \
+            --version "$RELEASE_VERSION" --source-sha "$SOURCE_SHA" \
+            --repository "$RELEASE_REPOSITORY" --output dist
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.1.3
+
+      - name: Authenticate the complete asset checksum manifest
+        run: cosign sign-blob --yes --bundle dist/SHA256SUMS.sigstore.json dist/SHA256SUMS
+
+      - name: Attest the complete asset checksum manifest
+        id: manifest-attestation
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/SHA256SUMS
+
+      - name: Save checksum provenance bundle
+        env:
+          PROVENANCE_BUNDLE: ${{ steps.manifest-attestation.outputs.bundle-path }}
+        run: cp "$PROVENANCE_BUNDLE" dist/SHA256SUMS.provenance.json
 
       - name: Publish immutable release assets
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            dist/*.tar.gz dist/*.zip dist/*.json dist/*.txt dist/SHA256SUMS \
-            --verify-tag \
-            --title "SmartupCMS ${GITHUB_REF_NAME}" \
-            --generate-notes
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: python3 scripts/release/publish_release.py --channel stable --version "$RELEASE_VERSION" --output dist

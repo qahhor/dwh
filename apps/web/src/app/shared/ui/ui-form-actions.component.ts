@@ -34,6 +34,7 @@ import { SMTButtonComponent, type SMTButtonVariant } from '@shared/ui-kit/compon
         type="button"
         smtVariant="secondary"
         data-testid="form-cancel"
+        [attr.cdkFocusInitial]="cancelFocusInitial() ? '' : null"
         [disabled]="submitting()"
         (click)="cancel()"
       >
@@ -92,6 +93,9 @@ export class UiFormActionsComponent {
   readonly submitDisabled = input(false, { transform: booleanAttribute });
 
   readonly showCancel = input(true, { transform: booleanAttribute });
+
+  /** Start a confirmation on keeping the draft even when another action is projected before Cancel. */
+  readonly cancelFocusInitial = input(false, { transform: booleanAttribute });
 
   /** `danger` when the primary action destroys something (a confirmation dialog). */
   readonly submitVariant = input<Extract<SMTButtonVariant, 'primary' | 'danger'>>('primary');

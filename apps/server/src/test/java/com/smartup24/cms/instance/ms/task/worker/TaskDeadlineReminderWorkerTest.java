@@ -29,13 +29,15 @@ class TaskDeadlineReminderWorkerTest {
     private final List<Object> published = new ArrayList<>();
     private final List<Boolean> inTransaction = new ArrayList<>();
     private boolean transactionOpen;
+    private boolean tasksActive = true;
     private final TaskDeadlineReminderWorker worker = new TaskDeadlineReminderWorker(
             taskRepository,
             event -> {
                 published.add(event);
                 inTransaction.add(transactionOpen);
             },
-            transactions);
+            transactions,
+            code -> code.equals("tasks") && tasksActive);
 
     @BeforeEach
     void transactionsOpenAndCommit() {
@@ -112,5 +114,15 @@ class TaskDeadlineReminderWorkerTest {
         worker.scanAndNotifyDeadlines();
 
         assertThat(published).isEmpty();
+    }
+
+    @Test
+    void disabledModuleDoesNotScanOrPublishReminders() {
+        tasksActive = false;
+        when(taskRepository.findUpcomingDeadlines(any(Duration.class)))
+                .thenReturn(List.of(new MsTaskStatsRepository.TaskDeadlineCandidate(101L, "Report", 10L)));
+        worker.scanAndNotifyDeadlines();
+        assertThat(published).isEmpty();
+        verify(taskRepository, never()).findUpcomingDeadlines(any());
     }
 }

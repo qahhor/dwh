@@ -19,7 +19,11 @@ public class LogMaskingJsonMembersCustomizer implements StructuredLoggingJsonMem
 
         @Override
         public Object processValue(JsonWriter.MemberPath path, Object value) {
-            return LogMasking.maskMember(path.name(), value);
+            Object masked = LogMasking.maskMember(path.name(), value);
+            // JSON already escapes ISO controls, but Unicode line separators would split line-oriented consumers.
+            return masked instanceof String text
+                    ? text.replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+                    : masked;
         }
     }
 }

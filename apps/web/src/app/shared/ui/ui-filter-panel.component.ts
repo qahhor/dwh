@@ -86,7 +86,7 @@ export class UiFilterPanelComponent {
   readonly rows = signal<FilterDraft[]>(this.data.conditions.map(fromCondition));
   /** How the rows combine; offered once there are two of them. */
   readonly match = signal<QueryMatch>(this.data.match ?? 'all');
-  /** Shown once "Apply" was pressed, then kept up to date as the rows change. */
+  /** Shown for visited conditions, or all conditions after Apply, then kept up to date. */
   readonly errors = signal<(string | null)[]>([]);
 
   readonly fields = computed(() => filterableFields(this.data.meta));
@@ -99,6 +99,7 @@ export class UiFilterPanelComponent {
 
   private readonly panelId = `ui-filter-panel-${nextPanelId++}`;
   private checked = false;
+  private touched = new Set<number>();
 
   private readonly ranges = new WeakMap<FilterDraft, DateRange | null>();
 
@@ -222,6 +223,7 @@ export class UiFilterPanelComponent {
   }
 
   remove(index: number): void {
+    this.touched = new Set([...this.touched].filter((i) => i !== index).map((i) => (i > index ? i - 1 : i)));
     this.rows.update((rows) => rows.filter((_, i) => i !== index));
     this.recheck();
     const left = this.rows().length;
@@ -268,12 +270,20 @@ export class UiFilterPanelComponent {
   }
 
   clear(): void {
+    this.touched.clear();
     this.rows.set([]);
     this.recheck();
   }
 
   cancel(): void {
     this.drawer.close();
+  }
+
+  leaveRow(index: number, event: FocusEvent): void {
+    const row = event.currentTarget as HTMLElement;
+    if (event.relatedTarget instanceof Node && row.contains(event.relatedTarget)) return;
+    this.touched.add(index);
+    this.recheck();
   }
 
   apply(): void {
@@ -309,7 +319,11 @@ export class UiFilterPanelComponent {
   }
 
   private recheck(): void {
-    if (this.checked) this.errors.set(this.rows().map((row) => draftError(row, this.data.meta)));
+    this.errors.set(
+      this.rows().map((row, index) =>
+        this.checked || this.touched.has(index) ? draftError(row, this.data.meta) : null,
+      ),
+    );
   }
 
   /** Focus goes to the row's first control after it renders. */

@@ -4,6 +4,7 @@ import { disabled, form, FormField, maxLength, required, validate } from '@angul
 import { PasswordApi } from '../password.api';
 import { passwordProblemFields, problemMessage } from '../password-problem';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { ThemeService } from '@core/services/theme.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
@@ -44,7 +45,18 @@ type ResetState = 'form' | 'done' | 'invalid';
     <main class="login-wrapper">
       <app-login-top-bar></app-login-top-bar>
       <div class="login-card">
-        <app-login-header></app-login-header>
+        <app-login-header
+          [title]="
+            (state() === 'form'
+              ? 'auth.reset.title'
+              : state() === 'done'
+                ? 'auth.reset.done_title'
+                : 'auth.reset.invalid_title'
+            ) | t
+          "
+          [subtitle]="state() === 'form' ? ('auth.reset.hint' | t: passwordPolicy) : ''"
+          [subtitleId]="state() === 'form' ? 'reset-password-hint' : ''"
+        ></app-login-header>
 
         @if (state() === 'form') {
           <form
@@ -54,14 +66,6 @@ type ResetState = 'form' | 'done' | 'invalid';
             class="login-form"
             [attr.aria-busy]="isLoading()"
           >
-            <div class="otp-banner">
-              <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
-              <div>
-                <strong>{{ 'auth.reset.title' | t }}</strong>
-                <p id="reset-password-hint">{{ 'auth.reset.hint' | t: passwordPolicy }}</p>
-              </div>
-            </div>
-
             <smt-control
               class="form-group"
               [smtLabel]="'auth.password.new_password' | t"
@@ -110,7 +114,14 @@ type ResetState = 'form' | 'done' | 'invalid';
             </button>
           </form>
         } @else {
-          <div class="login-form">
+          <div class="login-form auth-result">
+            <span
+              class="material-symbols-outlined status-icon"
+              [class.success]="state() === 'done'"
+              [class.invalid]="state() === 'invalid'"
+              aria-hidden="true"
+              >{{ state() === 'done' ? 'check_circle' : 'link_off' }}</span
+            >
             <p [attr.role]="state() === 'invalid' ? 'alert' : 'status'">
               {{ (state() === 'done' ? 'auth.reset.done' : 'auth.reset.invalid_link') | t }}
             </p>
@@ -167,6 +178,8 @@ export class ResetPasswordComponent {
   });
 
   constructor() {
+    // Apply the saved theme when a reset link opens before the app shell exists.
+    inject(ThemeService);
     if (!this.token) this.state.set('invalid');
   }
 
