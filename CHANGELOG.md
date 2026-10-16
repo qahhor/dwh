@@ -50,6 +50,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Release workflow verification accepts LF and Windows CRLF line endings while
+  enforcing the same stable and staging supply-chain gates.
 - Development Compose now forwards the explicit Studio activation switch; both
   development and production configurations verify disabled defaults and explicit opt-in.
 - A live Studio browser scenario verifies real package preparation, activation

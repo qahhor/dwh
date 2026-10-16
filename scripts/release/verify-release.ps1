@@ -130,6 +130,7 @@ function Assert-JobPermissions([string]$Job, [string[]]$Expected, [string]$Label
 }
 
 function Assert-Channel([string]$Text, [string]$Channel) {
+    $Text = $Text.Replace("`r`n", "`n")
     $gate = Get-Job $Text 'gate'
     $ci = Get-Job $Text 'ci'
     $build = Get-Job $Text 'build'
