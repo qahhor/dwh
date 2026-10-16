@@ -50,6 +50,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The repository threat model now covers Studio declarations, delivery and live
+  activation, shared reports/datasets/dashboards, the optional LLM gateway, and
+  signed staging prerelease verification, with source-backed controls and open
+  deployment acceptance risks.
+
 - Docker build contexts now exclude local deployment history and generated
   browser-test outputs, keeping operational records and test artifacts out of images.
 

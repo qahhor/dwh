@@ -2,7 +2,7 @@
 
 **Версия:** 2.0
 
-**Обновлено:** 2026-10-13
+**Обновлено:** 2026-10-16
 
 **Область:** одна установка SmartupCMS, одна организация, много пользователей
 
@@ -38,7 +38,9 @@
 провайдеров и webhook, ключ шифрования хранимых секретов (`SMC_SECRETS_KEY`),
 данные пользователей, бизнес-записи сущностей, загруженные объекты, журналы
 аудита и безопасности, архив аудита, резервные копии, age identity и
-подписанные релизные артефакты.
+подписанные релизные артефакты. Студия добавляет декларации, черновики,
+неизменяемые версии, роли общих отчётов/панелей и записи live-форм;
+при явном включении помощника — пользовательское задание и ключ LLM-шлюза.
 
 Границы доверия:
 
@@ -51,6 +53,14 @@
 5. `backup` ↔ PostgreSQL, локальное хранилище копий, необязательный R2/S3.
 6. Доступ оператора к хосту, Docker daemon, файлам секретов, каталогу
    `/app/modules`, релизным ключам и материалам восстановления.
+7. Автор Студии ↔ серверный валидатор/хранилище деклараций; отдельно
+   публикатор live-форм ↔ фиксированная схема `studio_records` и каталог прав.
+   Получатель отчёта/панели выполняет запрос с собственными текущими правами.
+8. Только при opt-in: сервер ↔ настроенный оператором HTTPS LLM-шлюз;
+   предложение модели возвращается в редактор, не в исполнитель кода/DDL.
+9. Разработчик CLI и GitHub release workflow ↔ исходники, GHCR и assets;
+   оператор verifier ↔ независимо утверждённые repository/channel/tag/SHA.
+   Доступ к приложению не предоставляет полномочий этой цепочки поставки.
 
 PostgreSQL, Typesense, порт сервера и порт management в production Compose не
 опубликованы. Edge-прокси, ОС хоста, Docker daemon, DNS и внешние провайдеры —
@@ -133,8 +143,59 @@ D — отказ в обслуживании, E — повышение прив�
 | STRIDE | Угроза | Меры (код → тест) | Остаточный риск |
 |---|---|---|---|
 | I | Агрегаты по чужим записям или закрытым полям | `S/common/entity/report/EntityReports.java`: предикат области в том же SQL, поле без права — 422 (`QueryAggregates`) → `T/common/entity/report/EntityReportIntegrationTest#totalsFollowTheScope`, `#fieldRightsHoldInReports` | — |
-| I | Чужой виджет или сохранённый отчёт | Виджеты личные, виджет невидимой сущности скрыт (`S/md/service/MdReportWidgetService.java`) → `EntityReportIntegrationTest#reportViewsAreChecked`, `#widgetsAreLimited` | — |
+| I | Чужой виджет или сохранённый отчёт | Личные виджеты выбираются по владельцу, общие отчёты — по текущим ролям и полям читателя (`S/md/service/MdReportWidgetService.java`, `S/md/service/MdReportCatalogService.java`) → `EntityReportIntegrationTest#reportViewsAreChecked`, `#widgetsAreLimited`, `T/md/MdReportDashboardHttpTest` | Доступ к общему определению не выдаёт права на данные; подробнее — раздел общих отчётов ниже |
 | S, I | Встраиваемый отчёт (`embed/:code`) показывает вредоносную страницу | Маршрут под `authGuard`; URL пункта меню проверяется на сервере (`S/md/service/NavigationItemService.java#validateUrl`), пункты меняет только право `md.navigation.manage` | iframe получает `allow-scripts` и `allow-same-origin`; `frame-src` с 2026-10-08 — `'self'` и источники из `SMC_WEB_FRAME_SOURCES` (`apps/web/nginx/spa-csp.conf`, ADR-0034), поэтому внешний отчёт показывается только с хоста, который назвал оператор; шаблон URL пропускает `//host`; серверного теста валидации URL нет |
+
+### Студия: декларации, пакеты, CLI и live-формы
+
+Пересмотр 2026-10-16 касается реализованных границ STU-01…06 и подписанной
+поставки. Это дополнение к существующей модели, не свидетельство нового полного
+security scan или приёмки целевого контура. Решения:
+[ADR-0035](../adr/ADR-0035-declaration-lifecycle.md),
+[ADR-0037](../adr/ADR-0037-simple-form-cli-delivery.md),
+[ADR-0038](../adr/ADR-0038-live-simple-forms.md).
+
+| STRIDE | Угроза | Меры (код → тест) | Остаточный риск |
+|---|---|---|---|
+| E, T | Автор декларации внедряет исполняемую конфигурацию, скрытое поле или подменяет пакет с пересчитанным checksum | Закрытые форматы, строгий UTF-8/JSON, лимиты размера/глубины и проверка текущего metadata; `md.settings.update` не заменяет доступ к исходной форме. `S/md/service/MdFormStudioService.java:136` сравнивает пакет с доверенной сохранённой версией и dependencies, не только с checksum → `T/md/MdFormStudioPackagesTest`, `T/md/MdFormStudioLifecycleTest#aRecomputedAttackerChecksumDoesNotReplaceTheTrustedPackage` | Layout-прототип ограничен `example.products`; подготовка пакета не активирует layout обычных форм. Checksum новых simple-form packages подтверждает целостность, не доверие к автору |
+| T, R | Конкурентное сохранение теряет правки или оставляет частично подготовленную версию | `If-Match`, CAS черновика, блокировка при подготовке, неизменяемые версии и транзакционный аудит (`S/md/service/MdFormStudioService.java:75`) → `T/md/MdFormStudioLifecycleTest` | Версии не имеют автоматического retention; изменение исходного metadata может сделать старую декларацию несовместимой. Восстановление и совместимость старого бинарника проверяются отдельно |
+| E, T | Входной пакет CLI пишет за пределами checkout или меняет существующую схему | `tools/cms-cli/lib/form-delivery.mjs:75` проверяет create-only/receipt и использует существующие шаблоны; `tools/cms-cli/lib/safe-path.mjs:6` проверяет путь и realpath существующего предка. Первые grants — административным ролям → `tools/cms-cli/test/form-delivery.test.mjs` | CLI выполняется с правами локального разработчика, checkout/receipt должны быть доверенными. Повтор сохраняет ручные изменения, а не доказывает их безопасность; обязательны review, CI и Flyway. Прерванная генерация требует сверки исходников |
+| E, T, R | Неправомочная активация, конфликт кода или частичная регистрация прав | `studio.forms.publish`, активный модуль и выключенный по умолчанию `SMC_STUDIO_ACTIVATION_ENABLED`; `StudioPackages` повторно валидирует пакет и namespace `studio.*`. `S/studio/service/StudioActivationService.java:70` сериализует каталог, ограничивает его 100 формами и атомарно пишет определение/права/аудит → `T/studio/StudioActivationHttpTest`, `T/studio/StudioActivationTransactionTest` | Активация только create-only; изменённый пакет с прежним кодом даёт конфликт. Выключение активации не удаляет существующие формы/данные; эволюция схемы и деактивация не реализованы |
+| I, T | Подстановка ID читает/меняет запись другой live-формы | `S/studio/service/StudioEntityCompiler.java:24` фиксирует таблицу и серверный `form_id`; `S/common/entity/store/EntityPartitions.java:14` связывает partition со storage, runtime сохраняет обычные права. `StudioDefinitions` читает immutable snapshot из БД для запроса → `T/studio/StudioIsolationHttpTest`, `T/studio/StudioCatalogRestartTest` | Это изоляция форм в одной организации, не tenant isolation. Live-форма использует `EntityScope.all()`: право просмотра открывает все её строки; SELF/SUBTREE для неё не заявлены. Независимый restart/restore drill и ёмкость JSONB на staging остаются открытыми |
+
+### Общие отчёты, datasets и именованные панели
+
+[ADR-0036](../adr/ADR-0036-shared-reports-and-dashboards.md) и
+[ADR-0039](../adr/ADR-0039-report-datasets-and-assistant.md) различают доступ
+к определению отчёта и доступ к его данным. Получатель не действует от имени автора.
+
+| STRIDE | Угроза | Меры (код → тест) | Остаточный риск |
+|---|---|---|---|
+| I, E, T | Общая панель раскрывает скрытый источник или сохранённое состояние после отзыва роли | `S/md/service/MdPreferenceSharing.java:65` допускает sharing только владельцем с `md.settings.update`; текущие роли/поля проверяются при чтении/запуске/XLSX. `S/md/service/MdDashboardService.java:147` заменяет недоступный источник карточкой без старого определения. Изменения требуют `If-Match`, мутации не принимают idempotency key → `T/md/MdReportDashboardHttpTest`, `T/md/MdDashboardLifecycleTest` | Уже скачанный XLSX/полученные данные отозвать нельзя; расчёты разных HTTP-запросов не образуют единый снимок данных |
+| I, E | Проекция связанной сущности обходит права поля, scope или module flag | `S/common/entity/report/EntityReportDatasets.java:75` разрешает только объявленный доверенным кодом dataset, проверяет root REF, target view/поля; LEFT JOIN включает scope и исключает архивные target. Пользовательский SQL/joins отсутствуют → `T/report/ReportDatasetScopeHttpTest`, `T/common/entity/report/EntityReportDatasetSqlTest` | Расширение datasets — доверенное изменение кода с отдельными тестами. Ограниченный EXPLAIN на фикстуре не доказывает target capacity |
+| D | Панель или агрегированный экспорт истощают ресурсы | Лимиты: 20 панелей владельца, 12 карточек, 20 ролей; агрегатор — 2 группировки, 4 меры, 1000 групп, SQL timeout 5 с (`S/md/service/MdReportPreferencesInput.java`, `S/common/query/QueryAggregates.java:39`, `S/common/query/QueryAggregate.java:26`, `S/common/query/QueryAggregateRepository.java:33`) → `T/md/MdDashboardLifecycleTest#concurrentCreationCannotExceedTheOwnerLimit`, `T/report/ReportDatasetHttpTest` | Лимит одного запроса не заменяет нагрузочную приёмку одновременно открытых панелей и R2/backup операций |
+
+### Подключаемый помощник черновиков
+
+`apps/server/src/main/resources/application.yml:161` и production Compose оставляют activation/assistant
+выключенными, provider — `none`. Внешний вызов возможен только после явной
+настройки; штатный endpoint задаёт оператор, пользователь API его не выбирает.
+
+| STRIDE | Угроза | Меры (код → тест) | Остаточный риск |
+|---|---|---|---|
+| I, E, T | Prompt/ответ модели раскрывает данные или становится исполняемой формой без подтверждения | `S/studio/service/StudioAssistantAccess.java:27` требует `studio.forms.assist` и `md.settings.update`, перепроверяет credential/эффективные права после ответа. `StudioAssistantService` передаёт только prompt и фиксированный формат, валидирует simple-form и возвращает предложение без save/package/activate; `StudioAssistantController` запрещает replay → `T/studio/StudioAssistantAccessHttpTest` | Пользователь может вручную вставить ПДн/секрет в prompt: DLP нет. Валидная декларация может быть семантически неверной; редактор должен проверить её до отдельного сохранения/активации |
+| I, D | Шлюз сохраняет задание, перенаправляет запрос или удерживает ресурсы | `S/studio/llm/OpenAiCompatibleLlmProvider.java:35` требует HTTPS без credentials/query/fragment, запрещает redirects и автоматические retries; connect 5 с/request 30 с, ограниченный ответ (`LlmResponseBody`: 64 KiB envelope; declaration: 32 KiB). Prompt ≤ 2000 code points, 2 конкурентных вызова на процесс; ошибки не журналируют prompt/response → `T/studio/llm/OpenAiCompatibleLlmProviderTest`, `T/studio/service/StudioAssistantServiceTest` | `store:false` не доказывает retention поставщика. Оператор отвечает за доверенный endpoint, egress, ключ, бюджет и политику данных; лимиты не глобальны для нескольких процессов. Реальный provider smoke и внешняя отправка не подтверждены локальной HTTP fixture |
+
+### Подписанный staging prerelease и verifier
+
+[ADR-0040](../adr/ADR-0040-signed-staging-prereleases.md) отделяет разрешение
+публикации от подготовки RC. Администратор GitHub и оператор verifier — отдельные
+доверенные участники; подпись не подтверждает безопасность самого приложения.
+
+| STRIDE | Угроза | Меры (код → тест) | Остаточный риск |
+|---|---|---|---|
+| E, T | Публикация другого SHA/канала, повтор номера или обход review | `.github/workflows/prerelease.yml:54` и `:224` используют `staging-release`; оба write jobs сравнивают точные approved SHA/version. `scripts/release/release_policy.py:29` требует tag push, первый attempt, совпадение event/HEAD/tag и DCO; общий CI предшествует сборке → `scripts/release/test_release_pipeline.py`, `scripts/release/test_workflow_contract.py` | Независимый reviewer, запрет self-review/admin bypass, tag rulesets и отсутствие одноимённых repo/org vars проверяются в GitHub: YAML их не доказывает. Реальный OIDC/GHCR/publish ещё не проверен |
+| S, T | Подмена bundle/metadata или подпись от другого workflow/source | `scripts/release/verify-published-release.ps1:42` сначала проверяет Cosign и GitHub provenance SHA256SUMS, затем hashes и шесть image digests/signatures/bundles; exact repository/channel/tag/source/signer SHA, hosted runners. Старый PASS удаляется до повторной проверки → `scripts/release/test-published-release.ps1`; Ansible сохраняет эту identity через `deploy/ansible/files/deploy_release.py:103` | Verifier и ожидаемый SHA берутся из независимого доверенного источника, не из скачанного bundle. Компрометация разрешённого workflow/оператора остаётся внутри доверенной границы; нужны фактические настройки и проверка настоящих assets по [staging-плану](../ops/staging-acceptance.md). Подписанный RC не является production GO |
 
 ### Поисковая проекция (Typesense)
 
@@ -241,6 +302,7 @@ Low 10; исправлены `frame-src` с целыми схемами, заг�
 | Идентичность и профиль | имя, логин, email, телефон, язык, часовой пояс, аватар и оргединица в PostgreSQL; производные документы поиска в Typesense | Хранятся до авторизованной анонимизации или удаления; поиск — перестраиваемые производные данные | Контролёр/обработчик, цель и правовое основание, порядок запросов субъекта, точный срок, проверка удаления из поиска |
 | Аутентификация и безопасность | хеш пароля, хеши сессий и токенов, IP, user agent, попытки входа, события безопасности в PostgreSQL | Истечение и отзыв управляет приложение; сессия перестаёт действовать после 12 ч простоя или 7 дней в запросе активной сессии ([ADR-0034](../adr/ADR-0034-edge-headers-and-session-lifetime.md)). Ночная задача ([ADR-0025](../adr/ADR-0025-retention-and-cluster-cache.md)) удаляет события безопасности через 365 дней, попытки входа через 30, одноразовые коды и коды сброса через 7 дней после истечения, закрытые сессии через 90 дней (`SMC_RETENTION_<NAME>_DAYS`, [приложение](../ops/privacy-and-retention-annex.md#42b-journal-tables)) | Сроки, роли доступа, удержание при инциденте, правила экспорта и удаления |
 | Бизнес-содержимое | задачи, комментарии, объявления, записи сущностей, доп. поля и метаданные в PostgreSQL | До авторизованного удаления или политики установки | Классификация, сроки клиента, правила удаления и удержания |
+| Задание помощнику и предложение модели (только opt-in) | Введённый пользователем prompt и фиксированное описание формата передаются настроенному LLM-шлюзу; приложение не добавляет записи/файлы автоматически (`S/studio/service/StudioAssistantService.java`) | Сервис не сохраняет prompt/сырой ответ; принятую декларацию пользователь сохраняет отдельным действием. Retention шлюза не определяется приложением | До включения: допустимое содержимое, провайдер, место обработки и его retention; не вводить секреты/ПДн без утверждённого основания |
 | Загруженные файлы | исходное имя, MIME, хеш, владелец в PostgreSQL; байты на диске или в S3-совместимом хранилище; файлы импорта и выгрузки до истечения их срока | До авторизованного удаления; дедуплицированные байты удаляются после последней записи владельца | Допустимое содержимое, политика вредоносного ПО, версии и жизненный цикл объектов, стирание и восстановление |
 | Записи аудита | изменения, идентификаторы актора и сессии, IP, user agent, детали событий безопасности в PostgreSQL; архив партиций (локально или S3) | Активные партиции по умолчанию 12 месяцев, затем отсоединяются и архивируются; архив хранится 90 дней | Владелец архива, окончательное распоряжение, правовой срок аудита, обзор доступа |
 | Резервные копии | зашифрованная копия базы локально и необязательно вне хоста; байтам объектов нужна своя защита | По умолчанию Compose — 14 дней | Утверждённые RPO/RTO, срок, место вне хоста, хранители age-ключа, проверенное восстановление объектов |
