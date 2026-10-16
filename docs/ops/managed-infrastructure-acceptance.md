@@ -1,8 +1,8 @@
 # Smartup-managed infrastructure acceptance
 
-**Version:** 1.0
+**Version:** 1.1
 
-**Updated:** 2026-09-05
+**Updated:** 2026-10-16
 
 This runbook is the release gate for installations operated by SmartupCMS on
 Hetzner compute, Cloudflare edge protection, and private Cloudflare R2 object
@@ -261,11 +261,20 @@ authenticated `gh` plus `cosign` installed:
 ```powershell
 ./scripts/release/verify-published-release.ps1 `
   -ReleaseDirectory D:/release-assets/vX.Y.Z `
-  -Repository qahhor/dwh -Version vX.Y.Z
+  -Repository qahhor/dwh -Version vX.Y.Z `
+  -ExpectedSourceSha '<independently-approved-40-character-SHA>'
 ```
 
-This independently verifies `SHA256SUMS`, six digest-addressed images, Cosign
-OIDC signatures, GitHub provenance attestations, and SPDX/CycloneDX documents.
+Use the verifier from a trusted checkout, not the unverified downloaded archive.
+For a staging RC, explicitly add `-Channel staging` and select `vX.Y.Z-rc.N`.
+Include `release.json`, `SHA256SUMS.sigstore.json` and `SHA256SUMS.provenance.json`
+among downloaded assets. Expected source SHA comes from the approved candidate.
+
+This independently authenticates `SHA256SUMS` before trusting bundle hashes,
+then verifies six digest-addressed images, exact workflow/tag/source identity,
+Cosign signatures, bundled GitHub provenance and SPDX/CycloneDX documents.
+PASS schema 2 records channel/sourceSha/sourceRef/workflow. See
+[ADR-0040](../adr/ADR-0040-signed-staging-prereleases.md); unsigned bundles fail closed.
 Требуется полный комплект assets: оба архива (`.tar.gz` и `.zip`) и по четыре
 файла метаданных каждого из шести образов. Каждый файл должен иметь единственную
 запись в `SHA256SUMS`; пустой или неполный список отклоняется. Повторный запуск

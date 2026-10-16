@@ -9,6 +9,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A separate signed staging prerelease workflow for `vX.Y.Z-rc.N`, with explicit
+  staging authorization, exact source/DCO gates and the same six-image CI/scan path.
+- Signed and attested SHA256SUMS authenticate release archives and metadata;
+  stable and staging share the tested bundle builder.
+
 - Shared line and horizontal bar report charts with exact tables, prepared N:1 report
   datasets with current source/field access checks, and the optional tasks/projects reference dataset.
 - An explicitly configured, disabled-by-default LLM draft assistant with a bounded
@@ -78,6 +83,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a failed refresh does not present stale widgets as current data.
 
 ### Changed
+
+- Release verification now requires an independently approved `ExpectedSourceSha`;
+  the explicit staging channel pins its own workflow identity. Unsigned historical
+  bundles are rejected. PASS evidence records the verified channel, ref and source SHA.
+- Ansible forwards release channel/source identity and admits RC versions only with
+  the staging overlays; numeric RC ordering preserves update/rollback safeguards.
+
+- Staging acceptance now targets Studio RC bc559ddd, with explicit Studio
+  scenarios, target readiness gates, owner access inputs and the unresolved
+  signed-release path. Approved infrastructure, recovery and upload budgets remain unchanged.
 
 - Breaking platform API change: platform-api and provider-spi use version 2.0.0.
   The new JsonProperty variant of the stable sealed FieldSource requires consumers

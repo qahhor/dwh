@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
@@ -12,6 +13,14 @@ import tempfile
 
 class DeploymentError(RuntimeError):
     """Only fixed failure codes may cross the runner's logging boundary."""
+
+
+def version_order(version):
+    match = re.fullmatch(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-rc\.([1-9][0-9]*))?", version)
+    if not match:
+        raise DeploymentError("INVALID_CONFIGURATION")
+    major, minor, patch, candidate = match.groups()
+    return int(major), int(minor), int(patch), candidate is None, int(candidate or 0)
 
 
 class FileLock:

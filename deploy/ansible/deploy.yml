@@ -20,7 +20,11 @@
           - smc_private_root not in ['/', '/etc', '/var', '/var/lib', '/opt', '/tmp']
           - smc_project is match('^[a-z0-9][a-z0-9_-]*$')
           - smc_repository is match('^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')
-          - smc_version is match('^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')
+          - smc_release_channel | default('stable') in ['stable', 'staging']
+          - smc_expected_source_sha is defined
+          - smc_expected_source_sha is match('^[a-f0-9]{40}$')
+          - smc_version is match('^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)' + ('-rc\.[1-9][0-9]*$' if smc_release_channel | default('stable') == 'staging' else '$'))
+          - smc_release_channel | default('stable') != 'staging' or (smc_staging | default(false)) is sameas true
           - smc_release_checksums_sha256 is match('^[a-f0-9]{64}$')
           - smc_recovery_host is match('^[A-Za-z0-9][A-Za-z0-9_-]{0,62}$')
           - smc_recovery_host in groups['smartupcms_recovery']

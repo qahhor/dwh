@@ -212,38 +212,29 @@ secret files, database dumps, customer data, or decrypted backups.
 
 ## Verifying a release
 
-A stable SemVer tag publishes six `linux/amd64` and `linux/arm64` images:
-`server`, `web`, `backup`, `postgres`, `typesense`, and `clamav`. The GitHub Release also
-contains a versioned Compose bundle, SHA-256 checksums, SPDX and CycloneDX SBOMs,
-and provenance bundles. Images are signed keylessly with GitHub OIDC and Cosign;
-no long-lived signing secret is used.
+Stable `vX.Y.Z` and staging `vX.Y.Z-rc.N` releases contain the same six signed
+multi-architecture images, Compose bundle, SBOMs and provenance. Staging uses
+a separate workflow and is never marked latest. See [ADR-0040](docs/adr/ADR-0040-signed-staging-prereleases.md).
 
-After downloading the assets, verify their checksums:
+Use the verifier from an independently trusted checkout before extracting or
+executing the downloaded bundle. Supply the approved source commit separately
+from the assets; do not infer trust from their `release.json` or checksums.
 
-```bash
-sha256sum -c SHA256SUMS
+```powershell
+./scripts/release/verify-published-release.ps1 `
+  -ReleaseDirectory /secure/release-assets `
+  -Repository OWNER/REPOSITORY -Version v1.2.3 `
+  -ExpectedSourceSha '<approved-40-character-commit-sha>'
 ```
 
-Use the digest from `IMAGES.txt` in the Compose bundle, then verify both the
-Cosign signature and GitHub provenance. Replace the uppercase placeholders with
-the repository coordinates and exact release tag:
+For staging, explicitly add `-Channel staging` and use `-Version v1.2.3-rc.1`.
+The default stable channel rejects RC tags. Download every release asset,
+including `SHA256SUMS.sigstore.json` and `SHA256SUMS.provenance.json`.
 
-```bash
-cosign verify \
-  --certificate-identity-regexp '^https://github.com/OWNER/REPOSITORY/.github/workflows/release.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' \
-  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-  'ghcr.io/OWNER/smartupcms/server@sha256:DIGEST'
-```
-
-```bash
-gh attestation verify \
-  'oci://ghcr.io/OWNER/smartupcms/server@sha256:DIGEST' \
-  --repo OWNER/REPOSITORY
-```
-
-Repeat verification for every image used by the deployment. A mutable tag or an
-image reference without a matching digest, signature, and provenance is not a
-release input.
+The verifier authenticates SHA256SUMS before checking archive/metadata hashes,
+then verifies all six images, exact workflow/tag/source provenance and both SBOM
+formats. A checksum-only check or a mutable image tag is insufficient. No actual
+prerelease is published by local tests; target verification remains a release gate.
 
 ## Community and license
 

@@ -144,6 +144,7 @@ Current ADRs that are not superseded:
   and 7.5.
 - [ADR-0035 — declaration drafts, immutable versions and publication packages](adr/ADR-0035-declaration-lifecycle.md)
 - [ADR-0036 — shared reports, aggregate exports and named dashboards](adr/ADR-0036-shared-reports-and-dashboards.md)
+- [ADR-0040 — signed staging prereleases and exact release identity](adr/ADR-0040-signed-staging-prereleases.md)
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
@@ -213,6 +214,7 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
   владельцы работ и критерии готовности по существующим FR/NFR/AC.
 - [Smartup-managed infrastructure acceptance](ops/managed-infrastructure-acceptance.md)
 - [Утверждённая staging-конфигурация и критерии приёмки](ops/staging-acceptance.md)
+- [Студия: сценарии staging-приёмки RC bc559ddd](ops/studio-staging-acceptance.md)
 - [Rollback and recovery](ops/rollback.md)
 - [Migration failure repair](ops/migration-repair.md)
 - [GitHub repository settings](ops/repository-settings.md)

@@ -51,6 +51,17 @@ Playbook `deploy/ansible/deploy.yml` развёртывает уже опубл�
    10001 (backup/bootstrap/server), а `MONITOR_DB_PASSWORD_FILE` — UID/GID 65534
    (exporter), чтобы контейнер читал bind mount без ослабления `0600`.
 
+`smc_expected_source_sha` обязателен: полный SHA из независимо одобренного
+кандидата. `smc_release_channel` по умолчанию `stable`; `vX.Y.Z-rc.N` требует
+явного `smc_release_channel: staging` и `smc_staging: true`. Playbook и runner
+проверяют оба признака, передают их verifier и сохраняют в release identity.
+Весь каталог assets включает подпись и provenance SHA256SUMS; неподписанный
+manifest не принимается даже при правильных image signatures. Старый
+`smc_release_checksums_sha256` остаётся независимым входом проверки.
+Для одной базовой версии порядок `rc.2 < rc.10 < stable`; переход назад
+сохраняет требования rollback approval/recovery. Новый RC не является
+разрешением на автоматическое обновление production.
+
 При `smc_staging: true` к production Compose добавляются проверенные исходники
 `deploy/observability/docker-compose.observability.yml` и
 `deploy/staging/docker-compose.staging.yml`. Квоты scratch, monitoring TLS/config,

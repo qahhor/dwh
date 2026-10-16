@@ -3,6 +3,8 @@ smc_private_root: /var/lib/smartupcms/deployment
 smc_project: smartupcms
 smc_repository: YOUR_ORGANIZATION/YOUR_REPOSITORY
 smc_version: v1.2.3
+smc_release_channel: stable
+smc_expected_source_sha: REPLACE_WITH_APPROVED_40_LOWERCASE_HEX_SOURCE_SHA
 smc_release_assets_source: /secure/releases/v1.2.3
 # Pin from independently reviewed release evidence, never derive this from the copied assets.
 smc_release_checksums_sha256: REPLACE_WITH_TRUSTED_SHA256SUMS_DIGEST

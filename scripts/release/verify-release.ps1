@@ -1,5 +1,6 @@
 param(
-    [string]$WorkflowPath = '.github/workflows/release.yml'
+    [string]$WorkflowPath = '.github/workflows/release.yml',
+    [string]$PrereleaseWorkflowPath = '.github/workflows/prerelease.yml'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -47,8 +48,8 @@ Assert-Matches $workflow '(?ms)^on:\s*\r?\n\s+push:\s*\r?\n\s+tags:' 'Release wo
 Assert-DoesNotMatch $workflow '(?m)^\s*(pull_request|pull_request_target|workflow_dispatch|schedule)\s*:' 'Release workflow must not run for pull requests, manual dispatch, or schedules.'
 Assert-Matches $workflow '(?m)^permissions:\s*\{\}\s*$' 'Release workflow must deny token permissions by default.'
 Assert-DoesNotMatch $workflow '\$\{\{\s*secrets\.' 'Release workflow must not depend on repository release secrets.'
-Assert-Matches $workflow 'git merge-base --is-ancestor' 'Release commit must be verified as reachable from the default branch.'
-Assert-Matches $workflow 'stableSemVer|stable_semver|STABLE_SEMVER' 'Workflow must contain an anchored stable SemVer gate.'
+Assert-Matches (Get-Content (Join-Path $PSScriptRoot 'release_policy.py') -Raw) '"merge-base", "--is-ancestor"' 'Release commit must be verified as reachable from the default branch.'
+Assert-Matches (Get-Content (Join-Path $PSScriptRoot 'release_policy.py') -Raw) 'STABLE =' 'Workflow must contain an anchored stable SemVer gate.'
 Assert-Matches $workflow '(?m)^concurrency:' 'Release workflow must serialize a release tag.'
 
 $usesMatches = [regex]::Matches($workflow, '(?m)^\s*-?\s*uses:\s*([^\s#]+)')
@@ -102,30 +103,105 @@ Assert-Matches $workflow '(?m)^\s*uses:\s*\./\.github/workflows/ci\.yml\s*$' 'Re
 $ciWorkflow = Get-Content -LiteralPath (Join-Path $repoRoot '.github/workflows/ci.yml') -Raw
 Assert-Matches $ciWorkflow '(?m)^\s*workflow_call:' 'ci.yml must be callable by the release workflow.'
 Assert-Matches $ciWorkflow 'gitleaks/gitleaks-action@' 'ci.yml must scan the Git history for secrets.'
-Assert-Matches $workflow 'rollback\.ps1' 'Release bundle must contain rollback automation.'
-Assert-Matches $workflow 'test-recovery\.ps1' 'Release bundle must contain recovery drill test.'
-Assert-Matches (Get-Content -LiteralPath (Join-Path $repoRoot 'scripts/security/scan-runtime-images.ps1') -Raw) 'deploy/images/clamav' 'Runtime image scanner must build and scan the hardened ClamAV image.'
-Assert-Matches $workflow 'attest-build-provenance' 'Release workflow must emit GitHub build provenance attestations.'
-Assert-Matches $workflow 'cosign sign --yes' 'Release workflow must create keyless Cosign signatures.'
-Assert-Matches $workflow '@\$\{[^\r\n]+digest' 'Cosign and attestations must address images by digest.'
-Assert-Matches $workflow '(?i)syft.+cyclonedx|cyclonedx.+syft' 'Release workflow must generate CycloneDX SBOM files.'
-Assert-Matches $workflow '(?i)spdx' 'Release workflow must generate SPDX SBOM files.'
-Assert-Matches $workflow 'sha256sum' 'Release workflow must generate release checksums.'
-Assert-Matches $workflow 'docker-compose\.prod\.yml' 'Release bundle must contain production Compose.'
-Assert-Matches $workflow 'deploy/compose/\.env\.example' 'Release bundle must contain the production environment template.'
-Assert-Matches $workflow 'invoke-managed-preflight\.ps1' 'Release bundle must contain the managed target preflight.'
-Assert-Matches $workflow 'invoke-managed-host-check\.ps1' 'Release bundle must contain the managed target host check.'
-Assert-Matches $workflow 'restore-combined\.ps1' 'Release bundle must contain combined database/object recovery.'
-Assert-Matches $workflow 'verify-published-release\.ps1' 'Release bundle must contain independent target-side release verification.'
-Assert-Matches $workflow 'test-release-gates\.ps1' 'Release bundle must contain release gates drill.'
-Assert-Matches $workflow '\.env\.managed\.example' 'Release bundle must contain the non-secret managed acceptance template.'
-Assert-Matches $workflow 'dist/\$\{bundle\}/scripts/prod' 'Release bundle must preserve the scripts/prod layout used by runbooks and cross-script calls.'
-Assert-Matches $workflow 'cp -R docs ' 'Release bundle must include the documentation tree referenced by its README.'
-Assert-Matches $workflow 'CODE_OF_CONDUCT\.md' 'Release bundle must include the root governance documents referenced by its README.'
-Assert-Matches $workflow 'gh release create' 'Release workflow must publish a GitHub Release.'
-Assert-Matches $workflow '(?ms)permissions:\s*\r?\n(?:\s+[^\r\n]+\r?\n)*?\s+id-token:\s*write' 'Only a release job may explicitly receive OIDC permission.'
-Assert-Matches $workflow '(?ms)permissions:\s*\r?\n(?:\s+[^\r\n]+\r?\n)*?\s+packages:\s*write' 'Image publishing job requires packages: write.'
-Assert-Matches $workflow '(?ms)permissions:\s*\r?\n(?:\s+[^\r\n]+\r?\n)*?\s+attestations:\s*write' 'Provenance publishing job requires attestations: write.'
+$bundle = Get-Content (Join-Path $PSScriptRoot 'build_release_bundle.py') -Raw
+foreach ($required in @('rollback.ps1', 'test-recovery.ps1', 'restore-combined.ps1',
+    'invoke-managed-preflight.ps1', 'invoke-managed-host-check.ps1', 'verify-published-release.ps1',
+    'test-release-gates.ps1', 'deploy/compose/.env.example', '.env.managed.example',
+    '.env.staging.example', '.env.acceptance.example', 'CODE_OF_CONDUCT.md', 'release.json', 'REVISION', 'IMAGES.txt')) {
+    Assert-Matches $bundle ([regex]::Escape($required)) "Shared release bundle is missing $required."
+}
+Assert-Matches $bundle '"docs"' 'Release bundle must contain tracked public documentation.'
+Assert-Matches $bundle 'git\(root, "ls-files", "-z"\)' 'Release bundle must copy only tracked sources.'
+Assert-Matches $bundle 'sourceSha=source_sha' 'Release metadata must bind the explicit source SHA.'
+Assert-Matches (Get-Content (Join-Path $repoRoot 'scripts/security/scan-runtime-images.ps1') -Raw) 'deploy/images/clamav' 'Runtime image scanner must include ClamAV.'
+
+function Get-Job([string]$Text, [string]$Name) {
+    $match = [regex]::Match($Text, '(?ms)^  ' + $Name + ':\r?\n(.*?)(?=^  [a-z][a-z0-9_-]*:|\z)')
+    if (-not $match.Success) { Add-ContractError "Release workflow is missing job $Name." }
+    return $match.Groups[1].Value
+}
+
+function Assert-JobPermissions([string]$Job, [string[]]$Expected, [string]$Label) {
+    $match = [regex]::Match($Job, '(?ms)^    permissions:\r?\n((?:      [a-z-]+: [a-z]+\r?\n)+)')
+    $actual = @($match.Groups[1].Value.Trim() -split '\r?\n' | ForEach-Object { $_.Trim() })
+    if (@(Compare-Object ($actual | Sort-Object) ($Expected | Sort-Object)).Count -ne 0) {
+        Add-ContractError "$Label has unexpected token permissions."
+    }
+}
+
+function Assert-Channel([string]$Text, [string]$Channel) {
+    $gate = Get-Job $Text 'gate'
+    $ci = Get-Job $Text 'ci'
+    $build = Get-Job $Text 'build'
+    $publish = Get-Job $Text 'publish'
+    Assert-Matches $Text '(?m)^permissions:\s*\{\}\s*$' "$Channel must deny token permissions by default."
+    Assert-DoesNotMatch $Text '(?m)^\s*(pull_request|pull_request_target|workflow_dispatch|schedule|workflow_call)\s*:' "$Channel must run only on tag push."
+    Assert-DoesNotMatch $Text 'continue-on-error|:latest|if:\s*always\(' "$Channel may not bypass failed gates or publish latest tags."
+    Assert-DoesNotMatch $Text '\$\{\{\s*secrets\.' "$Channel must use keyless credentials."
+    Assert-Matches $Text '(?m)^  cancel-in-progress: false$' "$Channel must not interrupt an in-flight publication."
+    $triggers = [regex]::Match($Text, '(?ms)^on:\r?\n  push:\r?\n    tags:\r?\n((?:      - [^\r\n]+\r?\n)+)').Groups[1].Value.Trim()
+    $expected = if ($Channel -eq 'stable') { "- 'v*.*.*'`n      - '!v*.*.*-*'" } else { "- 'v*.*.*-rc.*'" }
+    if ($triggers.Replace("`r", '') -ne $expected) { Add-ContractError "$Channel has an unsafe tag trigger." }
+    Assert-Matches $gate ('release_policy\.py --channel ' + $Channel + '(?:\r?\n|$)') "$Channel gate must execute the source/ref/DCO policy."
+    Assert-Matches $gate 'fetch-depth: 0' "$Channel gate needs complete Git history."
+    Assert-Matches $gate '\$\{\{ github.event.repository.default_branch \}\}' "$Channel DCO baseline must be the actual default branch."
+    Assert-Matches $gate 'test-threat-model-freshness\.ps1 -MaxAgeDays 30 -AsOf' "$Channel must enforce threat-model freshness."
+    Assert-Matches $ci '(?m)^    needs: gate$' "$Channel CI must depend on its gate."
+    Assert-Matches $ci '(?m)^    uses: \./\.github/workflows/ci\.yml$' "$Channel must reuse complete CI."
+    Assert-Matches $build '(?m)^    needs: \[gate, ci\]$' "$Channel builds require gate and complete CI."
+    Assert-Matches $publish '(?m)^    needs: build$' "$Channel publication requires all image builds."
+    Assert-JobPermissions $gate @('contents: read') "$Channel gate"
+    Assert-JobPermissions $ci @('actions: read', 'contents: read') "$Channel CI"
+    Assert-JobPermissions $build @('contents: read', 'packages: write', 'id-token: write', 'attestations: write') "$Channel build"
+    Assert-JobPermissions $publish @('actions: read', 'contents: write', 'id-token: write', 'attestations: write') "$Channel publish"
+    foreach ($job in @($build, $publish)) {
+        Assert-Matches $job ('release_policy\.py --channel ' + $Channel + ' --write-only(?:\r?\n|$)') "$Channel write job must refuse reruns before writes."
+        if ($Channel -eq 'staging') {
+            Assert-Matches $job '(?m)^    environment: staging-release$' 'Every staging writer requires the protected staging-release environment.'
+            Assert-Matches $job 'STAGING_APPROVED_SOURCE_SHA: \$\{\{ vars\.STAGING_APPROVED_SOURCE_SHA \}\}' 'Staging writer must receive the approved SHA from environment configuration.'
+            Assert-Matches $job 'STAGING_APPROVED_VERSION: \$\{\{ vars\.STAGING_APPROVED_VERSION \}\}' 'Staging writer must receive the approved version from environment configuration.'
+        }
+    }
+    foreach ($component in @('server', 'web', 'backup', 'postgres', 'typesense', 'clamav')) {
+        Assert-Matches $build ('(?m)^          - image: ' + $component + '$') "$Channel image matrix is incomplete."
+    }
+    Assert-Matches $build 'platforms: linux/amd64,linux/arm64' "$Channel images require both architectures."
+    Assert-Matches $build 'push-by-digest=true' "$Channel images must initially have no mutable tag."
+    Assert-Matches $build 'scan-type: image' "$Channel images require vulnerability scanning."
+    Assert-Matches $build 'severity: CRITICAL,HIGH' "$Channel scanner may not weaken severity."
+    Assert-Matches $build "exit-code: '1'" "$Channel scanner must fail closed."
+    Assert-Matches $build 'cosign sign --yes' "$Channel image signing is required."
+    Assert-Matches $build 'attest-build-provenance@' "$Channel image provenance is required."
+    Assert-Matches $build 'spdx-json' "$Channel SPDX is required."
+    Assert-Matches $build 'cyclonedx-json' "$Channel CycloneDX is required."
+    $guardAt = $build.IndexOf(' --write-only')
+    $pushAt = $build.IndexOf('push-by-digest=true')
+    $scanAt = $build.IndexOf('scan-type: image')
+    $signAt = $build.IndexOf('cosign sign --yes')
+    $tagAt = $build.IndexOf('imagetools create --tag')
+    if ($guardAt -lt 0 -or $pushAt -lt $guardAt -or $scanAt -lt $pushAt -or $signAt -lt $scanAt -or $tagAt -lt $signAt) {
+        Add-ContractError "$Channel must guard, build, scan, sign and only then tag."
+    }
+    Assert-Matches $publish ('build_release_bundle\.py --channel ' + $Channel) "$Channel must use the shared bundle builder."
+    Assert-Matches $publish '\-\-source-sha "\$SOURCE_SHA"' "$Channel must bind bundle source SHA."
+    Assert-Matches $publish 'cosign sign-blob --yes --bundle dist/SHA256SUMS\.sigstore\.json dist/SHA256SUMS' "$Channel must authenticate all bundle checksums."
+    Assert-Matches $publish 'subject-path: dist/SHA256SUMS(?:\r?\n|$)' "$Channel must attest the checksum manifest."
+    Assert-Matches $publish 'dist/SHA256SUMS\.provenance\.json' "$Channel must save checksum provenance."
+    Assert-Matches $publish ('publish_release\.py --channel ' + $Channel) "$Channel must use the reviewed publication boundary."
+    $bundleAt = $publish.IndexOf('build_release_bundle.py')
+    $signAt = $publish.IndexOf('cosign sign-blob')
+    $attestAt = $publish.IndexOf('subject-path: dist/SHA256SUMS')
+    $publishAt = $publish.IndexOf('publish_release.py')
+    if ($publish.IndexOf(' --write-only') -gt $bundleAt -or $signAt -lt $bundleAt -or $attestAt -lt $signAt -or $publishAt -lt $attestAt) {
+        Add-ContractError "$Channel must guard, build, authenticate and attest the manifest before publishing."
+    }
+}
+
+Assert-Channel $workflow 'stable'
+$prereleasePath = if ([IO.Path]::IsPathRooted($PrereleaseWorkflowPath)) { $PrereleaseWorkflowPath } else { Join-Path $repoRoot $PrereleaseWorkflowPath }
+if (Test-Path -LiteralPath $prereleasePath -PathType Leaf) {
+    Assert-Channel (Get-Content -LiteralPath $prereleasePath -Raw) 'staging'
+} else { Add-ContractError 'The separate staging prerelease workflow is missing.' }
 
 $dockerfiles = @(
     'Dockerfile',

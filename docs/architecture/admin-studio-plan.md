@@ -451,3 +451,61 @@ DoR: пользователь — администратор с `md.settings.upd
 Первый полный прогон выявил ложный assertion нового теста: ключ перевода `example.requests.col.product_id` совпал с запрещённой SQL-подстрокой. Проверка заменена точным ожидаемым JSON-контрактом; финальный чистый reactor выше выполнен после исправления. Результаты первых падений сохранены, ретраи их не скрывают.
 
 Сборка выполнена в `.local/studio-06-verify` отдельной рабочей копии; исходники сверены SHA256. Это нужно, поскольку текущий demo JAR занят процессом: демо на 4201/8081 не перезапускалось. Итоговые логи: `.local/studio06-server-verified.log`, `studio06-final-summary.json`, `studio06-coverage-floors.log`, `studio06-final-diff-coverage.log`, `studio06-platform-api-gate.log`, `studio06-web-accepted-ci-results.json`, `studio06-web-frozen-build.log`, `studio06-browser-frozen.log`, `studio06-browser-viewport.log`. Viewport-снимки обеих тем просмотрены; preview 4317 остановлен. `graphify update` недоступен (`No module named graphify`), инструмент не устанавливался.
+
+## 16. RC bc559ddd и целевая приёмка — 2026-10-16
+
+Предыдущие разделы сохраняют результаты отдельных этапов до RC. Текущий
+DCO-кандидат — **`bc559ddd7f089e0505c4ed590e349df39b7c66de`**, API/SPI **2.0.0**.
+На этом SHA завершены **108/108** обязательных локальных проверок: backend
+3306 тестов, web 2579, accessibility 143, live E2E 72 (37 + 35), без retries
+и quarantine. Первичный приватный протокол доступен через игнорируемый
+`.local/rc-studio-20261016/EVIDENCE.md`; там же ограничения локального
+воспроизведения CI и security review. Исторические записи §15 про будущий
+коммит, 1.1.0 и незавершённый live/release CI не описывают текущий статус RC.
+
+Локальная часть DOD-03 и DCO-часть DOD-10 закрыты. DOD-09 / ACC-20 остаются
+открыты до целевых workload/SLO, отдельных процессов/restart, прав,
+согласованного backup/restore и инфраструктурной приёмки. План:
+[staging-конфигурация и входы владельца](../ops/staging-acceptance.md),
+[сценарии Студии STG-STU-01…17](../ops/studio-staging-acceptance.md).
+Владельцу предложен Studio corpus/mix; он не считается утверждённым до IN-08.
+
+ACC-21 — N/A: текущие live definitions create-only. Реальный LLM остаётся
+выключенным и не входит в разрешённый scope; для него нужна отдельная
+приёмка после решения о provider/data/egress. Target-field ACL fixture не
+объявляется возможностью настройки field grants в редакторе. CLI-generated
+форма требует производного SHA, в отличие от DML activation того же RC.
+
+Целевой план обновлён после RC и не меняет его SHA. Подписанные staging-assets
+ещё не предоставлены. Владелец выбрал отдельный signed staging prerelease;
+реализация ниже требует нового DCO SHA и повторного полного CI. Stable release
+по-прежнему требует commit, достижимый из default branch.
+Публикация, merge, provision/deploy и вызовы внешнего LLM не выполнялись.
+
+### Подписанный staging prerelease — продолжение после bc559ddd
+
+Реализован [ADR-0040](../adr/ADR-0040-signed-staging-prereleases.md): отдельный `prerelease.yml` для
+`vX.Y.Z-rc.N`, общий bundle builder, подпись/attestation SHA256SUMS,
+verifier с явным channel и обязательным expected source SHA, Ansible staging
+guard. Это новые исходники после bc559ddd; прежний CI не является проверкой
+следующего SHA. Изменения прошлой staging-документации сохранены.
+Настройки GitHub/публикация/merge/deploy не выполняются; следующий gate —
+новый DCO RC, полный CI и отдельно разрешённый live signing/publish rehearsal.
+
+Проверки новой поставки локальны, без OIDC issuance/publish: release Python
+13/13, verifier 32/32, production Python 64/64 (включая Ansible 45/45),
+credential/backup Node 52/52; Ansible 2.21.5 syntax-check PASS. Реальные
+tracked sources упакованы в оба канала: 204 файла, 27 checksums, пять env
+templates, tar/zip content parity и shell mode 0755 PASS. Public docs,
+docs unit 8/8, контракт 25 документов, hygiene, rulesets, architecture
+boundaries и staging/managed/capacity contracts PASS. Независимое ревью
+producer/verifier не выявило подтверждённых Blocker/High. Graphify недоступен
+(`No module named graphify`); установка не выполнялась.
+
+CodeQL security-extended: Python 0 findings (содержимое всех восьми изменённых
+Python-файлов совпадает с source archive); официальный Actions pack 0 findings,
+извлечение через JavaScript database, AST всех 8/8 workflow подтверждён отдельным
+запросом и hash inventory. Это не отдельный native Actions extractor run.
+Gitleaks текущих изменений и штатный full-history release-gates drill PASS.
+Приватный протокол текущей незакоммиченной поставки:
+`.local/prerelease-20261016/EVIDENCE.md`; он не заменяет полный CI будущего SHA.

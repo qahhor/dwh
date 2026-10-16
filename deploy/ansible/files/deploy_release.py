@@ -12,7 +12,7 @@ from recovery_support import source_identity, source_location
 
 from release_contract import (DeploymentError, FileLock, atomic_bytes, atomic_json, command,
                               contained, digest, own_secret, private_directory, private_file,
-                              private_identity, safe_extract, tree_identity)
+                              private_identity, safe_extract, tree_identity, version_order)
 
 COMPONENTS = ("server", "web", "backup", "postgres", "typesense", "clamav")
 
@@ -36,24 +36,34 @@ class Deployment:
             raise DeploymentError("ROLLBACK_EXECUTION_UNSUPPORTED")
         if action not in ("deploy", "rollback-plan"):
             raise DeploymentError("INVALID_ACTION")
-        patterns = {"version": r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)",
+        channel = self.spec.setdefault("release_channel", "stable")
+        if channel not in ("stable", "staging"):
+            raise DeploymentError("INVALID_CONFIGURATION")
+        version_pattern = r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
+        if channel == "staging":
+            version_pattern += r"-rc\.[1-9][0-9]*"
+        patterns = {"version": version_pattern, "expected_source_sha": r"[a-f0-9]{40}",
                     "repository": r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", "project": r"[a-z0-9][a-z0-9_-]*",
                     "checksums_sha256": r"[a-f0-9]{64}"}
         for key, pattern in patterns.items():
-            if not re.fullmatch(pattern, self.spec.get(key, "")):
+            if not isinstance(self.spec.get(key), str) or not re.fullmatch(pattern, self.spec[key]):
                 raise DeploymentError("INVALID_CONFIGURATION")
         if type(self.spec.get("health_timeout", 180)) is not int or not 1 <= self.spec.get("health_timeout", 180) <= 3600:
             raise DeploymentError("INVALID_CONFIGURATION")
         if not self.root.is_absolute() or self.root.is_symlink():
             raise DeploymentError("UNSAFE_PATH")
         self.incoming = contained(self.root / "incoming", self.spec["incoming"])
+        if channel == "staging" and (self.spec.get("staging") is not True or
+                [Path(path) for path in self.spec.get("overlays", [])] !=
+                [self.incoming / "overlays" / name for name in ("observability.yml", "staging.yml")]):
+            raise DeploymentError("STAGING_TARGET_REQUIRED")
         self.assets = contained(self.incoming, self.spec["assets"])
         self.environment = contained(self.incoming, self.spec["environment"])
         self.verifier = contained(self.incoming, self.spec["verifier"])
         self.environment_bytes = private_file(self.environment)
         self.inputs = [("environment", self.environment_bytes), ("manifest", self.spec["checksums_sha256"].encode())]
         self.inputs += [("settings", json.dumps({key: self.spec.get(key) for key in
-                        ("repository", "version", "project", "prerequisites", "health_timeout")}, sort_keys=True).encode())]
+                        ("repository", "version", "release_channel", "expected_source_sha", "staging", "project", "prerequisites", "health_timeout")}, sort_keys=True).encode())]
         names = set()
         for item in self.spec["secrets"]:
             if (not re.fullmatch(r"[A-Z][A-Z0-9_]*_FILE", item["variable"])
@@ -90,6 +100,7 @@ class Deployment:
         self.phase = "VERIFICATION"
         self.call(["pwsh", "-NoProfile", "-File", self.verifier, "-ReleaseDirectory", self.assets,
                    "-Repository", self.spec["repository"], "-Version", self.spec["version"],
+                   "-Channel", self.spec["release_channel"], "-ExpectedSourceSha", self.spec["expected_source_sha"],
                    "-EvidenceDirectory", self.incoming / "evidence"])
         candidate = self.incoming / "expanded"
         expanded = safe_extract(self.assets / ("smartupcms-" + self.spec["version"] + ".tar.gz"), candidate, self.spec["version"])
@@ -267,6 +278,7 @@ class Deployment:
             if previous:
                 self.state.setdefault("previous", []).append(previous)
             self.state["current"] = {"identity": self.identity, "version": self.spec["version"],
+                "release_channel": self.spec["release_channel"], "source_sha": self.spec["expected_source_sha"],
                 "checksums_sha256": self.spec["checksums_sha256"], "compose": str(self.compose_file),
                 "environment": str(self.env_file), "project": self.spec["project"]}
         atomic_json(self.root / "state.json", self.state)
@@ -291,8 +303,8 @@ class Deployment:
             raise DeploymentError("INTERRUPTED_DEPLOYMENT_REQUIRES_REVIEW")
         boundary = self.state.get("migrationBoundary")
         if boundary:
-            desired = tuple(map(int, self.spec["version"][1:].split(".")))
-            migrated = tuple(map(int, boundary["version"][1:].split(".")))
+            desired = version_order(self.spec["version"])
+            migrated = version_order(boundary["version"])
             if desired < migrated:
                 raise DeploymentError("FAILED_MIGRATION_REQUIRES_FORWARD_RELEASE" if self.state.get("lastAttempt", {}).get("status") == "FAILED"
                                       else "DOWNGRADE_REQUIRES_ROLLBACK_PLAN")
@@ -302,7 +314,7 @@ class Deployment:
         if current:
             if current["project"] != self.spec["project"]:
                 raise DeploymentError("PROJECT_IDENTITY_CHANGED")
-            if tuple(map(int, self.spec["version"][1:].split("."))) < tuple(map(int, current["version"][1:].split("."))):
+            if version_order(self.spec["version"]) < version_order(current["version"]):
                 raise DeploymentError("DOWNGRADE_REQUIRES_ROLLBACK_PLAN")
             if current["version"] == self.spec["version"] and current["checksums_sha256"] != self.spec["checksums_sha256"]:
                 raise DeploymentError("IMMUTABLE_VERSION_CHANGED")

@@ -1,13 +1,14 @@
 # Критерии GO / NO-GO первого production выпуска
 
-Версия: 2026-10-13. Любой незакрытый P0 означает NO-GO.
+Версия: 2026-10-16. Любой незакрытый P0 означает NO-GO.
 Отметки PASS заполняет ответственный по сохранённому evidence, а не по наличию
 конфига/теста в Git. Текущий комплект сам по себе не разрешает публикацию.
 
 | Приоритет | Gate | Критерий и evidence | Владелец |
 |---|---|---|---|
 | P0 | Кандидат | Один DCO SHA, clean tree; CI повторён на этом SHA, все jobs PASS, no-skips/coverage/API gates не ослаблены | Tech lead |
-| P0 | Артефакты | Шесть immutable OCI refs, verified identity/attestations, SBOM, checksum bundle из доверенного канала | Release |
+| P0 | Артефакты | Шесть immutable OCI refs, подписанный checksum manifest и bundle; exact channel/tag/source SHA/workflow, attestations и SBOM проверены по ADR-0040. Staging RC не является production GO | Release |
+| P0 | Студия | [Целевая матрица RC](studio-staging-acceptance.md): live формы/отчёты/панели, revoke, разные процессы/restart, target workload и восстановление; assistant off, fixture-only и N/A явно отделены | QA + Security + Ops |
 | P0 | Доступ | Отзыв session/token/role, data scope, hidden fields, SSRF/upload ограничения, login budgets PASS | Security |
 | P0 | Секреты | Разные DB-role credentials, scoped R2/SMTP/registry keys, encryption keys escrow, 0600, нет secret leaks | Security + Ops |
 | P0 | Edge | HTTPS, origin bypass denied, management/DB/exporters private, trust proxy и rate limits проверены | Ops |

@@ -1,10 +1,53 @@
 # Staging: утверждённая конфигурация и приёмка
 
-**Решение владельца:** 2026-10-12, конфигурация, бюджет, RPO/RTO и upload SLO
-30/60 с утверждены. Основа — RC `aa098672ea2f826e3c24b36212891ed502caf861`.
-Изменения спецификации, runner и гистограммы требуют нового SHA и новых образов;
-старый RC не содержит их. Этот annex фиксирует требования установки, не факт
-приёмки. Закупки, создание ресурсов, публикация и merge не разрешены.
+**Обновлено:** 2026-10-16. Кандидат: **`bc559ddd7f089e0505c4ed590e349df39b7c66de`**.
+Конфигурация, бюджет, RPO/RTO и upload SLO 30/60 с утверждены владельцем
+2026-10-12; ниже они сохранены. Прежняя ссылка на `aa098672` заменена новым RC.
+Это план будущей приёмки, а не протокол выполненных staging-проверок.
+Создание ресурсов, закупки, публикация, merge и выкладка этим документом
+не разрешены. Дата начала испытаний зависит от входов §6.
+
+## 0. Основа приёмки и открытый путь выпуска
+
+По сохранённому протоколу от 2026-10-16 на указанном DCO SHA завершены
+**108/108 обязательных локальных проверок**: backend 3306 тестов, web 2579,
+accessibility 143, live E2E 72 (37 + 35), без E2E retries и quarantine.
+Указатель на проверенные результаты — игнорируемый
+`.local/rc-studio-20261016/EVIDENCE.md`; первичные `final-proof.json`,
+`ci-report.md`, security review и журналы остаются приватными.
+Это результаты локального CI с описанными в отчёте адаптациями Windows/Linux,
+не подтверждение целевой инфраструктуры или идентичности GitHub-hosted runner.
+Настоящий план обновлён после RC и не входит в его проверенный commit tree.
+
+| Gate | Состояние на 2026-10-16 | Что закрывает |
+|---|---|---|
+| Исходники / DCO / локальный CI | PASS по сохранённому протоколу RC | Повторять полный CI при изменении исходного SHA |
+| Подписанные артефакты | BLOCKED: registry digest/provenance для staging ещё не предоставлены | Шесть образов, SBOM и bundle; проверка provenance и точного source SHA |
+| Целевой контур и доступы | NOT READY: целевой HTTPS и acceptance-config не предоставлены | Заполненные входы §6 и host/external preflight |
+| Студия на staging | NOT RUN | [Матрица Студии](studio-staging-acceptance.md), реальные роли/данные/процессы |
+| SLO, alerts, recovery | NOT RUN | Полный корпус, реальные receipts, два restore и полный RTO |
+| Production GO | NO-GO | Все P0, владельцы и отдельное решение выпуска |
+
+По поручению владельца подготовлен отдельный путь staging prerelease:
+[prerelease.yml](../../.github/workflows/prerelease.yml), тег `vX.Y.Z-rc.N`,
+явный `-Channel staging` и обязательный `-ExpectedSourceSha` у verifier.
+Решение и trust policy — [ADR-0040](../adr/ADR-0040-signed-staging-prereleases.md).
+Merge в default branch для RC не требуется; стабильный release сохраняет
+своё ancestry-ограничение. Checksums manifest подписывается и attested,
+channel/tag/source SHA/workflow проверяются до запуска содержимого bundle.
+
+**Это изменение после bc559ddd.** Будущий тег ставится на новый DCO SHA,
+включающий pipeline и прошедший полный локальный CI. Прежние 108 PASS выше
+относятся только к bc559ddd. Для новой поставки требуется новое evidence.
+Код workflow не означает наличие подписанных assets: необходимы настройки
+`staging-release`, независимый approval и отдельное разрешение на push tag/
+публикацию. Сейчас GitHub settings, refs, GHCR и Releases не изменялись.
+
+Локальный Docker image ID не является registry digest. Даже сборка того же
+source SHA может получить новые базовые пакеты: будущие образы сканируются,
+проверяются и проходят runtime/E2E на своих digest. Неподписанный rehearsal
+не закрывает gate артефактов. Зафиксировать связь source SHA → шесть digest →
+конфигурация → evidence; не подменять её названием тега.
 
 ## 1. Топология и бюджет
 
@@ -164,8 +207,9 @@ Runner сохраняет оба latency-бюджета; вручную увел
 проверок. Общий `status` остаётся `UNVERIFIED`, пока нет независимого receipt
 доставки: HTTP 2xx тестового endpoint не закрывает контроль ≤120 секунд.
 
-Все негативные проверки, прежде закрытые локально, повторяются на target.
-Alertmanager/получатель, authenticated monitoring health/drill endpoints,
+Негативные сценарии на реальных контрактах RC повторяются на target;
+fixture-only случаи и недоступные возможности явно отделены в матрице Студии.
+Alertmanager/получатель, защищённые monitoring health/drill endpoints,
 exporter runtime-metrics и probes R2/ClamAV/целого backup-комплекта ещё должны
 быть подключены оператором. Обычные API/upload latency alerts имеют `for: 15m`
 и не могут доказать доставку за 120 с. Для acceptance fault drills нужен
@@ -173,6 +217,13 @@ exporter runtime-metrics и probes R2/ClamAV/целого backup-комплек�
 remote write, evaluation, `for`, routing и доставку. Остановка app-хоста также
 должна обнаруживаться с ops-хоста по свежести последнего sample; сохранённый
 `up=1` после обрыва remote write не доказывает доступность.
+
+Вызовы monitoring probes в текущих preflight/failure scripts не принимают
+Bearer token или клиентский TLS-сертификат. До запуска согласовать доступ
+runner по закрытой сети/IP allowlist и проверить запрет с постороннего адреса.
+Если инфраструктура требует Bearer/mTLS именно для этих HTTP-вызовов, нужна
+отдельная доработка runner и новый проверенный SHA; такой поддержки пока нет.
+Это ограничение не относится к уже настроенному mTLS remote write collector.
 
 ## 5. RPO / RTO и блокирующие условия recovery
 
@@ -209,16 +260,103 @@ checksums и выборочные download. RTO скрипта restore покр�
 PITR/HA не заявлены. Потеря всего R2 account не покрывается копией в том же
 аккаунте и требует отдельного recovery-дизайна.
 
-## 6. Что ещё требуется перед выкладкой
+## 6. Входы и решения, необходимые от владельца
 
-| Вход / решение | Критерий завершения |
-|---|---|
-| Domain, zone/account, provider region, source IP | Конкретные значения в приватном env; private ops route и TLS подтверждены |
-| Доступы | Hetzner project/SSH; ограниченные Cloudflare/R2 keys; registry pull; SMTP; monitoring/on-call, через secret manager |
-| Выпуск | Новый SHA, DCO и локальные проверки; отдельное разрешение на публикацию шести подписанных образов; verifier на target |
-| Эксплуатация | Названы release, operations, security и rollback owners; privacy/retention/on-call подтверждены |
-| Recovery и alert integration | Coordinator/cache guard/complete-kit probe и ≤ 120 с fault route проверены, два restore drill PASS |
+Повторное утверждение размеров, бюджетных потолков, NBG1, RPO/RTO и upload SLO
+не требуется. Нужны значения, ответственные и ссылки на доступы ниже.
+В чат передаются только несекретные идентификаторы и пути/ссылки на secret manager;
+пароли, токены, ключи, dump и env с секретами не передавать и не коммитить.
+Если доступ выдаётся оператору, достаточно подтвердить его имя и готовность.
 
-Локальные render, promtool и k6 regression проверки не закрывают эти строки,
-`AC-09`, `AC-11`, `AC-12` или production GO. Архитектура приложения, два
-PostgreSQL databases, серверная авторизация и Compose runtime сохранены.
+| ID | Что предоставить / решить | Минимальный доступ и результат | Когда нужно |
+|---|---|---|---|
+| IN-01 | FQDN staging, Cloudflare account/zone ID, Hetzner project ID; app/ops/runner IP и private route | Назначенный оператор в отдельном project; SSH public key и проверенный host fingerprint, operator IP allowlist. Root/account-owner token не нужен для аудита | До provision/preflight |
+| IN-02 | Три имени R2 bucket: application, recovery, restore; endpoint и подтверждённое размещение | Утверждён default jurisdiction + `weur`; EU residency, если нужна, — отдельное решение. Lifecycle/lock/CORS как §3 | До storage preflight |
+| IN-03 | Ссылки на scoped Cloudflare/R2/registry credentials | CF read для проверки настроек зоны/account и отдельный write только оператору изменений; application key, source read-only, recovery writer, временный restore key отдельно, с expiry/revoke. Registry pull и доступ verifier к assets/attestations | До artifacts/preflight |
+| IN-04 | Secret manager и ответственный за escrow | Разные DB users, `SMC_SECRETS_KEY`, age recipient; age identity хранится отдельно и доступна двум назначенным recovery-операторам. Приватный env/config путь, права 0600/0700, известный SSH host | До deploy и backup |
+| IN-05 | SMTP/контролируемые тестовые адреса, alert recipient и резервный канал | Scoped SMTP credential; проверка login/reset/MFA и доставки только на согласованные адреса; доступ к monitoring, logs и реальным receipts/ACK | До functional/fault checks |
+| IN-06 | Имена Release / Ops / QA / Security / DBA / Incident / Rollback owners, primary и secondary | Ответственные принимают evidence; окно нагрузки, остановки сервисов, тестовых записей и isolated restore согласовано | До target mutations |
+| IN-07 | Учётные записи отрицательной матрицы и нагрузочные пользователи | Отдельный временный Studio admin; автор, publisher, reader, пользователь другой ветви и пользователь без прав. 100 уникальных least-privilege API tokens для утверждённой нагрузки через secret manager | До доступа и нагрузки |
+| IN-08 | Корпус и режим Студии из [матрицы](studio-staging-acceptance.md#1-dor-целевого-прогона) | Согласовать предложенный объём Studio-записей/отчётов; выделить каталог кодов и изолированный clone для квоты/двух процессов. Включение activation только на время согласованной проверки; assistant остаётся off | До Studio target tests |
+| IN-09 | Новый SHA, RC-tag и настройки `staging-release` | Prerelease выбран; нужны DCO/полный CI нового SHA, protected environment/reviewer и отдельное разрешение на push tag/публикацию. GitHub settings пока не применены | До gate артефактов |
+| IN-10 | Окно и полномочия следующего этапа | Отдельное разрешение на закупки/provision/deploy и load/fault/restore, когда готовы конфиги и checklist; merge/publication не подразумеваются утверждением бюджета | До выполнения этих действий |
+
+## 7. Последовательность приёмки
+
+**Предположение для планирования:** 6–8 рабочих дней QA/Ops после готовности
+доступов, подписанных артефактов и тестового корпуса; без времени закупок,
+нового RC/полного CI, подготовки GitHub environment или исправления найденных дефектов. Операторы
+работают в согласованное окно. Нагрузку, fault injection и backup не запускать
+одновременно; полные capture на ops выполняются вместо k6.
+
+| Этап / приоритет | Работа и evidence | Зависимость | Роль / оценка |
+|---|---|---|---|
+| S0 / P0 | Закрыть IN-01…10; сохранить конфигурацию без секретов, конкретный workload и расписание. Проверить release path и готовность probes/exporter | Входы владельца | Release + Ops + QA, 0.5–1 день |
+| S1 / P0 | Verifier шести digest, clean checkout SHA; Ansible clean install/update rehearsal, миграции CMS/DWH, host и внешний HTTPS/R2/edge preflight | S0, подписанные assets | Ops + Security, 1 день |
+| S2 / P0 | Базовые login/reset/MFA, роли/scopes/revoke/hidden fields; вся применимая матрица Студии, live browser, restart и два процесса на изолированном контуре | S1, роли и synthetic fixture | QA + Security + Backend, 1–2 дня |
+| S3 / P0 | Полный backup rehearsal и cache guard; затем 15 мин interactive, 20 uploads, 4 ч soak и отдельный Studio workload; метрики/UX за то же окно | S2, полный корпус, работающие exporter/probes | QA + Ops, 1 день |
+| S4 / P0 | Scanner/DB/backup/R2 и потеря app/collector/ops: отказ, восстановление, настоящая доставка ≤120 с и ACK≤10 мин. До R2 drill согласовать точный endpoint/egress rule | S3, окно отказов | Ops + On-call, 0.5–1 день |
+| S5 / P0 | Два согласованных полных комплекта и два isolated restore; отрицательные restore; Studio definitions/records/grants/reports; RPO/RTO и rollback decision | S3–S4, доступ escrow | DBA + Ops + QA, 1 день; temporary host ≤48 ч |
+| S6 / P0 | Свести результаты, дефекты и ограничения; проверить итоговую конфигурацию и digest; подписать GO/NO-GO | Все предыдущие | Release + Security + владелец, 0.5 дня |
+
+Этапы со сбоями повторяются после исправления с сохранением первого результата.
+Изменение продукта/runner требует нового RC SHA и соответствующих проверок;
+смена конфигурации/digest требует повторить затронутые target gates. Нельзя
+приписать новое evidence прежнему SHA или считать пропущенный сценарий PASS.
+
+### Команды и границы автоматизации
+
+Полные параметры — в [managed acceptance runbook](managed-infrastructure-acceptance.md)
+и [production handbook](production-handbook-ru.md). Для этого staging все
+host/deploy/fault/restore команды получают объединённый Compose, а не только
+`docker-compose.prod.yml` (см. §2). До запуска проверить `git rev-parse HEAD`
+и clean tree: host/preflight/capacity берут SHA из checkout; bundle без `.git`
+не заменяет его. Evidence и приватные конфиги хранятся вне tracked tree.
+
+| Шаг | Имеющийся инструмент | Дополнительное evidence |
+|---|---|---|
+| Артефакты | `scripts/release/verify-published-release.ps1` | Явные Channel/Version/ExpectedSourceSha, подписанный manifest, все digest/подписи/attestations/SBOM; `deploy.ps1 -VerifyRelease` не заменяет этот verifier |
+| Host / edge | `invoke-managed-host-check.ps1`, `invoke-managed-preflight.ps1` в `scripts/acceptance/` | Изолированный origin/management, R2 permissions, настоящие alert receipts |
+| Нагрузка | `scripts/acceptance/run-capacity.ps1 -Profile all` | Согласованные 100 tokens, runtime-metrics JSON на всё окно, CPU/disk/temp/UX/restart и Studio workload отдельно |
+| Отказы | `scripts/acceptance/run-failure-scenario.ps1` по одному: scanner, database, backup | R2/host/collector/ops-loss выполняет оператор; получатель подтверждает доставку и ACK |
+| Recovery | `scripts/prod/recovery_coordinator.py`, `verify_recovery_set.py`, `restore-combined.ps1` | Один согласованный комплект CMS+DWH+objects; отдельный project/bucket, `-MaxRpoSeconds 86400 -MaxRtoSeconds 7200`; полный внешний таймер |
+| Студия | [Матрица и live E2E команда](studio-staging-acceptance.md#3-live-browser-и-протокол) | Остальные cases — проверяемый UI/API протокол; универсального target-runner всех ACC нет |
+
+Аргументы `-AcknowledgeTargetLoad`/`-AcknowledgeServiceDisruption` у runners
+используются только в согласованное окно. Для restore обязательны
+`-IsolatedProjectName smartupcms-restore-...`, отдельный bucket/prefix и
+объединённый Compose без зафиксированных имён volumes/networks. Неверный age
+key, отсутствующий object archive и усечённый архив должны дать отказ без
+изменений рабочего project. Таймер RTO скрипта не заменяет полный таймер §5.
+
+## 8. DoD, GO / NO-GO и протокол
+
+DoR target-прогона: входы §6 закрыты, реальные SHA/digest известны, конфиги
+проверены, corpus/roles/окно/восстановление согласованы, probes/exporter готовы.
+До этого target acceptance остаётся BLOCKED/NOT RUN; локальные PASS сохраняются.
+Локальные контракты не закрывают целевые `AC-09`, `AC-11`, `AC-12` или production GO.
+
+- Все P0 из [production launch checklist](production-launch-checklist.md) и
+  применимые Studio cases выполнены на утверждённом target; нет открытых
+  Blocker/High, нарушений доступа, порчи данных или потери изменений.
+- Пороги §4–5 выдержаны без ослабления; два полных restore доказаны. Статусы
+  `automatedStatus=PASS` с `status=UNVERIFIED` не проходят приёмку до receipt.
+- DOD-09 / ACC-20 Студии закрываются только target evidence. ACC-21 относится
+  к будущей эволюции опубликованных схем и для create-only RC имеет N/A;
+  live LLM остаётся вне разрешённого scope, проверяется выключенный режим.
+- Допустимы только некритичные P1/P2 отклонения с владельцем, сроком и явным
+  решением Release/Security/владельца; исключения не отменяют P0 или SLO.
+- Release owner сверяет итоговые флаги/доступы и срок временных credentials,
+  rollback owner подтверждает процедуру; CEO отдельно разрешает запуск.
+
+Приватный acceptance index содержит case/gate ID, полный source SHA, шесть
+registry digest, revision и hash конфигурации без секретов, hashed target ID,
+UTC start/end, роль, expected/actual, статус, hash/путь артефакта, reviewer и
+решение по отклонениям. Capacity manifest связывается hash с host/preflight
+manifest и той же конфигурацией: сам он не доказывает всю identity стенда.
+Секретные env, cookies, HAR с токенами, данные пользователей и webhook URLs
+в evidence не допускаются. Скриншоты используют только synthetic данные.
+
+Архитектура приложения, две PostgreSQL databases, серверная авторизация и
+Compose runtime сохранены. Обновление плана не выполняет target-команды,
+не публикует локальные отчёты и не означает production GO.

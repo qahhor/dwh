@@ -167,7 +167,7 @@ class DeploymentTests(unittest.TestCase):
         self.recovery.write_text(json.dumps({"project": "fixture", "outputDirectory": str(self.directory / "recovery-output")}))
         self.recovery.chmod(0o600)
         self.spec = {"root": str(self.root), "incoming": str(self.incoming), "repository": "owner/repo",
-            "version": "v1.2.3", "project": "fixture", "environment": str(self.environment),
+            "version": "v1.2.3", "expected_source_sha": "a" * 40, "project": "fixture", "environment": str(self.environment),
             "assets": str(self.assets), "verifier": str(self.incoming / "verify-published-release.ps1"),
             "secrets": [{"variable": "DB_PASSWORD_FILE", "name": "database-password", "source": str(self.incoming / "secret")}],
             "overlays": [], "recovery_host": "smartupcms-ops", "health_timeout": 180,
@@ -205,6 +205,101 @@ class DeploymentTests(unittest.TestCase):
 
     def deploy(self, **kwargs):
         return Deployment(self.spec, run=self.commands, owner=lambda path, uid: self.ownership.append((path, uid))).execute(**kwargs)
+
+    def staging_candidate(self, version="v1.2.3-rc.2"):
+        self.spec.update(version=version, release_channel="staging", staging=True)
+        overlays = self.incoming / "overlays"
+        overlays.mkdir(exist_ok=True)
+        self.spec["overlays"] = []
+        for name in ("observability.yml", "staging.yml"):
+            path = overlays / name
+            path.write_text("services: {}")
+            self.spec["overlays"].append(str(path))
+        self.make_assets()
+
+    def test_default_channel_passes_stable_and_expected_source_to_verifier(self):
+        self.deploy()
+        args = next(args for args, _ in self.commands.calls if "verify-published-release.ps1" in " ".join(args))
+        self.assertIn("-Channel", args)
+        self.assertEqual(args[args.index("-Channel") + 1], "stable")
+        self.assertIn("-ExpectedSourceSha", args)
+        self.assertEqual(args[args.index("-ExpectedSourceSha") + 1], "a" * 40)
+
+    def test_invalid_or_missing_expected_source_stops_before_external_commands(self):
+        for value in (None, "", "a" * 39, "A" * 40, "g" * 40):
+            with self.subTest(value=value):
+                if value is None:
+                    self.spec.pop("expected_source_sha", None)
+                else:
+                    self.spec["expected_source_sha"] = value
+                with self.assertRaisesRegex(DeploymentError, "INVALID_CONFIGURATION"):
+                    self.deploy()
+                self.assertEqual(len(self.commands.calls), 0)
+
+    def test_release_channel_and_version_must_agree(self):
+        for channel, version in (("stable", "v1.2.3-rc.1"), ("staging", "v1.2.3"),
+                                 ("preview", "v1.2.3"), ("staging", "v1.2.3-rc.0"),
+                                 ("staging", "v1.2.3-rc.01"), ("staging", "v1.2.3-beta.1")):
+            with self.subTest(channel=channel, version=version):
+                self.spec.update(release_channel=channel, version=version)
+                with self.assertRaisesRegex(DeploymentError, "INVALID_CONFIGURATION"):
+                    self.deploy()
+                self.assertEqual(len(self.commands.calls), 0)
+
+    def test_prerelease_requires_explicit_staging_selector_and_both_overlays(self):
+        self.staging_candidate()
+        for value in (None, False, "true"):
+            with self.subTest(staging=value):
+                self.spec["staging"] = value
+                with self.assertRaisesRegex(DeploymentError, "STAGING_TARGET_REQUIRED"):
+                    self.deploy()
+                self.assertEqual(len(self.commands.calls), 0)
+        self.spec["staging"] = True
+        self.spec["overlays"].pop()
+        with self.assertRaisesRegex(DeploymentError, "STAGING_TARGET_REQUIRED"):
+            self.deploy()
+        self.assertEqual(len(self.commands.calls), 0)
+
+    def test_explicit_staging_prerelease_deploys_and_repeat_is_unchanged(self):
+        self.staging_candidate()
+        self.assertTrue(self.deploy()["changed"])
+        args = next(args for args, _ in self.commands.calls if "verify-published-release.ps1" in " ".join(args))
+        self.assertEqual(args[args.index("-Channel") + 1], "staging")
+        self.assertEqual(args[args.index("-ExpectedSourceSha") + 1], "a" * 40)
+        self.assertFalse(self.deploy()["changed"])
+
+    def test_prerelease_numeric_forward_upgrade_and_stable_promotion(self):
+        self.staging_candidate()
+        self.deploy()
+        self.spec["version"] = "v1.2.3-rc.10"
+        self.make_assets()
+        self.assertTrue(self.deploy()["changed"])
+        self.spec.update(version="v1.2.3", release_channel="stable")
+        self.commands.recovery_started = False
+        self.make_assets()
+        self.assertTrue(self.deploy()["changed"])
+        self.commands.calls.clear()
+        self.spec.update(version="v1.2.3-rc.11", release_channel="staging")
+        self.make_assets()
+        with self.assertRaisesRegex(DeploymentError, "DOWNGRADE_REQUIRES_ROLLBACK_PLAN"):
+            self.deploy()
+        self.assertEqual(len(self.commands.calls), 0)
+
+    def test_failed_prerelease_migration_rejects_previous_rc_without_commands(self):
+        self.staging_candidate()
+        self.deploy()
+        self.spec["version"] = "v1.2.3-rc.10"
+        self.make_assets()
+        self.commands.fail = lambda args: args[0] == "bash"
+        with self.assertRaisesRegex(DeploymentError, "COMMAND_FAILED"):
+            self.deploy()
+        self.spec["version"] = "v1.2.3-rc.2"
+        self.make_assets()
+        self.commands.fail = None
+        self.commands.calls.clear()
+        with self.assertRaisesRegex(DeploymentError, "FAILED_MIGRATION_REQUIRES_FORWARD_RELEASE"):
+            self.deploy()
+        self.assertEqual(len(self.commands.calls), 0)
 
     def test_private_secret_snapshots_use_the_actual_container_reader_uid(self):
         self.spec["secrets"].append({"variable": "MONITOR_DB_PASSWORD_FILE", "name": "monitor-password",

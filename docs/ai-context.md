@@ -172,7 +172,31 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 ## 7. Точка продолжения — 2026-10-16
 
-**Цикл RC Студии (2026-10-16):** по поручению владельца кандидат включает STU-00…06 и согласованные изменения форм, авторизации и навигации этой ветки. Для нового DCO-коммита выполняется полный локальный CI на его точном SHA, включая оба live E2E-шарда на отдельном чистом Compose-стенде. Каждый результат связывается с SHA, временем, командой и логом в игнорируемом протоколе `.local/rc-studio-20261016/`; результаты этапов ниже остаются предварительными и не заменяют этот прогон. Breaking-контракт кандидата: `If-Match` для list-views, явное `updateExisting: true` для изменения существующего участника проекта и публичный API/SPI 2.0.0: новый вариант sealed `FieldSource` требует обновления исчерпывающих switch у разработчиков модулей. Автоматические суффиксы 13 OpenAPI operationId изменились; HTTP-пути сохранены. Целевая staging-приёмка и реальный LLM-провайдер остаются отдельными гейтами. Публикация и merge не разрешены.
+**RC Студии и staging-план (2026-10-16):** DCO-кандидат
+`bc559ddd7f089e0505c4ed590e349df39b7c66de` включает STU-00…06 и изменения форм,
+авторизации/навигации ветки `codex/admin-studio`. По сохранённому протоколу
+на точном SHA завершены **108/108** обязательных локальных checks: backend
+3306, web 2579, accessibility 143, live E2E 72 (37 + 35), без retries/quarantine.
+Указатель на приватные первичные результаты и границы локального CI —
+игнорируемый `.local/rc-studio-20261016/EVIDENCE.md`. Числа и незакрытый commit/CI
+в более ранних записях ниже относятся к этапам до этого RC.
+
+Breaking-контракт: `If-Match` для list-views, явное `updateExisting: true` для
+изменения участника проекта; API/SPI 2.0.0 и новый sealed `FieldSource`
+JsonProperty требуют обновить exhaustive switches. Суффиксы 13 OpenAPI
+operationId изменены, HTTP-пути сохранены.
+
+Обновлены [staging-план](ops/staging-acceptance.md) и
+[матрица Студии](ops/studio-staging-acceptance.md): неизменные утверждённые
+ресурсы/бюджет, RPO 24 ч / RTO 2 ч, upload 30/60 с; IN-01…10 для владельца,
+STG-STU-01…17 и GO/NO-GO. Это документация после RC, не часть проверенного SHA.
+Target-доступы/подписанные digest не предоставлены; приёмка NOT RUN,
+DOD-09/ACC-20 открыты. Для off-main staging выбран и реализован отдельный
+signed prerelease (ADR-0040); он требует нового DCO SHA/полного CI и отдельного
+разрешения на внешнюю публикацию. Stable ancestry сохранён.
+Assistant off/provider none, без внешних вызовов; live provider
+не блокирует выключенную возможность. ACC-21 N/A для create-only definitions.
+Публикация/merge/provision/deploy не выполнялись; demo сохранён.
 
 **STU-06: графики, datasets и помощник (2026-10-16):** реализовано и проверено локально в той же ветке `codex/admin-studio`.
 [ADR-0039](adr/ADR-0039-report-datasets-and-assistant.md), [план §15](architecture/admin-studio-plan.md#15-stu-06-дополнительные-графики-datasets-и-помощник), [рецепт](cookbook/report-datasets-and-assistant.md).
@@ -911,3 +935,31 @@ Observatory A+ — шаг релиза; строки журнала при ст�
 Известные пробелы платформы перечислены в
 [extension-points.md](architecture/extension-points.md#7-известные-пробелы):
 сверяйте их с фазой 5: часть пробелов закрыта общим runtime (ADR-0032).
+
+### Подписанный staging prerelease — продолжение после bc559ddd
+
+Реализован [ADR-0040](adr/ADR-0040-signed-staging-prereleases.md): отдельный `prerelease.yml` для
+`vX.Y.Z-rc.N`, общий bundle builder, подпись/attestation SHA256SUMS,
+verifier с явным channel и обязательным expected source SHA, Ansible staging
+guard. Это новые исходники после bc559ddd; прежний CI не является проверкой
+следующего SHA. Изменения прошлой staging-документации сохранены.
+Настройки GitHub/публикация/merge/deploy не выполняются; следующий gate —
+новый DCO RC, полный CI и отдельно разрешённый live signing/publish rehearsal.
+
+Проверки новой поставки локальны, без OIDC issuance/publish: release Python
+13/13, verifier 32/32, production Python 64/64 (включая Ansible 45/45),
+credential/backup Node 52/52; Ansible 2.21.5 syntax-check PASS. Реальные
+tracked sources упакованы в оба канала: 204 файла, 27 checksums, пять env
+templates, tar/zip content parity и shell mode 0755 PASS. Public docs,
+docs unit 8/8, контракт 25 документов, hygiene, rulesets, architecture
+boundaries и staging/managed/capacity contracts PASS. Независимое ревью
+producer/verifier не выявило подтверждённых Blocker/High. Graphify недоступен
+(`No module named graphify`); установка не выполнялась.
+
+CodeQL security-extended: Python 0 findings (содержимое всех восьми изменённых
+Python-файлов совпадает с source archive); официальный Actions pack 0 findings,
+извлечение через JavaScript database, AST всех 8/8 workflow подтверждён отдельным
+запросом и hash inventory. Это не отдельный native Actions extractor run.
+Gitleaks текущих изменений и штатный full-history release-gates drill PASS.
+Приватный протокол текущей незакоммиченной поставки:
+`.local/prerelease-20261016/EVIDENCE.md`; он не заменяет полный CI будущего SHA.
