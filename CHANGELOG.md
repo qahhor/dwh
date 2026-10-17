@@ -9,6 +9,33 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Reference lists an administrator keeps without a release (ADR-0041, stage 1, branch 2):
+  `studio_lists` and `studio_list_items` (V222; permanent codes, never deleted, an item is
+  deactivated), rights `studio.lists` `view`/`manage` for administrators (V223) and
+  `GET`/`POST /api/v1/studio/lists`, `GET`/`PUT /api/v1/studio/lists/{code}`,
+  `POST /api/v1/studio/lists/{code}/items`, `PUT .../items/{itemCode}` with `If-Match`,
+  audit and the eviction of the cached items on every node. A list is an enumeration of
+  the runtime (`EntityEnumSource`): its items are checked on save, offered, named in the
+  language of the request, filtered and exported like every enumeration.
+- Simple-form format 3 for live forms: `select` with fixed choices, `ref` to a reference
+  list or to another live form, `user` (a reference to `md.users`) and the data scope of
+  the form, `entity.scope` = `all`, `org_unit` or `owner` (ADR-0041, owner decision 1).
+  `studio_records.org_unit_id` (V221) keeps the author's home unit of a form scoped by org
+  unit. The targets must exist when a form or a version is activated (422
+  `error.studio.target_not_found`); a version may add choices but keeps every choice
+  records may hold (`change_option_removed`), the targets (`change_target`) and the scope
+  (422 `error.studio.scope_change`). Golden samples of format 3 join formats 1 and 2.
+- The list XLSX export writes the names of references (resolved in the exporter's scope)
+  instead of their keys and names the items of reference lists in the language of the
+  export.
+- Web: «Справочники» (`/settings/form-studio/lists`) next to «Мои формы»; the new-form and
+  new-version editors offer select, reference and user fields and the data scope to live
+  forms.
+- Platform API: a partitioned entity (the shared table of live forms) may declare select,
+  enumeration and reference fields, as JSON properties or columns; a reference reads as
+  the `bigint` key of its row. Declarations only widen; no signature changed.
+
+
 - Versions and lifecycle of live forms (ADR-0041, stage 1): immutable later versions
   (`studio_form_versions`, V218; version 1 stays the `studio_forms` row), a state with
   the active version, `active`/`archived` status and a revision (`studio_form_state`,
@@ -169,6 +196,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A save whose reference names an entity that is no longer served (a quarantined or
+  broken live form) answers 422 `error.field.ref_not_found` instead of 500.
 - The history of a live form shows only the fields the form names, so a hidden field
   leaves the history labels while its old values stay in the audit rows.
 - `StudioCatalogStatus.broken` and `.quarantined` are bounded by 501 stored forms

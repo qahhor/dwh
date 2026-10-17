@@ -175,6 +175,20 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 ## 7. Точка продолжения — 2026-10-17
 
+**Конструктор, этап 1, ветка 2 — справочники, ссылки и область данных (2026-10-17,
+`claude/stage1-references` от `739732c6`, не слита):** ADR-0041, решения владельца 1 и 4.
+V221 `studio_records.org_unit_id`, V222 `studio_lists`/`studio_list_items` (коды постоянны,
+значения отключают, не удаляют), V223 права `studio.lists` `view`/`manage`. API
+`/api/v1/studio/lists` (If-Match, аудит). Справочник — источник перечислений runtime
+(`common.entity.EntityEnumSource`, `StudioListEnums`, ссылка `studio.list.<код>`), подписи на
+языке работы (`common.web.RequestLanguage`). simple-form формат 3: `select` (варианты),
+`ref` на справочник или живую форму, `user`, `entity.scope` (`all`/`org_unit`/`owner`,
+меняться не может). Platform API: партиционированная сущность держит `SELECT`/`ENUM`/`REF`.
+Экспорт XLSX пишет имена ссылок (`EntityReads.labelled`). Вебхуки областью формы не
+ограничены (решение в ADR). Веб: «Справочники» в настройках, новые типы и видимость в
+редакторах. E2E эталонов: `e2e/tests/browser/instance/studio-references.spec.ts`
+(чтение XLSX — `e2e/support/xlsx-read.ts`). Дальше: раскладка, отказ от name/code, отчёты.
+
 **Конструктор, этап 1, ветка 1 — версии и архив живых форм (2026-10-17,
 `claude/stage1-form-versions` от `b3c8c5a2`, не слита):** ADR-0041 решения 1–4, 6, 7.
 V218 `studio_form_versions` (версии ≥ 2, неизменяемы; версия 1 — строка
