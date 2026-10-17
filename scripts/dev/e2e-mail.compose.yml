@@ -31,5 +31,8 @@ services:
       SMTP_AUTH: "false"
       SMTP_STARTTLS: "false"
       SMC_MAIL_FROM: no-reply@e2e.test
+      # ADR-0038: the disposable e2e stack creates live forms, so the activation scenarios run instead of stopping at
+      # the switched-off branch; scripts/dev/test-e2e.ps1 expects it (E2E_STUDIO_ACTIVATION_EXPECTED).
+      SMC_STUDIO_ACTIVATION_ENABLED: "true"
     depends_on:
       mailpit: {condition: service_healthy}

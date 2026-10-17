@@ -377,6 +377,8 @@ jobs:
     env:
       COMPOSE_FILE: docker-compose.yml:scripts/dev/e2e-mail.compose.yml
       MAILPIT_URL: http://localhost:8025
+      # ADR-0038: the overlay switches live-form activation on; the studio scenarios assert it instead of skipping.
+      E2E_STUDIO_ACTIVATION_EXPECTED: 'true'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
