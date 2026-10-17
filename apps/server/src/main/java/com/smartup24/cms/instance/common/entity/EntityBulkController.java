@@ -67,6 +67,7 @@ public class EntityBulkController {
         EntityDefinition entity = gate.findVisible(code)
                 .filter(found -> found.capabilities().contains(EntityCapability.BULK))
                 .orElseThrow(EntityGate::unknownEntity);
+        gate.requireWritable(entity);
         List<Long> ids = BulkRunner.checkedIds(body);
         String action = body.action() == null ? "" : body.action();
         if (CREATE.equals(action)) {

@@ -1,0 +1,230 @@
+[
+  {
+    "checksum": "4294c2e21894d1543058548e7d7aab04e73fcbf40245a51ca7bff1a1bebc790e",
+    "declaration": {
+      "formatVersion": 2,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v2_defaults",
+        "title": {
+          "ru": "Значения по умолчанию",
+          "uz": "Standart qiymatlar",
+          "en": "Defaults"
+        },
+        "menu": {
+          "icon": "assignment",
+          "section": "administration",
+          "order": 20
+        }
+      },
+      "fields": [
+        {
+          "id": "title",
+          "type": "text",
+          "labels": {
+            "ru": "Поле title",
+            "uz": "Maydon title",
+            "en": "Field title"
+          },
+          "required": true,
+          "listed": true,
+          "maxLength": 50,
+          "defaultValue": "Новая запись"
+        },
+        {
+          "id": "memo",
+          "type": "textarea",
+          "labels": {
+            "ru": "Поле memo",
+            "uz": "Maydon memo",
+            "en": "Field memo"
+          },
+          "required": false,
+          "listed": false,
+          "maxLength": 500,
+          "defaultValue": "Первая строка\nвторая строка"
+        },
+        {
+          "id": "amount",
+          "type": "number",
+          "labels": {
+            "ru": "Поле amount",
+            "uz": "Maydon amount",
+            "en": "Field amount"
+          },
+          "required": true,
+          "listed": true,
+          "scale": 2,
+          "defaultValue": "10.50"
+        },
+        {
+          "id": "due",
+          "type": "date",
+          "labels": {
+            "ru": "Поле due",
+            "uz": "Maydon due",
+            "en": "Field due"
+          },
+          "required": false,
+          "listed": true,
+          "defaultValue": "2026-01-31"
+        },
+        {
+          "id": "start",
+          "type": "datetime",
+          "labels": {
+            "ru": "Поле start",
+            "uz": "Maydon start",
+            "en": "Field start"
+          },
+          "required": false,
+          "listed": false,
+          "defaultValue": "2026-01-31T09:30:00Z"
+        },
+        {
+          "id": "slot",
+          "type": "time",
+          "labels": {
+            "ru": "Поле slot",
+            "uz": "Maydon slot",
+            "en": "Field slot"
+          },
+          "required": false,
+          "listed": true,
+          "defaultValue": "09:30"
+        },
+        {
+          "id": "active",
+          "type": "bool",
+          "labels": {
+            "ru": "Поле active",
+            "uz": "Maydon active",
+            "en": "Field active"
+          },
+          "required": true,
+          "listed": true,
+          "defaultValue": "true"
+        },
+        {
+          "id": "mail",
+          "type": "email",
+          "labels": {
+            "ru": "Поле mail",
+            "uz": "Maydon mail",
+            "en": "Field mail"
+          },
+          "required": false,
+          "listed": false,
+          "defaultValue": "info@example.invalid"
+        },
+        {
+          "id": "phone",
+          "type": "phone",
+          "labels": {
+            "ru": "Поле phone",
+            "uz": "Maydon phone",
+            "en": "Field phone"
+          },
+          "required": false,
+          "listed": true,
+          "defaultValue": "+998901234567"
+        },
+        {
+          "id": "site",
+          "type": "url",
+          "labels": {
+            "ru": "Поле site",
+            "uz": "Maydon site",
+            "en": "Field site"
+          },
+          "required": false,
+          "listed": false,
+          "defaultValue": "https://example.invalid/form"
+        }
+      ]
+    }
+  },
+  {
+    "checksum": "0358abafda498153d3bd8fa358a2be310d93f38f7628c316830bcddd42c5f7f5",
+    "declaration": {
+      "formatVersion": 2,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v2_hidden",
+        "title": {
+          "ru": "Скрытые поля",
+          "uz": "Yashirin maydonlar",
+          "en": "Hidden fields"
+        }
+      },
+      "fields": [
+        {
+          "id": "shown",
+          "type": "text",
+          "labels": {
+            "ru": "Поле shown",
+            "uz": "Maydon shown",
+            "en": "Field shown"
+          },
+          "required": true,
+          "listed": true,
+          "maxLength": 100
+        },
+        {
+          "id": "retired",
+          "type": "text",
+          "labels": {
+            "ru": "Поле retired",
+            "uz": "Maydon retired",
+            "en": "Field retired"
+          },
+          "required": false,
+          "listed": true,
+          "maxLength": 100,
+          "hidden": true
+        },
+        {
+          "id": "oldsum",
+          "type": "number",
+          "labels": {
+            "ru": "Поле oldsum",
+            "uz": "Maydon oldsum",
+            "en": "Field oldsum"
+          },
+          "required": false,
+          "listed": false,
+          "scale": 0,
+          "hidden": true
+        },
+        {
+          "id": "added",
+          "type": "bool",
+          "labels": {
+            "ru": "Поле added",
+            "uz": "Maydon added",
+            "en": "Field added"
+          },
+          "required": false,
+          "listed": true,
+          "defaultValue": "false"
+        }
+      ]
+    }
+  }
+]

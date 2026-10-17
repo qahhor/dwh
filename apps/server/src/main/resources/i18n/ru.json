@@ -3270,7 +3270,7 @@
   "error.studio.namespace": "Активация разрешена только для новых форм в разделе studio",
   "error.studio.disabled": "Активация форм отключена",
   "error.studio.exists": "Форма с этим кодом уже активирована с другой декларацией",
-  "error.studio.quota": "Достигнут лимит 100 активированных форм",
+  "error.studio.quota": "Достигнут лимит 100 активных форм; архивные формы не учитываются",
   "error.studio.form_not_found": "Созданная форма {code} не найдена",
   "error.studio.quarantined": "Форма уже выведена из работы",
   "error.studio.not_quarantined": "Форма не выведена из работы",
@@ -3311,5 +3311,13 @@
   "settings.simple_form.assistant_proposal": "Полей: {n}. Применение заменит локальный черновик и выберет доставку через CLI. Публикация выполняется отдельно.",
   "settings.simple_form.assistant_json": "Посмотреть декларацию",
   "settings.simple_form.assistant_apply": "Применить в редактор",
-  "settings.simple_form.assistant_applied": "Предложение загружено в редактор. Проверьте форму и подготовьте пакет отдельным действием."
+  "settings.simple_form.assistant_applied": "Предложение загружено в редактор. Проверьте форму и подготовьте пакет отдельным действием.",
+  "error.studio.stored_quota": "Достигнут лимит 500 сохранённых форм, включая архивные",
+  "error.studio.change_incompatible": "Поле «{field}»: изменение «{change}» несовместимо с сохранёнными записями",
+  "error.studio.archived": "Форма в архиве: записи доступны только для чтения",
+  "error.studio.not_archived": "Форма не в архиве",
+  "error.studio.version_limit": "Достигнут лимит 100 версий формы",
+  "error.studio.version_unchanged": "Новая версия не отличается от активной",
+  "error.studio.code_mismatch": "Пакет описывает другую форму",
+  "error.md.simple_form_default": "Значение по умолчанию не подходит для этого поля."
 }

@@ -3270,7 +3270,7 @@
   "error.studio.namespace": "Activation is limited to new forms in the studio namespace",
   "error.studio.disabled": "Form activation is disabled",
   "error.studio.exists": "This form code is already activated with a different declaration",
-  "error.studio.quota": "The limit of 100 activated forms has been reached",
+  "error.studio.quota": "The limit of 100 active forms has been reached; archived forms do not count",
   "error.studio.form_not_found": "The created form {code} was not found",
   "error.studio.quarantined": "The form is already withdrawn from service",
   "error.studio.not_quarantined": "The form is not withdrawn from service",
@@ -3311,5 +3311,13 @@
   "settings.simple_form.assistant_proposal": "Fields: {n}. Applying replaces the local draft and selects CLI delivery. Publication is a separate action.",
   "settings.simple_form.assistant_json": "View declaration",
   "settings.simple_form.assistant_apply": "Apply in editor",
-  "settings.simple_form.assistant_applied": "The proposal is loaded in the editor. Review the form and prepare its package separately."
+  "settings.simple_form.assistant_applied": "The proposal is loaded in the editor. Review the form and prepare its package separately.",
+  "error.studio.stored_quota": "The limit of 500 stored forms, archived ones included, has been reached",
+  "error.studio.change_incompatible": "Field \"{field}\": the change \"{change}\" is incompatible with the stored records",
+  "error.studio.archived": "The form is archived: its records are read-only",
+  "error.studio.not_archived": "The form is not archived",
+  "error.studio.version_limit": "The limit of 100 versions of the form has been reached",
+  "error.studio.version_unchanged": "The new version does not differ from the active one",
+  "error.studio.code_mismatch": "The package describes another form",
+  "error.md.simple_form_default": "The default value does not fit this field."
 }

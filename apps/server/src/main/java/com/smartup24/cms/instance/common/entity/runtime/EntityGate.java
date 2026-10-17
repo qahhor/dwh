@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
+import com.smartup24.cms.instance.common.entity.EntityWriteLock;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.module.InstalledModules;
 import com.smartup24.cms.instance.common.module.ModuleCatalog;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,17 +39,36 @@ public class EntityGate {
     private final @Nullable InstalledModules modules;
     private final Map<String, String> moduleOf;
     private final @Nullable ModuleCatalog catalog;
+    private final Supplier<List<EntityWriteLock>> locks;
 
     @Autowired
-    public EntityGate(EntityRegistry registry, ObjectProvider<InstalledModules> modules, ModuleCatalog catalog) {
-        this(registry, modules.getIfAvailable(), catalog);
+    public EntityGate(
+            EntityRegistry registry,
+            ObjectProvider<InstalledModules> modules,
+            ModuleCatalog catalog,
+            ObjectProvider<EntityWriteLock> locks) {
+        this(
+                registry,
+                modules.getIfAvailable(),
+                catalog,
+                () -> locks.orderedStream().toList());
     }
 
     /** Without {@code catalog} no entity has a module to switch off: a registry of declarations alone. */
     public EntityGate(EntityRegistry registry, @Nullable InstalledModules modules, @Nullable ModuleCatalog catalog) {
+        this(registry, modules, catalog, List::of);
+    }
+
+    /** A gate whose writes also ask {@code locks} (ADR-0041). */
+    public EntityGate(
+            EntityRegistry registry,
+            @Nullable InstalledModules modules,
+            @Nullable ModuleCatalog catalog,
+            Supplier<List<EntityWriteLock>> locks) {
         this.registry = registry;
         this.catalog = catalog;
         this.modules = modules;
+        this.locks = locks;
         this.moduleOf = catalog == null ? Map.of() : modules(registry.all(), catalog);
     }
 
@@ -135,11 +156,28 @@ public class EntityGate {
      */
     public EntityDefinition allowed(String code, String action) {
         EntityDefinition entity = viewable(code);
+        requireWritable(entity);
         EntityAction declared = entity.action(action)
                 .orElseThrow(() -> ApiException.notFound(
                         ErrorCode.NOT_FOUND, "error.common.entity_action_not_found", Map.of("action", action)));
         require(entity, declared.permission());
         return entity;
+    }
+
+    /**
+     * Refuses a write while a lock holds the records of the entity read-only (ADR-0041): what every single and bulk
+     * write asks before its action and right are checked.
+     */
+    public void requireWritable(EntityDefinition entity) {
+        for (EntityWriteLock lock : locks.get()) {
+            ApiException refusal = lock.refusal(entity);
+            if (refusal != null) throw refusal;
+        }
+    }
+
+    /** Whether no lock holds the records of the entity read-only: the form offers its actions only then. */
+    public boolean writable(EntityDefinition entity) {
+        return locks.get().stream().allMatch(lock -> lock.refusal(entity) == null);
     }
 
     private static void require(EntityDefinition entity, String permission) {

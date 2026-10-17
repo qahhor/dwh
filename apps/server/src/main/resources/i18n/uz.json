@@ -3270,7 +3270,7 @@
   "error.studio.namespace": "Faollashtirish faqat studio bo‘limidagi yangi shakllar uchun ruxsat etilgan",
   "error.studio.disabled": "Shakllarni faollashtirish o‘chirilgan",
   "error.studio.exists": "Ushbu kodli shakl boshqa deklaratsiya bilan faollashtirilgan",
-  "error.studio.quota": "100 ta faollashtirilgan shakl chegarasiga yetildi",
+  "error.studio.quota": "100 ta faol shakl chegarasiga yetildi; arxivdagi shakllar hisobga olinmaydi",
   "error.studio.form_not_found": "{code} yaratilgan shakli topilmadi",
   "error.studio.quarantined": "Shakl allaqachon ishdan chiqarilgan",
   "error.studio.not_quarantined": "Shakl ishdan chiqarilmagan",
@@ -3311,5 +3311,13 @@
   "settings.simple_form.assistant_proposal": "Maydonlar: {n}. Qo‘llash mahalliy qoralamani almashtirib, CLI orqali yetkazishni tanlaydi. Nashr alohida bajariladi.",
   "settings.simple_form.assistant_json": "Deklaratsiyani ko‘rish",
   "settings.simple_form.assistant_apply": "Tahrirlovchida qo‘llash",
-  "settings.simple_form.assistant_applied": "Taklif tahrirlovchiga yuklandi. Shaklni tekshirib, paketni alohida amal bilan tayyorlang."
+  "settings.simple_form.assistant_applied": "Taklif tahrirlovchiga yuklandi. Shaklni tekshirib, paketni alohida amal bilan tayyorlang.",
+  "error.studio.stored_quota": "Arxivdagilar bilan birga 500 ta saqlangan shakl chegarasiga yetildi",
+  "error.studio.change_incompatible": "«{field}» maydoni: «{change}» oʻzgarishi saqlangan yozuvlarga mos emas",
+  "error.studio.archived": "Shakl arxivda: yozuvlarni faqat koʻrish mumkin",
+  "error.studio.not_archived": "Shakl arxivda emas",
+  "error.studio.version_limit": "Shaklning 100 ta versiyasi chegarasiga yetildi",
+  "error.studio.version_unchanged": "Yangi versiya faol versiyadan farq qilmaydi",
+  "error.studio.code_mismatch": "Paket boshqa shaklni tavsiflaydi",
+  "error.md.simple_form_default": "Standart qiymat bu maydonga mos kelmaydi."
 }

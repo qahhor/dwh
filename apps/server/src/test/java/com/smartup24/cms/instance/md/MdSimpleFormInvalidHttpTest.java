@@ -46,6 +46,10 @@ class MdSimpleFormInvalidHttpTest extends EmbeddedPostgresTest {
                 .andExpect(status().isUnprocessableEntity());
     }
 
+    private static String format2(String declaration) {
+        return declaration.replace("\"formatVersion\": 1", "\"formatVersion\": 2");
+    }
+
     static Stream<byte[]> invalidBodies() throws Exception {
         String valid = Files.readString(Path.of("src/test/resources/studio/simple-form.json"));
         return Stream.concat(
@@ -56,7 +60,38 @@ class MdSimpleFormInvalidHttpTest extends EmbeddedPostgresTest {
                                 valid + " {}",
                                 valid.replace("\"formatVersion\": 1", "\"formatVersion\": 1, \"formatVersion\": 1"),
                                 valid.replace("\"formatVersion\": 1", "\"formatVersion\": 1.0"),
-                                valid.replace("\"formatVersion\": 1", "\"formatVersion\": 2"),
+                                valid.replace("\"formatVersion\": 1", "\"formatVersion\": 3"),
+                                // Format 1 knows no hidden field, default or menu item (ADR-0041).
+                                valid.replace("\"id\": \"active\",", "\"id\": \"active\", \"hidden\": true,"),
+                                valid.replace("\"id\": \"active\",", "\"id\": \"active\", \"defaultValue\": \"true\","),
+                                valid.replace("\"name\": \"locations\",", "\"name\": \"locations\", \"menu\": {},"),
+                                format2(valid)
+                                        .replace(
+                                                "\"id\": \"active\",",
+                                                "\"id\": \"active\", \"defaultValue\": \"yes\","),
+                                format2(valid).replace("\"id\": \"active\",", "\"id\": \"active\", \"hidden\": 1,"),
+                                format2(valid)
+                                        .replace(
+                                                "\"id\": \"address\",", "\"id\": \"address\", \"defaultValue\": \"\","),
+                                format2(valid)
+                                        .replace(
+                                                "\"id\": \"address\",",
+                                                "\"id\": \"address\", \"defaultValue\": \"a\\u0007b\","),
+                                format2(valid)
+                                        .replace(
+                                                "\"name\": \"locations\",",
+                                                "\"name\": \"locations\", "
+                                                        + "\"menu\": {\"icon\": \"rocket\", \"section\": \"workspace\", \"order\": 1},"),
+                                format2(valid)
+                                        .replace(
+                                                "\"name\": \"locations\",",
+                                                "\"name\": \"locations\", "
+                                                        + "\"menu\": {\"icon\": \"box\", \"section\": \"iam\", \"order\": 1},"),
+                                format2(valid)
+                                        .replace(
+                                                "\"name\": \"locations\",",
+                                                "\"name\": \"locations\", "
+                                                        + "\"menu\": {\"icon\": \"box\", \"section\": \"workspace\", \"order\": 1000},"),
                                 valid.replace("simple-form", "form-layout"),
                                 valid.replace("\"kind\":", "\"sql\": \"drop table x\", \"kind\":"),
                                 valid.replace("\"catalog\"", "\"../catalog\""),

@@ -51,4 +51,12 @@ public interface RecordHistorySource {
     default Set<String> hiddenFields() {
         return Set.of();
     }
+
+    /**
+     * Whether the history shows only the fields the source names ({@link #fieldLabels()}, {@link #fieldNames()}): a
+     * live form whose hidden field keeps its old values in the audit rows (ADR-0041).
+     */
+    default boolean namedFieldsOnly() {
+        return false;
+    }
 }
