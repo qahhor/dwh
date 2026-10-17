@@ -104,6 +104,15 @@ async function indexed(page: Page, query: string, category: Category, id: string
     .toEqual({ source: 'TYPESENSE', degraded: false, present });
 }
 
+// A fresh stack queues the first index generation itself after start-up and answers from PostgreSQL until it is
+// active. Wait for that generation here instead of relying on another spec's rebuild running earlier in the shard.
+async function searchIndexReady(page: Page): Promise<void> {
+  await expect.poll(async () => {
+    const status = await api<{ initialized: boolean; dependency: { healthy: boolean } }>(page, 'GET', '/search/status', 200);
+    return status.initialized && status.dependency.healthy;
+  }, { message: 'the first search index generation is active', intervals: [2000], timeout: 150_000 }).toBe(true);
+}
+
 async function openPalette(page: Page, query: string, category: Category | 'ALL') {
   await expect(page.getByRole('button', { name: 'Открыть глобальный поиск' })).toBeVisible();
   await page.keyboard.press('ControlOrMeta+k');
@@ -115,9 +124,10 @@ async function openPalette(page: Page, query: string, category: Category | 'ALL'
 }
 
 test('real indexed task/project/user hits open fresh exact records, survive reload/back, and exclude passive records', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(270_000);
   await loginToInstance(page);
   const assertHealthy = collectPageErrors(page);
+  await searchIndexReady(page);
   const marker = uniqueRunName('E2Esearch');
   // Tasks and projects are records of the general runtime (ADR-0032 8).
   const project = await api<{ id: number }>(page, 'POST', '/entities/ms.projects', 201,
