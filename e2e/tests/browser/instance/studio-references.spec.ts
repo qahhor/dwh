@@ -56,10 +56,15 @@ async function choose(page: Page, trigger: Locator, option: string | RegExp): Pr
 
 /** Picks a row of a paged reference (smt-data-select) by typing a part of its name. */
 async function pick(page: Page, field: Locator, search: string, option: string | RegExp): Promise<void> {
-  await field.getByRole('combobox').first().click();
-  await page.keyboard.type(search);
+  const trigger = field.getByRole('combobox').first();
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  const input = page.locator('.cdk-overlay-container input[role="combobox"][aria-autocomplete="list"]').last();
+  await expect(input).toBeFocused();
+  await input.fill(search);
   const listbox = page.locator('.cdk-overlay-container [role="listbox"]').last();
   await listbox.getByRole('option', { name: option }).first().click();
+  await expect(trigger).not.toContainText('Не выбрано');
 }
 
 /** A field box of the form editor by its number. */
