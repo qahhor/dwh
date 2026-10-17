@@ -145,6 +145,7 @@ Current ADRs that are not superseded:
 - [ADR-0035 — declaration drafts, immutable versions and publication packages](adr/ADR-0035-declaration-lifecycle.md)
 - [ADR-0036 — shared reports, aggregate exports and named dashboards](adr/ADR-0036-shared-reports-and-dashboards.md)
 - [ADR-0040 — signed staging prereleases and exact release identity](adr/ADR-0040-signed-staging-prereleases.md)
+- [ADR-0041 — live form evolution: schema versions in JSONB and export to code](adr/ADR-0041-live-form-evolution.md)
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
