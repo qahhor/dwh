@@ -21,7 +21,7 @@
         <spring-boot.version>4.1.1</spring-boot.version>
         <!-- Boot 4.1.1 manages 11.0.24; 11.0.25 fixes the August 2026
              security-constraint and authentication vulnerabilities. -->
-        <tomcat.version>11.0.26</tomcat.version>
+        <tomcat.version>11.0.27</tomcat.version>
         <!-- Override both Jackson baselines managed by Spring Boot.
              Jackson 2 reaches the server through springdoc (swagger-core). -->
         <jackson.version>3.2.3</jackson.version>
@@ -32,7 +32,7 @@
         <argon2.version>2.12</argon2.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <typesense.version>0.6.0</typesense.version>
-        <aws.sdk.version>2.55.13</aws.sdk.version>
+        <aws.sdk.version>2.55.16</aws.sdk.version>
         <!-- OpenAPI generated from the controllers (plan 10/10, item 3.3); 3.1.x is built on Spring Boot 4.1. -->
         <springdoc.version>3.1.1</springdoc.version>
 
