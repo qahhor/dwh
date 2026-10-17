@@ -149,6 +149,17 @@ describe('cms module new', () => {
     assert.match(rights, /\('probe', 'Склад', 'Склад', 'package', '\/e\/probe\.items'/);
   });
 
+  test('the live-form namespace and platform module codes are refused and nothing is written', () => {
+    const before = snapshot();
+    assert.throws(() => run((plan) => moduleNew(plan, 'studio', MODULE)), /live-form namespace/);
+    assert.throws(() => run((plan) => moduleNew(plan, 'studio', { ...MODULE, external: true })), /live-form namespace/);
+    for (const code of ['md', 'ms', 'audit', 'webhook', 'iam']) {
+      assert.throws(() => run((plan) => moduleNew(plan, code, MODULE)), /reserved platform module/, code);
+    }
+    assert.throws(() => run((plan) => entityNew(plan, 'studio', 'items', ENTITY)), /live-form namespace/);
+    assert.deepEqual(snapshot(), before);
+  });
+
   test('an area another module owns is refused and nothing is written', () => {
     const before = snapshot();
     assert.throws(() => run((plan) => moduleNew(plan, 'ms.tasks', { area: 'tasks' })), /belongs to ms\.task/);
