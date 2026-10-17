@@ -49,9 +49,11 @@ public class StudioFormController {
             summary = "Activate an immutable simple form",
             description =
                     "Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. "
-                            + "A new form answers 201 with Location; an exact repeat of an activated package creates "
-                            + "nothing and answers 200 with the same body; a different package at an occupied code "
-                            + "answers 409.",
+                            + "A new form answers 201 with Location; an exact repeat of an activated package that is "
+                            + "served creates nothing and answers 200 with the same body; an exact repeat of a "
+                            + "quarantined form or of a stored form that does not load answers 409, as does a "
+                            + "different package at an occupied code; labels that shadow translation keys of the "
+                            + "application answer 422.",
             requestBody =
                     @io.swagger.v3.oas.annotations.parameters.RequestBody(
                             required = true,

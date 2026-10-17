@@ -6,12 +6,14 @@ import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.module.InstalledModules;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDtos;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.studio.api.StudioFormDtos.Activated;
 import com.smartup24.cms.instance.studio.api.StudioFormDtos.Availability;
 import com.smartup24.cms.instance.studio.repository.StudioFormRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,11 +121,13 @@ public class StudioActivationService {
         if (existing.isPresent()) {
             if (!existing.get().equals(pack.checksum()))
                 throw new ApiException(ErrorCode.CONFLICT, "error.studio.exists");
+            requireServed(code);
             return new Outcome(new Activated(code, pack.checksum()), false);
         }
         if (entities != null && entities.find(code).isPresent()) {
             throw new ApiException(ErrorCode.CONFLICT, "error.studio.exists");
         }
+        refuseWhatWouldNotLoad(code, pack.declaration());
         if (repository.count() >= MAX_FORMS) throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.quota");
         long id = repository.insert(code, pack.declaration(), pack.checksum(), SecurityContext.getCurrentUserId());
         var compiled = compiler.compile(id, pack.declaration());
@@ -138,5 +142,38 @@ public class StudioActivationService {
                 Map.of("code", code, "checksum", pack.checksum()));
         if (definitions != null) definitions.changed();
         return new Outcome(new Activated(code, pack.checksum()), true);
+    }
+
+    /**
+     * An exact repeat answers "activated" only while the form is served: a quarantined form answers 409
+     * {@code error.studio.quarantined}, a stored form that does not load 409 {@code error.studio.broken} with its reason
+     * (ADR-0038, decision 12).
+     */
+    private void requireServed(String code) {
+        if (definitions == null) return;
+        Optional<Long> id = repository.id(code);
+        if (id.isPresent() && repository.held(id.get()).isPresent())
+            throw new ApiException(ErrorCode.CONFLICT, "error.studio.quarantined");
+        StudioDefinitions.Catalog catalog = definitions.current();
+        if (catalog.served().containsKey(code)) return;
+        String reason = catalog.broken().stream()
+                .filter(broken -> broken.code().equals(code))
+                .map(StudioDefinitions.Broken::reason)
+                .findFirst()
+                .orElse("declaration");
+        throw new ApiException(ErrorCode.CONFLICT, "error.studio.broken", Map.of("reason", reason));
+    }
+
+    /**
+     * The checks that leave a stored form out (ADR-0038, decision 9), run before the form is stored: a declared code
+     * answers 409 like an occupied one, labels that shadow bundled translation keys 422.
+     */
+    private void refuseWhatWouldNotLoad(String code, MdSimpleFormDtos.Declaration declaration) {
+        if (definitions == null) return;
+        // The partition key is not known before the insert; the checks read the code and the labels only.
+        String refusal = definitions.refusal(code, compiler.compile(Long.MAX_VALUE, declaration));
+        if (refusal == null) return;
+        if ("declared_code".equals(refusal)) throw new ApiException(ErrorCode.CONFLICT, "error.studio.exists");
+        throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.translation_key");
     }
 }

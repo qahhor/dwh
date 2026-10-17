@@ -48,7 +48,8 @@ public class StudioQuarantineController {
 
     @Operation(
             summary = "Read one quarantined live form",
-            description = "Requires studio.forms.publish. 404 when the form is unknown or not quarantined.")
+            description = "Requires studio.forms.publish. 404 when the form is unknown or not quarantined, or the"
+                    + " code is not a live form code (^studio\\.[a-z][a-z0-9_]{0,19}$); the code is not repeated.")
     @GetMapping("/quarantine/{entityCode}")
     @RequiresPermission(form = "studio.forms", action = "publish")
     @ResponseStatus(HttpStatus.OK)
@@ -72,7 +73,8 @@ public class StudioQuarantineController {
 
     @Operation(
             summary = "Return a quarantined live form to serving",
-            description = "Requires studio.forms.publish. 404 when the form is unknown or not quarantined. Audited.")
+            description = "Requires studio.forms.publish. 404 when the form is unknown or not quarantined, or the"
+                    + " code is not a live form code; the code is not repeated. Audited.")
     @DeleteMapping("/quarantine/{entityCode}")
     @RequiresPermission(form = "studio.forms", action = "publish")
     @ResponseStatus(HttpStatus.NO_CONTENT)

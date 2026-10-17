@@ -3675,7 +3675,7 @@ export interface paths {
         put?: never;
         /**
          * Activate an immutable simple form
-         * @description Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. A new form answers 201 with Location; an exact repeat of an activated package creates nothing and answers 200 with the same body; a different package at an occupied code answers 409.
+         * @description Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. A new form answers 201 with Location; an exact repeat of an activated package that is served creates nothing and answers 200 with the same body; an exact repeat of a quarantined form or of a stored form that does not load answers 409, as does a different package at an occupied code; labels that shadow translation keys of the application answer 422.
          */
         post: operations["activate"];
         delete?: never;
@@ -3713,14 +3713,14 @@ export interface paths {
         };
         /**
          * Read one quarantined live form
-         * @description Requires studio.forms.publish. 404 when the form is unknown or not quarantined.
+         * @description Requires studio.forms.publish. 404 when the form is unknown or not quarantined, or the code is not a live form code (^studio\.[a-z][a-z0-9_]{0,19}$); the code is not repeated.
          */
         get: operations["quarantinedForm"];
         put?: never;
         post?: never;
         /**
          * Return a quarantined live form to serving
-         * @description Requires studio.forms.publish. 404 when the form is unknown or not quarantined. Audited.
+         * @description Requires studio.forms.publish. 404 when the form is unknown or not quarantined, or the code is not a live form code; the code is not repeated. Audited.
          */
         delete: operations["releaseForm"];
         options?: never;

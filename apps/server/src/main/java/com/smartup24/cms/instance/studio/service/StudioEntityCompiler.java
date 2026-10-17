@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.studio.service;
 import static com.smartup24.cms.platform.api.entity.field.EntityFields.*;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinitionSource;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDtos;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Declaration;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Labels;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 /** Compiles the bounded declaration into the existing runtime, with a server-owned partition (ADR-0038). */
@@ -72,6 +74,26 @@ public class StudioEntityCompiler {
                         EntityCapability.HISTORY,
                         EntityCapability.BULK);
         return new EntityDefinitionSource.Declaration(builder.build(), messages(source, prefix));
+    }
+
+    /**
+     * The form of a stored declaration that is not served — it no longer compiles, it clashes or it is held — reduced
+     * to what its rights need: the entity, its actions and its title. The fields add no right, so the permission pairs
+     * are the ones {@link #compile} registers for the same code (ADR-0038, decision 10). Without a readable title the
+     * code names the form.
+     */
+    public EntityDefinitionSource.Declaration rights(long id, String name, @Nullable Labels title) {
+        Labels named = title == null || title.ru() == null || title.uz() == null || title.en() == null
+                ? new Labels("studio." + name, "studio." + name, "studio." + name)
+                : title;
+        return compile(
+                id,
+                new Declaration(
+                        1,
+                        "simple-form",
+                        new MdSimpleFormDtos.Module(StudioDefinitions.MODULE, named),
+                        new MdSimpleFormDtos.Entity(name, named),
+                        List.of()));
     }
 
     private Builder field(Field field, String prefix) {

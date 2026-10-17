@@ -18,6 +18,9 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   change that would break an activated form fails the build.
 - The e2e stack switches live-form activation on, so the activation scenario and a new
   quarantine scenario run in the browser suite.
+- Prometheus alert `SmartupcmsStudioFormsBroken` (warning, `smc_studio_forms_broken > 0`
+  for 10 minutes) with its promtool test and runbook RB-13; the operations runbook's
+  "silence the alert" step now names a real alert.
 
 - A separate signed staging prerelease workflow for `vX.Y.Z-rc.N`, with explicit
   staging authorization, exact source/DCO gates and the same six-image CI/scan path.
@@ -60,6 +63,27 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The history and the export of a live form no longer fall back to a copy taken at the
+  start: a quarantined form, one that stops loading or one whose `studio` module is
+  switched off answers 404 at `GET /api/v1/history/{kind}/{id}` and export, and is no
+  longer listed by `GET /api/v1/history`. Live forms never get SEARCH (guard test).
+- The rights of a stored live form that does not compile, quarantined or broken, are
+  derived from its stored code and no longer become deprecated at a restart.
+- `smc_studio_forms_broken` and `smc_studio_forms_quarantined` no longer drop to 0 after
+  a catalog change; they keep the last compiled catalog, and a `studio.catalog` notice
+  compiles the catalog again at once on the other nodes. The quarantined count (meter
+  and `studioForms` health) is every quarantine row, as `GET /api/v1/studio/catalog`.
+- The activation refuses a new form that would not load before storing it: a code of a
+  declared entity answers 409 `error.studio.exists`, labels that shadow bundled
+  translation keys 422 `error.studio.translation_key`.
+- A live label shadowed by a stored dictionary override is logged once at WARN instead
+  of an ERROR on every dictionary request.
+- `GET`/`DELETE /api/v1/studio/quarantine/{entityCode}` answer a value that is no live
+  form code as not quarantined (404) without repeating it.
+- The local cache drop of the live catalog runs after the commit; the cluster notice
+  keeps leaving with the commit.
+- The live API smoke (`scripts/dev/test-api.ps1`) waits for `/actuator/health/readiness`;
+  a guard test keeps `studioForms` out of the readiness group.
 - One stored live form that no longer loads (its declaration does not compile, its
   code clashes with a declared entity, its labels shadow bundled translation keys, or
   it lies beyond the 100-form limit) is left out and reported instead of failing the
@@ -125,6 +149,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `POST /api/v1/studio/forms` answers an exact repeat of an already activated package
   with `200` and the same body, without `Location`: nothing is created. A new form still
   answers `201` with `Location`. Both statuses are declared in the API description.
+- **Breaking:** an exact repeat of the activation of a quarantined live form now answers
+  `409 error.studio.quarantined`, and of a stored form that does not load
+  `409 error.studio.broken` (param `reason`), instead of `200` "activated" (ADR-0038,
+  decision 12).
+- `ResponseStatusDeclaredTest` allows two success statuses only for the pair 201/200,
+  with an explicit `@ResponseStatus(CREATED)` and a listed reason per handler;
+  `PlatformModulesReservedTest` checks the reserved platform modules in both directions.
 
 - GitHub Actions no longer start automatically (owner decision 2026-10-17): `ci`,
   `codeql`, `DCO`, `nightly`, `scorecard` and `dependabot auto-merge` lost their

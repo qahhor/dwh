@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -41,6 +42,8 @@ public class MdI18nService {
     private final LiveEntities live;
     private final InstalledModules modules;
     private final Map<String, CachedDictionary> cache = new ConcurrentHashMap<>();
+    /** The live labels already reported as shadowed; bounded by the live catalog (100 forms, 21 labels each). */
+    private final Set<String> shadowed = ConcurrentHashMap.newKeySet();
 
     @Autowired
     public MdI18nService(
@@ -114,8 +117,10 @@ public class MdI18nService {
         if (added.isEmpty()) return base;
         Map<String, String> result = new LinkedHashMap<>(base);
         added.forEach((key, value) -> {
-            // A live label never replaces a base key; the clash leaves the label out, not the dictionary.
-            if (result.putIfAbsent(key, value) != null) log.error("live_label_shadows_base_key key={}", key);
+            // A live label never replaces a base key; the clash leaves the label out, not the dictionary. A bundled key
+            // keeps the form out at its compilation, so what is left here is a stored override: said once per key.
+            if (result.putIfAbsent(key, value) != null && shadowed.add(key))
+                log.warn("live_label_shadows_base_key key={}", key);
         });
         return Collections.unmodifiableMap(result);
     }

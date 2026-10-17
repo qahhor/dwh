@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.architecture;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -20,12 +21,20 @@ import org.junit.jupiter.api.Test;
 /**
  * Plan 10/10, item 3.4: the API description states the status a handler really answers. springdoc reads
  * {@code @ResponseStatus}; it cannot see the status inside a returned {@code ResponseEntity}. So a handler that answers
- * only 201, 202 or 204 declares it. A handler that answers two success statuses — an exact repeat of a create-only
- * operation answers 200 where a new resource answers 201 (ADR-0038) — declares the main one with
- * {@code @ResponseStatus} and each of them with {@code @ApiResponse}, so the description still states every status it
- * answers. A status built in a helper is not visible to this scan and is checked in review.
+ * only 201, 202 or 204 declares it. One success status per handler is the rule; the only exception is the pair 201 and
+ * 200 of a create-only operation whose exact repeat creates nothing (ADR-0038, decision 12), and only for a handler
+ * named in {@link #TWO_STATUSES} with its reason: it declares 201 with an explicit {@code @ResponseStatus} and both
+ * with {@code @ApiResponse}, so the description still states every status it answers. A status built in a helper is
+ * not visible to this scan and is checked in review.
  */
 class ResponseStatusDeclaredTest {
+
+    /** The handlers allowed to answer both 201 and 200, by class and method, with the reason. */
+    static final Map<String, String> TWO_STATUSES = Map.of(
+            "StudioFormController#activate",
+            "ADR-0038, decision 12: an exact repeat of a served form creates nothing and answers 200");
+
+    private static final Set<String> PAIR = Set.of("CREATED", "OK");
 
     private static final Path MAIN = Path.of("src/main/java");
 
@@ -44,21 +53,29 @@ class ResponseStatusDeclaredTest {
     @DisplayName("3.4: a handler answering 201, 202 or 204 declares it with @ResponseStatus")
     void successStatusIsDeclared() throws IOException {
         List<String> wrong = new ArrayList<>();
+        Set<String> twoStatuses = new TreeSet<>();
         try (Stream<Path> files = Files.walk(MAIN)) {
             for (Path file :
                     files.filter(path -> path.toString().endsWith(".java")).toList()) {
                 String source = Files.readString(file, StandardCharsets.UTF_8).replace("\r\n", "\n");
                 if (source.contains("@RestController")) {
-                    check(MAIN.relativize(file).toString().replace('\\', '/'), source, wrong);
+                    twoStatuses.addAll(
+                            check(MAIN.relativize(file).toString().replace('\\', '/'), source, wrong, TWO_STATUSES));
                 }
             }
         }
         assertThat(wrong)
                 .as("handlers whose declared status differs from what they answer")
                 .isEmpty();
+        assertThat(twoStatuses)
+                .as("every allowed handler still answers two statuses, or its entry is removed")
+                .containsExactlyInAnyOrderElementsOf(TWO_STATUSES.keySet());
     }
 
-    private static void check(String file, String source, List<String> wrong) {
+    /** Checks the handlers of one source and returns those that answer two statuses, by class and method. */
+    private static Set<String> check(String file, String source, List<String> wrong, Map<String, String> allowed) {
+        Set<String> twoStatuses = new TreeSet<>();
+        String type = file.substring(file.lastIndexOf('/') + 1).replace(".java", "");
         Matcher handler = HANDLER.matcher(source);
         while (handler.find()) {
             int open = source.indexOf('{', handler.end());
@@ -73,19 +90,35 @@ class ResponseStatusDeclaredTest {
             String annotations = source.substring(annotationsStart, handler.start() + 1);
             Matcher declared =
                     Pattern.compile("@ResponseStatus\\(HttpStatus\\.(\\w+)\\)").matcher(annotations);
-            String declaredStatus = declared.find() ? declared.group(1) : "OK";
+            boolean explicit = declared.find();
+            String declaredStatus = explicit ? declared.group(1) : "OK";
+            String key = type + "#" + handler.group(1);
             String where = file + "#" + handler.group(1);
             if (answered.size() > 1) {
-                boolean described = answered.contains(declaredStatus)
-                        && answered.stream().allMatch(status -> described(annotations, status));
-                if (!described) {
-                    wrong.add(where + " answers " + answered
-                            + ": one success status per handler, or each one declared with @ApiResponse");
-                }
+                twoStatuses.add(key);
+                String problem = twoStatusesProblem(key, answered, explicit, declaredStatus, annotations, allowed);
+                if (problem != null) wrong.add(where + " answers " + answered + ": " + problem);
             } else if (answered.size() == 1 && !answered.contains(declaredStatus)) {
                 wrong.add(where + " answers " + answered + " but declares " + declaredStatus);
             }
         }
+        return twoStatuses;
+    }
+
+    private static String twoStatusesProblem(
+            String key,
+            Set<String> answered,
+            boolean explicit,
+            String declaredStatus,
+            String annotations,
+            Map<String, String> allowed) {
+        if (!answered.equals(PAIR)) return "only the pair 201 and 200 may be answered by one handler";
+        if (!allowed.containsKey(key))
+            return "one success status per handler, or an entry in TWO_STATUSES with a reason";
+        if (!explicit || !"CREATED".equals(declaredStatus)) return "declare 201 with an explicit @ResponseStatus";
+        if (!answered.stream().allMatch(status -> described(annotations, status)))
+            return "declare each status with @ApiResponse";
+        return null;
     }
 
     private static boolean described(String annotations, String status) {
@@ -94,23 +127,57 @@ class ResponseStatusDeclaredTest {
                 .find();
     }
 
+    private static final String REPEAT = " {\n        if (repeat) return ResponseEntity.ok().body(x);\n"
+            + "        return ResponseEntity.created(uri).body(x);\n    }\n";
+    private static final String DESCRIBED = "    @ApiResponses({\n        @ApiResponse(responseCode = \"201\"),\n"
+            + "        @ApiResponse(responseCode = \"200\")\n    })\n";
+    private static final Map<String, String> ALLOWED = Map.of("A#create", "a create-only operation");
+
     @Test
-    @DisplayName("3.4: two success statuses pass only when each of them is declared with @ApiResponse")
-    void twoStatusesNeedTheirDescription() {
-        String body = " {\n        if (repeat) return ResponseEntity.ok().body(x);\n"
+    @DisplayName("3.4: 201 and 200 pass only for an allowed handler with @ResponseStatus(CREATED) and @ApiResponse")
+    void twoStatusesNeedTheirAllowanceAndDescription() {
+        String described = controller(DESCRIBED + "    @ResponseStatus(HttpStatus.CREATED)\n", REPEAT);
+        assertThat(problems(described, ALLOWED)).isEmpty();
+        assertThat(problems(described, Map.of())).singleElement(STRING).contains("TWO_STATUSES");
+        assertThat(problems(controller("    @ResponseStatus(HttpStatus.CREATED)\n", REPEAT), ALLOWED))
+                .singleElement(STRING)
+                .contains("@ApiResponse");
+    }
+
+    @Test
+    @DisplayName("3.4: two statuses without an explicit @ResponseStatus fail, even when described and allowed")
+    void twoStatusesNeedAnExplicitResponseStatus() {
+        assertThat(problems(controller(DESCRIBED, REPEAT), ALLOWED))
+                .singleElement(STRING)
+                .contains("explicit @ResponseStatus");
+        String declaredOk = controller(DESCRIBED + "    @ResponseStatus(HttpStatus.OK)\n", REPEAT);
+        assertThat(problems(declaredOk, ALLOWED)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("3.4: three statuses, or 201 with 204, never pass")
+    void onlyThePairOfCreatedAndOkPasses() {
+        String three = " {\n        if (a) return ResponseEntity.ok().body(x);\n"
+                + "        if (b) return ResponseEntity.noContent().build();\n"
                 + "        return ResponseEntity.created(uri).body(x);\n    }\n";
-        String bare = "@RestController\nclass A {\n\n    @ResponseStatus(HttpStatus.CREATED)\n"
-                + "    public ResponseEntity<X> create()" + body + "}\n";
-        String described = "@RestController\nclass A {\n\n    @ApiResponses({\n"
-                + "        @ApiResponse(responseCode = \"201\"),\n        @ApiResponse(responseCode = \"200\")\n"
-                + "    })\n    @ResponseStatus(HttpStatus.CREATED)\n"
-                + "    public ResponseEntity<X> create()" + body + "}\n";
+        String createdOrNone = " {\n        if (b) return ResponseEntity.noContent().build();\n"
+                + "        return ResponseEntity.created(uri).body(x);\n    }\n";
+        String annotations = DESCRIBED + "    @ResponseStatus(HttpStatus.CREATED)\n";
+        for (String body : List.of(three, createdOrNone)) {
+            assertThat(problems(controller(annotations, body), ALLOWED))
+                    .singleElement(STRING)
+                    .contains("only the pair 201 and 200");
+        }
+    }
+
+    private static String controller(String annotations, String body) {
+        return "@RestController\nclass A {\n\n" + annotations + "    public ResponseEntity<X> create()" + body + "}\n";
+    }
+
+    private static List<String> problems(String source, Map<String, String> allowed) {
         List<String> wrong = new ArrayList<>();
-        check("A.java", bare, wrong);
-        assertThat(wrong).hasSize(1);
-        wrong.clear();
-        check("A.java", described, wrong);
-        assertThat(wrong).isEmpty();
+        assertThat(check("pkg/A.java", source, wrong, allowed)).containsExactly("A#create");
+        return wrong;
     }
 
     @Test

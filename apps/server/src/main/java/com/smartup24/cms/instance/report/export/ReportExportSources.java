@@ -6,18 +6,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 
-/** Resolves freshly activated entity exporters alongside explicit module exporters (ADR-0038). */
+/**
+ * Resolves the entities' exporters from the registry at each call and the modules' own exporters kept from the start
+ * (ADR-0038): an entity exporter is never kept, so a live form that is quarantined, stops loading or whose module is
+ * switched off exports nothing.
+ */
 final class ReportExportSources {
     private final EntityRegistry entities;
-    private final Map<String, QueryListExporter> declared;
+    private final Map<String, QueryListExporter> modules;
 
     ReportExportSources(List<QueryListExporter> exporters, EntityRegistry entities) {
         this.entities = entities;
-        declared = Stream.concat(exporters.stream(), entities.exporters().stream())
-                .collect(Collectors.toUnmodifiableMap(QueryListExporter::code, Function.identity()));
+        modules =
+                exporters.stream().collect(Collectors.toUnmodifiableMap(QueryListExporter::code, Function.identity()));
     }
 
     @Nullable
@@ -25,6 +28,6 @@ final class ReportExportSources {
         return entities.exporters().stream()
                 .filter(item -> item.code().equals(code))
                 .findFirst()
-                .orElse(declared.get(code));
+                .orElse(modules.get(code));
     }
 }

@@ -234,6 +234,7 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [RB-10 host disk](runbooks/RB-10-host-disk.md)
 - [RB-11 PostgreSQL health](runbooks/RB-11-postgresql-health.md)
 - [RB-12 Ops recovery and alerting (Russian)](runbooks/RB-12-ops-recovery-and-alerting.md)
+- [RB-13 live studio form fails to load](runbooks/RB-13-live-studio-forms.md)
 - [Threat model and personal-data inventory](security/threat-model.md)
 
 These documents govern execution for a concrete installation but cannot supply

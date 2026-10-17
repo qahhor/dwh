@@ -3276,6 +3276,8 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "error.studio.form_not_found": "Созданная форма {code} не найдена",
   "error.studio.quarantined": "Форма уже выведена из работы",
   "error.studio.not_quarantined": "Форма не выведена из работы",
+  "error.studio.broken": "Форма сохранена, но не обслуживается ({reason}); см. состояние каталога форм",
+  "error.studio.translation_key": "Подписи формы используют ключи переводов, которые уже есть в приложении",
   "studio.forms.rights.publish": "Активировать",
   "studio.record.name": "Название",
   "studio.record.code": "Код",

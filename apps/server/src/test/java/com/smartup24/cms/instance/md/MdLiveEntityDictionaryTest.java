@@ -4,6 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.EntityDefinitionSource;
 import com.smartup24.cms.instance.common.entity.LiveEntities;
@@ -20,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 class MdLiveEntityDictionaryTest {
     @AfterEach
@@ -61,7 +66,23 @@ class MdLiveEntityDictionaryTest {
                         MdLiveEntityCatalogTest.entity(), Map.of("ru", Map.of("common.save", "Injected"))))));
         principal(Set.of("studio.alpha.view"));
         // The clashing label is left out and logged; the dictionary itself keeps serving (ADR-0038).
-        assertThat(service(live).effectiveDictionary("ru")).containsEntry("common.save", "Save RU");
+        Logger logger = (Logger) LoggerFactory.getLogger(MdI18nService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            var service = service(live);
+            for (int request = 0; request < 3; request++) {
+                assertThat(service.effectiveDictionary("ru")).containsEntry("common.save", "Save RU");
+            }
+        } finally {
+            logger.detachAppender(appender);
+        }
+        // Said once at WARN, not at ERROR on every dictionary request.
+        assertThat(appender.list)
+                .filteredOn(event -> event.getFormattedMessage().contains("live_label_shadows_base_key"))
+                .singleElement()
+                .satisfies(event -> assertThat(event.getLevel()).isEqualTo(Level.WARN));
     }
 
     private static MdI18nService service(LiveEntities live) throws Exception {
