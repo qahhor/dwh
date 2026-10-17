@@ -117,10 +117,14 @@ class StudioDefinitionsIntegrationTest {
     }
 
     @Test
-    void mismatchedStoredCodeFailsClosedInsteadOfExposingAnotherDefinition() {
+    void mismatchedStoredCodeIsLeftOutInsteadOfExposingAnotherDefinitionOrFailingTheOthers() throws Exception {
         DeliveryPackage alpha = pack("alpha");
         repository.insert("studio.other", alpha.declaration(), alpha.checksum(), author);
-        assertThatThrownBy(() -> node().snapshot()).isInstanceOf(IllegalStateException.class);
+        insert("beta");
+        StudioDefinitions node = node();
+        assertThat(node.snapshot()).containsOnlyKeys("studio.beta");
+        assertThat(node.current().broken())
+                .containsExactly(new StudioDefinitions.Broken("studio.other", "code_mismatch"));
     }
 
     private StudioDefinitions node() {

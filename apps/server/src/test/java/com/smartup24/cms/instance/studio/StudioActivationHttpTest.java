@@ -65,7 +65,9 @@ class StudioActivationHttpTest extends EmbeddedPostgresTest {
                 .getResponse()
                 .getContentAsString();
         assertThat(mvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON).content(pack))
-                        .andExpect(status().isCreated())
+                        .andExpect(status().isOk())
+                        .andExpect(header().doesNotExist("Location"))
+                        .andExpect(header().string("Cache-Control", "no-store"))
                         .andReturn()
                         .getResponse()
                         .getContentAsString())

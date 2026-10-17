@@ -100,6 +100,7 @@ class StudioReadinessTest {
                     .isFalse();
             assertThat(service(true, true, new EntityRegistry(List.of()))
                             .activate(bytes("dml"))
+                            .form()
                             .entityCode())
                     .isEqualTo("studio.dml");
         });
@@ -149,6 +150,31 @@ class StudioReadinessTest {
         }
         assertThat(repository.checksum("studio.immutable"))
                 .contains(pack("immutable").checksum());
+    }
+
+    @Test
+    void recordRevisionsStayWithinTheSafeIntegerRange() {
+        service(true, true, new EntityRegistry(List.of())).activate(bytes("revision"));
+        long form = jdbc.sql("select id from studio_forms where code = 'studio.revision'")
+                .query(Long.class)
+                .single();
+        String insert = "insert into studio_records (form_id, name, code, created_by, modified_by, revision) "
+                + "values (:form, 'Record', :code, :author, :author, :revision)";
+        for (long revision : List.of(0L, 9007199254740992L)) {
+            assertThatThrownBy(() -> jdbc.sql(insert)
+                            .param("form", form)
+                            .param("code", "r" + revision)
+                            .param("author", author)
+                            .param("revision", revision)
+                            .update())
+                    .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        }
+        jdbc.sql(insert)
+                .param("form", form)
+                .param("code", "max")
+                .param("author", author)
+                .param("revision", 9007199254740991L)
+                .update();
     }
 
     @ParameterizedTest

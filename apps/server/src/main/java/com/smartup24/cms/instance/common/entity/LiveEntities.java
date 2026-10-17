@@ -5,15 +5,23 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/** One source snapshot feeds metadata, runtime, lists and translated labels (ADR-0038). */
+/**
+ * One source snapshot feeds metadata, runtime, lists and translated labels (ADR-0038). A declaration or label that
+ * clashes with one already taken is left out and logged: one bad live declaration never takes the others down.
+ */
 @Component
 public class LiveEntities {
+    private static final Logger log = LoggerFactory.getLogger(LiveEntities.class);
+
     private final Supplier<List<EntityDefinitionSource>> sources;
 
     @Autowired
@@ -29,12 +37,23 @@ public class LiveEntities {
         return new LiveEntities(List::of);
     }
 
+    /** The declarations served now. */
     public Map<String, EntityDefinitionSource.Declaration> declarations() {
+        return merge(EntityDefinitionSource::snapshot);
+    }
+
+    /** The declarations the permission catalog keeps, served or not (ADR-0038). */
+    public Map<String, EntityDefinitionSource.Declaration> registered() {
+        return merge(EntityDefinitionSource::registered);
+    }
+
+    private Map<String, EntityDefinitionSource.Declaration> merge(
+            Function<EntityDefinitionSource, Map<String, EntityDefinitionSource.Declaration>> read) {
         Map<String, EntityDefinitionSource.Declaration> result = new LinkedHashMap<>();
         for (EntityDefinitionSource source : sources.get()) {
-            source.snapshot().forEach((code, declaration) -> {
+            read.apply(source).forEach((code, declaration) -> {
                 if (!code.equals(declaration.entity().code()) || result.putIfAbsent(code, declaration) != null) {
-                    throw new IllegalStateException("Duplicate or mismatched live entity " + code);
+                    log.error("live_entity_skipped code={} reason=duplicate_or_mismatched_code", code);
                 }
             });
         }
@@ -59,8 +78,12 @@ public class LiveEntities {
                     .messages()
                     .getOrDefault(language, declaration.messages().getOrDefault("ru", Map.of()));
             names.forEach((key, value) -> {
-                if (result.putIfAbsent(key, value) != null)
-                    throw new IllegalStateException("Duplicate live label " + key);
+                if (result.putIfAbsent(key, value) != null) {
+                    log.error(
+                            "live_label_skipped entity={} key={} reason=duplicate_key",
+                            declaration.entity().code(),
+                            key);
+                }
             });
         }
         return Map.copyOf(result);

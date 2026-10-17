@@ -10,6 +10,8 @@ import com.smartup24.cms.instance.studio.service.StudioPackages;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.URI;
@@ -46,8 +48,10 @@ public class StudioFormController {
     @Operation(
             summary = "Activate an immutable simple form",
             description =
-                    "Requires studio.forms.publish and enabled activation. "
-                            + "Only the studio namespace is accepted. Exact package repeats return the same result; different packages at an occupied code return 409.",
+                    "Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. "
+                            + "A new form answers 201 with Location; an exact repeat of an activated package creates "
+                            + "nothing and answers 200 with the same body; a different package at an occupied code "
+                            + "answers 409.",
             requestBody =
                     @io.swagger.v3.oas.annotations.parameters.RequestBody(
                             required = true,
@@ -55,6 +59,16 @@ public class StudioFormController {
                                     @Content(
                                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                                             schema = @Schema(implementation = DeliveryPackage.class))))
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "201",
+                description = "The form was activated by this request",
+                content = @Content(schema = @Schema(implementation = Activated.class))),
+        @ApiResponse(
+                responseCode = "200",
+                description = "The exact package was already activated; nothing was created",
+                content = @Content(schema = @Schema(implementation = Activated.class)))
+    })
     @PostMapping(value = "/forms", consumes = MediaType.APPLICATION_JSON_VALUE)
     @RequiresPermission(form = "studio.forms", action = "publish")
     @NoIdempotency
@@ -63,7 +77,11 @@ public class StudioFormController {
         StudioPackages.requireSize(request.getContentLengthLong());
         byte[] body = request.getInputStream().readNBytes(StudioPackages.MAX_BYTES + 1);
         StudioPackages.requireSize(body.length);
-        Activated result = activation.activate(body);
+        StudioActivationService.Outcome outcome = activation.activate(body);
+        Activated result = outcome.form();
+        if (!outcome.created()) {
+            return ResponseEntity.ok().header("Cache-Control", "no-store").body(result);
+        }
         return ResponseEntity.created(URI.create("/api/v1/form-meta/" + result.entityCode()))
                 .header("Cache-Control", "no-store")
                 .body(result);

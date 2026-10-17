@@ -122,19 +122,17 @@ public class EntityRegistry {
         this(declared, List.of());
     }
 
+    /** A declared entity wins over a live one of the same code, and its lookup never reads the live catalog. */
     public Optional<EntityDefinition> find(String code) {
         EntityDefinition declared = entities.get(code);
-        Optional<EntityDefinition> dynamic = live.get().find(code);
-        if (declared != null && dynamic.isPresent()) throw new IllegalStateException("Duplicate entity " + code);
-        return (declared == null ? dynamic : Optional.of(declared)).map(this::resolve);
+        if (declared != null) return Optional.of(resolve(declared));
+        return live.get().find(code).map(this::resolve);
     }
 
+    /** The declared entities and the live ones; a live entity under a declared code is left out (ADR-0038). */
     public List<EntityDefinition> all() {
         Map<String, EntityDefinition> all = new TreeMap<>(entities);
-        for (EntityDefinition entity : live.get().all()) {
-            if (all.putIfAbsent(entity.code(), entity) != null)
-                throw new IllegalStateException("Duplicate entity " + entity.code());
-        }
+        for (EntityDefinition entity : live.get().all()) all.putIfAbsent(entity.code(), entity);
         return List.copyOf(all.values());
     }
 
@@ -155,8 +153,8 @@ public class EntityRegistry {
     }
 
     public Optional<EntityRecords> records(String code) {
-        EntityRecords fixed = records.get(code);
-        return fixed == null ? live.get().find(code).map(runtimeStore::of) : Optional.of(fixed);
+        if (entities.containsKey(code)) return Optional.ofNullable(records.get(code));
+        return live.get().find(code).map(runtimeStore::of);
     }
 
     /** The hooks of the entity, if its module has them (ADR-0032, 6.5). */
