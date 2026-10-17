@@ -11,7 +11,10 @@ import java.util.List;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
-/** Rejects declarations the shared-table storage cannot safely execute (ADR-0038). */
+/**
+ * Rejects declarations the shared-table storage cannot safely execute (ADR-0038). A partitioned entity holds one value
+ * per field: the simple scalars, a choice, an item of a reference list and the key of another entity's row (ADR-0041).
+ */
 final class EntityStorageRules {
     private static final Set<String> SYSTEM = Set.of(
             "id",
@@ -34,7 +37,10 @@ final class EntityStorageRules {
             FieldType.BOOLEAN,
             FieldType.EMAIL,
             FieldType.PHONE,
-            FieldType.URL);
+            FieldType.URL,
+            FieldType.SELECT,
+            FieldType.ENUM,
+            FieldType.REF);
 
     private EntityStorageRules() {}
 
@@ -62,7 +68,7 @@ final class EntityStorageRules {
                 payloads.add(property.column());
             }
             if (partition != null && !TYPES.contains(field.type())) {
-                throw new IllegalArgumentException("A partitioned entity holds only simple scalar fields");
+                throw new IllegalArgumentException("A partitioned entity holds only single-value fields");
             }
             if (partition != null
                     && !(field.source() instanceof FieldSource.Column

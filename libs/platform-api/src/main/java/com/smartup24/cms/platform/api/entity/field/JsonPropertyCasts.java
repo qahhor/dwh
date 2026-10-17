@@ -6,7 +6,8 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Typed reads of ordinary JSONB fields validated before storage (ADR-0038). A property with a fixed default reads it
+ * Typed reads of ordinary JSONB fields validated before storage (ADR-0038): a choice and an item of a reference list
+ * as their code, a reference as the key of the row it names (ADR-0041). A property with a fixed default reads it
  * while the key is absent — a record saved before the field was added (ADR-0041) — and keeps a stored JSON null as
  * empty. The default enters SQL as hexadecimal digits only, so no value of it can change the statement.
  */
@@ -21,14 +22,18 @@ final class JsonPropertyCasts {
             FieldType.BOOLEAN,
             FieldType.EMAIL,
             FieldType.PHONE,
-            FieldType.URL);
+            FieldType.URL,
+            FieldType.SELECT,
+            FieldType.ENUM,
+            FieldType.REF);
 
     private JsonPropertyCasts() {}
 
     static String read(FieldSource.JsonProperty property, String alias, FieldType type, @Nullable String fallback) {
         String raw = fallback == null ? property.sql(alias) : withFallback(property, alias, fallback);
         return switch (type) {
-            case TEXT, TEXTAREA, EMAIL, PHONE, URL -> raw;
+            case TEXT, TEXTAREA, EMAIL, PHONE, URL, SELECT, ENUM -> raw;
+            case REF -> raw + "::bigint";
             case NUMBER -> raw + "::numeric";
             case DATE -> raw + "::date";
             case DATETIME -> raw + "::timestamptz";

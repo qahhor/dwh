@@ -101,6 +101,50 @@ class EntityPartitionContractTest {
                 .contains("form_id = 9223372036854775807");
     }
 
+    /** A partitioned entity keeps a choice, an item of a reference list and a reference in its payload (ADR-0041). */
+    @Test
+    void partitionedJsonPropertiesHoldChoicesListItemsAndReferences() {
+        var choice = EntityFields.select("result", "test.result", java.util.List.of("done", "later"), "test.result.")
+                .jsonProperty("payload", "result")
+                .build();
+        assertThat(choice.sql("p")).isEqualTo("(p.payload->>'result')");
+        var item = EntityFields.enumeration("kind", "test.kind", "studio.list.kinds")
+                .jsonProperty("payload", "kind")
+                .build();
+        assertThat(item.sql("p")).isEqualTo("(p.payload->>'kind')");
+        var reference = EntityFields.ref("client", "test.client")
+                .target("studio.clients", "name")
+                .jsonProperty("payload", "client")
+                .build();
+        assertThat(reference.sql("p")).isEqualTo("(p.payload->>'client')::bigint");
+        var model = Entity.define("test.items", "test.items")
+                .table("test_items", "t")
+                .scope(EntityScope.all())
+                .partition("form_id", 7)
+                .field(text("name", "test.name").column("name").required())
+                .field(EntityFields.select("result", "test.result", java.util.List.of("done"), null)
+                        .jsonProperty("payload", "result"))
+                .field(EntityFields.enumeration("kind", "test.kind", "studio.list.kinds")
+                        .jsonProperty("payload", "kind"))
+                .field(EntityFields.ref("client", "test.client")
+                        .target("studio.clients", "name")
+                        .jsonProperty("payload", "client"))
+                .field(EntityFields.ref("unit", "test.unit")
+                        .target("test.units", "name")
+                        .column("org_unit_id"))
+                .section("main", "test.main", "name", "result", "kind", "client", "unit")
+                .defaultSort("name", Entity.Sort.ASC)
+                .build()
+                .model();
+        assertThat(model.fields()).hasSize(5);
+        assertThatThrownBy(() -> base().partition("form_id", 7)
+                        .field(EntityFields.multiRef("many", "test.many")
+                                .target("test.units", "name")
+                                .link("test_links", "item_id", "unit_id"))
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     private static Entity base() {
         return Entity.define("test.items", "test.items")
                 .table("test_items", "t")
