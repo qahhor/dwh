@@ -146,8 +146,8 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   `scripts/dev/test-readiness-dependency.ps1`).
 - Документация и репозиторий: `scripts/docs/test-public-docs.ps1` (каждый ADR
   в индексе, ссылки), `scripts/docs/test-repository-hygiene.ps1`,
-  `scripts/architecture/test-unified-boundaries.ps1`, обязательные проверки
-  ruleset — `scripts/github/test-rulesets.ps1`.
+  `scripts/architecture/test-unified-boundaries.ps1`, rulesets и триггеры
+  workflow (только ручной запуск) — `scripts/github/test-rulesets.ps1`.
 - CLI `cms`: `npm test` в `tools/cms-cli` (как в CI: `node --test
   'tools/cms-cli/test/**/*.test.mjs'` и `node tools/cms-cli/scripts/smoke.mjs
   --skip-build`); сгенерированный модуль целиком —
@@ -163,14 +163,21 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   вызывает те же скрипты. Проверка «от `git clone` до UI ≤ 10 минут» —
   `scripts/dev/test-onboarding-smoke.ps1` (ночной job `onboarding`), локально
   на своих портах со сносом стенда.
-- Коммиты подписываются `git commit -s`; CI (`ci.yml`, `dco.yml`) запускается
-  на push в main и на pull request, `nightly.yml` — по расписанию.
+- Коммиты подписываются `git commit -s`. GitHub Actions автоматически не
+  запускаются (владелец, 2026-10-17): `ci.yml`, `dco.yml`, `codeql.yml`,
+  `nightly.yml`, `scorecard.yml` — только вручную (`workflow_dispatch`),
+  `release.yml`/`prerelease.yml` — по тегу версии; шлюз merge — локальные
+  проверки этого раздела.
 - Одна рабочая станция — не больше 2–3 параллельных AI-агентов (владелец,
   2026-10-08); тяжёлые проверки (полный verify реактора, стенды e2e, ZAP,
   Testcontainers, профили `-P*-large`) идут по одной; агента останавливают, как
   только он отчитался. JVM самого Maven ограничена `.mvn/jvm.config` (`-Xmx2g`).
 
 ## 7. Точка продолжения — 2026-10-17
+
+**CI только вручную (2026-10-17, `claude/ci-manual`):** автоматические триггеры
+workflow сняты, `main.json` больше не требует status checks и code scanning —
+после merge администратор применяет rulesets заново (`apply-rulesets.ps1 -Apply`).
 
 **Объединение веток (2026-10-17):** владелец разрешил объединить все ветки
 в `main`; прежнее ограничение «без merge» заменено этим указанием.

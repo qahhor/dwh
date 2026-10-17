@@ -57,8 +57,9 @@ npm run build
 ```
 
 For changes to user workflows, Compose, authentication, routing, or deployment,
-also run the affected Playwright and release-configuration checks. CI remains
-the authoritative gate.
+also run the affected Playwright and release-configuration checks. GitHub
+Actions do not run automatically: the local checks (the full list is in
+[AGENTS.md](AGENTS.md), section 5) are the merge gate.
 
 ## Engineering rules
 

@@ -42,8 +42,11 @@ publish local audit drafts as requirements or evidence.
 ## 3. Workflow for a change
 
 - One branch per task (`claude/…`, `codex/…` or similar), created from `main`.
-- Commit with `git commit -s` (DCO, checked by `dco.yml`) and end the message
-  with your tool's attribution trailer in the last paragraph.
+- Commit with `git commit -s` (DCO; `dco.yml` checks it when run by hand) and
+  end the message with your tool's attribution trailer in the last paragraph.
+- GitHub Actions never start automatically (owner, 2026-10-17): workflows run
+  only by hand (`workflow_dispatch`; release workflows on their version tags),
+  so the local gates of section 5 are the merge gate.
 - Before a merge, run every CI job **locally** (section 5); a red check is
   compared with the base branch before anyone calls it pre-existing. Merge
   into `main` with `git merge --no-ff`, never rebase or squash `main`

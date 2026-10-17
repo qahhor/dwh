@@ -1,6 +1,6 @@
 # Настройки репозитория GitHub
 
-**Обновлено:** 2026-10-16
+**Обновлено:** 2026-10-17
 
 **Основание:** план 10/10, фаза 1 (пункты 1.5, 1.6, 1.8, 1.9).
 
@@ -9,6 +9,31 @@
 от неё зависит, и способ проверить, что она включена. Пока настройка не
 включена, соответствующая защита в репозитории не действует, даже если файл
 уже есть.
+
+**CI только вручную (решение владельца, 2026-10-17).** Ни один workflow не
+запускается автоматически: нет триггеров `push`, `pull_request`,
+`pull_request_target`, `schedule`, `branch_protection_rule`. Каждая проверка
+выполняется локально до merge (AGENTS.md, разделы 3 и 5); workflow остаются в
+репозитории и запускаются вручную: Actions → workflow → Run workflow или
+`gh workflow run <файл>`.
+
+| Workflow | Запуск | Параметры |
+|---|---|---|
+| `ci.yml` | вручную; `workflow_call` из `release.yml` и `prerelease.yml` | `base_ref` (по умолчанию `main`; пусто — сравнение с `HEAD~1`, diff coverage пропускается), `allow_breaking` (аналог метки `api-breaking`) |
+| `dco.yml` | вручную, на проверяемой ветке | `base_ref` (по умолчанию `main`): проверяются коммиты после merge base |
+| `codeql.yml`, `scorecard.yml`, `nightly.yml` | вручную | — |
+| `dependabot-auto-merge.yml` | вручную | номер PR Dependabot; сейчас ничего не включает (раздел 1) |
+| `release.yml`, `prerelease.yml` | push тега `vX.Y.Z` / `vX.Y.Z-rc.N` | тег создаёт только администратор (раздел 3) |
+
+Релизные workflow остаются на тегах: тег — осознанное действие
+администратора, а не автоматический CI. Если владелец решит перевести и их
+на ручной запуск, это отдельное изменение контракта
+[`verify-release.ps1`](../../scripts/release/verify-release.ps1), который
+сейчас требует запуск только по тегу.
+
+[`scripts/github/test-rulesets.ps1`](../../scripts/github/test-rulesets.ps1)
+падает на любом автоматическом триггере и на workflow без
+`workflow_dispatch` (кроме двух релизных).
 
 ## 1. Обновление зависимостей (пункт 1.5)
 
@@ -19,16 +44,19 @@
 |---|---|---|
 | Dependabot alerts | Settings → Code security → Dependabot alerts | Предупреждения об уязвимых зависимостях. |
 | Dependabot security updates | Settings → Code security → Dependabot security updates | PR с исправлением уязвимости сразу, а не в еженедельный слот. |
-| Allow auto-merge | Settings → General → Pull Requests | Patch-обновления вливаются сами после зелёных обязательных проверок. |
+| Allow auto-merge | Settings → General → Pull Requests | Не используется, пока `main` не требует status checks. |
 
 Еженедельные обновления приходят по понедельникам в 06:00 (Asia/Tashkent),
 сгруппированно: Spring, плагины сборки, тестовые библиотеки, Angular, линтеры,
-Playwright, базовые образы. Patch-обновление вливается само, minor и major
-ждут ревью.
+Playwright, базовые образы. Dependabot по-прежнему открывает PR; каждый ждёт
+ревью и локальных проверок.
 
-Auto-merge включается, только если main требует статус-проверки (раздел 3):
-без этого GitHub влил бы PR сразу, не дожидаясь CI, поэтому workflow в этом
-случае оставляет предупреждение и ничего не делает.
+**Auto-merge выключен.** Каждый PR Dependabot, включая patch, вливается
+вручную после локальных проверок. `dependabot-auto-merge.yml` запускается
+только вручную с номером PR и включает auto-merge лишь для patch-обновления и
+лишь если `main` требует status checks: без них GitHub влил бы PR сразу, без
+проверок. Сейчас `main.json` их не требует (раздел 3), поэтому workflow
+оставляет предупреждение и ничего не делает.
 
 Не обновляются Dependabot: `actions/checkout`, `actions/setup-node`,
 `actions/setup-java`, `actions/upload-artifact`, `actions/download-artifact`
@@ -51,13 +79,14 @@ Auto-merge включается, только если main требует ст�
 | Настройка | Где | Зачем |
 |---|---|---|
 | Code scanning: default setup выключен | Settings → Code security → Code scanning | Анализ задаёт `codeql.yml` (advanced setup); оба сразу GitHub не принимает. |
-| Code scanning protection rule | ruleset main (раздел 3) | PR с новым предупреждением уровня high или critical не вливается. |
 
-CodeQL читает Java, TypeScript и сами workflow без сборки (`build-mode: none`)
-набором запросов `security-extended`: на каждом PR, на main и раз в неделю.
-Scorecard запускается на main, раз в неделю и при изменении правил защиты
-веток; результаты — в Security → Code scanning и на публичной странице
-OpenSSF Scorecard.
+CodeQL читает Java, TypeScript, Python и сами workflow без сборки
+(`build-mode: none`) набором запросов `security-extended`. Оба workflow
+запускаются только вручную: перед релизом и после изменения зависимостей или
+workflow; Scorecard — на ветке по умолчанию. Результаты — в Security → Code
+scanning и на публичной странице OpenSSF Scorecard. Ruleset `main` не требует
+результатов code scanning: без автоматического анализа PR такое правило
+блокировало бы каждый merge.
 
 **Триаж.** Каждое предупреждение CodeQL либо исправляется, либо закрывается в
 интерфейсе Code scanning с причиной (false positive, used in tests, won't fix)
@@ -65,7 +94,7 @@ OpenSSF Scorecard.
 фазы 1 и не ниже 8 к концу плана.
 
 **Проверка.** Security → Code scanning показывает инструменты CodeQL и
-Scorecard с последним анализом main.
+Scorecard с анализом последнего ручного запуска.
 
 ## 3. Защита веток и тегов, CODEOWNERS (пункт 1.9)
 
@@ -84,7 +113,7 @@ gh auth login
 
 | Ruleset | Что требует |
 |---|---|
-| `main` | Изменения только через PR: одно одобрение, ревью владельца кода (CODEOWNERS), повторное одобрение после нового push, закрытые обсуждения; только merge-коммит; зелёные обязательные проверки; CodeQL без предупреждений уровня high и выше; удаление и force-push запрещены. |
+| `main` | Изменения только через PR: одно одобрение, ревью владельца кода (CODEOWNERS), повторное одобрение после нового push, закрытые обсуждения; только merge-коммит; удаление и force-push запрещены. Status checks и code scanning не требуются (проверки локальные). |
 | `release tags: created by administrators only` | Тег `v*` создаёт только администратор. |
 | `release tags: never moved or deleted` | Тег `v*` нельзя передвинуть или удалить никому, исключений нет. |
 
@@ -92,27 +121,15 @@ gh auth login
 [`.git-blame-ignore-revs`](../../.git-blame-ignore-revs) ссылается на коммиты
 переформатирования по SHA.
 
-**Обязательные проверки** — имена джобов: `backend (mvn verify + ArchUnit + SBOM)`,
-`frontend (unit + typecheck + build)`,
-`api contract (Spectral + openapi-diff + web types)`,
-`cms CLI (node:test, ubuntu-24.04)` и `cms CLI (node:test, windows-2025)`
-(тесты генератора `cms` и контракт документации),
-`release config (Compose + NGINX + fail-closed deploy)`,
-`observability (promtool rules + unit tests, dashboards)` (план 10/10, п. 7.3),
-`e2e (clean deploy + Playwright Chromium, shard 1/2)` и `… shard 2/2`,
-`security (gitleaks + trivy)`, `Verify commit sign-offs`,
-`codeql (java-kotlin)`, `codeql (javascript-typescript)`, `codeql (python)`,
-`codeql (actions)`.
-`test-rulesets.ps1` в CI сверяет список в обе стороны: падает, если
-обязательной проверке не соответствует ни один джоб (переименование джоба без
-правки `main.json` не пройдёт), и если джоб, который запускается на PR, не
-обязателен и не записан в список необязательных с причиной. Необязателен
-только `arm auto-merge for a patch update`: он работает лишь на PR Dependabot и
-сам ничего не вливает. После добавления проверки в `main.json` администратор
-применяет rulesets заново (`apply-rulesets.ps1 -Apply`). Прежняя
-проверка `e2e (clean deploy + Playwright Chromium)` после разбиения на шарды
-больше не существует: если она указана в старой защите ветки, её нужно
-заменить применением rulesets.
+**Обязательных проверок нет** (с 2026-10-17). Required status check
+удовлетворяет только запуск workflow на коммите PR, а на PR workflow больше не
+запускаются: любая обязательная проверка навсегда оставила бы PR в ожидании. Шлюз merge —
+локальные проверки AGENTS.md, раздел 5; их результат автор указывает в PR.
+`test-rulesets.ps1` падает, если `main.json` снова требует status checks или
+code scanning, пока workflow не запускаются автоматически. **После merge этого
+изменения администратор применяет rulesets заново**
+(`apply-rulesets.ps1 -Apply`): до этого на GitHub действует прежний ruleset
+с 15 обязательными проверками, и PR не вливается без обхода.
 
 **Обход.** Администратор репозитория может влить PR в обход правил (режим
 `pull_request`); прямой push в main после применения rulesets не проходит ни у
@@ -123,14 +140,15 @@ gh auth login
 соответствующих областей.
 
 **Проверка.** Settings → Rules → Rulesets показывает три активных ruleset;
-PR без одобрения или с красной проверкой не вливается.
+PR без одобрения не вливается; у `main` нет правил required status checks и
+code scanning.
 
 ## 4. Порядок релиза (пункт 1.9)
 
 Файл: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
 1. **Gate:** тег — стабильный SemVer, коммит достижим из main.
-2. **CI:** тот же `ci.yml`, что и на каждом PR, вызванный через
+2. **CI:** тот же `ci.yml`, что запускается вручную, вызванный через
    `workflow_call`, — набор проверок релиза равен CI, включая Gitleaks.
 3. **Build:** образ собирается для `linux/amd64` и `linux/arm64` и
    публикуется по digest, **без тега**.
@@ -147,23 +165,21 @@ PR без одобрения или с красной проверкой не в
 
 Файл: [`.github/workflows/nightly.yml`](../../.github/workflows/nightly.yml).
 
-Ночной workflow запускается по расписанию (`cron`, 03:30 по Ташкенту) и
-вручную (`workflow_dispatch`). В нём учения готовности релиза, генератор `cms`
+Workflow `nightly` запускается только вручную (`workflow_dispatch`); расписания
+нет с 2026-10-17. Его запускают перед релизом и после обновления зависимостей.
+В нём учения готовности релиза, генератор `cms`
 на Linux и Windows, учения обновления и исходящего трафика, живой API smoke,
 onboarding smoke, свежие advisories (Trivy) и нагрузочные критерии
-(`-Pupl-large`, `-Paudit-large`, `-Pimport-large`, `-Pwarehouse-large`). Эти джобы не входят в
-обязательные проверки PR: красный ночной джоб разбирается на следующее утро.
+(`-Pupl-large`, `-Paudit-large`, `-Pimport-large`, `-Pwarehouse-large`).
 [`scripts/docs/test-repository-hygiene.ps1`](../../scripts/docs/test-repository-hygiene.ps1)
 падает, если скрипт `scripts/**/test-*` не вызывает ни один workflow.
 
 | Настройка | Где | Зачем |
 |---|---|---|
-| Actions разрешены для репозитория | Settings → Actions → General | Без этого расписание не запускается. |
-| Расписание не отключено | Actions → nightly | GitHub отключает запуски по расписанию в публичном репозитории после 60 дней без активности; включить снова — кнопкой Enable workflow. |
-| Уведомления о падении | профиль владельца → Settings → Notifications → Actions | Письмо о неуспешном запуске по расписанию получает тот, кто последним менял `cron` в workflow. |
+| Actions разрешены для репозитория | Settings → Actions → General | Без этого ручной запуск недоступен. |
 
-**Проверка.** Actions → nightly показывает запуск прошедшей ночи; при
-необходимости `gh workflow run nightly.yml` запускает его вручную.
+**Проверка.** `gh workflow run nightly.yml` запускает его; Actions → nightly
+показывает результат.
 
 ## 6. Подписанный staging RC (ADR-0040)
 

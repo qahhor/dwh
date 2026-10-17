@@ -94,6 +94,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- GitHub Actions no longer start automatically (owner decision 2026-10-17): `ci`,
+  `codeql`, `DCO`, `nightly`, `scorecard` and `dependabot auto-merge` lost their
+  push, pull request, schedule and branch-protection triggers and run only by hand
+  (`workflow_dispatch`; `ci` takes `base_ref` and `allow_breaking` inputs and stays
+  callable by the release workflows, which still start on version tags). Every gate
+  runs locally before a merge. The `main` ruleset keeps the reviewed merge-only pull
+  request but no longer requires status checks or code scanning results (re-apply
+  with `scripts/github/apply-rulesets.ps1 -Apply`); Dependabot patch updates no
+  longer merge by themselves. `scripts/github/test-rulesets.ps1` fails on any
+  automatic trigger.
+
 - Consolidated the Studio, release-readiness and staging work with preserved Git
   history; updated Jackson to 3.2.3 / 2.22.3, AWS SDK to 2.55.13, Spotless to
   3.10.4, CodeQL Action to 4.38.3 and Playwright to 1.64.0.
