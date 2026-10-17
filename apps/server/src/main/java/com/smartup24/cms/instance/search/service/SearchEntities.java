@@ -19,6 +19,10 @@ import org.springframework.stereotype.Component;
  * capability, in the order of their codes. A viewer searches those whose module is switched on and whose {@code view}
  * right they hold — the same gate as the entity's runtime (ADR-0032, 6.3, step 1) — and finds only the records of their
  * scope.
+ *
+ * <p>The list is taken once at the start. A live form (ADR-0038) never has SEARCH — its compiler does not grant it —
+ * so the list holds declared entities only and no live form can stay searchable after it is quarantined, stops
+ * loading or its module is switched off; a test keeps the compiler from granting it.
  */
 @Component
 public class SearchEntities {

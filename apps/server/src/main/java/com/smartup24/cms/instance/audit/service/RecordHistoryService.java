@@ -47,7 +47,11 @@ public class RecordHistoryService {
     private final EntityRegistry entities;
     private final EntityGate gate;
 
-    /** The modules' own sources and those the declared entities get from their declaration (roadmap item 56). */
+    /**
+     * The modules' own sources, kept from the start. The entities' sources (roadmap item 56) are asked of the registry
+     * at each call and never kept, so a live form that is quarantined, stops loading or whose module is switched off
+     * loses its history together with its entity (ADR-0038).
+     */
     public RecordHistoryService(
             AuditLogService auditLogService,
             List<RecordHistorySource> sources,
@@ -56,8 +60,8 @@ public class RecordHistoryService {
         this.auditLogService = auditLogService;
         this.entities = entities;
         this.gate = gate;
-        this.sources = Stream.concat(sources.stream(), entities.historySources().stream())
-                .collect(Collectors.toUnmodifiableMap(RecordHistorySource::key, Function.identity()));
+        this.sources =
+                sources.stream().collect(Collectors.toUnmodifiableMap(RecordHistorySource::key, Function.identity()));
     }
 
     /**
