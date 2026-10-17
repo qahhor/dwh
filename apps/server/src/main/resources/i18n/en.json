@@ -3274,6 +3274,8 @@
   "error.studio.form_not_found": "The created form {code} was not found",
   "error.studio.quarantined": "The form is already withdrawn from service",
   "error.studio.not_quarantined": "The form is not withdrawn from service",
+  "error.studio.broken": "The form is stored but is not served ({reason}); see the state of the form catalog",
+  "error.studio.translation_key": "The form labels use translation keys the application already has",
   "studio.forms.rights.publish": "Activate",
   "studio.record.name": "Name",
   "studio.record.code": "Code",

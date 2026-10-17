@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.studio.api.StudioFormDtos;
 import com.smartup24.cms.instance.studio.api.StudioFormDtos.BrokenForm;
 import com.smartup24.cms.instance.studio.api.StudioFormDtos.CatalogStatus;
 import com.smartup24.cms.instance.studio.api.StudioFormDtos.QuarantinedForm;
@@ -11,6 +12,7 @@ import com.smartup24.cms.instance.studio.repository.StudioFormRepository;
 import com.smartup24.cms.instance.studio.repository.StudioFormRepository.Held;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Profile("!migrate")
 public class StudioQuarantineService {
     private static final String AUDIT_TABLE = "studio_form_quarantine";
+    private static final Pattern CODE = Pattern.compile(StudioFormDtos.CODE);
 
     private final StudioFormRepository repository;
     private final StudioDefinitions definitions;
@@ -52,7 +55,7 @@ public class StudioQuarantineService {
     @Transactional(readOnly = true)
     public QuarantinedForm get(String entityCode) {
         requirePublisher();
-        return view(repository.held(formId(entityCode)).orElseThrow(StudioQuarantineService::notHeld));
+        return view(repository.held(heldFormId(entityCode)).orElseThrow(StudioQuarantineService::notHeld));
     }
 
     @Transactional
@@ -78,7 +81,7 @@ public class StudioQuarantineService {
     @Transactional
     public void release(String entityCode) {
         requirePublisher();
-        long formId = formId(entityCode);
+        long formId = heldFormId(entityCode);
         repository.lockCatalog();
         Held held = repository.held(formId).orElseThrow(StudioQuarantineService::notHeld);
         repository.release(formId);
@@ -90,6 +93,15 @@ public class StudioQuarantineService {
                 Map.of("code", held.code(), "reason", held.reason()),
                 Map.of());
         definitions.changed();
+    }
+
+    /**
+     * The form of a code taken from the path: a value that is not a live form code is answered as a form that is not
+     * quarantined, without repeating it.
+     */
+    private long heldFormId(String entityCode) {
+        if (!CODE.matcher(entityCode).matches()) throw notHeld();
+        return formId(entityCode);
     }
 
     private long formId(String entityCode) {

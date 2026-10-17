@@ -3274,6 +3274,8 @@
   "error.studio.form_not_found": "{code} yaratilgan shakli topilmadi",
   "error.studio.quarantined": "Shakl allaqachon ishdan chiqarilgan",
   "error.studio.not_quarantined": "Shakl ishdan chiqarilmagan",
+  "error.studio.broken": "Shakl saqlangan, lekin ishlatilmayapti ({reason}); shakllar katalogi holatini tekshiring",
+  "error.studio.translation_key": "Shakl yozuvlari ilovada mavjud tarjima kalitlaridan foydalanadi",
   "studio.forms.rights.publish": "Faollashtirish",
   "studio.record.name": "Nomi",
   "studio.record.code": "Kod",

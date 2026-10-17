@@ -1,6 +1,8 @@
 package com.smartup24.cms.instance.studio;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -8,12 +10,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.service.MdSimpleFormDeclarations;
 import com.smartup24.cms.instance.studio.service.StudioFormsHealth;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
@@ -67,6 +71,8 @@ class StudioQuarantineHttpTest extends EmbeddedPostgresTest {
     void aQuarantinedFormAnswersAsUnknownUntilReleasedAndEveryChangeIsAudited() throws Exception {
         String code = activate("live_quarantine_http");
         mvc.perform(get("/api/v1/entities/" + code)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/history"))
+                .andExpect(jsonPath("$[?(@ == '" + code + "')]").exists());
         mvc.perform(post(QUARANTINE).contentType(MediaType.APPLICATION_JSON).content(request(code, "Wrong fields")))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", QUARANTINE + "/" + code))
@@ -74,6 +80,14 @@ class StudioQuarantineHttpTest extends EmbeddedPostgresTest {
                 .andExpect(jsonPath("$.reason").value("Wrong fields"));
         mvc.perform(get("/api/v1/entities/" + code)).andExpect(status().isNotFound());
         mvc.perform(get("/api/v1/form-meta/" + code)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/history/" + code + "/1")).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/history"))
+                .andExpect(jsonPath("$[?(@ == '" + code + "')]").doesNotExist());
+        mvc.perform(post("/api/v1/studio/forms")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(pack("live_quarantine_http")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.messageKey").value("error.studio.quarantined"));
         mvc.perform(post(QUARANTINE).contentType(MediaType.APPLICATION_JSON).content(request(code, "Again")))
                 .andExpect(status().isConflict());
         mvc.perform(get(QUARANTINE + "/" + code))
@@ -105,6 +119,13 @@ class StudioQuarantineHttpTest extends EmbeddedPostgresTest {
                 .andExpect(status().isNotFound());
         mvc.perform(post(QUARANTINE).contentType(MediaType.APPLICATION_JSON).content(request("md.users", "Reason")))
                 .andExpect(status().isUnprocessableEntity());
+        // A path value that is no live form code is answered as not quarantined, without being repeated.
+        for (var probe : List.of(get(QUARANTINE + "/md.users"), delete(QUARANTINE + "/md.users"))) {
+            mvc.perform(probe)
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.messageKey").value("error.studio.not_quarantined"))
+                    .andExpect(jsonPath("$.detail").value(not(containsString("md.users"))));
+        }
         mvc.perform(post(QUARANTINE).contentType(MediaType.APPLICATION_JSON).content(request("studio.any", " ")))
                 .andExpect(status().isUnprocessableEntity());
         mvc.perform(post(QUARANTINE)
@@ -150,6 +171,14 @@ class StudioQuarantineHttpTest extends EmbeddedPostgresTest {
         }
         assertThat(health.health().getStatus()).isEqualTo(Status.UP);
         assertThat(health.health().getDetails()).doesNotContainKey("broken");
+        // The health count of held forms is the catalog view's, a held form that does not compile included.
+        Integer listed = JsonPath.read(
+                mvc.perform(get("/api/v1/studio/catalog"))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                "$.quarantined.length()");
+        assertThat(health.health().getDetails()).containsEntry("quarantined", listed);
     }
 
     private String activate(String name) throws Exception {

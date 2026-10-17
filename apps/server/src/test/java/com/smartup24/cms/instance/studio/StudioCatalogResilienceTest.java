@@ -11,6 +11,7 @@ import com.smartup24.cms.instance.common.entity.LiveEntities;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Declaration;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.DeliveryPackage;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
+import com.smartup24.cms.instance.md.service.MdFormCatalogSynchronizer;
 import com.smartup24.cms.instance.md.service.MdI18nCatalog;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdSimpleFormDeclarations;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
@@ -134,8 +136,9 @@ class StudioCatalogResilienceTest {
         assertThat(first.snapshot()).isEmpty();
         assertThat(second.snapshot()).isEmpty();
         assertThat(second.current().broken()).isEmpty();
-        assertThat(second.current().quarantined()).isEqualTo(1);
-        assertThat(second.registered()).containsOnlyKeys("studio.alpha");
+        // Every quarantine row counts, compiled or not, as GET /api/v1/studio/catalog lists them.
+        assertThat(second.current().quarantined()).isEqualTo(2);
+        assertThat(second.registered()).containsOnlyKeys("studio.alpha", "studio.beta");
 
         assertThat(repository.release(alpha)).isTrue();
         assertThat(first.snapshot()).containsOnlyKeys("studio.alpha");
@@ -228,6 +231,128 @@ class StudioCatalogResilienceTest {
                 .executeWithoutResult(status -> permissions.syncFormCatalog(declared));
         assertThat(registry.find("studio.alpha")).isEmpty();
         assertThat(permissions.getGrantablePairs()).contains("studio.alpha.view", "studio.alpha.delete");
+    }
+
+    @Test
+    void formsThatDoNotCompileKeepTheRightsTheCompilerRegistersAcrossARestart() {
+        long held = insertBroken("held", field -> field.put("type", "money"));
+        repository.quarantine(held, "Does not compile", author);
+        insertBroken("broken", field -> field.put("type", "money"));
+        insert("shadow");
+        // An unreadable declaration still keeps the rights of its stored code.
+        jdbc.sql("insert into studio_forms (code, declaration, checksum, created_by) "
+                        + "values ('studio.garbled', '{\"kind\":1}'::jsonb, repeat('c', 64), :author)")
+                .param("author", author)
+                .update();
+        var definitions = definitions(Set.of(), Set.of("studio.live.shadow.title"), null);
+        assertThat(definitions.snapshot()).isEmpty();
+        assertThat(definitions.registered())
+                .containsOnlyKeys("studio.held", "studio.broken", "studio.shadow", "studio.garbled");
+        assertThat(definitions.registered().get("studio.shadow").messages().get("ru"))
+                .as("a label shadowing a bundled key never names a right")
+                .doesNotContainKey("studio.live.shadow.title");
+
+        var live = new LiveEntities(() -> List.of(definitions));
+        var permissions = new MdPermissionService(
+                new MdPermissionRepository(jdbc), registry(List.of(), definitions), new MdI18nCatalog(json), live);
+        Set<String> expected = new TreeSet<>();
+        for (String code : List.of("held", "broken", "shadow", "garbled")) {
+            EntityDefinition compiled = new StudioEntityCompiler()
+                    .compile(1, pack(code).declaration())
+                    .entity();
+            expected.addAll(MdFormCatalogSynchronizer.entityPairs(List.of(compiled)));
+        }
+        Set<String> declared = new MdPermissionRepository(jdbc).getGrantablePairs();
+        for (int restart = 0; restart < 2; restart++) {
+            new TransactionTemplate(new DataSourceTransactionManager(database))
+                    .executeWithoutResult(status -> permissions.syncFormCatalog(declared));
+            assertThat(permissions.getGrantablePairs()).containsAll(expected);
+        }
+        assertThat(expected)
+                .contains("studio.held.view", "studio.held.create", "studio.held.update", "studio.held.delete");
+        assertThat(jdbc.sql("select name from md_forms where code = 'studio.broken'")
+                        .query(String.class)
+                        .single())
+                .as("the stored title still names the form")
+                .isEqualTo("Локации");
+    }
+
+    @Test
+    void theMetersKeepTheLastCompiledCatalogUntilItIsCompiledAgain() {
+        long beta = insertBroken("beta", field -> field.put("type", "money"));
+        List<Runnable> handlers = new ArrayList<>();
+        var definitions = new StudioDefinitions(
+                repository,
+                new StudioEntityCompiler(),
+                module -> true,
+                Set::of,
+                Set::of,
+                notices(handlers, new ArrayList<>()));
+        definitions.snapshot();
+        assertThat(definitions.lastBroken()).isEqualTo(1);
+        definitions.changed();
+        assertThat(definitions.lastBroken()).as("a change keeps the last value").isEqualTo(1);
+        handlers.forEach(Runnable::run);
+        assertThat(definitions.lastBroken()).isEqualTo(1);
+
+        repository.quarantine(beta, "Does not compile", author);
+        handlers.forEach(Runnable::run);
+        assertThat(definitions.lastBroken())
+                .as("a notice compiles the catalog again at once")
+                .isZero();
+        assertThat(definitions.lastQuarantined()).isEqualTo(1);
+    }
+
+    @Test
+    void aChangeInsideATransactionDropsTheCopyOnlyAfterTheCommit() {
+        insert("alpha");
+        AtomicInteger compiled = new AtomicInteger();
+        StudioEntityCompiler counting = new StudioEntityCompiler() {
+            @Override
+            public EntityDefinitionSource.Declaration compile(long id, Declaration source) {
+                compiled.incrementAndGet();
+                return super.compile(id, source);
+            }
+        };
+        List<String> published = new ArrayList<>();
+        var definitions = new StudioDefinitions(
+                repository, counting, module -> true, Set::of, Set::of, notices(new ArrayList<>(), published));
+        definitions.snapshot();
+        assertThat(compiled).hasValue(1);
+        new TransactionTemplate(new DataSourceTransactionManager(database)).executeWithoutResult(status -> {
+            definitions.changed();
+            definitions.snapshot();
+            assertThat(compiled).as("the copy stays until the commit").hasValue(1);
+        });
+        assertThat(published).containsExactly(StudioDefinitions.NOTICE);
+        definitions.snapshot();
+        assertThat(compiled).hasValue(2);
+        new TransactionTemplate(new DataSourceTransactionManager(database)).executeWithoutResult(status -> {
+            definitions.changed();
+            status.setRollbackOnly();
+        });
+        definitions.snapshot();
+        assertThat(compiled).as("a rollback keeps the copy").hasValue(2);
+    }
+
+    private static ClusterNotices notices(List<Runnable> handlers, List<String> published) {
+        return new ClusterNotices() {
+            @Override
+            public void publish(String name) {
+                published.add(name);
+            }
+
+            @Override
+            public void onNotice(String name, Runnable handler) {
+                if (StudioDefinitions.NOTICE.equals(name)) handlers.add(handler);
+            }
+
+            @Override
+            public void send(String topic, String message) {}
+
+            @Override
+            public void onMessage(String topic, Consumer<String> handler) {}
+        };
     }
 
     private static EntityDefinition fixed(String code) {
