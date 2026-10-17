@@ -43,6 +43,10 @@ import org.springframework.web.context.request.RequestContextHolder;
  * <p>Every stored form keeps its rights in the permission catalog ({@link #registered()}), served or not: a form that
  * does not compile is registered from its stored code alone, so a restart never deprecates the rights of a broken or
  * quarantined form (ADR-0038, decision 10).
+ *
+ * <p>A form serves the declaration of its active version; an archived form serves read-only, keeps its rights and does
+ * not count toward the limit of active forms (ADR-0041). The quarantine wins over the archive: a held form is not served
+ * at all.
  */
 @Component
 @Profile("!migrate")
@@ -73,15 +77,26 @@ public class StudioDefinitions implements EntityDefinitionSource {
     public record Broken(String code, String reason) {}
 
     /**
-     * The compiled catalog of one version: what the permission catalog keeps, what is served, what is broken and
-     * how many stored forms are held in quarantine (every quarantine row, compiled or not).
+     * The compiled catalog of one version: what the permission catalog keeps, what is served, which served forms are
+     * archived (read-only), what is broken and how many stored forms are held in quarantine (every quarantine row,
+     * compiled or not).
      */
     public record Catalog(
             Version version,
             Map<String, Declaration> registered,
             Map<String, Declaration> served,
+            Set<String> archived,
             List<Broken> broken,
-            int quarantined) {}
+            int quarantined) {
+        public Catalog(
+                Version version,
+                Map<String, Declaration> registered,
+                Map<String, Declaration> served,
+                List<Broken> broken,
+                int quarantined) {
+            this(version, registered, served, Set.of(), broken, quarantined);
+        }
+    }
 
     /** What one request has read: the catalog and the served view are each taken once, then reused. */
     private static final class Pin {
@@ -169,8 +184,13 @@ public class StudioDefinitions implements EntityDefinitionSource {
         return known == null || !active() ? 0 : known.quarantined();
     }
 
+    /** Whether the served form {@code code} is archived: its records are read-only (ADR-0041). */
+    public boolean archived(String code) {
+        return active() && current().archived().contains(code);
+    }
+
     /**
-     * A form was activated, quarantined or released. The notice to the other nodes leaves with the commit (the
+     * A form was activated, quarantined or released, got a new version, was archived or restored. The notice to the other nodes leaves with the commit (the
      * {@link ClusterNotices#publish} contract: PostgreSQL delivers it at the commit and drops it with a rollback), and
      * the copy of this node is dropped after the commit; the version check keeps every read correct meanwhile.
      */
@@ -242,11 +262,14 @@ public class StudioDefinitions implements EntityDefinitionSource {
         Set<String> keys = keys();
         Map<String, Declaration> registered = new LinkedHashMap<>();
         Map<String, Declaration> served = new LinkedHashMap<>();
+        Set<String> archived = new HashSet<>();
         List<Broken> broken = new ArrayList<>();
         List<Row> rows = stored.rows();
+        int active = 0;
         for (int index = 0; index < rows.size(); index++) {
             Row row = rows.get(index);
-            if (index >= StudioActivationService.MAX_FORMS) {
+            if (!row.archived()) active++;
+            if (index >= StudioFormRepository.MAX_STORED || active > StudioActivationService.MAX_FORMS) {
                 broken.add(report(row, "form_limit", null));
                 rightsOnly(row, null, keys, registered);
                 continue;
@@ -255,7 +278,8 @@ public class StudioDefinitions implements EntityDefinitionSource {
             Declaration declaration;
             try {
                 source = repository.declaration(row.declaration());
-                declaration = compiler.compile(row.id(), source);
+                declaration =
+                        row.archived() ? compiler.compile(row.id(), source, true) : compiler.compile(row.id(), source);
             } catch (RuntimeException failure) {
                 // A quarantined form is held on purpose: it is not served, so a failure is not reported again.
                 if (row.quarantine() == null) broken.add(report(row, "declaration", failure));
@@ -268,12 +292,22 @@ public class StudioDefinitions implements EntityDefinitionSource {
                 rightsOnly(row, source, keys, registered);
                 continue;
             }
-            registered.put(row.code(), declaration);
-            if (row.quarantine() == null) served.put(row.code(), declaration);
+            // An archived form compiles without its write actions; its rights stay those of every form.
+            if (row.archived()) rightsOnly(row, source, keys, registered);
+            else registered.put(row.code(), declaration);
+            if (row.quarantine() == null) {
+                served.put(row.code(), declaration);
+                if (row.archived()) archived.add(row.code());
+            }
         }
         // Every quarantine row counts, compiled or not, as the catalog view lists them.
-        return new Catalog(stored.version(), Map.copyOf(registered), Map.copyOf(served), List.copyOf(broken), (int)
-                stored.version().held());
+        return new Catalog(
+                stored.version(),
+                Map.copyOf(registered),
+                Map.copyOf(served),
+                Set.copyOf(archived),
+                List.copyOf(broken),
+                (int) stored.version().held());
     }
 
     /**

@@ -21,7 +21,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Declaration, permissions and audit commit together; no runtime DDL (ADR-0038). */
+/**
+ * Declaration, permissions and audit commit together; no runtime DDL (ADR-0038). At most {@link #MAX_FORMS} forms are
+ * active; archived forms do not count toward it, every stored form counts toward
+ * {@link StudioFormRepository#MAX_STORED} (ADR-0041).
+ */
 @Service
 public class StudioActivationService {
     public static final int MAX_FORMS = 100;
@@ -128,7 +132,13 @@ public class StudioActivationService {
             throw new ApiException(ErrorCode.CONFLICT, "error.studio.exists");
         }
         refuseWhatWouldNotLoad(code, pack.declaration());
+        StudioChangeRules.requireDefaults(
+                pack.declaration(),
+                compiler.compile(Long.MAX_VALUE, pack.declaration()).entity());
+        // Archived forms do not count toward the active limit; every stored form counts toward the stored one.
         if (repository.count() >= MAX_FORMS) throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.quota");
+        if (repository.stored() >= StudioFormRepository.MAX_STORED)
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.stored_quota");
         long id = repository.insert(code, pack.declaration(), pack.checksum(), SecurityContext.getCurrentUserId());
         var compiled = compiler.compile(id, pack.declaration());
         permissions.registerEntityDefinition(

@@ -39,6 +39,9 @@ public class RecordHistoryService {
     private static final Set<String> TECHNICAL_FIELDS =
             Set.of("id", "companyId", "lockVersion", "createdAt", "createdBy", "modifiedAt", "modifiedBy", "updatedAt");
 
+    /** The record action of a change as the history reads it ({@code _action} in camelCase). */
+    private static final String RECORD_ACTION = "action";
+
     static final int DEFAULT_LIMIT = 20;
     static final int MAX_LIMIT = 200;
 
@@ -80,12 +83,26 @@ public class RecordHistoryService {
         source.requireVisible(recordId);
 
         TimePage page = TimePage.of(limit, cursor, DEFAULT_LIMIT, MAX_LIMIT);
-        Labels labels = new Labels(source.fieldLabels(), source.fieldNames(), source.hiddenFields());
+        Labels labels =
+                new Labels(source.fieldLabels(), source.fieldNames(), source.hiddenFields(), source.namedFieldsOnly());
         return auditLogService.recordHistory(source.tableName(), recordId, page).map(row -> toEntry(row, labels));
     }
 
     /** How a page of history names its fields: read from the source once, not per row. */
-    private record Labels(Map<String, String> keys, Map<String, String> names, Set<String> hidden) {
+    private record Labels(Map<String, String> keys, Map<String, String> names, Set<String> hidden, boolean namedOnly) {
+
+        /**
+         * Whether the field is left out of the history: technical, hidden or, for a named-only source, unnamed — the
+         * record action of a change ({@code _action}, read as {@code action}) always stays.
+         */
+        boolean skips(String field) {
+            return TECHNICAL_FIELDS.contains(field)
+                    || hidden.contains(field)
+                    || (namedOnly
+                            && !RECORD_ACTION.equals(field)
+                            && !keys.containsKey(field)
+                            && !names.containsKey(field));
+        }
 
         /**
          * A field's place in the source's order — the labelled fields first, as the source lists them, then the
@@ -131,7 +148,7 @@ public class RecordHistoryService {
         fields.addAll(newRow.keySet());
         List<FieldChange> changes = new ArrayList<>();
         for (String field : fields) {
-            if (TECHNICAL_FIELDS.contains(field) || labels.hidden().contains(field)) continue;
+            if (labels.skips(field)) continue;
             Object before = oldRow.get(field);
             Object after = newRow.get(field);
             // An update lists a field only when its value really changed.

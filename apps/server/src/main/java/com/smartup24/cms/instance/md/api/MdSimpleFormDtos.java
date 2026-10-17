@@ -29,13 +29,48 @@ public final class MdSimpleFormDtos {
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Labels title) {}
 
+    /** The menu item of a live form, from format 2 on (ADR-0041); without it the form takes the default item. */
+    @Schema(name = "SimpleFormMenu", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
+    public record Menu(
+            @Schema(
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    allowableValues = {
+                        "box",
+                        "description",
+                        "assignment",
+                        "event",
+                        "storefront",
+                        "local_shipping",
+                        "inventory_2",
+                        "people",
+                        "support_agent",
+                        "receipt_long"
+                    })
+            String icon,
+
+            @Schema(
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    allowableValues = {"workspace", "administration"})
+            String section,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "1", maximum = "999")
+            int order) {}
+
     @Schema(name = "SimpleFormEntity", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
     public record Entity(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, pattern = "^[a-z][a-z0-9_]{0,19}$")
             String name,
 
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-            Labels title) {}
+            Labels title,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable
+            Menu menu) {
+        /** An entity of format 1, which has no menu of its own. */
+        public Entity(String name, Labels title) {
+            this(name, title, null);
+        }
+    }
 
     @Schema(name = "SimpleFormField", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
     public record Field(
@@ -71,11 +106,42 @@ public final class MdSimpleFormDtos {
             Integer maxLength,
 
             @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(minimum = "0", maximum = "6") @Nullable
-            Integer scale) {}
+            Integer scale,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(
+                    description = "Format 2: the field is kept with its data but leaves the form, the list, the"
+                            + " export and the history (ADR-0041); present only when true")
+            @Nullable
+            Boolean hidden,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(
+                    description = "Format 2: the fixed value a new record takes, written as the field reads it",
+                    minLength = 1,
+                    maxLength = 4000)
+            @Nullable
+            String defaultValue) {
+        /** A field of format 1: shown, without a default. */
+        public Field(
+                String id,
+                String type,
+                Labels labels,
+                boolean required,
+                boolean listed,
+                @Nullable Integer maxLength,
+                @Nullable Integer scale) {
+            this(id, type, labels, required, listed, maxLength, scale, null, null);
+        }
+    }
 
     @Schema(name = "SimpleFormDeclaration", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
     public record Declaration(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "1", maximum = "1")
+            @Schema(
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    minimum = "1",
+                    maximum = "2",
+                    description = "1, or 2 for a live form with hidden fields, defaults or its own menu item")
             int formatVersion,
 
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = "simple-form")
@@ -87,7 +153,12 @@ public final class MdSimpleFormDtos {
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Entity entity,
 
-            @ArraySchema(maxItems = 20, arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
+            @ArraySchema(
+                    maxItems = 30,
+                    arraySchema =
+                            @Schema(
+                                    requiredMode = Schema.RequiredMode.REQUIRED,
+                                    description = "At most 20 fields that are not hidden"))
             List<Field> fields) {}
 
     @Schema(name = "SimpleFormDeliveryPackage", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)

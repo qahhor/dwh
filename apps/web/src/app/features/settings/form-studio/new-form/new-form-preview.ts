@@ -2,8 +2,12 @@ import type { FormFieldMeta, FormMeta } from '@core/models/form-meta.models';
 import type { StudioLanguage } from '../form-studio.models';
 import type { SimpleFormDeclaration } from './new-form.models';
 
-/** Synthetic metadata for the existing renderer; the server and CLI validate the source independently. */
-export function simpleFormPreview(draft: SimpleFormDeclaration, language: StudioLanguage): FormMeta {
+/**
+ * Synthetic metadata for the existing renderer; the server and CLI validate the source independently. A hidden field
+ * is served nowhere, so the preview leaves it out (ADR-0041).
+ */
+export function simpleFormPreview(source: SimpleFormDeclaration, language: StudioLanguage): FormMeta {
+  const draft = { ...source, fields: source.fields.filter((field) => !field.hidden) };
   const fields: FormFieldMeta[] = [
     {
       key: 'name',

@@ -14,33 +14,59 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
-/** Only immutable declarations and their quarantine; record writes stay in EntityRecordStore (ADR-0038). */
+/**
+ * The immutable declarations, the active version and lifecycle of each form and their quarantine; record writes stay in
+ * EntityRecordStore (ADR-0038, ADR-0041).
+ */
 @Repository
 public class StudioFormRepository {
-    /** One row beyond the activation limit, so a catalog above it is seen rather than silently cut. */
-    public static final int READ_LIMIT = 101;
+    /** Stored forms, active and archived: the activation refuses a form beyond it (ADR-0041). */
+    public static final int MAX_STORED = 500;
+
+    /** One row beyond the stored limit, so a catalog above it is seen rather than silently cut. */
+    public static final int READ_LIMIT = MAX_STORED + 1;
 
     private static final String VERSION_COLUMNS = """
             (select count(*) from studio_forms) as forms,
             (select coalesce(max(id), 0) from studio_forms) as last_form,
             (select count(*) from studio_form_quarantine) as held,
-            (select coalesce(max(id), 0) from studio_form_quarantine) as last_held""";
+            (select coalesce(max(id), 0) from studio_form_quarantine) as last_held,
+            (select coalesce(max(id), 0) from studio_form_versions) as last_version,
+            (select coalesce(sum(revision), 0) from studio_form_state) as states""";
+
+    /** Whether a form is archived, over {@code studio_forms f}. */
+    public static final String ARCHIVED =
+            "exists (select 1 from studio_form_state a where a.form_id = f.id and a.status = 'archived')";
 
     private final JdbcClient jdbc;
     private final JsonColumns json;
 
     /**
-     * The state of the catalog both tables are in. Identities only grow, so equal counts and maxima mean equal rows:
+     * The state of the catalog its tables are in. Identities only grow, so equal counts and maxima mean equal rows:
      * a new row raises the maximum, and with the maximum unchanged only removals remain, which lower the count.
+     * Versions are never removed, so their maximum alone tells them; state rows are never removed and each change
+     * raises the revision of its row, so the sum of the revisions grows with every activation, archive or restore.
      */
-    public record Version(long forms, long lastForm, long held, long lastHeld) {}
+    public record Version(long forms, long lastForm, long held, long lastHeld, long lastVersion, long states) {
+        public Version(long forms, long lastForm, long held, long lastHeld) {
+            this(forms, lastForm, held, lastHeld, 0, 0);
+        }
+    }
 
-    /** A stored declaration as raw JSON, read and compiled one at a time by the caller. */
+    /**
+     * A stored form as raw JSON, read and compiled one at a time by the caller: the declaration of its active version,
+     * whether it is archived (served read-only) and its quarantine.
+     */
     public record Row(
             long id,
             String code,
             String declaration,
-            @Nullable String quarantine) {}
+            @Nullable String quarantine,
+            boolean archived) {
+        public Row(long id, String code, String declaration, @Nullable String quarantine) {
+            this(id, code, declaration, quarantine, false);
+        }
+    }
 
     /** The rows and the version of one statement, so both come from the same database snapshot. */
     public record Catalog(Version version, List<Row> rows) {}
@@ -54,30 +80,39 @@ public class StudioFormRepository {
 
     public Version version() {
         return jdbc.sql("select " + VERSION_COLUMNS)
-                .query((rs, row) -> new Version(
-                        rs.getLong("forms"), rs.getLong("last_form"), rs.getLong("held"), rs.getLong("last_held")))
+                .query((rs, row) -> version(rs))
                 .single();
     }
 
+    private static Version version(ResultSet rs) throws SQLException {
+        return new Version(
+                rs.getLong("forms"),
+                rs.getLong("last_form"),
+                rs.getLong("held"),
+                rs.getLong("last_held"),
+                rs.getLong("last_version"),
+                rs.getLong("states"));
+    }
+
     public Catalog catalog() {
-        var rows = jdbc.sql("select f.id, f.code, f.declaration::text as declaration, q.reason, " + VERSION_COLUMNS
+        var rows = jdbc.sql("select f.id, f.code, coalesce(v.declaration, f.declaration)::text as declaration,"
+                        + " q.reason, coalesce(s.status = 'archived', false) as archived, " + VERSION_COLUMNS
                         + " from (select 1) as one"
                         + " left join (select id, code, declaration from studio_forms order by id limit "
                         + READ_LIMIT + ") as f on true"
+                        + " left join studio_form_state s on s.form_id = f.id"
+                        + " left join studio_form_versions v on v.form_id = f.id and v.version = s.active_version"
                         + " left join studio_form_quarantine q on q.form_id = f.id order by f.id")
                 .query((rs, row) -> new Line(
-                        new Version(
-                                rs.getLong("forms"),
-                                rs.getLong("last_form"),
-                                rs.getLong("held"),
-                                rs.getLong("last_held")),
+                        version(rs),
                         rs.getObject("id") == null
                                 ? null
                                 : new Row(
                                         rs.getLong("id"),
                                         rs.getString("code"),
                                         rs.getString("declaration"),
-                                        rs.getString("reason"))))
+                                        rs.getString("reason"),
+                                        rs.getBoolean("archived"))))
                 .list();
         return new Catalog(
                 rows.getFirst().version(),
@@ -110,7 +145,15 @@ public class StudioFormRepository {
                 .optional();
     }
 
+    /** The forms that count toward the limit of active forms: an archived form does not (ADR-0041). */
     public long count() {
+        return jdbc.sql("select count(*) from studio_forms f where not " + ARCHIVED)
+                .query(Long.class)
+                .single();
+    }
+
+    /** Every stored form, active or archived. */
+    public long stored() {
         return jdbc.sql("select count(*) from studio_forms").query(Long.class).single();
     }
 

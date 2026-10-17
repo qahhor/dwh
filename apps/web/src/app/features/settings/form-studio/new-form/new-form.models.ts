@@ -9,12 +9,21 @@ export interface SimpleField {
   listed: boolean;
   maxLength?: number | null;
   scale?: number | null;
+  /** Format 2: kept with its data, served nowhere (ADR-0041). */
+  hidden?: boolean;
+  /** Format 2: the fixed value a new record takes. */
+  defaultValue?: string;
+}
+export interface SimpleFormMenu {
+  icon: string;
+  section: 'workspace' | 'administration';
+  order: number;
 }
 export interface SimpleFormDeclaration {
-  formatVersion: 1;
+  formatVersion: 1 | 2;
   kind: 'simple-form';
   module: { code: string; title: StudioLabels };
-  entity: { name: string; title: StudioLabels };
+  entity: { name: string; title: StudioLabels; menu?: SimpleFormMenu };
   fields: SimpleField[];
 }
 export interface SimpleFormPackage {

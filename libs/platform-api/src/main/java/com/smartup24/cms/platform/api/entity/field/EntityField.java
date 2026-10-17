@@ -135,9 +135,16 @@ public record EntityField(
         return "'" + fixed + "'";
     }
 
-    /** The value as SQL over the table aliased {@code alias}: an attribute cast to the field's type. */
+    /**
+     * The value as SQL over the table aliased {@code alias}: an attribute cast to the field's type; a JSON property with
+     * a fixed default reads the default while its key is absent (ADR-0041).
+     */
     public String sql(String alias) {
-        if (source instanceof FieldSource.JsonProperty property) return JsonPropertyCasts.read(property, alias, type);
+        if (source instanceof FieldSource.JsonProperty property) {
+            String fallback =
+                    form != null && form.defaultValue() instanceof FieldDefault.Fixed fixed ? fixed.value() : null;
+            return JsonPropertyCasts.read(property, alias, type, fallback);
+        }
         return source instanceof FieldSource.Attribute attribute
                 ? AttributeCasts.read(alias, attribute.code(), type)
                 : source.sql(alias);

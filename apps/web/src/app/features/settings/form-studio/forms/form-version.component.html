@@ -1,0 +1,194 @@
+<div class="version-page" data-testid="form-version">
+  <ui-page-header [title]="'studio.version.title' | t" [subtitle]="code()">
+    <a smt-button smtVariant="secondary" routerLink="/settings/form-studio/forms">{{ 'studio.version.back' | t }}</a>
+  </ui-page-header>
+  @if (!store.mayPublish()) {
+    <smt-alert smtTone="warning">{{ 'studio.forms.denied' | t }}</smt-alert>
+  } @else if (store.loading() && !store.draft()) {
+    <p role="status" class="version-hint">{{ 'common.loading' | t }}</p>
+  } @else if (store.loadError()) {
+    <smt-alert smtTone="danger" data-testid="form-version-load-error">
+      {{ store.loadError() }}
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="store.load(code())">
+        {{ 'common.retry' | t }}
+      </button>
+    </smt-alert>
+  } @else if (store.draft(); as draft) {
+    <smt-alert smtTone="info" smtLive="off">{{ 'studio.version.rules_hint' | t }}</smt-alert>
+    @if (store.archived()) {
+      <smt-alert smtTone="warning" data-testid="form-version-archived">{{ 'studio.version.archived' | t }}</smt-alert>
+    }
+    @if (store.changes().length) {
+      <smt-alert smtTone="warning" data-testid="form-version-changes">
+        {{ 'studio.version.incompatible' | t }}
+        <ul>
+          @for (change of store.changes(); track change.field + change.change) {
+            <li>{{ changeText(change) }}</li>
+          }
+        </ul>
+      </smt-alert>
+    }
+    <div class="version-toolbar">
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        [disabled]="store.busy() || store.activated() !== null"
+        [smtLoading]="store.preparing()"
+        data-testid="form-version-prepare"
+        (click)="store.prepare()"
+      >
+        {{ 'studio.version.prepare' | t }}
+      </button>
+      <button
+        smt-button
+        type="button"
+        [disabled]="!store.canActivate()"
+        [smtLoading]="store.publishing()"
+        data-testid="form-version-activate"
+        (click)="store.activate()"
+      >
+        {{ 'studio.version.activate' | t }}
+      </button>
+    </div>
+    @if (store.activated(); as result) {
+      <smt-alert smtTone="success" data-testid="form-version-activated">
+        {{ 'studio.version.activated' | t: { version: result.form?.activeVersion ?? '' } }}
+        <a smt-button smtVariant="secondary" smtSize="sm" [routerLink]="['/e', code()]">{{
+          'studio.forms.open_records' | t
+        }}</a>
+        <a smt-button smtVariant="secondary" smtSize="sm" routerLink="/settings/form-studio/forms">{{
+          'studio.forms.title' | t
+        }}</a>
+      </smt-alert>
+    }
+    @if (store.error()) {
+      <smt-alert smtTone="danger" data-testid="form-version-error">
+        {{ store.error() }}
+        @if (store.issues().length) {
+          <ul>
+            @for (issue of store.issues(); track $index) {
+              <li>
+                <code>{{ issue.path }}</code
+                >: {{ issue.change ? changeText({ field: issue.path, change: issue.change }) : issue.message }}
+              </li>
+            }
+          </ul>
+        }
+        @if (store.conflict()) {
+          <p>{{ 'studio.version.conflict' | t }}</p>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="store.load(code())">
+            {{ 'common.refresh' | t }}
+          </button>
+        }
+      </smt-alert>
+    }
+    <p class="version-status" role="status">
+      {{
+        (store.publishing()
+          ? 'studio.version.activating'
+          : store.preparing()
+            ? 'settings.simple_form.preparing'
+            : store.activated()
+              ? 'studio.version.done'
+              : store.prepared()
+                ? 'studio.version.ready'
+                : 'settings.simple_form.unchecked'
+        ) | t
+      }}
+    </p>
+    <div class="version-columns">
+      <section class="version-panel" aria-labelledby="version-editor-title">
+        <h2 id="version-editor-title">{{ 'settings.simple_form.editor' | t }}</h2>
+        <fieldset class="version-group">
+          <legend>{{ 'studio.version.form_title' | t }}</legend>
+          <app-new-form-labels
+            [labels]="draft.entity.title"
+            [disabled]="store.busy()"
+            (changed)="setTitle($event.language, $event.value)"
+          />
+        </fieldset>
+        <fieldset class="version-group">
+          <legend>{{ 'studio.version.menu' | t }}</legend>
+          <div class="version-grid">
+            <smt-control [smtLabel]="'studio.version.menu_icon' | t">
+              <smt-select
+                [options]="iconOptions()"
+                [value]="menu().icon"
+                [allowClear]="false"
+                [disabled]="store.busy()"
+                (valueChange)="setIcon($event)"
+              />
+            </smt-control>
+            <smt-control [smtLabel]="'studio.version.menu_section' | t">
+              <smt-select
+                [options]="sectionOptions()"
+                [value]="menu().section"
+                [allowClear]="false"
+                [disabled]="store.busy()"
+                (valueChange)="setSection($event)"
+              />
+            </smt-control>
+            <smt-control [smtLabel]="'studio.version.menu_order' | t" [smtHint]="'studio.version.menu_order_hint' | t">
+              <smt-input
+                type="number"
+                [value]="menu().order"
+                [smtMin]="1"
+                [smtMax]="999"
+                [disabled]="store.busy()"
+                (valueChange)="menuOrder($event)"
+              />
+            </smt-control>
+          </div>
+        </fieldset>
+        <div class="version-heading">
+          <h3>{{ 'settings.simple_form.fields' | t }}</h3>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            [disabled]="!canAdd()"
+            data-testid="form-version-add"
+            (click)="addField()"
+          >
+            {{ 'settings.simple_form.add_field' | t }}
+          </button>
+        </div>
+        @for (field of draft.fields; track $index; let index = $index) {
+          <app-new-form-field
+            [field]="field"
+            [index]="index"
+            [count]="draft.fields.length"
+            [disabled]="store.busy()"
+            [versioning]="true"
+            [stored]="store.storedField(field.id)"
+            (changed)="editField(index, $event)"
+            (moved)="moveField(index, $event)"
+            (removed)="removeField(index)"
+          />
+        }
+      </section>
+      <section class="version-panel" aria-labelledby="version-preview-title">
+        <h2 id="version-preview-title">{{ 'settings.form_studio.preview' | t }}</h2>
+        @if (preview(); as meta) {
+          <p class="version-hint">{{ 'settings.form_studio.preview_hint' | t }}</p>
+          <smt-entity-form [meta]="meta" [(value)]="values" />
+        }
+        @if (store.detail()?.versions; as versions) {
+          <h3>{{ 'studio.version.history' | t }}</h3>
+          <ul class="version-list">
+            @for (version of versions; track version.version) {
+              <li>
+                {{ 'studio.version.number' | t: { version: version.version ?? '' } }}
+                @if (version.version === store.detail()?.form?.activeVersion) {
+                  <strong>{{ 'studio.version.active_badge' | t }}</strong>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+  }
+</div>

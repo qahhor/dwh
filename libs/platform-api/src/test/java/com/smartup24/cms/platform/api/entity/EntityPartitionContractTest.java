@@ -82,6 +82,19 @@ class EntityPartitionContractTest {
             assertThat(field.sql("p")).isEqualTo("(p.payload->>'value')");
             assertThat(field.formField().attribute()).isNull();
         }
+        // A fixed default is read while the key is absent; it reaches SQL as hexadecimal digits only (ADR-0041).
+        var defaulted = text("text", "test.text")
+                .jsonProperty("payload", "value")
+                .defaultValue(com.smartup24.cms.platform.api.entity.field.FieldDefault.fixed("x');drop"))
+                .build();
+        assertThat(defaulted.sql("p"))
+                .isEqualTo("(case when p.payload->'value' is null then convert_from(decode('7827293b64726f70', 'hex'),"
+                        + " 'UTF8') else (p.payload->>'value') end)");
+        var number = EntityFields.number("amount", "test.amount")
+                .jsonProperty("payload", "amount")
+                .defaultValue(com.smartup24.cms.platform.api.entity.field.FieldDefault.fixed("10"))
+                .build();
+        assertThat(number.sql("p")).endsWith(" end)::numeric");
         assertThat(base().build().model().partition()).isNull();
         assertThat(base().build().model().from()).isEqualTo("test_items t");
         assertThat(base().partition("form_id", Long.MAX_VALUE).build().model().from())

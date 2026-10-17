@@ -58,7 +58,8 @@ test('Studio prepares a real package and respects activation before creating and
     await chooseLiveFormDelivery(page);
     const availabilityResponse = await availability;
     expect(availabilityResponse.status()).toBe(200);
-    const { enabled } = await availabilityResponse.json() as { enabled: boolean };
+    // Response bodies are read from the server, not the browser, which may evict them (see activateVersion).
+    const { enabled } = await call(page, 'GET', '/api/v1/studio/activation', 200) as { enabled: boolean };
     if (process.env.E2E_STUDIO_ACTIVATION_EXPECTED) {
       expect(String(enabled)).toBe(process.env.E2E_STUDIO_ACTIVATION_EXPECTED);
     }
@@ -66,9 +67,10 @@ test('Studio prepares a real package and respects activation before creating and
     await page.getByTestId('new-form-prepare').click();
     const packageResponse = await prepared;
     expect(packageResponse.status()).toBe(200);
-    const delivery = await packageResponse.json() as { checksum: string; declaration: { entity: { name: string } } };
-    expect(delivery.checksum).toMatch(/^[a-f0-9]{64}$/u);
-    expect(delivery.declaration.entity.name).toBe(entityName);
+    const checksum = page.locator('.new-form-checksum');
+    await expect(checksum).toHaveText(/^[a-f0-9]{64}$/u);
+    const delivery = { checksum: (await checksum.textContent())?.trim() ?? '' };
+    await expect(page.getByTestId('new-entity-name')).toHaveValue(entityName);
     await expect(page.getByTestId('new-form-download')).toBeEnabled();
     if (!enabled) {
       await expect(page.getByTestId('new-form-activate')).toBeDisabled();
@@ -82,7 +84,9 @@ test('Studio prepares a real package and respects activation before creating and
     await page.getByRole('alertdialog').getByRole('button', { name: 'Активировать форму', exact: true }).click();
     const activated = await activation;
     expect(activated.status()).toBe(201);
-    expect(await activated.json()).toMatchObject({ entityCode: `studio.${entityName}`, checksum: delivery.checksum });
+    // The browser may evict a response body while the screen refreshes its dictionary: the server answers instead.
+    const stored = await call(page, 'GET', `/api/v1/studio/forms/studio.${entityName}`, 200) as { checksum: string };
+    expect(stored.checksum).toBe(delivery.checksum);
     await expect(page.getByTestId('new-form-activated')).toContainText(`studio.${entityName}`);
 
     const entity = await openEntity(page, `studio.${entityName}`, 'Места хранения');
@@ -108,6 +112,112 @@ test('Studio prepares a real package and respects activation before creating and
     await expect(page.getByTestId('entity-empty')).toBeVisible();
     assertNoPageErrors();
   } finally {
+    await moduleState(page, wasEnabled);
+  }
+});
+
+/** Activates the version prepared in the editor after its confirmation and answers the server's response. */
+async function activateVersion(page: Page, code: string): Promise<{ form: { activeVersion: number } }> {
+  const prepared = page.waitForResponse(response => response.url().endsWith('/api/v1/form-studio/new-forms/prepare'));
+  await page.getByTestId('form-version-prepare').click();
+  expect((await prepared).status()).toBe(200);
+  await expect(page.getByTestId('form-version-activate')).toBeEnabled();
+  await page.getByTestId('form-version-activate').click();
+  const activation = page.waitForResponse(response => response.request().method() === 'POST'
+    && response.url().endsWith(`/api/v1/studio/forms/${code}/versions`));
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Активировать версию', exact: true }).click();
+  const answer = await activation;
+  expect(answer.status()).toBe(201);
+  expect(answer.request().headers()['if-match']).toMatch(/^"\d+"$/u);
+  await expect(page.getByTestId('form-version-activated')).toBeVisible();
+  // The browser may evict a response body while the screen refreshes its dictionary: the server answers instead.
+  return await call(page, 'GET', `/api/v1/studio/forms/${code}`, 200) as { form: { activeVersion: number } };
+}
+
+// ADR-0041: a live form changes by compatible versions, keeps the data of older records and archives read-only.
+test('A live form takes a new field and a hidden one, then archives read-only and restores', async ({ page }) => {
+  test.setTimeout(150_000);
+  await loginToInstance(page);
+  const assertNoPageErrors = collectPageErrors(page, [/status of 409/u]);
+  const modules = await call(page, 'GET', '/api/v1/modules', 200) as { code: string; status: string }[];
+  const wasEnabled = modules.find(module => module.code === 'studio')?.status === 'ACTIVE';
+  await moduleState(page, true);
+  let code: string | undefined;
+  let archived = false;
+  try {
+    const { enabled } = await call(page, 'GET', '/api/v1/studio/activation', 200) as { enabled: boolean };
+    if (process.env.E2E_STUDIO_ACTIVATION_EXPECTED) {
+      expect(String(enabled)).toBe(process.env.E2E_STUDIO_ACTIVATION_EXPECTED);
+    }
+    if (!enabled) return;
+    const name = `rv_${Date.now().toString(36)}`;
+    code = await activateLiveForm(page, name);
+    const old = await call(page, 'POST', `/api/v1/entities/${code}`, 201,
+      { name: 'Old record', code: 'old', note: 'Kept note' }) as { id: number };
+
+    await page.goto('/settings/form-studio/forms');
+    await expect(page.getByTestId(`my-forms-status-${code}`)).toContainText('Активна');
+    await page.getByTestId(`my-forms-version-${code}`).click();
+    await expect(page.getByTestId('form-version')).toBeVisible();
+    await expect(page.getByTestId('new-field-0').getByRole('textbox').first()).toBeDisabled();
+    await page.getByTestId('form-version-add').click();
+    const added = page.getByTestId('new-field-1');
+    const boxes = added.getByRole('textbox');
+    await boxes.nth(1).fill('Регион');
+    await boxes.nth(2).fill('Hudud');
+    await boxes.nth(3).fill('Region');
+    expect((await activateVersion(page, code)).form.activeVersion).toBe(2);
+
+    const before = await call(page, 'GET', `/api/v1/entities/${code}/${old.id}`, 200) as Record<string, unknown>;
+    expect(before.field1 ?? null).toBeNull();
+    expect(before.note).toBe('Kept note');
+    const entity = await openEntity(page, code, `Карантин ${name}`);
+    await page.getByRole('link', { name: 'Создать', exact: true }).click();
+    await entity.fillField('name', 'New record');
+    await entity.fillField('code', 'new');
+    await entity.fillField('field1', 'North');
+    expect((await entity.save()).status()).toBe(201);
+    await expect(page).toHaveURL(/\/e\/studio\.[a-z0-9_]+\/\d+$/u);
+    const fresh = { id: Number(new URL(page.url()).pathname.split('/').pop()) };
+    const saved = await call(page, 'GET', `/api/v1/entities/${code}/${fresh.id}`, 200) as Record<string, unknown>;
+    expect(saved.field1).toBe('North');
+
+    await page.goto(`/settings/form-studio/forms/${code}/version`);
+    await page.getByTestId('version-hide-note').click();
+    expect((await activateVersion(page, code)).form.activeVersion).toBe(3);
+    const hidden = await call(page, 'GET', `/api/v1/entities/${code}/${old.id}`, 200) as Record<string, unknown>;
+    expect(hidden).not.toHaveProperty('note');
+
+    await page.goto('/settings/form-studio/forms');
+    await page.getByTestId(`my-forms-archive-${code}`).click();
+    const archiving = page.waitForResponse(response => response.url().endsWith(`/api/v1/studio/forms/${code}/archive`));
+    await page.getByRole('alertdialog').getByRole('button', { name: 'В архив', exact: true }).click();
+    expect((await archiving).status()).toBe(200);
+    archived = true;
+    await expect(page.getByTestId(`my-forms-status-${code}`)).toContainText('В архиве');
+    await call(page, 'POST', `/api/v1/entities/${code}`, 409, { name: 'Refused', code: 'refused' });
+    await call(page, 'GET', `/api/v1/entities/${code}/${fresh.id}`, 200);
+    await openEntity(page, code, `Карантин ${name}`);
+    await expect(page.getByRole('link', { name: 'Создать', exact: true })).toHaveCount(0);
+    const menu = await call(page, 'GET', '/api/v1/entities/menu', 200) as { code: string }[];
+    expect(menu.map(item => item.code)).not.toContain(code);
+
+    await page.goto('/settings/form-studio/forms');
+    await page.getByTestId(`my-forms-restore-${code}`).click();
+    const restoring = page.waitForResponse(response => response.url().endsWith(`/api/v1/studio/forms/${code}/restore`));
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Восстановить', exact: true }).click();
+    expect((await restoring).status()).toBe(200);
+    archived = false;
+    await call(page, 'POST', `/api/v1/entities/${code}`, 201, { name: 'After restore', code: 'after' });
+    assertNoPageErrors();
+  } finally {
+    if (archived && code) {
+      const form = await call(page, 'GET', `/api/v1/studio/forms/${code}`, 200) as { form: { revision: number } };
+      const csrf = (await page.context().cookies(page.url())).find(cookie => cookie.name === 'XSRF-TOKEN');
+      await page.request.post(`/api/v1/studio/forms/${code}/restore`, {
+        headers: { 'X-XSRF-TOKEN': csrf?.value ?? '', 'If-Match': `"${form.form.revision}"` },
+      });
+    }
     await moduleState(page, wasEnabled);
   }
 });

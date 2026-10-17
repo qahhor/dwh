@@ -9,6 +9,18 @@
         {{ 'settings.form_studio.title' | t }}
       </button>
     }
+    @if (canOpenMyForms()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtIcon="dynamic_form"
+        data-testid="settings-my-forms"
+        (click)="openMyForms()"
+      >
+        {{ 'studio.forms.title' | t }}
+      </button>
+    }
     <button
       smt-button
       type="button"

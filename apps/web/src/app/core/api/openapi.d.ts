@@ -3671,13 +3671,97 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List the live forms
+         * @description Requires studio.forms.publish. The newest first; limit 1 to 100 (default 50, else 422) and the nextCursor of the previous page. Each form gives its status (active or archived), active version, versions, records, quarantine and why it fails to load, and the revision a change names in If-Match. An inactive module returns 404.
+         */
+        get: operations["liveForms"];
         put?: never;
         /**
          * Activate an immutable simple form
          * @description Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. A new form answers 201 with Location; an exact repeat of an activated package that is served creates nothing and answers 200 with the same body; an exact repeat of a quarantined form or of a stored form that does not load answers 409, as does a different package at an occupied code; labels that shadow translation keys of the application answer 422.
          */
         post: operations["activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/forms/{entityCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a live form with its versions
+         * @description Requires studio.forms.publish. The declaration of the active version, every version and the revision as ETag. 404 for an unknown form or a value that is no live form code.
+         */
+        get: operations["liveForm"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/forms/{entityCode}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a live form
+         * @description Requires studio.forms.publish and If-Match (428/409). The form leaves the menu; its records stay readable, with history and export, and every write answers 409 error.studio.archived. It no longer counts toward the limit of 100 active forms. 409 when already archived. Audited.
+         */
+        post: operations["archiveForm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/forms/{entityCode}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore an archived live form
+         * @description Requires studio.forms.publish and If-Match (428/409). The form returns to the menu and its records to writing; 422 error.studio.quota when 100 forms are already active, 409 when the form is not archived. A quarantined form stays out of service until it is released. Audited.
+         */
+        post: operations["restoreForm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/forms/{entityCode}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a new version of a live form
+         * @description Requires studio.forms.publish, enabled activation and If-Match with the revision of the form (428 without it, 409 when stale). The body is a simple-form package of the same code (422 otherwise). Only compatible changes are accepted: each refused change is named in a 422 error.studio.change_incompatible with its field and change. 409 for an archived form, 422 for the same declaration as the active one or above 100 versions. The old versions never change; every node serves the new one at its next request. Audited.
+         */
+        post: operations["newFormVersion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5518,6 +5602,14 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageStudioFormSummary: {
+            hasMore?: boolean;
+            items?: components["schemas"]["StudioFormSummary"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageTaskCommentView: {
             hasMore?: boolean;
             items?: components["schemas"]["TaskCommentView"][];
@@ -6509,8 +6601,12 @@ export interface components {
         };
         SimpleFormDeclaration: {
             entity: components["schemas"]["SimpleFormEntity"];
+            /** @description At most 20 fields that are not hidden */
             fields: components["schemas"]["SimpleFormField"][];
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description 1, or 2 for a live form with hidden fields, defaults or its own menu item
+             */
             formatVersion: number;
             /** @enum {string} */
             kind: "simple-form";
@@ -6559,10 +6655,15 @@ export interface components {
             title: components["schemas"]["SimpleFormDraftLabels"];
         };
         SimpleFormEntity: {
+            menu?: components["schemas"]["SimpleFormMenu"];
             name: string;
             title: components["schemas"]["SimpleFormLabels"];
         };
         SimpleFormField: {
+            /** @description Format 2: the fixed value a new record takes, written as the field reads it */
+            defaultValue?: string;
+            /** @description Format 2: the field is kept with its data but leaves the form, the list, the export and the history (ADR-0041); present only when true */
+            hidden?: boolean;
             id: string;
             labels: components["schemas"]["SimpleFormLabels"];
             listed: boolean;
@@ -6578,6 +6679,14 @@ export interface components {
             en: string;
             ru: string;
             uz: string;
+        };
+        SimpleFormMenu: {
+            /** @enum {string} */
+            icon: "box" | "description" | "assignment" | "event" | "storefront" | "local_shipping" | "inventory_2" | "people" | "support_agent" | "receipt_long";
+            /** Format: int32 */
+            order: number;
+            /** @enum {string} */
+            section: "workspace" | "administration";
         };
         SimpleFormModule: {
             code: string;
@@ -6716,6 +6825,45 @@ export interface components {
             served?: number;
             /** Format: int32 */
             stored?: number;
+        };
+        StudioFormDetail: {
+            checksum?: string;
+            declaration?: components["schemas"]["SimpleFormDeclaration"];
+            form?: components["schemas"]["StudioFormSummary"];
+            versions?: components["schemas"]["StudioFormVersion"][];
+        };
+        StudioFormSummary: {
+            /** Format: int32 */
+            activeVersion?: number;
+            /** @enum {string|null} */
+            broken?: "declaration" | "code_mismatch" | "declared_code" | "translation_key" | "form_limit" | null;
+            /** Format: date-time */
+            createdAt?: string;
+            entityCode?: string;
+            /** Format: date-time */
+            modifiedAt?: string;
+            quarantined?: boolean;
+            /**
+             * Format: int64
+             * @description Records that are not archived
+             */
+            records?: number;
+            /** Format: int64 */
+            revision?: number;
+            /** @enum {string} */
+            status?: "active" | "archived";
+            title?: components["schemas"]["SimpleFormLabels"];
+            /** Format: int32 */
+            versions?: number;
+        };
+        StudioFormVersion: {
+            checksum?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            createdBy?: number;
+            /** Format: int32 */
+            version?: number;
         };
         StudioQuarantineRequest: {
             entityCode: string;
@@ -16076,6 +16224,38 @@ export interface operations {
             };
         };
     };
+    liveForms: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageStudioFormSummary"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
     activate: {
         parameters: {
             query?: never;
@@ -16107,6 +16287,204 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudioActivatedForm"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    liveForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioFormDetail"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    archiveForm: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioFormSummary"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    restoreForm: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioFormSummary"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    newFormVersion: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimpleFormDeliveryPackage"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioFormDetail"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */

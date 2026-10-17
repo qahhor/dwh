@@ -57,6 +57,43 @@ class MdSimpleFormDeclarationsTest {
     }
 
     @Test
+    void formatTwoKeepsHiddenFieldsBeyondTwentyDefaultsAndAMenuItemAndDropsAFalseHiddenFlag() throws Exception {
+        ObjectNode source = (ObjectNode) json.readTree(fixture());
+        source.put("formatVersion", 2);
+        ((ObjectNode) source.path("entity"))
+                .putObject("menu")
+                .put("icon", "event")
+                .put("section", "administration")
+                .put("order", 7);
+        var fields = source.putArray("fields");
+        for (int i = 0; i < 30; i++) {
+            var field = fields.addObject()
+                    .put("id", "extra" + i)
+                    .put("type", "bool")
+                    .put("required", false)
+                    .put("listed", false)
+                    .put("hidden", i >= 20)
+                    .put("defaultValue", i % 2 == 0 ? "true" : "false");
+            field.putObject("labels").put("ru", "Поле").put("uz", "Maydon").put("en", "Field");
+        }
+        var prepared = declarations.prepare(json.writeValueAsBytes(source)).declaration();
+        assertThat(prepared.formatVersion()).isEqualTo(2);
+        assertThat(prepared.entity().menu().icon()).isEqualTo("event");
+        assertThat(prepared.fields()).hasSize(30);
+        assertThat(prepared.fields().get(0).hidden()).isNull();
+        assertThat(prepared.fields().get(29).hidden()).isTrue();
+        assertThat(prepared.fields().get(1).defaultValue()).isEqualTo("false");
+        assertThat(json.writeValueAsString(prepared.fields().get(0))).doesNotContain("hidden");
+        ((ObjectNode) fields.get(20)).put("hidden", false);
+        assertThatThrownBy(() -> declarations.prepare(json.writeValueAsBytes(source)))
+                .isInstanceOf(ApiException.class);
+        ((ObjectNode) fields.get(20)).put("hidden", true);
+        fields.add(((ObjectNode) fields.get(29).deepCopy()).put("id", "extra30"));
+        assertThatThrownBy(() -> declarations.prepare(json.writeValueAsBytes(source)))
+                .isInstanceOf(ApiException.class);
+    }
+
+    @Test
     void limitsBytesExactlyAndCountsUnicodeLabelsAsCodePoints() throws Exception {
         byte[] source = fixture();
         String padded = new String(source, StandardCharsets.UTF_8) + " ".repeat(32768 - source.length);

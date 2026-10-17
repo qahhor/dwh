@@ -40,6 +40,36 @@ describe('NewFormFieldComponent', () => {
     expect(emit.mock.lastCall?.[0].labels).toEqual({ ru: 'Текст', uz: 'Matn', en: 'Comment' });
     expect(component.field().labels.en).toBe('Text');
   });
+  it('keeps the key, type and default of a stored field in a new version and hides instead of removing', async () => {
+    const { fixture, component, emit } = await render();
+    fixture.componentRef.setInput('versioning', true);
+    fixture.componentRef.setInput('stored', component.field());
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('input')?.disabled).toBe(true);
+    expect(root.querySelector('[data-testid="version-hide-note"]')).not.toBeNull();
+    expect(component.minMaxLength()).toBe(255);
+    expect(component.requiredLocked()).toBe(true);
+    component.changeType('number');
+    component.setDefault('x');
+    expect(emit).not.toHaveBeenCalled();
+    component.setHidden(true);
+    expect(emit.mock.lastCall?.[0]).toMatchObject({ hidden: true });
+    fixture.componentRef.setInput('field', { ...component.field(), hidden: true });
+    component.setHidden(false);
+    expect(emit.mock.lastCall?.[0]).not.toHaveProperty('hidden');
+  });
+  it('sets and clears the default of a field added in a new version', async () => {
+    const { fixture, component, emit } = await render();
+    fixture.componentRef.setInput('versioning', true);
+    fixture.detectChanges();
+    component.setDefault('Новое');
+    expect(emit.mock.lastCall?.[0]).toMatchObject({ defaultValue: 'Новое' });
+    component.setDefault('');
+    expect(emit.mock.lastCall?.[0]).not.toHaveProperty('defaultValue');
+    component.setDefault(null);
+    expect(emit.mock.lastCall?.[0]).not.toHaveProperty('defaultValue');
+  });
   it('does not convert an empty required numeric limit into a valid zero', async () => {
     const { component } = await render();
     expect(component.number(null)).toBeUndefined();

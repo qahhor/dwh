@@ -50,6 +50,9 @@ function wantsKey(request: HttpRequest<unknown>): boolean {
   // Activation uses the verified package checksum and rechecks access on every retry (ADR-0038).
   if (request.method === 'POST' && ['/api/v1/studio/forms', '/api/v1/studio/assistant/drafts'].includes(path))
     return false;
+  // A new version, an archive and a restore take If-Match and recheck access on every retry (ADR-0041).
+  if (request.method === 'POST' && /^\/api\/v1\/studio\/forms\/[^/]+\/(versions|archive|restore)$/u.test(path))
+    return false;
   if (['/api/v1/list-views', '/api/v1/dashboards'].some((prefix) => path === prefix || path.startsWith(`${prefix}/`)))
     return false;
   if (RETURNS_SECRET.has(`${request.method} ${path.replace(/\/+$/, '')}`)) return false;

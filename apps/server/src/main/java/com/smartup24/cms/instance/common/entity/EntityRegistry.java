@@ -210,9 +210,27 @@ public class EntityRegistry {
         return entity.model() != null ? runtimeStore.of(entity) : Objects.requireNonNull(records.get(entity.code()));
     }
 
+    /** The dictionary keys that name the fields of the entity's history, as the entity is now. */
+    private Map<String, String> historyLabels(EntityDefinition entity) {
+        Map<String, String> labels = new LinkedHashMap<>();
+        resolve(entity).fields().stream()
+                .filter(field -> !field.labelKey().isEmpty())
+                .forEach(field -> labels.put(field.key(), field.labelKey()));
+        if (entity.capabilities().contains(EntityCapability.ARCHIVE)) {
+            labels.put(EntityModel.ARCHIVED, EntityLists.ARCHIVED_LABEL);
+        }
+        EntityModel model = entity.model();
+        if (model != null) {
+            // A collection's change is one property of the record's history (ADR-0032, 6.8).
+            model.collections().forEach(collection -> labels.put(collection.key(), collection.labelKey()));
+        }
+        return labels;
+    }
+
     /**
      * The entity's history source. Its fields are named from the entity as it is when the history is read, so a
-     * custom field added later is named too, by its own name (plan 10/10, item 5.0).
+     * custom field added later is named too, by its own name (plan 10/10, item 5.0). A live form shows only the fields
+     * it names: a hidden field keeps its old values in the audit rows (ADR-0041).
      */
     private RecordHistorySource historySource(EntityDefinition entity, EntityRecords records) {
         return new RecordHistorySource() {
@@ -238,19 +256,13 @@ public class EntityRegistry {
 
             @Override
             public Map<String, String> fieldLabels() {
-                Map<String, String> labels = new LinkedHashMap<>();
-                resolve(entity).fields().stream()
-                        .filter(field -> !field.labelKey().isEmpty())
-                        .forEach(field -> labels.put(field.key(), field.labelKey()));
-                if (entity.capabilities().contains(EntityCapability.ARCHIVE)) {
-                    labels.put(EntityModel.ARCHIVED, EntityLists.ARCHIVED_LABEL);
-                }
+                return historyLabels(entity);
+            }
+
+            @Override
+            public boolean namedFieldsOnly() {
                 EntityModel model = entity.model();
-                if (model != null) {
-                    // A collection's change is one property of the record's history (ADR-0032, 6.8).
-                    model.collections().forEach(collection -> labels.put(collection.key(), collection.labelKey()));
-                }
-                return labels;
+                return model != null && model.partition() != null;
             }
 
             @Override

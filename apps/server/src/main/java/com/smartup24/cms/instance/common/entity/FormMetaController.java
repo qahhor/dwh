@@ -126,7 +126,23 @@ public class FormMetaController {
     public ResponseEntity<FormMeta> get(@PathVariable String code) {
         EntityDefinition entity = gate.findVisible(code).orElseThrow(EntityGate::unknownEntity);
         // A related list of the card only of an entity the viewer may see (ADR-0032, 9.3).
-        return ResponseEntity.ok(of(entity, enumItems, gate::visible));
+        FormMeta meta = of(entity, enumItems, gate::visible);
+        return ResponseEntity.ok(gate.writable(entity) ? meta : readOnly(meta));
+    }
+
+    /** The form of an entity whose records a lock holds read-only (ADR-0041): it offers no action. */
+    static FormMeta readOnly(FormMeta meta) {
+        return new FormMeta(
+                meta.code(),
+                meta.titleKey(),
+                meta.listCode(),
+                meta.fields(),
+                meta.layout(),
+                List.of(),
+                meta.capabilities(),
+                meta.collections(),
+                meta.workflow(),
+                meta.tabs());
     }
 
     /** The form as the viewer may use it, for an entity without enumerations. */

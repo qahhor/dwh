@@ -129,6 +129,24 @@ describe('idempotencyKeyInterceptor', () => {
     },
   );
 
+  it.each([
+    '/api/v1/studio/forms/studio.visits/versions',
+    '/api/v1/studio/forms/studio.visits/archive',
+    'https://cms.example.test/api/v1/studio/forms/studio.visits/restore',
+  ])('keeps the versions and lifecycle of a live form out of response replay at %s', (url) => {
+    http.post(url, null).subscribe();
+    const request = backend.expectOne(url);
+    expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
+    request.flush({});
+  });
+
+  it('keys a mutation of a path that only resembles a live form operation', () => {
+    http.post('/api/v1/studio/forms/studio.visits/versions/extra', null).subscribe();
+    const request = backend.expectOne('/api/v1/studio/forms/studio.visits/versions/extra');
+    expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(true);
+    request.flush({});
+  });
+
   it('never stores or automatically retries an assistant prompt', async () => {
     vi.useFakeTimers();
     const failed = vi.fn();

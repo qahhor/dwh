@@ -15,6 +15,8 @@ import { Observable, finalize } from 'rxjs';
 import { RecordNavigationPage } from '@core/guards/record-navigation.guard';
 
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { ModuleService } from '@core/services/module.service';
+import { PermissionService } from '@core/services/permission.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SearchSettingsComponent } from './search/search-settings.component';
 import { NavigationSettingsComponent } from './navigation/navigation-settings.component';
@@ -71,6 +73,8 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
   private readonly injector = inject(Injector);
+  private readonly permissions = inject(PermissionService);
+  private readonly modules = inject(ModuleService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly languagesPanel = viewChild(SettingsLanguagesPanelComponent);
   private readonly tabBar = viewChild(SMTTabBarComponent);
@@ -123,6 +127,15 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
 
   openFormStudio(): void {
     void this.router?.navigate(['/settings/form-studio']);
+  }
+
+  /** The live forms list opens for the publisher while the module of live forms is on (ADR-0041). */
+  canOpenMyForms(): boolean {
+    return this.permissions.hasPermission('studio.forms', 'publish') && this.modules.isModuleActive('studio');
+  }
+
+  openMyForms(): void {
+    void this.router?.navigate(['/settings/form-studio/forms']);
   }
 
   isTabAvailable(tab: string): tab is SettingsTab {

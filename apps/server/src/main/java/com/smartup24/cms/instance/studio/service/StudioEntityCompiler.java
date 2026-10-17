@@ -7,11 +7,13 @@ import com.smartup24.cms.instance.md.api.MdSimpleFormDtos;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Declaration;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Labels;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Menu;
 import com.smartup24.cms.platform.api.entity.Entity;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityMenu;
 import com.smartup24.cms.platform.api.entity.EntityScope;
 import com.smartup24.cms.platform.api.entity.field.EntityFields.Builder;
+import com.smartup24.cms.platform.api.entity.field.FieldDefault;
 import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -20,10 +22,22 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
-/** Compiles the bounded declaration into the existing runtime, with a server-owned partition (ADR-0038). */
+/**
+ * Compiles the bounded declaration into the existing runtime, with a server-owned partition (ADR-0038). A hidden field
+ * is left out — its data stays in the payload, which every save merges — and a fixed default is read for records saved
+ * before the field was added (ADR-0041). An archived form compiles read-only: no menu item, no create, update or
+ * delete; its archive action stays only so archived records keep apart in the list, and the write lock refuses it.
+ */
 @Component
 public class StudioEntityCompiler {
+    /** The menu item of a form that does not name its own. */
+    public static final Menu DEFAULT_MENU = new Menu("box", "workspace", 100);
+
     public EntityDefinitionSource.Declaration compile(long id, Declaration source) {
+        return compile(id, source, false);
+    }
+
+    public EntityDefinitionSource.Declaration compile(long id, Declaration source, boolean archived) {
         String code = "studio." + source.entity().name();
         String prefix = "studio.live." + source.entity().name();
         Entity builder = Entity.define(code, code)
@@ -43,7 +57,6 @@ public class StudioEntityCompiler {
                                 "studio.record.update",
                                 "delete",
                                 "studio.record.delete"))
-                .menu(new EntityMenu(prefix + ".title", "box", "workspace", 100, "studio"))
                 .field(text("name", "studio.record.name")
                         .column("name")
                         .required()
@@ -59,21 +72,37 @@ public class StudioEntityCompiler {
                         .system(SystemColumn.MODIFIED_AT)
                         .list(sortable()));
         List<String> layout = new ArrayList<>(List.of("name", "code"));
-        for (Field field : source.fields()) {
+        for (Field field : shown(source)) {
             builder.field(field(field, prefix));
             layout.add(field.id());
         }
         builder.section("main", "entity.section.main", layout.toArray(String[]::new))
-                .actions("create", "update")
-                .archivable()
-                .actions("delete")
                 .defaultSort("modifiedAt", Entity.Sort.DESC)
                 .capabilities(
                         EntityCapability.SAVED_VIEWS,
                         EntityCapability.EXPORT,
                         EntityCapability.HISTORY,
                         EntityCapability.BULK);
+        if (archived) {
+            // Archived records stay apart in the list; the archive action itself is refused like every write.
+            builder.archivable();
+        } else {
+            Menu menu = source.entity().menu() == null
+                    ? DEFAULT_MENU
+                    : source.entity().menu();
+            builder.menu(new EntityMenu(prefix + ".title", menu.icon(), menu.section(), menu.order(), "studio"))
+                    .actions("create", "update")
+                    .archivable()
+                    .actions("delete");
+        }
         return new EntityDefinitionSource.Declaration(builder.build(), messages(source, prefix));
+    }
+
+    /** The fields a form serves: every field that is not hidden, in declaration order. */
+    public static List<Field> shown(Declaration source) {
+        return source.fields().stream()
+                .filter(field -> !Boolean.TRUE.equals(field.hidden()))
+                .toList();
     }
 
     /**
@@ -117,6 +146,7 @@ public class StudioEntityCompiler {
         if (field.maxLength() != null) builder.length(null, field.maxLength());
         if (field.scale() != null) builder.scale(field.scale());
         if (!field.listed()) builder.formOnly();
+        if (field.defaultValue() != null) builder.defaultValue(FieldDefault.fixed(field.defaultValue()));
         return builder;
     }
 
@@ -125,7 +155,7 @@ public class StudioEntityCompiler {
         for (String language : List.of("ru", "uz", "en")) {
             Map<String, String> values = new LinkedHashMap<>();
             values.put(prefix + ".title", label(source.entity().title(), language));
-            source.fields()
+            shown(source)
                     .forEach(field -> values.put(prefix + ".field." + field.id(), label(field.labels(), language)));
             result.put(language, values);
         }
