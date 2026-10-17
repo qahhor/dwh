@@ -196,6 +196,18 @@
           [disabled]="busy()"
           (changed)="setTitle('entity', $event.language, $event.value)"
         />
+        @if (store.delivery() === 'live') {
+          <smt-control [smtLabel]="'studio.scope.label' | t" [smtHint]="'studio.scope.hint' | t">
+            <smt-select
+              [options]="scopeOptions()"
+              [value]="store.draft().entity.scope ?? 'all'"
+              [allowClear]="false"
+              [disabled]="busy()"
+              data-testid="new-form-scope"
+              (valueChange)="setScope($event)"
+            />
+          </smt-control>
+        }
       </fieldset>
       <p class="new-form-hint">{{ 'settings.simple_form.implicit_hint' | t }}</p>
       <div class="new-form-heading">
@@ -221,6 +233,9 @@
           [index]="index"
           [count]="store.draft().fields.length"
           [disabled]="busy()"
+          [live]="store.delivery() === 'live'"
+          [lists]="targets.lists()"
+          [forms]="targets.forms()"
           (changed)="editField(index, $event)"
           (moved)="moveField(index, $event)"
           (removed)="removeField(index)"

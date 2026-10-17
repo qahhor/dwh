@@ -78,3 +78,68 @@ describe('form version rules (ADR-0041, the same as the server)', () => {
     expect(sent.fields[1].hidden).toBe(true);
   });
 });
+
+describe('format 3 rules (ADR-0041)', () => {
+  const option = (code: string) => ({ code, labels });
+  const select: SimpleField = {
+    id: 'result',
+    type: 'select',
+    labels,
+    required: false,
+    listed: true,
+    options: [option('done'), option('later')],
+  };
+  const ref: SimpleField = {
+    id: 'client',
+    type: 'ref',
+    labels,
+    required: false,
+    listed: true,
+    target: { kind: 'form', code: 'studio.clients' },
+  };
+  const scoped = (fields: SimpleField[], scope?: 'all' | 'org_unit' | 'owner'): SimpleFormDeclaration => ({
+    ...form(fields),
+    formatVersion: 3,
+    entity: { name: 'visits', title: labels, ...(scope ? { scope } : {}) },
+  });
+
+  it('lets a select gain choices but not drop one, keeps targets and the scope', () => {
+    const before = scoped([select, ref], 'org_unit');
+    expect(
+      incompatibleChanges(
+        before,
+        scoped([{ ...select, options: [option('done'), option('later'), option('no')] }, ref], 'org_unit'),
+      ),
+    ).toEqual([]);
+    expect(
+      incompatibleChanges(
+        before,
+        scoped(
+          [
+            { ...select, options: [option('done')] },
+            { ...ref, target: { kind: 'form', code: 'studio.other' } },
+          ],
+          'all',
+        ),
+      ),
+    ).toEqual([
+      { field: 'entity.scope', change: 'scope' },
+      { field: 'result', change: 'option_removed' },
+      { field: 'client', change: 'target' },
+    ]);
+    expect(incompatibleChanges(scoped([ref]), scoped([ref], 'all'))).toEqual([]);
+  });
+
+  it('drafts and sends a form in format 3 once it says something only format 3 can', () => {
+    expect(versionDraft(scoped([ref])).formatVersion).toBe(3);
+    expect(versionDraft(form([text])).formatVersion).toBe(2);
+    expect(normalizedDeclaration({ ...form([text]), fields: [text, select] }).formatVersion).toBe(3);
+    const plain = normalizedDeclaration({ ...form([text]), entity: { name: 'visits', title: labels, scope: 'all' } });
+    expect(plain.formatVersion).toBe(2);
+    expect(plain.entity).not.toHaveProperty('scope');
+    expect(
+      normalizedDeclaration({ ...form([text]), entity: { name: 'visits', title: labels, scope: 'owner' } })
+        .formatVersion,
+    ).toBe(3);
+  });
+});

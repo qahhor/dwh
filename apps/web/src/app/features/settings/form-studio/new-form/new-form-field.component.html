@@ -102,6 +102,90 @@
       />
     </smt-control>
   }
+  @if (field().type === 'select') {
+    <fieldset class="field-options" [attr.data-testid]="'field-options-' + index()">
+      <legend>{{ 'studio.field.options' | t }}</legend>
+      @for (option of field().options ?? []; track $index; let optionIndex = $index) {
+        <div class="field-option" [attr.data-testid]="'field-option-' + index() + '-' + optionIndex">
+          <smt-control
+            [smtLabel]="'studio.field.option_code' | t"
+            [required]="true"
+            [smtHint]="(optionLocked(option) ? 'studio.field.option_locked' : 'studio.field.option_code_hint') | t"
+          >
+            <smt-input
+              [value]="option.code"
+              [maxLength]="40"
+              [disabled]="disabled() || optionLocked(option)"
+              (valueChange)="setOptionCode(optionIndex, $event)"
+            />
+          </smt-control>
+          <app-new-form-labels
+            [labels]="option.labels"
+            [disabled]="disabled()"
+            (changed)="setOptionLabel(optionIndex, $event.language, $event.value)"
+          />
+          <button
+            smt-button
+            type="button"
+            smtVariant="ghost"
+            smtSize="sm"
+            smtIcon="delete"
+            [disabled]="disabled() || optionLocked(option) || (field().options?.length ?? 0) <= 1"
+            [attr.aria-label]="'studio.field.remove_option' | t: { number: optionIndex + 1 }"
+            (click)="removeOption(optionIndex)"
+          ></button>
+        </div>
+      }
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        [disabled]="disabled() || (field().options?.length ?? 0) >= maxOptions"
+        [attr.data-testid]="'field-add-option-' + index()"
+        (click)="addOption()"
+      >
+        {{ 'studio.field.add_option' | t }}
+      </button>
+    </fieldset>
+  }
+  @if (field().type === 'ref') {
+    <div class="field-grid">
+      <smt-control
+        [smtLabel]="'studio.field.target_kind' | t"
+        [smtHint]="locked() ? ('studio.field.target_locked' | t) : ''"
+      >
+        <smt-select
+          [options]="targetKinds()"
+          [value]="field().target?.kind ?? 'list'"
+          [allowClear]="false"
+          [disabled]="disabled() || locked()"
+          [attr.data-testid]="'field-target-kind-' + index()"
+          (valueChange)="setTargetKind($event)"
+        />
+      </smt-control>
+      <smt-control
+        [smtLabel]="(field().target?.kind === 'form' ? 'studio.field.target_form' : 'studio.field.target_list') | t"
+        [required]="true"
+      >
+        <smt-select
+          [options]="targetOptions()"
+          [value]="field().target?.code || null"
+          [disabled]="disabled() || locked()"
+          [attr.data-testid]="'field-target-' + index()"
+          (valueChange)="setTargetCode($event)"
+        />
+      </smt-control>
+    </div>
+    @if (field().target?.kind === 'form' ? !forms().length : !lists().length) {
+      <p class="field-note">
+        {{ (field().target?.kind === 'form' ? 'studio.field.no_forms' : 'studio.field.no_lists') | t }}
+      </p>
+    }
+  }
+  @if (field().type === 'user') {
+    <p class="field-note">{{ 'studio.field.user_hint' | t }}</p>
+  }
   @if (field().type === 'number') {
     <smt-control
       [smtLabel]="'settings.simple_form.scale' | t"
@@ -118,7 +202,20 @@
       />
     </smt-control>
   }
-  @if (versioning()) {
+  @if (versioning() && field().type === 'select') {
+    <smt-control
+      [smtLabel]="'studio.version.default_value' | t"
+      [smtHint]="(locked() ? 'studio.version.default_locked' : 'studio.version.default_hint') | t"
+    >
+      <smt-select
+        [options]="defaultOptions()"
+        [value]="field().defaultValue ?? null"
+        [disabled]="disabled() || locked()"
+        [attr.data-testid]="'version-default-' + field().id"
+        (valueChange)="setDefault($event)"
+      />
+    </smt-control>
+  } @else if (versioning() && field().type !== 'ref' && field().type !== 'user') {
     <smt-control
       [smtLabel]="'studio.version.default_value' | t"
       [smtHint]="(locked() ? 'studio.version.default_locked' : 'studio.version.default_hint') | t"

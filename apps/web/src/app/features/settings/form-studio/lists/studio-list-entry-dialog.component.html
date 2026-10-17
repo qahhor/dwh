@@ -1,0 +1,75 @@
+﻿@if (open()) {
+  <smt-dialog [open]="open()" [smtTitle]="title() | t" smtSize="md" (closed)="close()">
+    <ng-template smtDialogContent>
+      <form
+        id="studio-list-entry"
+        class="studio-entry-form"
+        uiFocusFirstInvalid
+        novalidate
+        data-testid="studio-list-entry-form"
+        (submit)="$event.preventDefault(); submit()"
+      >
+        <ui-form-error-summary [errors]="summary()" />
+        @if (creating()) {
+          <smt-control
+            [smtLabel]="'studio.lists.code' | t"
+            [smtHint]="(kind() === 'list' ? 'studio.lists.list_code_hint' : 'studio.lists.item_code_hint') | t"
+            [smtError]="serverErrors()['code'] ?? ''"
+          >
+            <smt-input
+              smtFieldId="studio-entry-code"
+              smtFocusInitial
+              [formField]="entryForm.code"
+              (edited)="edited.emit('code')"
+            />
+          </smt-control>
+        }
+        <smt-control [smtLabel]="'settings.form_studio.labels.ru' | t" [smtError]="serverErrors()['ru'] ?? ''">
+          <smt-input smtFieldId="studio-entry-ru" [formField]="entryForm.ru" (edited)="edited.emit('ru')" />
+        </smt-control>
+        <smt-control [smtLabel]="'settings.form_studio.labels.uz' | t" [smtError]="serverErrors()['uz'] ?? ''">
+          <smt-input smtFieldId="studio-entry-uz" [formField]="entryForm.uz" (edited)="edited.emit('uz')" />
+        </smt-control>
+        <smt-control [smtLabel]="'settings.form_studio.labels.en' | t" [smtError]="serverErrors()['en'] ?? ''">
+          <smt-input smtFieldId="studio-entry-en" [formField]="entryForm.en" (edited)="edited.emit('en')" />
+        </smt-control>
+        @if (kind() === 'item') {
+          <smt-control
+            [smtLabel]="'studio.lists.order' | t"
+            [smtHint]="'studio.lists.order_hint' | t"
+            [smtError]="serverErrors()['sortOrder'] ?? ''"
+          >
+            <smt-input
+              smtFieldId="studio-entry-order"
+              type="number"
+              [smtMin]="1"
+              [smtMax]="9999"
+              [smtStep]="1"
+              [formField]="entryForm.sortOrder"
+              (edited)="edited.emit('sortOrder')"
+            />
+          </smt-control>
+          @if (!creating()) {
+            <div
+              smt-checkbox
+              data-testid="studio-entry-active"
+              [checked]="model().active"
+              (checkedChange)="setActive($event)"
+            >
+              {{ 'studio.lists.active' | t }}
+            </div>
+            <p class="studio-entry-hint">{{ 'studio.lists.active_hint' | t }}</p>
+          }
+        }
+      </form>
+      <ui-form-actions
+        footer
+        form="studio-list-entry"
+        data-testid="studio-list-entry-actions"
+        [submitLabel]="(creating() ? 'common.create' : 'common.save') | t"
+        [submitting]="saving()"
+        (cancelled)="close()"
+      />
+    </ng-template>
+  </smt-dialog>
+}

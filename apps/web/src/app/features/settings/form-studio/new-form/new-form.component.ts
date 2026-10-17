@@ -29,7 +29,8 @@ import type { StudioLanguage } from '../form-studio.models';
 import { NewFormFieldComponent } from './new-form-field.component';
 import { NewFormLabelsComponent } from './new-form-labels.component';
 import { simpleFormPreview } from './new-form-preview';
-import { SIMPLE_FORM_MAX_BYTES, type SimpleField } from './new-form.models';
+import { SIMPLE_FORM_MAX_BYTES, SIMPLE_FORM_SCOPE_KEYS, SIMPLE_FORM_SCOPES, type SimpleField } from './new-form.models';
+import { StudioTargetsStore } from '../studio-targets.store';
 import { NewFormActivationStore } from './new-form-activation.store';
 import { NewFormAssistantComponent } from './new-form-assistant.component';
 import { NewFormStore } from './new-form.store';
@@ -51,13 +52,14 @@ import { NewFormStore } from './new-form.store';
     NewFormLabelsComponent,
     NewFormAssistantComponent,
   ],
-  providers: [NewFormStore, NewFormActivationStore],
+  providers: [NewFormStore, NewFormActivationStore, StudioTargetsStore],
   templateUrl: './new-form.component.html',
   styleUrl: './new-form.component.css',
 })
 export class NewFormComponent implements RecordNavigationPage {
   readonly store = inject(NewFormStore);
   readonly activation = inject(NewFormActivationStore);
+  readonly targets = inject(StudioTargetsStore);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -68,6 +70,10 @@ export class NewFormComponent implements RecordNavigationPage {
     { id: 'cli', label: this.i18n.translate('settings.simple_form.delivery_cli') },
     { id: 'live', label: this.i18n.translate('settings.simple_form.delivery_live') },
   ]);
+  readonly scopeOptions = computed(() => {
+    this.i18n.currentLang();
+    return SIMPLE_FORM_SCOPES.map((id) => ({ id, label: this.i18n.translate(SIMPLE_FORM_SCOPE_KEYS[id]) }));
+  });
   readonly preview = computed(() => {
     const value = this.store.prepared();
     const language = this.i18n.currentLang();
@@ -82,7 +88,17 @@ export class NewFormComponent implements RecordNavigationPage {
   chooseDelivery(value: unknown): void {
     if (this.busy() || (value !== 'cli' && value !== 'live')) return;
     this.store.chooseDelivery(value);
-    if (value === 'live') this.activation.loadAvailability();
+    if (value === 'live') {
+      this.activation.loadAvailability();
+      this.targets.load();
+    }
+  }
+  /** The data scope of a live form, chosen when it is created (ADR-0041, owner decision 1). */
+  setScope(value: unknown): void {
+    if (value !== 'all' && value !== 'org_unit' && value !== 'owner') return;
+    this.store.edit((draft) => {
+      draft.entity.scope = value;
+    });
   }
   changeIdentifier(target: 'module' | 'entity', value: unknown): void {
     this.store.edit((draft) => {

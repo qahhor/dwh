@@ -21,6 +21,18 @@
         {{ 'studio.forms.title' | t }}
       </button>
     }
+    @if (canOpenLists()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtIcon="list_alt"
+        data-testid="settings-studio-lists"
+        (click)="openLists()"
+      >
+        {{ 'studio.lists.title' | t }}
+      </button>
+    }
     <button
       smt-button
       type="button"

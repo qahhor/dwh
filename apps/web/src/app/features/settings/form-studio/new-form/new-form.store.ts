@@ -7,7 +7,9 @@ import { problemText } from '@shared/ui/problem-text';
 import { studioProblemIssues } from '../form-studio-errors';
 import {
   initialSimpleForm,
+  LIVE_FIELD_TYPES,
   SIMPLE_FORM_MAX_BYTES,
+  withFormat,
   type SimpleFormDeclaration,
   type SimpleFormPackage,
 } from './new-form.models';
@@ -48,6 +50,7 @@ export class NewFormStore {
     if (mode === 'live') this.cliModule = structuredClone(this.draft().module);
     this.edit((draft) => {
       draft.module = structuredClone(module);
+      if (mode === 'cli') toDeliverable(draft);
     });
     this.delivery.set(mode);
   }
@@ -75,7 +78,7 @@ export class NewFormStore {
 
   prepare(): void {
     if (this.locked()) return;
-    this.check(this.draft());
+    this.check(withFormat(this.draft()));
   }
 
   importText(text: string): void {
@@ -159,4 +162,21 @@ export class NewFormStore {
     this.error.set('');
     this.issues.set([]);
   }
+}
+
+/**
+ * A declaration the developer CLI delivers: format 1 knows no data scope and no select, reference or user field
+ * (ADR-0041), so they become plain text fields of the same key and labels.
+ */
+function toDeliverable(draft: SimpleFormDeclaration): void {
+  delete draft.entity.scope;
+  draft.formatVersion = 1;
+  draft.fields = draft.fields.map((field) => {
+    if (!LIVE_FIELD_TYPES.includes(field.type)) return field;
+    const next = { ...field, type: 'text' as const, maxLength: 255 };
+    delete next.options;
+    delete next.target;
+    delete next.defaultValue;
+    return next;
+  });
 }

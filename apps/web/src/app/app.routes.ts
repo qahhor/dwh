@@ -151,6 +151,13 @@ export const routes: Routes = [
           import('./features/settings/form-studio/forms/my-forms.component').then((m) => m.MyFormsComponent),
       },
       {
+        // The reference lists an administrator keeps without a release (ADR-0041).
+        path: 'settings/form-studio/lists',
+        canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.lists', 'view')],
+        loadComponent: () =>
+          import('./features/settings/form-studio/lists/studio-lists.component').then((m) => m.StudioListsComponent),
+      },
+      {
         path: 'settings/form-studio/forms/:code/version',
         canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.forms', 'publish')],
         canDeactivate: [recordNavigationGuard],

@@ -138,6 +138,15 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
     void this.router?.navigate(['/settings/form-studio/forms']);
   }
 
+  /** The reference lists open for whoever may read them while the module of live forms is on (ADR-0041). */
+  canOpenLists(): boolean {
+    return this.permissions.hasPermission('studio.lists', 'view') && this.modules.isModuleActive('studio');
+  }
+
+  openLists(): void {
+    void this.router?.navigate(['/settings/form-studio/lists']);
+  }
+
   isTabAvailable(tab: string): tab is SettingsTab {
     switch (tab) {
       case 'general':

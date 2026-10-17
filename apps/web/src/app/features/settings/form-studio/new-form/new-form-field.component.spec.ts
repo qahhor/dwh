@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+﻿import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { NewFormFieldComponent } from './new-form-field.component';
 describe('NewFormFieldComponent', () => {
@@ -74,5 +74,72 @@ describe('NewFormFieldComponent', () => {
     const { component } = await render();
     expect(component.number(null)).toBeUndefined();
     expect(component.number(0)).toBe(0);
+  });
+  it('offers select, reference and user only to a live form and seeds their parts', async () => {
+    const { fixture, component, emit } = await render();
+    expect(component.options().map((option) => option.id)).not.toContain('select');
+    fixture.componentRef.setInput('live', true);
+    fixture.componentRef.setInput('lists', [{ code: 'kinds', labels: { ru: 'Типы', uz: 'Turlar', en: 'Kinds' } }]);
+    fixture.componentRef.setInput('forms', [
+      { code: 'studio.clients', labels: { ru: 'Клиенты', uz: 'Mijozlar', en: 'Clients' } },
+    ]);
+    fixture.detectChanges();
+    expect(component.options().map((option) => option.id)).toEqual(expect.arrayContaining(['select', 'ref', 'user']));
+    component.changeType('select');
+    expect(emit.mock.lastCall?.[0]).toMatchObject({ type: 'select', options: [{ code: 'option1' }] });
+    expect(emit.mock.lastCall?.[0]).not.toHaveProperty('maxLength');
+    component.changeType('ref');
+    expect(emit.mock.lastCall?.[0]).toMatchObject({ type: 'ref', target: { kind: 'list', code: '' } });
+    expect(emit.mock.lastCall?.[0]).not.toHaveProperty('options');
+    component.changeType('user');
+    expect(emit.mock.lastCall?.[0]).not.toHaveProperty('target');
+
+    fixture.componentRef.setInput('field', { ...component.field(), type: 'ref', target: { kind: 'list', code: '' } });
+    fixture.detectChanges();
+    expect(component.targetOptions()).toEqual([{ id: 'kinds', label: 'Типы (kinds)' }]);
+    component.setTargetCode('kinds');
+    expect(emit.mock.lastCall?.[0].target).toEqual({ kind: 'list', code: 'kinds' });
+    component.setTargetKind('form');
+    expect(emit.mock.lastCall?.[0].target).toEqual({ kind: 'form', code: '' });
+    component.setTargetKind('table');
+    fixture.componentRef.setInput('field', {
+      ...component.field(),
+      target: { kind: 'form', code: 'studio.gone' },
+    });
+    expect(component.targetOptions().map((option) => option.id)).toEqual(['studio.gone', 'studio.clients']);
+  });
+  it('edits the choices of a select and keeps every choice a stored version may hold', async () => {
+    const { fixture, component, emit } = await render();
+    const option = (code: string) => ({ code, labels: { ru: code, uz: code, en: code } });
+    const select = { ...component.field(), type: 'select' as const, options: [option('done'), option('later')] };
+    delete (select as { maxLength?: number }).maxLength;
+    fixture.componentRef.setInput('field', select);
+    fixture.componentRef.setInput('live', true);
+    fixture.componentRef.setInput('versioning', true);
+    fixture.detectChanges();
+    component.addOption();
+    expect(emit.mock.lastCall![0].options!.map((one: { code: string }) => one.code)).toEqual([
+      'done',
+      'later',
+      'option3',
+    ]);
+    component.setOptionCode(1, 'soon');
+    expect(emit.mock.lastCall![0].options![1].code).toBe('soon');
+    component.setOptionLabel(0, 'en', 'Done');
+    expect(emit.mock.lastCall![0].options![0].labels.en).toBe('Done');
+    component.removeOption(1);
+    expect(emit.mock.lastCall![0].options!).toHaveLength(1);
+    expect(component.defaultOptions().map((one) => one.id)).toEqual(['done', 'later']);
+
+    fixture.componentRef.setInput('stored', select);
+    fixture.detectChanges();
+    const calls = emit.mock.calls.length;
+    component.setOptionCode(0, 'other');
+    component.removeOption(0);
+    expect(emit).toHaveBeenCalledTimes(calls);
+    expect(component.optionLocked(option('done'))).toBe(true);
+    component.setTargetCode('x');
+    component.setTargetKind('list');
+    expect(emit).toHaveBeenCalledTimes(calls);
   });
 });

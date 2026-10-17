@@ -25,6 +25,8 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import type { StudioLanguage } from '../form-studio.models';
 import { NewFormFieldComponent } from '../new-form/new-form-field.component';
 import { NewFormLabelsComponent } from '../new-form/new-form-labels.component';
+import { StudioTargetsStore } from '../studio-targets.store';
+import { SIMPLE_FORM_SCOPE_KEYS } from '../new-form/new-form.models';
 import { simpleFormPreview } from '../new-form/new-form-preview';
 import type { SimpleField, SimpleFormMenu } from '../new-form/new-form.models';
 import { MENU_ICONS, shownFields, VERSION_MAX_FIELDS, VERSION_MAX_SHOWN_FIELDS } from './form-version.rules';
@@ -53,12 +55,13 @@ const DEFAULT_MENU: SimpleFormMenu = { icon: 'box', section: 'workspace', order:
     NewFormFieldComponent,
     NewFormLabelsComponent,
   ],
-  providers: [FormVersionStore],
+  providers: [FormVersionStore, StudioTargetsStore],
   templateUrl: './form-version.component.html',
   styleUrl: './form-version.component.css',
 })
 export class FormVersionComponent implements OnInit, RecordNavigationPage {
   readonly store = inject(FormVersionStore);
+  readonly targets = inject(StudioTargetsStore);
   private readonly route = inject(ActivatedRoute);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
@@ -67,6 +70,8 @@ export class FormVersionComponent implements OnInit, RecordNavigationPage {
   readonly values = signal<FormValues>({});
 
   readonly menu = computed(() => this.store.draft()?.entity.menu ?? DEFAULT_MENU);
+  /** The data scope chosen when the form was created; a version keeps it (ADR-0041). */
+  readonly scopeKey = computed(() => SIMPLE_FORM_SCOPE_KEYS[this.store.draft()?.entity.scope ?? 'all']);
   readonly iconOptions = computed(() => {
     this.i18n.currentLang();
     return MENU_ICONS.map((icon) => ({ id: icon, label: this.i18n.translate(`studio.version.icons.${icon}`) }));
@@ -96,6 +101,7 @@ export class FormVersionComponent implements OnInit, RecordNavigationPage {
   ngOnInit(): void {
     this.code.set(this.route.snapshot.paramMap.get('code') ?? '');
     this.store.load(this.code());
+    this.targets.load();
   }
 
   setTitle(language: StudioLanguage, value: string): void {

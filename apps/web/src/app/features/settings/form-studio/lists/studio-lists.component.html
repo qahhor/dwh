@@ -1,0 +1,184 @@
+<div class="studio-lists-page" data-testid="studio-lists">
+  <ui-page-header [title]="'studio.lists.title' | t" [subtitle]="'studio.lists.subtitle' | t">
+    <a smt-button smtVariant="secondary" routerLink="/settings">{{ 'studio.forms.back' | t }}</a>
+    @if (store.mayManage()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="primary"
+        smtIcon="add"
+        data-testid="studio-lists-new"
+        (click)="newList()"
+      >
+        {{ 'studio.lists.new_list' | t }}
+      </button>
+    }
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="refresh"
+      [smtLoading]="store.loading()"
+      [attr.aria-label]="'common.refresh' | t"
+      (click)="store.load()"
+    ></button>
+  </ui-page-header>
+  @if (!store.mayView()) {
+    <smt-alert smtTone="warning" data-testid="studio-lists-denied">{{ 'studio.lists.denied' | t }}</smt-alert>
+  } @else {
+    <smt-alert smtTone="info" smtLive="off">{{ 'studio.lists.hint' | t }}</smt-alert>
+    @if (store.error()) {
+      <smt-alert smtTone="danger" data-testid="studio-lists-error">
+        {{ store.error() }}
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="store.load()">
+          {{ 'common.retry' | t }}
+        </button>
+      </smt-alert>
+    }
+    <div class="card studio-lists-table" role="region" [attr.aria-label]="'studio.lists.title' | t" tabindex="0">
+      <ui-local-table
+        [rows]="store.lists()"
+        [config]="listsConfig()"
+        [sortValues]="listSortValues"
+        [loading]="store.loading()"
+        [emptyTemplate]="emptyLists"
+      />
+    </div>
+    @if (store.nextCursor()) {
+      <div class="studio-lists-more">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          [smtLoading]="store.loadingMore()"
+          (click)="store.loadMore()"
+        >
+          {{ 'studio.forms.load_more' | t }}
+        </button>
+      </div>
+    }
+    @if (store.openError()) {
+      <smt-alert smtTone="danger">{{ store.openError() }}</smt-alert>
+    }
+    @if (store.open(); as open) {
+      <section class="studio-list-open" aria-labelledby="studio-list-open-title" data-testid="studio-list-open">
+        <div class="studio-list-heading">
+          <div>
+            <h2 id="studio-list-open-title">{{ store.name(open.list.name) }}</h2>
+            <code class="studio-lists-code">{{ open.list.code }}</code>
+          </div>
+          @if (store.mayManage()) {
+            <div class="studio-lists-actions">
+              <button
+                smt-button
+                type="button"
+                smtVariant="secondary"
+                smtIcon="edit"
+                data-testid="studio-list-rename"
+                (click)="renameList(open.list)"
+              >
+                {{ 'studio.lists.rename_list' | t }}
+              </button>
+              <button
+                smt-button
+                type="button"
+                smtVariant="primary"
+                smtIcon="add"
+                data-testid="studio-list-add-item"
+                [disabled]="open.items.length >= 500"
+                (click)="newItem(open.list)"
+              >
+                {{ 'studio.lists.new_item' | t }}
+              </button>
+            </div>
+          }
+        </div>
+        <div class="card studio-lists-table" role="region" [attr.aria-label]="'studio.lists.items' | t" tabindex="0">
+          <ui-local-table
+            [rows]="open.items"
+            [config]="itemsConfig()"
+            [sortValues]="itemSortValues"
+            [loading]="store.openLoading()"
+            [emptyTemplate]="emptyItems"
+          />
+        </div>
+      </section>
+    }
+  }
+</div>
+
+<app-studio-list-entry-dialog
+  [open]="editing() !== null"
+  [kind]="editing()?.kind ?? 'list'"
+  [creating]="creating()"
+  [initial]="initial()"
+  [saving]="saving()"
+  [serverErrors]="serverErrors()"
+  [otherErrors]="otherErrors()"
+  (submitted)="save($event)"
+  (closed)="close()"
+  (edited)="fieldEdited($event)"
+/>
+
+<ng-template #emptyLists>
+  <div class="empty-state">
+    <span class="material-symbols-outlined" aria-hidden="true">list_alt</span>
+    <p>{{ 'studio.lists.empty' | t }}</p>
+  </div>
+</ng-template>
+<ng-template #emptyItems>
+  <div class="empty-state">
+    <p>{{ 'studio.lists.no_items' | t }}</p>
+  </div>
+</ng-template>
+<ng-template #listNameCell let-list>
+  <span class="studio-lists-name">{{ store.name(list.name) }}</span>
+  <code class="studio-lists-code">{{ list.code }}</code>
+</ng-template>
+<ng-template #countCell let-list>
+  <span class="tabular-nums">{{ 'studio.lists.count' | t: { active: list.activeItems, total: list.items } }}</span>
+</ng-template>
+<ng-template #modifiedCell let-list>
+  <span class="tabular-nums text-muted">{{ list.modifiedAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+</ng-template>
+<ng-template #listActionsCell let-list>
+  <button
+    smt-button
+    type="button"
+    smtVariant="ghost"
+    smtSize="sm"
+    smtIcon="list"
+    [attr.aria-label]="'studio.lists.open_named' | t: { name: store.name(list.name) }"
+    [attr.data-testid]="'studio-list-open-' + list.code"
+    (click)="store.select(list.code)"
+  >
+    {{ 'studio.lists.open' | t }}
+  </button>
+</ng-template>
+<ng-template #itemNameCell let-item>
+  <span class="studio-lists-name">{{ store.name(item.name) }}</span>
+  <code class="studio-lists-code">{{ item.code }}</code>
+</ng-template>
+<ng-template #itemStateCell let-item>
+  @if (item.active) {
+    <smt-tag [label]="'studio.lists.state.active' | t" smtTone="success" />
+  } @else {
+    <smt-tag [label]="'studio.lists.state.inactive' | t" smtTone="neutral" />
+  }
+</ng-template>
+<ng-template #itemActionsCell let-item>
+  @if (store.mayManage() && store.open(); as open) {
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="edit"
+      [attr.aria-label]="'studio.lists.edit_named' | t: { name: store.name(item.name) }"
+      [attr.data-testid]="'studio-list-edit-' + item.code"
+      (click)="editItem(open.list, item)"
+    >
+      {{ 'common.edit' | t }}
+    </button>
+  }
+</ng-template>

@@ -176,4 +176,28 @@ describe('NewFormStore', () => {
     TestBed.resetTestingModule();
     expect(pending.observed).toBe(false);
   });
+  it('sends a live form with a choice and a scope in format 3 and turns them into text for the CLI', () => {
+    fill();
+    store.chooseDelivery('live');
+    store.edit((value) => {
+      value.entity.scope = 'org_unit';
+      value.fields.push({
+        id: 'result',
+        type: 'select',
+        labels: { ru: 'Итог', uz: 'Natija', en: 'Result' },
+        required: true,
+        listed: true,
+        options: [{ code: 'done', labels: { ru: 'Да', uz: 'Ha', en: 'Yes' } }],
+      });
+    });
+    store.prepare();
+    const sent = api.post.mock.lastCall?.[1] as SimpleFormDeclaration;
+    expect(sent.formatVersion).toBe(3);
+    expect(sent.entity.scope).toBe('org_unit');
+    store.chooseDelivery('cli');
+    expect(store.draft().entity).not.toHaveProperty('scope');
+    expect(store.draft().formatVersion).toBe(1);
+    expect(store.draft().fields[1]).toMatchObject({ id: 'result', type: 'text', maxLength: 255 });
+    expect(store.draft().fields[1]).not.toHaveProperty('options');
+  });
 });

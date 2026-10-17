@@ -108,6 +108,9 @@
             (changed)="setTitle($event.language, $event.value)"
           />
         </fieldset>
+        <p class="version-hint" data-testid="form-version-scope">
+          {{ 'studio.scope.label' | t }}: {{ scopeKey() | t }}. {{ 'studio.scope.locked' | t }}
+        </p>
         <fieldset class="version-group">
           <legend>{{ 'studio.version.menu' | t }}</legend>
           <div class="version-grid">
@@ -162,6 +165,9 @@
             [count]="draft.fields.length"
             [disabled]="store.busy()"
             [versioning]="true"
+            [live]="true"
+            [lists]="targets.lists()"
+            [forms]="targets.forms()"
             [stored]="store.storedField(field.id)"
             (changed)="editField(index, $event)"
             (moved)="moveField(index, $event)"

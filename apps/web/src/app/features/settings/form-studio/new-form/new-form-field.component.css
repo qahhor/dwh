@@ -43,13 +43,34 @@
 .field-note--warning {
   color: var(--warning-text);
 }
+.field-options {
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+}
+.field-options legend {
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 600;
+}
+.field-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: start;
+  gap: 12px;
+}
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 @media (max-width: 600px) {
-  .field-grid {
+  .field-grid,
+  .field-option {
     grid-template-columns: minmax(0, 1fr);
   }
   .field-box {
