@@ -1,0 +1,571 @@
+[
+  {
+    "checksum": "00d5e200efd1a7844abfa92255493d9b790791671d7060d211c8488ba447fc79",
+    "declaration": {
+      "formatVersion": 1,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_text",
+        "title": {
+          "ru": "Тексты «кавычки»",
+          "uz": "Matnlar oʻzbekcha",
+          "en": "Texts & notes"
+        }
+      },
+      "fields": [
+        {
+          "id": "short",
+          "type": "text",
+          "labels": {
+            "ru": "Поле short",
+            "uz": "Maydon short",
+            "en": "Field short"
+          },
+          "required": true,
+          "listed": true,
+          "maxLength": 1
+        },
+        {
+          "id": "long",
+          "type": "text",
+          "labels": {
+            "ru": "Поле long",
+            "uz": "Maydon long",
+            "en": "Field long"
+          },
+          "required": false,
+          "listed": false,
+          "maxLength": 4000
+        },
+        {
+          "id": "memo",
+          "type": "textarea",
+          "labels": {
+            "ru": "Поле memo",
+            "uz": "Maydon memo",
+            "en": "Field memo"
+          },
+          "required": true,
+          "listed": true,
+          "maxLength": 255
+        },
+        {
+          "id": "remark",
+          "type": "textarea",
+          "labels": {
+            "ru": "Поле remark",
+            "uz": "Maydon remark",
+            "en": "Field remark"
+          },
+          "required": false,
+          "listed": false,
+          "maxLength": 4000
+        }
+      ]
+    }
+  },
+  {
+    "checksum": "891858ac9c5fd8e02fa5392af6ae6781f50b1948ae4762dcb81cce9e5ebe16b8",
+    "declaration": {
+      "formatVersion": 1,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_number",
+        "title": {
+          "ru": "Числа",
+          "uz": "Raqamlar",
+          "en": "Numbers"
+        }
+      },
+      "fields": [
+        {
+          "id": "whole",
+          "type": "number",
+          "labels": {
+            "ru": "Поле whole",
+            "uz": "Maydon whole",
+            "en": "Field whole"
+          },
+          "required": true,
+          "listed": true,
+          "scale": 0
+        },
+        {
+          "id": "precise",
+          "type": "number",
+          "labels": {
+            "ru": "Поле precise",
+            "uz": "Maydon precise",
+            "en": "Field precise"
+          },
+          "required": false,
+          "listed": false,
+          "scale": 6
+        },
+        {
+          "id": "price",
+          "type": "number",
+          "labels": {
+            "ru": "Поле price",
+            "uz": "Maydon price",
+            "en": "Field price"
+          },
+          "required": false,
+          "listed": true,
+          "scale": 2
+        }
+      ]
+    }
+  },
+  {
+    "checksum": "e10d708649378655fac6ad1809da24e6a037bb4d8306d0dd66fc778771893d83",
+    "declaration": {
+      "formatVersion": 1,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_temporal",
+        "title": {
+          "ru": "Даты",
+          "uz": "Sanalar",
+          "en": "Dates"
+        }
+      },
+      "fields": [
+        {
+          "id": "day",
+          "type": "date",
+          "labels": {
+            "ru": "Поле day",
+            "uz": "Maydon day",
+            "en": "Field day"
+          },
+          "required": true,
+          "listed": true
+        },
+        {
+          "id": "moment",
+          "type": "datetime",
+          "labels": {
+            "ru": "Поле moment",
+            "uz": "Maydon moment",
+            "en": "Field moment"
+          },
+          "required": false,
+          "listed": false
+        },
+        {
+          "id": "clock",
+          "type": "time",
+          "labels": {
+            "ru": "Поле clock",
+            "uz": "Maydon clock",
+            "en": "Field clock"
+          },
+          "required": true,
+          "listed": true
+        }
+      ]
+    }
+  },
+  {
+    "checksum": "b2595424c54ccb907d519754bd63c22ea42e161b9737ce33f97fe4581ca87bb5",
+    "declaration": {
+      "formatVersion": 1,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_contact",
+        "title": {
+          "ru": "Контакты",
+          "uz": "Aloqa",
+          "en": "Contacts"
+        }
+      },
+      "fields": [
+        {
+          "id": "active",
+          "type": "bool",
+          "labels": {
+            "ru": "Поле active",
+            "uz": "Maydon active",
+            "en": "Field active"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "agreed",
+          "type": "bool",
+          "labels": {
+            "ru": "Поле agreed",
+            "uz": "Maydon agreed",
+            "en": "Field agreed"
+          },
+          "required": true,
+          "listed": false
+        },
+        {
+          "id": "mail",
+          "type": "email",
+          "labels": {
+            "ru": "Поле mail",
+            "uz": "Maydon mail",
+            "en": "Field mail"
+          },
+          "required": true,
+          "listed": true
+        },
+        {
+          "id": "backup",
+          "type": "email",
+          "labels": {
+            "ru": "Поле backup",
+            "uz": "Maydon backup",
+            "en": "Field backup"
+          },
+          "required": false,
+          "listed": false
+        },
+        {
+          "id": "mobile",
+          "type": "phone",
+          "labels": {
+            "ru": "Поле mobile",
+            "uz": "Maydon mobile",
+            "en": "Field mobile"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "site",
+          "type": "url",
+          "labels": {
+            "ru": "Поле site",
+            "uz": "Maydon site",
+            "en": "Field site"
+          },
+          "required": true,
+          "listed": false
+        },
+        {
+          "id": "page",
+          "type": "url",
+          "labels": {
+            "ru": "Поле page",
+            "uz": "Maydon page",
+            "en": "Field page"
+          },
+          "required": false,
+          "listed": true
+        }
+      ]
+    }
+  },
+  {
+    "checksum": "dcbc32eeafa0134c41f8c2a1c316516997173225f99a76523693d428807f659f",
+    "declaration": {
+      "formatVersion": 1,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "g",
+        "title": {
+          "ru": "Пустая",
+          "uz": "Boʻsh",
+          "en": "Empty"
+        }
+      },
+      "fields": []
+    }
+  },
+  {
+    "checksum": "07d6e387800f227839a4c10c7c273d35c4283478cfa67fbaf8f9806284ef318d",
+    "declaration": {
+      "formatVersion": 1,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_twenty_fields",
+        "title": {
+          "ru": "Двадцать полей",
+          "uz": "Yigirma maydon",
+          "en": "Twenty fields"
+        }
+      },
+      "fields": [
+        {
+          "id": "f0",
+          "type": "text",
+          "labels": {
+            "ru": "Поле f0",
+            "uz": "Maydon f0",
+            "en": "Field f0"
+          },
+          "required": true,
+          "listed": false,
+          "maxLength": 100
+        },
+        {
+          "id": "f1",
+          "type": "textarea",
+          "labels": {
+            "ru": "Поле f1",
+            "uz": "Maydon f1",
+            "en": "Field f1"
+          },
+          "required": false,
+          "listed": true,
+          "maxLength": 101
+        },
+        {
+          "id": "f2",
+          "type": "number",
+          "labels": {
+            "ru": "Поле f2",
+            "uz": "Maydon f2",
+            "en": "Field f2"
+          },
+          "required": true,
+          "listed": true,
+          "scale": 2
+        },
+        {
+          "id": "f3",
+          "type": "date",
+          "labels": {
+            "ru": "Поле f3",
+            "uz": "Maydon f3",
+            "en": "Field f3"
+          },
+          "required": false,
+          "listed": false
+        },
+        {
+          "id": "f4",
+          "type": "datetime",
+          "labels": {
+            "ru": "Поле f4",
+            "uz": "Maydon f4",
+            "en": "Field f4"
+          },
+          "required": true,
+          "listed": true
+        },
+        {
+          "id": "f5",
+          "type": "time",
+          "labels": {
+            "ru": "Поле f5",
+            "uz": "Maydon f5",
+            "en": "Field f5"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "f6",
+          "type": "bool",
+          "labels": {
+            "ru": "Поле f6",
+            "uz": "Maydon f6",
+            "en": "Field f6"
+          },
+          "required": true,
+          "listed": false
+        },
+        {
+          "id": "f7",
+          "type": "email",
+          "labels": {
+            "ru": "Поле f7",
+            "uz": "Maydon f7",
+            "en": "Field f7"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "f8",
+          "type": "phone",
+          "labels": {
+            "ru": "Поле f8",
+            "uz": "Maydon f8",
+            "en": "Field f8"
+          },
+          "required": true,
+          "listed": true
+        },
+        {
+          "id": "f9",
+          "type": "url",
+          "labels": {
+            "ru": "Поле f9",
+            "uz": "Maydon f9",
+            "en": "Field f9"
+          },
+          "required": false,
+          "listed": false
+        },
+        {
+          "id": "f10",
+          "type": "text",
+          "labels": {
+            "ru": "Поле f10",
+            "uz": "Maydon f10",
+            "en": "Field f10"
+          },
+          "required": true,
+          "listed": true,
+          "maxLength": 110
+        },
+        {
+          "id": "f11",
+          "type": "textarea",
+          "labels": {
+            "ru": "Поле f11",
+            "uz": "Maydon f11",
+            "en": "Field f11"
+          },
+          "required": false,
+          "listed": true,
+          "maxLength": 111
+        },
+        {
+          "id": "f12",
+          "type": "number",
+          "labels": {
+            "ru": "Поле f12",
+            "uz": "Maydon f12",
+            "en": "Field f12"
+          },
+          "required": true,
+          "listed": false,
+          "scale": 5
+        },
+        {
+          "id": "f13",
+          "type": "date",
+          "labels": {
+            "ru": "Поле f13",
+            "uz": "Maydon f13",
+            "en": "Field f13"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "f14",
+          "type": "datetime",
+          "labels": {
+            "ru": "Поле f14",
+            "uz": "Maydon f14",
+            "en": "Field f14"
+          },
+          "required": true,
+          "listed": true
+        },
+        {
+          "id": "f15",
+          "type": "time",
+          "labels": {
+            "ru": "Поле f15",
+            "uz": "Maydon f15",
+            "en": "Field f15"
+          },
+          "required": false,
+          "listed": false
+        },
+        {
+          "id": "f16",
+          "type": "bool",
+          "labels": {
+            "ru": "Поле f16",
+            "uz": "Maydon f16",
+            "en": "Field f16"
+          },
+          "required": true,
+          "listed": true
+        },
+        {
+          "id": "f17",
+          "type": "email",
+          "labels": {
+            "ru": "Поле f17",
+            "uz": "Maydon f17",
+            "en": "Field f17"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "f18",
+          "type": "phone",
+          "labels": {
+            "ru": "Поле f18",
+            "uz": "Maydon f18",
+            "en": "Field f18"
+          },
+          "required": true,
+          "listed": false
+        },
+        {
+          "id": "f19",
+          "type": "url",
+          "labels": {
+            "ru": "Поле f19",
+            "uz": "Maydon f19",
+            "en": "Field f19"
+          },
+          "required": false,
+          "listed": true
+        }
+      ]
+    }
+  }
+]
