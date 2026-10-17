@@ -55,7 +55,7 @@ public class StudioFormVersionController {
     @GetMapping
     @RequiresPermission(form = "studio.forms", action = "publish")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<KeysetPage<FormSummary>> forms(
+    public ResponseEntity<KeysetPage<FormSummary>> liveForms(
             @RequestParam(required = false) @Nullable Integer limit,
             @RequestParam(required = false) @Nullable String cursor) {
         return ResponseEntity.ok().header("Cache-Control", "no-store").body(views.list(limit, cursor));
@@ -69,7 +69,7 @@ public class StudioFormVersionController {
     @RequiresPermission(form = "studio.forms", action = "publish")
     @ResponseStatus(HttpStatus.OK)
     @AnswersRevision
-    public ResponseEntity<FormDetail> form(@PathVariable String entityCode) {
+    public ResponseEntity<FormDetail> liveForm(@PathVariable String entityCode) {
         FormDetail detail = views.get(entityCode);
         return ResponseEntity.ok()
                 .header("Cache-Control", "no-store")
@@ -97,7 +97,7 @@ public class StudioFormVersionController {
     @NoIdempotency
     @ResponseStatus(HttpStatus.CREATED)
     @AnswersRevision
-    public ResponseEntity<FormDetail> newVersion(
+    public ResponseEntity<FormDetail> newFormVersion(
             @PathVariable String entityCode,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) @Nullable String ifMatch,
             HttpServletRequest request)
@@ -124,7 +124,7 @@ public class StudioFormVersionController {
     @NoIdempotency
     @ResponseStatus(HttpStatus.OK)
     @AnswersRevision
-    public ResponseEntity<FormSummary> archive(
+    public ResponseEntity<FormSummary> archiveForm(
             @PathVariable String entityCode,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) @Nullable String ifMatch) {
         FormSummary form = versions.archive(entityCode, ifMatch);
@@ -144,7 +144,7 @@ public class StudioFormVersionController {
     @NoIdempotency
     @ResponseStatus(HttpStatus.OK)
     @AnswersRevision
-    public ResponseEntity<FormSummary> restore(
+    public ResponseEntity<FormSummary> restoreForm(
             @PathVariable String entityCode,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) @Nullable String ifMatch) {
         FormSummary form = versions.restore(entityCode, ifMatch);

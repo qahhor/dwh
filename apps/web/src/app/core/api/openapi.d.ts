@@ -177,7 +177,7 @@ export interface paths {
          * Archive an announcement
          * @description Archives an announcement.
          */
-        post: operations["archive_1"];
+        post: operations["archive"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3675,7 +3675,7 @@ export interface paths {
          * List the live forms
          * @description Requires studio.forms.publish. The newest first; limit 1 to 100 (default 50, else 422) and the nextCursor of the previous page. Each form gives its status (active or archived), active version, versions, records, quarantine and why it fails to load, and the revision a change names in If-Match. An inactive module returns 404.
          */
-        get: operations["forms"];
+        get: operations["liveForms"];
         put?: never;
         /**
          * Activate an immutable simple form
@@ -3699,7 +3699,7 @@ export interface paths {
          * Read a live form with its versions
          * @description Requires studio.forms.publish. The declaration of the active version, every version and the revision as ETag. 404 for an unknown form or a value that is no live form code.
          */
-        get: operations["form"];
+        get: operations["liveForm"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3721,7 +3721,7 @@ export interface paths {
          * Archive a live form
          * @description Requires studio.forms.publish and If-Match (428/409). The form leaves the menu; its records stay readable, with history and export, and every write answers 409 error.studio.archived. It no longer counts toward the limit of 100 active forms. 409 when already archived. Audited.
          */
-        post: operations["archive"];
+        post: operations["archiveForm"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3741,7 +3741,7 @@ export interface paths {
          * Restore an archived live form
          * @description Requires studio.forms.publish and If-Match (428/409). The form returns to the menu and its records to writing; 422 error.studio.quota when 100 forms are already active, 409 when the form is not archived. A quarantined form stays out of service until it is released. Audited.
          */
-        post: operations["restore"];
+        post: operations["restoreForm"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3761,7 +3761,7 @@ export interface paths {
          * Activate a new version of a live form
          * @description Requires studio.forms.publish, enabled activation and If-Match with the revision of the form (428 without it, 409 when stale). The body is a simple-form package of the same code (422 otherwise). Only compatible changes are accepted: each refused change is named in a 422 error.studio.change_incompatible with its field and change. 409 for an archived form, 422 for the same declaration as the active one or above 100 versions. The old versions never change; every node serves the new one at its next request. Audited.
          */
-        post: operations["newVersion"];
+        post: operations["newFormVersion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7432,7 +7432,7 @@ export interface operations {
             };
         };
     };
-    archive_1: {
+    archive: {
         parameters: {
             query?: never;
             header?: {
@@ -16224,7 +16224,7 @@ export interface operations {
             };
         };
     };
-    forms: {
+    liveForms: {
         parameters: {
             query?: {
                 limit?: number;
@@ -16300,7 +16300,7 @@ export interface operations {
             };
         };
     };
-    form: {
+    liveForm: {
         parameters: {
             query?: never;
             header?: never;
@@ -16333,7 +16333,7 @@ export interface operations {
             };
         };
     };
-    archive: {
+    archiveForm: {
         parameters: {
             query?: never;
             header?: {
@@ -16386,7 +16386,7 @@ export interface operations {
             };
         };
     };
-    restore: {
+    restoreForm: {
         parameters: {
             query?: never;
             header?: {
@@ -16439,7 +16439,7 @@ export interface operations {
             };
         };
     };
-    newVersion: {
+    newFormVersion: {
         parameters: {
             query?: never;
             header?: {

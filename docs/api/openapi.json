@@ -517,7 +517,7 @@
     "/api/v1/announcements/{id}/archive" : {
       "post" : {
         "description" : "Archives an announcement.",
-        "operationId" : "archive_1",
+        "operationId" : "archive",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -13063,7 +13063,7 @@
     "/api/v1/studio/forms" : {
       "get" : {
         "description" : "Requires studio.forms.publish. The newest first; limit 1 to 100 (default 50, else 422) and the nextCursor of the previous page. Each form gives its status (active or archived), active version, versions, records, quarantine and why it fails to load, and the revision a change names in If-Match. An inactive module returns 404.",
-        "operationId" : "forms",
+        "operationId" : "liveForms",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -13165,7 +13165,7 @@
     "/api/v1/studio/forms/{entityCode}" : {
       "get" : {
         "description" : "Requires studio.forms.publish. The declaration of the active version, every version and the revision as ETag. 404 for an unknown form or a value that is no live form code.",
-        "operationId" : "form",
+        "operationId" : "liveForm",
         "parameters" : [ {
           "in" : "path",
           "name" : "entityCode",
@@ -13211,7 +13211,7 @@
     "/api/v1/studio/forms/{entityCode}/archive" : {
       "post" : {
         "description" : "Requires studio.forms.publish and If-Match (428/409). The form leaves the menu; its records stay readable, with history and export, and every write answers 409 error.studio.archived. It no longer counts toward the limit of 100 active forms. 409 when already archived. Audited.",
-        "operationId" : "archive",
+        "operationId" : "archiveForm",
         "parameters" : [ {
           "in" : "path",
           "name" : "entityCode",
@@ -13284,7 +13284,7 @@
     "/api/v1/studio/forms/{entityCode}/restore" : {
       "post" : {
         "description" : "Requires studio.forms.publish and If-Match (428/409). The form returns to the menu and its records to writing; 422 error.studio.quota when 100 forms are already active, 409 when the form is not archived. A quarantined form stays out of service until it is released. Audited.",
-        "operationId" : "restore",
+        "operationId" : "restoreForm",
         "parameters" : [ {
           "in" : "path",
           "name" : "entityCode",
@@ -13357,7 +13357,7 @@
     "/api/v1/studio/forms/{entityCode}/versions" : {
       "post" : {
         "description" : "Requires studio.forms.publish, enabled activation and If-Match with the revision of the form (428 without it, 409 when stale). The body is a simple-form package of the same code (422 otherwise). Only compatible changes are accepted: each refused change is named in a 422 error.studio.change_incompatible with its field and change. 409 for an archived form, 422 for the same declaration as the active one or above 100 versions. The old versions never change; every node serves the new one at its next request. Audited.",
-        "operationId" : "newVersion",
+        "operationId" : "newFormVersion",
         "parameters" : [ {
           "in" : "path",
           "name" : "entityCode",
