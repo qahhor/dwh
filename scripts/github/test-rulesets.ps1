@@ -1,37 +1,14 @@
 # Plan 10/10, item 1.9: the rulesets in .github/rulesets are the branch and tag protection of the repository,
 # applied by an administrator with scripts/github/apply-rulesets.ps1. This contract keeps them consistent with the
-# workflows: a required check that no job produces would block every pull request, and a renamed job would silently
-# stop being required.
+# workflows. Owner decision 2026-10-17: no workflow runs automatically, every gate runs locally before a merge
+# (AGENTS.md, sections 3 and 5). A workflow is therefore started by hand (workflow_dispatch) or called by another
+# (workflow_call); only release.yml and prerelease.yml start on their version tags, a deliberate act of a release
+# administrator (scripts/release/verify-release.ps1 pins their tag patterns). Since no job reports on a pull
+# request, main may require no status check and no code scanning result: either would block every pull request.
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $errors = [System.Collections.Generic.List[string]]::new()
-
-function Get-JobNames([string]$workflowText) {
-    # The display names of the jobs, a matrix name expanded over its values (one level: `key: [a, b]`).
-    $names = [System.Collections.Generic.List[string]]::new()
-    $jobsAt = $workflowText.IndexOf("`njobs:")
-    if ($jobsAt -lt 0) { return $names }
-    $jobs = $workflowText.Substring($jobsAt)
-    $blocks = [regex]::Split($jobs, '(?m)^  (?=[A-Za-z0-9_-]+:\s*$)')
-    foreach ($block in $blocks) {
-        $nameMatch = [regex]::Match($block, '(?m)^    name:\s*(.+?)\s*$')
-        if (-not $nameMatch.Success) { continue }
-        $name = $nameMatch.Groups[1].Value.Trim("'", '"')
-        $matrixRefs = [regex]::Matches($name, '\$\{\{\s*matrix\.([A-Za-z0-9_-]+)\s*\}\}')
-        if ($matrixRefs.Count -eq 0) { $names.Add($name); continue }
-        $expanded = @($name)
-        foreach ($ref in $matrixRefs) {
-            $key = $ref.Groups[1].Value
-            $valuesMatch = [regex]::Match($block, "(?m)^\s+${key}:\s*\[([^\]]*)\]")
-            if (-not $valuesMatch.Success) { $errors.Add("Matrix '$key' of job '$name' is not a one-line list."); continue }
-            $values = $valuesMatch.Groups[1].Value -split ',' | ForEach-Object { $_.Trim().Trim("'", '"') } | Where-Object { $_ }
-            $expanded = foreach ($candidate in $expanded) { foreach ($value in $values) { $candidate.Replace($ref.Value, $value) } }
-        }
-        $expanded | ForEach-Object { $names.Add($_) }
-    }
-    return $names
-}
 
 $rulesets = @{}
 foreach ($file in Get-ChildItem -LiteralPath (Join-Path $repoRoot '.github/rulesets') -Filter '*.json') {
@@ -42,12 +19,36 @@ foreach ($file in Get-ChildItem -LiteralPath (Join-Path $repoRoot '.github/rules
     }
 }
 
-# Jobs that report on a pull request.
-$pullRequestJobs = [System.Collections.Generic.HashSet[string]]::new()
+# Triggers: the top-level keys of the `on:` block of every workflow.
+$manualTriggers = @('workflow_dispatch', 'workflow_call')
+$tagWorkflows = @('release.yml', 'prerelease.yml')
+$workflowCount = 0
 foreach ($workflowFile in Get-ChildItem -LiteralPath (Join-Path $repoRoot '.github/workflows') -Filter '*.yml') {
+    $workflowCount++
     $text = (Get-Content -LiteralPath $workflowFile.FullName -Raw) -replace "`r`n", "`n"
-    if ($text -notmatch '(?m)^\s+pull_request:|^on:\s*pull_request\s*$|^on:\s*\[[^\]]*pull_request') { continue }
-    foreach ($name in (Get-JobNames $text)) { [void]$pullRequestJobs.Add($name) }
+    $onMatch = [regex]::Match($text, '(?m)^on:[ \t]*(?<inline>[^\n]*)\n(?<block>(?:[ \t]+[^\n]*\n|[ \t]*\n)*)')
+    if (-not $onMatch.Success) { $errors.Add("$($workflowFile.Name) has no top-level 'on:' block."); continue }
+    $inline = $onMatch.Groups['inline'].Value.Trim()
+    if ($inline) {
+        $triggers = @($inline.Trim('[', ']') -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    } else {
+        $triggers = @([regex]::Matches($onMatch.Groups['block'].Value, '(?m)^  ([A-Za-z_]+):') | ForEach-Object { $_.Groups[1].Value })
+    }
+    if ($tagWorkflows -contains $workflowFile.Name) {
+        if ((@($triggers) -join ',') -ne 'push' -or $onMatch.Groups['block'].Value -notmatch '(?m)^    tags:' -or
+            $onMatch.Groups['block'].Value -match '(?m)^    (branches|branches-ignore|paths|paths-ignore):') {
+            $errors.Add("$($workflowFile.Name) must start only on a pushed version tag.")
+        }
+        continue
+    }
+    foreach ($trigger in $triggers) {
+        if ($manualTriggers -notcontains $trigger) {
+            $errors.Add("$($workflowFile.Name) starts automatically on '$trigger': workflows run by hand only (workflow_dispatch).")
+        }
+    }
+    if ($triggers -notcontains 'workflow_dispatch') {
+        $errors.Add("$($workflowFile.Name) cannot be started by hand: add workflow_dispatch.")
+    }
 }
 
 $main = $rulesets['main.json']
@@ -57,33 +58,9 @@ if (-not $main) {
     if ($main.target -ne 'branch' -or $main.enforcement -ne 'active' -or $main.conditions.ref_name.include -notcontains '~DEFAULT_BRANCH') {
         $errors.Add('main.json must be an active branch ruleset on the default branch.')
     }
-    $checks = @($main.rules | Where-Object { $_.type -eq 'required_status_checks' })
-    if ($checks.Count -ne 1) { $errors.Add('main.json must have one required_status_checks rule.') }
-    $required = [System.Collections.Generic.HashSet[string]]::new()
-    foreach ($check in $checks.parameters.required_status_checks) {
-        [void]$required.Add($check.context)
-        if (-not $pullRequestJobs.Contains($check.context)) {
-            $errors.Add("Required check '$($check.context)' is produced by no job that runs on pull requests.")
-        }
-    }
-    # The other direction: a job that runs on pull requests is required, or it is listed here with the reason it
-    # may stay red without blocking a merge. A new job is therefore required from its first pull request.
-    $optionalJobs = @{
-        # dependabot-auto-merge.yml: skipped on every pull request not opened by Dependabot; it only arms auto-merge,
-        # the required checks above still decide the merge.
-        'arm auto-merge for a patch update' = 'runs only for Dependabot pull requests and merges nothing itself'
-    }
-    foreach ($job in $pullRequestJobs) {
-        if (-not $required.Contains($job) -and -not $optionalJobs.ContainsKey($job)) {
-            $errors.Add("Pull request job '$job' is not a required check of main.json (add it, or list it as optional with a reason).")
-        }
-    }
-    foreach ($job in $optionalJobs.Keys) {
-        if (-not $pullRequestJobs.Contains($job)) {
-            $errors.Add("Optional job '$job' runs on no pull request: remove it from the list.")
-        } elseif ($required.Contains($job)) {
-            $errors.Add("Optional job '$job' is also required: remove it from one of the lists.")
-        }
+    # No job runs on a pull request, so a required check or a required code scanning result would never arrive.
+    if ($main.rules | Where-Object { $_.type -eq 'required_status_checks' }) {
+        $errors.Add('main.json must not require status checks: no workflow runs on pull requests, the gates run locally.')
     }
     $pullRequest = @($main.rules | Where-Object { $_.type -eq 'pull_request' })
     if ($pullRequest.Count -ne 1 -or $pullRequest[0].parameters.required_approving_review_count -lt 1) {
@@ -92,8 +69,8 @@ if (-not $main) {
         # A squash or a rebase rewrites the commits that .git-blame-ignore-revs names.
         $errors.Add('main.json must allow merge commits only (.git-blame-ignore-revs names commits by SHA).')
     }
-    if (-not ($main.rules | Where-Object { $_.type -eq 'code_scanning' })) {
-        $errors.Add('main.json must require code scanning results.')
+    if ($main.rules | Where-Object { $_.type -eq 'code_scanning' }) {
+        $errors.Add('main.json must not require code scanning results: codeql.yml runs by hand only.')
     }
 }
 
@@ -116,4 +93,4 @@ if (-not (Test-Path -LiteralPath (Join-Path $repoRoot '.github/CODEOWNERS'))) {
 if ($errors.Count -gt 0) {
     throw "Ruleset contract failed:`n - $($errors -join "`n - ")"
 }
-Write-Host "Ruleset contract passed: $($rulesets.Count) rulesets, required checks match $($pullRequestJobs.Count) pull request jobs."
+Write-Host "Ruleset contract passed: $($rulesets.Count) rulesets; $workflowCount workflows start by hand or on a release tag only."

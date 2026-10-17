@@ -1,11 +1,10 @@
-# Nightly checks (plan 10/10, item 1.8): drills too slow or too broad for every pull request, and a fresh look at
-# published advisories. Each job builds what it needs on a disposable runner; a red job is triaged the next morning.
+# Slow checks (plan 10/10, item 1.8): drills too slow or too broad for every merge, and a fresh look at published
+# advisories. Each job builds what it needs on a disposable runner. No schedule (owner decision 2026-10-17: no
+# workflow runs automatically): started by hand before a release or after a dependency update.
 # scripts/docs/test-repository-hygiene.ps1 fails when a scripts/**/test-* script is run by no workflow.
 name: nightly
 
 on:
-  schedule:
-    - cron: '30 22 * * *' # 03:30 in Tashkent
   workflow_dispatch:
 
 permissions:
@@ -210,8 +209,8 @@ jobs:
           mvn -B -q -DskipTests package
           mvn -B -q org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom -DoutputFormat=json
 
-      # The same scans as the security job of ci.yml; a new HIGH or CRITICAL advisory turns this job red within a
-      # day, and it is closed within 7 days (docs/ops/repository-settings.md).
+      # The same scans as the security job of ci.yml; a new HIGH or CRITICAL advisory turns this job red, and it is
+      # closed within 7 days (docs/ops/repository-settings.md).
       - name: Trivy (backend SBOM)
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:

@@ -1,21 +1,17 @@
 # Static analysis (plan 10/10, item 1.6): CodeQL reads the server (Java), the web application and the E2E suite
-# (TypeScript), deployment/recovery automation (Python), and these workflows on every pull request, on main,
-# and weekly for newly published queries.
-# Findings land in Security -> Code scanning; the main ruleset requires this check with no high-severity alert.
+# (TypeScript), deployment/recovery automation (Python), and these workflows.
+# Started by hand only (owner decision 2026-10-17: no workflow runs automatically): before a release and after a
+# change of dependencies or workflows. Findings land in Security -> Code scanning.
 name: codeql
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-  schedule:
-    - cron: '17 3 * * 1'
+  workflow_dispatch:
 
 permissions: {}
 
 concurrency:
   group: codeql-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
   analyze:

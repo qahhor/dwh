@@ -1,21 +1,37 @@
 # CI gates: backend, frontend, production config, E2E and security.
-# A red required job must block merge in GitHub branch protection.
+# Nothing runs automatically (owner decision 2026-10-17): every gate runs locally before a merge (AGENTS.md, sections
+# 3 and 5), and this workflow is started by hand (Actions -> ci -> Run workflow, or `gh workflow run ci.yml`).
 name: ci
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-  # The release workflow runs this very set of jobs on the tagged commit (plan 10/10, item 1.9).
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Branch the run is compared with (diff coverage, API compatibility); empty compares with HEAD~1
+        type: string
+        default: main
+      allow_breaking:
+        description: Accept an incompatible API change (the api-breaking label of a pull request)
+        type: boolean
+        default: false
+  # The release workflows run this very set of jobs on the tagged commit (plan 10/10, item 1.9); they pass no
+  # inputs, so the API job compares with HEAD~1 and diff coverage is skipped, as for a push.
   workflow_call:
+    inputs:
+      base_ref:
+        type: string
+        default: ''
+      allow_breaking:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
-# A new push to a pull request cancels the run of the previous one; main keeps every run (plan 10/10, item 1.8).
+# Runs of one ref queue up; none is cancelled (plan 10/10, item 1.8).
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
   backend:
@@ -25,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
-          # Diff coverage compares the pull request with its base branch.
+          # Diff coverage compares the commit with the base branch given at dispatch.
           fetch-depth: 0
 
       - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
@@ -48,7 +64,7 @@ jobs:
         run: ./scripts/api/test-platform-api-compat.ps1
 
       # Plan 10/10, item 1.4: every test runs, every business module keeps its coverage floor,
-      # and the lines a pull request changes are covered at 80 % at least.
+      # and the lines a branch changes against its base are covered at 80 % at least.
       - name: Every test ran
         shell: pwsh
         run: ./scripts/quality/test-no-skipped-tests.ps1
@@ -59,11 +75,11 @@ jobs:
           ./scripts/quality/test-coverage-floors.ps1
           Get-Content apps/server/target/coverage/modules.md | Add-Content $env:GITHUB_STEP_SUMMARY
 
-      - name: Diff coverage of the pull request
-        if: github.event_name == 'pull_request'
+      - name: Diff coverage against the base branch
+        if: inputs.base_ref != ''
         shell: bash
         env:
-          BASE_REF: ${{ github.base_ref }}
+          BASE_REF: ${{ inputs.base_ref }}
         run: |
           python3 -m pip install --user --quiet diff-cover==10.6.0
           status=0
@@ -157,7 +173,7 @@ jobs:
           npm run typecheck
           npm run build
 
-      # The coverage table lands in the job summary of every pull request; the
+      # The coverage table lands in the job summary of the run; the
       # step fails when coverage drops under the floor in coverage-summary.mjs.
       - name: Report web coverage
         working-directory: apps/web
@@ -188,8 +204,8 @@ jobs:
           retention-days: 7
 
   # Plan 10/10, item 3.3: docs/api/openapi.json is generated from the controllers (OpenApiContractTest keeps it
-  # current in the backend job). Here it is linted, the web types are checked against it, and a pull request may not
-  # break the clients of its base branch unless it carries the api-breaking label.
+  # current in the backend job). Here it is linted, the web types are checked against it, and a branch may not break
+  # the clients of its base branch unless the run is dispatched with allow_breaking (the api-breaking label).
   api:
     name: api contract (Spectral + openapi-diff + web types)
     runs-on: ubuntu-24.04
@@ -208,12 +224,12 @@ jobs:
       - name: Validate the API description, the web types and compatibility
         shell: pwsh
         env:
-          BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}
-          ALLOW_BREAKING: ${{ contains(github.event.pull_request.labels.*.name, 'api-breaking') }}
+          BASE_REF: ${{ inputs.base_ref != '' && format('origin/{0}', inputs.base_ref) || 'HEAD~1' }}
+          ALLOW_BREAKING: ${{ inputs.allow_breaking }}
         run: ./scripts/api/test-api-contract.ps1 -BaseRef $env:BASE_REF -AllowBreaking:($env:ALLOW_BREAKING -eq 'true')
 
   # Plan 10/10, item 6.1: the developer CLI's own tests on both platforms it promises, in seconds. The generated
-  # module's full build runs nightly (nightly.yml, cms-cli).
+  # module's full build is the cms-cli job of nightly.yml.
   cms-cli:
     name: cms CLI (node:test, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -264,7 +280,7 @@ jobs:
         shell: pwsh
         run: ./scripts/docs/test-repository-hygiene.ps1
 
-      # Plan 10/10, item 7.6: a pull request is warned when the threat model is older than 30 days; the release
+      # Plan 10/10, item 7.6: a manual run is warned when the threat model is older than 30 days; the release
       # workflow fails on it, judged on the release commit's date.
       - name: Check the threat model date
         shell: pwsh
