@@ -41,16 +41,17 @@ publish local audit drafts as requirements or evidence.
 
 ## 3. Workflow for a change
 
-- One branch per task (`claude/…`, `codex/…` or similar), created from `main`.
+- Work directly on `main` (owner, 2026-10-17): no new task branches or
+  worktrees; one assistant writes at a time, others only read.
 - Commit with `git commit -s` (DCO; `dco.yml` checks it when run by hand) and
   end the message with your tool's attribution trailer in the last paragraph.
 - GitHub Actions never start automatically (owner, 2026-10-17): workflows run
   only by hand (`workflow_dispatch`; release workflows on their version tags),
-  so the local gates of section 5 are the merge gate.
-- Before a merge, run every CI job **locally** (section 5); a red check is
-  compared with the base branch before anyone calls it pre-existing. Merge
-  into `main` with `git merge --no-ff`, never rebase or squash `main`
-  (`.git-blame-ignore-revs` holds merge-sensitive SHAs).
+  so the local gates of section 5 are the push gate.
+- Before a push, run every CI job **locally** (section 5); a red check is
+  compared with `origin/main` before anyone calls it pre-existing. Never
+  rewrite pushed history of `main` (no force push, rebase or squash of pushed
+  commits; `.git-blame-ignore-revs` holds merge-sensitive SHAs).
 - Coverage floors (`scripts/quality/test-coverage-floors.ps1`) and every
   baseline (ArchUnit store, comment-language baseline, ESLint suppressions)
   only go down: add tests or fix code, never lower a floor or grow a baseline.
@@ -92,7 +93,7 @@ Details and links: `CODE_STYLE.md`, `docs/ai-context.md` §5, ADR-0020…0025.
 - UI texts: ru is the source catalog, uz and en complete; `npm run i18n:sync-ru`.
 - Authorization only on the server (`@RequiresPermission`, data scope).
 
-## 5. Checks (run all before a merge)
+## 5. Checks (run all before a push)
 
 The full list with commands is in `docs/ai-context.md` §6. In short:
 
