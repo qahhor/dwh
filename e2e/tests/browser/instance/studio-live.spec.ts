@@ -82,7 +82,9 @@ test('Studio prepares a real package and respects activation before creating and
     await page.getByRole('alertdialog').getByRole('button', { name: 'Активировать форму', exact: true }).click();
     const activated = await activation;
     expect(activated.status()).toBe(201);
-    expect(await activated.json()).toMatchObject({ entityCode: `studio.${entityName}`, checksum: delivery.checksum });
+    // The browser may evict a response body while the screen refreshes its dictionary: the server answers instead.
+    const stored = await call(page, 'GET', `/api/v1/studio/forms/studio.${entityName}`, 200) as { checksum: string };
+    expect(stored.checksum).toBe(delivery.checksum);
     await expect(page.getByTestId('new-form-activated')).toContainText(`studio.${entityName}`);
 
     const entity = await openEntity(page, `studio.${entityName}`, 'Места хранения');
@@ -126,7 +128,8 @@ async function activateVersion(page: Page, code: string): Promise<{ form: { acti
   expect(answer.status()).toBe(201);
   expect(answer.request().headers()['if-match']).toMatch(/^"\d+"$/u);
   await expect(page.getByTestId('form-version-activated')).toBeVisible();
-  return await answer.json() as { form: { activeVersion: number } };
+  // The browser may evict a response body while the screen refreshes its dictionary: the server answers instead.
+  return await call(page, 'GET', `/api/v1/studio/forms/${code}`, 200) as { form: { activeVersion: number } };
 }
 
 // ADR-0041: a live form changes by compatible versions, keeps the data of older records and archives read-only.
@@ -171,10 +174,11 @@ test('A live form takes a new field and a hidden one, then archives read-only an
     await entity.fillField('name', 'New record');
     await entity.fillField('code', 'new');
     await entity.fillField('field1', 'North');
-    const created = await entity.save();
-    expect(created.status()).toBe(201);
-    const fresh = await created.json() as { id: number; field1: string };
-    expect(fresh.field1).toBe('North');
+    expect((await entity.save()).status()).toBe(201);
+    await expect(page).toHaveURL(/\/e\/studio\.[a-z0-9_]+\/\d+$/u);
+    const fresh = { id: Number(new URL(page.url()).pathname.split('/').pop()) };
+    const saved = await call(page, 'GET', `/api/v1/entities/${code}/${fresh.id}`, 200) as Record<string, unknown>;
+    expect(saved.field1).toBe('North');
 
     await page.goto(`/settings/form-studio/forms/${code}/version`);
     await page.getByTestId('version-hide-note').click();
