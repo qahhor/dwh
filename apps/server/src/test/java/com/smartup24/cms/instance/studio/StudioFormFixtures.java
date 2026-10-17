@@ -76,7 +76,7 @@ final class StudioFormFixtures {
         return ((Number) TestSession.object(created).get("id")).longValue();
     }
 
-    /** A reference list with items named "Тип/Turi/Kind <code>", in the order given. */
+    /** A reference list whose items are named after their codes in each language, in the order given. */
     void list(TestSession manager, String code, List<String> items) throws Exception {
         MockHttpServletResponse created = manager.send(
                 post("/api/v1/studio/lists"),

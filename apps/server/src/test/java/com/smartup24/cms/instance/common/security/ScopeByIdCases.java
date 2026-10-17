@@ -226,6 +226,22 @@ final class ScopeByIdCases {
                     "StudioFormVersionController#restoreForm",
                     "a live form code: the lifecycle of a catalog definition under studio.forms.publish, no scoped"
                             + " record (StudioFormVersionsHttpTest)"),
+            Map.entry(
+                    "StudioListController#referenceList",
+                    "a reference list code: installation settings under studio.lists, the same for every viewer, no"
+                            + " scoped record (StudioListsHttpTest)"),
+            Map.entry(
+                    "StudioListController#renameReferenceList",
+                    "a reference list code: installation settings under studio.lists, the same for every viewer, no"
+                            + " scoped record (StudioListsHttpTest)"),
+            Map.entry(
+                    "StudioListController#createReferenceListItem",
+                    "a reference list code: installation settings under studio.lists, the same for every viewer, no"
+                            + " scoped record (StudioListsHttpTest)"),
+            Map.entry(
+                    "StudioListController#updateReferenceListItem",
+                    "a reference list code: installation settings under studio.lists, the same for every viewer, no"
+                            + " scoped record (StudioListsHttpTest)"),
             Map.entry("EntityController#create", "an entity code: a new record, in the creator's scope"),
             Map.entry(
                     "EntityFileController#download",

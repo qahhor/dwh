@@ -21,3 +21,4 @@ src/main/resources/db/migration/V181__example_orders.sql:2000 # предел д�
 src/main/resources/db/migration/V186__report_imports.sql:1000 # предел длины текста ошибки строки импорта, не норматив
 src/main/resources/db/migration/V187__entity_import_rights.sql:3600 # период задания report.import_cleanup, секунды
 src/main/resources/db/migration/V197__example_products_requests.sql:2000 # предел длины решения заявки-эталона, не норматив
+src/main/resources/db/migration/V222__studio_lists.sql:9999 # верхняя граница порядка значения справочника, не норматив
