@@ -32,12 +32,13 @@ Write-Host "============================================================" -Foreg
 Write-Host "  SmartupCMS - Live Smoke Test Suite                        " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-# 1. Health Check
+# 1. Health Check: the readiness group, so a degradable component (pg-dwh, Typesense, ClamAV, a stored live
+# form that fails to load) is not mistaken for an unready server (ADR-0038).
 Write-Host "`n1. Actuator Health Check..." -ForegroundColor Yellow
 $health = $null
 for ($i = 0; $i -lt 10; $i++) {
     try {
-        $health = Invoke-RestMethod -Uri "$MgmtUrl/actuator/health" -Method Get
+        $health = Invoke-RestMethod -Uri "$MgmtUrl/actuator/health/readiness" -Method Get
         if ($health.status -eq "UP") { break }
     } catch {
         Start-Sleep -Milliseconds 500

@@ -33,7 +33,8 @@ class ReadinessGroupIntegrationTest extends EmbeddedPostgresTest {
         assertThat(readiness.isMember("database")).isTrue();
         // A dead database must stop the traffic, not restart the process.
         assertThat(liveness.isMember("database")).isFalse();
-        for (String degradable : List.of("dwh", "typesense", "clamav")) {
+        // studioForms: one stored live form that fails to load is left out; it never takes the instance out (ADR-0038).
+        for (String degradable : List.of("dwh", "typesense", "clamav", "studioForms")) {
             assertThat(context.containsBean(degradable + "HealthIndicator"))
                     .as("%s is monitored", degradable)
                     .isTrue();
