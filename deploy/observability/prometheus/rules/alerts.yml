@@ -260,3 +260,17 @@ groups:
           summary: "Search index lags behind the database by more than 15 minutes"
           description: "The search outbox of the active collection has waited {{ $value | humanizeDuration }}."
           runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-09-search-delivery.md"
+
+  - name: smartupcms-studio
+    rules:
+      # ADR-0038, decision 9: a stored live form that fails to load is left out and every other form keeps serving,
+      # so this waits for the working day; quarantine acknowledges the form and silences the alert.
+      - alert: SmartupcmsStudioFormsBroken
+        expr: max by (application) (smc_studio_forms_broken) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A stored live form fails to load and is left out"
+          description: "{{ $value }} stored live form(s) fail to load on at least one node; the other forms and the declared entities keep serving."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-13-live-studio-forms.md"

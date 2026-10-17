@@ -1,0 +1,51 @@
+# promtool unit tests: live studio forms (ADR-0038, decision 9; plan 10/10, item 7.3).
+rule_files:
+  - ../rules/recording.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # One node compiled a catalog with a broken form; the other has not read it yet. The alert waits 10 minutes.
+  - name: studio forms broken
+    interval: 1m
+    input_series:
+      - series: 'smc_studio_forms_broken{application="smartupcms", instance="a"}'
+        values: '0 1x30'
+      - series: 'smc_studio_forms_broken{application="smartupcms", instance="b"}'
+        values: '0x30'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: SmartupcmsStudioFormsBroken
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: SmartupcmsStudioFormsBroken
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "A stored live form fails to load and is left out"
+              description: "1 stored live form(s) fail to load on at least one node; the other forms and the declared entities keep serving."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-13-live-studio-forms.md"
+
+  # The operator quarantines the form: the meter drops to zero and the alert clears.
+  - name: studio forms quarantined
+    interval: 1m
+    input_series:
+      - series: 'smc_studio_forms_broken{application="smartupcms", instance="a"}'
+        values: '1x12 0x20'
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: SmartupcmsStudioFormsBroken
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "A stored live form fails to load and is left out"
+              description: "1 stored live form(s) fail to load on at least one node; the other forms and the declared entities keep serving."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-13-live-studio-forms.md"
+      - eval_time: 20m
+        alertname: SmartupcmsStudioFormsBroken
+        exp_alerts: []

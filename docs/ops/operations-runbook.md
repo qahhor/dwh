@@ -492,12 +492,16 @@ the application does not start while a retention policy names one.
 
 ## Live studio form fails to load
 
-ADR-0038, decisions 9–11. A stored live form (`studio.<code>`) that no longer loads is left out; declared entities
-and the other live forms keep serving and the instance stays ready. Signs:
+ADR-0038, decisions 9–11; alert `SmartupcmsStudioFormsBroken` (warning, `smc_studio_forms_broken > 0` for
+10 minutes), runbook [RB-13](../runbooks/RB-13-live-studio-forms.md). A stored live form (`studio.<code>`) that
+no longer loads is left out; declared entities and the other live forms keep serving and the instance stays
+ready. Signs:
 
 - the log line `studio_form_broken code=studio.<code> formId=<id> reason=<reason>`, written once each time the
   catalog changes and is compiled again on a node;
-- the metric `smc_studio_forms_broken` above zero (and `smc_studio_forms_quarantined` for the held forms);
+- the metric `smc_studio_forms_broken` above zero (and `smc_studio_forms_quarantined`, every quarantine row);
+  both read the catalog last compiled on the node and keep their value across a change until the catalog is
+  compiled again — a request on that node, or at once on a `studio.catalog` notice from another node;
 - the health component `studioForms` DOWN in `/actuator/health` with `broken: ["studio.<code>: <reason>"]`. It is
   not a readiness member: do not restart the instance for it.
 
@@ -518,9 +522,12 @@ curl -fsS https://<host>/api/v1/studio/catalog -H "Authorization: Bearer $SMC_AP
 ```
 
 The answer is `201`; `409` means the form is already quarantined and `404` that no such form is stored. Every
-node stops serving the form at its next request; its records, rights and audit stay, and the catalog view
-lists it under `quarantined`. A quarantined form answers `404` in the UI and API. Each quarantine and release
-is audited (`studio_form_quarantine`).
+node stops serving the form at its next request; its records, rights and audit stay (a restart keeps its rights
+even when its declaration does not compile), and the catalog view lists it under `quarantined`. A quarantined
+form answers `404` in the UI and API, its history and export included, and is no longer counted as broken, so
+the alert clears. Each quarantine and release is audited (`studio_form_quarantine`). Repeating the activation of
+the same package answers `409 error.studio.quarantined` for a quarantined form and `409 error.studio.broken`
+for a form that does not load, never "activated".
 
 Release it only after the cause is gone (a fixed application release, the clashing declared entity removed):
 `DELETE /api/v1/studio/quarantine/studio.<code>` answers `204`, and the form serves again at the next request.
