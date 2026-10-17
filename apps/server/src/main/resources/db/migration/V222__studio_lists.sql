@@ -40,27 +40,36 @@ create index studio_list_items_modified_by_idx on studio_list_items (modified_by
 
 -- Records keep item codes: a list and an item are never deleted and an item never changes its code or list; an item
 -- that is no longer offered is deactivated.
-create function studio_reject_list_change() returns trigger language plpgsql as $$
+create function studio_lists_keep_code() returns trigger language plpgsql as $$
 begin
-    if tg_op = 'UPDATE' and tg_table_name = 'studio_lists' and new.code = old.code then
-        return new;
+    if tg_op = 'UPDATE' then
+        if new.code = old.code then
+            return new;
+        end if;
     end if;
-    if tg_op = 'UPDATE' and tg_table_name = 'studio_list_items'
-            and new.code = old.code and new.list_id = old.list_id then
-        return new;
+    raise exception 'Reference list codes are permanent' using errcode = 'restrict_violation';
+end;
+$$;
+
+create function studio_list_items_keep_code() returns trigger language plpgsql as $$
+begin
+    if tg_op = 'UPDATE' then
+        if new.code = old.code and new.list_id = old.list_id then
+            return new;
+        end if;
     end if;
     raise exception 'Reference list codes are permanent' using errcode = 'restrict_violation';
 end;
 $$;
 
 create trigger studio_lists_permanent before update or delete on studio_lists
-for each row execute function studio_reject_list_change();
+for each row execute function studio_lists_keep_code();
 
 create trigger studio_lists_no_truncate before truncate on studio_lists
-for each statement execute function studio_reject_list_change();
+for each statement execute function studio_lists_keep_code();
 
 create trigger studio_list_items_permanent before update or delete on studio_list_items
-for each row execute function studio_reject_list_change();
+for each row execute function studio_list_items_keep_code();
 
 create trigger studio_list_items_no_truncate before truncate on studio_list_items
-for each statement execute function studio_reject_list_change();
+for each statement execute function studio_list_items_keep_code();
