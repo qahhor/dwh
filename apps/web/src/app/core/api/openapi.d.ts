@@ -3768,6 +3768,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/studio/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the reference lists
+         * @description Requires studio.lists.view. The newest first; limit 1 to 100 (default 50, else 422) and the nextCursor of the previous page. Each list gives its item counts and the revision a change of its names takes in If-Match.
+         */
+        get: operations["referenceLists"];
+        put?: never;
+        /**
+         * Create a reference list
+         * @description Requires studio.lists.manage. The code is permanent; names in ru, uz and en of 1 to 80 characters. 409 for a taken code, 422 above 200 lists. Audited.
+         */
+        post: operations["createReferenceList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/lists/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a reference list with its items
+         * @description Requires studio.lists.view. Every item (at most 500), inactive ones too, in their order; the list's revision as ETag. 404 for an unknown list.
+         */
+        get: operations["referenceList"];
+        /**
+         * Rename a reference list
+         * @description Requires studio.lists.manage and If-Match with the list's revision (428 without it, 409 when stale). Audited.
+         */
+        put: operations["renameReferenceList"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/lists/{code}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an item to a reference list
+         * @description Requires studio.lists.manage. The code is permanent and unique in the list (409 otherwise); names in ru, uz and en; order 1 to 9999. 422 above 500 items. Every form field that refers to the list offers the item at once. Audited.
+         */
+        post: operations["createReferenceListItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/lists/{code}/items/{itemCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change an item of a reference list
+         * @description Requires studio.lists.manage and If-Match with the item's revision (428/409). Names, order and whether new values may take it; an inactive item keeps its name in the records that hold it. The code never changes. Audited.
+         */
+        put: operations["updateReferenceListItem"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/studio/quarantine": {
         parameters: {
             query?: never;
@@ -5610,6 +5698,14 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageStudioListSummary: {
+            hasMore?: boolean;
+            items?: components["schemas"]["StudioListSummary"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageTaskCommentView: {
             hasMore?: boolean;
             items?: components["schemas"]["TaskCommentView"][];
@@ -6605,7 +6701,7 @@ export interface components {
             fields: components["schemas"]["SimpleFormField"][];
             /**
              * Format: int32
-             * @description 1, or 2 for a live form with hidden fields, defaults or its own menu item
+             * @description 1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope
              */
             formatVersion: number;
             /** @enum {string} */
@@ -6657,6 +6753,11 @@ export interface components {
         SimpleFormEntity: {
             menu?: components["schemas"]["SimpleFormMenu"];
             name: string;
+            /**
+             * @description Format 3: which records a viewer sees (ADR-0041) - all, those of the viewer's org units (org_unit) or the viewer's own (owner); absent means all
+             * @enum {string}
+             */
+            scope?: "all" | "org_unit" | "owner";
             title: components["schemas"]["SimpleFormLabels"];
         };
         SimpleFormField: {
@@ -6669,11 +6770,15 @@ export interface components {
             listed: boolean;
             /** Format: int32 */
             maxLength?: number;
+            /** @description Format 3: the choices of a select field, in their order */
+            options?: components["schemas"]["SimpleFormOption"][];
             required: boolean;
             /** Format: int32 */
             scale?: number;
+            /** @description Format 3: what a ref field names */
+            target?: components["schemas"]["SimpleFormTarget"];
             /** @enum {string} */
-            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url";
+            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user";
         };
         SimpleFormLabels: {
             en: string;
@@ -6691,6 +6796,15 @@ export interface components {
         SimpleFormModule: {
             code: string;
             title: components["schemas"]["SimpleFormLabels"];
+        };
+        SimpleFormOption: {
+            code: string;
+            labels: components["schemas"]["SimpleFormLabels"];
+        };
+        SimpleFormTarget: {
+            code: string;
+            /** @enum {string} */
+            kind: "list" | "form";
         };
         SourceFreshness: {
             code?: string;
@@ -6864,6 +6978,58 @@ export interface components {
             createdBy?: number;
             /** Format: int32 */
             version?: number;
+        };
+        StudioListCreateRequest: {
+            code: string;
+            name: components["schemas"]["SimpleFormLabels"];
+        };
+        StudioListDetail: {
+            items?: components["schemas"]["StudioListItem"][];
+            list?: components["schemas"]["StudioListSummary"];
+        };
+        StudioListItem: {
+            active?: boolean;
+            code?: string;
+            /** Format: date-time */
+            modifiedAt?: string;
+            name?: components["schemas"]["SimpleFormLabels"];
+            /** Format: int64 */
+            revision?: number;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        StudioListItemCreateRequest: {
+            code: string;
+            name: components["schemas"]["SimpleFormLabels"];
+            /** Format: int32 */
+            sortOrder: number;
+        };
+        StudioListItemUpdateRequest: {
+            /** @description False: kept for the records that hold it, no longer offered to new values */
+            active: boolean;
+            name: components["schemas"]["SimpleFormLabels"];
+            /** Format: int32 */
+            sortOrder: number;
+        };
+        StudioListSummary: {
+            /** Format: int32 */
+            activeItems?: number;
+            code?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /**
+             * Format: int32
+             * @description Every item, inactive ones too
+             */
+            items?: number;
+            /** Format: date-time */
+            modifiedAt?: string;
+            name?: components["schemas"]["SimpleFormLabels"];
+            /** Format: int64 */
+            revision?: number;
+        };
+        StudioListUpdateRequest: {
+            name: components["schemas"]["SimpleFormLabels"];
         };
         StudioQuarantineRequest: {
             entityCode: string;
@@ -16467,6 +16633,272 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudioFormDetail"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    referenceLists: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageStudioListSummary"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createReferenceList: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioListCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioListDetail"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    referenceList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioListDetail"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    renameReferenceList: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioListUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioListDetail"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createReferenceListItem: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioListItemCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioListItem"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    updateReferenceListItem: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                code: string;
+                itemCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioListItemUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioListItem"];
                 };
             };
             /** @description The record changed since the revision named in If-Match */

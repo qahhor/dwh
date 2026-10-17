@@ -135,6 +135,8 @@
   }, {
     "name" : "studio-form-version-controller"
   }, {
+    "name" : "studio-list-controller"
+  }, {
     "name" : "studio-quarantine-controller"
   }, {
     "name" : "system-info-controller"
@@ -13443,6 +13445,420 @@
         "tags" : [ "studio-form-version-controller" ]
       }
     },
+    "/api/v1/studio/lists" : {
+      "get" : {
+        "description" : "Requires studio.lists.view. The newest first; limit 1 to 100 (default 50, else 422) and the nextCursor of the previous page. Each list gives its item counts and the revision a change of its names takes in If-Match.",
+        "operationId" : "referenceLists",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KeysetPageStudioListSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List the reference lists",
+        "tags" : [ "studio-list-controller" ]
+      },
+      "post" : {
+        "description" : "Requires studio.lists.manage. The code is permanent; names in ru, uz and en of 1 to 80 characters. 409 for a taken code, 422 above 200 lists. Audited.",
+        "operationId" : "createReferenceList",
+        "parameters" : [ {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudioListCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioListDetail"
+                }
+              }
+            },
+            "description" : "Created",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a reference list",
+        "tags" : [ "studio-list-controller" ]
+      }
+    },
+    "/api/v1/studio/lists/{code}" : {
+      "get" : {
+        "description" : "Requires studio.lists.view. Every item (at most 500), inactive ones too, in their order; the list's revision as ETag. 404 for an unknown list.",
+        "operationId" : "referenceList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioListDetail"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read a reference list with its items",
+        "tags" : [ "studio-list-controller" ]
+      },
+      "put" : {
+        "description" : "Requires studio.lists.manage and If-Match with the list's revision (428 without it, 409 when stale). Audited.",
+        "operationId" : "renameReferenceList",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudioListUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioListDetail"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Rename a reference list",
+        "tags" : [ "studio-list-controller" ]
+      }
+    },
+    "/api/v1/studio/lists/{code}/items" : {
+      "post" : {
+        "description" : "Requires studio.lists.manage. The code is permanent and unique in the list (409 otherwise); names in ru, uz and en; order 1 to 9999. 422 above 500 items. Every form field that refers to the list offers the item at once. Audited.",
+        "operationId" : "createReferenceListItem",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudioListItemCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioListItem"
+                }
+              }
+            },
+            "description" : "Created",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Add an item to a reference list",
+        "tags" : [ "studio-list-controller" ]
+      }
+    },
+    "/api/v1/studio/lists/{code}/items/{itemCode}" : {
+      "put" : {
+        "description" : "Requires studio.lists.manage and If-Match with the item's revision (428/409). Names, order and whether new values may take it; an inactive item keeps its name in the records that hold it. The code never changes. Audited.",
+        "operationId" : "updateReferenceListItem",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "itemCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudioListItemUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioListItem"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Change an item of a reference list",
+        "tags" : [ "studio-list-controller" ]
+      }
+    },
     "/api/v1/studio/quarantine" : {
       "post" : {
         "description" : "Requires studio.forms.publish. The form stops being served on every node at its next request and answers as an unknown entity; its declaration, records and rights stay. 404 for an unknown form, 409 when it is already quarantined. Audited.",
@@ -18706,6 +19122,30 @@
           }
         }
       },
+      "KeysetPageStudioListSummary" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudioListSummary"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "KeysetPageTaskCommentView" : {
         "type" : "object",
         "properties" : {
@@ -21281,8 +21721,8 @@
           "formatVersion" : {
             "type" : "integer",
             "format" : "int32",
-            "description" : "1, or 2 for a live form with hidden fields, defaults or its own menu item",
-            "maximum" : 2,
+            "description" : "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope",
+            "maximum" : 3,
             "minimum" : 1
           },
           "kind" : {
@@ -21439,6 +21879,11 @@
             "type" : "string",
             "pattern" : "^[a-z][a-z0-9_]{0,19}$"
           },
+          "scope" : {
+            "type" : "string",
+            "description" : "Format 3: which records a viewer sees (ADR-0041) - all, those of the viewer's org units (org_unit) or the viewer's own (owner); absent means all",
+            "enum" : [ "all", "org_unit", "owner" ]
+          },
           "title" : {
             "$ref" : "#/components/schemas/SimpleFormLabels"
           }
@@ -21475,6 +21920,14 @@
             "maximum" : 4000,
             "minimum" : 1
           },
+          "options" : {
+            "type" : "array",
+            "description" : "Format 3: the choices of a select field, in their order",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormOption"
+            },
+            "maxItems" : 50
+          },
           "required" : {
             "type" : "boolean"
           },
@@ -21484,9 +21937,13 @@
             "maximum" : 6,
             "minimum" : 0
           },
+          "target" : {
+            "$ref" : "#/components/schemas/SimpleFormTarget",
+            "description" : "Format 3: what a ref field names"
+          },
           "type" : {
             "type" : "string",
-            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url" ]
+            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url", "select", "ref", "user" ]
           }
         },
         "required" : [ "id", "labels", "listed", "required", "type" ]
@@ -21547,6 +22004,36 @@
           }
         },
         "required" : [ "code", "title" ]
+      },
+      "SimpleFormOption" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "pattern" : "^[a-z0-9][a-z0-9_-]{0,39}$"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "code", "labels" ]
+      },
+      "SimpleFormTarget" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 1
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "list", "form" ]
+          }
+        },
+        "required" : [ "code", "kind" ]
       },
       "SourceFreshness" : {
         "type" : "object",
@@ -22004,6 +22491,145 @@
             "format" : "int32"
           }
         }
+      },
+      "StudioListCreateRequest" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^[a-z][a-z0-9_]{0,39}$"
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "code", "name" ]
+      },
+      "StudioListDetail" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudioListItem"
+            },
+            "maxItems" : 500
+          },
+          "list" : {
+            "$ref" : "#/components/schemas/StudioListSummary"
+          }
+        }
+      },
+      "StudioListItem" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "sortOrder" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "StudioListItemCreateRequest" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^[a-z0-9][a-z0-9_-]{0,63}$"
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "sortOrder" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 9999,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "code", "name", "sortOrder" ]
+      },
+      "StudioListItemUpdateRequest" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "active" : {
+            "type" : "boolean",
+            "description" : "False: kept for the records that hold it, no longer offered to new values"
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "sortOrder" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 9999,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "active", "name", "sortOrder" ]
+      },
+      "StudioListSummary" : {
+        "type" : "object",
+        "properties" : {
+          "activeItems" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "items" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Every item, inactive ones too"
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StudioListUpdateRequest" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "name" ]
       },
       "StudioQuarantineRequest" : {
         "type" : "object",
