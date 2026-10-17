@@ -3412,5 +3412,6 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "studio.version.default_hint": "Подставляется в новые записи и показывается в записях, сохранённых до появления поля. Дата — ГГГГ-ММ-ДД, да/нет — true или false.",
   "studio.version.default_locked": "Значение по умолчанию сохранённого поля не меняется: иначе изменятся старые записи.",
   "studio.version.required_locked": "Сделать поле обязательным можно только при значении по умолчанию: в сохранённых записях оно может быть пустым.",
-  "studio.version.required_needs_default": "Новое обязательное поле требует значения по умолчанию."
+  "studio.version.required_needs_default": "Новое обязательное поле требует значения по умолчанию.",
+  "studio.version.form_title": "Название формы"
 });

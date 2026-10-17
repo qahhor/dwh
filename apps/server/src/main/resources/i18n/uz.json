@@ -3410,5 +3410,6 @@
   "studio.version.default_hint": "Yangi yozuvlarga qoʻyiladi va maydon paydo boʻlguncha saqlangan yozuvlarda koʻrsatiladi. Sana — YYYY-MM-DD, ha/yoʻq — true yoki false.",
   "studio.version.default_locked": "Saqlangan maydonning standart qiymati oʻzgarmaydi: aks holda eski yozuvlar oʻzgaradi.",
   "studio.version.required_locked": "Maydonni faqat standart qiymat bilan majburiy qilish mumkin: saqlangan yozuvlarda u boʻsh boʻlishi mumkin.",
-  "studio.version.required_needs_default": "Yangi majburiy maydon standart qiymat talab qiladi."
+  "studio.version.required_needs_default": "Yangi majburiy maydon standart qiymat talab qiladi.",
+  "studio.version.form_title": "Shakl nomi"
 }

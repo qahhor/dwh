@@ -3410,5 +3410,6 @@
   "studio.version.default_hint": "Filled into new records and shown in records saved before the field existed. Dates as YYYY-MM-DD, yes/no as true or false.",
   "studio.version.default_locked": "The default of a stored field stays: otherwise old records would change.",
   "studio.version.required_locked": "A field becomes required only with a default: stored records may leave it empty.",
-  "studio.version.required_needs_default": "A new required field needs a default."
+  "studio.version.required_needs_default": "A new required field needs a default.",
+  "studio.version.form_title": "Form title"
 }
