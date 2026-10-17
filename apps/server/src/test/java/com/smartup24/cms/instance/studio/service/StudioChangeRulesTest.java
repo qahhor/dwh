@@ -10,6 +10,8 @@ import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Labels;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Menu;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Module;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Option;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Target;
 import com.smartup24.cms.instance.studio.service.StudioChangeRules.Change;
 import java.util.ArrayList;
 import java.util.List;
@@ -142,6 +144,82 @@ class StudioChangeRulesTest {
                         before,
                         new Declaration(1, "simple-form", before.module(), new Entity("visits", LABELS), base())))
                 .isEmpty();
+    }
+
+    /**
+     * Format 3 (ADR-0041): a select gains choices and renames them, but never drops a code records may hold; a
+     * reference keeps its target; the data scope stays the one chosen at creation.
+     */
+    @Test
+    void choicesMayGrowTargetsAndTheScopeStay() {
+        Field select = select("result", option("done", "Выполнен"), option("later", "Позже"));
+        Field list = reference("kind", "list", "kinds");
+        Field client = reference("client", "form", "studio.clients");
+        Field user = new Field("owner", "user", LABELS, false, true, null, null, null, null, null, null);
+        Declaration before = scoped("org_unit", List.of(select, list, client, user));
+
+        Declaration grown = scoped(
+                "org_unit",
+                List.of(
+                        select("result", option("done", "Сделан"), option("later", "Позже"), option("no", "Нет")),
+                        list,
+                        client,
+                        user));
+        assertThat(StudioChangeRules.incompatible(before, grown)).isEmpty();
+
+        Declaration changed = scoped(
+                "owner",
+                List.of(
+                        select("result", option("done", "Выполнен")),
+                        reference("kind", "list", "types"),
+                        reference("client", "form", "studio.partners"),
+                        user));
+        List<Change> changes = StudioChangeRules.incompatible(before, changed);
+        assertThat(changes)
+                .containsExactly(
+                        new Change("entity.scope", "scope"),
+                        new Change("result", "option_removed"),
+                        new Change("kind", "target"),
+                        new Change("client", "target"));
+        assertThatThrownBy(() -> {
+                    throw StudioChangeRules.refusal(changes);
+                })
+                .isInstanceOfSatisfying(ApiException.class, refused -> {
+                    assertThat(refused.getMessageKey()).isEqualTo(StudioChangeRules.SCOPE);
+                    assertThat(refused.getFieldErrors())
+                            .extracting(error -> error.field() + ":" + error.code())
+                            .containsExactly(
+                                    "entity.scope:change_scope",
+                                    "fields.result:change_option_removed",
+                                    "fields.kind:change_target",
+                                    "fields.client:change_target");
+                });
+        assertThat(StudioChangeRules.incompatible(scoped(null, List.of(user)), scoped("all", List.of(user))))
+                .isEmpty();
+        assertThat(StudioChangeRules.incompatible(
+                        scoped("all", List.of(select)), scoped("all", List.of(reference("result", "list", "kinds")))))
+                .containsExactly(new Change("result", "type"));
+    }
+
+    private static Declaration scoped(String scope, List<Field> fields) {
+        return new Declaration(
+                3,
+                "simple-form",
+                new Module("studio", LABELS),
+                new Entity("visits", new Labels("Визиты", "Tashriflar", "Visits"), null, scope),
+                fields);
+    }
+
+    private static Field select(String id, Option... options) {
+        return new Field(id, "select", LABELS, false, true, null, null, null, null, List.of(options), null);
+    }
+
+    private static Option option(String code, String ru) {
+        return new Option(code, new Labels(ru, code, code));
+    }
+
+    private static Field reference(String id, String kind, String code) {
+        return new Field(id, "ref", LABELS, false, true, null, null, null, null, null, new Target(kind, code));
     }
 
     @Test

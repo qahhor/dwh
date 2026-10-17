@@ -1,0 +1,291 @@
+[
+  {
+    "checksum": "7e662e16d6f56b93c5d1a80179c26e23586723b2b5187ec3cf4a97d4c58041d3",
+    "declaration": {
+      "formatVersion": 3,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v3_visits",
+        "title": {
+          "ru": "Визиты",
+          "uz": "Tashriflar",
+          "en": "Visits"
+        },
+        "menu": {
+          "icon": "event",
+          "section": "workspace",
+          "order": 10
+        },
+        "scope": "org_unit"
+      },
+      "fields": [
+        {
+          "id": "client",
+          "type": "ref",
+          "labels": {
+            "ru": "Поле client",
+            "uz": "Maydon client",
+            "en": "Field client"
+          },
+          "required": true,
+          "listed": true,
+          "target": {
+            "kind": "form",
+            "code": "studio.golden_v3_clients"
+          }
+        },
+        {
+          "id": "visitdate",
+          "type": "date",
+          "labels": {
+            "ru": "Поле visitdate",
+            "uz": "Maydon visitdate",
+            "en": "Field visitdate"
+          },
+          "required": true,
+          "listed": true
+        },
+        {
+          "id": "result",
+          "type": "select",
+          "labels": {
+            "ru": "Поле result",
+            "uz": "Maydon result",
+            "en": "Field result"
+          },
+          "required": true,
+          "listed": true,
+          "defaultValue": "done",
+          "options": [
+            {
+              "code": "done",
+              "labels": {
+                "ru": "Выполнен",
+                "uz": "Bajarildi",
+                "en": "Done"
+              }
+            },
+            {
+              "code": "later",
+              "labels": {
+                "ru": "Перенесён",
+                "uz": "Ko'chirildi",
+                "en": "Later"
+              }
+            },
+            {
+              "code": "refused",
+              "labels": {
+                "ru": "Отказ",
+                "uz": "Rad etildi",
+                "en": "Refused"
+              }
+            }
+          ]
+        },
+        {
+          "id": "comment",
+          "type": "textarea",
+          "labels": {
+            "ru": "Поле comment",
+            "uz": "Maydon comment",
+            "en": "Field comment"
+          },
+          "required": false,
+          "listed": false,
+          "maxLength": 1000
+        },
+        {
+          "id": "mood",
+          "type": "select",
+          "labels": {
+            "ru": "Поле mood",
+            "uz": "Maydon mood",
+            "en": "Field mood"
+          },
+          "required": false,
+          "listed": true,
+          "hidden": true,
+          "options": [
+            {
+              "code": "good",
+              "labels": {
+                "ru": "Хорошо",
+                "uz": "Yaxshi",
+                "en": "Good"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "checksum": "16afa1b7bb0d6b60a2655fbb600fdf382d4d92bac7605c0a55ae22575484984e",
+    "declaration": {
+      "formatVersion": 3,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v3_requests",
+        "title": {
+          "ru": "Заявки клиентов",
+          "uz": "Mijoz arizalari",
+          "en": "Client requests"
+        },
+        "scope": "owner"
+      },
+      "fields": [
+        {
+          "id": "client",
+          "type": "ref",
+          "labels": {
+            "ru": "Поле client",
+            "uz": "Maydon client",
+            "en": "Field client"
+          },
+          "required": false,
+          "listed": true,
+          "target": {
+            "kind": "form",
+            "code": "studio.golden_v3_clients"
+          }
+        },
+        {
+          "id": "kind",
+          "type": "ref",
+          "labels": {
+            "ru": "Поле kind",
+            "uz": "Maydon kind",
+            "en": "Field kind"
+          },
+          "required": true,
+          "listed": true,
+          "target": {
+            "kind": "list",
+            "code": "request_kinds"
+          }
+        },
+        {
+          "id": "responsible",
+          "type": "user",
+          "labels": {
+            "ru": "Поле responsible",
+            "uz": "Maydon responsible",
+            "en": "Field responsible"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "urgency",
+          "type": "select",
+          "labels": {
+            "ru": "Поле urgency",
+            "uz": "Maydon urgency",
+            "en": "Field urgency"
+          },
+          "required": false,
+          "listed": false,
+          "options": [
+            {
+              "code": "low",
+              "labels": {
+                "ru": "Низкая",
+                "uz": "Past",
+                "en": "Low"
+              }
+            },
+            {
+              "code": "high",
+              "labels": {
+                "ru": "Высокая",
+                "uz": "Yuqori",
+                "en": "High"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "checksum": "afc5637237194439e4f81f1bcb5814c47e2814d3918ee254f3ee1c92916de4bd",
+    "declaration": {
+      "formatVersion": 3,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v3_clients",
+        "title": {
+          "ru": "Клиенты",
+          "uz": "Mijozlar",
+          "en": "Clients"
+        },
+        "scope": "all"
+      },
+      "fields": [
+        {
+          "id": "phone",
+          "type": "phone",
+          "labels": {
+            "ru": "Поле phone",
+            "uz": "Maydon phone",
+            "en": "Field phone"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "region",
+          "type": "ref",
+          "labels": {
+            "ru": "Поле region",
+            "uz": "Maydon region",
+            "en": "Field region"
+          },
+          "required": false,
+          "listed": true,
+          "target": {
+            "kind": "list",
+            "code": "regions"
+          }
+        },
+        {
+          "id": "vip",
+          "type": "bool",
+          "labels": {
+            "ru": "Поле vip",
+            "uz": "Maydon vip",
+            "en": "Field vip"
+          },
+          "required": false,
+          "listed": false,
+          "defaultValue": "false"
+        }
+      ]
+    }
+  }
+]

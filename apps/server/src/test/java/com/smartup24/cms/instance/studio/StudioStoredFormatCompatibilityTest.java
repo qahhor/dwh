@@ -37,6 +37,7 @@ import tools.jackson.databind.json.JsonMapper;
 class StudioStoredFormatCompatibilityTest {
     private static final Path SAMPLES = Path.of("src/test/resources/studio/golden/stored-declarations-v1.json");
     private static final Path SAMPLES_V2 = Path.of("src/test/resources/studio/golden/stored-declarations-v2.json");
+    private static final Path SAMPLES_V3 = Path.of("src/test/resources/studio/golden/stored-declarations-v3.json");
     private static final Map<String, FieldType> TYPES = Map.of(
             "text", FieldType.TEXT,
             "textarea", FieldType.TEXTAREA,
@@ -148,6 +149,100 @@ class StudioStoredFormatCompatibilityTest {
         assertThat(hidden).as("a hidden field has a stored sample").isTrue();
         assertThat(defaulted).as("every field type has a stored default").containsAll(TYPES.values());
         // Version 1 stays readable next to version 2: the samples of format 1 are checked by the test above.
+    }
+
+    /**
+     * Format 3 (ADR-0041): a select keeps the code of a choice its own labels name, a reference to a list is an
+     * enumeration of the list, a reference to a form and a user field keep the key of the row they name; the data
+     * scope restricts the records, and a form scoped by org unit serves the record's unit.
+     */
+    @Test
+    void everyStoredFormatThreeSampleReadsBackKeepsItsChecksumAndCompilesItsChoicesTargetsAndScope() throws Exception {
+        JsonNode samples = json.readTree(Files.readString(SAMPLES_V3));
+        Set<FieldType> kinds = EnumSet.noneOf(FieldType.class);
+        Set<String> scopes = new HashSet<>();
+        long id = 2000;
+        for (JsonNode sample : samples) {
+            String stored = json.writeValueAsString(sample.path("declaration"));
+            Declaration declaration = repository.declaration(stored);
+            assertThat(declaration.formatVersion()).isEqualTo(3);
+            assertThat(json.valueToTree(declaration).equals(sample.path("declaration")))
+                    .as("stored format of %s", declaration.entity().name())
+                    .isTrue();
+            var prepared = new MdSimpleFormDeclarations(json).prepare(stored.getBytes(StandardCharsets.UTF_8));
+            assertThat(prepared.declaration()).isEqualTo(declaration);
+            assertThat(prepared.checksum()).isEqualTo(sample.path("checksum").asString());
+
+            var compiled = new StudioEntityCompiler().compile(id++, declaration);
+            EntityDefinition entity = compiled.entity();
+            StudioChangeRules.requireDefaults(declaration, entity);
+            String scope = declaration.entity().scope();
+            scopes.add(scope);
+            assertThat(entity.model().scope().describe())
+                    .isEqualTo(
+                            switch (scope) {
+                                case "org_unit" -> "orgUnit(org_unit_id, created_by)";
+                                case "owner" -> "owner(created_by)";
+                                default -> "all";
+                            });
+            assertThat(entity.fieldsByKey().containsKey(StudioEntityCompiler.ORG_UNIT))
+                    .isEqualTo("org_unit".equals(scope));
+            for (Field field : declaration.fields()) {
+                if (Boolean.TRUE.equals(field.hidden())) {
+                    assertThat(entity.fieldsByKey()).doesNotContainKey(field.id());
+                    continue;
+                }
+                kinds.add(kind(entity, field, compiled.messages().get("en")));
+            }
+        }
+        assertThat(kinds).containsAll(Set.of(FieldType.SELECT, FieldType.ENUM, FieldType.REF));
+        assertThat(scopes).containsExactlyInAnyOrder("org_unit", "owner", "all");
+    }
+
+    private static FieldType kind(EntityDefinition entity, Field field, Map<String, String> english) {
+        FormField form = entity.fieldsByKey().get(field.id());
+        String where = entity.code() + "." + field.id();
+        assertThat(form).as(where).isNotNull();
+        EntityField stored = entity.model().fields().stream()
+                .filter(candidate -> candidate.key().equals(field.id()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(stored.source()).as(where).isEqualTo(new FieldSource.JsonProperty("payload", field.id()));
+        switch (field.type()) {
+            case "select" -> {
+                assertThat(form.type()).as(where).isEqualTo(FieldType.SELECT);
+                assertThat(stored.options().options())
+                        .containsExactlyElementsOf(field.options().stream()
+                                .map(option -> option.code())
+                                .toList());
+                for (var option : field.options()) {
+                    assertThat(english)
+                            .containsEntry(
+                                    stored.options().optionLabelPrefix() + option.code(),
+                                    option.labels().en());
+                }
+            }
+            case "user" -> {
+                assertThat(form.type()).as(where).isEqualTo(FieldType.REF);
+                assertThat(stored.options().target()).isEqualTo(StudioEntityCompiler.USERS);
+            }
+            case "ref" -> {
+                if ("list".equals(field.target().kind())) {
+                    assertThat(form.type()).as(where).isEqualTo(FieldType.ENUM);
+                    assertThat(stored.options().enumeration())
+                            .isEqualTo("studio.list." + field.target().code());
+                } else {
+                    assertThat(form.type()).as(where).isEqualTo(FieldType.REF);
+                    assertThat(stored.options().target())
+                            .isEqualTo(field.target().code());
+                    assertThat(stored.sql("t")).endsWith("::bigint");
+                }
+            }
+            default -> {
+                return check(entity, field);
+            }
+        }
+        return form.type();
     }
 
     private static FieldType check(EntityDefinition entity, Field field) {
