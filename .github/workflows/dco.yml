@@ -1,8 +1,15 @@
+# Every commit of a branch carries a DCO sign-off (CONTRIBUTING.md, `git commit -s`).
+# Started by hand only (owner decision 2026-10-17: no workflow runs automatically); the same check runs locally
+# before a merge: `git log --format=%B main..HEAD`. Dispatch it on the branch to check.
 name: DCO
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Branch the commits are counted from (the merge base with it)
+        type: string
+        default: main
 
 permissions:
   contents: read
@@ -13,23 +20,22 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Check out pull request history
+      - name: Check out branch history
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Require a DCO trailer on every commit
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ inputs.base_ref }}
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t commits < <(git rev-list --reverse "${BASE_SHA}..${HEAD_SHA}")
+          base_sha=$(git merge-base "origin/${BASE_REF}" HEAD)
+          mapfile -t commits < <(git rev-list --reverse "${base_sha}..HEAD")
           if (( ${#commits[@]} == 0 )); then
-            echo "No pull request commits were found." >&2
-            exit 1
+            echo "No commits after ${BASE_REF}: nothing to check."
+            exit 0
           fi
 
           failed=0

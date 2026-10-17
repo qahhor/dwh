@@ -1,14 +1,11 @@
 # OpenSSF Scorecard (plan 10/10, item 1.6): supply-chain practices of the repository — pinned dependencies, token
 # permissions, branch protection, code review, SAST, dangerous workflows. Results land in Security -> Code scanning
 # and on the public Scorecard page; the target is 7.5 at the end of phase 1 and 8 at the end of the plan.
+# Started by hand on the default branch only (owner decision 2026-10-17: no workflow runs automatically).
 name: scorecard
 
 on:
-  push:
-    branches: [main]
-  branch_protection_rule:
-  schedule:
-    - cron: '41 4 * * 1'
+  workflow_dispatch:
 
 permissions: {}
 

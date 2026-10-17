@@ -1,7 +1,8 @@
 # Dependency updates (plan 10/10, item 1.5): Maven, npm, GitHub Actions and Docker base images, weekly and grouped
 # so that a week brings a few pull requests, not dozens. Security updates come on top of these, as soon as an
-# advisory appears (the repository setting "Dependabot security updates"). Patch updates merge by themselves when
-# the required checks pass (.github/workflows/dependabot-auto-merge.yml); minor and major ones wait for review.
+# advisory appears (the repository setting "Dependabot security updates"). Nothing merges by itself: no workflow runs
+# automatically (owner decision 2026-10-17), so every update is merged by hand after the local gates
+# (dependabot-auto-merge.yml stays off while main requires no status checks).
 version: 2
 
 updates:
