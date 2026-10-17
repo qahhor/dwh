@@ -43,6 +43,13 @@ public class StudioEntityCompiler {
     /** The menu item of a form that does not name its own. */
     public static final Menu DEFAULT_MENU = new Menu("box", "workspace", 100);
 
+    /** The record actions of every live form and the labels of their rights. */
+    private static final Map<String, String> RIGHTS = Map.of(
+            "view", "studio.record.view",
+            "create", "studio.record.create",
+            "update", "studio.record.update",
+            "delete", "studio.record.delete");
+
     /** The entity a user field names. */
     public static final String USERS = "md.users";
 
@@ -61,18 +68,7 @@ public class StudioEntityCompiler {
                 .partition("form_id", id)
                 .scope(scope(source.entity().scope()))
                 .auditTable("studio_" + source.entity().name())
-                .rights(
-                        "studio",
-                        prefix + ".title",
-                        Map.of(
-                                "view",
-                                "studio.record.view",
-                                "create",
-                                "studio.record.create",
-                                "update",
-                                "studio.record.update",
-                                "delete",
-                                "studio.record.delete"))
+                .rights("studio", prefix + ".title", RIGHTS)
                 .field(text("name", "studio.record.name")
                         .column("name")
                         .required()
@@ -93,11 +89,7 @@ public class StudioEntityCompiler {
             layout.add(field.id());
         }
         if ("org_unit".equals(source.entity().scope())) {
-            builder.field(ref(ORG_UNIT, "studio.record.org_unit", QueryRef.whole("/iam/org-units", "name"))
-                    .column("org_unit_id")
-                    .readonly()
-                    .defaultValue(FieldDefault.currentOrgUnit())
-                    .list(hidden()));
+            builder.field(orgUnit());
             layout.add(ORG_UNIT);
         }
         builder.section("main", "entity.section.main", layout.toArray(String[]::new))
@@ -147,6 +139,15 @@ public class StudioEntityCompiler {
                         new MdSimpleFormDtos.Module(StudioDefinitions.MODULE, named),
                         new MdSimpleFormDtos.Entity(name, named),
                         List.of()));
+    }
+
+    /** The record's org unit: its author's home unit, set by the server and only read (ADR-0041, owner decision 1). */
+    private static Builder orgUnit() {
+        return ref(ORG_UNIT, "studio.record.org_unit", QueryRef.whole("/iam/org-units", "name"))
+                .column("org_unit_id")
+                .readonly()
+                .defaultValue(FieldDefault.currentOrgUnit())
+                .list(hidden());
     }
 
     /** The rows a viewer sees, by the scope the form names; a form of format 1 or 2 sees all of them. */
