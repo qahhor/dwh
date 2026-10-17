@@ -58,7 +58,8 @@ test('Studio prepares a real package and respects activation before creating and
     await chooseLiveFormDelivery(page);
     const availabilityResponse = await availability;
     expect(availabilityResponse.status()).toBe(200);
-    const { enabled } = await availabilityResponse.json() as { enabled: boolean };
+    // Response bodies are read from the server, not the browser, which may evict them (see activateVersion).
+    const { enabled } = await call(page, 'GET', '/api/v1/studio/activation', 200) as { enabled: boolean };
     if (process.env.E2E_STUDIO_ACTIVATION_EXPECTED) {
       expect(String(enabled)).toBe(process.env.E2E_STUDIO_ACTIVATION_EXPECTED);
     }
@@ -66,9 +67,10 @@ test('Studio prepares a real package and respects activation before creating and
     await page.getByTestId('new-form-prepare').click();
     const packageResponse = await prepared;
     expect(packageResponse.status()).toBe(200);
-    const delivery = await packageResponse.json() as { checksum: string; declaration: { entity: { name: string } } };
-    expect(delivery.checksum).toMatch(/^[a-f0-9]{64}$/u);
-    expect(delivery.declaration.entity.name).toBe(entityName);
+    const checksum = page.locator('.new-form-checksum');
+    await expect(checksum).toHaveText(/^[a-f0-9]{64}$/u);
+    const delivery = { checksum: (await checksum.textContent())?.trim() ?? '' };
+    await expect(page.getByTestId('new-entity-name')).toHaveValue(entityName);
     await expect(page.getByTestId('new-form-download')).toBeEnabled();
     if (!enabled) {
       await expect(page.getByTestId('new-form-activate')).toBeDisabled();
