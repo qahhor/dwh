@@ -490,6 +490,43 @@ clean (the others are cleaned regardless, and the next run retries it). A bad va
 the same way and leaves the other tables cleaned. The job deletes by `ctid`, so it refuses a partitioned table:
 the application does not start while a retention policy names one.
 
+## Live studio form fails to load
+
+ADR-0038, decisions 9–11. A stored live form (`studio.<code>`) that no longer loads is left out; declared entities
+and the other live forms keep serving and the instance stays ready. Signs:
+
+- the log line `studio_form_broken code=studio.<code> formId=<id> reason=<reason>`, written once each time the
+  catalog changes and is compiled again on a node;
+- the metric `smc_studio_forms_broken` above zero (and `smc_studio_forms_quarantined` for the held forms);
+- the health component `studioForms` DOWN in `/actuator/health` with `broken: ["studio.<code>: <reason>"]`. It is
+  not a readiness member: do not restart the instance for it.
+
+Reasons: `declaration` (the stored declaration no longer reads or compiles, typically after an application
+change), `code_mismatch` (the stored code differs from its declaration), `declared_code` (a declared entity
+now uses the code; the declared one wins), `translation_key` (its labels shadow bundled translation keys),
+`form_limit` (beyond the 100 forms one catalog serves).
+
+Stored declarations are immutable (UPDATE/DELETE/TRUNCATE are refused by a trigger); never edit them by hand.
+To acknowledge the form and silence the alert, quarantine it as a user with `studio.forms.publish` (the
+module `studio` must be on):
+
+```bash
+curl -fsS -X POST https://<host>/api/v1/studio/quarantine \
+  -H "Authorization: Bearer $SMC_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"entityCode":"studio.<code>","reason":"<ticket and reason, up to 500 characters>"}'
+curl -fsS https://<host>/api/v1/studio/catalog -H "Authorization: Bearer $SMC_API_TOKEN"
+```
+
+The answer is `201`; `409` means the form is already quarantined and `404` that no such form is stored. Every
+node stops serving the form at its next request; its records, rights and audit stay, and the catalog view
+lists it under `quarantined`. A quarantined form answers `404` in the UI and API. Each quarantine and release
+is audited (`studio_form_quarantine`).
+
+Release it only after the cause is gone (a fixed application release, the clashing declared entity removed):
+`DELETE /api/v1/studio/quarantine/studio.<code>` answers `204`, and the form serves again at the next request.
+If the declaration itself is wrong, keep it quarantined and activate a corrected form under a new code; the
+old records stay readable only through backup and audit, not through the UI.
+
 ## Cache across nodes
 
 Plan 10/10, item 3.13 (ADR-0025). Each node caches reference data (task statuses and types, modules, menu,

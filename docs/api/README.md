@@ -117,7 +117,9 @@ GET /api/v1/entities/ms.notes?limit=50&cursor=<nextCursor прошлой стр�
 - POST `/api/v1/studio/forms` также не принимает `Idempotency-Key` (400).
   Это отдельная активация нового simple-form-package: право `studio.forms.publish`,
   flag `SMC_STUDIO_ACTIVATION_ENABLED`, точный повтор по checksum в транзакции.
-  201 возвращает код формы и `Location` metadata; другой пакет занятого кода — 409.
+  201 возвращает код формы и `Location` metadata; точный повтор — 200 с тем же телом
+  без `Location` (ничего не создано); другой пакет занятого кода — 409. Так же без
+  `Idempotency-Key` работает POST `/api/v1/studio/quarantine` (повтор — 409).
   [ADR-0038](../adr/ADR-0038-live-simple-forms.md),
   [рецепт активации](../cookbook/live-simple-forms.md).
 
