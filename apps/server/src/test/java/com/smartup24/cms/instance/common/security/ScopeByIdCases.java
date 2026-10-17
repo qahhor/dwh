@@ -210,6 +210,22 @@ final class ScopeByIdCases {
                     "StudioQuarantineController#releaseForm",
                     "a live form code: a catalog definition under studio.forms.publish, no scoped record"
                             + " (StudioQuarantineHttpTest)"),
+            Map.entry(
+                    "StudioFormVersionController#form",
+                    "a live form code: a catalog definition with its versions under studio.forms.publish, no scoped"
+                            + " record (StudioFormVersionsHttpTest)"),
+            Map.entry(
+                    "StudioFormVersionController#newVersion",
+                    "a live form code: a new immutable version under studio.forms.publish and If-Match, no scoped"
+                            + " record (StudioFormVersionsHttpTest)"),
+            Map.entry(
+                    "StudioFormVersionController#archive",
+                    "a live form code: the lifecycle of a catalog definition under studio.forms.publish, no scoped"
+                            + " record (StudioFormVersionsHttpTest)"),
+            Map.entry(
+                    "StudioFormVersionController#restore",
+                    "a live form code: the lifecycle of a catalog definition under studio.forms.publish, no scoped"
+                            + " record (StudioFormVersionsHttpTest)"),
             Map.entry("EntityController#create", "an entity code: a new record, in the creator's scope"),
             Map.entry(
                     "EntityFileController#download",
