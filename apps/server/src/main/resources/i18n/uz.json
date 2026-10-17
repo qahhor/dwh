@@ -3380,7 +3380,7 @@
   "studio.version.change.scale": "«{field}» maydonining kasr xonalari kamaytirilgan.",
   "studio.version.change.default": "«{field}» maydonining standart qiymati oʻzgartirilgan.",
   "settings.simple_form.types.select": "Ro'yxatdan tanlash",
-  "settings.simple_form.types.ref": "Havola",
+  "settings.simple_form.types.ref": "Ma'lumotnoma yoki shaklga havola",
   "settings.simple_form.types.user": "Foydalanuvchi",
   "studio.version.change.target": "«{field}» maydonida havola ma'lumotnomasi yoki shakli o'zgartirildi.",
   "studio.version.change.option_removed": "«{field}» maydonidan yozuvlarda saqlanishi mumkin bo'lgan variant olib tashlandi.",

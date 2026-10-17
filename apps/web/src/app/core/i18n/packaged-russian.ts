@@ -3382,7 +3382,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "studio.version.change.scale": "У поля «{field}» уменьшено число знаков после запятой.",
   "studio.version.change.default": "У поля «{field}» изменено значение по умолчанию.",
   "settings.simple_form.types.select": "Выбор из списка",
-  "settings.simple_form.types.ref": "Ссылка",
+  "settings.simple_form.types.ref": "Ссылка на справочник или форму",
   "settings.simple_form.types.user": "Пользователь",
   "studio.version.change.target": "У поля «{field}» изменён справочник или форма ссылки.",
   "studio.version.change.option_removed": "У поля «{field}» удалён вариант выбора, который могут хранить записи.",

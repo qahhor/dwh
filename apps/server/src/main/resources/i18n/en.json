@@ -3380,7 +3380,7 @@
   "studio.version.change.scale": "Field \"{field}\" has fewer decimals.",
   "studio.version.change.default": "The default of field \"{field}\" was changed.",
   "settings.simple_form.types.select": "Choice",
-  "settings.simple_form.types.ref": "Reference",
+  "settings.simple_form.types.ref": "Reference to a list or form",
   "settings.simple_form.types.user": "User",
   "studio.version.change.target": "The reference list or form of the field “{field}” changed.",
   "studio.version.change.option_removed": "A choice that records may hold was removed from the field “{field}”.",

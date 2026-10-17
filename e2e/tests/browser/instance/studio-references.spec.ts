@@ -50,7 +50,7 @@ async function activate(context: BrowserContext, declaration: unknown): Promise<
 async function choose(page: Page, trigger: Locator, option: string | RegExp): Promise<void> {
   await trigger.click();
   const listbox = page.locator('.cdk-overlay-container [role="listbox"]').last();
-  await listbox.getByRole('option', { name: option }).first().click();
+  await listbox.getByRole('option', typeof option === 'string' ? { name: option, exact: true } : { name: option }).first().click();
   await expect(listbox).toBeHidden();
 }
 
@@ -123,7 +123,7 @@ async function buildVisits(page: Page, name: string, clients: string): Promise<s
   await entity.getByRole('textbox', { name: fieldName('Английский') }).fill('Visits');
   await choose(page, page.getByTestId('new-form-scope').getByRole('combobox'), 'Подразделение и подчинённые');
 
-  const client = await addField(page, 0, 'client', 'Ссылка', 'Клиент');
+  const client = await addField(page, 0, 'client', 'Ссылка на справочник или форму', 'Клиент');
   await choose(page, client.getByTestId('field-target-kind-0').getByRole('combobox'), 'Другая форма');
   await choose(page, client.getByTestId('field-target-0').getByRole('combobox'), new RegExp(clients.replace('.', '\\.'), 'u'));
   await addField(page, 1, 'visitdate', 'Дата', 'Дата визита');
