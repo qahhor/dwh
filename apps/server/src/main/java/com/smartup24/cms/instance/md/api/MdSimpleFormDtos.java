@@ -111,8 +111,7 @@ public final class MdSimpleFormDtos {
             @JsonInclude(JsonInclude.Include.NON_NULL)
             @Schema(
                     description = "Format 2: the field is kept with its data but leaves the form, the list, the"
-                            + " export and the history (ADR-0041); present only when true",
-                    allowableValues = "true")
+                            + " export and the history (ADR-0041); present only when true")
             @Nullable
             Boolean hidden,
 

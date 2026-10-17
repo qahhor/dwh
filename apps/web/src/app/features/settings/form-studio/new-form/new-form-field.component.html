@@ -1,5 +1,10 @@
-<fieldset class="field-box" [attr.data-testid]="'new-field-' + index()">
-  <legend>{{ 'settings.simple_form.field_number' | t: { number: index() + 1 } }}</legend>
+<fieldset class="field-box" [class.field-box--hidden]="field().hidden" [attr.data-testid]="'new-field-' + index()">
+  <legend>
+    {{ 'settings.simple_form.field_number' | t: { number: index() + 1 } }}
+    @if (field().hidden) {
+      <span class="field-state">{{ 'studio.version.hidden_badge' | t }}</span>
+    }
+  </legend>
   <div class="field-actions">
     <button
       smt-button
@@ -21,36 +26,57 @@
       [attr.aria-label]="'settings.simple_form.move_down' | t: { number: index() + 1 }"
       (click)="moved.emit(1)"
     ></button>
-    <button
-      smt-button
-      type="button"
-      smtVariant="ghost"
-      smtSize="sm"
-      smtIcon="delete"
-      [disabled]="disabled()"
-      [attr.aria-label]="'settings.simple_form.remove_field' | t: { number: index() + 1 }"
-      (click)="removed.emit()"
-    ></button>
+    @if (versioning() && locked()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        [smtIcon]="field().hidden ? 'visibility' : 'visibility_off'"
+        [disabled]="disabled()"
+        [attr.aria-label]="
+          (field().hidden ? 'studio.version.show_field' : 'studio.version.hide_field') | t: { number: index() + 1 }
+        "
+        [attr.data-testid]="'version-hide-' + field().id"
+        (click)="setHidden(!field().hidden)"
+      >
+        {{ (field().hidden ? 'studio.version.show' : 'studio.version.hide') | t }}
+      </button>
+    } @else {
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="delete"
+        [disabled]="disabled()"
+        [attr.aria-label]="'settings.simple_form.remove_field' | t: { number: index() + 1 }"
+        (click)="removed.emit()"
+      ></button>
+    }
   </div>
   <div class="field-grid">
     <smt-control
       [smtLabel]="'settings.simple_form.field_id' | t"
       [required]="true"
-      [smtHint]="'settings.simple_form.field_id_hint' | t"
+      [smtHint]="(locked() ? 'studio.version.key_locked' : 'settings.simple_form.field_id_hint') | t"
     >
       <smt-input
         [value]="field().id"
-        [disabled]="disabled()"
+        [disabled]="disabled() || locked()"
         [maxLength]="20"
         (valueChange)="patch({ id: text($event) })"
       />
     </smt-control>
-    <smt-control [smtLabel]="'settings.simple_form.field_type' | t">
+    <smt-control
+      [smtLabel]="'settings.simple_form.field_type' | t"
+      [smtHint]="locked() ? ('studio.version.type_locked' | t) : ''"
+    >
       <smt-select
         [options]="options()"
         [value]="field().type"
         [allowClear]="false"
-        [disabled]="disabled()"
+        [disabled]="disabled() || locked()"
         (valueChange)="changeType($event)"
       />
     </smt-control>
@@ -61,11 +87,15 @@
     (changed)="setLabel($event.language, $event.value)"
   />
   @if (field().type === 'text' || field().type === 'textarea') {
-    <smt-control [smtLabel]="'settings.simple_form.max_length' | t" [required]="true">
+    <smt-control
+      [smtLabel]="'settings.simple_form.max_length' | t"
+      [required]="true"
+      [smtHint]="locked() ? ('studio.version.max_length_hint' | t: { min: minMaxLength() }) : ''"
+    >
       <smt-input
         type="number"
         [value]="field().maxLength ?? null"
-        [smtMin]="1"
+        [smtMin]="minMaxLength()"
         [smtMax]="4000"
         [disabled]="disabled()"
         (valueChange)="patch({ maxLength: number($event) })"
@@ -73,14 +103,32 @@
     </smt-control>
   }
   @if (field().type === 'number') {
-    <smt-control [smtLabel]="'settings.simple_form.scale' | t" [required]="true">
+    <smt-control
+      [smtLabel]="'settings.simple_form.scale' | t"
+      [required]="true"
+      [smtHint]="locked() ? ('studio.version.scale_hint' | t: { min: minScale() }) : ''"
+    >
       <smt-input
         type="number"
         [value]="field().scale ?? null"
-        [smtMin]="0"
+        [smtMin]="minScale()"
         [smtMax]="6"
         [disabled]="disabled()"
         (valueChange)="patch({ scale: number($event) })"
+      />
+    </smt-control>
+  }
+  @if (versioning()) {
+    <smt-control
+      [smtLabel]="'studio.version.default_value' | t"
+      [smtHint]="(locked() ? 'studio.version.default_locked' : 'studio.version.default_hint') | t"
+    >
+      <smt-input
+        [value]="field().defaultValue ?? ''"
+        [maxLength]="4000"
+        [disabled]="disabled() || locked()"
+        [attr.data-testid]="'version-default-' + field().id"
+        (valueChange)="setDefault($event)"
       />
     </smt-control>
   }
@@ -88,7 +136,7 @@
     <div
       smt-checkbox
       [checked]="field().required"
-      [disabled]="disabled()"
+      [disabled]="disabled() || (requiredLocked() && !field().required)"
       (checkedChange)="patch({ required: $event })"
     >
       {{ 'settings.simple_form.required' | t }}
@@ -97,4 +145,9 @@
       {{ 'settings.simple_form.listed' | t }}
     </div>
   </div>
+  @if (versioning() && requiredLocked() && !field().required) {
+    <p class="field-note">{{ 'studio.version.required_locked' | t }}</p>
+  } @else if (versioning() && !locked() && field().required && !field().defaultValue) {
+    <p class="field-note field-note--warning" role="status">{{ 'studio.version.required_needs_default' | t }}</p>
+  }
 </fieldset>

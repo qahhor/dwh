@@ -25,6 +25,24 @@
 .field-flags {
   gap: 16px;
 }
+.field-box--hidden {
+  border-style: dashed;
+  background: var(--bg-app);
+}
+.field-state {
+  margin-left: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.field-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.field-note--warning {
+  color: var(--warning-text);
+}
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

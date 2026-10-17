@@ -60,6 +60,22 @@ describe('application route permissions', () => {
     },
   );
 
+  it.each(['settings/form-studio/forms', 'settings/form-studio/forms/:code/version'])(
+    'opens %s only for the publisher of live forms',
+    (path) => {
+      const route = routes.find((item) => item.path === '')?.children?.find((item) => item.path === path);
+      const guard = route?.canActivate?.[1] as CanActivateFn;
+      expect(route?.canActivate).toHaveLength(2);
+      const run = () =>
+        TestBed.runInInjectionContext(() => guard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot));
+      permissions.setPermissions(['md.settings.update']);
+      expect(run()).toBe('settings-redirect');
+      permissions.setPermissions(['studio.forms.publish']);
+      expect(run()).toBe(true);
+      if (path.endsWith('version')) expect(route?.canDeactivate).toContain(recordNavigationGuard);
+    },
+  );
+
   it('protects unsaved named dashboard changes when leaving analytics', () => {
     const analytics = routes.find((route) => route.path === '')?.children?.find((route) => route.path === 'analytics');
     expect(analytics?.canDeactivate).toEqual([recordNavigationGuard]);

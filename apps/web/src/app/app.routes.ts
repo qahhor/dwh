@@ -144,6 +144,20 @@ export const routes: Routes = [
         loadChildren: () => import('./features/entity-screens.routes').then((m) => m.ENTITY_SCREEN_ROUTES),
       },
       {
+        // The live forms of the publisher and a new version of one (ADR-0041).
+        path: 'settings/form-studio/forms',
+        canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.forms', 'publish')],
+        loadComponent: () =>
+          import('./features/settings/form-studio/forms/my-forms.component').then((m) => m.MyFormsComponent),
+      },
+      {
+        path: 'settings/form-studio/forms/:code/version',
+        canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.forms', 'publish')],
+        canDeactivate: [recordNavigationGuard],
+        loadComponent: () =>
+          import('./features/settings/form-studio/forms/form-version.component').then((m) => m.FormVersionComponent),
+      },
+      {
         path: 'settings/form-studio/new',
         canActivate: [permissionGuard('md.settings', 'update')],
         canDeactivate: [recordNavigationGuard],

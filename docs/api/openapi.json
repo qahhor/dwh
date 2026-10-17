@@ -21457,8 +21457,7 @@
           },
           "hidden" : {
             "type" : "boolean",
-            "description" : "Format 2: the field is kept with its data but leaves the form, the list, the export and the history (ADR-0041); present only when true",
-            "enum" : [ "true" ]
+            "description" : "Format 2: the field is kept with its data but leaves the form, the list, the export and the history (ADR-0041); present only when true"
           },
           "id" : {
             "type" : "string",

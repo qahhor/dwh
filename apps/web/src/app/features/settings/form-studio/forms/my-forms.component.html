@@ -1,0 +1,149 @@
+<div class="my-forms-page" data-testid="my-forms">
+  <ui-page-header [title]="'studio.forms.title' | t" [subtitle]="'studio.forms.subtitle' | t">
+    <a smt-button smtVariant="secondary" routerLink="/settings">{{ 'studio.forms.back' | t }}</a>
+    <a smt-button smtVariant="secondary" smtIcon="add" routerLink="/settings/form-studio/new">{{
+      'studio.forms.new_form' | t
+    }}</a>
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="refresh"
+      [smtLoading]="store.loading()"
+      [attr.aria-label]="'common.refresh' | t"
+      (click)="store.load()"
+    ></button>
+  </ui-page-header>
+  @if (!store.mayPublish()) {
+    <smt-alert smtTone="warning" data-testid="my-forms-denied">{{ 'studio.forms.denied' | t }}</smt-alert>
+  } @else {
+    <smt-alert smtTone="info" smtLive="off">{{ 'studio.forms.hint' | t }}</smt-alert>
+    @if (store.error()) {
+      <smt-alert smtTone="danger" data-testid="my-forms-error">
+        {{ store.error() }}
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="store.load()">
+          {{ 'common.retry' | t }}
+        </button>
+      </smt-alert>
+    }
+    @if (store.actionError()) {
+      <smt-alert smtTone="danger" data-testid="my-forms-action-error">{{ store.actionError() }}</smt-alert>
+    }
+    <div class="card my-forms-table" role="region" [attr.aria-label]="'studio.forms.title' | t" tabindex="0">
+      <ui-local-table
+        [rows]="store.forms()"
+        [config]="config()"
+        [sortValues]="sortValues"
+        [loading]="store.loading()"
+        [emptyTemplate]="emptyState"
+      />
+    </div>
+    @if (store.nextCursor()) {
+      <div class="my-forms-more">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          [smtLoading]="store.loadingMore()"
+          data-testid="my-forms-more"
+          (click)="store.loadMore()"
+        >
+          {{ 'studio.forms.load_more' | t }}
+        </button>
+      </div>
+    }
+  }
+</div>
+
+<ng-template #titleCell let-form>
+  <span class="my-forms-name">{{ store.title(form) }}</span>
+  <code class="my-forms-code">{{ form.entityCode }}</code>
+</ng-template>
+<ng-template #statusCell let-form>
+  <span class="my-forms-tags" [attr.data-testid]="'my-forms-status-' + form.entityCode">
+    @if (form.status === 'archived') {
+      <smt-tag [label]="'studio.forms.status.archived' | t" smtTone="neutral" />
+    } @else {
+      <smt-tag [label]="'studio.forms.status.active' | t" smtTone="success" />
+    }
+    @if (form.quarantined) {
+      <smt-tag [label]="'studio.forms.status.quarantined' | t" smtTone="warning" />
+    }
+    @if (form.broken) {
+      <smt-tag [label]="'studio.forms.status.broken' | t" smtTone="danger" />
+    }
+  </span>
+</ng-template>
+<ng-template #versionCell let-form>
+  <span class="tabular-nums">{{
+    'studio.forms.version_of' | t: { active: form.activeVersion, total: form.versions }
+  }}</span>
+</ng-template>
+<ng-template #recordsCell let-form>
+  <span class="tabular-nums">{{ form.records }}</span>
+</ng-template>
+<ng-template #modifiedCell let-form>
+  <span class="tabular-nums text-muted">{{ form.modifiedAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+</ng-template>
+<ng-template #actionsCell let-form>
+  <div class="my-forms-actions">
+    @if (opens(form)) {
+      <a
+        smt-button
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="table_rows"
+        [routerLink]="['/e', form.entityCode]"
+        [attr.aria-label]="'studio.forms.open_records_named' | t: { name: store.title(form) }"
+        >{{ 'studio.forms.open_records' | t }}</a
+      >
+    }
+    @if (form.status === 'active') {
+      <a
+        smt-button
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="edit_note"
+        [routerLink]="['/settings/form-studio/forms', form.entityCode, 'version']"
+        [attr.aria-label]="'studio.forms.new_version_named' | t: { name: store.title(form) }"
+        [attr.data-testid]="'my-forms-version-' + form.entityCode"
+        >{{ 'studio.forms.new_version' | t }}</a
+      >
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="archive"
+        [smtLoading]="store.changing() === form.entityCode"
+        [disabled]="store.changing() !== null"
+        [attr.aria-label]="'studio.forms.archive_named' | t: { name: store.title(form) }"
+        [attr.data-testid]="'my-forms-archive-' + form.entityCode"
+        (click)="store.changeLifecycle(form, true)"
+      >
+        {{ 'studio.forms.archive' | t }}
+      </button>
+    } @else {
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="unarchive"
+        [smtLoading]="store.changing() === form.entityCode"
+        [disabled]="store.changing() !== null"
+        [attr.aria-label]="'studio.forms.restore_named' | t: { name: store.title(form) }"
+        [attr.data-testid]="'my-forms-restore-' + form.entityCode"
+        (click)="store.changeLifecycle(form, false)"
+      >
+        {{ 'studio.forms.restore' | t }}
+      </button>
+    }
+  </div>
+</ng-template>
+<ng-template #emptyState>
+  <div class="empty-state">
+    <span class="material-symbols-outlined empty-icon" aria-hidden="true">dynamic_form</span>
+    <p>{{ 'studio.forms.empty' | t }}</p>
+  </div>
+</ng-template>
