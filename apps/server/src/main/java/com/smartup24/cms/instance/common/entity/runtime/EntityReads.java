@@ -17,6 +17,7 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -126,6 +127,28 @@ public class EntityReads {
             views.add(new EntityRecordView(record, actions(entity, record), labels.get(i)));
         }
         return new KeysetPage<>(views, page.nextCursor(), page.hasMore(), page.totalEstimated(), page.totalExact());
+    }
+
+    /**
+     * A page of records with the labels of their references in {@code labels}, resolved in batch in the viewer's
+     * scope, for the export, which writes names rather than keys (ADR-0041); a record without references is unchanged.
+     */
+    public KeysetPage<Map<String, Object>> labelled(EntityDefinition entity, KeysetPage<Map<String, Object>> page) {
+        List<Map<String, Object>> items = page.items();
+        if (items.isEmpty()) return page;
+        List<Map<String, Object>> labels = resolver.resolveBatch(entity, items, userId());
+        List<Map<String, Object>> labelled = new ArrayList<>(items.size());
+        for (int i = 0; i < items.size(); i++) {
+            Map<String, Object> record = items.get(i);
+            if (labels.get(i).isEmpty()) {
+                labelled.add(record);
+                continue;
+            }
+            Map<String, Object> named = new LinkedHashMap<>(record);
+            named.put(EntityRecordView.LABELS, labels.get(i));
+            labelled.add(named);
+        }
+        return new KeysetPage<>(labelled, page.nextCursor(), page.hasMore(), page.totalEstimated(), page.totalExact());
     }
 
     /** A record view without resolving relation labels. */

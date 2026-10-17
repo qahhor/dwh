@@ -64,7 +64,8 @@ class StudioVersionServiceTest {
                 new StudioFormViews(versions, definitions),
                 activation,
                 mock(MdPermissionService.class),
-                audit);
+                audit,
+                mock(StudioTargets.class));
     }
 
     @AfterEach

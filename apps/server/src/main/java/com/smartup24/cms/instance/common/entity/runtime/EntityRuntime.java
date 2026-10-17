@@ -136,7 +136,7 @@ public class EntityRuntime implements EntityRecordStore {
     @Override
     public KeysetPage<?> page(
             EntityDefinition entity, int limit, String cursor, String filter, String sort, String search) {
-        return read(() -> reads.page(entity, limit, cursor, filter, sort, search));
+        return read(() -> reads.labelled(entity, reads.page(entity, limit, cursor, filter, sort, search)));
     }
 
     /** A record of a bulk delete: the entity's right was checked for the whole request. */

@@ -7,11 +7,14 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.dhatim.fastexcel.Workbook;
 import org.dhatim.fastexcel.Worksheet;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One export as an xlsx sheet (ADR-0018): a header row of the list's column
@@ -69,6 +72,11 @@ final class ExportWorkbookWriter implements AutoCloseable {
                 customValue(c, field, value);
                 continue;
             }
+            String named = referenceName(item, field);
+            if (named != null) {
+                sheet.value(row, c, named);
+                continue;
+            }
             if (ExportFormats.write(sheet, row, c, field, value)) continue;
             switch (field.type()) {
                 case NUMBER -> {
@@ -88,6 +96,18 @@ final class ExportWorkbookWriter implements AutoCloseable {
             }
         }
         row++;
+    }
+
+    /**
+     * The name of the row a reference names, resolved in the exporter's scope ({@code labels} of the item): a file is
+     * read by people, not by keys (ADR-0041). Null when the item has no name for it, and the key is written.
+     */
+    private static @Nullable String referenceName(Map<String, Object> item, QueryField field) {
+        if (field.ref() == null || !(item.get("labels") instanceof Map<?, ?> labels)) return null;
+        Object named = labels.get(field.key());
+        if (named instanceof Collection<?> names && !names.isEmpty())
+            return names.stream().map(String::valueOf).collect(Collectors.joining(", "));
+        return named instanceof String name && !name.isBlank() ? name : null;
     }
 
     private static Object attribute(Map<String, Object> item, String code) {

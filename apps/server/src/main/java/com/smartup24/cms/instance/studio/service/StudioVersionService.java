@@ -41,6 +41,7 @@ public class StudioVersionService {
     private final StudioActivationService activation;
     private final MdPermissionService permissions;
     private final AuditLogService audit;
+    private final StudioTargets targets;
 
     public StudioVersionService(
             StudioPackages packages,
@@ -51,7 +52,8 @@ public class StudioVersionService {
             StudioFormViews views,
             StudioActivationService activation,
             MdPermissionService permissions,
-            AuditLogService audit) {
+            AuditLogService audit,
+            StudioTargets targets) {
         this.packages = packages;
         this.forms = forms;
         this.versions = versions;
@@ -61,6 +63,7 @@ public class StudioVersionService {
         this.activation = activation;
         this.permissions = permissions;
         this.audit = audit;
+        this.targets = targets;
     }
 
     /** Activates a new version of {@code entityCode} from a simple-form package, from the revision named. */
@@ -89,6 +92,7 @@ public class StudioVersionService {
         if ("declared_code".equals(refusal)) throw new ApiException(ErrorCode.CONFLICT, "error.studio.exists");
         if (refusal != null) throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.translation_key");
         StudioChangeRules.requireDefaults(next, compiled.entity());
+        targets.require(entityCode, next);
 
         int version = head.versions() + 1;
         long userId = SecurityContext.getCurrentUserId();

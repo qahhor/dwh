@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.entity;
 
+import com.smartup24.cms.instance.common.web.RequestLanguage;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.EntityModel;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
@@ -32,6 +34,9 @@ import org.springframework.stereotype.Component;
  * <p>The items are read with no viewer's scope and no right of the reference: they name the values of other entities'
  * fields for whoever fills or reads those. A reference therefore declares {@code EntityScope.all()}, which its model
  * checks when it is declared ({@code EntityModel}), so no row of it is any viewer's secret.
+ *
+ * <p>A reference that is no declared entity is asked of the {@link EntityEnumSource}s — the reference lists an
+ * administrator keeps (ADR-0041) — and cached by reference and language, since their items are named in each language.
  */
 @Component
 public class EntityEnums {
@@ -39,27 +44,54 @@ public class EntityEnums {
     /** The cache of the items by reference entity code. */
     public static final String CACHE = "entityEnums";
 
+    /** Between the reference and the language in the cache key of a source's list. */
+    private static final String LANGUAGE = "@";
+
     private final Map<String, EntityDefinition> references;
     private final JdbcClient jdbc;
     private final @Nullable CacheManager caches;
+    private final Supplier<List<EntityEnumSource>> sources;
 
     @Autowired
-    public EntityEnums(List<EntityDefinition> entities, JdbcClient jdbc, ObjectProvider<CacheManager> caches) {
-        this(entities, jdbc, caches.getIfAvailable());
+    public EntityEnums(
+            List<EntityDefinition> entities,
+            JdbcClient jdbc,
+            ObjectProvider<CacheManager> caches,
+            ObjectProvider<EntityEnumSource> sources) {
+        this(
+                entities,
+                jdbc,
+                caches.getIfAvailable(),
+                () -> sources.orderedStream().toList());
     }
 
     /** Reads the references {@code entities} declare; without {@code caches} every call reads the table. */
     public EntityEnums(List<EntityDefinition> entities, JdbcClient jdbc, @Nullable CacheManager caches) {
+        this(entities, jdbc, caches, List::of);
+    }
+
+    /** Also asks {@code sources} for the references that are no declared entity. */
+    public EntityEnums(
+            List<EntityDefinition> entities,
+            JdbcClient jdbc,
+            @Nullable CacheManager caches,
+            Supplier<List<EntityEnumSource>> sources) {
         this.references = entities.stream()
                 .filter(entity -> entity.model() != null && entity.model().reference() != null)
                 .collect(Collectors.toUnmodifiableMap(EntityDefinition::code, Function.identity()));
         this.jdbc = jdbc;
         this.caches = caches;
+        this.sources = sources;
     }
 
     /** Whether {@code code} names a declared reference entity. */
     public boolean isReference(String code) {
         return references.containsKey(code);
+    }
+
+    /** Whether {@code code} names a reference: a declared reference entity or a list of a source. */
+    public boolean known(String code) {
+        return references.containsKey(code) || source(code) != null;
     }
 
     /**
@@ -101,11 +133,29 @@ public class EntityEnums {
     /** The items of the reference {@code code} with the codes of the archived ones; none for an unknown code. */
     public Items all(String code) {
         EntityDefinition entity = references.get(code);
-        if (entity == null) return Items.NONE;
+        if (entity == null) return listed(code);
         Cache cache = caches == null ? null : caches.getCache(CACHE);
         if (cache == null) return read(entity);
         Items cached = cache.get(code, () -> read(entity));
         return cached == null ? Items.NONE : cached;
+    }
+
+    /** The items of a source's list in the language of the work in progress; none for a reference no source has. */
+    private Items listed(String code) {
+        EntityEnumSource source = source(code);
+        if (source == null) return Items.NONE;
+        String language = RequestLanguage.current();
+        Cache cache = caches == null ? null : caches.getCache(CACHE);
+        if (cache == null) return source.items(code, language);
+        Items cached = cache.get(code + LANGUAGE + language, () -> source.items(code, language));
+        return cached == null ? Items.NONE : cached;
+    }
+
+    private @Nullable EntityEnumSource source(String code) {
+        for (EntityEnumSource source : sources.get()) {
+            if (source.owns(code)) return source;
+        }
+        return null;
     }
 
     /** The name of the item {@code value} of the reference {@code code}. */
@@ -118,6 +168,7 @@ public class EntityEnums {
         Cache cache = caches == null ? null : caches.getCache(CACHE);
         if (cache != null) {
             cache.evict(code);
+            for (String language : RequestLanguage.LANGUAGES) cache.evict(code + LANGUAGE + language);
         }
     }
 

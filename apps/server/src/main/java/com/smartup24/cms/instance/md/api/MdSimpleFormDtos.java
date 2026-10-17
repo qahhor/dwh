@@ -65,12 +65,48 @@ public final class MdSimpleFormDtos {
             Labels title,
 
             @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable
-            Menu menu) {
+            Menu menu,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(
+                    description = "Format 3: which records a viewer sees (ADR-0041) - all, those of the viewer's org"
+                            + " units (org_unit) or the viewer's own (owner); absent means all",
+                    allowableValues = {"all", "org_unit", "owner"})
+            @Nullable
+            String scope) {
         /** An entity of format 1, which has no menu of its own. */
         public Entity(String name, Labels title) {
-            this(name, title, null);
+            this(name, title, null, null);
+        }
+
+        /** An entity of format 2, which sees every record. */
+        public Entity(String name, Labels title, @Nullable Menu menu) {
+            this(name, title, menu, null);
         }
     }
+
+    /** A fixed choice of a select field, from format 3 on (ADR-0041): its code is what the records keep. */
+    @Schema(name = "SimpleFormOption", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
+    public record Option(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, pattern = "^[a-z0-9][a-z0-9_-]{0,39}$")
+            String code,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            Labels labels) {}
+
+    /**
+     * What a reference field names, from format 3 on (ADR-0041): an item of a reference list ({@code list}, by the
+     * list's code) or a record of another live form ({@code form}, by its code {@code studio.<name>}).
+     */
+    @Schema(name = "SimpleFormTarget", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
+    public record Target(
+            @Schema(
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    allowableValues = {"list", "form"})
+            String kind,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 40)
+            String code) {}
 
     @Schema(name = "SimpleFormField", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
     public record Field(
@@ -89,7 +125,10 @@ public final class MdSimpleFormDtos {
                         "bool",
                         "email",
                         "phone",
-                        "url"
+                        "url",
+                        "select",
+                        "ref",
+                        "user"
                     })
             String type,
 
@@ -121,7 +160,19 @@ public final class MdSimpleFormDtos {
                     minLength = 1,
                     maxLength = 4000)
             @Nullable
-            String defaultValue) {
+            String defaultValue,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @ArraySchema(
+                    maxItems = 50,
+                    arraySchema = @Schema(description = "Format 3: the choices of a select field, in their order"))
+            @Nullable
+            List<Option> options,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Format 3: what a ref field names")
+            @Nullable
+            Target target) {
         /** A field of format 1: shown, without a default. */
         public Field(
                 String id,
@@ -133,6 +184,20 @@ public final class MdSimpleFormDtos {
                 @Nullable Integer scale) {
             this(id, type, labels, required, listed, maxLength, scale, null, null);
         }
+
+        /** A field of format 2: without choices or a target. */
+        public Field(
+                String id,
+                String type,
+                Labels labels,
+                boolean required,
+                boolean listed,
+                @Nullable Integer maxLength,
+                @Nullable Integer scale,
+                @Nullable Boolean hidden,
+                @Nullable String defaultValue) {
+            this(id, type, labels, required, listed, maxLength, scale, hidden, defaultValue, null, null);
+        }
     }
 
     @Schema(name = "SimpleFormDeclaration", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
@@ -140,8 +205,9 @@ public final class MdSimpleFormDtos {
             @Schema(
                     requiredMode = Schema.RequiredMode.REQUIRED,
                     minimum = "1",
-                    maximum = "2",
-                    description = "1, or 2 for a live form with hidden fields, defaults or its own menu item")
+                    maximum = "3",
+                    description = "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds"
+                            + " select, ref and user fields and the data scope")
             int formatVersion,
 
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = "simple-form")

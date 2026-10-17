@@ -82,8 +82,9 @@ public class EntitySaveChecks {
     }
 
     private Optional<FieldErrorItem> problem(String key, String target, Set<Long> keys, long userId) {
-        EntityDefinition named = registry.find(target).orElseThrow();
-        if (keys.contains(-1L) || !SecurityContext.hasPermission(named.form(), "view")) {
+        // A live target that is no longer served (quarantined, broken, switched off) names no row (ADR-0041).
+        EntityDefinition named = registry.find(target).orElse(null);
+        if (named == null || keys.contains(-1L) || !SecurityContext.hasPermission(named.form(), "view")) {
             return Optional.of(FieldErrorItem.keyed(key, NOT_FOUND, "error.field.ref_not_found"));
         }
         Map<Long, Boolean> rows = store.visibleRows(named, keys, scopes.rows(named, userId));

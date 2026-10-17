@@ -38,6 +38,7 @@ public class StudioActivationService {
     private final boolean enabled;
     private final @Nullable EntityRegistry entities;
     private final @Nullable StudioDefinitions definitions;
+    private @Nullable StudioTargets targets;
 
     /** The activated form and whether this request created it; an exact repeat creates nothing (ADR-0038). */
     public record Outcome(Activated form, boolean created) {}
@@ -52,7 +53,8 @@ public class StudioActivationService {
             InstalledModules modules,
             @Value("${smc.studio.activation-enabled:false}") boolean enabled,
             @Nullable EntityRegistry entities,
-            ObjectProvider<StudioDefinitions> definitions) {
+            ObjectProvider<StudioDefinitions> definitions,
+            ObjectProvider<StudioTargets> targets) {
         this(
                 packages,
                 repository,
@@ -63,6 +65,7 @@ public class StudioActivationService {
                 enabled,
                 entities,
                 definitions.getIfAvailable());
+        this.targets = targets.getIfAvailable();
     }
 
     public StudioActivationService(
@@ -132,6 +135,7 @@ public class StudioActivationService {
             throw new ApiException(ErrorCode.CONFLICT, "error.studio.exists");
         }
         refuseWhatWouldNotLoad(code, pack.declaration());
+        if (targets != null) targets.require(code, pack.declaration());
         StudioChangeRules.requireDefaults(
                 pack.declaration(),
                 compiler.compile(Long.MAX_VALUE, pack.declaration()).entity());

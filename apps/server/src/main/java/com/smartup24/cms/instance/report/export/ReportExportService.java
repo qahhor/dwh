@@ -14,6 +14,7 @@ import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.RequestLanguage;
 import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.report.api.ExportItem;
@@ -230,7 +231,8 @@ public class ReportExportService {
         }
         ExportRow row = found.get();
         try {
-            principals.runAs(row.userId(), () -> write(row));
+            StoredRequest request = readRequest(row.request());
+            principals.runAs(row.userId(), () -> RequestLanguage.run(request.lang(), () -> write(row, request)));
         } catch (ApiException e) {
             // Rights may have changed since the request: say so rather than a bare failure.
             repo.markFailed(
@@ -272,8 +274,8 @@ public class ReportExportService {
                 .orElseThrow(() -> ApiException.permissionDenied(listCode, "view"));
     }
 
-    private void write(ExportRow row) {
-        StoredRequest request = readRequest(row.request());
+    /** Writes the file in the language of the request: the items of reference lists are named in it (ADR-0041). */
+    private void write(ExportRow row, StoredRequest request) {
         QueryList list = stillOpen(row.listCode());
         QueryListExporter exporter = Optional.ofNullable(exporters.find(list.code()))
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_list_unknown"));

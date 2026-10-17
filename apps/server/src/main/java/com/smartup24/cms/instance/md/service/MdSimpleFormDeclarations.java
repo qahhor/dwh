@@ -33,7 +33,8 @@ import tools.jackson.databind.ObjectReader;
 /**
  * Closed input; preparing a package never executes code or changes a registry (ADR-0037). Format 1 is the create-only
  * form every delivery takes; format 2 adds hidden fields, fixed defaults and a menu item for live forms (ADR-0041), which
- * the developer CLI refuses.
+ * the developer CLI refuses; format 3 adds select, reference and user fields and the data scope ({@link
+ * MdSimpleFormKinds}).
  */
 @Component
 public class MdSimpleFormDeclarations {
@@ -43,6 +44,19 @@ public class MdSimpleFormDeclarations {
     /** Format 2 adds a hidden flag and a fixed default to a field and a menu item to the entity (ADR-0041). */
     static final Set<String> FIELD_V2 =
             Set.of("id", "type", "labels", "required", "listed", "maxLength", "scale", "hidden", "defaultValue");
+    /** Format 3 adds the choices of a select and the target of a reference (ADR-0041). */
+    static final Set<String> FIELD_V3 = Set.of(
+            "id",
+            "type",
+            "labels",
+            "required",
+            "listed",
+            "maxLength",
+            "scale",
+            "hidden",
+            "defaultValue",
+            "options",
+            "target");
     /** The menu icons and sections a live form may take. */
     public static final Set<String> MENU_ICONS = Set.of(
             "box",
@@ -78,12 +92,12 @@ public class MdSimpleFormDeclarations {
     public DeliveryPackage prepare(byte[] body) {
         JsonNode root = parse(body);
         known(root, ROOT, "declaration");
-        int format = integer(root, "formatVersion", "formatVersion", 1, 2);
+        int format = integer(root, "formatVersion", "formatVersion", 1, 3);
         if (!"simple-form".equals(text(root, "kind", "kind"))) throw invalid("kind", "unsupported");
         JsonNode module = required(root, "module", "module");
         known(module, Set.of("code", "title"), "module");
         JsonNode entity = required(root, "entity", "entity");
-        known(entity, format == 1 ? Set.of("name", "title") : Set.of("name", "title", "menu"), "entity");
+        known(entity, entityKeys(format), "entity");
         String moduleCode = identifier(module, "code", "module.code", "[a-z][a-z0-9]{1,11}");
         if (identifiers.reservedModule(moduleCode)) throw invalid("module.code", "identifier");
         var declaration = new Declaration(
@@ -93,9 +107,18 @@ public class MdSimpleFormDeclarations {
                 new Entity(
                         identifier(entity, "name", "entity.name", "[a-z][a-z0-9_]{0,19}"),
                         labels(entity, "title", "entity.title"),
-                        entity.has("menu") ? menu(entity.get("menu")) : null),
+                        entity.has("menu") ? menu(entity.get("menu")) : null,
+                        entity.has("scope") ? MdSimpleFormKinds.scope(entity) : null),
                 fields(required(root, "fields", "fields"), format));
         return new DeliveryPackage(1, "simple-form-package", declaration, digest(declaration));
+    }
+
+    private static Set<String> entityKeys(int format) {
+        return switch (format) {
+            case 1 -> Set.of("name", "title");
+            case 2 -> Set.of("name", "title", "menu");
+            default -> Set.of("name", "title", "menu", "scope");
+        };
     }
 
     private static Menu menu(JsonNode menu) {
@@ -115,18 +138,22 @@ public class MdSimpleFormDeclarations {
         for (int index = 0; index < fields.size(); index++) {
             String at = "fields[" + index + "]";
             JsonNode field = fields.get(index);
-            known(field, format == 1 ? FIELD : FIELD_V2, at);
+            known(field, format == 1 ? FIELD : format == 2 ? FIELD_V2 : FIELD_V3, at);
             String id = identifier(field, "id", at + ".id", "[a-z][a-z0-9]{0,19}");
             if (identifiers.reservedField(id)) throw invalid(at + ".id", "identifier");
             if (!ids.add(id)) throw invalid(at + ".id", "duplicate");
             String type = text(field, "type", at + ".type");
-            if (!TYPES.contains(type)) throw invalid(at + ".type", "unsupported");
+            if (!TYPES.contains(type) && !(format == 3 && MdSimpleFormKinds.TYPES.contains(type)))
+                throw invalid(at + ".type", "unsupported");
             boolean textual = Set.of("text", "textarea").contains(type);
             boolean number = "number".equals(type);
             if (!textual && field.has("maxLength")) throw invalid(at + ".maxLength", "unsupported");
             if (!number && field.has("scale")) throw invalid(at + ".scale", "unsupported");
             boolean hidden = field.has("hidden") && bool(field, "hidden", at + ".hidden");
+            MdSimpleFormKinds.Parts parts = MdSimpleFormKinds.parts(field, type, at);
             String fallback = field.has("defaultValue") ? defaultValue(field, type, at + ".defaultValue") : null;
+            if (fallback != null && "select".equals(type) && !MdSimpleFormKinds.offers(parts.options(), fallback))
+                throw invalid(at + ".defaultValue", "default");
             result.add(new Field(
                     id,
                     type,
@@ -136,7 +163,9 @@ public class MdSimpleFormDeclarations {
                     textual ? integer(field, "maxLength", at + ".maxLength", 1, 4000) : null,
                     number ? integer(field, "scale", at + ".scale", 0, 6) : null,
                     hidden ? Boolean.TRUE : null,
-                    fallback));
+                    fallback,
+                    parts.options(),
+                    parts.target()));
         }
         if (result.stream().filter(field -> field.hidden() == null).count() > MAX_SHOWN_FIELDS)
             throw invalid("fields", "limit");
@@ -213,7 +242,7 @@ public class MdSimpleFormDeclarations {
         if (bytes > MAX_BYTES) throw new ApiException(ErrorCode.PAYLOAD_TOO_LARGE, "error.payload_too_large");
     }
 
-    private static Labels labels(JsonNode owner, String key, String at) {
+    static Labels labels(JsonNode owner, String key, String at) {
         JsonNode value = required(owner, key, at);
         known(value, Set.of("ru", "uz", "en"), at);
         return new Labels(label(value, "ru", at), label(value, "uz", at), label(value, "en", at));
@@ -221,19 +250,22 @@ public class MdSimpleFormDeclarations {
 
     private static String label(JsonNode value, String language, String at) {
         String text = text(value, language, at + "." + language);
-        if (text.isEmpty()
-                || text.codePointCount(0, text.length()) > 80
-                || space(text.codePointAt(0))
-                || space(text.codePointBefore(text.length()))
-                || text.codePoints()
-                        .anyMatch(point -> Character.isISOControl(point)
+        if (!validLabel(text)) throw invalid(at + "." + language, "label");
+        return text;
+    }
+
+    /** A name of 1 to 80 characters, without spaces at its edges, control or format characters. */
+    public static boolean validLabel(String text) {
+        return !text.isEmpty()
+                && text.codePointCount(0, text.length()) <= 80
+                && !space(text.codePointAt(0))
+                && !space(text.codePointBefore(text.length()))
+                && text.codePoints()
+                        .noneMatch(point -> Character.isISOControl(point)
                                 || Character.getType(point) == Character.FORMAT
                                 || point == 0x2028
                                 || point == 0x2029
-                                || (point >= 0xd800 && point <= 0xdfff))) {
-            throw invalid(at + "." + language, "label");
-        }
-        return text;
+                                || (point >= 0xd800 && point <= 0xdfff));
     }
 
     private static boolean space(int point) {
