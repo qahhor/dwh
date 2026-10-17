@@ -9,6 +9,29 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Versions and lifecycle of live forms (ADR-0041, stage 1): immutable later versions
+  (`studio_form_versions`, V218; version 1 stays the `studio_forms` row), a state with
+  the active version, `active`/`archived` status and a revision (`studio_form_state`,
+  V219), and the version a record was saved with (`studio_records.form_version`, V220,
+  stamped by the database on every write). `GET /api/v1/studio/forms` (paged),
+  `GET /api/v1/studio/forms/{entityCode}`, `POST .../{entityCode}/versions`,
+  `POST .../archive` and `POST .../restore`, under `studio.forms.publish`, with
+  `If-Match` (428/409) and audit. Only compatible changes are accepted; each refused
+  one answers 422 `error.studio.change_incompatible` with its field and change.
+- Simple-form format 2 for live forms: hidden fields (kept with their data, served
+  nowhere), fixed defaults (read for records saved before the field existed) and the
+  menu item (icon, section, order). Format 1 is unchanged; the developer CLI refuses
+  format 2. Golden samples of format 2 join those of format 1.
+- An archived live form serves read-only through the new entity write lock
+  (`EntityWriteLock`): every create, update, delete, archive, record or bulk action
+  answers 409 `error.studio.archived`, its form-meta offers no action and it leaves
+  the menu. It no longer counts toward the limit of 100 active forms; every stored
+  form counts toward a new limit of 500 (`error.studio.stored_quota`).
+- Web: «Мои формы» (`/settings/form-studio/forms`) with statuses, versions, records,
+  archive and restore, and the editor of a new version
+  (`/settings/form-studio/forms/{code}/version`) that locks the key, type and default
+  of stored fields and hides instead of removing.
+
 - Quarantine of stored live forms without changing their immutable declarations
   (`studio_form_quarantine`, V216): `POST /api/v1/studio/quarantine`,
   `GET`/`DELETE /api/v1/studio/quarantine/{entityCode}` and the catalog state at
@@ -145,6 +168,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a failed refresh does not present stale widgets as current data.
 
 ### Changed
+
+- The history of a live form shows only the fields the form names, so a hidden field
+  leaves the history labels while its old values stay in the audit rows.
+- `StudioCatalogStatus.broken` and `.quarantined` are bounded by 501 stored forms
+  instead of 101; `SimpleFormDeclaration.fields` allows 30 items, at most 20 shown.
 
 - `POST /api/v1/studio/forms` answers an exact repeat of an already activated package
   with `200` and the same body, without `Location`: nothing is created. A new form still

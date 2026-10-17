@@ -175,6 +175,23 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 ## 7. Точка продолжения — 2026-10-17
 
+**Конструктор, этап 1, ветка 1 — версии и архив живых форм (2026-10-17,
+`claude/stage1-form-versions` от `b3c8c5a2`, не слита):** ADR-0041 решения 1–4, 6, 7.
+V218 `studio_form_versions` (версии ≥ 2, неизменяемы; версия 1 — строка
+`studio_forms`), V219 `studio_form_state` (активная версия, `active`/`archived`,
+ревизия), V220 `studio_records.form_version` (ставит триггер БД). simple-form
+формат 2: `hidden`, `defaultValue`, `entity.menu`; совместимость —
+`StudioChangeRules` (422 `error.studio.change_incompatible`, поле + изменение).
+Фиксированное умолчание читается для записей без ключа прямо в SQL JSON-свойства
+(`JsonPropertyCasts`, без изменения сигнатур Platform API). Архив — общий
+`EntityWriteLock` в `EntityGate` и bulk (409 `error.studio.archived`), form-meta
+без действий, без меню, вне лимита 100; всего ≤ 500 форм. История живой формы
+показывает только названные поля (`RecordHistorySource.namedFieldsOnly`). API —
+`/api/v1/studio/forms` (список, карточка, `versions`, `archive`, `restore`, If-Match);
+веб — «Мои формы» и редактор версии; клиент не шлёт Idempotency-Key этим
+операциям. Дальше: справочники и ссылки, область данных, раскладка (ADR-0041,
+решения владельца 1–4), выгрузка в код (решение 5).
+
 **CI только вручную (2026-10-17, `claude/ci-manual`):** автоматические триггеры
 workflow сняты, `main.json` больше не требует status checks и code scanning —
 после merge администратор применяет rulesets заново (`apply-rulesets.ps1 -Apply`).
