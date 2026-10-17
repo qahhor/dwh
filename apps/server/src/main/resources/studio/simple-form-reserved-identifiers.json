@@ -203,6 +203,33 @@
     "nul",
     "prn"
   ],
+  "platformModules": [
+    "analytics",
+    "audit",
+    "common",
+    "config",
+    "example",
+    "files",
+    "iam",
+    "jobs",
+    "kauth",
+    "md",
+    "mf",
+    "ms",
+    "notes",
+    "notify",
+    "report",
+    "search",
+    "studio",
+    "tasks",
+    "units",
+    "upl",
+    "warehouse",
+    "webhook"
+  ],
+  "liveModules": [
+    "studio"
+  ],
   "fieldFragments": [
     "password",
     "passwd",

@@ -6,7 +6,11 @@ import java.util.Set;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/** Server and CLI share the reserved identifier contract (ADR-0037). */
+/**
+ * Server and CLI share the reserved identifier contract (ADR-0037). A package names no platform module: a static
+ * entity delivered into one would sit among the platform's own. The live namespace is the one exception, accepted
+ * here for activation only (ADR-0038); the CLI refuses it for static delivery.
+ */
 final class MdSimpleFormIdentifiers {
     private final Set<String> modules;
     private final Set<String> fields;
@@ -19,6 +23,12 @@ final class MdSimpleFormIdentifiers {
             JsonNode root = json.readTree(input);
             var moduleNames = new HashSet<>(names(root, "javaModules"));
             moduleNames.addAll(names(root, "portableModules"));
+            Set<String> platform = names(root, "platformModules");
+            Set<String> live = names(root, "liveModules");
+            if (!platform.containsAll(live)) {
+                throw new IllegalStateException("Invalid simple-form identifier contract: liveModules");
+            }
+            platform.stream().filter(code -> !live.contains(code)).forEach(moduleNames::add);
             modules = Set.copyOf(moduleNames);
             var combined = new HashSet<>(names(root, "sqlColumns"));
             combined.addAll(names(root, "systemFields"));

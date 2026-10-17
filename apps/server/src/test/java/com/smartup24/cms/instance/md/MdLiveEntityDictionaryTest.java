@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.md;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -61,7 +60,8 @@ class MdLiveEntityDictionaryTest {
                 new EntityDefinitionSource.Declaration(
                         MdLiveEntityCatalogTest.entity(), Map.of("ru", Map.of("common.save", "Injected"))))));
         principal(Set.of("studio.alpha.view"));
-        assertThatThrownBy(() -> service(live).effectiveDictionary("ru")).isInstanceOf(IllegalStateException.class);
+        // The clashing label is left out and logged; the dictionary itself keeps serving (ADR-0038).
+        assertThat(service(live).effectiveDictionary("ru")).containsEntry("common.save", "Save RU");
     }
 
     private static MdI18nService service(LiveEntities live) throws Exception {

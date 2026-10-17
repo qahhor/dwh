@@ -172,6 +172,13 @@ for (const [name, mutate] of [
   ['irrelevant property', (d) => { d.fields[2].scale = 2; }],
   ['too many fields', (d) => { d.fields = Array.from({ length: 21 }, (_, i) => ({ ...d.fields[2], id: `day${i}` })); }],
   ['path traversal', (d) => { d.module.code = '../escape'; }],
+  ['live-form namespace studio', (d) => { d.module.code = 'studio'; }],
+  ['platform module md', (d) => { d.module.code = 'md'; }],
+  ['platform module ms', (d) => { d.module.code = 'ms'; }],
+  ['platform module audit', (d) => { d.module.code = 'audit'; }],
+  ['platform module example', (d) => { d.module.code = 'example'; }],
+  ['platform module webhook', (d) => { d.module.code = 'webhook'; }],
+  ['platform module iam', (d) => { d.module.code = 'iam'; }],
 ]) test(`the CLI independently rejects ${name}`, () => {
   const d = declaration(); mutate(d); write(pack(d));
   const before = snapshot();

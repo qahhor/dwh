@@ -75,8 +75,12 @@ class StudioActivationTransactionTest {
     @Test
     void exactRepeatKeepsOneDeclarationOneAuditAndOnlyAdministrativeGrants() {
         byte[] body = bytes("repeat", false);
-        Activated first = service.activate(body);
-        assertThat(service.activate(body)).isEqualTo(first);
+        var created = service.activate(body);
+        assertThat(created.created()).isTrue();
+        Activated first = created.form();
+        var repeated = service.activate(body);
+        assertThat(repeated.form()).isEqualTo(first);
+        assertThat(repeated.created()).isFalse();
         assertThat(repository.count()).isEqualTo(1);
         assertThat(auditCount()).isEqualTo(1);
         assertThat(jdbc.sql("select action from md_form_actions where form_code = 'studio.repeat'")
@@ -118,7 +122,7 @@ class StudioActivationTransactionTest {
                         .query(Long.class)
                         .single())
                 .isZero();
-        assertThat(service.activate(body).entityCode()).isEqualTo("studio.rollback");
+        assertThat(service.activate(body).form().entityCode()).isEqualTo("studio.rollback");
         assertThat(repository.count()).isEqualTo(1);
         assertThat(auditCount()).isEqualTo(1);
     }
@@ -163,7 +167,7 @@ class StudioActivationTransactionTest {
                         ApiException.class,
                         failure -> assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
         String winner = repository.checksum("studio.lastone").isPresent() ? "lastone" : "lasttwo";
-        assertThat(service.activate(bytes(winner, false)).entityCode()).isEqualTo("studio." + winner);
+        assertThat(service.activate(bytes(winner, false)).form().entityCode()).isEqualTo("studio." + winner);
         assertThat(repository.count()).isEqualTo(100);
         assertThat(auditCount()).isEqualTo(1);
     }

@@ -8,6 +8,15 @@ const TYPES = new Set(['text', 'textarea', 'number', 'date', 'datetime', 'time',
 const identifiers = JSON.parse(fs.readFileSync(
   new URL('../../../apps/server/src/main/resources/studio/simple-form-reserved-identifiers.json', import.meta.url), 'utf8'));
 const MODULE_RESERVED = new Set([...identifiers.javaModules, ...identifiers.portableModules]);
+// Platform modules take no generated static entity; the live namespace takes only activated forms (ADR-0038).
+export const PLATFORM_MODULES = new Set(identifiers.platformModules);
+export const LIVE_MODULES = new Set(identifiers.liveModules);
+export function refusePlatformModule(code, what) {
+  if (LIVE_MODULES.has(code)) {
+    throw new CliError(`${what}: ${code} is the live-form namespace; activate the package in the studio instead (ADR-0038)`);
+  }
+  if (PLATFORM_MODULES.has(code)) throw new CliError(`${what}: ${code} is a reserved platform module`);
+}
 const RESERVED = new Set([...identifiers.systemFields, ...identifiers.sqlColumns]);
 const fail = (where, reason) => { throw new CliError(`Invalid ${where}: ${reason}`); };
 function shape(value, keys, where) {
@@ -50,6 +59,7 @@ export function validateForm(value) {
   shape(value.entity, ['name', 'title'], 'entity');
   if (typeof value.module.code !== 'string' || !/^[a-z][a-z0-9]{1,11}$/.test(value.module.code)) fail('module.code', 'unsupported identifier');
   if (MODULE_RESERVED.has(value.module.code)) fail('module.code', 'reserved identifier');
+  refusePlatformModule(value.module.code, 'Invalid module.code');
   if (typeof value.entity.name !== 'string' || !/^[a-z][a-z0-9_]{0,19}$/.test(value.entity.name)) fail('entity.name', 'unsupported identifier');
   localized(value.module.title, 'module.title');
   localized(value.entity.title, 'entity.title');

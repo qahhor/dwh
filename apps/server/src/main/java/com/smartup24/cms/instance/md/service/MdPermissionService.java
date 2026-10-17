@@ -122,13 +122,19 @@ public class MdPermissionService {
     public CatalogSyncResult syncFormCatalog(Set<String> declaredPairs) {
         permissionRepository.lockCatalog();
         Set<String> livePairs = new TreeSet<>(declaredPairs);
-        List<EntityDefinition> snapshot = entities == null ? List.of() : entities.all();
-        livePairs.addAll(MdFormCatalogSynchronizer.entityPairs(snapshot));
+        // Live entities keep their rights while not served (switched-off module, quarantine): ADR-0038.
+        Map<String, EntityDefinition> snapshot = new LinkedHashMap<>();
+        if (entities != null) entities.all().forEach(entity -> snapshot.put(entity.code(), entity));
+        Map<String, String> liveNames = new LinkedHashMap<>();
+        for (var declaration : live.registered().values()) {
+            snapshot.putIfAbsent(declaration.entity().code(), declaration.entity());
+            declaration.messages().getOrDefault("ru", Map.of()).forEach(liveNames::putIfAbsent);
+        }
+        livePairs.addAll(MdFormCatalogSynchronizer.entityPairs(snapshot.values()));
         Map<String, EntityRights> namedRights = new LinkedHashMap<>();
-        for (EntityDefinition entity : snapshot) {
+        for (EntityDefinition entity : snapshot.values()) {
             if (entity.rights() != null) namedRights.putIfAbsent(entity.form(), entity.rights());
         }
-        Map<String, String> liveNames = live.messages("ru", entity -> true);
         Set<String> beforeGrantable = permissionRepository.getGrantablePairs();
 
         Set<String> registeredForms = new TreeSet<>();

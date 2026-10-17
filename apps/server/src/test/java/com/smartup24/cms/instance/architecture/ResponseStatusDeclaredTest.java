@@ -20,8 +20,10 @@ import org.junit.jupiter.api.Test;
 /**
  * Plan 10/10, item 3.4: the API description states the status a handler really answers. springdoc reads
  * {@code @ResponseStatus}; it cannot see the status inside a returned {@code ResponseEntity}. So a handler that answers
- * only 201, 202 or 204 declares it, and one that mixes a success status with 200 does not exist. A status built in a
- * helper is not visible to this scan and is checked in review.
+ * only 201, 202 or 204 declares it. A handler that answers two success statuses — an exact repeat of a create-only
+ * operation answers 200 where a new resource answers 201 (ADR-0038) — declares the main one with
+ * {@code @ResponseStatus} and each of them with {@code @ApiResponse}, so the description still states every status it
+ * answers. A status built in a helper is not visible to this scan and is checked in review.
  */
 class ResponseStatusDeclaredTest {
 
@@ -34,6 +36,9 @@ class ResponseStatusDeclaredTest {
             "CREATED", Pattern.compile("HttpStatus\\.CREATED|Created\\.at\\(|ResponseEntity\\.created\\("),
             "ACCEPTED", Pattern.compile("accepted\\(\\)|HttpStatus\\.ACCEPTED"),
             "OK", Pattern.compile("ResponseEntity\\s*\\.\\s*ok\\s*\\(|HttpStatus\\.OK\\b"));
+
+    private static final Map<String, String> CODES =
+            Map.of("NO_CONTENT", "204", "CREATED", "201", "ACCEPTED", "202", "OK", "200");
 
     @Test
     @DisplayName("3.4: a handler answering 201, 202 or 204 declares it with @ResponseStatus")
@@ -71,11 +76,41 @@ class ResponseStatusDeclaredTest {
             String declaredStatus = declared.find() ? declared.group(1) : "OK";
             String where = file + "#" + handler.group(1);
             if (answered.size() > 1) {
-                wrong.add(where + " answers " + answered + ": one success status per handler");
+                boolean described = answered.contains(declaredStatus)
+                        && answered.stream().allMatch(status -> described(annotations, status));
+                if (!described) {
+                    wrong.add(where + " answers " + answered
+                            + ": one success status per handler, or each one declared with @ApiResponse");
+                }
             } else if (answered.size() == 1 && !answered.contains(declaredStatus)) {
                 wrong.add(where + " answers " + answered + " but declares " + declaredStatus);
             }
         }
+    }
+
+    private static boolean described(String annotations, String status) {
+        return Pattern.compile("@ApiResponse\\(\\s*responseCode\\s*=\\s*\"" + CODES.get(status) + "\"")
+                .matcher(annotations)
+                .find();
+    }
+
+    @Test
+    @DisplayName("3.4: two success statuses pass only when each of them is declared with @ApiResponse")
+    void twoStatusesNeedTheirDescription() {
+        String body = " {\n        if (repeat) return ResponseEntity.ok().body(x);\n"
+                + "        return ResponseEntity.created(uri).body(x);\n    }\n";
+        String bare = "@RestController\nclass A {\n\n    @ResponseStatus(HttpStatus.CREATED)\n"
+                + "    public ResponseEntity<X> create()" + body + "}\n";
+        String described = "@RestController\nclass A {\n\n    @ApiResponses({\n"
+                + "        @ApiResponse(responseCode = \"201\"),\n        @ApiResponse(responseCode = \"200\")\n"
+                + "    })\n    @ResponseStatus(HttpStatus.CREATED)\n"
+                + "    public ResponseEntity<X> create()" + body + "}\n";
+        List<String> wrong = new ArrayList<>();
+        check("A.java", bare, wrong);
+        assertThat(wrong).hasSize(1);
+        wrong.clear();
+        check("A.java", described, wrong);
+        assertThat(wrong).isEmpty();
     }
 
     @Test

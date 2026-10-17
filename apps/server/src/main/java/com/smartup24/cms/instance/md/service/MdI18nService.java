@@ -21,12 +21,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MdI18nService {
+
+    private static final Logger log = LoggerFactory.getLogger(MdI18nService.class);
 
     private static final String RUSSIAN = "ru";
     private static final Pattern LANGUAGE_CODE = Pattern.compile("^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$");
@@ -110,8 +114,8 @@ public class MdI18nService {
         if (added.isEmpty()) return base;
         Map<String, String> result = new LinkedHashMap<>(base);
         added.forEach((key, value) -> {
-            if (result.putIfAbsent(key, value) != null)
-                throw new IllegalStateException("Live translation shadows a base key " + key);
+            // A live label never replaces a base key; the clash leaves the label out, not the dictionary.
+            if (result.putIfAbsent(key, value) != null) log.error("live_label_shadows_base_key key={}", key);
         });
         return Collections.unmodifiableMap(result);
     }

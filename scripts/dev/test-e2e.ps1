@@ -27,6 +27,9 @@ if ([string]::IsNullOrWhiteSpace($InstanceHealthUrl)) { $InstanceHealthUrl = $In
 if ([string]::IsNullOrWhiteSpace($MailpitUrl)) { $MailpitUrl = "http://localhost:8025" }
 $env:INSTANCE_BASE_URL = $InstanceBaseUrl
 $env:MAILPIT_URL = $MailpitUrl
+# ADR-0038: the e2e overlay (scripts/dev/e2e-mail.compose.yml) switches live-form activation on, so the studio
+# scenarios must find it on rather than skip their activation branch.
+if ([string]::IsNullOrWhiteSpace($env:E2E_STUDIO_ACTIVATION_EXPECTED)) { $env:E2E_STUDIO_ACTIVATION_EXPECTED = 'true' }
 
 function Invoke-CheckedStep {
     param(

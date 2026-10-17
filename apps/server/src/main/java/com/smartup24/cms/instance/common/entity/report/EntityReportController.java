@@ -9,11 +9,13 @@ import com.smartup24.cms.instance.common.query.QueryMetaController.ListMeta;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.jspecify.annotations.Nullable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -39,6 +41,7 @@ public class EntityReportController {
             description = "Lists up to 16 trusted datasets after checking root, reference and target access.")
     @GetMapping("/{code}/report-datasets")
     @RequiresPermission(form = "md.profile", action = "view")
+    @ResponseStatus(HttpStatus.OK)
     public ReportDatasetDtos.Catalog datasets(@PathVariable String code) {
         return datasets.catalog(code);
     }
@@ -48,6 +51,7 @@ public class EntityReportController {
             description = "Returns current visible fields and report capabilities for the entity or a named dataset.")
     @GetMapping("/{code}/report-meta")
     @RequiresPermission(form = "md.profile", action = "view")
+    @ResponseStatus(HttpStatus.OK)
     public ListMeta metadata(@PathVariable String code, @RequestParam(required = false) @Nullable String dataset) {
         var list = reports.list(code, dataset);
         return new ListMeta(
@@ -67,6 +71,7 @@ public class EntityReportController {
                     + " groups.")
     @GetMapping("/{code}/report")
     @RequiresPermission(form = "md.profile", action = "view")
+    @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<QueryAggregateResult> report(
             @PathVariable String code,
             @Parameter(
@@ -92,6 +97,7 @@ public class EntityReportController {
                     "Runs an owned or role-shared report or widget using the current reader's data and field access.")
     @GetMapping("/{code}/reports/{viewId}")
     @RequiresPermission(form = "md.profile", action = "view")
+    @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<QueryAggregateResult> saved(@PathVariable String code, @PathVariable long viewId) {
         return ResponseEntity.ok(reports.saved(code, viewId));
     }

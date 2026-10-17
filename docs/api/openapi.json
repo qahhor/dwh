@@ -133,6 +133,8 @@
   }, {
     "name" : "studio-form-controller"
   }, {
+    "name" : "studio-quarantine-controller"
+  }, {
     "name" : "system-info-controller"
   }, {
     "name" : "upl-overview-controller"
@@ -13026,9 +13028,39 @@
         "tags" : [ "studio-assistant-controller" ]
       }
     },
+    "/api/v1/studio/catalog" : {
+      "get" : {
+        "description" : "Requires studio.forms.publish. Counts the stored and served forms and lists the forms that fail to load (left out, never failing the others) and the quarantined ones; both lists are bounded by the catalog. An inactive module returns 404.",
+        "operationId" : "catalogStatus",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioCatalogStatus"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read the state of the stored live forms",
+        "tags" : [ "studio-quarantine-controller" ]
+      }
+    },
     "/api/v1/studio/forms" : {
       "post" : {
-        "description" : "Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. Exact package repeats return the same result; different packages at an occupied code return 409.",
+        "description" : "Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. A new form answers 201 with Location; an exact repeat of an activated package creates nothing and answers 200 with the same body; a different package at an occupied code answers 409.",
         "operationId" : "activate",
         "requestBody" : {
           "content" : {
@@ -13041,11 +13073,69 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioActivatedForm"
+                }
+              }
+            },
+            "description" : "The exact package was already activated; nothing was created"
+          },
           "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StudioActivatedForm"
+                }
+              }
+            },
+            "description" : "The form was activated by this request",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Activate an immutable simple form",
+        "tags" : [ "studio-form-controller" ]
+      }
+    },
+    "/api/v1/studio/quarantine" : {
+      "post" : {
+        "description" : "Requires studio.forms.publish. The form stops being served on every node at its next request and answers as an unknown entity; its declaration, records and rights stay. 404 for an unknown form, 409 when it is already quarantined. Audited.",
+        "operationId" : "quarantineForm",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudioQuarantineRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioQuarantinedForm"
                 }
               }
             },
@@ -13070,8 +13160,84 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "summary" : "Activate an immutable simple form",
-        "tags" : [ "studio-form-controller" ]
+        "summary" : "Quarantine a stored live form",
+        "tags" : [ "studio-quarantine-controller" ]
+      }
+    },
+    "/api/v1/studio/quarantine/{entityCode}" : {
+      "delete" : {
+        "description" : "Requires studio.forms.publish. 404 when the form is unknown or not quarantined. Audited.",
+        "operationId" : "releaseForm",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "entityCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Return a quarantined live form to serving",
+        "tags" : [ "studio-quarantine-controller" ]
+      },
+      "get" : {
+        "description" : "Requires studio.forms.publish. 404 when the form is unknown or not quarantined.",
+        "operationId" : "quarantinedForm",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "entityCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioQuarantinedForm"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read one quarantined live form",
+        "tags" : [ "studio-quarantine-controller" ]
       }
     },
     "/api/v1/system/info" : {
@@ -21321,6 +21487,81 @@
             "format" : "int32"
           },
           "namespace" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StudioBrokenForm" : {
+        "type" : "object",
+        "properties" : {
+          "entityCode" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string",
+            "enum" : [ "declaration", "code_mismatch", "declared_code", "translation_key", "form_limit" ]
+          }
+        }
+      },
+      "StudioCatalogStatus" : {
+        "type" : "object",
+        "properties" : {
+          "broken" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudioBrokenForm"
+            },
+            "maxItems" : 101
+          },
+          "quarantined" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudioQuarantinedForm"
+            },
+            "maxItems" : 101
+          },
+          "served" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stored" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "StudioQuarantineRequest" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "entityCode" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^studio\\.[a-z][a-z0-9_]{0,19}$"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "entityCode", "reason" ]
+      },
+      "StudioQuarantinedForm" : {
+        "type" : "object",
+        "properties" : {
+          "entityCode" : {
+            "type" : "string"
+          },
+          "quarantinedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "quarantinedBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
             "type" : "string"
           }
         }

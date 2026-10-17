@@ -14,6 +14,7 @@ import {
   declaresField,
 } from './edits.mjs';
 import { list } from './args.mjs';
+import { LIVE_MODULES, refusePlatformModule } from './form-contract.mjs';
 import { CliError, NEW_MODULE_FLOOR, PATHS, platformVersions, resolve } from './layout.mjs';
 import { createsTable, hasColumn, planMigration, seedsForm } from './migrations.mjs';
 import { entityNames, fieldKey, humanize, labelKey, moduleNames, pascal, snake } from './names.mjs';
@@ -54,6 +55,7 @@ const ICON = /^[a-z][a-z0-9_-]{0,40}$/;
  */
 export function moduleNew(plan, code, values) {
   if (!code) throw new CliError('Usage: cms module new <code> [--title <ru>] [--title-en <en>] [--title-uz <uz>]');
+  refusePlatformModule(code, 'Module code');
   if (values.external) {
     return externalModuleNew(plan, code, values);
   }
@@ -158,6 +160,7 @@ export function externalModuleNew(plan, code, values) {
  */
 export function entityNew(plan, moduleCode, entityName, values) {
   if (!moduleCode || !entityName) throw new CliError('Usage: cms entity new <module> <entity> [--title <ru>] [--hooks]');
+  if (LIVE_MODULES.has(moduleCode)) refusePlatformModule(moduleCode, 'Module');
   if (values.icon !== undefined && !ICON.test(values.icon)) {
     throw new CliError(`Icon: a lower-case icon name (box, package): ${values.icon}`);
   }

@@ -3644,6 +3644,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/studio/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the state of the stored live forms
+         * @description Requires studio.forms.publish. Counts the stored and served forms and lists the forms that fail to load (left out, never failing the others) and the quarantined ones; both lists are bounded by the catalog. An inactive module returns 404.
+         */
+        get: operations["catalogStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/studio/forms": {
         parameters: {
             query?: never;
@@ -3655,10 +3675,54 @@ export interface paths {
         put?: never;
         /**
          * Activate an immutable simple form
-         * @description Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. Exact package repeats return the same result; different packages at an occupied code return 409.
+         * @description Requires studio.forms.publish and enabled activation. Only the studio namespace is accepted. A new form answers 201 with Location; an exact repeat of an activated package creates nothing and answers 200 with the same body; a different package at an occupied code answers 409.
          */
         post: operations["activate"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/quarantine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Quarantine a stored live form
+         * @description Requires studio.forms.publish. The form stops being served on every node at its next request and answers as an unknown entity; its declaration, records and rights stay. 404 for an unknown form, 409 when it is already quarantined. Audited.
+         */
+        post: operations["quarantineForm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/quarantine/{entityCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one quarantined live form
+         * @description Requires studio.forms.publish. 404 when the form is unknown or not quarantined.
+         */
+        get: operations["quarantinedForm"];
+        put?: never;
+        post?: never;
+        /**
+         * Return a quarantined live form to serving
+         * @description Requires studio.forms.publish. 404 when the form is unknown or not quarantined. Audited.
+         */
+        delete: operations["releaseForm"];
         options?: never;
         head?: never;
         patch?: never;
@@ -6639,6 +6703,31 @@ export interface components {
             /** Format: int32 */
             maxForms?: number;
             namespace?: string;
+        };
+        StudioBrokenForm: {
+            entityCode?: string;
+            /** @enum {string} */
+            reason?: "declaration" | "code_mismatch" | "declared_code" | "translation_key" | "form_limit";
+        };
+        StudioCatalogStatus: {
+            broken?: components["schemas"]["StudioBrokenForm"][];
+            quarantined?: components["schemas"]["StudioQuarantinedForm"][];
+            /** Format: int32 */
+            served?: number;
+            /** Format: int32 */
+            stored?: number;
+        };
+        StudioQuarantineRequest: {
+            entityCode: string;
+            reason: string;
+        };
+        StudioQuarantinedForm: {
+            entityCode?: string;
+            /** Format: date-time */
+            quarantinedAt?: string;
+            /** Format: int64 */
+            quarantinedBy?: number;
+            reason?: string;
         };
         SubscriptionView: {
             /** Format: date-time */
@@ -15958,6 +16047,35 @@ export interface operations {
             };
         };
     };
+    catalogStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioCatalogStatus"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
     activate: {
         parameters: {
             query?: never;
@@ -15971,7 +16089,16 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Created */
+            /** @description The exact package was already activated; nothing was created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioActivatedForm"];
+                };
+            };
+            /** @description The form was activated by this request */
             201: {
                 headers: {
                     /** @description Path of the created resource, when it has one */
@@ -15981,6 +16108,104 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StudioActivatedForm"];
                 };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    quarantineForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioQuarantineRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioQuarantinedForm"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    quarantinedForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioQuarantinedForm"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    releaseForm: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                entityCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {

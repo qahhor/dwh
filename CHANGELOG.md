@@ -9,6 +9,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Quarantine of stored live forms without changing their immutable declarations
+  (`studio_form_quarantine`, V216): `POST /api/v1/studio/quarantine`,
+  `GET`/`DELETE /api/v1/studio/quarantine/{entityCode}` and the catalog state at
+  `GET /api/v1/studio/catalog`, all under `studio.forms.publish` and audited. A
+  quarantined form answers 404 on every node at its next request and keeps its rights.
+- Golden samples of the stored simple-form v1 format: a compiler, DTO or validator
+  change that would break an activated form fails the build.
+- The e2e stack switches live-form activation on, so the activation scenario and a new
+  quarantine scenario run in the browser suite.
+
 - A separate signed staging prerelease workflow for `vX.Y.Z-rc.N`, with explicit
   staging authorization, exact source/DCO gates and the same six-image CI/scan path.
 - Signed and attested SHA256SUMS authenticate release archives and metadata;
@@ -50,6 +60,24 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- One stored live form that no longer loads (its declaration does not compile, its
+  code clashes with a declared entity, its labels shadow bundled translation keys, or
+  it lies beyond the 100-form limit) is left out and reported instead of failing the
+  whole entity runtime and the application start. Declared entities and the other live
+  forms keep serving; a declared code wins and never reads the live catalog. The form is
+  logged with its code and reason, counted by `smc_studio_forms_broken` and shown by the
+  health component `studioForms` (not a readiness member) (ADR-0038).
+- A switched-off `studio` module no longer reads or compiles the live catalog; the
+  activation switch still only closes creation.
+- The compiled live catalog is reused while its version in the database stays the same,
+  so jobs and workers no longer read and compile up to 100 declarations per lookup; one
+  HTTP request keeps one snapshot, and a cluster notice only drops other nodes' copies early.
+- A simple-form package can no longer name a platform module (`md`, `ms`, `kauth`,
+  `audit`, `report`, `search`, `example`, `webhook`, `iam`, `tasks` and the rest), and
+  the CLI (`cms form apply`, `cms module new`, `cms entity new`) refuses to deliver a
+  static entity into a platform module or into the live namespace `studio`.
+- `studio_records.revision` is kept in the JavaScript safe-integer range (V217).
+- The report handlers of `/api/v1/entities/{code}/report*` declare their status.
 - The repository threat model now covers Studio declarations, delivery and live
   activation, shared reports/datasets/dashboards, the optional LLM gateway, and
   signed staging prerelease verification, with source-backed controls and open
@@ -93,6 +121,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a failed refresh does not present stale widgets as current data.
 
 ### Changed
+
+- `POST /api/v1/studio/forms` answers an exact repeat of an already activated package
+  with `200` and the same body, without `Location`: nothing is created. A new form still
+  answers `201` with `Location`. Both statuses are declared in the API description.
 
 - GitHub Actions no longer start automatically (owner decision 2026-10-17): `ci`,
   `codeql`, `DCO`, `nightly`, `scorecard` and `dependabot auto-merge` lost their

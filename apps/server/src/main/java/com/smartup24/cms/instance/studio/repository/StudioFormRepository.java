@@ -2,33 +2,92 @@ package com.smartup24.cms.instance.studio.repository;
 
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Declaration;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
-/** Only immutable declarations; record writes stay in EntityRecordStore (ADR-0038). */
+/** Only immutable declarations and their quarantine; record writes stay in EntityRecordStore (ADR-0038). */
 @Repository
 public class StudioFormRepository {
+    /** One row beyond the activation limit, so a catalog above it is seen rather than silently cut. */
+    public static final int READ_LIMIT = 101;
+
+    private static final String VERSION_COLUMNS = """
+            (select count(*) from studio_forms) as forms,
+            (select coalesce(max(id), 0) from studio_forms) as last_form,
+            (select count(*) from studio_form_quarantine) as held,
+            (select coalesce(max(id), 0) from studio_form_quarantine) as last_held""";
+
     private final JdbcClient jdbc;
     private final JsonColumns json;
 
-    public record Stored(long id, String code, Declaration declaration, String checksum) {}
+    /**
+     * The state of the catalog both tables are in. Identities only grow, so equal counts and maxima mean equal rows:
+     * a new row raises the maximum, and with the maximum unchanged only removals remain, which lower the count.
+     */
+    public record Version(long forms, long lastForm, long held, long lastHeld) {}
+
+    /** A stored declaration as raw JSON, read and compiled one at a time by the caller. */
+    public record Row(
+            long id,
+            String code,
+            String declaration,
+            @Nullable String quarantine) {}
+
+    /** The rows and the version of one statement, so both come from the same database snapshot. */
+    public record Catalog(Version version, List<Row> rows) {}
+
+    public record Held(long formId, String code, String reason, Instant quarantinedAt, long quarantinedBy) {}
 
     public StudioFormRepository(JdbcClient jdbc, ObjectMapper mapper) {
         this.jdbc = jdbc;
         json = new JsonColumns(mapper, "studio_forms");
     }
 
-    public List<Stored> all() {
-        return jdbc.sql("select id, code, declaration::text, checksum from studio_forms order by id limit 101")
-                .query((rs, row) -> new Stored(
-                        rs.getLong("id"),
-                        rs.getString("code"),
-                        json.read(rs.getString("declaration"), Declaration.class),
-                        rs.getString("checksum")))
+    public Version version() {
+        return jdbc.sql("select " + VERSION_COLUMNS)
+                .query((rs, row) -> new Version(
+                        rs.getLong("forms"), rs.getLong("last_form"), rs.getLong("held"), rs.getLong("last_held")))
+                .single();
+    }
+
+    public Catalog catalog() {
+        var rows = jdbc.sql("select f.id, f.code, f.declaration::text as declaration, q.reason, " + VERSION_COLUMNS
+                        + " from (select 1) as one"
+                        + " left join (select id, code, declaration from studio_forms order by id limit "
+                        + READ_LIMIT + ") as f on true"
+                        + " left join studio_form_quarantine q on q.form_id = f.id order by f.id")
+                .query((rs, row) -> new Line(
+                        new Version(
+                                rs.getLong("forms"),
+                                rs.getLong("last_form"),
+                                rs.getLong("held"),
+                                rs.getLong("last_held")),
+                        rs.getObject("id") == null
+                                ? null
+                                : new Row(
+                                        rs.getLong("id"),
+                                        rs.getString("code"),
+                                        rs.getString("declaration"),
+                                        rs.getString("reason"))))
                 .list();
+        return new Catalog(
+                rows.getFirst().version(),
+                rows.stream().map(Line::row).filter(Objects::nonNull).toList());
+    }
+
+    private record Line(Version version, @Nullable Row row) {}
+
+    public Declaration declaration(String stored) {
+        return json.read(stored, Declaration.class);
     }
 
     public void lockCatalog() {
@@ -41,6 +100,13 @@ public class StudioFormRepository {
         return jdbc.sql("select checksum from studio_forms where code = :code")
                 .param("code", code)
                 .query(String.class)
+                .optional();
+    }
+
+    public Optional<Long> id(String code) {
+        return jdbc.sql("select id from studio_forms where code = :code")
+                .param("code", code)
+                .query(Long.class)
                 .optional();
     }
 
@@ -57,5 +123,52 @@ public class StudioFormRepository {
                 .param("userId", userId)
                 .query(Long.class)
                 .single();
+    }
+
+    /** Empty when the form is already held; the unique form key keeps one quarantine row per form. */
+    public Optional<Held> quarantine(long formId, String reason, long userId) {
+        return jdbc.sql("insert into studio_form_quarantine (form_id, reason, quarantined_by) "
+                        + "values (:formId, :reason, :userId) on conflict (form_id) do nothing "
+                        + "returning form_id, reason, quarantined_at, quarantined_by, "
+                        + "(select code from studio_forms where id = :formId) as code")
+                .param("formId", formId)
+                .param("reason", reason)
+                .param("userId", userId)
+                .query((rs, row) -> held(rs))
+                .optional();
+    }
+
+    public Optional<Held> held(long formId) {
+        return jdbc.sql("select q.form_id, f.code, q.reason, q.quarantined_at, q.quarantined_by "
+                        + "from studio_form_quarantine q join studio_forms f on f.id = q.form_id "
+                        + "where q.form_id = :formId")
+                .param("formId", formId)
+                .query((rs, row) -> held(rs))
+                .optional();
+    }
+
+    public boolean release(long formId) {
+        return jdbc.sql("delete from studio_form_quarantine where form_id = :formId")
+                        .param("formId", formId)
+                        .update()
+                > 0;
+    }
+
+    /** Bounded by the catalog: one row per stored form at most. */
+    public List<Held> held() {
+        return jdbc.sql("select q.form_id, f.code, q.reason, q.quarantined_at, q.quarantined_by "
+                        + "from studio_form_quarantine q join studio_forms f on f.id = q.form_id order by f.code limit "
+                        + READ_LIMIT)
+                .query((rs, row) -> held(rs))
+                .list();
+    }
+
+    private static Held held(ResultSet rs) throws SQLException {
+        return new Held(
+                rs.getLong("form_id"),
+                rs.getString("code"),
+                rs.getString("reason"),
+                rs.getObject("quarantined_at", OffsetDateTime.class).toInstant(),
+                rs.getLong("quarantined_by"));
     }
 }
