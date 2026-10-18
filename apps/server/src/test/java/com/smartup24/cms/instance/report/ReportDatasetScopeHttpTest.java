@@ -156,15 +156,17 @@ class ReportDatasetScopeHttpTest extends EmbeddedPostgresTest {
                 .update();
         var result = session.send(report("/report"));
         status(result, 200);
-        assertThat(TestSession.object(result).get("rows"))
+        assertThat(ReportRows.values(TestSession.object(result)))
                 .isEqualTo(List.of(
                         Map.of("groups", List.of("kg"), "values", List.of(2, 5.0)),
                         Map.of("groups", Arrays.asList((Object) null), "values", List.of(2, 18.0))));
         var export = session.send(report("/report/export"));
         status(export, 200);
         var cells = AggregateXlsxCells.data(export.getContentAsByteArray());
+        // The unit is written by its label in the export language, not by its code.
+        assertThat(cells.get("A2")).isNotNull().isNotEqualTo(new AggregateXlsxCells.Cell("text", "kg"));
+        assertThat(cells.get("A2").type()).isEqualTo("text");
         assertThat(cells)
-                .containsEntry("A2", new AggregateXlsxCells.Cell("text", "kg"))
                 .containsEntry("B2", new AggregateXlsxCells.Cell("number", "2"))
                 .containsEntry("C2", new AggregateXlsxCells.Cell("number", "5.000"))
                 .containsEntry("B3", new AggregateXlsxCells.Cell("number", "2"))

@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.repository;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.web.Revisions;
+import com.smartup24.cms.instance.md.api.MdReportDashboardDtos.ReportCatalogFilter;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository.ListView;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,23 +32,11 @@ public class MdReportAccessRepository {
         this.jdbc = jdbc;
     }
 
-    /**
-     * What the catalog shows: the reports of one list, those whose name holds {@code q} (any case), the reader's own
-     * ({@code mine}) or those shared with them ({@code shared}), of one kind; null names no restriction.
-     */
-    public record Filter(
-            @Nullable String listCode,
-            @Nullable String q,
-            @Nullable String owner,
-            @Nullable String kind) {
-        public static final Filter NONE = new Filter(null, null, null, null);
-    }
-
     public List<ReportRow> page(long userId, @Nullable String listCode, TimePage page) {
-        return page(userId, new Filter(listCode, null, null, null), page);
+        return page(userId, new ReportCatalogFilter(listCode, null, null, null), page);
     }
 
-    public List<ReportRow> page(long userId, Filter filter, TimePage page) {
+    public List<ReportRow> page(long userId, ReportCatalogFilter filter, TimePage page) {
         var after = page.after();
         String text = filter.q();
         String q = text == null || text.isBlank()

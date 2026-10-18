@@ -94,7 +94,7 @@ class TaskProjectDatasetHttpTest extends EmbeddedPostgresTest {
         long id = ((Number) TestSession.object(saved).get("id")).longValue();
         var report = session.send(get(PATH + "/reports/" + id));
         status(report, 200);
-        assertThat(TestSession.object(report).get("rows"))
+        assertThat(ReportRows.values(TestSession.object(report)))
                 .isEqualTo(List.of(
                         Map.of("groups", List.of("2026-01-01"), "values", List.of(2)),
                         Map.of("groups", Arrays.asList((Object) null), "values", List.of(1))));
@@ -109,7 +109,7 @@ class TaskProjectDatasetHttpTest extends EmbeddedPostgresTest {
                 .update();
         var archived = session.send(get(PATH + "/reports/" + id));
         status(archived, 200);
-        assertThat(TestSession.object(archived).get("rows"))
+        assertThat(ReportRows.values(TestSession.object(archived)))
                 .isEqualTo(List.of(Map.of("groups", Arrays.asList((Object) null), "values", List.of(3))));
     }
 

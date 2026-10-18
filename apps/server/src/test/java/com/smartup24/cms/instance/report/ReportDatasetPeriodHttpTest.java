@@ -145,7 +145,7 @@ class ReportDatasetPeriodHttpTest extends EmbeddedPostgresTest {
                 .param("from", "2026-10-01")
                 .param("to", "2026-10-01"));
         status(result, 200);
-        assertThat(TestSession.object(result).get("rows"))
+        assertThat(ReportRows.values(TestSession.object(result)))
                 .isEqualTo(List.of(Map.of("groups", List.of(), "values", List.of(2, 5.0))));
         var export = session.send(get(widget + "/export")
                 .header("If-Match", board.get("revision"))
@@ -158,7 +158,7 @@ class ReportDatasetPeriodHttpTest extends EmbeddedPostgresTest {
                 .doesNotContainKey("A3");
         var unfiltered = session.send(get(widget + "/result").header("If-Match", board.get("revision")));
         status(unfiltered, 200);
-        assertThat(TestSession.object(unfiltered).get("rows"))
+        assertThat(ReportRows.values(TestSession.object(unfiltered)))
                 .isEqualTo(List.of(Map.of("groups", List.of(), "values", List.of(4, 10.0))));
     }
 

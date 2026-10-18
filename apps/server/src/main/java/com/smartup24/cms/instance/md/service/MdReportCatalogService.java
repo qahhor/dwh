@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.md.api.MdReportDashboardDtos.ReportCatalogFilter;
 import com.smartup24.cms.instance.md.api.MdReportDashboardDtos.ReportViewItem;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository.ListView;
 import com.smartup24.cms.instance.md.repository.MdReportAccessRepository;
@@ -36,7 +37,7 @@ public class MdReportCatalogService {
     @Transactional(readOnly = true)
     public KeysetPage<ReportViewItem> list(
             long userId, @Nullable String listCode, @Nullable Integer limit, @Nullable String cursor) {
-        return list(userId, new MdReportAccessRepository.Filter(listCode, null, null, null), limit, cursor);
+        return list(userId, new ReportCatalogFilter(listCode, null, null, null), limit, cursor);
     }
 
     /**
@@ -45,7 +46,7 @@ public class MdReportCatalogService {
      */
     @Transactional(readOnly = true)
     public KeysetPage<ReportViewItem> list(
-            long userId, MdReportAccessRepository.Filter filter, @Nullable Integer limit, @Nullable String cursor) {
+            long userId, ReportCatalogFilter filter, @Nullable Integer limit, @Nullable String cursor) {
         TimePage page = TimePage.of(limit, cursor, 20, 100);
         var candidates = page.page(
                 repo.page(userId, filter, page),

@@ -84,8 +84,13 @@ class ReportDatasetHttpTest extends EmbeddedPostgresTest {
                 .param("measures", MEASURES)
                 .param("filter", filter()));
         status(result, 200);
-        assertThat(TestSession.object(result).get("rows"))
+        assertThat(ReportRows.values(TestSession.object(result)))
                 .isEqualTo(List.of(Map.of("groups", List.of("kg"), "values", List.of(2, 5.0))));
+        // The unit is named by its label in the reader's language, not by its code.
+        assertThat(ReportRows.labels(TestSession.object(result)))
+                .singleElement()
+                .satisfies(labels ->
+                        assertThat((List<?>) labels).singleElement().isNotNull().isNotEqualTo("kg"));
         var saved = session.send(
                 post("/api/v1/list-views/" + CODE),
                 Map.of(

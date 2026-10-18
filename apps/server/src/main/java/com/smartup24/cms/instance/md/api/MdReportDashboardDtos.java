@@ -52,6 +52,16 @@ public final class MdReportDashboardDtos {
                     description = "The reader owns the report; otherwise a role shares it with them")
             boolean owned) {}
 
+    /**
+     * What narrows the reports catalog: a list code, a part of the name (any case), {@code mine} or {@code shared},
+     * {@code report} or {@code widget}; null narrows nothing.
+     */
+    public record ReportCatalogFilter(
+            @Nullable String listCode,
+            @Nullable String q,
+            @Nullable String owner,
+            @Nullable String kind) {}
+
     public record SharingRequest(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             List<Long> roleIds) {}

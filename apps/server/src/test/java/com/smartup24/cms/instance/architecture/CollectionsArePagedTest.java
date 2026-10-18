@@ -49,6 +49,9 @@ class CollectionsArePagedTest {
             Map.entry("MdI18nController#listLanguages", "the installed languages"),
             Map.entry("MdListViewController#list", "20 views per list and user (MdListViewService)"),
             Map.entry("MdOrgUnitController#list", "the organization tree, read whole to draw it"),
+            Map.entry(
+                    "MdOrgUnitController#scope",
+                    "the units of the reader's data scope, a part of the organization tree, offered whole in a picker"),
             Map.entry("MdReportWidgetController#list", "12 widgets per user (MdListViewService.MAX_WIDGETS)"),
             Map.entry("MdRoleController#getFormCatalog", "the forms the modules declare"),
             Map.entry("MdRoleController#getRolePermissions", "the rights of one role, bounded by the catalog"),
