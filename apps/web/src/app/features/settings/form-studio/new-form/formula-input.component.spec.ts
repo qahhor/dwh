@@ -98,6 +98,7 @@ describe('FormulaInputComponent', () => {
       'qty + foo',
       'visibleIf',
       'reason',
+      null,
     );
     expect(component.problem()).not.toBe('');
     fixture.componentRef.setInput('value', '');
