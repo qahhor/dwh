@@ -33,8 +33,8 @@ public class MsEntityNoticeListener {
 
     @EventListener
     public void onNotice(EntityNotice notice) {
-        for (Long user : notice.recipients()) {
-            if (user == null || user == notice.actorId()) continue;
+        for (long user : notice.recipients()) {
+            if (user == notice.actorId()) continue;
             if (!notifications.isNotificationEnabled(user, EVENT_TYPE, "in_app")) continue;
             Map<String, String> params = notice.params().get(texts.language(user));
             if (params == null) params = notice.params().getOrDefault("ru", Map.of());
