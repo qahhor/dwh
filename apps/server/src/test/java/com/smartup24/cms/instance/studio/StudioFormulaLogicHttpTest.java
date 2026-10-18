@@ -166,6 +166,16 @@ class StudioFormulaLogicHttpTest extends EmbeddedPostgresTest {
         assertThat(check(fields, "isEmpty(reason)", "visibleIf", "reason")).containsEntry("reason", "self");
         assertThat(check(fields, "qty > 1", "requiredIf", "reason")).containsEntry("valid", true);
         assertThat(check(fields, "\"x\"", "formula", "qty")).containsEntry("reason", "result");
+        assertThat(check(fields, "qty + 1", "formula", null)).containsEntry("reason", "result");
+        assertThat(check(fields, "qty + 1", "formula", "nosuch")).containsEntry("reason", "result");
+        List<Map<String, Object>> typed = List.of(
+                Map.of("id", "qty", "type", "number"),
+                Map.of("id", "kind", "type", "ref", "target", "list"),
+                Map.of("id", "client", "type", "ref", "target", "form"));
+        assertThat(check(typed, "if(kind = \"vip\", 10, 0)", "defaultFormula", "qty"))
+                .containsEntry("valid", true)
+                .containsEntry("type", "number");
+        assertThat(check(typed, "client = 7", "readonlyIf", "qty")).containsEntry("type", "bool");
     }
 
     @Test

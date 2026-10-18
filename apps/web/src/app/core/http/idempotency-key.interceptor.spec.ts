@@ -140,6 +140,13 @@ describe('idempotencyKeyInterceptor', () => {
     request.flush({});
   });
 
+  it('sends the check of a formula, which stores nothing, without a key', () => {
+    http.post('/api/v1/studio/formulas/check', { formula: 'qty * 2' }).subscribe();
+    const request = backend.expectOne('/api/v1/studio/formulas/check');
+    expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
+    request.flush({});
+  });
+
   it('keys a mutation of a path that only resembles a live form operation', () => {
     http.post('/api/v1/studio/forms/studio.visits/versions/extra', null).subscribe();
     const request = backend.expectOne('/api/v1/studio/forms/studio.visits/versions/extra');

@@ -47,8 +47,12 @@ function wantsKey(request: HttpRequest<unknown>): boolean {
     return false;
   // Studio authoring checks current access and handles revision retries in its service (ADR-0035).
   if (['POST', 'PUT'].includes(request.method) && path.startsWith('/api/v1/form-studio/')) return false;
-  // Activation uses the verified package checksum and rechecks access on every retry (ADR-0038).
-  if (request.method === 'POST' && ['/api/v1/studio/forms', '/api/v1/studio/assistant/drafts'].includes(path))
+  // Activation uses the verified package checksum and rechecks access on every retry (ADR-0038); the check of a
+  // formula stores nothing and is asked again as the editor types (ADR-0042).
+  if (
+    request.method === 'POST' &&
+    ['/api/v1/studio/forms', '/api/v1/studio/assistant/drafts', '/api/v1/studio/formulas/check'].includes(path)
+  )
     return false;
   // A new version, an archive and a restore take If-Match and recheck access on every retry (ADR-0041).
   if (request.method === 'POST' && /^\/api\/v1\/studio\/forms\/[^/]+\/(versions|archive|restore)$/u.test(path))

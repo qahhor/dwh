@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -48,17 +49,13 @@ public class StudioFormulaController {
             types.put(field.id(), MdSimpleFormLogic.type(declared(field)));
             fieldTypes.put(field.id(), field.type());
         }
-        String fieldType = null;
-        String self = null;
-        switch (request.kind()) {
-            case "formula", "defaultFormula" ->
-                fieldType = request.field() == null ? null : fieldTypes.get(request.field());
-            case "visibleIf" -> self = request.field();
-            default -> {
-                // A rule, required and read-only conditions take a yes/no and may read every field.
-            }
-        }
-        boolean value = "formula".equals(request.kind()) || "defaultFormula".equals(request.kind());
+        String kind = request.kind();
+        boolean value = "formula".equals(kind) || "defaultFormula".equals(kind);
+        String owner = request.field();
+        String fieldType = value && owner != null ? fieldTypes.get(owner) : null;
+        // A rule, required and read-only conditions take a yes/no and may read every field; a condition that shows
+        // a field may not read it.
+        String self = "visibleIf".equals(kind) ? owner : null;
         if (value && fieldType == null) {
             return answer(new MdSimpleFormLogic.Checked(null, new FormulaException("result", 1, null)));
         }
@@ -69,7 +66,7 @@ public class StudioFormulaController {
         FormulaException problem = checked.problem();
         FormulaType type = checked.type();
         Check body = problem == null
-                ? new Check(true, type == null ? null : type.wire(), null, null, null, null)
+                ? new Check(true, Objects.requireNonNull(type).wire(), null, null, null, null)
                 : new Check(false, null, problem.reason(), problem.position(), problem.name(), problem.messageKey());
         return ResponseEntity.ok().header("Cache-Control", "no-store").body(body);
     }

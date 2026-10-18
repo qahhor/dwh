@@ -4,6 +4,7 @@ import { loginToInstance } from '../../../support/auth.js';
 import { collectPageErrors } from '../../../support/diagnostics.js';
 import { fieldName } from '../../../support/fields.js';
 import { chooseLiveFormDelivery } from '../../../support/live-form-studio.js';
+import { chooseOption } from '../../../support/select.js';
 import { xlsxRows } from '../../../support/xlsx-read.js';
 
 // ADR-0042, stage 2, step 1 of the form builder: the order header «Заказ (шапка)» built by an administrator without a
@@ -116,6 +117,9 @@ async function buildOrder(page: Page, formName: string): Promise<string> {
   await rule.getByTestId('rule-message-uz-0').locator('input').fill('Chegirma 30% dan oshmaydi');
   await rule.getByTestId('rule-message-en-0').locator('input').fill('The discount is at most 30%');
   await choose(page, rule.getByTestId('rule-field-0').getByRole('combobox'), /\(discount\)/u);
+
+  // A document is named by its number: no system name and code to fill.
+  await chooseOption(page.getByTestId('form-layout').getByTestId('form-title-field').getByRole('combobox'), 'recordNumber');
 
   const prepared = page.waitForResponse(response => response.url().endsWith('/api/v1/form-studio/new-forms/prepare'));
   await page.getByTestId('new-form-prepare').click();
