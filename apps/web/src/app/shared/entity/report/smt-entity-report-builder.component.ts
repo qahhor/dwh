@@ -122,7 +122,6 @@ export class SMTEntityReportBuilderComponent {
   /** The top of the groups kept; null — every group. */
   readonly limit = signal<number | null>(null);
 
-
   readonly run = signal<ReportRun>({ result: null, error: '', loading: false });
 
   readonly refresh = signal(0);

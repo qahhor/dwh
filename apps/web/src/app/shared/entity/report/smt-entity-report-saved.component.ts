@@ -83,7 +83,6 @@ export class SMTEntityReportSavedComponent {
   /** A saved report was chosen: the builder shows it. */
   readonly opened = output<SavedReport>();
 
-
   private readonly sharing = viewChild(ReportSharingComponent);
 
   readonly saved = linkedSignal<SavedReport[]>(() => this.list.items());
