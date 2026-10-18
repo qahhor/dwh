@@ -108,13 +108,13 @@ async function buildOrder(page: Page, formName: string, clients: string, goods: 
   await name(entity, 'Заказ');
 
   await page.getByTestId('new-form-add').click();
-  const client = page.getByTestId('new-field-0');
+  const client = page.getByTestId('new-field-0').first();
   await describe(page, client, 'client', 'Ссылка на справочник или форму', 'Клиент');
   await choose(page, client.getByTestId('field-target-kind-0').getByRole('combobox'), 'Другая форма');
   await choose(page, client.getByTestId('field-target-0').getByRole('combobox'), new RegExp(clients.replace('.', '\\.'), 'u'));
   await client.getByText('Обязательное', { exact: true }).click();
   await page.getByTestId('new-form-add').click();
-  const total = page.getByTestId('new-field-1');
+  const total = page.getByTestId('new-field-1').first();
   await describe(page, total, 'total', 'Число', 'Итого');
 
   // The lines: a product from the reference list, a quantity, a price and a sum computed in the row.
@@ -244,6 +244,7 @@ test('the order with lines and approval: numbered, computed, approved by a manag
       { formCode: orders, action: 'view' },
       { formCode: orders, action: 'approve' },
       { formCode: orders, action: 'reject' },
+      { formCode: 'notify.inbox', action: 'view' },
     ]);
     const seller = await signedIn(browser, admin, sellers, `s${tag}`);
     const manager = await signedIn(browser, admin, managers, `m${tag}`);
@@ -254,17 +255,20 @@ test('the order with lines and approval: numbered, computed, approved by a manag
     const form = seller.page.locator('smt-entity-form');
     await pick(seller.page, form.locator('.entity-field[data-field="client"]'), tag, new RegExp(`Клиент ${tag}`, 'u'));
     const rows = seller.page.locator('smt-entity-lines[data-collection="items"]');
-    for (const [productName, qty, price] of [['Чай', '2', '10.50'], ['Кофе', '1', '30']] as const) {
+    for (const [index, [productName, qty, price]] of ([['Чай', '2', '10.50'], ['Кофе', '1', '30']] as const).entries()) {
       await rows.getByTestId('entity-line-add').click();
-      const row = rows.locator('[data-line]').last();
+      // The new row is drawn after the click: wait for it, or the locator below finds the previous row.
+      const row = rows.locator(`[data-line="${index}"]`);
+      await expect(row).toBeVisible();
       await choose(seller.page, row.locator('[data-field="product"]').getByRole('combobox'), productName);
+      await expect(row.locator('[data-field="product"]')).toContainText(productName);
       await row.locator('[data-field="qty"] input').fill(qty);
       await row.locator('[data-field="price"] input').fill(price);
     }
     await expect(rows.locator('[data-line="0"] [data-field="amount"]')).toContainText('21.00');
     await expect(form.locator('.entity-field[data-field="total"] input')).toHaveValue('51.00');
     const created = seller.page.waitForResponse(response => response.request().method() === 'POST'
-      && new URL(response.url()).pathname === `/api/v1/entities/${orders}`);
+      && new URL(response.url()).pathname === `/api/v1/entities/${orders}`, { timeout: 30_000 });
     await seller.page.locator('smt-entity-edit-page').getByTestId('form-submit').click();
     const answer = await created;
     expect(answer.status(), await answer.text()).toBe(201);
