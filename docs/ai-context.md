@@ -175,6 +175,25 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 ## 7. Точка продолжения — 2026-10-18
 
+**Конструктор, этап 2, шаг 2.2 — документы живых форм (2026-10-18, прямо в `main` поверх `fb470411`, не запушено —
+пушит координатор):** [ADR-0043](adr/ADR-0043-live-form-documents.md), ADR-0041 «Этап 2, шаг 2.2». simple-form формат 6:
+`lines` (до 3 таблиц, до 20 колонок, 1–500 строк, формулы колонок над строкой и `doc.<поле>`), `entity.numbering`
+(шаблон `{YYYY}`/`{YY}`/`{MM}`/`{N…}`, сброс `never`/`year`/`month`, `assignOn`), `workflow` (статусы с цветом,
+`terminal`, `lockAll`/`locks`; переходы с правом `studio.<форма>`/`<код>`, условием-формулой, комментарием
+`none`/`optional`/`required`, `notAuthor`, `notify`). V227 `studio_record_lines_1..3` (строки по месту таблицы, JSON,
+≤ 16 КиБ), V228 `studio_records.doc_number` (уникален в форме, триггер) и `studio_form_number_counters`. Platform API
+только расширен (japicmp зелёный): партиционированная сущность держит коллекции в другой таблице и процесс; строка —
+JSON-свойства, `ENUM`, `REF`. Runtime: `EntityLineChecks` (ссылки и справочники строк одним запросом на поле),
+`TransitionGuard` (`StudioTransitionRules`), хуки живой декларации (`StudioDocumentHooks`: номер, комментарий,
+уведомление), `EntityProcessView` в form-meta, `common.entity.EntityNotice` → `MsEntityNoticeListener`; формулы —
+`lines.<т>.<к>`, `lines.<т>`, типы `numbers`/`rows`, только `sum`/`count`. XLSX списка — лист на таблицу строк (ссылки
+и элементы справочника по именам, `QueryListExporter.Detail.named`). Совместимость — `StudioDocumentChangeRules`.
+Веб: блоки «Строки документа», «Нумерация документа», «Статусы и согласование» в редакторах, расчёт колонок и итогов в
+форме, диалог комментария перехода и цвет статуса в карточке. E2E эталона:
+`e2e/tests/browser/instance/studio-order-approval.spec.ts`. **Не сделано (следующий шаг):** файлы живой формы через
+`mf` (JSON-свойство файла, несколько вложений), согласующий — ответственный или руководитель подразделения,
+`min`/`max`/`avg` по колонкам. Локальные проверки на итоговом коде: полный reactor verify (27,6 мин; сервер 3404 теста, всего 3514, 0 пропусков), пороги покрытия (studio 98,3/93,6), diff-cover 98 %, совместимость Platform API, OpenAPI (разрыв `formulas/check` объявлен `Api-Breaking:` — шире `kind`, новые необязательные поля), веб — аудиты, forms audit 0, 2865 тестов, покрытие 92,5/90,4/87,6/82,1 и сборка, a11y 157/157, E2E 41 + 37 и карантин, docs/hygiene/rulesets, gitleaks — без находок.
+
 **Конструктор, этап 2, шаг 2.1 — формулы и логика живых форм (2026-10-18, прямо в `main` поверх `a8ffca8c`, не
 запушено — пушит координатор):** [ADR-0042](adr/ADR-0042-live-form-formulas.md), ADR-0041 «Этап 2, шаг 2.1». Язык формул
 `common.formula` (лексер, парсер с границами, проверка типов, интерпретатор: `BigDecimal`, 10 знаков `HALF_UP`, семантика
