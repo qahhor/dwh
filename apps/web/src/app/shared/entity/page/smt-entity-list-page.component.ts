@@ -30,6 +30,7 @@ import type { ColumnContentType, OrderBy, TableConfig } from '@shared/ui-kit/com
 import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
 import { EntitiesApi, EntityRecord } from '../entities.api';
 import { SMTEntityImportComponent } from '../smt-entity-import.component';
+import type { ParameterValue } from '../report/report-analytics';
 import { SMTEntityReportBuilderComponent } from '../report/smt-entity-report-builder.component';
 import { SMTEntityToolbarComponent } from '../smt-entity-toolbar.component';
 import { SMTEntityPageStateComponent } from './smt-entity-page-state.component';
@@ -124,6 +125,8 @@ export class SMTEntityListPageComponent {
   );
   /** The saved report a link of the reports catalog names. */
   readonly openReport = signal<number | null>(reportIdOf(this.route.snapshot.queryParamMap.get('report')));
+  /** The values of its parameters a mailing's link gives that report (ADR-0045). */
+  readonly openParameters = signal(parametersOf(this.route.snapshot.queryParamMap.get('parameters')));
   readonly selectedRows = signal<EntityRecord[]>([]);
 
   /** Raised by a retry: the list's metadata is asked for again. */
@@ -261,6 +264,7 @@ export class SMTEntityListPageComponent {
     this.route.queryParamMap.pipe(skip(1), takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       if (params.get('mode') === 'report') {
         this.openReport.set(reportIdOf(params.get('report')));
+        this.openParameters.set(parametersOf(params.get('parameters')));
         this.mode.set('report');
         return;
       }
@@ -345,4 +349,17 @@ export class SMTEntityListPageComponent {
 /** A saved report's id in a link: digits only. */
 function reportIdOf(value: string | null): number | null {
   return value && /^\d{1,15}$/.test(value) ? Number(value) : null;
+}
+
+/** The values of a saved report's parameters a link names as a JSON object; anything else names none. */
+function parametersOf(value: string | null): Record<string, ParameterValue> | null {
+  if (!value || value.length > 4000) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, ParameterValue>)
+      : null;
+  } catch {
+    return null;
+  }
 }

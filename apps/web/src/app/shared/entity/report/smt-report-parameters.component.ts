@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 import { enumLabel, fieldLabel, type QueryFieldMeta, type QueryListMeta } from '@core/models/query-meta.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -41,6 +42,7 @@ let nextParametersId = 0;
   selector: 'smt-report-parameters',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    NgTemplateOutlet,
     SMTButtonComponent,
     SMTControlComponent,
     SMTDataSelectComponent,
@@ -59,12 +61,23 @@ export class SMTReportParametersComponent {
 
   readonly parameters = input.required<ReportParameter[]>();
   readonly meta = input.required<QueryListMeta>();
+  /**
+   * Inside another form (a report mailing, ADR-0045): the fields alone, without a form of their own and the apply
+   * button; each change is told by `changed`.
+   */
+  readonly embedded = input(false);
+  /** Values to start from instead of the defaults, as a mailing keeps them. */
+  readonly initial = input<Record<string, ParameterValue> | null>(null);
 
   /** The values the report runs with; their keys are the parameters'. */
   readonly applied = output<Record<string, ParameterValue>>();
+  /** The filled values after each change, in embedded mode. */
+  readonly changed = output<Record<string, ParameterValue>>();
 
   /** What the reader has entered, starting from the defaults. */
   readonly values = linkedSignal<Record<string, ParameterValue>>(() => {
+    const initial = this.initial();
+    if (initial) return { ...initial };
     const values: Record<string, ParameterValue> = {};
     for (const parameter of this.parameters()) {
       if (parameter.default !== undefined) values[parameter.key] = parameter.default;
@@ -175,15 +188,20 @@ export class SMTReportParametersComponent {
 
   apply(): void {
     if (this.missing().length) return;
+    this.applied.emit(this.filledValues());
+  }
+
+  private filledValues(): Record<string, ParameterValue> {
     const values: Record<string, ParameterValue> = {};
     for (const [key, value] of Object.entries(this.values())) {
       if (filled(value)) values[key] = value;
     }
-    this.applied.emit(values);
+    return values;
   }
 
   private set(key: string, value: ParameterValue): void {
     this.values.update((values) => ({ ...values, [key]: value }));
+    if (this.embedded()) this.changed.emit(this.filledValues());
   }
 
   private clear(key: string): void {
@@ -192,5 +210,6 @@ export class SMTReportParametersComponent {
       delete next[key];
       return next;
     });
+    if (this.embedded()) this.changed.emit(this.filledValues());
   }
 }

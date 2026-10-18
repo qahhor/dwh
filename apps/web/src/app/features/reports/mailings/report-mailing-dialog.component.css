@@ -1,0 +1,62 @@
+.mailing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mailing-recipients {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+.mailing-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.mailing-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.mailing-group legend {
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mailing-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.mailing-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.mailing-problem {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: 13px;
+}
+.mailing-alert {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+.mailing-parameters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+@media (max-width: 600px) {
+  .mailing-recipients {
+    grid-template-columns: 1fr;
+  }
+}

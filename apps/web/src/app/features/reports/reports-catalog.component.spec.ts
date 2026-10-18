@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavigationService } from '@core/services/navigation.service';
+import { PermissionService } from '@core/services/permission.service';
 import { ReportCatalogApi, type ReportViewItem } from '@shared/entity/report/report-catalog.api';
 import { ReportsCatalogComponent } from './reports-catalog.component';
 
@@ -126,5 +127,16 @@ describe('ReportsCatalogComponent', () => {
     TestBed.resetTestingModule();
     const failing = await render(vi.fn(() => throwError(() => new Error('down'))));
     expect(failing.root.querySelector('[data-testid="reports-error"]')).not.toBeNull();
+  });
+
+  it('links the mailings of a report the person keeps: own reports with "own", any with "all" (ADR-0045)', async () => {
+    const { root, component } = await render();
+    const permissions = TestBed.inject(PermissionService);
+    vi.spyOn(permissions, 'hasPermission').mockImplementation((_form, action) => action === 'own');
+    expect(component.mayMail(report(1))).toBe(true);
+    expect(component.mayMail(report(2, { owned: false }))).toBe(false);
+    vi.spyOn(permissions, 'hasPermission').mockImplementation((_form, action) => action === 'manage');
+    expect(component.mayMail(report(2, { owned: false }))).toBe(true);
+    expect(root.querySelector('[data-testid="reports-mailings"]')).toBeNull();
   });
 });

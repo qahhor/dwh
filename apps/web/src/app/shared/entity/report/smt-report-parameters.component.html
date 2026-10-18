@@ -1,11 +1,26 @@
-<form
-  class="parameters"
-  data-testid="report-parameters"
-  [attr.aria-labelledby]="ids + '-title'"
-  (submit)="$event.preventDefault(); apply()"
-  novalidate
->
-  <h3 class="parameters-title" [id]="ids + '-title'">{{ 'ui.report.parameters' | t }}</h3>
+@if (embedded()) {
+  <div class="parameters" data-testid="report-parameters" role="group" [attr.aria-labelledby]="ids + '-title'">
+    <h3 class="parameters-title" [id]="ids + '-title'">{{ 'ui.report.parameters' | t }}</h3>
+    <ng-container [ngTemplateOutlet]="fieldsTemplate" />
+  </div>
+} @else {
+  <form
+    class="parameters"
+    data-testid="report-parameters"
+    [attr.aria-labelledby]="ids + '-title'"
+    (submit)="$event.preventDefault(); apply()"
+    novalidate
+  >
+    <h3 class="parameters-title" [id]="ids + '-title'">{{ 'ui.report.parameters' | t }}</h3>
+    <ng-container [ngTemplateOutlet]="fieldsTemplate" />
+    <div class="parameters-actions">
+      <button smt-button type="submit" smtVariant="primary" smtSize="sm" data-testid="report-parameters-apply">
+        {{ 'ui.report.parameters_apply' | t }}
+      </button>
+    </div>
+  </form>
+}
+<ng-template #fieldsTemplate>
   <div class="parameters-fields">
     @for (row of rows(); track row.parameter.key) {
       @switch (row.kind) {
@@ -96,9 +111,4 @@
       {{ 'ui.report.parameters_missing' | t: { names: missing().join(', ') } }}
     </p>
   }
-  <div class="parameters-actions">
-    <button smt-button type="submit" smtVariant="primary" smtSize="sm" data-testid="report-parameters-apply">
-      {{ 'ui.report.parameters_apply' | t }}
-    </button>
-  </div>
-</form>
+</ng-template>

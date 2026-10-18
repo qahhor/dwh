@@ -274,4 +274,31 @@ describe('SMTEntityReportBuilderComponent', () => {
       parameters: { day: { preset: 'this_month' } },
     });
   });
+
+  it('runs the report a mailing links with the values of its parameters the link names (ADR-0045)', async () => {
+    const { fixture, builder } = await render();
+    fixture.componentRef.setInput('openId', 12);
+    fixture.componentRef.setInput('openParameters', { day: { preset: 'last_month' } });
+    reports.saved.mockClear();
+    const linked = {
+      id: 12,
+      name: 'С параметрами',
+      kind: 'report' as const,
+      state: {
+        groupBy: [],
+        measures: [{ op: 'count' as const }],
+        filter: [],
+        chart: 'kpi' as const,
+        parameters: [{ key: 'day', field: 'orderDate', required: true }],
+      },
+      lockVersion: 1,
+    };
+    builder.openSaved(linked);
+    await afterDebounce(fixture);
+    expect(reports.saved).toHaveBeenCalledWith('test.orders', 12, { day: { preset: 'last_month' } });
+    reports.saved.mockClear();
+    builder.openSaved({ ...linked, id: 13 });
+    await afterDebounce(fixture);
+    expect(reports.saved).not.toHaveBeenCalled();
+  });
 });

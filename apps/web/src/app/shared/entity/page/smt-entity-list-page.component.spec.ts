@@ -153,6 +153,17 @@ describe('SMTEntityListPageComponent', () => {
     await settle();
     expect(page.mode()).toBe('report');
     expect(page.openReport()).toBeNull();
+    // A mailing's link names the values of the report's parameters (ADR-0045); anything but an object names none.
+    const values = JSON.stringify({ period: { preset: 'last_month' } });
+    await router.navigateByUrl(`/e/${CODE}?mode=report&report=7&parameters=${encodeURIComponent(values)}`);
+    await settle();
+    expect(page.openParameters()).toEqual({ period: { preset: 'last_month' } });
+    await router.navigateByUrl(`/e/${CODE}?mode=report&report=7&parameters=${encodeURIComponent('[1]')}`);
+    await settle();
+    expect(page.openParameters()).toBeNull();
+    await router.navigateByUrl(`/e/${CODE}?mode=report&report=7&parameters=%7Bbroken`);
+    await settle();
+    expect(page.openParameters()).toBeNull();
   });
   it('offers no create button to a viewer who may not create', async () => {
     const { root } = await renderEntityScreen(`/e/${CODE}`, { meta: META, list: LIST, records: [] });

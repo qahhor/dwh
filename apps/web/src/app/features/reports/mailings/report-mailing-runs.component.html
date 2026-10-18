@@ -1,0 +1,79 @@
+<smt-dialog
+  [open]="true"
+  [smtTitle]="'reports.mailings.runs.title' | t: { name: mailing().name }"
+  smtSize="lg"
+  (closed)="closed.emit()"
+>
+  <ng-template smtDialogContent>
+    <div class="runs" data-testid="report-mailing-runs">
+      @if (error()) {
+        <smt-alert smtTone="danger">{{ error() }}</smt-alert>
+      }
+      @if (loading() && !runs().length) {
+        <p role="status">{{ 'common.loading' | t }}</p>
+      } @else if (!runs().length && !error()) {
+        <p class="runs-empty" data-testid="report-mailing-runs-empty">{{ 'reports.mailings.runs.empty' | t }}</p>
+      }
+      <ul class="runs-list" [attr.aria-label]="'reports.mailings.runs.list' | t">
+        @for (run of runs(); track run.id) {
+          <li class="run" data-testid="report-mailing-run">
+            <div class="run-head">
+              <smt-tag [label]="'reports.mailings.runs.status.' + run.status | t" [smtTone]="tone(run.status)" />
+              <span class="run-kind">{{ 'reports.mailings.runs.kind.' + run.kind | t }}</span>
+              <span class="run-at">{{ run.createdAt | date: 'medium' }}</span>
+              <span class="run-counts">
+                {{ 'reports.mailings.runs.counts' | t: { sent: run.sent, skipped: run.skipped, failed: run.failed } }}
+              </span>
+              <button
+                smt-button
+                type="button"
+                smtVariant="ghost"
+                smtSize="sm"
+                data-testid="report-mailing-run-open"
+                [attr.aria-expanded]="detail()?.run?.id === run.id"
+                (click)="open(run)"
+              >
+                {{ 'reports.mailings.runs.details' | t }}
+              </button>
+            </div>
+            @if (run.error) {
+              <p class="run-error">{{ 'reports.mailings.runs.reason.' + run.error | t }}</p>
+            }
+            @if (detail()?.run?.id === run.id) {
+              <table class="deliveries" data-testid="report-mailing-deliveries">
+                <caption class="sr-only">
+                  {{
+                    'reports.mailings.runs.deliveries' | t
+                  }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{{ 'reports.mailings.runs.recipient' | t }}</th>
+                    <th scope="col">{{ 'reports.mailings.runs.channel' | t }}</th>
+                    <th scope="col">{{ 'reports.mailings.runs.result' | t }}</th>
+                    <th scope="col" class="numeric">{{ 'reports.mailings.runs.rows' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (delivery of detail()!.deliveries; track delivery.userId + delivery.channel) {
+                    <tr data-testid="report-mailing-delivery">
+                      <th scope="row">{{ delivery.userName }}</th>
+                      <td>{{ 'reports.mailings.channel.' + delivery.channel | t }}</td>
+                      <td>{{ result(delivery) }}</td>
+                      <td class="numeric">{{ delivery.rows ?? '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </li>
+        }
+      </ul>
+      @if (cursor()) {
+        <button smt-button type="button" smtVariant="secondary" [smtLoading]="loading()" (click)="load(cursor())">
+          {{ 'reports.mailings.runs.more' | t }}
+        </button>
+      }
+    </div>
+  </ng-template>
+</smt-dialog>

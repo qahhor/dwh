@@ -22724,7 +22724,8 @@
             "format" : "int64"
           },
           "parameters" : {
-            "type" : "string"
+            "type" : "object",
+            "additionalProperties" : { }
           },
           "recipients" : {
             "type" : "array",
@@ -22892,7 +22893,8 @@
             "maxLength" : 120
           },
           "parameters" : {
-            "type" : "string",
+            "type" : "object",
+            "additionalProperties" : { },
             "description" : "Values of the report's parameters"
           },
           "recipientIds" : {

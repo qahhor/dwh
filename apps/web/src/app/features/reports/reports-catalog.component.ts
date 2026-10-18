@@ -12,6 +12,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { NavigationService } from '@core/services/navigation.service';
+import { PermissionService } from '@core/services/permission.service';
 import {
   ReportCatalogApi,
   type ReportCatalogFilter,
@@ -59,6 +60,7 @@ export class ReportsCatalogComponent {
   private readonly api = inject(ReportCatalogApi);
   private readonly i18n = inject(I18nService);
   private readonly navigation = inject(NavigationService);
+  private readonly permissions = inject(PermissionService);
   private readonly destroyRef = inject(DestroyRef);
 
   /** The search as typed; it is asked once typing stops. */
@@ -128,6 +130,14 @@ export class ReportsCatalogComponent {
   /** The query of the link that opens a report on its list's report tab. */
   openParams(report: ReportViewItem): Record<string, string> {
     return { mode: 'report', report: String(report.id) };
+  }
+
+  /** Whether the person keeps the report's mailings (ADR-0045): any report with "all", their own with "own". */
+  mayMail(report: ReportViewItem): boolean {
+    return (
+      this.permissions.hasPermission('report.mailings', 'manage') ||
+      (report.owned && this.permissions.hasPermission('report.mailings', 'own'))
+    );
   }
 
   sharingPath(report: ReportViewItem): string {

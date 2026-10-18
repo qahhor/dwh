@@ -82,4 +82,27 @@ describe('smt-report-parameters (ADR-0044)', () => {
     component.apply();
     expect(applied).toEqual([{ period: { from: '2026-10-01', to: '2026-10-31' } }]);
   });
+
+  it('inside a mailing form starts from its values, has no form of its own and tells each change (ADR-0045)', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const fixture = TestBed.createComponent(SMTReportParametersComponent);
+    fixture.componentRef.setInput('parameters', PARAMETERS);
+    fixture.componentRef.setInput('meta', META);
+    fixture.componentRef.setInput('embedded', true);
+    fixture.componentRef.setInput('initial', { period: { preset: 'last_month' } });
+    const changed: Record<string, ParameterValue>[] = [];
+    fixture.componentInstance.changed.subscribe((values) => changed.push(values));
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('form')).toBeNull();
+    expect(host.querySelector('[data-testid="report-parameters-apply"]')).toBeNull();
+    expect(fixture.componentInstance.preset('period')).toBe('last_month');
+    expect(fixture.componentInstance.list('region')).toEqual([]);
+    fixture.componentInstance.setList('region', ['south']);
+    fixture.componentInstance.setFlag('paid', null);
+    expect(changed).toEqual([
+      { period: { preset: 'last_month' }, region: ['south'] },
+      { period: { preset: 'last_month' }, region: ['south'] },
+    ]);
+  });
 });

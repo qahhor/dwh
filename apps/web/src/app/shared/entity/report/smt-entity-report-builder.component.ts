@@ -114,6 +114,8 @@ export class SMTEntityReportBuilderComponent {
   readonly canSave = input(false);
   /** A saved report to open once the person's reports are read: the reports catalog opens one this way. */
   readonly openId = input<number | null>(null);
+  /** Values of the parameters the link of a mailing gives the report opened by `openId` (ADR-0045). */
+  readonly openParameters = input<Record<string, ParameterValue> | null>(null);
 
   private readonly savedReports = viewChild(SMTEntityReportSavedComponent);
 
@@ -311,7 +313,7 @@ export class SMTEntityReportBuilderComponent {
   openSaved(report: SavedReport): void {
     this.open(report.state);
     this.source.set(report);
-    this.parameterValues.set(null);
+    this.parameterValues.set(report.id === this.openId() ? this.openParameters() : null);
     this.refresh.update((value) => value + 1);
   }
 

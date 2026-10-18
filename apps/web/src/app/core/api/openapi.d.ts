@@ -6918,7 +6918,9 @@ export interface components {
             nextRunAt?: string;
             /** Format: int64 */
             ownerId: number;
-            parameters: string;
+            parameters: {
+                [key: string]: unknown;
+            };
             recipients: components["schemas"]["ReportMailingRecipient"][];
             /** Format: int64 */
             revision: number;
@@ -6983,7 +6985,9 @@ export interface components {
             includeLink: boolean;
             name: string;
             /** @description Values of the report's parameters */
-            parameters?: string;
+            parameters?: {
+                [key: string]: unknown;
+            };
             recipientIds: number[];
             schedule: components["schemas"]["ReportMailingSchedule"];
             /** Format: int64 */

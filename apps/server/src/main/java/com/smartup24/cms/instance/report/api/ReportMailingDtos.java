@@ -105,7 +105,7 @@ public final class ReportMailingDtos {
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @Valid @NotNull
             Schedule schedule,
 
-            @Schema(type = "object", description = "Values of the report's parameters") @Nullable
+            @Schema(description = "Values of the report's parameters") @Nullable
             Map<String, Object> parameters,
 
             @Valid @Nullable Condition condition,
@@ -171,7 +171,7 @@ public final class ReportMailingDtos {
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Schedule schedule,
 
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, type = "object")
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Map<String, Object> parameters,
 
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED)

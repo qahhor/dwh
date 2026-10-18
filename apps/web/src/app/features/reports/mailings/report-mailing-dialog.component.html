@@ -1,0 +1,250 @@
+<smt-dialog
+  [open]="true"
+  [smtTitle]="(creating() ? 'reports.mailings.new' : 'reports.mailings.edit') | t"
+  smtSize="lg"
+  [dismissible]="!busy()"
+  (closed)="closed.emit()"
+>
+  <ng-template smtDialogContent>
+    <form
+      id="report-mailing-form"
+      class="mailing-form"
+      uiFocusFirstInvalid
+      novalidate
+      data-testid="report-mailing-form"
+      (submit)="$event.preventDefault(); submit()"
+    >
+      @if (alert()) {
+        <div class="mailing-alert" role="alert" data-testid="report-mailing-alert">{{ alert() }}</div>
+      }
+      <smt-control
+        [smtLabel]="'reports.mailings.name' | t"
+        [smtHint]="'reports.mailings.name_hint' | t"
+        [smtError]="error('name')"
+        [required]="true"
+      >
+        <smt-input
+          smtFieldId="report-mailing-name"
+          smtTestId="report-mailing-name"
+          smtFocusInitial
+          [maxLength]="120"
+          [value]="name()"
+          (valueChange)="name.set($event === null ? '' : '' + $event)"
+        />
+      </smt-control>
+      <div class="mailing-recipients">
+        <smt-control
+          [smtLabel]="'reports.mailings.recipients' | t"
+          [smtHint]="'reports.mailings.recipients_hint' | t: { max: options().maxRecipients }"
+          [smtError]="error('recipientIds')"
+          [required]="true"
+        >
+          <smt-multi-data-select
+            data-testid="report-mailing-recipients"
+            [source]="lookups.activeUsers"
+            [knownRows]="knownRecipients()"
+            [value]="recipients()"
+            [ariaLabel]="'reports.mailings.recipients' | t"
+            [placeholder]="'reports.mailings.recipients_placeholder' | t"
+            (valueChange)="recipients.set($any([...$event]))"
+          />
+        </smt-control>
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="person_add"
+          data-testid="report-mailing-add-me"
+          (click)="addMe()"
+        >
+          {{ 'reports.mailings.add_me' | t }}
+        </button>
+      </div>
+      <fieldset class="mailing-group" data-testid="report-mailing-channels">
+        <legend>{{ 'reports.mailings.channels' | t }}</legend>
+        <p class="mailing-hint">{{ 'reports.mailings.channels_hint' | t }}</p>
+        <div class="mailing-checks">
+          @for (channel of channelOptions(); track channel.id) {
+            <div
+              smt-checkbox
+              [attr.data-testid]="'report-mailing-channel-' + channel.id"
+              [checked]="hasChannel(channel.id)"
+              (checkedChange)="toggleChannel(channel.id, $event)"
+            >
+              {{ channel.label }}
+            </div>
+          }
+        </div>
+        @if (error('channels')) {
+          <p class="mailing-problem" role="alert">{{ error('channels') }}</p>
+        }
+      </fieldset>
+      <fieldset class="mailing-group" data-testid="report-mailing-format">
+        <legend>{{ 'reports.mailings.format' | t }}</legend>
+        <p class="mailing-hint">{{ 'reports.mailings.format_hint' | t: { size: maxMegabytes() } }}</p>
+        <div class="mailing-checks">
+          <div
+            smt-checkbox
+            data-testid="report-mailing-attach"
+            [checked]="attachXlsx()"
+            (checkedChange)="attachXlsx.set($event)"
+          >
+            {{ 'reports.mailings.attach' | t }}
+          </div>
+          <div
+            smt-checkbox
+            data-testid="report-mailing-link"
+            [checked]="includeLink()"
+            (checkedChange)="includeLink.set($event)"
+          >
+            {{ 'reports.mailings.link' | t }}
+          </div>
+        </div>
+        @if (error('attachXlsx')) {
+          <p class="mailing-problem" role="alert">{{ error('attachXlsx') }}</p>
+        }
+      </fieldset>
+      <fieldset class="mailing-group">
+        <legend>{{ 'reports.mailings.schedule' | t }}</legend>
+        <div class="mailing-row">
+          <smt-control [smtLabel]="'reports.mailings.frequency' | t" [smtError]="error('schedule.frequency')">
+            <smt-select
+              smtTriggerId="report-mailing-frequency"
+              data-testid="report-mailing-frequency"
+              [options]="frequencyOptions()"
+              [value]="frequency()"
+              (valueChange)="frequency.set($event ?? 'daily')"
+            />
+          </smt-control>
+          @if (frequency() === 'weekly') {
+            <smt-control [smtLabel]="'reports.mailings.weekday' | t" [smtError]="error('schedule.weekday')">
+              <smt-select
+                smtTriggerId="report-mailing-weekday"
+                data-testid="report-mailing-weekday"
+                [options]="weekdayOptions()"
+                [value]="weekday()"
+                (valueChange)="weekday.set($event ?? 1)"
+              />
+            </smt-control>
+          }
+          @if (frequency() === 'monthly') {
+            <smt-control
+              [smtLabel]="'reports.mailings.month_day' | t"
+              [smtHint]="'reports.mailings.month_day_hint' | t"
+              [smtError]="error('schedule.monthDay')"
+            >
+              <smt-input
+                type="number"
+                smtFieldId="report-mailing-month-day"
+                smtTestId="report-mailing-month-day"
+                [smtMin]="1"
+                [smtMax]="31"
+                [value]="monthDay()"
+                (valueChange)="monthDay.set($event === null ? '' : '' + $event)"
+              />
+            </smt-control>
+          }
+          <smt-control
+            [smtLabel]="'reports.mailings.time' | t"
+            [smtHint]="'reports.mailings.time_hint' | t"
+            [smtError]="error('schedule.time')"
+          >
+            <smt-time-picker
+              smtFieldId="report-mailing-time"
+              data-testid="report-mailing-time"
+              [step]="15"
+              [value]="time()"
+              (valueChange)="time.set($event ?? '')"
+            />
+          </smt-control>
+          <smt-control [smtLabel]="'reports.mailings.time_zone' | t" [smtError]="error('schedule.timeZone')">
+            <smt-select
+              smtTriggerId="report-mailing-zone"
+              data-testid="report-mailing-zone"
+              [options]="zoneOptions()"
+              [value]="timeZone()"
+              (valueChange)="timeZone.set($event ?? timeZone())"
+            />
+          </smt-control>
+        </div>
+      </fieldset>
+      @if (reportParameters().length) {
+        <div class="mailing-parameters">
+          @if (meta(); as list) {
+            <smt-report-parameters
+              [parameters]="reportParameters()"
+              [meta]="list"
+              [embedded]="true"
+              [initial]="parameters()"
+              (changed)="parameters.set($event)"
+            />
+          } @else {
+            <p role="status">{{ 'common.loading' | t }}</p>
+          }
+          <p class="mailing-hint">{{ 'reports.mailings.parameters_hint' | t }}</p>
+          @for (problem of parameterProblems(); track problem) {
+            <p class="mailing-problem" role="alert">{{ problem }}</p>
+          }
+        </div>
+      }
+      <fieldset class="mailing-group">
+        <legend>{{ 'reports.mailings.condition' | t }}</legend>
+        <div class="mailing-row">
+          <smt-control [smtLabel]="'reports.mailings.condition_kind' | t" [smtError]="error('condition.kind')">
+            <smt-select
+              smtTriggerId="report-mailing-condition"
+              data-testid="report-mailing-condition"
+              [options]="conditionOptions()"
+              [value]="conditionKind()"
+              (valueChange)="conditionKind.set($event ?? 'always')"
+            />
+          </smt-control>
+          @if (conditionKind() === 'threshold') {
+            <smt-control [smtLabel]="'reports.mailings.measure' | t" [smtError]="error('condition.measure')">
+              <smt-select
+                smtTriggerId="report-mailing-measure"
+                [options]="measureOptions()"
+                [value]="measure()"
+                (valueChange)="measure.set($event ?? 0)"
+              />
+            </smt-control>
+            <smt-control [smtLabel]="'reports.mailings.op' | t" [smtError]="error('condition.op')">
+              <smt-select
+                smtTriggerId="report-mailing-op"
+                [options]="opOptions()"
+                [value]="op()"
+                (valueChange)="op.set($event ?? 'gt')"
+              />
+            </smt-control>
+            <smt-control
+              [smtLabel]="'reports.mailings.value' | t"
+              [smtHint]="'reports.mailings.threshold_hint' | t"
+              [smtError]="error('condition.value')"
+            >
+              <smt-input
+                type="number"
+                smtFieldId="report-mailing-value"
+                [value]="value()"
+                (valueChange)="value.set($event === null ? '' : '' + $event)"
+              />
+            </smt-control>
+          }
+        </div>
+      </fieldset>
+      <smt-switch
+        data-testid="report-mailing-active"
+        [checked]="active()"
+        (checkedChange)="active.set($event)"
+        [smtLabel]="'reports.mailings.active_label' | t"
+      />
+    </form>
+    <ui-form-actions
+      footer
+      form="report-mailing-form"
+      data-testid="report-mailing-actions"
+      [submitting]="busy()"
+      (cancelled)="closed.emit()"
+    />
+  </ng-template>
+</smt-dialog>

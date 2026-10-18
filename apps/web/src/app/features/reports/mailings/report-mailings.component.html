@@ -1,0 +1,150 @@
+<div class="mailings-page" data-testid="report-mailings">
+  <ui-page-header
+    [title]="'reports.mailings.title' | t"
+    [subtitle]="report() ? ('reports.mailings.subtitle' | t: { name: report()!.name }) : ''"
+  >
+    <a smt-button smtVariant="secondary" routerLink="/reports">{{ 'reports.mailings.back' | t }}</a>
+    @if (mayKeep() && options()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="primary"
+        smtIcon="add"
+        data-testid="report-mailings-new"
+        (click)="editing.set(null)"
+      >
+        {{ 'reports.mailings.new' | t }}
+      </button>
+    }
+  </ui-page-header>
+  @if (error()) {
+    <smt-alert smtTone="danger" data-testid="report-mailings-error">{{ error() }}</smt-alert>
+  }
+  @if (report() && !mayKeep()) {
+    <smt-alert smtTone="warning" data-testid="report-mailings-denied">{{ 'reports.mailings.denied' | t }}</smt-alert>
+  } @else if (report()) {
+    <smt-alert smtTone="info" smtLive="off">{{ 'reports.mailings.hint' | t }}</smt-alert>
+    @if (loading() && !mailings().length) {
+      <p role="status">{{ 'common.loading' | t }}</p>
+    } @else if (!mailings().length && !error()) {
+      <p class="mailings-empty" data-testid="report-mailings-empty">{{ 'reports.mailings.empty' | t }}</p>
+    }
+    <ul class="mailings-list" [attr.aria-label]="'reports.mailings.title' | t">
+      @for (mailing of mailings(); track mailing.id) {
+        <li class="mailing-card" data-testid="report-mailing">
+          <div class="mailing-main">
+            <div class="mailing-title">
+              <h2>{{ mailing.name }}</h2>
+              <smt-tag
+                [label]="(mailing.active ? 'reports.mailings.active' : 'reports.mailings.paused') | t"
+                [smtTone]="mailing.active ? 'success' : 'neutral'"
+              />
+            </div>
+            <p>{{ schedule(mailing) }}</p>
+            <p>
+              {{ channels(mailing) }} · {{ 'reports.mailings.recipient_count' | t: { n: mailing.recipients.length } }}
+            </p>
+            @if (mailing.nextRunAt) {
+              <p>{{ 'reports.mailings.next_run' | t: { at: (mailing.nextRunAt | date: 'medium') ?? '' } }}</p>
+            }
+            @if (mailing.lastRun; as last) {
+              <p class="mailing-last">
+                {{ 'reports.mailings.last_run' | t }}
+                <smt-tag [label]="'reports.mailings.runs.status.' + last.status | t" [smtTone]="tone(last.status)" />
+                {{ last.createdAt | date: 'medium' }}
+              </p>
+            }
+          </div>
+          <div class="mailing-actions">
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              smtIcon="edit"
+              data-testid="report-mailing-edit"
+              [attr.aria-label]="'reports.mailings.edit_named' | t: { name: mailing.name }"
+              (click)="editing.set(mailing)"
+            >
+              {{ 'reports.mailings.edit_short' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              [smtIcon]="mailing.active ? 'pause' : 'play_arrow'"
+              data-testid="report-mailing-toggle"
+              [smtLoading]="busy() === mailing.id"
+              (click)="toggle(mailing)"
+            >
+              {{ (mailing.active ? 'reports.mailings.pause' : 'reports.mailings.resume') | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              smtIcon="send"
+              data-testid="report-mailing-send"
+              [disabled]="!mailing.active"
+              [attr.aria-label]="'reports.mailings.send_now_named' | t: { name: mailing.name }"
+              (click)="send(mailing, 'all')"
+            >
+              {{ 'reports.mailings.send_now' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="ghost"
+              smtSize="sm"
+              smtIcon="outgoing_mail"
+              data-testid="report-mailing-send-me"
+              [attr.aria-label]="'reports.mailings.send_me_named' | t: { name: mailing.name }"
+              (click)="send(mailing, 'me')"
+            >
+              {{ 'reports.mailings.send_me' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="ghost"
+              smtSize="sm"
+              smtIcon="history"
+              data-testid="report-mailing-history"
+              [attr.aria-label]="'reports.mailings.history_named' | t: { name: mailing.name }"
+              (click)="history.set(mailing)"
+            >
+              {{ 'reports.mailings.history' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="ghost"
+              smtSize="sm"
+              smtIcon="delete"
+              data-testid="report-mailing-delete"
+              [attr.aria-label]="'reports.mailings.delete_named' | t: { name: mailing.name }"
+              (click)="remove(mailing)"
+            >
+              {{ 'common.delete' | t }}
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+  @if (editing() !== undefined && report() && options()) {
+    <app-report-mailing-dialog
+      [report]="report()!"
+      [options]="options()!"
+      [meta]="meta()"
+      [mailing]="editing() ?? null"
+      (saved)="saved($event)"
+      (closed)="editing.set(undefined)"
+    />
+  }
+  @if (history(); as mailing) {
+    <app-report-mailing-runs [mailing]="mailing" (closed)="history.set(null)" />
+  }
+</div>

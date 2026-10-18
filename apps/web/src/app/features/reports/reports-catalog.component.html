@@ -96,6 +96,18 @@
               >{{ 'reports.catalog.edit' | t }}</a
             >
           }
+          @if (mayMail(report)) {
+            <a
+              smt-button
+              smtVariant="ghost"
+              smtSize="sm"
+              smtIcon="forward_to_inbox"
+              data-testid="reports-mailings"
+              [routerLink]="['/reports', report.id, 'mailings']"
+              [attr.aria-label]="'reports.catalog.mailings_named' | t: { name: report.name }"
+              >{{ 'reports.catalog.mailings' | t }}</a
+            >
+          }
           @if (report.canShare) {
             <smt-report-sharing [path]="sharingPath(report)" (changed)="shared()" />
           }
