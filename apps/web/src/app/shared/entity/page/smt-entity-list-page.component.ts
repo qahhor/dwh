@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { rxResource, takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Observable, debounceTime, distinctUntilChanged, of, tap } from 'rxjs';
+import { Observable, debounceTime, distinctUntilChanged, of, skip, tap } from 'rxjs';
 import type { ListQuery, QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
 import { canDo, hasCapability } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -256,6 +256,17 @@ export class SMTEntityListPageComponent {
     effect(() => {
       this.query();
       if (this.viewsReady()) untracked(() => this.pager.first());
+    });
+    // A link to the same list — a drill-down from its report, a report of the catalog — changes only the query.
+    this.route.queryParamMap.pipe(skip(1), takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      if (params.get('mode') === 'report') {
+        this.openReport.set(reportIdOf(params.get('report')));
+        this.mode.set('report');
+        return;
+      }
+      this.mode.set('list');
+      const meta = this.listMeta();
+      if (meta) this.applyLinkedFilter(meta);
     });
   }
 

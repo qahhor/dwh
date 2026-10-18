@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
@@ -57,7 +57,12 @@ export class NewFormLayoutComponent {
   readonly named = input<boolean | null>(null);
   readonly changed = output<LayoutChange>();
 
-  readonly title = computed(() => titleOf(this.declaration()));
+  /**
+   * The title and the layout as last chosen here: they follow the declaration, and a change is kept at once, so a
+   * second change made before the page draws the first builds on it instead of on the drawn declaration.
+   */
+  readonly title = linkedSignal(() => titleOf(this.declaration()));
+  readonly layout = linkedSignal<SimpleFormLayout | null>(() => this.declaration().layout ?? null);
   readonly titleOptions = computed(() => {
     this.i18n.currentLang();
     const language = this.language();
@@ -72,7 +77,6 @@ export class NewFormLayoutComponent {
     }
     return options;
   });
-  readonly layout = computed(() => this.declaration().layout ?? null);
   readonly shown = computed(() => this.declaration().fields.filter((field) => !field.hidden));
   readonly sectionOptions = computed(() => {
     const language = this.language();
@@ -99,6 +103,8 @@ export class NewFormLayoutComponent {
 
   /** Lays the form out in one section of every shown field, or drops the layout. */
   toggleLayout(on: boolean): void {
+    // A repeated switch to the state the form is in changes nothing: the layout already made is kept.
+    if (on === (this.layout() !== null)) return;
     if (!on) {
       this.emit(this.title(), undefined);
       return;
@@ -111,6 +117,7 @@ export class NewFormLayoutComponent {
 
   /** Gives the form two tabs, every section on the first, or drops them. */
   toggleTabs(on: boolean): void {
+    if (on === !!this.layout()?.tabs) return;
     this.update((layout) => {
       if (!on) {
         delete layout.tabs;
@@ -230,6 +237,8 @@ export class NewFormLayoutComponent {
 
   private emit(titleField: string, layout: SimpleFormLayout | undefined): void {
     if (this.disabled()) return;
+    this.title.set(titleField);
+    this.layout.set(layout ?? null);
     this.changed.emit({ titleField, layout });
   }
 
