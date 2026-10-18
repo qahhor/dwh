@@ -21969,7 +21969,11 @@
           },
           "filter" : {
             "type" : "array",
-            "additionalProperties" : true
+            "items" : {
+              "type" : "object",
+              "additionalProperties" : { },
+              "description" : "A condition of the list's filter DSL"
+            }
           },
           "lines" : {
             "type" : "string"
@@ -22078,8 +22082,12 @@
             "minItems" : 1
           },
           "filter" : {
-            "type" : [ "array", "null" ],
-            "additionalProperties" : true
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "additionalProperties" : { },
+              "description" : "A condition of the list's filter DSL"
+            }
           },
           "lines" : {
             "type" : "string"

@@ -6703,7 +6703,9 @@ export interface components {
             createdAt: string;
             entity: string;
             fields: string[];
-            filter: unknown[];
+            filter: {
+                [key: string]: unknown;
+            }[];
             lines?: string;
             measures: components["schemas"]["ReportDatasetMeasure"][];
             /** Format: date-time */
@@ -6735,7 +6737,9 @@ export interface components {
             code?: string;
             entity: string;
             fields: string[];
-            filter?: unknown[] | null;
+            filter?: {
+                [key: string]: unknown;
+            }[];
             lines?: string;
             measures?: components["schemas"]["ReportDatasetMeasure"][];
             name: components["schemas"]["SimpleFormLabels"];

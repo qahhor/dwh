@@ -227,6 +227,18 @@ final class ScopeByIdCases {
                     "a live form code: the lifecycle of a catalog definition under studio.forms.publish, no scoped"
                             + " record (StudioFormVersionsHttpTest)"),
             Map.entry(
+                    "MdReportDatasetController#reportDataset",
+                    "a report dataset code: installation settings under md.report_datasets, the same for every viewer;"
+                            + " a report over it applies each reader's scope (StudioReportDatasetHttpTest)"),
+            Map.entry(
+                    "MdReportDatasetController#updateReportDataset",
+                    "a report dataset code: installation settings under md.report_datasets, the same for every viewer;"
+                            + " a report over it applies each reader's scope (StudioReportDatasetHttpTest)"),
+            Map.entry(
+                    "MdReportDatasetController#deleteReportDataset",
+                    "a report dataset code: installation settings under md.report_datasets, the same for every viewer;"
+                            + " a report over it applies each reader's scope (StudioReportDatasetHttpTest)"),
+            Map.entry(
                     "StudioListController#referenceList",
                     "a reference list code: installation settings under studio.lists, the same for every viewer, no"
                             + " scoped record (StudioListsHttpTest)"),

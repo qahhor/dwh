@@ -176,8 +176,7 @@ public class MdReportDatasetService {
         if (fields.isEmpty() || fields.size() > MdReportDatasetDtos.MAX_FIELDS) {
             errors.add(FieldErrorItem.keyed("fields", INVALID, "error.md.report_dataset_fields"));
         }
-        JsonNode filter =
-                request.filter() == null || request.filter().isNull() ? json.createArrayNode() : request.filter();
+        JsonNode filter = request.filter() == null ? json.createArrayNode() : json.valueToTree(request.filter());
         if (!filter.isArray())
             errors.add(FieldErrorItem.keyed("filter", INVALID, "error.common.field_filter_not_array"));
         else errors.addAll(sources.check(full, request.lines(), fields, filter.isEmpty() ? null : filter.toString()));
@@ -246,7 +245,7 @@ public class MdReportDatasetService {
                 row.entity(),
                 row.lines(),
                 columns.read(row.fields(), new TypeReference<List<String>>() {}),
-                columns.tree(row.filter()),
+                columns.read(row.filter(), new TypeReference<List<Map<String, Object>>>() {}),
                 columns.read(row.measures(), new TypeReference<List<Measure>>() {}),
                 row.revision(),
                 row.createdAt(),

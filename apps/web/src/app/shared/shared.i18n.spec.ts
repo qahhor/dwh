@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { featureI18nProblems, serverCodeKeys, serverLiteralKeys } from '@testing/feature-i18n';
 import { QUERY_OPS } from '../core/models/query-meta.models';
 import { REPORT_OPS, REPORT_TRUNCS } from './entity/report/entity-reports';
+import {
+  COMPARE_AGAINST,
+  COMPARE_PERIODS,
+  PERIOD_PRESETS,
+  REPORT_PERIODS,
+  REPORT_SHARES,
+} from './entity/report/report-analytics';
 
 /** The server declarations of entities with record actions of their own (ADR-0032 6.7). */
 const ENTITY_DECLARATIONS = [
@@ -24,6 +31,12 @@ describe('i18n: shared UI and kit', () => {
           // A report names its measures and date buckets as ui.report.op.<op> and ui.report.trunc.<bucket>.
           ...REPORT_OPS.map((op) => `ui.report.op.${op}`),
           ...REPORT_TRUNCS.map((trunc) => `ui.report.trunc.${trunc}`),
+          // ADR-0044: shares, periods, comparisons and presets are named by their codes.
+          ...REPORT_SHARES.flatMap((share) => [`ui.report.share.${share}`, `ui.report.share_of.${share}`]),
+          ...REPORT_PERIODS.map((period) => `ui.report.period.${period}`),
+          ...COMPARE_PERIODS.map((period) => `ui.report.compare.${period}`),
+          ...COMPARE_AGAINST.map((against) => `ui.report.compare.against_${against}`),
+          ...PERIOD_PRESETS.map((preset) => `ui.report.preset.${preset}`),
           // Section titles of entity forms come from the server (EntityDefinition layouts).
           ...serverLiteralKeys('entity.'),
           // The record page names an action's button and its confirmation by the action's code (ADR-0032 7.4):

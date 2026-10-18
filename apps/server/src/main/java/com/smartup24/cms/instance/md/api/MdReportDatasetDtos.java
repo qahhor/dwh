@@ -7,8 +7,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
-import tools.jackson.databind.JsonNode;
 
 /** The datasets an administrator defines for reports (ADR-0044): keys and a filter of the list's DSL, never SQL. */
 public final class MdReportDatasetDtos {
@@ -59,7 +59,9 @@ public final class MdReportDatasetDtos {
                     arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
             List<String> fields,
 
-            @Schema(types = {"array", "null"}) @Nullable JsonNode filter,
+            @ArraySchema(schema = @Schema(type = "object", description = "A condition of the list's filter DSL"))
+            @Nullable
+            List<Map<String, Object>> filter,
 
             @ArraySchema(maxItems = MAX_MEASURES) @Nullable List<@Valid Measure> measures) {}
 
@@ -79,8 +81,10 @@ public final class MdReportDatasetDtos {
             @ArraySchema(arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
             List<String> fields,
 
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = "array")
-            JsonNode filter,
+            @ArraySchema(
+                    arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED),
+                    schema = @Schema(type = "object", description = "A condition of the list's filter DSL"))
+            List<Map<String, Object>> filter,
 
             @ArraySchema(arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
             List<Measure> measures,

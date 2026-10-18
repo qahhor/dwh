@@ -173,7 +173,27 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   Testcontainers, профили `-P*-large`) идут по одной; агента останавливают, как
   только он отчитался. JVM самого Maven ограничена `.mvn/jvm.config` (`-Xmx2g`).
 
-## 7. Точка продолжения — 2026-10-18
+## 7. Точка продолжения — 2026-10-19
+
+**Конструктор, этап 2, шаг 2.3 — аналитика отчётов (2026-10-19, прямо в `main` поверх `866b7619`, не запушено — пушит
+координатор):** [ADR-0044](adr/ADR-0044-report-analytics.md), ADR-0041 «Этап 2, шаг 2.3». Один оператор агрегатора под
+областью читателя: `count_distinct`, доля количества или суммы (`share` — `total`/`row`/`column`), итоги групп
+(`totals`, `grouping sets`, `q_t`/`q_n`), сводная таблица (`pivot`: две группировки, до 50 столбцов и 10 000 ячеек —
+иначе 422, строки до 1000 или top-N, итоги по всем строкам), сравнение периодов (`compare`: month/quarter/year/ytd/
+custom против previous/year в `X-Time-Zone`, агрегаты `filter (where …)`, изменение и процент, 0 — пусто). Классы:
+`QueryAggregateShape(s)`, `QueryAggregateSpec`, `QueryAggregateSql`, `QueryAggregateMeasures`, `QueryAggregateFinish`,
+`QueryAggregatePivots`, `QueryComputedMeasure`; XLSX сводной — `AggregatePivotSheet`. Параметры сохранённого отчёта
+(`ReportParameters`: период, выбор, ссылка, пользователь, подразделение, да/нет; обязательность, умолчание-пресет;
+`GET …/reports/{id}?parameters=`). Наборы данных администратора: V230 `md_report_datasets`, V231 права
+`md.report_datasets`, API `/api/v1/report-datasets` (`MdReportDatasetService`, `MdReportDatasetStore` реализует
+`common.entity.report.EntityReportDatasetStore`), источник `EntityReportAdminSources` (строки документа — `line<Ключ>`,
+постоянный фильтр с параметрами `ds_q_`, вычисляемые показатели — формулы над `count`/`sum_`/`avg_`/`min_`/`max_`/
+`distinct_`); отчёт называет набор `ds.<код>`. Веб: `smt-report-measures`, `smt-report-shape`, `smt-report-pivot`,
+`smt-report-parameters(-editor)`, страница `/settings/report-datasets`. Тесты — `QueryAggregateAnalyticsTest`,
+`StudioReportAnalyticsHttpTest`, `StudioReportDatasetHttpTest`; e2e `studio-report-analytics.spec.ts`, a11y
+`report-analytics.spec.ts`. Дальше — шаг 2.4 (рассылки): рассылка исполняет сохранённый отчёт с умолчаниями параметров
+от имени получателя, XLSX — тот же `AggregateExportService.saved`. Локальные проверки на итоговом коде — в отчёте
+агента шага 2.3 (GATES).
 
 **Конструктор, этап 2 — охват вебхуков и файлы живых форм (2026-10-18, прямо в `main` поверх `4aa55bec`, не запушено —
 пушит координатор):** решения владельца 2026-10-18 записаны в ADR-0041 (охват подписки, неизменная область формы, состав

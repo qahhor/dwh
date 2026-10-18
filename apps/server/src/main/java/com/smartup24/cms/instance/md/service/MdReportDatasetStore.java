@@ -8,10 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 /** The report runtime reads administrators' datasets from md (ADR-0044); every read is current, nothing is cached. */
 @Component
 public class MdReportDatasetStore implements EntityReportDatasetStore {
+    /** Writes the stored filter back into the DSL text the compiler reads (plan 10/10, item 3.11: the shared mapper). */
+    private static final JsonMapper JSON = JsonMapper.shared();
+
     private final MdReportDatasetRepository repo;
     private final MdReportDatasetService service;
 
@@ -45,7 +49,7 @@ public class MdReportDatasetStore implements EntityReportDatasetStore {
                 dataset.entity(),
                 dataset.lines(),
                 dataset.fields(),
-                dataset.filter().isEmpty() ? null : dataset.filter().toString(),
+                dataset.filter().isEmpty() ? null : JSON.writeValueAsString(dataset.filter()),
                 dataset.measures().stream()
                         .map(measure -> new QueryComputedMeasure(
                                 measure.key(),

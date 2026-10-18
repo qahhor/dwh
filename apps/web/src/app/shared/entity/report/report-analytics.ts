@@ -11,6 +11,9 @@ import type { QueryFieldMeta } from '@core/models/query-meta.models';
 export type ReportShare = 'total' | 'row' | 'column';
 export const REPORT_SHARES: readonly ReportShare[] = ['total', 'row', 'column'];
 
+/** The columns of a measure over two periods, named as `ui.report.period.<period>`. */
+export const REPORT_PERIODS = ['current', 'previous', 'change', 'change_percent'] as const;
+
 /** The current period of a comparison: this month, quarter or year, the year to date, or a range the report names. */
 export type ComparePeriod = 'month' | 'quarter' | 'year' | 'ytd' | 'custom';
 export const COMPARE_PERIODS: readonly ComparePeriod[] = ['month', 'quarter', 'year', 'ytd', 'custom'];
