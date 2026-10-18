@@ -75,8 +75,17 @@ final class FieldTypeRules {
             @Nullable ListPart list,
             FieldOptions options) {
         checkMoney(key, type, source, options);
-        if (type == FieldType.FILE || type == FieldType.IMAGE || type == FieldType.JSON) {
-            require(key, source instanceof FieldSource.Column, "a file and JSON live in a column of their own");
+        if (type == FieldType.JSON) {
+            require(key, source instanceof FieldSource.Column, "JSON lives in a column of its own");
+        }
+        if (type == FieldType.FILE || type == FieldType.IMAGE) {
+            require(
+                    key,
+                    source instanceof FieldSource.Column || source instanceof FieldSource.JsonProperty,
+                    "a file lives in a column of its own or in a JSON property");
+        }
+        if (type == FieldType.FILE && form != null && form.rules().maxItems() != null) {
+            require(key, source instanceof FieldSource.JsonProperty, "several files live in a JSON property");
         }
         if (type == FieldType.IMAGE && form != null) {
             require(key, IMAGE_TYPES.containsAll(form.rules().contentTypes()), "an image is PNG, JPEG or WebP");

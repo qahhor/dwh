@@ -60,7 +60,7 @@ class MdSimpleFormInvalidHttpTest extends EmbeddedPostgresTest {
                                 valid + " {}",
                                 valid.replace("\"formatVersion\": 1", "\"formatVersion\": 1, \"formatVersion\": 1"),
                                 valid.replace("\"formatVersion\": 1", "\"formatVersion\": 1.0"),
-                                valid.replace("\"formatVersion\": 1", "\"formatVersion\": 7"),
+                                valid.replace("\"formatVersion\": 1", "\"formatVersion\": 8"),
                                 // Format 1 knows no hidden field, default or menu item (ADR-0041).
                                 valid.replace("\"id\": \"active\",", "\"id\": \"active\", \"hidden\": true,"),
                                 valid.replace("\"id\": \"active\",", "\"id\": \"active\", \"defaultValue\": \"true\","),

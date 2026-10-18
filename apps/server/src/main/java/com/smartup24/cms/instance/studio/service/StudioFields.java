@@ -5,6 +5,7 @@ import static com.smartup24.cms.platform.api.entity.field.EntityFields.*;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Option;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Target;
+import com.smartup24.cms.instance.md.api.MdSimpleFormFileDtos.Files;
 import com.smartup24.cms.platform.api.entity.field.EntityFields.Builder;
 import com.smartup24.cms.platform.api.entity.field.FieldDefault;
 import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
@@ -12,6 +13,7 @@ import com.smartup24.cms.platform.api.entity.field.QueryRef;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The fields of a live form as the general runtime declares them (ADR-0038, ADR-0041): the system fields — name, code,
@@ -86,6 +88,7 @@ final class StudioFields {
             case "select" -> select(key, label, codes(field), optionPrefix(prefix, key));
             case "user" -> ref(key, label).target(StudioEntityCompiler.USERS, "name");
             case "ref" -> reference(key, label, field, titles);
+            case "file" -> files(file(key, label), field.files());
             default -> throw new IllegalArgumentException("Unsupported live field type");
         };
         builder.jsonProperty("payload", key);
@@ -95,6 +98,19 @@ final class StudioFields {
         if (!field.listed()) builder.formOnly();
         else if (title) builder.list(searchable());
         if (field.defaultValue() != null) builder.defaultValue(FieldDefault.fixed(field.defaultValue()));
+        return builder;
+    }
+
+    /**
+     * A file field of format 7 (ADR-0043): one file, or several up to {@code maxFiles} kept as an array of ids; its
+     * content types and largest size limit what a save may attach, the files module limits every upload.
+     */
+    private static Builder files(Builder builder, @Nullable Files rules) {
+        if (rules == null) return builder;
+        if (rules.multiple() && rules.maxFiles() != null) builder.maxItems(rules.maxFiles());
+        Long largest = rules.maxSizeMb() == null ? null : rules.maxSizeMb() * 1024L * 1024L;
+        List<String> types = rules.contentTypes() == null ? List.of() : rules.contentTypes();
+        if (largest != null || !types.isEmpty()) builder.files(largest, types.toArray(String[]::new));
         return builder;
     }
 

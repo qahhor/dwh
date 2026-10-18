@@ -103,8 +103,8 @@ public class EntityChanges {
         write.links().forEach((link, keys) -> store.writeLinks(link, id, keys));
         EntityFiles attachments = files;
         if (attachments == null) return;
-        for (Map.Entry<String, @Nullable UUID> file : write.files().entrySet()) {
-            attachments.attach(entity.code(), id, file.getKey(), file.getValue());
+        for (Map.Entry<String, List<UUID>> file : write.files().entrySet()) {
+            attachments.attachAll(entity.code(), id, file.getKey(), file.getValue());
         }
     }
 
@@ -118,7 +118,8 @@ public class EntityChanges {
 
     private static boolean hasFiles(EntityDefinition entity) {
         return Objects.requireNonNull(entity.model()).fields().stream()
-                .anyMatch(field -> field.source() instanceof FieldSource.Column
+                .anyMatch(field -> (field.source() instanceof FieldSource.Column
+                                || field.source() instanceof FieldSource.JsonProperty)
                         && (field.type() == FieldType.FILE || field.type() == FieldType.IMAGE));
     }
 

@@ -1,0 +1,105 @@
+[
+  {
+    "checksum": "2ca08f26050cb0cb2635a232d80dd60b71729573279514ad1d49c825e3f99fca",
+    "declaration": {
+      "formatVersion": 7,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v7_claims",
+        "title": {
+          "ru": "Претензия",
+          "uz": "Da'vo",
+          "en": "Claim"
+        },
+        "menu": {
+          "icon": "assignment",
+          "section": "workspace",
+          "order": 32
+        },
+        "scope": "org_unit"
+      },
+      "fields": [
+        {
+          "id": "subject",
+          "type": "text",
+          "labels": {
+            "ru": "Тема",
+            "uz": "Mavzu",
+            "en": "Subject"
+          },
+          "required": true,
+          "listed": true,
+          "maxLength": 200
+        },
+        {
+          "id": "urgent",
+          "type": "bool",
+          "labels": {
+            "ru": "Срочно",
+            "uz": "Shoshilinch",
+            "en": "Urgent"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "act",
+          "type": "file",
+          "labels": {
+            "ru": "Акт",
+            "uz": "Dalolatnoma",
+            "en": "Act"
+          },
+          "required": true,
+          "listed": true
+        },
+        {
+          "id": "photo",
+          "type": "file",
+          "labels": {
+            "ru": "Фото",
+            "uz": "Surat",
+            "en": "Photo"
+          },
+          "required": false,
+          "listed": false,
+          "files": {
+            "multiple": false,
+            "contentTypes": [
+              "image/png",
+              "image/jpeg"
+            ],
+            "maxSizeMb": 5
+          }
+        },
+        {
+          "id": "documents",
+          "type": "file",
+          "labels": {
+            "ru": "Документы",
+            "uz": "Hujjatlar",
+            "en": "Documents"
+          },
+          "required": false,
+          "listed": true,
+          "visibleIf": "urgent",
+          "files": {
+            "multiple": true,
+            "maxFiles": 5,
+            "contentTypes": [
+              "application/pdf"
+            ]
+          }
+        }
+      ]
+    }
+  }
+]

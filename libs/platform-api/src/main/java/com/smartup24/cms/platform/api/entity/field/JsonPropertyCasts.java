@@ -7,7 +7,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Typed reads of ordinary JSONB fields validated before storage (ADR-0038): a choice and an item of a reference list
- * as their code, a reference as the key of the row it names (ADR-0041). A property with a fixed default reads it
+ * as their code, a reference as the key of the row it names (ADR-0041), a file as its id (ADR-0043: the files of a
+ * live form; a field of several files keeps an array of ids, which the runtime reads itself). A property with a fixed default reads it
  * while the key is absent — a record saved before the field was added (ADR-0041) — and keeps a stored JSON null as
  * empty. The default enters SQL as hexadecimal digits only, so no value of it can change the statement.
  */
@@ -25,7 +26,8 @@ final class JsonPropertyCasts {
             FieldType.URL,
             FieldType.SELECT,
             FieldType.ENUM,
-            FieldType.REF);
+            FieldType.REF,
+            FieldType.FILE);
 
     private JsonPropertyCasts() {}
 
@@ -34,6 +36,7 @@ final class JsonPropertyCasts {
         return switch (type) {
             case TEXT, TEXTAREA, EMAIL, PHONE, URL, SELECT, ENUM -> raw;
             case REF -> raw + "::bigint";
+            case FILE -> raw + "::uuid";
             case NUMBER -> raw + "::numeric";
             case DATE -> raw + "::date";
             case DATETIME -> raw + "::timestamptz";

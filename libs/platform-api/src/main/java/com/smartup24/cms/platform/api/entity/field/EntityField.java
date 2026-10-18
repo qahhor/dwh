@@ -141,6 +141,10 @@ public record EntityField(
      */
     public String sql(String alias) {
         if (source instanceof FieldSource.JsonProperty property) {
+            if (type == FieldType.FILE && form != null && form.rules().maxItems() != null) {
+                // Several files keep an array of ids: the SQL is the array, read by the runtime itself (ADR-0043).
+                return "(" + alias + "." + property.column() + "->'" + property.key() + "')";
+            }
             String fallback =
                     form != null && form.defaultValue() instanceof FieldDefault.Fixed fixed ? fixed.value() : null;
             return JsonPropertyCasts.read(property, alias, type, fallback);

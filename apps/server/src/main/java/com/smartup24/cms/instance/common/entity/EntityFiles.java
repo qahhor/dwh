@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.spi.storage.FileDownloadStream;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -28,8 +29,16 @@ public interface EntityFiles {
     Optional<FileFacts> attachable(
             UUID fileId, String entity, @Nullable Long recordId, long userId, Set<String> visibleFields);
 
+    /**
+     * Makes {@code fileIds} the attachments of the record's field, in place of the ones it had; empty leaves none. A
+     * field of a live form may hold several files (ADR-0043).
+     */
+    void attachAll(String entity, long recordId, String fieldKey, List<UUID> fileIds);
+
     /** Makes {@code fileId} the attachment of the record's field, replacing the one it had; null leaves none. */
-    void attach(String entity, long recordId, String fieldKey, @Nullable UUID fileId);
+    default void attach(String entity, long recordId, String fieldKey, @Nullable UUID fileId) {
+        attachAll(entity, recordId, fieldKey, fileId == null ? List.of() : List.of(fileId));
+    }
 
     /** Removes the attachments of a deleted record; the files without attachments go with the files' cleanup. */
     void detachAll(String entity, long recordId);

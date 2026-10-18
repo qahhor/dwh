@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -80,7 +81,9 @@ public final class EntityValidator {
                     || hidden.contains(field.key())) continue;
             boolean present = values.containsKey(field.key());
             Object value = values.get(field.key());
-            if (value == null || (value instanceof String text && text.isBlank())) {
+            if (value == null
+                    || (value instanceof String text && text.isBlank())
+                    || (field.type() == FieldType.FILE && EntityFileValues.empty(value))) {
                 if ((field.required() || required.contains(field.key())) && (!partial || present)) {
                     errors.add(FieldErrorItem.keyed(field.key(), REQUIRED, "error.field.required"));
                 }

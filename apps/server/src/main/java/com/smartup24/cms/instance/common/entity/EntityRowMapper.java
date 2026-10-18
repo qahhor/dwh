@@ -115,7 +115,8 @@ public final class EntityRowMapper implements RowMapper<Map<String, Object>> {
             case MULTI_REF -> keys(rs.getArray(key));
             case FILE, IMAGE -> {
                 String text = rs.getString(key);
-                yield text == null ? null : json.readObject(text);
+                if (text == null) yield null;
+                yield EntityFileValues.several(field) ? json.read(text, ANY) : json.readObject(text);
             }
             case JSON -> {
                 String text = rs.getString(key);

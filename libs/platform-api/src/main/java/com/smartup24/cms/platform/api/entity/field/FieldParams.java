@@ -11,7 +11,8 @@ import org.jspecify.annotations.Nullable;
  * currencies of money, the reference entity of an enumeration and the root of JSON.
  *
  * @param scale        most digits after the point, or null
- * @param maxItems     most keys of a multiple reference, or null
+ * @param maxItems     most keys of a multiple reference, or most files of a file field that holds several (one id
+ *                     otherwise), or null
  * @param maxBytes     largest file, or null
  * @param contentTypes the content types a file may have; empty takes any
  * @param currencies   the currencies money may be in; empty for other types

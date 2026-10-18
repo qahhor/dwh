@@ -197,6 +197,36 @@ class EntityPartitionContractTest {
                 .hasMessageContaining("another table");
     }
 
+    @Test
+    void aPartitionedEntityKeepsOneFileOrSeveralInAJsonProperty() {
+        var model = base().partition("form_id", 1)
+                .field(EntityFields.file("act", "test.act").jsonProperty("payload", "act"))
+                .field(EntityFields.file("docs", "test.docs")
+                        .jsonProperty("payload", "docs")
+                        .maxItems(5)
+                        .files(1024L, "application/pdf"))
+                .section("files", "test.files", "act", "docs")
+                .build()
+                .model();
+        assertThat(model.field("act").orElseThrow().sql("t")).isEqualTo("(t.payload->>'act')::uuid");
+        assertThat(model.field("docs").orElseThrow().sql("t")).isEqualTo("(t.payload->'docs')");
+        assertThatThrownBy(() -> EntityFields.file("docs", "test.docs")
+                        .column("docs")
+                        .maxItems(5)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("JSON property");
+        assertThatThrownBy(() -> EntityFields.image("photo", "test.photo")
+                        .jsonProperty("payload", "photo")
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> EntityFields.json("data", "test.data", null)
+                        .jsonProperty("payload", "data")
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("column");
+    }
+
     private static Entity base() {
         return Entity.define("test.items", "test.items")
                 .table("test_items", "t")

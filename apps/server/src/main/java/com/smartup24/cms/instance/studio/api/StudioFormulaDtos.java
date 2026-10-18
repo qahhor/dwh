@@ -50,10 +50,11 @@ public final class StudioFormulaDtos {
                         "url",
                         "select",
                         "ref",
-                        "user"
+                        "user",
+                        "file"
                     })
             @NotBlank
-            @Pattern(regexp = "^(text|textarea|number|date|datetime|time|bool|email|phone|url|select|ref|user)$")
+            @Pattern(regexp = "^(text|textarea|number|date|datetime|time|bool|email|phone|url|select|ref|user|file)$")
             String type,
 
             @JsonInclude(JsonInclude.Include.NON_NULL)

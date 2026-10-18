@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.platform.api.entity.FormField;
 import com.smartup24.cms.platform.api.entity.field.FieldOptions.JsonRoot;
 import com.smartup24.cms.platform.api.entity.field.FieldParams;
+import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -98,7 +99,8 @@ public final class FieldValueRules {
                         ? Optional.empty()
                         : invalid(key, "error.field.option_required");
             case MULTI_REF -> keys(field, value);
-            case FILE, IMAGE -> fileId(value).isPresent() ? Optional.empty() : invalid(key, "error.field.file_invalid");
+            case FILE -> EntityFileValues.problem(field, value);
+            case IMAGE -> fileId(value).isPresent() ? Optional.empty() : invalid(key, "error.field.file_invalid");
             case JSON -> json(field, value);
             default -> Optional.empty();
         };
@@ -109,9 +111,10 @@ public final class FieldValueRules {
      * their keys in order, money and numbers by amount, the rest by their text in the kept form; empty equals empty.
      */
     public static boolean same(FormField field, @Nullable Object given, @Nullable Object kept) {
+        if (field.type() == FieldType.FILE) return EntityFileValues.same(given, kept);
         if (given == null || kept == null || blank(given) || blank(kept)) return blank(given) && blank(kept);
         return switch (field.type()) {
-            case FILE, IMAGE -> fileId(given).equals(fileId(kept));
+            case IMAGE -> fileId(given).equals(fileId(kept));
             case MULTI_REF -> keyList(given).equals(keyList(kept));
             case MONEY ->
                 given instanceof Map<?, ?> a

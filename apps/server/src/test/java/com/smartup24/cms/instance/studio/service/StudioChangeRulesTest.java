@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Menu;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Module;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Option;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Target;
+import com.smartup24.cms.instance.md.api.MdSimpleFormFileDtos.Files;
 import com.smartup24.cms.instance.studio.service.StudioChangeRules.Change;
 import java.util.ArrayList;
 import java.util.List;
@@ -283,6 +284,7 @@ class StudioChangeRulesTest {
                 null,
                 visibleIf,
                 null,
+                null,
                 null);
     }
 
@@ -322,5 +324,38 @@ class StudioChangeRulesTest {
                 field.scale(),
                 field.hidden(),
                 fallback);
+    }
+
+    @Test
+    void aFileFieldIsAddedFreelyButKeepsItsKindOfValueAndItsLimit() {
+        Field single = file("act", null);
+        Field several = file("docs", new Files(true, 5, null, null));
+        List<Field> before = List.of(TEXT, single, several);
+
+        List<Field> loosened = List.of(
+                TEXT,
+                file("act", new Files(false, null, List.of("application/pdf"), 10)),
+                file("docs", new Files(true, 8, List.of("image/png"), 1)),
+                file("photo", new Files(true, 3, null, null)));
+        assertThat(StudioChangeRules.incompatible(form(before), form(loosened))).isEmpty();
+
+        List<Field> changed = List.of(
+                new Field("title", "file", LABELS, false, true, null, null),
+                file("act", new Files(true, 2, null, null)),
+                file("docs", new Files(true, 4, null, null)));
+        assertThat(StudioChangeRules.incompatible(form(before), form(changed)))
+                .containsExactly(
+                        new Change("title", "type"),
+                        new Change("act", "files_multiple"),
+                        new Change("docs", "max_files"));
+        assertThat(StudioChangeRules.incompatible(
+                        form(before), form(List.of(TEXT, single, file("docs", new Files(false, null, null, null))))))
+                .containsExactly(new Change("docs", "files_multiple"));
+    }
+
+    private static Field file(String id, @org.jspecify.annotations.Nullable Files files) {
+        return new Field(
+                id, "file", LABELS, false, true, null, null, null, null, null, null, null, null, null, null, null,
+                files);
     }
 }

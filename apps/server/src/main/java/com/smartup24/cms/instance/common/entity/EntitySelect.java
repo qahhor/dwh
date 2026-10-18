@@ -37,6 +37,14 @@ public final class EntitySelect {
 
     private static String read(EntityField field, String alias) {
         FieldType type = field.type();
+        if (EntityFileValues.several(field)) {
+            // Each file of the array, in its order, as the files module names it (ADR-0043).
+            String array = field.sql(alias);
+            return "(select json_agg(json_build_object('id', f.id, 'name', f.original_name, 'size', f.size_bytes,"
+                    + " 'contentType', f.mime_type) order by e.ord)::text"
+                    + " from jsonb_array_elements_text(case when jsonb_typeof(" + array + ") = 'array' then " + array
+                    + " else '[]'::jsonb end) with ordinality e(id, ord) join mf_pub_files f on f.id = e.id::uuid)";
+        }
         if (type == FieldType.FILE || type == FieldType.IMAGE) {
             return "(select json_build_object('id', f.id, 'name', f.original_name, 'size', f.size_bytes,"
                     + " 'contentType', f.mime_type)::text from mf_pub_files f where f.id = " + field.sql(alias) + ")";

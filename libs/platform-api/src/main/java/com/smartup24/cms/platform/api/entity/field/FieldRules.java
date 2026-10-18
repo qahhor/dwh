@@ -17,7 +17,8 @@ import org.jspecify.annotations.Nullable;
  * @param max          largest number or amount, or null
  * @param pattern      a regular expression the whole text must match, or null
  * @param scale        most digits after the point of a number, or null; money is limited by its currency too
- * @param maxItems     most keys of a multiple reference, or null for the default of 100
+ * @param maxItems     most keys of a multiple reference, or null for the default of 100; on a file field kept in a
+ *                     JSON property, most files it holds — the field then holds several, null keeps one
  * @param maxBytes     largest file, or null for the upload limit
  * @param contentTypes the content types a file may have; empty takes any (an image takes PNG, JPEG and WebP)
  */

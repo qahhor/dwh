@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Which changes a new version of a live form may make without moving data (ADR-0041, decision 2). A field keeps its key
@@ -40,6 +41,11 @@ import java.util.stream.Collectors;
  * replace them; a computed field may become an entered one and keeps its values.
  *
  * <p>Format 6 (ADR-0043): the tables of lines, the number and the statuses follow {@link StudioDocumentChangeRules}.
+ *
+ * <p>Format 7 (ADR-0043): a file field is added like any optional field; a field never becomes or stops being a file
+ * field ({@code type}), never switches between one file and several ({@code files_multiple}: records keep one id or an
+ * array) and never holds fewer files than before ({@code max_files}); its content types and largest size change freely
+ * — they limit only the files a later save attaches.
  */
 public final class StudioChangeRules {
     /** The message of every refused change; its parameters name the field and the change. */
@@ -94,6 +100,17 @@ public final class StudioChangeRules {
         if (shorter(before.maxLength(), after.maxLength())) changes.add(new Change(id, "max_length"));
         if (shorter(before.scale(), after.scale())) changes.add(new Change(id, "scale"));
         if (before.formula() == null && after.formula() != null) changes.add(new Change(id, "computed"));
+        if (multiple(before) != multiple(after)) changes.add(new Change(id, "files_multiple"));
+        else if (shorter(maxFiles(before), maxFiles(after))) changes.add(new Change(id, "max_files"));
+    }
+
+    /** Whether a file field holds several files: its records keep an array of ids rather than one (ADR-0043). */
+    private static boolean multiple(Field field) {
+        return field.files() != null && field.files().multiple();
+    }
+
+    private static @Nullable Integer maxFiles(Field field) {
+        return field.files() == null ? null : field.files().maxFiles();
     }
 
     /** Whether a choice of the select before is no longer one of the choices after: records may hold its code. */
@@ -115,7 +132,7 @@ public final class StudioChangeRules {
         return scope == null ? "all" : scope;
     }
 
-    private static boolean shorter(Integer before, Integer after) {
+    private static boolean shorter(@Nullable Integer before, @Nullable Integer after) {
         return before != null && after != null && after < before;
     }
 

@@ -10,7 +10,6 @@ import com.smartup24.cms.spi.storage.FileDownloadStream;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -54,15 +53,19 @@ public class MfAttachments implements EntityFiles {
         return attachments.attachable(fileId, entity, recordId, userId, visibleFields);
     }
 
+    /**
+     * Makes the files the attachments of the record's field in place of the ones it had (ADR-0043: a field of a live
+     * form may hold several); the change is audited with the files before and after.
+     */
     @Override
     @Transactional
-    public void attach(String entity, long recordId, String fieldKey, @Nullable UUID fileId) {
-        UUID previous = attachments.current(entity, recordId, fieldKey).orElse(null);
-        if (Objects.equals(previous, fileId)) return;
-        attachments.replace(entity, recordId, fieldKey, fileId);
-        String event = previous == null ? "I" : fileId == null ? "D" : "U";
+    public void attachAll(String entity, long recordId, String fieldKey, List<UUID> fileIds) {
+        List<UUID> previous = attachments.currentAll(entity, recordId, fieldKey);
+        if (Set.copyOf(previous).equals(Set.copyOf(fileIds))) return;
+        attachments.replaceAll(entity, recordId, fieldKey, fileIds);
+        String event = previous.isEmpty() ? "I" : fileIds.isEmpty() ? "D" : "U";
         audit.logChange(
-                TABLE, entity + ":" + recordId + ":" + fieldKey, event, List.of(FILE_ID), row(previous), row(fileId));
+                TABLE, entity + ":" + recordId + ":" + fieldKey, event, List.of(FILE_ID), row(previous), row(fileIds));
     }
 
     @Override
@@ -79,8 +82,11 @@ public class MfAttachments implements EntityFiles {
         return attachments.attached(entity, recordId, fileId, visibleFields);
     }
 
-    private static Map<String, Object> row(@Nullable UUID fileId) {
-        return fileId == null ? Map.of() : Map.of(FILE_ID, fileId.toString());
+    /** The audit row of the attachments: one id as before, several as a list. */
+    private static Map<String, Object> row(List<UUID> fileIds) {
+        if (fileIds.isEmpty()) return Map.of();
+        if (fileIds.size() == 1) return Map.of(FILE_ID, fileIds.getFirst().toString());
+        return Map.of(FILE_ID, fileIds.stream().map(UUID::toString).toList());
     }
 
     @Override

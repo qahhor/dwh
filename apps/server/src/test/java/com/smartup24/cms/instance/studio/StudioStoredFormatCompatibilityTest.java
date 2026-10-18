@@ -43,6 +43,7 @@ class StudioStoredFormatCompatibilityTest {
     private static final Path SAMPLES_V4 = Path.of("src/test/resources/studio/golden/stored-declarations-v4.json");
     private static final Path SAMPLES_V5 = Path.of("src/test/resources/studio/golden/stored-declarations-v5.json");
     private static final Path SAMPLES_V6 = Path.of("src/test/resources/studio/golden/stored-declarations-v6.json");
+    private static final Path SAMPLES_V7 = Path.of("src/test/resources/studio/golden/stored-declarations-v7.json");
     private static final Map<String, FieldType> TYPES = Map.of(
             "text", FieldType.TEXT,
             "textarea", FieldType.TEXTAREA,
@@ -449,6 +450,47 @@ class StudioStoredFormatCompatibilityTest {
             assertThat(compiled.logic().lineComputed("items")).hasSize(1);
             assertThat(compiled.process()).isNotNull();
             assertThat(compiled.titleField()).isEqualTo("docNumber");
+        }
+    }
+
+    /**
+     * Format 7 (ADR-0043): a file field is a file property of the record's payload — one id, or an array of ids up to
+     * {@code maxFiles} — with its content types and largest size; a formula never reads it.
+     */
+    @Test
+    void storedFileFieldsOfFormatSevenCompileIntoFileProperties() throws Exception {
+        JsonNode samples = json.readTree(Files.readString(SAMPLES_V7));
+        long id = 7000;
+        for (JsonNode sample : samples) {
+            String stored = json.writeValueAsString(sample.path("declaration"));
+            Declaration declaration = repository.declaration(stored);
+            assertThat(declaration.formatVersion()).isEqualTo(7);
+            assertThat(json.valueToTree(declaration).equals(sample.path("declaration")))
+                    .as("stored format of %s", declaration.entity().name())
+                    .isTrue();
+            var prepared = new MdSimpleFormDeclarations(json).prepare(stored.getBytes(StandardCharsets.UTF_8));
+            assertThat(prepared.declaration()).isEqualTo(declaration);
+            assertThat(prepared.checksum()).isEqualTo(sample.path("checksum").asString());
+
+            EntityDefinition entity =
+                    new StudioEntityCompiler().compile(id++, declaration).entity();
+            var model = java.util.Objects.requireNonNull(entity.model());
+            EntityField act = model.field("act").orElseThrow();
+            assertThat(act.type()).isEqualTo(FieldType.FILE);
+            assertThat(act.source()).isEqualTo(new FieldSource.JsonProperty("payload", "act"));
+            assertThat(java.util.Objects.requireNonNull(act.form()).rules().maxItems())
+                    .isNull();
+            var photo = java.util.Objects.requireNonNull(
+                            model.field("photo").orElseThrow().form())
+                    .rules();
+            assertThat(photo.contentTypes()).containsExactly("image/png", "image/jpeg");
+            assertThat(photo.maxBytes()).isEqualTo(5L * 1024 * 1024);
+            assertThat(photo.maxItems()).isNull();
+            EntityField files = model.field("documents").orElseThrow();
+            var documents = java.util.Objects.requireNonNull(files.form()).rules();
+            assertThat(documents.maxItems()).isEqualTo(5);
+            assertThat(documents.contentTypes()).containsExactly("application/pdf");
+            assertThat(files.sql("s")).isEqualTo("(s.payload->'documents')");
         }
     }
 }

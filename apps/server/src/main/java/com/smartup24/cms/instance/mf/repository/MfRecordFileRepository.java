@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.mf.repository;
 import com.smartup24.cms.instance.common.entity.EntityFiles.FileFacts;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -61,27 +62,27 @@ public class MfRecordFileRepository {
                 .optional();
     }
 
-    /** The file attached to the record's field, if any. */
-    public Optional<UUID> current(String entity, long recordId, String fieldKey) {
+    /** The files attached to the record's field, oldest first. */
+    public List<UUID> currentAll(String entity, long recordId, String fieldKey) {
         return jdbc.sql("select file_id from mf_record_files where entity = :entity and record_id = :recordId"
-                        + " and field_key = :fieldKey limit 1")
+                        + " and field_key = :fieldKey order by created_at, file_id")
                 .param("entity", entity)
                 .param("recordId", recordId)
                 .param("fieldKey", fieldKey)
                 .query(UUID.class)
-                .optional();
+                .list();
     }
 
-    /** Replaces the attachment of the record's field with {@code fileId}, or removes it when null. */
-    public void replace(String entity, long recordId, String fieldKey, @Nullable UUID fileId) {
+    /** Makes {@code fileIds} the attachments of the record's field: the others go, the missing ones come. */
+    public void replaceAll(String entity, long recordId, String fieldKey, List<UUID> fileIds) {
         jdbc.sql("delete from mf_record_files where entity = :entity and record_id = :recordId"
-                        + " and field_key = :fieldKey and file_id is distinct from cast(:fileId as uuid)")
+                        + " and field_key = :fieldKey and not (file_id = any(cast(:fileIds as uuid[])))")
                 .param("entity", entity)
                 .param("recordId", recordId)
                 .param("fieldKey", fieldKey)
-                .param("fileId", fileId)
+                .param("fileIds", fileIds.toArray(new UUID[0]))
                 .update();
-        if (fileId != null) {
+        for (UUID fileId : fileIds) {
             jdbc.sql("insert into mf_record_files (entity, record_id, field_key, file_id)"
                             + " values (:entity, :recordId, :fieldKey, :fileId) on conflict do nothing")
                     .param("entity", entity)

@@ -16,6 +16,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -84,6 +85,12 @@ public final class TestSession {
     /** Sends the request as the signed-in user with a fresh idempotency key. */
     public MockHttpServletResponse send(MockHttpServletRequestBuilder request) throws Exception {
         return send(request, UUID.randomUUID());
+    }
+
+    /** Uploads a multipart request as the signed-in user, without an idempotency key (the filter refuses one). */
+    public MockHttpServletResponse upload(MockMultipartHttpServletRequestBuilder request) throws Exception {
+        request.cookie(session, csrf).header("X-XSRF-TOKEN", csrf.getValue());
+        return mvc.perform(request).andReturn().getResponse();
     }
 
     /** Sends the request with a JSON body as the signed-in user with a fresh idempotency key. */

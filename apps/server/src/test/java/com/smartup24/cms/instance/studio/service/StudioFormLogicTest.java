@@ -53,7 +53,8 @@ class StudioFormLogicTest {
                 "\"none\"",
                 "qty > 1",
                 "qty > 2",
-                "qty > 3");
+                "qty > 3",
+                null);
         EntityLogic logic =
                 StudioFormLogic.of(form(5, List.of(net, total, number("qty", null), reason), null), "studio.live.x");
         assertThat(logic.computed()).extracting(EntityLogic.Computed::field).containsExactly("total", "net");
@@ -123,7 +124,8 @@ class StudioFormLogicTest {
 
     private static Field number(String id, String formula) {
         return new Field(
-                id, "number", LABELS, false, true, null, 0, null, null, null, null, formula, null, null, null, null);
+                id, "number", LABELS, false, true, null, 0, null, null, null, null, formula, null, null, null, null,
+                null);
     }
 
     private static Declaration form(int format, List<Field> fields, List<Rule> rules) {

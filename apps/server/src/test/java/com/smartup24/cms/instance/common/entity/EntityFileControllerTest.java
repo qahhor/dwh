@@ -91,7 +91,7 @@ class EntityFileControllerTest {
             }
 
             @Override
-            public void attach(String entity, long recordId, String fieldKey, @Nullable UUID fileId) {}
+            public void attachAll(String entity, long recordId, String fieldKey, List<UUID> fileIds) {}
 
             @Override
             public void detachAll(String entity, long recordId) {}

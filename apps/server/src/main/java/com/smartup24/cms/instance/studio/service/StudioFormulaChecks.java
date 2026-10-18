@@ -123,6 +123,7 @@ public final class StudioFormulaChecks {
                 null,
                 null,
                 null,
+                null,
                 null);
     }
 

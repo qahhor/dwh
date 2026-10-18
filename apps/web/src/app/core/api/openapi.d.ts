@@ -6779,7 +6779,7 @@ export interface components {
             fields: components["schemas"]["SimpleFormField"][];
             /**
              * Format: int32
-             * @description 1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules; 6 adds lines, the number and statuses
+             * @description 1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules; 6 adds lines, the number and statuses; 7 adds file fields
              */
             formatVersion: number;
             /** @enum {string} */
@@ -6855,6 +6855,8 @@ export interface components {
             defaultFormula?: string;
             /** @description Format 2: the fixed value a new record takes, written as the field reads it */
             defaultValue?: string;
+            /** @description Format 7: the rules of a file field (ADR-0043) */
+            files?: components["schemas"]["SimpleFormFiles"];
             /** @description Format 5: a computed field's formula (ADR-0042) */
             formula?: string;
             /** @description Format 2: the field is kept with its data but leaves the form, the list, the export and the history (ADR-0041); present only when true */
@@ -6876,9 +6878,25 @@ export interface components {
             /** @description Format 3: what a ref field names */
             target?: components["schemas"]["SimpleFormTarget"];
             /** @enum {string} */
-            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user";
+            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user" | "file";
             /** @description Format 5: shown only while this formula is true */
             visibleIf?: string;
+        };
+        SimpleFormFiles: {
+            /** @description The content types a file may have; absent takes any */
+            contentTypes?: string[];
+            /**
+             * Format: int32
+             * @description With multiple: the most files a record holds
+             */
+            maxFiles?: number;
+            /**
+             * Format: int32
+             * @description The largest file, in megabytes
+             */
+            maxSizeMb?: number;
+            /** @description Several files rather than one */
+            multiple: boolean;
         };
         SimpleFormLabels: {
             en: string;
@@ -7208,7 +7226,7 @@ export interface components {
             /** @description What a ref field names: a list keeps a code, a form a row's key */
             target?: string;
             /** @enum {string} */
-            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user";
+            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user" | "file";
         };
         StudioFormulaLines: {
             fields: components["schemas"]["StudioFormulaField"][];

@@ -13,7 +13,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Rejects declarations the shared-table storage cannot safely execute (ADR-0038). A partitioned entity holds one value
- * per field: the simple scalars, a choice, an item of a reference list and the key of another entity's row (ADR-0041).
+ * per field: the simple scalars, a choice, an item of a reference list and the key of another entity's row (ADR-0041),
+ * or the files of a file field — one id, or an array of ids (ADR-0043).
  * Its document rows live in a table of their own, keyed by the record's id, which is unique across the partitions, so
  * the rows of a record are reached only through the record read within its partition (ADR-0043).
  */
@@ -42,7 +43,8 @@ final class EntityStorageRules {
             FieldType.URL,
             FieldType.SELECT,
             FieldType.ENUM,
-            FieldType.REF);
+            FieldType.REF,
+            FieldType.FILE);
 
     private EntityStorageRules() {}
 

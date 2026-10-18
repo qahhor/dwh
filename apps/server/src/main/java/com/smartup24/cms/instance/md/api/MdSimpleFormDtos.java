@@ -157,7 +157,8 @@ public final class MdSimpleFormDtos {
                         "url",
                         "select",
                         "ref",
-                        "user"
+                        "user",
+                        "file"
                     })
             String type,
 
@@ -228,7 +229,11 @@ public final class MdSimpleFormDtos {
                     description = "Format 5: read-only while this formula is true of the stored record",
                     maxLength = 1000)
             @Nullable
-            String readonlyIf) {
+            String readonlyIf,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Format 7: the rules of a file field (ADR-0043)")
+            MdSimpleFormFileDtos.@Nullable Files files) {
         /** A field of formats 3 and 4: without formulas. */
         public Field(
                 String id,
@@ -254,6 +259,7 @@ public final class MdSimpleFormDtos {
                     defaultValue,
                     options,
                     target,
+                    null,
                     null,
                     null,
                     null,
@@ -293,10 +299,11 @@ public final class MdSimpleFormDtos {
             @Schema(
                     requiredMode = Schema.RequiredMode.REQUIRED,
                     minimum = "1",
-                    maximum = "6",
+                    maximum = "7",
                     description = "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds"
                             + " select, ref and user fields and the data scope; 4 adds the layout and the title"
-                            + " field; 5 adds formulas and rules; 6 adds lines, the number and statuses")
+                            + " field; 5 adds formulas and rules; 6 adds lines, the number and statuses; 7 adds"
+                            + " file fields")
             int formatVersion,
 
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = "simple-form")

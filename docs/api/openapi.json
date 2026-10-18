@@ -21951,8 +21951,8 @@
           "formatVersion" : {
             "type" : "integer",
             "format" : "int32",
-            "description" : "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules; 6 adds lines, the number and statuses",
-            "maximum" : 6,
+            "description" : "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules; 6 adds lines, the number and statuses; 7 adds file fields",
+            "maximum" : 7,
             "minimum" : 1
           },
           "kind" : {
@@ -22170,6 +22170,10 @@
             "maxLength" : 4000,
             "minLength" : 1
           },
+          "files" : {
+            "$ref" : "#/components/schemas/SimpleFormFiles",
+            "description" : "Format 7: the rules of a file field (ADR-0043)"
+          },
           "formula" : {
             "type" : "string",
             "description" : "Format 5: a computed field's formula (ADR-0042)",
@@ -22228,7 +22232,7 @@
           },
           "type" : {
             "type" : "string",
-            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url", "select", "ref", "user" ]
+            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url", "select", "ref", "user", "file" ]
           },
           "visibleIf" : {
             "type" : "string",
@@ -22237,6 +22241,40 @@
           }
         },
         "required" : [ "id", "labels", "listed", "required", "type" ]
+      },
+      "SimpleFormFiles" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "contentTypes" : {
+            "type" : "array",
+            "description" : "The content types a file may have; absent takes any",
+            "items" : {
+              "type" : "string",
+              "pattern" : "^[a-z]+/[a-z0-9][a-z0-9.+-]{0,99}$"
+            },
+            "maxItems" : 20
+          },
+          "maxFiles" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "With multiple: the most files a record holds",
+            "maximum" : 10,
+            "minimum" : 2
+          },
+          "maxSizeMb" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "The largest file, in megabytes",
+            "maximum" : 50,
+            "minimum" : 1
+          },
+          "multiple" : {
+            "type" : "boolean",
+            "description" : "Several files rather than one"
+          }
+        },
+        "required" : [ "multiple" ]
       },
       "SimpleFormLabels" : {
         "type" : "object",
@@ -23197,9 +23235,9 @@
           },
           "type" : {
             "type" : "string",
-            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url", "select", "ref", "user" ],
+            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url", "select", "ref", "user", "file" ],
             "minLength" : 1,
-            "pattern" : "^(text|textarea|number|date|datetime|time|bool|email|phone|url|select|ref|user)$"
+            "pattern" : "^(text|textarea|number|date|datetime|time|bool|email|phone|url|select|ref|user|file)$"
           }
         },
         "required" : [ "id", "type" ]

@@ -58,15 +58,23 @@ final class ExportFormats {
                         value instanceof Collection<?> keys
                                 ? keys.stream().map(String::valueOf).collect(Collectors.joining(", "))
                                 : String.valueOf(value));
-            case "file", "image" ->
-                sheet.value(
-                        row,
-                        c,
-                        value instanceof Map<?, ?> file ? String.valueOf(file.get("name")) : String.valueOf(value));
+            case "file", "image" -> sheet.value(row, c, fileNames(value));
             case "json" -> sheet.value(row, c, cut(json(value)));
             default -> sheet.value(row, c, String.valueOf(value));
         }
         return true;
+    }
+
+    /** The names of a file value, not its links: one file, or the files of a field that holds several (ADR-0043). */
+    private static String fileNames(Object value) {
+        if (value instanceof Collection<?> files) {
+            return cut(files.stream().map(ExportFormats::fileName).collect(Collectors.joining(", ")));
+        }
+        return fileName(value);
+    }
+
+    private static String fileName(Object value) {
+        return value instanceof Map<?, ?> file ? String.valueOf(file.get("name")) : String.valueOf(value);
     }
 
     /** The number format of an amount in {@code currency}: its digits after the point and its code. */

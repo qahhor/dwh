@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.common.entity.runtime;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
+import com.smartup24.cms.instance.common.entity.EntityFileValues;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
@@ -195,7 +196,8 @@ public final class EntityRequestReader {
             // Money in the document's currency may come as its amount alone (ADR-0032, 9.1).
             case MONEY ->
                 node.isObject() || (field.options().currencyFrom() != null && (node.isNumber() || node.isString()));
-            case FILE, IMAGE -> node.isString() || node.isObject();
+            case FILE -> node.isString() || node.isObject() || (node.isArray() && EntityFileValues.several(field));
+            case IMAGE -> node.isString() || node.isObject();
             case JSON -> true;
             default -> node.isString();
         };

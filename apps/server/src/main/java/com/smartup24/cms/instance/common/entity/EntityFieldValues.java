@@ -275,15 +275,23 @@ public class EntityFieldValues {
                     errors.add(FieldErrorItem.keyed(field.key(), ARCHIVED, "error.field.ref_archived"));
                 }
             } else if (field.type() == FieldType.FILE || field.type() == FieldType.IMAGE) {
-                fileProblem(entity, field, value, recordId, userId).ifPresent(errors::add);
+                // A file the record already holds stays; each new one is checked (ADR-0043: several files).
+                List<UUID> kept = EntityFileValues.checked(before.get(field.key()));
+                for (UUID id : EntityFileValues.checked(value)) {
+                    if (kept.contains(id)) continue;
+                    Optional<FieldErrorItem> problem = fileProblem(entity, field, id, recordId, userId);
+                    if (problem.isPresent()) {
+                        errors.add(problem.get());
+                        break;
+                    }
+                }
             }
         }
         return errors;
     }
 
     private Optional<FieldErrorItem> fileProblem(
-            EntityDefinition entity, FormField field, Object value, @Nullable Long recordId, long userId) {
-        UUID id = FieldValueRules.fileId(value).orElseThrow();
+            EntityDefinition entity, FormField field, UUID id, @Nullable Long recordId, long userId) {
         Optional<FileFacts> file = files == null
                 ? Optional.empty()
                 : files.attachable(id, entity.code(), recordId, userId, EntityFieldRights.visibleFiles(entity));

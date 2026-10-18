@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.entity.store;
 
+import com.smartup24.cms.instance.common.entity.EntityFileValues;
 import com.smartup24.cms.instance.common.entity.EntityReferenceValues;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
@@ -29,10 +30,10 @@ import org.jspecify.annotations.Nullable;
  *
  * @param columns the column assignments, in declaration order
  * @param links   the keys of every several-references field the save writes, by its link table
- * @param files   the file of every file field the save writes, by field key; null removes it
+ * @param files   the files of every file field the save writes, by field key, in order; empty removes them
  */
 public record EntityWrite(
-        List<Column> columns, Map<FieldSource.Link, List<Long>> links, Map<String, @Nullable UUID> files) {
+        List<Column> columns, Map<FieldSource.Link, List<Long>> links, Map<String, List<UUID>> files) {
 
     /** One column and its value; {@code cast} wraps the parameter ({@code cast(:p0 as jsonb)}) or is null. */
     public record Column(
@@ -70,7 +71,7 @@ public record EntityWrite(
     public static EntityWrite of(List<EntityField> fields, Map<String, ?> values, JsonColumns json) {
         List<Column> columns = new ArrayList<>();
         Map<FieldSource.Link, List<Long>> links = new LinkedHashMap<>();
-        Map<String, @Nullable UUID> files = new LinkedHashMap<>();
+        Map<String, List<UUID>> files = new LinkedHashMap<>();
         Map<String, Map<String, Object>> properties = new LinkedHashMap<>();
         for (EntityField field : fields) {
             if (!values.containsKey(field.key())) continue;
@@ -79,7 +80,7 @@ public record EntityWrite(
                 case FieldSource.Column column -> {
                     columns.add(new Column(column.name(), columnValue(field, value, json), cast(field)));
                     if ((field.type() == FieldType.FILE || field.type() == FieldType.IMAGE)) {
-                        files.put(field.key(), value == null ? null : uuid(value));
+                        files.put(field.key(), value == null ? List.of() : List.of(uuid(value)));
                     }
                 }
                 case FieldSource.MoneyColumns money -> {
@@ -91,10 +92,13 @@ public record EntityWrite(
                     }
                 }
                 case FieldSource.Link link -> links.put(link, keys(value));
-                case FieldSource.JsonProperty property ->
+                case FieldSource.JsonProperty property -> {
+                    Object kept = EntityFileValues.several(field) ? fileIds(value) : columnValue(field, value, json);
                     properties
                             .computeIfAbsent(property.column(), column -> new LinkedHashMap<>())
-                            .put(property.key(), columnValue(field, value, json));
+                            .put(property.key(), kept);
+                    if (field.type() == FieldType.FILE) files.put(field.key(), EntityFileValues.checked(value));
+                }
                 default -> {
                     // An attribute is written with the record's attributes; the rest is never written.
                 }
@@ -146,6 +150,12 @@ public record EntityWrite(
         return value instanceof BigDecimal number
                 ? number
                 : new BigDecimal(String.valueOf(value).strip());
+    }
+
+    /** The ids of several files as the record keeps them, or null for none. */
+    private static @Nullable List<String> fileIds(@Nullable Object value) {
+        List<UUID> ids = EntityFileValues.checked(value);
+        return ids.isEmpty() ? null : ids.stream().map(UUID::toString).toList();
     }
 
     private static UUID uuid(Object value) {

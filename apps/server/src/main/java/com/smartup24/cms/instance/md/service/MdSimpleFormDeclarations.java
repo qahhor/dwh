@@ -37,7 +37,7 @@ import tools.jackson.databind.ObjectReader;
  * MdSimpleFormKinds}); format 4 adds the title field and the layout ({@link MdSimpleFormLayouts}); format 5 adds the
  * formulas of the fields and the validation rules ({@link MdSimpleFormLogic}, ADR-0042); format 6 adds the tables of
  * lines, the number and the statuses of a document ({@link MdSimpleFormDocuments}, {@link MdSimpleFormWorkflows},
- * ADR-0043).
+ * ADR-0043); format 7 adds the file field ({@link MdSimpleFormFiles}).
  */
 @Component
 public class MdSimpleFormDeclarations {
@@ -120,8 +120,8 @@ public class MdSimpleFormDeclarations {
 
     public DeliveryPackage prepare(byte[] body) {
         JsonNode root = parse(body);
-        int format = integer(root, "formatVersion", "formatVersion", 1, 6);
-        known(root, format == 6 ? ROOT_V6 : format == 5 ? ROOT_V5 : format == 4 ? ROOT_V4 : ROOT, "declaration");
+        int format = integer(root, "formatVersion", "formatVersion", 1, 7);
+        known(root, format >= 6 ? ROOT_V6 : format == 5 ? ROOT_V5 : format == 4 ? ROOT_V4 : ROOT, "declaration");
         if (!"simple-form".equals(text(root, "kind", "kind"))) throw invalid("kind", "unsupported");
         JsonNode module = required(root, "module", "module");
         known(module, Set.of("code", "title"), "module");
@@ -150,7 +150,7 @@ public class MdSimpleFormDeclarations {
                 lines,
                 workflow);
         if (format == 5) MdSimpleFormLogic.check(fields, rules);
-        if (format == 6) MdSimpleFormDocumentLogic.check(fields, rules, lines, workflow, numbering);
+        if (format >= 6) MdSimpleFormDocumentLogic.check(fields, rules, lines, workflow, numbering);
         return new DeliveryPackage(1, "simple-form-package", declaration, digest(declaration));
     }
 
@@ -170,7 +170,8 @@ public class MdSimpleFormDeclarations {
             case 1 -> FIELD;
             case 2 -> FIELD_V2;
             case 3, 4 -> FIELD_V3;
-            default -> FIELD_V5;
+            case 5, 6 -> FIELD_V5;
+            default -> MdSimpleFormFiles.FIELD_V7;
         };
     }
 
@@ -196,7 +197,9 @@ public class MdSimpleFormDeclarations {
             if (identifiers.reservedField(id)) throw invalid(at + ".id", "identifier");
             if (!ids.add(id)) throw invalid(at + ".id", "duplicate");
             String type = text(field, "type", at + ".type");
-            if (!TYPES.contains(type) && !(format >= 3 && MdSimpleFormKinds.TYPES.contains(type)))
+            if (!TYPES.contains(type)
+                    && !(format >= 3 && MdSimpleFormKinds.TYPES.contains(type))
+                    && !(format >= 7 && MdSimpleFormFiles.TYPE.equals(type)))
                 throw invalid(at + ".type", "unsupported");
             boolean textual = Set.of("text", "textarea").contains(type);
             boolean number = "number".equals(type);
@@ -204,6 +207,7 @@ public class MdSimpleFormDeclarations {
             if (!number && field.has("scale")) throw invalid(at + ".scale", "unsupported");
             boolean hidden = field.has("hidden") && bool(field, "hidden", at + ".hidden");
             MdSimpleFormKinds.Parts parts = MdSimpleFormKinds.parts(field, type, at);
+            var files = MdSimpleFormFiles.files(field, type, at);
             String fallback = field.has("defaultValue") ? defaultValue(field, type, at + ".defaultValue") : null;
             if (fallback != null && "select".equals(type) && !MdSimpleFormKinds.offers(parts.options(), fallback))
                 throw invalid(at + ".defaultValue", "default");
@@ -223,7 +227,8 @@ public class MdSimpleFormDeclarations {
                     MdSimpleFormLogic.formula(field, "defaultFormula", at + ".defaultFormula"),
                     MdSimpleFormLogic.formula(field, "visibleIf", at + ".visibleIf"),
                     MdSimpleFormLogic.formula(field, "requiredIf", at + ".requiredIf"),
-                    MdSimpleFormLogic.formula(field, "readonlyIf", at + ".readonlyIf")));
+                    MdSimpleFormLogic.formula(field, "readonlyIf", at + ".readonlyIf"),
+                    files));
         }
         if (result.stream().filter(field -> field.hidden() == null).count() > MAX_SHOWN_FIELDS)
             throw invalid("fields", "limit");

@@ -58,7 +58,9 @@ public final class MdSimpleFormLogic {
     public static Map<String, FormulaType> types(List<Field> fields) {
         Map<String, FormulaType> types = new LinkedHashMap<>();
         for (Field field : fields) {
-            if (!Boolean.TRUE.equals(field.hidden())) types.put(field.id(), type(field));
+            // A formula reads no file field (ADR-0043): its files are no value of the formula language.
+            if (!Boolean.TRUE.equals(field.hidden()) && !"file".equals(field.type()))
+                types.put(field.id(), type(field));
         }
         return types;
     }
