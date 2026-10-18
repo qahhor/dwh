@@ -45,7 +45,12 @@ public final class MdReportDashboardDtos {
             boolean canShare,
 
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-            boolean shared) {}
+            boolean shared,
+
+            @Schema(
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    description = "The reader owns the report; otherwise a role shares it with them")
+            boolean owned) {}
 
     public record SharingRequest(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED)

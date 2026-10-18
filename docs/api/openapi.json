@@ -6959,7 +6959,7 @@
     },
     "/api/v1/entities/{code}/report" : {
       "get" : {
-        "description" : "Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups.",
+        "description" : "Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups, ordered by their values, their words or a measure and cut to a top when asked; each row names its group values in the viewer's language and scope.",
         "operationId" : "report",
         "parameters" : [ {
           "in" : "path",
@@ -6998,6 +6998,23 @@
           "required" : false,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "description" : "JSON object: the order of the groups - by group (their values, the default), label (their words) or measure (by position): {\"by\":\"measure\",\"measure\":0,\"direction\":\"desc\"}",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "The most groups kept, 1 to 1000, in the order asked for",
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         } ],
         "responses" : {
@@ -7111,7 +7128,7 @@
     },
     "/api/v1/entities/{code}/report/export" : {
       "get" : {
-        "description" : "Exports the report's original groups and measures, with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.",
+        "description" : "Exports the report's original groups and measures in its order and top, its group values named in the export language, with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.",
         "operationId" : "report_1",
         "parameters" : [ {
           "in" : "path",
@@ -7147,6 +7164,21 @@
           "required" : false,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }, {
           "in" : "query",
@@ -8993,6 +9025,39 @@
           }
         },
         "summary" : "Set the visibility rule of a role",
+        "tags" : [ "md-org-unit-controller" ]
+      }
+    },
+    "/api/v1/iam/org-units/scope" : {
+      "get" : {
+        "description" : "The units the signed-in user may put a record in, as a flat list; every unit for a user whose data scope is all.",
+        "operationId" : "scope",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/OrgUnitView"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List the units of my data scope",
         "tags" : [ "md-org-unit-controller" ]
       }
     },
@@ -12071,7 +12136,7 @@
     },
     "/api/v1/report-views" : {
       "get" : {
-        "description" : "Returns owned and role-shared reports with current visible fields. The default limit is 20, maximum 100. An incomplete or empty page can still have a next cursor when inaccessible definitions are omitted.",
+        "description" : "Returns owned and role-shared reports with current visible fields: the reports catalog. Narrowed by list, a part of the name (any case), ownership (mine or shared) and kind. The default limit is 20, maximum 100. An incomplete or empty page can still have a next cursor when inaccessible definitions are omitted.",
         "operationId" : "list_7",
         "parameters" : [ {
           "in" : "query",
@@ -12079,6 +12144,30 @@
           "required" : false,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "description" : "A part of the report's name, 1 to 80 characters",
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "owner",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "mine", "shared" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "kind",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "report", "widget" ]
           }
         }, {
           "in" : "query",
@@ -15751,6 +15840,12 @@
               "type" : [ "string", "number", "boolean", "null" ]
             }
           },
+          "labels" : {
+            "type" : "array",
+            "items" : {
+              "type" : [ "string", "null" ]
+            }
+          },
           "values" : {
             "type" : "array",
             "items" : {
@@ -18072,6 +18167,9 @@
             "items" : {
               "$ref" : "#/components/schemas/FormTabMeta"
             }
+          },
+          "titleField" : {
+            "type" : "string"
           },
           "titleKey" : {
             "type" : "string"
@@ -21298,6 +21396,10 @@
           "name" : {
             "type" : "string"
           },
+          "owned" : {
+            "type" : "boolean",
+            "description" : "The reader owns the report; otherwise a role shares it with them"
+          },
           "shared" : {
             "type" : "boolean"
           },
@@ -21306,7 +21408,7 @@
             "additionalProperties" : true
           }
         },
-        "required" : [ "canEdit", "canShare", "entity", "id", "kind", "listCode", "lockVersion", "modifiedAt", "name", "shared", "state" ]
+        "required" : [ "canEdit", "canShare", "entity", "id", "kind", "listCode", "lockVersion", "modifiedAt", "name", "owned", "shared", "state" ]
       },
       "RequestDto" : {
         "type" : "object",
@@ -21721,13 +21823,17 @@
           "formatVersion" : {
             "type" : "integer",
             "format" : "int32",
-            "description" : "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope",
-            "maximum" : 3,
+            "description" : "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field",
+            "maximum" : 4,
             "minimum" : 1
           },
           "kind" : {
             "type" : "string",
             "enum" : [ "simple-form" ]
+          },
+          "layout" : {
+            "$ref" : "#/components/schemas/SimpleFormLayout",
+            "description" : "Format 4: sections and tabs"
           },
           "module" : {
             "$ref" : "#/components/schemas/SimpleFormModule"
@@ -21886,6 +21992,11 @@
           },
           "title" : {
             "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "titleField" : {
+            "type" : "string",
+            "description" : "Format 4: the field that names a record (ADR-0041) - a required, listed text field, or name for the system name and code fields; absent means the record's number",
+            "pattern" : "^[a-z][a-z0-9]{0,19}$"
           }
         },
         "required" : [ "name", "title" ]
@@ -21970,6 +22081,29 @@
         },
         "required" : [ "en", "ru", "uz" ]
       },
+      "SimpleFormLayout" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "sections" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormSection"
+            },
+            "maxItems" : 10,
+            "minItems" : 1
+          },
+          "tabs" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormTab"
+            },
+            "maxItems" : 6,
+            "minItems" : 2
+          }
+        },
+        "required" : [ "sections" ]
+      },
       "SimpleFormMenu" : {
         "type" : "object",
         "additionalProperties" : false,
@@ -22018,6 +22152,47 @@
           }
         },
         "required" : [ "code", "labels" ]
+      },
+      "SimpleFormSection" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "fields" : {
+            "type" : "array",
+            "description" : "The ids of the shown fields of the section, in their order",
+            "items" : {
+              "type" : "string"
+            },
+            "maxItems" : 20,
+            "minItems" : 1
+          },
+          "key" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_]{0,19}$"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "tab" : {
+            "type" : "string",
+            "description" : "The key of the tab the section is on; present exactly when the form has tabs"
+          }
+        },
+        "required" : [ "fields", "key", "labels" ]
+      },
+      "SimpleFormTab" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "key" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_]{0,19}$"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "key", "labels" ]
       },
       "SimpleFormTarget" : {
         "type" : "object",

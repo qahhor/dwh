@@ -30,6 +30,7 @@ public class EntityReports {
     private final QueryAggregateRepository aggregates;
     private final ObjectProvider<EntityReportViews> views;
     private final EntityReportDatasets datasets;
+    private final EntityReportLabels labels;
 
     public EntityReports(
             EntityGate gate,
@@ -37,13 +38,15 @@ public class EntityReports {
             EntityScopes scopes,
             QueryAggregateRepository aggregates,
             ObjectProvider<EntityReportViews> views,
-            EntityReportDatasets datasets) {
+            EntityReportDatasets datasets,
+            EntityReportLabels labels) {
         this.gate = gate;
         this.registry = registry;
         this.scopes = scopes;
         this.aggregates = aggregates;
         this.views = views;
         this.datasets = datasets;
+        this.labels = labels;
     }
 
     /** Internal execution metadata stays with its result until export; controllers return data only. */
@@ -62,8 +65,34 @@ public class EntityReports {
             @Nullable String groupBy,
             @Nullable String measures,
             @Nullable String filter) {
+        return execute(code, dataset, new Request(groupBy, measures, filter, null, null));
+    }
+
+    /**
+     * What the report builder asks for: the groups, measures and filter, and the order of the groups with the top kept.
+     *
+     * @param sort  the order as a JSON object ({@code {"by":"measure","measure":0,"direction":"desc"}}), or null
+     * @param limit the most groups kept, or null
+     */
+    public record Request(
+            @Nullable String groupBy,
+            @Nullable String measures,
+            @Nullable String filter,
+            @Nullable String sort,
+            @Nullable Integer limit) {}
+
+    @Transactional(readOnly = true)
+    public Execution execute(String code, @Nullable String dataset, Request request) {
         var source = datasets.resolve(code, dataset);
-        return run(source, QueryAggregates.compile(source.list(), groupBy, measures, filter));
+        return run(
+                source,
+                QueryAggregates.compile(
+                        source.list(),
+                        request.groupBy(),
+                        request.measures(),
+                        request.filter(),
+                        request.sort(),
+                        request.limit()));
     }
 
     @Transactional(readOnly = true)
@@ -89,7 +118,9 @@ public class EntityReports {
                         source.list(),
                         report.groupBy(),
                         report.measures(),
-                        ReportFilters.and(report.filter(), extraFilter)));
+                        ReportFilters.and(report.filter(), extraFilter),
+                        report.sort(),
+                        report.limit()));
     }
 
     public Optional<String> entityOfList(String listCode) {
@@ -112,6 +143,8 @@ public class EntityReports {
         var scope = scopes.listPredicate(source.entity(), aggregate.filter(), EntityReads.userId());
         var params = new LinkedHashMap<>(source.params());
         params.putAll(scope.params());
-        return new Execution(source.list(), aggregates.run(aggregate, new QueryPlan.SqlFragment(scope.sql(), params)));
+        return new Execution(
+                source.list(),
+                labels.label(aggregate, aggregates.run(aggregate, new QueryPlan.SqlFragment(scope.sql(), params))));
     }
 }

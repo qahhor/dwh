@@ -21,7 +21,7 @@ import tools.jackson.databind.node.ObjectNode;
  * would run ({@link QueryAggregates}) and stored in a canonical form the server builds:
  * <pre>{"groupBy": [{"field": "status"}, {"field": "createdAt", "trunc": "month"}],
  *  "measures": [{"op": "count"}, {"op": "sum", "field": "total"}],
- *  "filter": [...], "chart": "bar"}</pre>
+ *  "filter": [...], "chart": "bar", "sort": {"by": "measure", "measure": 0, "direction": "desc"}, "limit": 10}</pre>
  * The chart is table, bar, kpi, line or horizontalBar; the last two need one group and one measure (ADR-0039). Errors point
  * inside {@code state}: {@code state.groupBy[0].field}, {@code state.chart}.
  */
@@ -32,7 +32,8 @@ public class MdReportViewState {
     public static final String BAR_CHART = "bar";
     public static final String KPI_CHART = "kpi";
 
-    private static final Set<String> KEYS = Set.of("groupBy", "measures", "filter", "chart", "dataset");
+    private static final Set<String> KEYS =
+            Set.of("groupBy", "measures", "filter", "chart", "dataset", "sort", "limit");
     private static final Set<String> CHARTS = Set.of(TABLE_CHART, BAR_CHART, KPI_CHART, "line", "horizontalBar");
 
     /** Builds the canonical state tree (plan 10/10, item 3.11: the application's mapper). */
@@ -60,7 +61,12 @@ public class MdReportViewState {
         QueryAggregate aggregate = null;
         try {
             aggregate = QueryAggregates.compile(
-                    list, state.get("groupBy"), state.get("measures"), noFilter ? null : filterNode.toString());
+                    list,
+                    state.get("groupBy"),
+                    state.get("measures"),
+                    noFilter ? null : filterNode.toString(),
+                    state.get("sort"),
+                    state.get("limit"));
         } catch (ApiException e) {
             List<FieldErrorItem> found = e.getFieldErrors();
             if (found == null) throw e;
@@ -84,9 +90,21 @@ public class MdReportViewState {
         }
         canonical.set("filter", noFilter ? json.createArrayNode() : filterNode);
         canonical.put("chart", chart);
+        order(canonical, aggregate.order());
         String dataset = dataset(state);
         if (dataset != null) canonical.put("dataset", dataset);
         return canonical.toString();
+    }
+
+    /** The order of the groups and the top kept, only when the report asks for one. */
+    private static void order(ObjectNode canonical, QueryAggregate.Order order) {
+        if (order.by() != QueryAggregate.By.GROUP || order.descending()) {
+            ObjectNode sort = canonical.putObject("sort").put("by", order.by().wire());
+            if (order.by() == QueryAggregate.By.MEASURE) sort.put("measure", order.measure());
+            sort.put("direction", order.descending() ? "desc" : "asc");
+        }
+        Integer limit = order.limit();
+        if (limit != null) canonical.put("limit", limit.intValue());
     }
 
     private static String chart(JsonNode node, QueryAggregate aggregate, List<FieldErrorItem> errors) {

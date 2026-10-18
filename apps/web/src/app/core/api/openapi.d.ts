@@ -1609,7 +1609,7 @@ export interface paths {
         };
         /**
          * Run a report over a list
-         * @description Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups.
+         * @description Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups, ordered by their values, their words or a measure and cut to a top when asked; each row names its group values in the viewer's language and scope.
          */
         get: operations["report"];
         put?: never;
@@ -1669,7 +1669,7 @@ export interface paths {
         };
         /**
          * Export aggregate report rows
-         * @description Exports the report's original groups and measures, with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.
+         * @description Exports the report's original groups and measures in its order and top, its group values named in the export language, with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.
          */
         get: operations["report_1"];
         put?: never;
@@ -2305,6 +2305,26 @@ export interface paths {
          * @description Sets what a role sees: all, a subtree, chosen units or own records only.
          */
         put: operations["setRoleRule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/iam/org-units/scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the units of my data scope
+         * @description The units the signed-in user may put a record in, as a flat list; every unit for a user whose data scope is all.
+         */
+        get: operations["scope"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -3257,7 +3277,7 @@ export interface paths {
         };
         /**
          * List accessible report definitions
-         * @description Returns owned and role-shared reports with current visible fields. The default limit is 20, maximum 100. An incomplete or empty page can still have a next cursor when inaccessible definitions are omitted.
+         * @description Returns owned and role-shared reports with current visible fields: the reports catalog. Narrowed by list, a part of the name (any case), ownership (mine or shared) and kind. The default limit is 20, maximum 100. An incomplete or empty page can still have a next cursor when inaccessible definitions are omitted.
          */
         get: operations["list_7"];
         put?: never;
@@ -4454,6 +4474,7 @@ export interface components {
         };
         AggregateRow: {
             groups?: (string | number | boolean | null)[];
+            labels?: (string | null)[];
             values?: (number | null)[];
         };
         AnalyticsSummaryDto: {
@@ -5326,6 +5347,7 @@ export interface components {
             layout?: components["schemas"]["FormSectionMeta"][];
             listCode?: string;
             tabs?: components["schemas"]["FormTabMeta"][];
+            titleField?: string;
             titleKey?: string;
             workflow?: components["schemas"]["FormWorkflowMeta"];
         };
@@ -6541,6 +6563,8 @@ export interface components {
             /** Format: date-time */
             modifiedAt: string;
             name: string;
+            /** @description The reader owns the report; otherwise a role shares it with them */
+            owned: boolean;
             shared: boolean;
             state: {
                 [key: string]: unknown;
@@ -6701,11 +6725,13 @@ export interface components {
             fields: components["schemas"]["SimpleFormField"][];
             /**
              * Format: int32
-             * @description 1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope
+             * @description 1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field
              */
             formatVersion: number;
             /** @enum {string} */
             kind: "simple-form";
+            /** @description Format 4: sections and tabs */
+            layout?: components["schemas"]["SimpleFormLayout"];
             module: components["schemas"]["SimpleFormModule"];
         };
         SimpleFormDeliveryPackage: {
@@ -6759,6 +6785,8 @@ export interface components {
              */
             scope?: "all" | "org_unit" | "owner";
             title: components["schemas"]["SimpleFormLabels"];
+            /** @description Format 4: the field that names a record (ADR-0041) - a required, listed text field, or name for the system name and code fields; absent means the record's number */
+            titleField?: string;
         };
         SimpleFormField: {
             /** @description Format 2: the fixed value a new record takes, written as the field reads it */
@@ -6785,6 +6813,10 @@ export interface components {
             ru: string;
             uz: string;
         };
+        SimpleFormLayout: {
+            sections: components["schemas"]["SimpleFormSection"][];
+            tabs?: components["schemas"]["SimpleFormTab"][];
+        };
         SimpleFormMenu: {
             /** @enum {string} */
             icon: "box" | "description" | "assignment" | "event" | "storefront" | "local_shipping" | "inventory_2" | "people" | "support_agent" | "receipt_long";
@@ -6799,6 +6831,18 @@ export interface components {
         };
         SimpleFormOption: {
             code: string;
+            labels: components["schemas"]["SimpleFormLabels"];
+        };
+        SimpleFormSection: {
+            /** @description The ids of the shown fields of the section, in their order */
+            fields: string[];
+            key: string;
+            labels: components["schemas"]["SimpleFormLabels"];
+            /** @description The key of the tab the section is on; present exactly when the form has tabs */
+            tab?: string;
+        };
+        SimpleFormTab: {
+            key: string;
             labels: components["schemas"]["SimpleFormLabels"];
         };
         SimpleFormTarget: {
@@ -11875,6 +11919,10 @@ export interface operations {
                 /** @description The list's filter DSL (JSON array) */
                 filter?: string;
                 dataset?: string;
+                /** @description JSON object: the order of the groups - by group (their values, the default), label (their words) or measure (by position): {"by":"measure","measure":0,"direction":"desc"} */
+                sort?: string;
+                /** @description The most groups kept, 1 to 1000, in the order asked for */
+                limit?: number;
             };
             header?: never;
             path: {
@@ -11975,6 +12023,8 @@ export interface operations {
                 measures?: string;
                 filter?: string;
                 dataset?: string;
+                sort?: string;
+                limit?: number;
                 lang?: string;
             };
             header?: never;
@@ -13319,6 +13369,35 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    scope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgUnitView"][];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -15603,6 +15682,10 @@ export interface operations {
         parameters: {
             query?: {
                 listCode?: string;
+                /** @description A part of the report's name, 1 to 80 characters */
+                q?: string;
+                owner?: "mine" | "shared";
+                kind?: "report" | "widget";
                 limit?: number;
                 cursor?: string;
             };

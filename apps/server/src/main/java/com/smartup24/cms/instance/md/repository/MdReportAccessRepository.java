@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.repository;
 
+import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository.ListView;
@@ -7,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -29,14 +31,40 @@ public class MdReportAccessRepository {
         this.jdbc = jdbc;
     }
 
+    /**
+     * What the catalog shows: the reports of one list, those whose name holds {@code q} (any case), the reader's own
+     * ({@code mine}) or those shared with them ({@code shared}), of one kind; null names no restriction.
+     */
+    public record Filter(
+            @Nullable String listCode,
+            @Nullable String q,
+            @Nullable String owner,
+            @Nullable String kind) {
+        public static final Filter NONE = new Filter(null, null, null, null);
+    }
+
     public List<ReportRow> page(long userId, @Nullable String listCode, TimePage page) {
+        return page(userId, new Filter(listCode, null, null, null), page);
+    }
+
+    public List<ReportRow> page(long userId, Filter filter, TimePage page) {
         var after = page.after();
+        String text = filter.q();
+        String q = text == null || text.isBlank()
+                ? null
+                : "%" + QueryPlan.escapeLike(text.strip().toLowerCase(Locale.ROOT)) + "%";
         return jdbc.sql("select " + COLUMNS + " from md_list_views v where v.kind in ('report', 'widget') and "
                         + READABLE + " and (cast(:list as text) is null or v.list_code = :list)"
+                        + " and (cast(:kind as text) is null or v.kind = :kind)"
+                        + " and (cast(:q as text) is null or lower(v.name) like :q escape '\\')"
+                        + " and (cast(:owner as text) is null or (:owner = 'mine') = (v.user_id = :u))"
                         + " and (cast(:at as timestamptz) is null or (v.modified_at, v.id) < (:at, :id))"
                         + " order by v.modified_at desc, v.id desc limit :limit")
                 .param("u", userId)
-                .param("list", listCode)
+                .param("list", filter.listCode())
+                .param("kind", filter.kind())
+                .param("q", q)
+                .param("owner", filter.owner())
                 .param("at", after == null ? null : Timestamp.from(after.at()))
                 .param("id", after == null ? 0 : after.id())
                 .param("limit", page.limit() + 1)

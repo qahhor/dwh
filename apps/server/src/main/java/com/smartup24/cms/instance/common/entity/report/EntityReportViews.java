@@ -22,10 +22,23 @@ public interface EntityReportViews {
      * @param groupBy  the grouping, a JSON array
      * @param measures the measures, a JSON array
      * @param filter   the filter DSL as JSON text, or null
+     * @param sort     the order of the groups, a JSON object, or null
+     * @param limit    the most groups kept, a JSON number, or null
      */
     record SavedReport(
             @Nullable JsonNode groupBy,
             @Nullable JsonNode measures,
             @Nullable String filter,
-            @Nullable String dataset) {}
+            @Nullable String dataset,
+            @Nullable JsonNode sort,
+            @Nullable JsonNode limit) {
+        /** A report in the default order of its groups. */
+        public SavedReport(
+                @Nullable JsonNode groupBy,
+                @Nullable JsonNode measures,
+                @Nullable String filter,
+                @Nullable String dataset) {
+            this(groupBy, measures, filter, dataset, null, null);
+        }
+    }
 }

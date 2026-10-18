@@ -14,6 +14,7 @@ import com.smartup24.cms.instance.md.service.MdPreferenceSharing;
 import com.smartup24.cms.instance.md.service.MdReportCatalogService;
 import com.smartup24.cms.instance.md.service.MdReportPreferencesInput;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.servlet.http.HttpServletRequest;
@@ -50,16 +51,27 @@ public class MdReportViewController {
     @Operation(
             summary = "List accessible report definitions",
             description =
-                    "Returns owned and role-shared reports with current visible fields. "
-                            + "The default limit is 20, maximum 100. An incomplete or empty page can still have a next cursor when inaccessible definitions are omitted.")
+                    "Returns owned and role-shared reports with current visible fields: the reports catalog."
+                            + " Narrowed by list, a part of the name (any case), ownership (mine or shared) and kind."
+                            + " The default limit is 20, maximum 100. An incomplete or empty page can still have a next cursor when inaccessible definitions are omitted.")
     @GetMapping("/report-views")
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.OK)
     public KeysetPage<ReportViewItem> list(
             @RequestParam(required = false) @Nullable String listCode,
+            @Parameter(description = "A part of the report's name, 1 to 80 characters")
+                    @RequestParam(required = false)
+                    @Nullable
+                    String q,
+            @Parameter(schema = @Schema(allowableValues = {"mine", "shared"})) @RequestParam(required = false) @Nullable
+                    String owner,
+            @Parameter(schema = @Schema(allowableValues = {"report", "widget"}))
+                    @RequestParam(required = false)
+                    @Nullable
+                    String kind,
             @RequestParam(required = false) @Nullable Integer limit,
             @RequestParam(required = false) @Nullable String cursor) {
-        return catalog.list(userId(), listCode, limit, cursor);
+        return catalog.list(userId(), input.catalog(listCode, q, owner, kind), limit, cursor);
     }
 
     @Operation(

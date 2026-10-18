@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -22,7 +23,8 @@ import org.springframework.stereotype.Repository;
 
 /**
  * Runs a {@link QueryAggregate} (ADR-0032, 10.2): one grouped query over the list's {@code from}, the data scope of the
- * viewer passed as a ready predicate in the same SQL (ADR-0013), at most {@value QueryAggregate#MAX_ROWS} groups. A
+ * viewer passed as a ready predicate in the same SQL (ADR-0013), at most {@value QueryAggregate#MAX_ROWS} groups — or the
+ * top the report asks for, in its order. A
  * report reads the working database, so every statement of it is held to {@link #LIMIT}: a report that takes longer
  * is refused with a request to narrow it, and other people's requests are not kept waiting.
  */
@@ -75,7 +77,8 @@ public class QueryAggregateRepository {
             throw ApiException.validation(
                     "error.common.report_too_slow", Map.of("seconds", Math.max(1, limit.toSeconds())), List.of());
         }
-        boolean truncated = rows.size() > QueryAggregate.MAX_ROWS;
+        int cap = aggregate.order().cap();
+        boolean truncated = rows.size() > cap;
         return new QueryAggregateResult(
                 aggregate.groups().stream()
                         .map(group -> new AggregateGroup(
@@ -86,7 +89,7 @@ public class QueryAggregateRepository {
                 aggregate.measures().stream()
                         .map(measure -> new AggregateMeasure(measure.op().wire(), measure.fieldKey()))
                         .toList(),
-                truncated ? rows.subList(0, QueryAggregate.MAX_ROWS) : rows,
+                truncated ? rows.subList(0, cap) : rows,
                 truncated);
     }
 
@@ -106,7 +109,7 @@ public class QueryAggregateRepository {
                 values.add(rs.getBigDecimal(column));
             }
         }
-        return new AggregateRow(groups, values);
+        return new AggregateRow(groups, values, Collections.nCopies(groups.size(), null));
     }
 
     private static @Nullable Object groupValue(ResultSet rs, String column, Group group) throws SQLException {

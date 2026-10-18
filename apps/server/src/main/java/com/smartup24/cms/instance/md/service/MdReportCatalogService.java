@@ -36,9 +36,19 @@ public class MdReportCatalogService {
     @Transactional(readOnly = true)
     public KeysetPage<ReportViewItem> list(
             long userId, @Nullable String listCode, @Nullable Integer limit, @Nullable String cursor) {
+        return list(userId, new MdReportAccessRepository.Filter(listCode, null, null, null), limit, cursor);
+    }
+
+    /**
+     * The catalog of reports the reader may open (ADR-0036): owned and role-shared reports and widgets, narrowed by list,
+     * name, ownership and kind, each revalidated for the reader's fields; an incomplete page may still go on.
+     */
+    @Transactional(readOnly = true)
+    public KeysetPage<ReportViewItem> list(
+            long userId, MdReportAccessRepository.Filter filter, @Nullable Integer limit, @Nullable String cursor) {
         TimePage page = TimePage.of(limit, cursor, 20, 100);
         var candidates = page.page(
-                repo.page(userId, listCode, page),
+                repo.page(userId, filter, page),
                 row -> new TimePage.Position(row.view().modifiedAt(), row.view().id()));
         var visible = candidates.items().stream()
                 .flatMap(row -> visible(row).stream())
@@ -79,7 +89,8 @@ public class MdReportCatalogService {
                     view.modifiedAt(),
                     owner && SecurityContext.hasPermission("md.profile", "update"),
                     owner && SecurityContext.hasPermission("md.settings", "update"),
-                    shared));
+                    shared,
+                    owner));
         } catch (ApiException failure) {
             if (failure.getErrorCode() == ErrorCode.VALIDATION_FAILED
                     || failure.getErrorCode() == ErrorCode.NOT_FOUND) {

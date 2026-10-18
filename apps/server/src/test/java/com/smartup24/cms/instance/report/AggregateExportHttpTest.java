@@ -57,7 +57,8 @@ class AggregateExportHttpTest extends EmbeddedPostgresTest {
         assertThat(response.getContentType()).contains("spreadsheetml.sheet");
         assertThat(response.getHeader("Cache-Control")).contains("no-store");
         String xml = AggregateXlsxCells.xml(response.getContentAsByteArray());
-        assertThat(xml).contains("draft", "UZS", "<v>6.00</v>").doesNotContain("777", tag);
+        // The status is written by its label in the export language, the currency as it is.
+        assertThat(xml).contains("Draft", "UZS", "<v>6.00</v>").doesNotContain("777", tag);
     }
 
     @Test

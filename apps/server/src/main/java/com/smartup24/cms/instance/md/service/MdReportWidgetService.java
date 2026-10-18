@@ -51,6 +51,8 @@ public class MdReportWidgetService implements EntityReportViews {
                 state.get("groupBy"),
                 state.get("measures"),
                 filter == null || filter.isNull() ? null : filter.toString(),
-                MdReportViewState.dataset(state));
+                MdReportViewState.dataset(state),
+                state.get("sort"),
+                state.get("limit"));
     }
 }

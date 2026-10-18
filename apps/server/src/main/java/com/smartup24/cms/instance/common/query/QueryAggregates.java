@@ -62,21 +62,54 @@ public final class QueryAggregates {
     /** A report given as request parameters: {@code groupBy} and {@code measures} as JSON arrays, the filter DSL. */
     public static QueryAggregate compile(
             QueryList list, @Nullable String groupBy, @Nullable String measures, @Nullable String filter) {
+        return compile(list, groupBy, measures, filter, null, null);
+    }
+
+    /**
+     * A report given as request parameters, with the order of its groups as a JSON object and the top it keeps
+     * ({@link QueryAggregateOrders}).
+     */
+    public static QueryAggregate compile(
+            QueryList list,
+            @Nullable String groupBy,
+            @Nullable String measures,
+            @Nullable String filter,
+            @Nullable String sort,
+            @Nullable Integer limit) {
         List<FieldErrorItem> errors = new ArrayList<>();
         JsonNode groups = readArray(groupBy, "groupBy", errors);
         JsonNode values = readArray(measures, "measures", errors);
+        JsonNode order = readArray(sort, "sort", errors);
         if (!errors.isEmpty()) {
             throw invalid(errors);
         }
-        return compile(list, groups, values, filter);
+        return compile(
+                list,
+                groups,
+                values,
+                filter,
+                order,
+                limit == null ? null : JSON.getNodeFactory().numberNode(limit));
     }
 
     /** A report as a saved view holds it: {@code groupBy} and {@code measures} as JSON trees, the filter DSL. */
     public static QueryAggregate compile(
             QueryList list, @Nullable JsonNode groupBy, @Nullable JsonNode measures, @Nullable String filter) {
+        return compile(list, groupBy, measures, filter, null, null);
+    }
+
+    /** A report as a saved view holds it, with the order of its groups and the top it keeps. */
+    public static QueryAggregate compile(
+            QueryList list,
+            @Nullable JsonNode groupBy,
+            @Nullable JsonNode measures,
+            @Nullable String filter,
+            @Nullable JsonNode sort,
+            @Nullable JsonNode limit) {
         List<FieldErrorItem> errors = new ArrayList<>();
         List<Group> groups = groups(list, groupBy, errors);
         List<Measure> parsed = measures(list, measures, errors);
+        QueryAggregate.Order order = QueryAggregateOrders.order(sort, limit, groups.size(), parsed.size(), errors);
         QueryPlan plan = null;
         try {
             plan = QueryCompiler.compile(list, filter, null, null, null);
@@ -96,7 +129,7 @@ public final class QueryAggregates {
                                     group.field().key().equals(currency.field().key())))
                     .ifPresent(all::add);
         }
-        return new QueryAggregate(list, all, parsed, plan);
+        return new QueryAggregate(list, all, parsed, plan, order);
     }
 
     private static List<Group> groups(QueryList list, @Nullable JsonNode node, List<FieldErrorItem> errors) {

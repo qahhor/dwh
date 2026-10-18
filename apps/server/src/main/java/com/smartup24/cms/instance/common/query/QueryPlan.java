@@ -216,7 +216,7 @@ public record QueryPlan(
         }
     }
 
-    static String escapeLike(String value) {
+    public static String escapeLike(String value) {
         return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }

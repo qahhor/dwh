@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.report.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.entity.report.EntityReports;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.report.export.AggregateExportService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,8 +37,8 @@ public class AggregateExportController {
     @Operation(
             summary = "Export aggregate report rows",
             description =
-                    "Exports the report's original groups and measures,"
-                            + " with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.")
+                    "Exports the report's original groups and measures in its order and top, its group values named"
+                            + " in the export language, with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.")
     @GetMapping(value = "/entities/{code}/report/export", produces = XLSX)
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.OK)
@@ -47,9 +48,12 @@ public class AggregateExportController {
             @RequestParam(required = false) @Nullable String measures,
             @RequestParam(required = false) @Nullable String filter,
             @RequestParam(required = false) @Nullable String dataset,
+            @RequestParam(required = false) @Nullable String sort,
+            @RequestParam(required = false) @Nullable Integer limit,
             @RequestParam(defaultValue = "ru") String lang)
             throws IOException {
-        return file(exports.report(code, dataset, groupBy, measures, filter, lang));
+        return file(
+                exports.report(code, dataset, new EntityReports.Request(groupBy, measures, filter, sort, limit), lang));
     }
 
     @Operation(

@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.entity.report.EntityDashboardReports;
 import com.smartup24.cms.instance.common.entity.report.EntityReports;
 import com.smartup24.cms.instance.common.query.QueryAggregateResult;
 import com.smartup24.cms.instance.common.query.QueryList;
+import com.smartup24.cms.instance.common.web.RequestLanguage;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -25,27 +26,22 @@ public class AggregateExportService {
         this.i18n = i18n;
     }
 
-    public byte[] report(
-            String code,
-            @Nullable String dataset,
-            @Nullable String groupBy,
-            @Nullable String measures,
-            @Nullable String filter,
-            String lang)
+    /** The report as asked; its group values named in {@code lang}, as the sheet's headers are. */
+    public byte[] report(String code, @Nullable String dataset, EntityReports.Request request, String lang)
             throws IOException {
-        var result = reports.execute(code, dataset, groupBy, measures, filter);
+        var result = RequestLanguage.with(lang, () -> reports.execute(code, dataset, request));
         return workbook(code, result.list(), result.data(), lang);
     }
 
     public byte[] saved(String code, long viewId, String lang) throws IOException {
-        var result = reports.executeSaved(code, viewId, null);
+        var result = RequestLanguage.with(lang, () -> reports.executeSaved(code, viewId, null));
         return workbook(code, result.list(), result.data(), lang);
     }
 
     public byte[] dashboard(
             long id, long revision, long viewId, @Nullable LocalDate from, @Nullable LocalDate to, String lang)
             throws IOException {
-        var result = dashboards.result(id, revision, viewId, from, to);
+        var result = RequestLanguage.with(lang, () -> dashboards.result(id, revision, viewId, from, to));
         return workbook(result.entity(), result.list(), result.data(), lang);
     }
 

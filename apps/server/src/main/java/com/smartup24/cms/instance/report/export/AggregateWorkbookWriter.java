@@ -15,7 +15,10 @@ import org.dhatim.fastexcel.Workbook;
 import org.dhatim.fastexcel.Worksheet;
 import org.jspecify.annotations.Nullable;
 
-/** Bounded, unmodified aggregate rows; chart series reduction never enters an export (ADR-0036). */
+/**
+ * Bounded, unmodified aggregate rows in the report's order; chart series reduction never enters an export (ADR-0036).
+ * A group value is written by its label when the report names it, raw otherwise.
+ */
 final class AggregateWorkbookWriter {
     private AggregateWorkbookWriter() {}
 
@@ -38,7 +41,14 @@ final class AggregateWorkbookWriter {
             int row = 1;
             for (var item : result.rows()) {
                 int col = 0;
-                for (Object value : item.groups()) value(data, row, col++, value);
+                for (int group = 0; group < item.groups().size(); group++) {
+                    String label = item.labels().get(group);
+                    value(
+                            data,
+                            row,
+                            col++,
+                            label != null ? label : item.groups().get(group));
+                }
                 for (Object value : item.values()) value(data, row, col++, value);
                 row++;
             }
@@ -106,7 +116,10 @@ final class AggregateWorkbookWriter {
         rows.add(List.of("truncated", Boolean.toString(result.truncated())));
         rows.add(List.of("rows", Integer.toString(result.rows().size())));
         rows.add(List.of("precision", "More than 15 significant digits are stored as text"));
-        rows.add(List.of("groups", "Raw enum codes and reference IDs; date buckets start in UTC for INSTANT"));
+        rows.add(List.of(
+                "groups",
+                "Labels of choices, list items, users and records in the export language and the reader's scope;"
+                        + " a value without one is written raw; date buckets start in UTC for INSTANT"));
         int column = 1;
         for (var group : result.groups()) {
             rows.add(List.of(

@@ -146,6 +146,11 @@ class EntityReportIntegrationTest extends EmbeddedPostgresTest {
                         row(List.of("draft", "UZS"), 1, 30.0),
                         row(List.of("posted", "UZS"), 1, 7.4));
         assertThat(report).containsEntry("truncated", false);
+        // A choice is named in the reader's language; the currency the platform adds keeps no word.
+        assertThat(labels(report)).allSatisfy(words -> {
+            assertThat((List<?>) words).first().isNotNull().isNotIn("draft", "posted");
+            assertThat((List<?>) words).last().isNull();
+        });
 
         Map<String, Object> theirs = report(other, ORDERS, null, null, customer());
         assertThat(rows(theirs)).containsExactly(row(List.of(), 1));
@@ -166,6 +171,11 @@ class EntityReportIntegrationTest extends EmbeddedPostgresTest {
 
         String month = LocalDate.now().withDayOfMonth(1).toString();
         assertThat(rows(report)).containsExactly(row(List.of(month, Math.toIntExact(clerk.unit()), "UZS"), 2, 2.0));
+        // A date bucket keeps no word; a reference is named by its row.
+        assertThat(labels(report))
+                .singleElement()
+                .satisfies(words ->
+                        assertThat((List<?>) words).element(1).asString().startsWith("TEST unit"));
     }
 
     @Test
@@ -394,9 +404,19 @@ class EntityReportIntegrationTest extends EmbeddedPostgresTest {
         return body;
     }
 
+    /** The rows by their group values and measures; their labels are checked apart ({@link #labels}). */
     @SuppressWarnings("unchecked")
     private static List<Object> rows(Map<String, Object> report) {
-        return (List<Object>) report.get("rows");
+        return ((List<Map<String, Object>>) report.get("rows"))
+                .stream()
+                        .<Object>map(row -> Map.of("groups", row.get("groups"), "values", row.get("values")))
+                        .toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> labels(Map<String, Object> report) {
+        return ((List<Map<String, Object>>) report.get("rows"))
+                .stream().map(row -> row.get("labels")).toList();
     }
 
     private static Map<String, Object> row(List<?> groups, Object... values) {

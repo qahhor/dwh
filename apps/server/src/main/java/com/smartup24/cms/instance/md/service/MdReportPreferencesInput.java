@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.api.MdReportDashboardDtos.DashboardRequest;
 import com.smartup24.cms.instance.md.api.MdReportDashboardDtos.DashboardWidgetRequest;
 import com.smartup24.cms.instance.md.api.MdReportDashboardDtos.SharingRequest;
+import com.smartup24.cms.instance.md.repository.MdReportAccessRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -16,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonToken;
@@ -46,6 +48,19 @@ public class MdReportPreferencesInput {
         JsonNode root = parse(read(request));
         known(root, Set.of("name", "widgets"), "request");
         return new DashboardRequest(name(text(root.get("name"), "name")), widgets(root.get("widgets")));
+    }
+
+    /**
+     * The narrowing of the reports catalog: a list code, a part of the name of 1 to 80 characters, {@code mine} or
+     * {@code shared}, {@code report} or {@code widget}; 422 at the parameter otherwise.
+     */
+    public MdReportAccessRepository.Filter catalog(
+            @Nullable String listCode, @Nullable String q, @Nullable String owner, @Nullable String kind) {
+        String name = q == null || q.isBlank() ? null : q.strip();
+        if (name != null && name.codePointCount(0, name.length()) > 80) throw invalid("q", "limit");
+        if (owner != null && !Set.of("mine", "shared").contains(owner)) throw invalid("owner", "structure");
+        if (kind != null && !Set.of("report", "widget").contains(kind)) throw invalid("kind", "structure");
+        return new MdReportAccessRepository.Filter(listCode, name, owner, kind);
     }
 
     public SharingRequest sharing(HttpServletRequest request) throws IOException {

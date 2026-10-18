@@ -19,8 +19,10 @@ import org.jspecify.annotations.Nullable;
  * @param groups   what the rows are grouped by, the implicit currency of money measures last
  * @param measures what each group answers, in the requested order
  * @param filter   the list's filter, validated as for a page; its sort, page and cursor are not used
+ * @param order    how the groups are ordered and how many are kept
  */
-public record QueryAggregate(QueryList list, List<Group> groups, List<Measure> measures, QueryPlan filter) {
+public record QueryAggregate(
+        QueryList list, List<Group> groups, List<Measure> measures, QueryPlan filter, Order order) {
 
     /** No chart or table shows more groups; the query reads one more to tell that the answer was cut. */
     public static final int MAX_ROWS = 1000;
@@ -120,9 +122,64 @@ public record QueryAggregate(QueryList list, List<Group> groups, List<Measure> m
         }
     }
 
+    /** What the groups are ordered by: their values, their words or a measure. */
+    public enum By {
+        GROUP,
+        LABEL,
+        MEASURE;
+
+        public String wire() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+
+        static Optional<By> fromWire(String text) {
+            for (By by : values()) {
+                if (by.wire().equals(text)) return Optional.of(by);
+            }
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * The order of the groups and the top of them a report keeps (plan 10/10, the form and report builder): by their
+     * values (the default: a choice's code, a row key, a date), by their words — the labels of choices, list items, users
+     * and records, ordered once the words are read — or by a measure; at most {@code limit} groups when it is given.
+     *
+     * @param measure the position of the measure ordered by, for {@link By#MEASURE}
+     */
+    public record Order(
+            By by,
+            int measure,
+            boolean descending,
+            @Nullable Integer limit) {
+        /** The groups by their values, ascending, as many as {@value #MAX_ROWS}. */
+        public static final Order DEFAULT = new Order(By.GROUP, 0, false, null);
+
+        public Order {
+            Objects.requireNonNull(by, "by");
+            if (limit != null && (limit < 1 || limit > MAX_ROWS)) {
+                throw new IllegalArgumentException("A report keeps 1 to " + MAX_ROWS + " groups");
+            }
+        }
+
+        /** The groups the query reads before the words are known: every one for an order by words. */
+        public int cap() {
+            return limit == null || by == By.LABEL ? MAX_ROWS : limit;
+        }
+    }
+
+    /** An aggregate in the default order. */
+    public QueryAggregate(QueryList list, List<Group> groups, List<Measure> measures, QueryPlan filter) {
+        this(list, groups, measures, filter, Order.DEFAULT);
+    }
+
     public QueryAggregate {
         Objects.requireNonNull(list, "list");
         Objects.requireNonNull(filter, "filter");
+        Objects.requireNonNull(order, "order");
+        if (order.by() == By.MEASURE && order.measure() >= measures.size()) {
+            throw new IllegalArgumentException("The order names a measure the aggregate does not answer");
+        }
         groups = List.copyOf(groups);
         measures = List.copyOf(measures);
         if (measures.isEmpty()) {
@@ -142,8 +199,8 @@ public record QueryAggregate(QueryList list, List<Group> groups, List<Measure> m
 
     /**
      * The aggregate as SQL: {@code select <groups>, <measures> from <list> where <extra> <filter> group by <groups>
-     * order by <groups> limit} {@value #MAX_ROWS} + 1. Groups are numbered by position, so each expression is written
-     * once.
+     * order by [<measure>,] <groups> limit} the {@link Order#cap() cap} + 1. Groups are numbered by position, so each
+     * expression is written once; the measure ordered by is named by its column.
      *
      * @param extra the data scope of the viewer ({@code " and ..."}), its parameters not prefixed {@code q_}
      */
@@ -167,14 +224,18 @@ public record QueryAggregate(QueryList list, List<Group> groups, List<Measure> m
                 .append(where.sql());
         if (!positions.isEmpty()) {
             sql.append(" group by ").append(String.join(", ", positions));
-            sql.append(" order by ")
-                    .append(String.join(" nulls last, ", positions))
-                    .append(" nulls last");
+            sql.append(" order by ");
+            if (order.by() == By.MEASURE) {
+                sql.append(measureColumn(order.measure()))
+                        .append(order.descending() ? " desc" : " asc")
+                        .append(" nulls last, ");
+            }
+            sql.append(String.join(" nulls last, ", positions)).append(" nulls last");
         }
         sql.append(" limit :q_rows");
         Map<String, Object> params = new LinkedHashMap<>(extra.params());
         params.putAll(where.params());
-        params.put("q_rows", MAX_ROWS + 1);
+        params.put("q_rows", order.cap() + 1);
         return new QueryPlan.SqlFragment(sql.toString(), params);
     }
 }

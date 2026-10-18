@@ -68,7 +68,8 @@ public class EntityReportController {
             summary = "Run a report over a list",
             description = "Groups the records of an entity the viewer may see and answers counts and totals per group:"
                     + " at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000"
-                    + " groups.")
+                    + " groups, ordered by their values, their words or a measure and cut to a top when asked; each"
+                    + " row names its group values in the viewer's language and scope.")
     @GetMapping("/{code}/report")
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.OK)
@@ -86,9 +87,21 @@ public class EntityReportController {
                     String measures,
             @Parameter(description = "The list's filter DSL (JSON array)") @RequestParam(required = false) @Nullable
                     String filter,
-            @RequestParam(required = false) @Nullable String dataset) {
+            @RequestParam(required = false) @Nullable String dataset,
+            @Parameter(
+                            description = "JSON object: the order of the groups - by group (their values, the default),"
+                                    + " label (their words) or measure (by position):"
+                                    + " {\"by\":\"measure\",\"measure\":0,\"direction\":\"desc\"}")
+                    @RequestParam(required = false)
+                    @Nullable
+                    String sort,
+            @Parameter(description = "The most groups kept, 1 to 1000, in the order asked for")
+                    @RequestParam(required = false)
+                    @Nullable
+                    Integer limit) {
         return ResponseEntity.ok(
-                reports.execute(code, dataset, groupBy, measures, filter).data());
+                reports.execute(code, dataset, new EntityReports.Request(groupBy, measures, filter, sort, limit))
+                        .data());
     }
 
     @Operation(
