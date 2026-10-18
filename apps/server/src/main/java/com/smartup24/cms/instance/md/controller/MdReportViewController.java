@@ -75,6 +75,17 @@ public class MdReportViewController {
     }
 
     @Operation(
+            summary = "Read an accessible report definition",
+            description = "An owned or role-shared report or widget with its current visible state, revalidated for"
+                    + " the reader as in the catalog; 404 when the reader may not open it (ADR-0036, ADR-0045).")
+    @GetMapping("/report-views/{id}")
+    @RequiresPermission(form = "md.profile", action = "view")
+    @ResponseStatus(HttpStatus.OK)
+    public ReportViewItem reportView(@PathVariable long id) {
+        return catalog.require(userId(), id);
+    }
+
+    @Operation(
             summary = "List active sharing roles",
             description = "Returns only role identifiers and names under settings-update permission. "
                     + "The default limit is 20, maximum 100; larger limits return 422.")

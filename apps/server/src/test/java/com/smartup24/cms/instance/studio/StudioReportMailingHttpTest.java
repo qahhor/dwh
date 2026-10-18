@@ -361,6 +361,11 @@ class StudioReportMailingHttpTest extends EmbeddedPostgresTest {
         assertThat(stranger.send(get("/api/v1/report-mailings").param("viewId", Long.toString(viewId)))
                         .getStatus())
                 .isEqualTo(404);
+        assertThat(stranger.send(get("/api/v1/report-views/" + viewId)).getStatus())
+                .isEqualTo(404);
+        MockHttpServletResponse view = south.send(get("/api/v1/report-views/" + viewId));
+        assertThat(view.getStatus()).isEqualTo(200);
+        assertThat(TestSession.object(view)).containsEntry("owned", false).containsEntry("entity", orders);
 
         Map<String, Object> mailing = create(request(
                 List.of(southUser.id()),

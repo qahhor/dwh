@@ -13081,6 +13081,45 @@
         "tags" : [ "md-report-view-controller" ]
       }
     },
+    "/api/v1/report-views/{id}" : {
+      "get" : {
+        "description" : "An owned or role-shared report or widget with its current visible state, revalidated for the reader as in the catalog; 404 when the reader may not open it (ADR-0036, ADR-0045).",
+        "operationId" : "reportView",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportViewItem"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read an accessible report definition",
+        "tags" : [ "md-report-view-controller" ]
+      }
+    },
     "/api/v1/report-widgets" : {
       "get" : {
         "description" : "The viewer's widgets for the dashboard, at most 12, over the entities the viewer may see.",

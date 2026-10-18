@@ -3476,6 +3476,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/report-views/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an accessible report definition
+         * @description An owned or role-shared report or widget with its current visible state, revalidated for the reader as in the catalog; 404 when the reader may not open it (ADR-0036, ADR-0045).
+         */
+        get: operations["reportView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/report-widgets": {
         parameters: {
             query?: never;
@@ -16929,6 +16949,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["KeysetPageReportViewItem"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    reportView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportViewItem"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
