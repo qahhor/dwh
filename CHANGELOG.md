@@ -9,6 +9,22 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- File fields of live forms (ADR-0043, simple-form format 7): a field of type `file` holds one
+  file or several up to `maxFiles` (2 to 10), with optional content types and a largest size
+  (1 to 50 MB). Files go only through the files module (`POST /api/v1/files/upload`: content
+  check, virus scan when enabled, quotas); the record keeps their ids and reads them back with
+  names. A save attaches only the saver's own uploads or the record's own files; a file is
+  downloaded through its record by whoever may read the record (view right and data scope),
+  404 otherwise. Replacing or clearing a field detaches its files, deleting the record detaches
+  them all. The XLSX export writes file names, the history the change, a webhook the files'
+  metadata. Version rules: `files_multiple` and `max_files` refused, types and size free.
+- The platform runtime: a file field may live in a JSON property of a partitioned entity, and
+  with `maxItems` it holds an array of file ids (`EntityFileValues`, `EntityFiles.attachAll`);
+  the Platform API rules are only widened (japicmp green).
+- Web: the file control shows the upload's progress and "Файл проверяется…" while the server
+  checks the file, holds several files with a counter and a remove button each; the card lists
+  the files with their links; the Studio editors offer the type «Файл» with «Файлы поля».
+
 - Webhook subscriptions get a scope (ADR-0041, owner decisions of 2026-10-18): `creator`,
   the records the subscription's creator may read when the event is written — an active
   user holding the entity's `view` right whose data scope holds the record — or `all`,
@@ -293,6 +309,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Breaking (OpenAPI):** `SimpleFormField.type` and `StudioFormulaField.type` take `file`,
+  `SimpleFormField` takes `files` and `formatVersion` goes up to 7 (ADR-0043); openapi-diff
+  reports the wider enumerations of answers as a break. Existing declarations keep their
+  meaning and checksums.
 - **Breaking:** a webhook subscription created without `scope` sends only the records its
   creator may read (`creator`); existing subscriptions take the same scope. `all` restores
   the previous delivery of every record. Webhook DTOs moved to `webhook.api.WebhookDtos`
