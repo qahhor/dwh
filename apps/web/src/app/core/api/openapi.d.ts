@@ -4423,7 +4423,7 @@ export interface paths {
         put?: never;
         /**
          * Create a webhook subscription
-         * @description Subscribes a target URL to events; the signing key is returned once and never stored for replay.
+         * @description Subscribes a target URL to events, for every record or only the records its creator may read (scope, creator by default); the signing key is returned once and never stored for replay.
          */
         post: operations["createSubscription"];
         delete?: never;
@@ -4451,7 +4451,7 @@ export interface paths {
         head?: never;
         /**
          * Update a webhook subscription
-         * @description Changes the name, target, events or state of a subscription.
+         * @description Changes the name, target, events, state or scope of a subscription.
          */
         patch: operations["updateSubscription"];
         trace?: never;
@@ -4785,6 +4785,11 @@ export interface components {
         };
         CreateSubscriptionDto: {
             name: string;
+            /**
+             * @description Which records are sent: creator (default) or all
+             * @enum {string}
+             */
+            scope?: "creator" | "all";
             subscribedEvents: string[];
             targetUrl: string;
         };
@@ -4805,6 +4810,8 @@ export interface components {
             /** Format: int64 */
             id?: number;
             name?: string;
+            /** @enum {string} */
+            scope?: "creator" | "all";
             secretToken?: string;
             state?: string;
             subscribedEvents?: string[];
@@ -7281,6 +7288,8 @@ export interface components {
             name?: string;
             /** Format: int64 */
             revision?: number;
+            /** @enum {string} */
+            scope?: "creator" | "all";
             state?: string;
             subscribedEvents?: string[];
             targetUrl?: string;
@@ -7421,6 +7430,11 @@ export interface components {
         };
         UpdateSubscriptionDto: {
             name?: string;
+            /**
+             * @description Which records are sent: creator or all
+             * @enum {string}
+             */
+            scope?: "creator" | "all";
             state?: string;
             subscribedEvents?: string[];
             targetUrl?: string;

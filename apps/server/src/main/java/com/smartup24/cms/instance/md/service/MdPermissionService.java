@@ -210,5 +210,14 @@ public class MdPermissionService {
         return permissionRepository.holders(form, actions, limit);
     }
 
+    /**
+     * Whether the user is active and holds {@code form.action} now: what a webhook subscription scoped to its creator
+     * asks of the creator before a record is sent (ADR-0041, owner decisions of 2026-10-18).
+     */
+    @Transactional(readOnly = true)
+    public boolean activeHolder(long userId, String form, String action) {
+        return permissionRepository.activeHolder(userId, form, action);
+    }
+
     public record CatalogSyncResult(int declared, int deprecated, List<String> deprecatedPairs) {}
 }

@@ -18,12 +18,12 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.example.service.ExampleRequestsEntity;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos.WebhookEventView;
 import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
 import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository;
 import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository.SubscriptionRecord;
 import com.smartup24.cms.instance.webhook.service.WebhookProperties;
 import com.smartup24.cms.instance.webhook.service.WebhookService;
-import com.smartup24.cms.instance.webhook.service.WebhookService.WebhookEventView;
 import com.smartup24.cms.instance.webhook.service.WebhookTargetPolicy;
 import com.smartup24.cms.platform.api.entity.Entity;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
@@ -57,9 +57,10 @@ class WebhookServiceLifecycleTest {
     @SuppressWarnings("unchecked")
     void updateIsAuditedWithRedactedAddresses() {
         when(subscriptions.findById(7L)).thenReturn(Optional.of(record(7L, TARGET, "A")));
-        when(subscriptions.update(7L, "Renamed", null, List.of("*"), "P", 3L)).thenReturn(4L);
+        when(subscriptions.update(7L, "Renamed", null, List.of("*"), "P", null, 3L))
+                .thenReturn(4L);
 
-        long revision = service.updateSubscription(7L, "Renamed", null, List.of("*"), "P", 3L);
+        long revision = service.updateSubscription(7L, "Renamed", null, List.of("*"), "P", null, 3L);
 
         assertThat(revision).isEqualTo(4L);
         ArgumentCaptor<Map<String, Object>> before = ArgumentCaptor.forClass(Map.class);
@@ -97,7 +98,7 @@ class WebhookServiceLifecycleTest {
     void missingSubscriptionIsNotFound() {
         when(subscriptions.findById(9L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.updateSubscription(9L, "x", null, null, null, 1L))
+        assertThatThrownBy(() -> service.updateSubscription(9L, "x", null, null, null, null, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.webhook.subscription_not_found");
         assertThatThrownBy(() -> service.deleteSubscription(9L))
@@ -110,7 +111,7 @@ class WebhookServiceLifecycleTest {
     @Test
     @DisplayName("An update with an unknown event is refused before the subscription is read")
     void updateWithUnknownEventIsRefused() {
-        assertThatThrownBy(() -> service.updateSubscription(7L, null, null, List.of("nope.created"), null, 1L))
+        assertThatThrownBy(() -> service.updateSubscription(7L, null, null, List.of("nope.created"), null, null, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.webhook.event_unknown")
                 .hasFieldOrPropertyWithValue("params", Map.of("event", "nope.created"));
@@ -121,11 +122,11 @@ class WebhookServiceLifecycleTest {
     @DisplayName("Creation audits the redacted address and never the signing key")
     @SuppressWarnings("unchecked")
     void creationIsAuditedWithoutTheSecret() {
-        when(subscriptions.create(eq("Orders"), eq(TARGET), any(), eq(List.of()), eq(1L)))
+        when(subscriptions.create(eq("Orders"), eq(TARGET), any(), eq(List.of()), eq("creator"), eq(1L)))
                 .thenAnswer(call -> new SubscriptionRecord(
-                        5L, "Orders", TARGET, call.getArgument(2), List.of(), "A", Instant.now(), 1L, 1L));
+                        5L, "Orders", TARGET, call.getArgument(2), List.of(), "A", "creator", Instant.now(), 1L, 1L));
 
-        var created = service.createSubscription("Orders", TARGET, List.of(), 1L);
+        var created = service.createSubscription("Orders", TARGET, List.of(), null, 1L);
 
         assertThat(created.secretToken()).hasSizeGreaterThanOrEqualTo(43);
         assertThat(created.targetUrl()).isEqualTo("https://93.184.216.34/events");
@@ -142,10 +143,13 @@ class WebhookServiceLifecycleTest {
         AtomicInteger built = new AtomicInteger();
         when(subscriptions.findActiveByEvent("tasks.created")).thenReturn(List.of());
 
-        service.publishEvent("tasks.created", () -> {
-            built.incrementAndGet();
-            return Map.of("id", 1);
-        });
+        service.publishEvent(
+                "tasks.created",
+                () -> {
+                    built.incrementAndGet();
+                    return Map.of("id", 1);
+                },
+                creator -> true);
 
         assertThat(built).hasValue(0);
         verifyNoInteractions(outbox);
@@ -156,6 +160,83 @@ class WebhookServiceLifecycleTest {
 
         verify(outbox).enqueue(1L, "tasks.created", Map.of("id", 2));
         verify(outbox).enqueue(2L, "tasks.created", Map.of("id", 2));
+    }
+
+    @Test
+    @DisplayName("A subscription scoped to its creator receives an event only when its creator reads the record")
+    void aCreatorScopedSubscriptionHearsWhatItsCreatorReads() {
+        AtomicInteger asked = new AtomicInteger();
+        when(subscriptions.findActiveByEvent("studio.orders.created"))
+                .thenReturn(List.of(
+                        scoped(1L, "creator", 10L),
+                        scoped(2L, "creator", 10L),
+                        scoped(3L, "creator", 20L),
+                        scoped(4L, "all", 20L),
+                        scoped(5L, "creator", null)));
+
+        service.publishEvent("studio.orders.created", () -> Map.of("id", 9), creator -> {
+            asked.incrementAndGet();
+            return creator == 10L;
+        });
+
+        verify(outbox).enqueue(1L, "studio.orders.created", Map.of("id", 9));
+        verify(outbox).enqueue(2L, "studio.orders.created", Map.of("id", 9));
+        verify(outbox).enqueue(4L, "studio.orders.created", Map.of("id", 9));
+        verify(outbox, never()).enqueue(eq(3L), any(), any());
+        verify(outbox, never()).enqueue(eq(5L), any(), any());
+        assertThat(asked).as("each creator is asked once").hasValue(2);
+        assertThat(service.scopedCreators("studio.orders.created")).containsExactlyInAnyOrder(10L, 20L);
+    }
+
+    @Test
+    @DisplayName("Nobody receives the event: its payload is never built")
+    void aWithheldEventIsNeverBuilt() {
+        AtomicInteger built = new AtomicInteger();
+        when(subscriptions.findActiveByEvent("studio.orders.updated")).thenReturn(List.of(scoped(1L, "creator", 10L)));
+
+        service.publishEvent(
+                "studio.orders.updated",
+                () -> {
+                    built.incrementAndGet();
+                    return Map.of();
+                },
+                creator -> false);
+
+        assertThat(built).hasValue(0);
+        verifyNoInteractions(outbox);
+    }
+
+    @Test
+    @DisplayName("A scope is creator by default, audited, and only creator or all; an update may change it")
+    @SuppressWarnings("unchecked")
+    void theScopeIsCheckedDefaultedAndAudited() {
+        when(subscriptions.create(eq("Orders"), eq(TARGET), any(), eq(List.of()), any(), eq(1L)))
+                .thenAnswer(call -> new SubscriptionRecord(
+                        5L, "Orders", TARGET, "k", List.of(), "A", call.getArgument(4), Instant.now(), 1L, 1L));
+
+        assertThat(service.createSubscription("Orders", TARGET, List.of(), null, 1L)
+                        .scope())
+                .isEqualTo("creator");
+        assertThat(service.createSubscription("Orders", TARGET, List.of(), "all", 1L)
+                        .scope())
+                .isEqualTo("all");
+        assertThatThrownBy(() -> service.createSubscription("Orders", TARGET, List.of(), "unit", 1L))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("messageKey", "error.webhook.scope_invalid");
+
+        when(subscriptions.findById(7L)).thenReturn(Optional.of(record(7L, TARGET, "A")));
+        when(subscriptions.update(7L, null, null, null, null, "creator", 3L)).thenReturn(4L);
+        assertThat(service.updateSubscription(7L, null, null, null, null, "creator", 3L))
+                .isEqualTo(4L);
+        ArgumentCaptor<Map<String, Object>> before = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<String, Object>> after = ArgumentCaptor.forClass(Map.class);
+        verify(audit)
+                .logChange(eq("kwh_subscriptions"), eq("7"), eq("U"), anyList(), before.capture(), after.capture());
+        assertThat(before.getValue()).containsEntry("scope", "all");
+        assertThat(after.getValue()).containsEntry("scope", "creator");
+        assertThatThrownBy(() -> service.updateSubscription(7L, null, null, null, null, "everyone", 4L))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("messageKey", "error.webhook.scope_invalid");
     }
 
     @Test
@@ -227,9 +308,14 @@ class WebhookServiceLifecycleTest {
                 .isNotEqualTo(WebhookService.computeHmacSha256(2L, "{}", "k"));
     }
 
+    private static SubscriptionRecord scoped(long id, String scope, Long creator) {
+        return new SubscriptionRecord(
+                id, "Orders", TARGET, "signing-secret", List.of("*"), "A", scope, Instant.now(), creator, 1L);
+    }
+
     private static SubscriptionRecord record(long id, String target, String state) {
         return new SubscriptionRecord(
-                id, "Orders", target, "signing-secret", List.of("*"), state, Instant.now(), 1L, 3L);
+                id, "Orders", target, "signing-secret", List.of("*"), state, "all", Instant.now(), 1L, 3L);
     }
 
     private static WebhookTargetPolicy policy() {

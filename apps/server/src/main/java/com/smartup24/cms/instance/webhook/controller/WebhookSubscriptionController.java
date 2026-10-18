@@ -6,12 +6,14 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos.CreateSubscriptionDto;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos.CreatedSubscription;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos.SubscriptionView;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos.UpdateSubscriptionDto;
 import com.smartup24.cms.instance.webhook.pref.WebhookPref;
 import com.smartup24.cms.instance.webhook.service.WebhookService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,30 +32,30 @@ public class WebhookSubscriptionController {
     @Operation(summary = "List webhook subscriptions", description = "The webhook subscriptions of the installation.")
     @GetMapping
     @RequiresPermission(form = WebhookPref.FORM_WEBHOOKS, action = "view")
-    public ResponseEntity<List<WebhookService.SubscriptionView>> listSubscriptions() {
+    public ResponseEntity<List<SubscriptionView>> listSubscriptions() {
         return ResponseEntity.ok(webhookService.listSubscriptions());
     }
 
     @Operation(
             summary = "Create a webhook subscription",
-            description =
-                    "Subscribes a target URL to events; the signing key is returned once and never stored for replay.")
+            description = "Subscribes a target URL to events, for every record or only the records its creator may read"
+                    + " (scope, creator by default); the signing key is returned once and never stored for"
+                    + " replay.")
     @PostMapping
     @RequiresPermission(form = WebhookPref.FORM_WEBHOOKS, action = "manage")
     @ReturnsSecret
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<WebhookService.CreatedSubscription> createSubscription(
-            @Valid @RequestBody CreateSubscriptionDto body) {
+    public ResponseEntity<CreatedSubscription> createSubscription(@Valid @RequestBody CreateSubscriptionDto body) {
 
         Long currentUserId = SecurityContext.getCurrentUserId();
         var sub = webhookService.createSubscription(
-                body.name(), body.targetUrl(), body.subscribedEvents(), currentUserId);
+                body.name(), body.targetUrl(), body.subscribedEvents(), body.scope(), currentUserId);
         return Created.at("/api/v1/webhooks/subscriptions/{id}", sub.id(), sub);
     }
 
     @Operation(
             summary = "Update a webhook subscription",
-            description = "Changes the name, target, events or state of a subscription.")
+            description = "Changes the name, target, events, state or scope of a subscription.")
     @PatchMapping("/{id}")
     @RequiresPermission(form = WebhookPref.FORM_WEBHOOKS, action = "manage")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -63,7 +65,13 @@ public class WebhookSubscriptionController {
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
             @RequestBody UpdateSubscriptionDto body) {
         long revision = webhookService.updateSubscription(
-                id, body.name(), body.targetUrl(), body.subscribedEvents(), body.state(), Revisions.required(ifMatch));
+                id,
+                body.name(),
+                body.targetUrl(),
+                body.subscribedEvents(),
+                body.state(),
+                body.scope(),
+                Revisions.required(ifMatch));
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
@@ -75,11 +83,4 @@ public class WebhookSubscriptionController {
         webhookService.deleteSubscription(id);
         return ResponseEntity.noContent().build();
     }
-
-    public record CreateSubscriptionDto(
-            @NotBlank String name,
-            @NotBlank String targetUrl,
-            @NotEmpty List<String> subscribedEvents) {}
-
-    public record UpdateSubscriptionDto(String name, String targetUrl, List<String> subscribedEvents, String state) {}
 }

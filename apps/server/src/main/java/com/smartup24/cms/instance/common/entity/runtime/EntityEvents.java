@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
+import com.smartup24.cms.instance.common.entity.EntityRemoving;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.event.EntityChanged;
 import com.smartup24.cms.platform.api.entity.event.EntityEventType;
@@ -77,6 +78,14 @@ public class EntityEvents {
             });
         }
         return change;
+    }
+
+    /**
+     * Tells the listeners, in the transaction of a deletion and while the row still exists, that the record is about to
+     * go ({@link EntityRemoving}); the deletion's own event follows it.
+     */
+    public void removing(EntityDefinition entity, long id) {
+        publisher.publishEvent(new EntityRemoving(entity.code(), id));
     }
 
     /** Runs the hook after the commit; a failure cannot undo the committed change, so it is logged (ADR-0032, 6.3). */

@@ -377,6 +377,7 @@ class MdUserRuntimeIntegrationTest extends EmbeddedPostgresTest {
                         "https://hooks.example.test/users",
                         "users-secret",
                         List.of(MdUserEntity.CODE + ".updated"),
+                        "all",
                         creator)
                 .id();
     }

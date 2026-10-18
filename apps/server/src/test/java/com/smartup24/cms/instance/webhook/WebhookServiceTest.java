@@ -48,7 +48,7 @@ class WebhookServiceTest {
     @DisplayName("Подписка на неизвестное событие должна отклоняться с кодом 422")
     void shouldRejectUnknownSubscribedEvent() {
         assertThatThrownBy(() -> service.createSubscription(
-                        "Test", "https://93.184.216.34/events", List.of("unknown.event"), 1L))
+                        "Test", "https://93.184.216.34/events", List.of("unknown.event"), null, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.webhook.event_unknown");
     }
@@ -64,7 +64,7 @@ class WebhookServiceTest {
     @Test
     @DisplayName("Регистрация подписки с некорректным URL должна отклоняться")
     void shouldRejectInvalidTargetUrl() {
-        assertThatThrownBy(() -> service.createSubscription("Test", "ftp://invalid-url", List.of("*"), 1L))
+        assertThatThrownBy(() -> service.createSubscription("Test", "ftp://invalid-url", List.of("*"), null, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.webhook.url_scheme");
     }
@@ -78,8 +78,8 @@ class WebhookServiceTest {
                 Mockito.mock(AuditLogService.class),
                 policy(false, Set.of("hooks.example"), false));
 
-        assertThatThrownBy(() ->
-                        disabledService.createSubscription("Test", "https://hooks.example/events", List.of("*"), 1L))
+        assertThatThrownBy(() -> disabledService.createSubscription(
+                        "Test", "https://hooks.example/events", List.of("*"), null, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.webhook.disabled");
         Mockito.verifyNoInteractions(subscriptionRepository);
@@ -95,7 +95,7 @@ class WebhookServiceTest {
                 policy(true, Set.of("127.0.0.1"), false));
 
         assertThatThrownBy(() -> privateTargetService.updateSubscription(
-                        10L, null, "https://127.0.0.1/internal", null, null, 1L))
+                        10L, null, "https://127.0.0.1/internal", null, null, null, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.webhook.host_private");
         Mockito.verifyNoInteractions(subscriptionRepository);
@@ -111,6 +111,7 @@ class WebhookServiceTest {
                 "one-time-signing-secret",
                 List.of("*"),
                 "A",
+                "creator",
                 Instant.now(),
                 1L,
                 1L);
@@ -119,6 +120,7 @@ class WebhookServiceTest {
                         Mockito.anyString(),
                         Mockito.anyString(),
                         Mockito.anyList(),
+                        Mockito.anyString(),
                         Mockito.anyLong()))
                 .thenReturn(record);
         Mockito.when(subscriptionRepository.listSubscriptions()).thenReturn(List.of(record));
@@ -130,7 +132,7 @@ class WebhookServiceTest {
         var mapper = new ObjectMapper();
 
         String createdJson = mapper.writeValueAsString(
-                safeService.createSubscription("Orders", record.targetUrl(), record.subscribedEvents(), 1L));
+                safeService.createSubscription("Orders", record.targetUrl(), record.subscribedEvents(), null, 1L));
         String listJson = mapper.writeValueAsString(safeService.listSubscriptions());
 
         assertThat(createdJson).contains("one-time-signing-secret");

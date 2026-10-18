@@ -37,8 +37,8 @@ class WebhookRepositoriesIntegrationTest {
     @Test
     @DisplayName("A subscription keeps its signing key sealed at rest and opens it on read")
     void signingKeyIsSealedAtRest() {
-        var created =
-                subscriptions.create("Orders", "https://hooks.example/a", "plain-key", List.of("x.created"), null);
+        var created = subscriptions.create(
+                "Orders", "https://hooks.example/a", "plain-key", List.of("x.created"), "all", null);
 
         String stored = jdbc.sql("select secret_token from kwh_subscriptions where id = :id")
                 .param("id", created.id())
@@ -70,10 +70,10 @@ class WebhookRepositoriesIntegrationTest {
     @Test
     @DisplayName("Subscribers of an event: its own code or the wildcard, active only")
     void activeSubscribersOfAnEvent() {
-        var own = subscriptions.create("Own", "https://hooks.example/o", "k1", List.of("x.created"), null);
-        var all = subscriptions.create("All", "https://hooks.example/w", "k2", List.of("*"), null);
-        var paused = subscriptions.create("Paused", "https://hooks.example/p", "k3", List.of("x.created"), null);
-        subscriptions.update(paused.id(), null, null, null, "P", paused.revision());
+        var own = subscriptions.create("Own", "https://hooks.example/o", "k1", List.of("x.created"), "all", null);
+        var all = subscriptions.create("All", "https://hooks.example/w", "k2", List.of("*"), "all", null);
+        var paused = subscriptions.create("Paused", "https://hooks.example/p", "k3", List.of("x.created"), "all", null);
+        subscriptions.update(paused.id(), null, null, null, "P", null, paused.revision());
 
         assertThat(subscriptions.findActiveByEvent("x.created"))
                 .extracting(WebhookSubscriptionRepository.SubscriptionRecord::id)
@@ -87,10 +87,16 @@ class WebhookRepositoriesIntegrationTest {
     @Test
     @DisplayName("An update applies at the expected revision only; a stale one is a conflict; delete removes it")
     void updateAtTheExpectedRevision() {
-        var created = subscriptions.create("Orders", "https://hooks.example/a", "k", List.of("*"), null);
+        var created = subscriptions.create("Orders", "https://hooks.example/a", "k", List.of("*"), "all", null);
 
         long next = subscriptions.update(
-                created.id(), "Renamed", "https://hooks.example/b", List.of("x.created"), null, created.revision());
+                created.id(),
+                "Renamed",
+                "https://hooks.example/b",
+                List.of("x.created"),
+                null,
+                null,
+                created.revision());
 
         var updated = subscriptions.findById(created.id()).orElseThrow();
         assertThat(next).isEqualTo(created.revision() + 1);
@@ -98,7 +104,8 @@ class WebhookRepositoriesIntegrationTest {
         assertThat(updated.targetUrl()).isEqualTo("https://hooks.example/b");
         assertThat(updated.subscribedEvents()).containsExactly("x.created");
         assertThat(updated.state()).isEqualTo("A");
-        assertThatThrownBy(() -> subscriptions.update(created.id(), "Again", null, null, null, created.revision()))
+        assertThatThrownBy(
+                        () -> subscriptions.update(created.id(), "Again", null, null, null, null, created.revision()))
                 .isInstanceOf(ApiException.class);
 
         subscriptions.delete(created.id());
@@ -108,7 +115,7 @@ class WebhookRepositoriesIntegrationTest {
     @Test
     @DisplayName("A failed delivery waits for its next attempt; the last failed attempt makes a dead letter")
     void retryThenDeadLetter() {
-        var subscription = subscriptions.create("Orders", "https://hooks.example/a", "k", List.of("*"), null);
+        var subscription = subscriptions.create("Orders", "https://hooks.example/a", "k", List.of("*"), "all", null);
         outbox.enqueue(subscription.id(), "x.created", Map.of("id", 1));
 
         var claimed = outbox.fetchPending(10).getFirst();
@@ -140,12 +147,12 @@ class WebhookRepositoriesIntegrationTest {
     @Test
     @DisplayName("The backlog counts due items of active subscriptions, and the delivery log keeps each attempt")
     void backlogAndDeliveryLog() {
-        var active = subscriptions.create("Active", "https://hooks.example/a", "k", List.of("*"), null);
-        var paused = subscriptions.create("Paused", "https://hooks.example/p", "k", List.of("*"), null);
+        var active = subscriptions.create("Active", "https://hooks.example/a", "k", List.of("*"), "all", null);
+        var paused = subscriptions.create("Paused", "https://hooks.example/p", "k", List.of("*"), "all", null);
         outbox.enqueue(active.id(), "x.created", Map.of("id", 1));
         outbox.enqueue(active.id(), "x.updated", Map.of("id", 1));
         outbox.enqueue(paused.id(), "x.created", Map.of("id", 2));
-        subscriptions.update(paused.id(), null, null, null, "P", paused.revision());
+        subscriptions.update(paused.id(), null, null, null, "P", null, paused.revision());
 
         var backlog = outbox.backlog();
         assertThat(backlog.pending()).isEqualTo(2);

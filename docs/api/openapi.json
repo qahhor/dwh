@@ -15614,7 +15614,7 @@
         "tags" : [ "webhook-subscription-controller" ]
       },
       "post" : {
-        "description" : "Subscribes a target URL to events; the signing key is returned once and never stored for replay.",
+        "description" : "Subscribes a target URL to events, for every record or only the records its creator may read (scope, creator by default); the signing key is returned once and never stored for replay.",
         "operationId" : "createSubscription",
         "requestBody" : {
           "content" : {
@@ -15701,7 +15701,7 @@
         "tags" : [ "webhook-subscription-controller" ]
       },
       "patch" : {
-        "description" : "Changes the name, target, events or state of a subscription.",
+        "description" : "Changes the name, target, events, state or scope of a subscription.",
         "operationId" : "updateSubscription",
         "parameters" : [ {
           "in" : "path",
@@ -16661,6 +16661,11 @@
             "type" : "string",
             "minLength" : 1
           },
+          "scope" : {
+            "type" : "string",
+            "description" : "Which records are sent: creator (default) or all",
+            "enum" : [ "creator", "all" ]
+          },
           "subscribedEvents" : {
             "type" : "array",
             "items" : {
@@ -16717,6 +16722,10 @@
           },
           "name" : {
             "type" : "string"
+          },
+          "scope" : {
+            "type" : "string",
+            "enum" : [ "creator", "all" ]
           },
           "secretToken" : {
             "type" : "string"
@@ -23412,6 +23421,10 @@
             "type" : "integer",
             "format" : "int64"
           },
+          "scope" : {
+            "type" : "string",
+            "enum" : [ "creator", "all" ]
+          },
           "state" : {
             "type" : "string"
           },
@@ -23772,6 +23785,11 @@
         "properties" : {
           "name" : {
             "type" : "string"
+          },
+          "scope" : {
+            "type" : "string",
+            "description" : "Which records are sent: creator or all",
+            "enum" : [ "creator", "all" ]
           },
           "state" : {
             "type" : "string"

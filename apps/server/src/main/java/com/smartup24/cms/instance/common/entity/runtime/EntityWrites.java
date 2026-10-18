@@ -161,6 +161,7 @@ public class EntityWrites {
         EntityDelete delete =
                 new EntityDelete(entity, id, EntityValues.readOnly(entity, before), AuditActor.user(user));
         changes.beforeDelete(delete);
+        events.removing(entity, id);
         if (!store.delete(entity, id)) throw Revisions.conflict();
         changes.detach(entity, id);
         changes.audit(entity, id, "D", before, null, null);

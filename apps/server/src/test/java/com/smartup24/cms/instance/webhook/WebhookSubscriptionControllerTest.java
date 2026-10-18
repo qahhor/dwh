@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos;
 import com.smartup24.cms.instance.webhook.controller.WebhookSubscriptionController;
 import com.smartup24.cms.instance.webhook.service.WebhookService;
 import java.time.Instant;
@@ -34,12 +35,13 @@ class WebhookSubscriptionControllerTest {
     @DisplayName("3.6: the list carries each webhook's revision")
     void listCarriesRevisions() throws Exception {
         when(service.listSubscriptions())
-                .thenReturn(List.of(new WebhookService.SubscriptionView(
+                .thenReturn(List.of(new WebhookDtos.SubscriptionView(
                         7L,
                         "Hook",
                         "https://hooks.example.invalid/***",
                         List.of("task.created"),
                         "A",
+                        "creator",
                         Instant.EPOCH,
                         1L,
                         4L)));
@@ -52,7 +54,7 @@ class WebhookSubscriptionControllerTest {
     @Test
     @DisplayName("3.6: a change from a revision answers 204 with the new ETag")
     void changeFromARevision() throws Exception {
-        when(service.updateSubscription(7L, null, null, null, "P", 4L)).thenReturn(5L);
+        when(service.updateSubscription(7L, null, null, null, "P", null, 4L)).thenReturn(5L);
 
         mvc.perform(patch("/api/v1/webhooks/subscriptions/7")
                         .header("If-Match", "\"4\"")
@@ -60,7 +62,7 @@ class WebhookSubscriptionControllerTest {
                         .content("{\"state\":\"P\"}"))
                 .andExpect(status().isNoContent())
                 .andExpect(header().string("ETag", "\"5\""));
-        verify(service).updateSubscription(7L, null, null, null, "P", 4L);
+        verify(service).updateSubscription(7L, null, null, null, "P", null, 4L);
     }
 
     @Test
@@ -77,7 +79,7 @@ class WebhookSubscriptionControllerTest {
     @Test
     @DisplayName("3.6: a stale revision is 409")
     void staleRevision() throws Exception {
-        when(service.updateSubscription(any(), any(), any(), any(), any(), any(Long.class)))
+        when(service.updateSubscription(any(), any(), any(), any(), any(), any(), any(Long.class)))
                 .thenThrow(com.smartup24.cms.instance.common.web.Revisions.conflict());
 
         mvc.perform(patch("/api/v1/webhooks/subscriptions/7")

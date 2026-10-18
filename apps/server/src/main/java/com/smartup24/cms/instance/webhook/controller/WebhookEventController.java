@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.webhook.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos.WebhookEventView;
 import com.smartup24.cms.instance.webhook.pref.WebhookPref;
 import com.smartup24.cms.instance.webhook.service.WebhookService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,7 +29,7 @@ public class WebhookEventController {
             description = "The available events that can be subscribed to, derived from the registered entities.")
     @GetMapping
     @RequiresPermission(form = WebhookPref.FORM_WEBHOOKS, action = "view")
-    public ResponseEntity<List<WebhookService.WebhookEventView>> listEvents() {
+    public ResponseEntity<List<WebhookEventView>> listEvents() {
         return ResponseEntity.ok(webhookService.listEvents());
     }
 }

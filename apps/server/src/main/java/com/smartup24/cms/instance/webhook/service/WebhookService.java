@@ -1,10 +1,14 @@
 package com.smartup24.cms.instance.webhook.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.common.web.Revisioned;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos.CreatedSubscription;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos.SubscriptionView;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos.WebhookEventView;
 import com.smartup24.cms.instance.webhook.repository.WebhookOutboxRepository;
 import com.smartup24.cms.instance.webhook.repository.WebhookSubscriptionRepository;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
@@ -12,14 +16,15 @@ import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.workflow.EntityTransition;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.time.Instant;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.LongPredicate;
 import java.util.function.Supplier;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -73,16 +78,18 @@ public class WebhookService {
 
     @Transactional
     public CreatedSubscription createSubscription(
-            String name, String targetUrl, List<String> subscribedEvents, Long createdBy) {
+            String name, String targetUrl, List<String> subscribedEvents, @Nullable String scope, Long createdBy) {
 
         validateSubscribedEvents(subscribedEvents);
+        String chosen = scope == null ? WebhookDtos.SCOPE_CREATOR : requireScope(scope);
         var validatedTarget = targetPolicy.validate(targetUrl);
 
         byte[] secretBytes = new byte[32];
         secureRandom.nextBytes(secretBytes);
         String secretToken = Base64.getUrlEncoder().withoutPadding().encodeToString(secretBytes);
 
-        var subscription = subscriptionRepository.create(name, targetUrl, secretToken, subscribedEvents, createdBy);
+        var subscription =
+                subscriptionRepository.create(name, targetUrl, secretToken, subscribedEvents, chosen, createdBy);
 
         // A subscription is a channel for data to leak outside, so its creation, address
         // change and deletion must be in the audit log (FR-AUD-1).
@@ -92,7 +99,7 @@ public class WebhookService {
                 "kwh_subscriptions",
                 String.valueOf(subscription.id()),
                 "I",
-                List.of("name", "target_url", "subscribed_events"),
+                List.of("name", "target_url", "subscribed_events", "scope"),
                 null,
                 Map.of(
                         "name",
@@ -100,7 +107,9 @@ public class WebhookService {
                         "target_url",
                         targetPolicy.redact(validatedTarget),
                         "subscribed_events",
-                        subscribedEvents != null ? subscribedEvents : List.of()));
+                        subscribedEvents != null ? subscribedEvents : List.of(),
+                        "scope",
+                        chosen));
 
         return new CreatedSubscription(
                 subscription.id(),
@@ -109,6 +118,7 @@ public class WebhookService {
                 subscription.secretToken(),
                 subscription.subscribedEvents(),
                 subscription.state(),
+                subscription.scope(),
                 subscription.createdAt(),
                 subscription.createdBy());
     }
@@ -120,7 +130,11 @@ public class WebhookService {
             String targetUrl,
             List<String> subscribedEvents,
             String state,
+            @Nullable String scope,
             long expectedRevision) {
+        if (scope != null) {
+            requireScope(scope);
+        }
         if (targetUrl != null) {
             targetPolicy.validate(targetUrl);
         }
@@ -128,21 +142,32 @@ public class WebhookService {
             validateSubscribedEvents(subscribedEvents);
         }
         var before = requireSubscription(id);
-        long revision = subscriptionRepository.update(id, name, targetUrl, subscribedEvents, state, expectedRevision);
+        long revision =
+                subscriptionRepository.update(id, name, targetUrl, subscribedEvents, state, scope, expectedRevision);
 
         auditLogService.logChange(
                 "kwh_subscriptions",
                 String.valueOf(id),
                 "U",
-                List.of("name", "target_url", "subscribed_events", "state"),
-                Map.of("name", before.name(), "target_url", redact(before.targetUrl()), "state", before.state()),
+                List.of("name", "target_url", "subscribed_events", "state", "scope"),
+                Map.of(
+                        "name",
+                        before.name(),
+                        "target_url",
+                        redact(before.targetUrl()),
+                        "state",
+                        before.state(),
+                        "scope",
+                        before.scope()),
                 Map.of(
                         "name",
                         name != null ? name : before.name(),
                         "target_url",
                         redact(targetUrl != null ? targetUrl : before.targetUrl()),
                         "state",
-                        state != null ? state : before.state()));
+                        state != null ? state : before.state(),
+                        "scope",
+                        scope != null ? scope : before.scope()));
         return revision;
     }
 
@@ -168,22 +193,40 @@ public class WebhookService {
 
     @Transactional
     public void publishEvent(String eventType, Map<String, Object> payload) {
-        publishEvent(eventType, () -> payload);
+        publishEvent(eventType, () -> payload, creator -> true);
     }
 
     /**
      * Writes the event for every active subscription to it, in the caller's transaction (ADR-0032, 6.9); the payload
-     * is built only when someone is subscribed.
+     * is built only when someone receives it. A subscription scoped to its creator receives it only when
+     * {@code creatorReads} accepts the creator — asked once per creator — and never without a creator (ADR-0041, owner
+     * decisions of 2026-10-18).
      */
     @Transactional
-    public void publishEvent(String eventType, Supplier<Map<String, Object>> payload) {
+    public void publishEvent(String eventType, Supplier<Map<String, Object>> payload, LongPredicate creatorReads) {
         List<WebhookSubscriptionRepository.SubscriptionRecord> active =
                 subscriptionRepository.findActiveByEvent(eventType);
         if (active.isEmpty()) return;
-        Map<String, Object> body = payload.get();
+        Map<Long, Boolean> reads = new HashMap<>();
+        Map<String, Object> body = null;
         for (var sub : active) {
+            if (WebhookDtos.SCOPE_CREATOR.equals(sub.scope())
+                    && (sub.createdBy() == null || !reads.computeIfAbsent(sub.createdBy(), creatorReads::test))) {
+                continue;
+            }
+            if (body == null) body = payload.get();
             outboxRepository.enqueue(sub.id(), eventType, body);
         }
+    }
+
+    /** The creators of the active subscriptions to the event that are scoped to their creator. */
+    @Transactional(readOnly = true)
+    public Set<Long> scopedCreators(String eventType) {
+        Set<Long> creators = new HashSet<>();
+        for (var sub : subscriptionRepository.findActiveByEvent(eventType)) {
+            if (WebhookDtos.SCOPE_CREATOR.equals(sub.scope()) && sub.createdBy() != null) creators.add(sub.createdBy());
+        }
+        return creators;
     }
 
     /**
@@ -275,6 +318,17 @@ public class WebhookService {
         }
     }
 
+    private static String requireScope(String scope) {
+        if (!WebhookDtos.SCOPES.contains(scope)) {
+            Map<String, String> allowed = Map.of("allowed", String.join(", ", WebhookDtos.SCOPES));
+            throw ApiException.validation(
+                    "error.webhook.scope_invalid",
+                    allowed,
+                    List.of(FieldErrorItem.keyed("scope", "invalid", "error.webhook.scope_invalid", allowed)));
+        }
+        return scope;
+    }
+
     private static boolean isStandardAction(String code) {
         return "create".equals(code) || "update".equals(code) || "delete".equals(code) || "archive".equals(code);
     }
@@ -308,48 +362,9 @@ public class WebhookService {
                 redact(subscription.targetUrl()),
                 subscription.subscribedEvents(),
                 subscription.state(),
+                subscription.scope(),
                 subscription.createdAt(),
                 subscription.createdBy(),
                 subscription.revision());
     }
-
-    public record WebhookEventView(
-            String code,
-            String event,
-            @Nullable String entity,
-            @Nullable String form,
-            @Nullable String action,
-            @Nullable String nameKey,
-            @Nullable String descKey) {
-        public WebhookEventView(
-                String code,
-                @Nullable String entity,
-                @Nullable String form,
-                @Nullable String action,
-                @Nullable String nameKey,
-                @Nullable String descKey) {
-            this(code, code, entity, form, action, nameKey, descKey);
-        }
-    }
-
-    public record SubscriptionView(
-            Long id,
-            String name,
-            String targetUrl,
-            List<String> subscribedEvents,
-            String state,
-            Instant createdAt,
-            Long createdBy,
-            long revision)
-            implements Revisioned {}
-
-    public record CreatedSubscription(
-            Long id,
-            String name,
-            String targetUrl,
-            String secretToken,
-            List<String> subscribedEvents,
-            String state,
-            Instant createdAt,
-            Long createdBy) {}
 }

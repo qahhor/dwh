@@ -84,7 +84,7 @@ class StoredSecretsSchemaTest {
     void secretsAreStoredEncrypted() {
         check.checkAll();
         var created = subscriptions.create(
-                "fresh", "https://hooks.example.test/fresh", "fresh-plain-key", List.of("task.created"), null);
+                "fresh", "https://hooks.example.test/fresh", "fresh-plain-key", List.of("task.created"), "all", null);
         try {
             for (String column : ENCRYPTED) {
                 String table = column.substring(0, column.indexOf('.'));
@@ -141,7 +141,7 @@ class StoredSecretsSchemaTest {
     @DisplayName("4.6: a start with another key is refused before anything is written")
     void anotherKeyIsRefused() {
         var created = subscriptions.create(
-                "sealed", "https://hooks.example.test/sealed", "sealed-key", List.of("task.created"), null);
+                "sealed", "https://hooks.example.test/sealed", "sealed-key", List.of("task.created"), "all", null);
         byte[] other = new byte[32];
         new SecureRandom().nextBytes(other);
         StoredSecrets wrong = StoredSecrets.withKey(other);

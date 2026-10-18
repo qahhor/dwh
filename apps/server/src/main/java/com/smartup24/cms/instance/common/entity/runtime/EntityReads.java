@@ -87,6 +87,17 @@ public class EntityReads {
                 .map(record -> lines.withRows(entity, record));
     }
 
+    /**
+     * Whether the record lies in the data scope of {@code userId}, whoever is signed in: what a webhook subscription
+     * scoped to its creator asks of a record (ADR-0041, owner decisions of 2026-10-18). An entity without a table to
+     * restrict holds every record it has.
+     */
+    public boolean inScopeOf(EntityDefinition entity, long id, long userId) {
+        if (entity.model() == null) return true;
+        return store.find(entity, list(entity), id, scopes.rows(entity, userId), false)
+                .isPresent();
+    }
+
     /** A page of the entity's list for the viewer, each record as the viewer may read it. */
     public KeysetPage<Map<String, Object>> page(
             EntityDefinition entity,

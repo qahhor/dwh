@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
+import com.smartup24.cms.instance.webhook.api.WebhookDtos;
 import com.smartup24.cms.instance.webhook.controller.WebhookEventController;
 import com.smartup24.cms.instance.webhook.service.WebhookService;
 import java.util.List;
@@ -31,15 +32,14 @@ class WebhookEventControllerTest {
     void listsAvailableEvents() throws Exception {
         when(service.listEvents())
                 .thenReturn(List.of(
-                        new WebhookService.WebhookEventView(
+                        new WebhookDtos.WebhookEventView(
                                 "*",
                                 null,
                                 null,
                                 null,
                                 "settings.webhooks.event_all",
                                 "settings.webhooks.event_all_desc"),
-                        new WebhookService.WebhookEventView(
-                                "notes.created", "ms.notes", "notes", "created", null, null)));
+                        new WebhookDtos.WebhookEventView("notes.created", "ms.notes", "notes", "created", null, null)));
 
         mvc.perform(get("/api/v1/webhooks/events"))
                 .andExpect(status().isOk())

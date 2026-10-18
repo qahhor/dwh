@@ -117,7 +117,7 @@ final class KitEventChecks {
                 .single();
         return world.wac
                 .getBean(WebhookSubscriptionRepository.class)
-                .create("kit " + world.token(), "https://hooks.example.test/kit", "kit-secret", events, creator)
+                .create("kit " + world.token(), "https://hooks.example.test/kit", "kit-secret", events, "all", creator)
                 .id();
     }
 

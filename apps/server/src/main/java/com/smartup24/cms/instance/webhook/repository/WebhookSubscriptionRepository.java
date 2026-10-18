@@ -24,17 +24,23 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
     }
 
     public SubscriptionRecord create(
-            String name, String targetUrl, String secretToken, List<String> subscribedEvents, Long createdBy) {
+            String name,
+            String targetUrl,
+            String secretToken,
+            List<String> subscribedEvents,
+            String scope,
+            Long createdBy) {
         return jdbcClient
                 .sql("""
-                insert into kwh_subscriptions (name, target_url, secret_token, subscribed_events, state, created_at, created_by)
-                values (:name, :targetUrl, :secretToken, :events, 'A', now(), :createdBy)
-                returning id, name, target_url, secret_token, subscribed_events, state, created_at, created_by, revision
+                insert into kwh_subscriptions (name, target_url, secret_token, subscribed_events, state, scope, created_at, created_by)
+                values (:name, :targetUrl, :secretToken, :events, 'A', :scope, now(), :createdBy)
+                returning id, name, target_url, secret_token, subscribed_events, state, scope, created_at, created_by, revision
                 """)
                 .param("name", name)
                 .param("targetUrl", targetUrl)
                 .param("secretToken", secrets.seal(secretToken, SECRET_COLUMN))
                 .param("events", subscribedEvents.toArray(new String[0]))
+                .param("scope", scope)
                 .param("createdBy", createdBy)
                 .query(this::mapRecord)
                 .single();
@@ -42,7 +48,7 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
 
     public Optional<SubscriptionRecord> findById(Long id) {
         return jdbcClient.sql("""
-                select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by, revision
+                select id, name, target_url, secret_token, subscribed_events, state, scope, created_at, created_by, revision
                 from kwh_subscriptions
                 where id = :id
                 """).param("id", id).query(this::mapRecord).optional();
@@ -50,7 +56,7 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
 
     public List<SubscriptionRecord> listSubscriptions() {
         return jdbcClient.sql("""
-                select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by, revision
+                select id, name, target_url, secret_token, subscribed_events, state, scope, created_at, created_by, revision
                 from kwh_subscriptions
                 order by created_at desc
                 """).query(this::mapRecord).list();
@@ -59,7 +65,7 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
     public List<SubscriptionRecord> findActiveByEvent(String eventType) {
         return jdbcClient
                 .sql("""
-                select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by, revision
+                select id, name, target_url, secret_token, subscribed_events, state, scope, created_at, created_by, revision
                 from kwh_subscriptions
                 where state = 'A' and (:eventType = any(subscribed_events) or '*' = any(subscribed_events))
                 """)
@@ -74,6 +80,7 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
             String targetUrl,
             List<String> subscribedEvents,
             String state,
+            String scope,
             long expectedRevision) {
         return jdbcClient
                 .sql("""
@@ -82,6 +89,7 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
                     target_url = coalesce(:targetUrl, target_url),
                     subscribed_events = coalesce(:events, subscribed_events),
                     state = coalesce(:state, state),
+                    scope = coalesce(:scope, scope),
                     revision = revision + 1
                 where id = :id and revision = :expectedRevision
                 returning revision
@@ -91,6 +99,7 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
                 .param("targetUrl", targetUrl)
                 .param("events", subscribedEvents != null ? subscribedEvents.toArray(new String[0]) : null)
                 .param("state", state)
+                .param("scope", scope)
                 .param("expectedRevision", expectedRevision)
                 .query(Long.class)
                 .optional()
@@ -136,6 +145,7 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
                 secrets.open(rs.getString("secret_token"), SECRET_COLUMN),
                 events,
                 rs.getString("state"),
+                rs.getString("scope"),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
                 rs.getLong("revision"));
@@ -148,6 +158,7 @@ public class WebhookSubscriptionRepository implements StoredSecretColumn {
             String secretToken,
             List<String> subscribedEvents,
             String state,
+            String scope,
             Instant createdAt,
             Long createdBy,
             long revision) {}

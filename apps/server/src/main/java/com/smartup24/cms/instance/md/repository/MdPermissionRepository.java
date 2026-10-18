@@ -147,6 +147,22 @@ public class MdPermissionRepository {
                 .list();
     }
 
+    /** Whether the user is active and holds {@code form.action}. */
+    public boolean activeHolder(long userId, String form, String action) {
+        return Boolean.TRUE.equals(jdbcClient
+                .sql("""
+                        select exists (select 1 from md_effective_permissions ep
+                                       join md_users u on u.id = ep.user_id and u.state = 'A'
+                                       where ep.user_id = :userId
+                                         and ((ep.form_code = :form and ep.action = :action)
+                                              or (ep.form_code = '*' and ep.action = '*')))""")
+                .param("userId", userId)
+                .param("form", form)
+                .param("action", action)
+                .query(Boolean.class)
+                .single());
+    }
+
     public Set<String> getEffectivePermissionsForUser(Long userId) {
         return jdbcClient.sql("""
                 select form_code || '.' || action as perm
