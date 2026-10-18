@@ -4,7 +4,10 @@ import static com.smartup24.cms.platform.api.entity.field.EntityFields.text;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
 import com.smartup24.cms.platform.api.entity.field.EntityFields;
+import com.smartup24.cms.platform.api.entity.field.FieldDefault;
+import com.smartup24.cms.platform.api.entity.workflow.EntityWorkflow;
 import org.junit.jupiter.api.Test;
 
 class EntityPartitionContractTest {
@@ -85,14 +88,14 @@ class EntityPartitionContractTest {
         // A fixed default is read while the key is absent; it reaches SQL as hexadecimal digits only (ADR-0041).
         var defaulted = text("text", "test.text")
                 .jsonProperty("payload", "value")
-                .defaultValue(com.smartup24.cms.platform.api.entity.field.FieldDefault.fixed("x');drop"))
+                .defaultValue(FieldDefault.fixed("x');drop"))
                 .build();
         assertThat(defaulted.sql("p"))
                 .isEqualTo("(case when p.payload->'value' is null then convert_from(decode('7827293b64726f70', 'hex'),"
                         + " 'UTF8') else (p.payload->>'value') end)");
         var number = EntityFields.number("amount", "test.amount")
                 .jsonProperty("payload", "amount")
-                .defaultValue(com.smartup24.cms.platform.api.entity.field.FieldDefault.fixed("10"))
+                .defaultValue(FieldDefault.fixed("10"))
                 .build();
         assertThat(number.sql("p")).endsWith(" end)::numeric");
         assertThat(base().build().model().partition()).isNull();
@@ -143,6 +146,55 @@ class EntityPartitionContractTest {
                                 .link("test_links", "item_id", "unit_id"))
                         .build())
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /**
+     * A partitioned entity keeps the rows of its documents in a table of their own, keyed by the record, and a process
+     * on a status held in its payload (ADR-0043); its own table cannot hold its rows.
+     */
+    @Test
+    void partitionedDocumentsKeepRowsApartAndAProcessOnTheirPayload() {
+        var lines = EntityCollection.of("items", "test.items.lines")
+                .table("test_lines", "l")
+                .parentColumn("record_id")
+                .field(EntityFields.number("qty", "test.qty")
+                        .jsonProperty("payload", "qty")
+                        .required())
+                .field(EntityFields.number("sum", "test.sum")
+                        .jsonProperty("payload", "sum")
+                        .readonly())
+                .field(EntityFields.ref("product", "test.product")
+                        .target("studio.products", "name")
+                        .jsonProperty("payload", "product"))
+                .maxRows(50)
+                .build();
+        var model = base().partition("form_id", 7)
+                .field(EntityFields.select("status", "test.status", java.util.List.of("draft", "done"), "test.s.")
+                        .jsonProperty("payload", "status")
+                        .readonly()
+                        .defaultValue(FieldDefault.fixed("draft")))
+                .section("process", "test.process", "status")
+                .collection(lines)
+                .workflow(EntityWorkflow.on("status")
+                        .state("draft", "test.s.draft")
+                        .initial()
+                        .state("done", "test.s.done")
+                        .terminal()
+                        .transition("finish", "draft", "done")
+                        .build())
+                .build()
+                .model();
+        assertThat(model.collections()).hasSize(1);
+        assertThat(model.workflow()).isNotNull();
+        assertThatThrownBy(() -> base().partition("form_id", 7)
+                        .collection(EntityCollection.of("items", "test.items.lines")
+                                .table("test_items", "l")
+                                .parentColumn("record_id")
+                                .field(EntityFields.number("qty", "test.qty").jsonProperty("payload", "qty"))
+                                .build())
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("another table");
     }
 
     private static Entity base() {

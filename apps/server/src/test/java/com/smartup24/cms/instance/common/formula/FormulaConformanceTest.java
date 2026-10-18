@@ -107,11 +107,24 @@ class FormulaConformanceTest {
         assertThat(value == null ? null : FormulaValues.text(value)).as(formula).isEqualTo(expected);
     }
 
-    /** A value of the file as a client sends it: a text, a number's text, a yes/no; absent and null are null. */
+    /**
+     * A value of the file as a client sends it: a text, a number's text, a yes/no; absent and null are null; the rows of
+     * a document (ADR-0043) as a list of such values or of rows, each row its values by key.
+     */
     private static @Nullable Object raw(@Nullable JsonNode value) {
         if (value == null || value.isNull()) return null;
         if (value.isBoolean()) return value.booleanValue();
         if (value.isNumber()) return value.toString();
+        if (value.isArray()) {
+            List<@Nullable Object> items = new ArrayList<>();
+            value.forEach(item -> items.add(raw(item)));
+            return items;
+        }
+        if (value.isObject()) {
+            Map<String, @Nullable Object> row = new LinkedHashMap<>();
+            value.properties().forEach(entry -> row.put(entry.getKey(), raw(entry.getValue())));
+            return row;
+        }
         return value.asString();
     }
 }

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
@@ -270,14 +271,19 @@ public class EntityWrites {
         errors.forEach(error -> refused.add(error.field()));
         Map<String, Object> sent = new LinkedHashMap<>(body.values());
         sent.keySet().removeAll(refused);
-        EntityFieldValues.Prepared values = fieldValues.prepareAll(entity, sent, before, id, user);
+        AtomicReference<EntityLines.Prepared> lined = new AtomicReference<>(EntityLines.Prepared.NONE);
+        EntityFieldValues.Prepared values = fieldValues.prepareAll(entity, sent, before, id, user, header -> {
+            EntityLines.Prepared prepared = lines.prepare(entity, body.collections(), current, header, locked, user);
+            lined.set(prepared);
+            return prepared.asRecord();
+        });
+        EntityLines.Prepared rows = lined.get();
         values.errors().stream()
                 .filter(error -> !refused.contains(error.field()))
                 .forEach(errors::add);
+        errors.addAll(rows.errors());
         Map<String, Object> record = new LinkedHashMap<>(current);
         record.putAll(values.values());
-        EntityLines.Prepared rows = lines.prepare(entity, body.collections(), current, record, locked);
-        errors.addAll(rows.errors());
         record.putAll(rows.asRecord());
         if (errors.isEmpty()) {
             errors.addAll(checks.references(entity, values.values(), current, user));

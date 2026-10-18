@@ -14,6 +14,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * Rejects declarations the shared-table storage cannot safely execute (ADR-0038). A partitioned entity holds one value
  * per field: the simple scalars, a choice, an item of a reference list and the key of another entity's row (ADR-0041).
+ * Its document rows live in a table of their own, keyed by the record's id, which is unique across the partitions, so
+ * the rows of a record are reached only through the record read within its partition (ADR-0043).
  */
 final class EntityStorageRules {
     private static final Set<String> SYSTEM = Set.of(
@@ -45,6 +47,7 @@ final class EntityStorageRules {
     private EntityStorageRules() {}
 
     static void check(
+            String table,
             List<EntityField> fields,
             @Nullable EntityPartition partition,
             List<EntityCollection> collections,
@@ -54,9 +57,13 @@ final class EntityStorageRules {
         Set<String> columns = new HashSet<>();
         Set<String> properties = new HashSet<>();
         Set<String> payloads = new HashSet<>();
-        if (partition != null && (!collections.isEmpty() || reference != null || importing != null || search != null)) {
-            throw new IllegalArgumentException(
-                    "A partitioned entity has no collections, reference, import or global search");
+        if (partition != null && (reference != null || importing != null || search != null)) {
+            throw new IllegalArgumentException("A partitioned entity has no reference, import or global search");
+        }
+        if (partition != null
+                && collections.stream()
+                        .anyMatch(collection -> collection.table().equals(table))) {
+            throw new IllegalArgumentException("A partitioned entity keeps the rows of its documents in another table");
         }
         for (EntityField field : fields) {
             if (field.source() instanceof FieldSource.Column column) columns.add(column.name());

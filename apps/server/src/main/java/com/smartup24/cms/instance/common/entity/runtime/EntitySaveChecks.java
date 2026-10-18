@@ -108,6 +108,19 @@ public class EntitySaveChecks {
     }
 
     /**
+     * The rows of {@code target} among {@code keys} the saver sees in the target's scope, each with whether it is
+     * archived, read in one statement; none when the target is not served or the saver may not view it — the rows of a
+     * collection check their references by it (ADR-0043).
+     */
+    public Map<Long, Boolean> visibleRows(String target, Set<Long> keys, long userId) {
+        EntityDefinition named = registry.find(target).orElse(null);
+        Set<Long> wanted = new LinkedHashSet<>(keys);
+        wanted.remove(-1L);
+        if (named == null || wanted.isEmpty() || !SecurityContext.hasPermission(named.form(), "view")) return Map.of();
+        return store.visibleRows(named, wanted, scopes.rows(named, userId));
+    }
+
+    /**
      * The problem of an org-unit record put in a unit outside the saver's scope (ADR-0032, 5.1), or none. A record moved
      * from one unit to another needs both in the mover's scope (ADR-0041): an author who sees a record only as its
      * author may not take it out of a unit they do not hold.

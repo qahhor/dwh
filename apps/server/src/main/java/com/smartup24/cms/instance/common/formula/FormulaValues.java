@@ -10,7 +10,9 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -28,6 +30,7 @@ public final class FormulaValues {
     /** A field's stored or sent value as a value of {@code type}. */
     public static @Nullable Object of(FormulaType type, @Nullable Object raw) {
         if (type == FormulaType.BOOL) return raw instanceof Boolean flag ? flag : "true".equals(String.valueOf(raw));
+        if (type.list()) return list(type, raw);
         if (raw == null) return null;
         if (raw instanceof String text && blank(text)) return null;
         return switch (type) {
@@ -37,8 +40,22 @@ public final class FormulaValues {
             case DATETIME -> moment(raw);
             case TIME -> time(raw);
             case REF -> key(raw);
-            case BOOL, NULL -> null;
+            case BOOL, NULL, NUMBERS, ROWS -> null;
         };
+    }
+
+    /**
+     * The values of a column of rows (ADR-0043): numbers as numbers — a value that does not read as one is null — rows
+     * and other values as they are, an empty text as null; anything that is not a list is no rows.
+     */
+    private static List<@Nullable Object> list(FormulaType type, @Nullable Object raw) {
+        if (!(raw instanceof List<?> items)) return List.of();
+        List<@Nullable Object> values = new ArrayList<>(items.size());
+        for (Object item : items) {
+            if (item == null || (item instanceof String text && blank(text))) values.add(null);
+            else values.add(type == FormulaType.NUMBERS ? number(item) : item);
+        }
+        return values;
     }
 
     /** Whether a text holds only spaces, tabs and line breaks — the characters {@code trim} removes. */

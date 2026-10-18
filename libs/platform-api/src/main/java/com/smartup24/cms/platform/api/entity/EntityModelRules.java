@@ -129,7 +129,8 @@ final class EntityModelRules {
         boolean fits = status != null
                 && form != null
                 && status.type() == FieldType.SELECT
-                && status.source() instanceof FieldSource.Column
+                && (status.source() instanceof FieldSource.Column
+                        || status.source() instanceof FieldSource.JsonProperty)
                 && Set.copyOf(status.options().options()).equals(states)
                 && form.readonly() != null
                 && form.readonly().mode() == FieldReadonly.Mode.ALWAYS
@@ -137,7 +138,7 @@ final class EntityModelRules {
                 && fixed.value().equals(workflow.initial().code());
         if (!fits) {
             throw new IllegalArgumentException("Table " + table + ": the status " + workflow.field()
-                    + " of the process is a read-only select column of its states that starts in the initial one");
+                    + " of the process is a read-only select of its states that starts in the initial one");
         }
         for (EntityState state : workflow.states()) {
             for (String locked : state.locks()) {

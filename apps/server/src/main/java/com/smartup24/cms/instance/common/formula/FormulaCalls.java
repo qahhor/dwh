@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -35,6 +36,12 @@ final class FormulaCalls {
             }
             case "min", "max" -> {
                 return extreme("max".equals(name), args);
+            }
+            case "sum" -> {
+                return sum(args.getFirst());
+            }
+            case "count" -> {
+                return BigDecimal.valueOf(filled(args.getFirst()).size());
             }
             case "today" -> {
                 return LocalDate.ofInstant(scope.now(), scope.zone());
@@ -103,6 +110,26 @@ final class FormulaCalls {
             if (max ? order > 0 : order < 0) best = value;
         }
         return best;
+    }
+
+    /**
+     * The sum of the filled numbers of a column (ADR-0043): zero for no rows or no filled value, as a document's total
+     * of no lines is zero — a rule {@code total > 0} must fail an empty document, which a null would let pass.
+     */
+    private static BigDecimal sum(@Nullable Object column) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Object value : filled(column)) total = FormulaNumbers.add(total, (BigDecimal) value);
+        return total;
+    }
+
+    /** The filled values of a list of rows: neither null nor a text of only spaces. */
+    private static List<Object> filled(@Nullable Object rows) {
+        if (!(rows instanceof List<?> list)) return List.of();
+        List<Object> values = new ArrayList<>();
+        for (Object value : list) {
+            if (!FormulaFunctions.empty(value)) values.add(value);
+        }
+        return values;
     }
 
     private static LocalDate date(List<@Nullable Object> args) {

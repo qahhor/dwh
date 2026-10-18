@@ -102,7 +102,7 @@ public final class EntityLogicRun {
         Set<String> holding = new LinkedHashSet<>();
         conditions.forEach((key, formula) -> {
             try {
-                if (formula.holds(record::get, scope)) holding.add(key);
+                if (formula.holds(EntityFormulaReads.record(record), scope)) holding.add(key);
             } catch (FormulaFailure failure) {
                 errors.add(failure.fieldError(key));
             }
@@ -112,7 +112,7 @@ public final class EntityLogicRun {
 
     private @Nullable Object value(String key, Formula formula, Map<String, ?> record, List<FieldErrorItem> errors) {
         try {
-            return formula.evaluate(record::get, scope);
+            return formula.evaluate(EntityFormulaReads.record(record), scope);
         } catch (FormulaFailure failure) {
             // The computed fields are evaluated twice: a failure is reported once.
             FieldErrorItem problem = failure.fieldError(key);

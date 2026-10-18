@@ -37,9 +37,11 @@ import java.util.stream.Stream;
  * }</pre>
  *
  * <p>What a row may hold is narrower than a record (ADR-0032, 9.5): a column, a pair of money columns — the currency
- * may be the document's ({@link EntityFields.Builder#currencyFrom}) — or a computed value; no attribute, link table,
- * file, enumeration, JSON or reference checked against its target, and no default, condition or field right. Such
- * values need a check against the database per row; a document that needs them keeps a reference entity instead.
+ * may be the document's ({@link EntityFields.Builder#currencyFrom}) — a computed value or a property of a JSON column
+ * (ADR-0043); no attribute, link table, file or JSON value, and no default, condition or field right. An item of an
+ * enumeration and a reference checked against its target are checked per row against the database, in one statement
+ * per field for all the rows a save sends (ADR-0043). A property of a JSON column may be read-only: its value is the
+ * server's — the formula of a live form computes it on every save — and a save never takes it from the client.
  *
  * @param key            the record property of the rows ({@code lines}) and the root of their problem addresses
  * @param labelKey       the dictionary key of the collection's title
@@ -89,6 +91,7 @@ public record EntityCollection(
             FieldType.PHONE,
             FieldType.URL,
             FieldType.MONEY,
+            FieldType.ENUM,
             FieldType.REF);
 
     public EntityCollection {
@@ -127,17 +130,21 @@ public record EntityCollection(
         if (form == null) {
             throw new IllegalArgumentException(where + "every field of a row is on the line's form");
         }
-        if (!ROW_TYPES.contains(field.type()) || field.options().target() != null) {
-            throw new IllegalArgumentException(where + "a row holds values checked without the database");
+        if (!ROW_TYPES.contains(field.type())) {
+            throw new IllegalArgumentException(where + "a row holds a single plain value, an item or a reference");
         }
         boolean source = field.source() instanceof FieldSource.Column
                 || field.source() instanceof FieldSource.MoneyColumns
-                || field.source() instanceof FieldSource.Computed;
+                || field.source() instanceof FieldSource.Computed
+                || field.source() instanceof FieldSource.JsonProperty;
         if (!source) {
-            throw new IllegalArgumentException(where + "a row's value lives in a column or is computed");
+            throw new IllegalArgumentException(
+                    where + "a row's value lives in a column or a JSON property or is computed");
         }
-        boolean computed = field.source() instanceof FieldSource.Computed;
-        if ((!computed && form.readonly() != null) || form.defaultValue() != null || form.visibleWhen() != null) {
+        // A computed value and a JSON property written by the server are read-only; any other value is the client's.
+        boolean serverValue =
+                field.source() instanceof FieldSource.Computed || field.source() instanceof FieldSource.JsonProperty;
+        if ((!serverValue && form.readonly() != null) || form.defaultValue() != null || form.visibleWhen() != null) {
             throw new IllegalArgumentException(where + "a row's field has no read-only mode, default or condition");
         }
         if (!FieldAccess.OPEN.equals(field.access())) {

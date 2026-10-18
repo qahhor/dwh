@@ -94,10 +94,7 @@ public record EntityModel(
             }
         }
         EntityModelRules.check(table, fields);
-        EntityStorageRules.check(fields, partition, collections, reference, importing, search);
-        if (partition != null && workflow != null) {
-            throw new IllegalArgumentException("A partitioned entity has no workflow");
-        }
+        EntityStorageRules.check(table, fields, partition, collections, reference, importing, search);
         EntityModelRules.checkReference(table, reference, scope);
         rules = Collections.unmodifiableMap(new LinkedHashMap<>(rules));
         collections = List.copyOf(collections);

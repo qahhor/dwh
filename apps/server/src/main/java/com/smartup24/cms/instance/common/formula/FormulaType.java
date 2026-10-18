@@ -5,7 +5,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The static types of the formula language (ADR-0042): an exact decimal, text, a yes/no, a date, a moment, a time of
- * day, the code of a choice, the key of a referenced row, and the type of the literal {@code null}, which joins any.
+ * day, the code of a choice, the key of a referenced row, and the type of the literal {@code null}, which joins any;
+ * the lists of a document's rows (ADR-0043), which only the aggregates read.
  */
 public enum FormulaType {
     NUMBER,
@@ -16,7 +17,11 @@ public enum FormulaType {
     TIME,
     OPTION,
     REF,
-    NULL;
+    NULL,
+    /** The numbers of a column of a document's rows (ADR-0043): only {@code sum} and {@code count} read them. */
+    NUMBERS,
+    /** The rows of a document or a column of other values (ADR-0043): only {@code count} reads them. */
+    ROWS;
 
     /** The name of the type as the AST and the web give it ({@code number}, {@code datetime}). */
     public String wire() {
@@ -26,6 +31,11 @@ public enum FormulaType {
     /** The type named {@code wire}. */
     public static FormulaType of(String wire) {
         return valueOf(wire.toUpperCase(Locale.ROOT));
+    }
+
+    /** Whether the type is a list of a document's rows, which no operator and no other function takes. */
+    boolean list() {
+        return this == NUMBERS || this == ROWS;
     }
 
     /** Whether values of the type have an order: numbers, texts and codes, dates, moments and times. */

@@ -20,6 +20,7 @@ import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityAction;
 import com.smartup24.cms.platform.api.entity.EntityScope;
 import com.smartup24.cms.platform.api.entity.EntityTab;
 import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
+import com.smartup24.cms.platform.api.entity.field.EntityFields;
 import com.smartup24.cms.platform.api.entity.field.FieldDefault;
 import com.smartup24.cms.platform.api.entity.field.QueryRef;
 import com.smartup24.cms.platform.api.entity.hook.EntityActionCall;
@@ -52,19 +53,30 @@ class EntityDocumentModelTest {
     }
 
     @Test
-    @DisplayName("5.7: a row holds a column, money or a computed value, without default, condition or right")
-    void aRowHoldsValuesCheckedWithoutTheDatabase() {
+    @DisplayName("5.7: a row holds a column, money, a JSON property or a computed value, without default or right")
+    void aRowHoldsPlainValuesItemsAndReferences() {
         assertThat(lines(UnaryOperator.identity()).written())
                 .extracting(field -> field.key())
                 .containsExactly("qty");
-        assertThatThrownBy(() -> lines(
-                        c -> c.field(ref("productId", "p").column("product_id").target("md.users", "name"))))
-                .hasMessageContaining("without the database");
+        // ADR-0043: a reference checked against its target and a property of a JSON column are row values too.
+        assertThat(lines(c -> c.field(ref("productId", "p").column("product_id").target("md.users", "name")))
+                        .written())
+                .extracting(field -> field.key())
+                .containsExactly("qty", "productId");
+        assertThat(lines(c -> c.field(number("sum", "s")
+                                .jsonProperty("payload", "sum")
+                                .readonly()))
+                        .written())
+                .extracting(field -> field.key())
+                .containsExactly("qty", "sum");
+        assertThatThrownBy(() ->
+                        lines(c -> c.field(EntityFields.json("raw", "r", null).column("raw"))))
+                .hasMessageContaining("single plain value");
         assertThatThrownBy(() ->
                         lines(c -> c.field(text("note", "n").column("note").defaultValue(FieldDefault.fixed("x")))))
                 .hasMessageContaining("no read-only mode, default or condition");
         assertThatThrownBy(() -> lines(c -> c.field(text("cf", "c").attribute("cf"))))
-                .hasMessageContaining("lives in a column or is computed");
+                .hasMessageContaining("lives in a column or a JSON property or is computed");
         assertThatThrownBy(() ->
                         lines(c -> c.field(text("note", "n").column("note").requires("x.y", "view"))))
                 .hasMessageContaining("no right of its own");
@@ -136,7 +148,7 @@ class EntityDocumentModelTest {
                         .initial()
                         .state("USD", "d")
                         .build())))
-                .hasMessageContaining("read-only select column of its states");
+                .hasMessageContaining("read-only select of its states");
         assertThatThrownBy(() -> document(entity -> entity.workflow(EntityWorkflow.on("status")
                         .state("draft", "d")
                         .initial()

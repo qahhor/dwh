@@ -1,17 +1,27 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
+import com.smartup24.cms.instance.common.entity.EntityEnums;
 import com.smartup24.cms.instance.common.entity.EntityFieldRights;
+import com.smartup24.cms.instance.common.entity.EntityFieldValues;
+import com.smartup24.cms.instance.common.entity.EntityFormulaReads;
+import com.smartup24.cms.instance.common.entity.EntityLogic;
+import com.smartup24.cms.instance.common.entity.EntityLogicRun;
+import com.smartup24.cms.instance.common.entity.EntityReferenceValues;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.entity.FieldValueRules;
+import com.smartup24.cms.instance.common.entity.LiveEntities;
 import com.smartup24.cms.instance.common.entity.store.EntityCollectionStore;
 import com.smartup24.cms.instance.common.entity.store.EntityCollectionStore.Row;
+import com.smartup24.cms.instance.common.formula.FormulaFailure;
+import com.smartup24.cms.instance.common.formula.FormulaScope;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.EntityModel;
 import com.smartup24.cms.platform.api.entity.FormField;
 import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
 import com.smartup24.cms.platform.api.entity.field.EntityField;
 import com.smartup24.cms.platform.api.entity.field.FieldType;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -21,6 +31,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -30,14 +42,41 @@ import org.springframework.stereotype.Component;
  * without one is inserted, a row the save leaves out is deleted. A row with the id of a row of another record is
  * {@code lines[i].id} {@code not_found}; more rows than the collection takes are {@code lines} {@code too_many}; rows a
  * state of the process locks are {@code lines} {@code readonly}.
+ *
+ * <p>A row's value read-only by its declaration is never taken from the body: a computed column of a live form is
+ * evaluated by its formula over the row and the header's entered fields (ADR-0043). An item of an enumeration and a
+ * reference to a row of another entity are checked against the database with one statement per field for all the rows
+ * — a value the row already had is kept, a new one must exist, be visible to the saver and be in use.
  */
 @Component
 public class EntityLines {
 
     private final EntityCollectionStore store;
+    private final @Nullable EntityEnums enums;
+    private final @Nullable EntitySaveChecks checks;
+    private final @Nullable ObjectProvider<LiveEntities> live;
+    private final Clock clock;
 
+    @Autowired
+    public EntityLines(
+            EntityCollectionStore store,
+            EntityEnums enums,
+            EntitySaveChecks checks,
+            ObjectProvider<LiveEntities> live) {
+        this.store = store;
+        this.enums = enums;
+        this.checks = checks;
+        this.live = live;
+        this.clock = Clock.systemUTC();
+    }
+
+    /** Rows without form logic and without the checks against the database: a store built by hand in a test. */
     public EntityLines(EntityCollectionStore store) {
         this.store = store;
+        this.enums = null;
+        this.checks = null;
+        this.live = null;
+        this.clock = Clock.systemUTC();
     }
 
     /**
@@ -47,6 +86,9 @@ public class EntityLines {
      * @param errors the problems, each addressed to its row and field
      */
     public record Prepared(Map<String, List<Row>> rows, List<FieldErrorItem> errors) {
+        /** A save that sends no rows. */
+        public static final Prepared NONE = new Prepared(Map.of(), List.of());
+
         public Prepared {
             rows = Collections.unmodifiableMap(new LinkedHashMap<>(rows));
             errors = List.copyOf(errors);
@@ -78,17 +120,21 @@ public class EntityLines {
      *
      * @param sent    the rows of each collection the body sends, as read
      * @param current the record before the save with its rows, empty for a create
-     * @param record  the record as the save leaves it: the currency of the document is read from it
+     * @param record  the record as the save leaves it: the currency of the document and the header's values a row's
+     *                formula reads are read from it
      * @param locked  the keys the state of the process locks
+     * @param userId  who saves: a reference of a row names a row this person sees
      */
     public Prepared prepare(
             EntityDefinition entity,
             Map<String, List<Map<String, @Nullable Object>>> sent,
             Map<String, ?> current,
             Map<String, ?> record,
-            Set<String> locked) {
+            Set<String> locked,
+            long userId) {
         Map<String, List<Row>> rows = new LinkedHashMap<>();
         List<FieldErrorItem> errors = new ArrayList<>();
+        EntityLogic logic = logic(entity);
         for (EntityCollection collection : EntityProcess.collections(entity)) {
             List<Map<String, @Nullable Object>> given = sent.get(collection.key());
             if (given == null) continue;
@@ -101,13 +147,123 @@ public class EntityLines {
                 continue;
             }
             List<Map<String, Object>> before = rowsOf(current.get(collection.key()));
+            int known = errors.size();
             List<Row> checked = check(entity, collection, given, before, record, errors);
+            compute(entity, collection, logic.lineComputed(collection.key()), checked, record, errors);
+            if (errors.size() == known) lookups(collection, checked, before, userId, errors);
             if (locked.contains(collection.key()) && changes(collection, checked, before)) {
                 errors.add(FieldErrorItem.keyed(collection.key(), EntityFieldRights.READONLY, "error.field.readonly"));
             }
             rows.put(collection.key(), checked);
         }
         return new Prepared(rows, errors);
+    }
+
+    /** The form logic of the entity: the formulas of its rows' computed columns (ADR-0043); none without it. */
+    private EntityLogic logic(EntityDefinition entity) {
+        LiveEntities served = live == null ? null : live.getIfAvailable();
+        return served == null ? EntityLogic.NONE : served.logic(entity.code());
+    }
+
+    /**
+     * Evaluates the computed columns of every row in their order, over the row and the header's entered fields: a value
+     * is kept as the column keeps it, a formula that cannot give one is a problem of its row's column.
+     */
+    private void compute(
+            EntityDefinition entity,
+            EntityCollection collection,
+            List<EntityLogic.Computed> computed,
+            List<Row> rows,
+            Map<String, ?> record,
+            List<FieldErrorItem> errors) {
+        if (computed.isEmpty()) return;
+        EntityDefinition line = collection.line(entity.code());
+        FormulaScope scope = FormulaScope.current(clock);
+        for (int index = 0; index < rows.size(); index++) {
+            Row row = rows.get(index);
+            Map<String, @Nullable Object> values = new LinkedHashMap<>(row.values());
+            for (EntityLogic.Computed column : computed) {
+                FormField field = line.fieldsByKey().get(column.field());
+                if (field == null) continue;
+                try {
+                    Object value = column.formula().evaluate(EntityFormulaReads.row(values, record), scope);
+                    values.put(column.field(), EntityLogicRun.stored(field, value));
+                } catch (FormulaFailure failure) {
+                    errors.add(failure.fieldError(collection.key() + "[" + index + "]." + column.field()));
+                }
+            }
+            rows.set(index, new Row(row.id(), values));
+        }
+    }
+
+    /**
+     * The checks of the rows against the database, one statement per field for all rows: an item of an enumeration
+     * exists and, when new to the row, is in use; a reference new to the row names a row of its target the saver sees,
+     * in use. A value equal to the one the row had is kept.
+     */
+    private void lookups(
+            EntityCollection collection,
+            List<Row> rows,
+            List<Map<String, Object>> before,
+            long userId,
+            List<FieldErrorItem> errors) {
+        if (enums == null || checks == null) return;
+        Map<Long, Map<String, Object>> was = new LinkedHashMap<>();
+        before.forEach(row -> was.put(EntityReads.id(row), row));
+        for (EntityField field : collection.fields()) {
+            FormField form = field.formField();
+            if (form == null) continue;
+            Map<Integer, Object> fresh = new LinkedHashMap<>();
+            for (int index = 0; index < rows.size(); index++) {
+                Row row = rows.get(index);
+                Object value = row.values().get(field.key());
+                Map<String, Object> old = row.id() == null ? Map.of() : was.getOrDefault(row.id(), Map.of());
+                if (value != null && !FieldValueRules.same(form, value, old.get(field.key()))) fresh.put(index, value);
+            }
+            if (fresh.isEmpty()) continue;
+            if (field.type() == FieldType.ENUM) {
+                enumProblems(collection, form, fresh, errors);
+            } else if (field.options().target() != null) {
+                referenceProblems(collection, field, fresh, userId, errors);
+            }
+        }
+    }
+
+    private void enumProblems(
+            EntityCollection collection, FormField field, Map<Integer, Object> fresh, List<FieldErrorItem> errors) {
+        EntityEnums.Items items = Objects.requireNonNull(enums)
+                .all(Objects.requireNonNull(field.params().enumeration(), field.key()));
+        fresh.forEach((index, value) -> {
+            String at = collection.key() + "[" + index + "]." + field.key();
+            String code = String.valueOf(value);
+            if (!items.names().containsKey(code)) {
+                errors.add(FieldErrorItem.keyed(at, EntityValidator.INVALID, "error.field.option_required"));
+            } else if (items.archived().contains(code)) {
+                errors.add(FieldErrorItem.keyed(at, EntityFieldValues.ARCHIVED, "error.field.ref_archived"));
+            }
+        });
+    }
+
+    private void referenceProblems(
+            EntityCollection collection,
+            EntityField field,
+            Map<Integer, Object> fresh,
+            long userId,
+            List<FieldErrorItem> errors) {
+        Map<Integer, Long> keys = new LinkedHashMap<>();
+        fresh.forEach((index, value) ->
+                keys.put(index, EntityReferenceValues.key(value).orElse(-1L)));
+        Map<Long, Boolean> visible = Objects.requireNonNull(checks)
+                .visibleRows(Objects.requireNonNull(field.options().target()), new HashSet<>(keys.values()), userId);
+        keys.forEach((index, key) -> {
+            String at = collection.key() + "[" + index + "]." + field.key();
+            Boolean archived = visible.get(key);
+            if (archived == null) {
+                errors.add(FieldErrorItem.keyed(at, EntitySaveChecks.NOT_FOUND, "error.field.ref_not_found"));
+            } else if (archived) {
+                errors.add(FieldErrorItem.keyed(at, EntityFieldValues.ARCHIVED, "error.field.ref_archived"));
+            }
+        });
     }
 
     /** Writes the rows of every collection the save sends (step 10 of ADR-0032, 6.3). */
@@ -203,7 +359,8 @@ public class EntityLines {
             }
             List<FieldErrorItem> problems = new ArrayList<>();
             for (FormField field : line.fields()) {
-                if (!sent.containsKey(field.key())) continue;
+                // A read-only value of a row is the server's: computed, never taken from the body (ADR-0043).
+                if (!sent.containsKey(field.key()) || field.flags().readonly() != null) continue;
                 Object value = sent.get(field.key());
                 values.put(field.key(), value == null ? null : normalize(collection, field, value, record, problems));
             }

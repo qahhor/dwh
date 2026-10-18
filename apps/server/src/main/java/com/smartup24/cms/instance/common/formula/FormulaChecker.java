@@ -12,7 +12,8 @@ import java.util.Set;
  * field the formula names must be one of them ({@code unknown_field}); an operator or a function must get the types it
  * takes ({@code type}, {@code arity}, {@code argument}). The arithmetic takes numbers, {@code &} joins any values as
  * text, {@code =}/{@code !=} compare one type (a text with a code, a key with a number), the order comparisons take
- * numbers, texts, dates, moments and times, {@code and}/{@code or}/{@code not} take yes/no values.
+ * numbers, texts, dates, moments and times, {@code and}/{@code or}/{@code not} take yes/no values. The lists of a
+ * document's rows (ADR-0043) go only into {@code sum} and {@code count}.
  */
 final class FormulaChecker {
     private static final Set<String> ARITHMETIC = Set.of("+", "-", "*", "/");
@@ -52,15 +53,15 @@ final class FormulaChecker {
     }
 
     private FormulaNode unary(FormulaAst.Unary unary) {
-        FormulaNode operand = node(unary.operand());
+        FormulaNode operand = scalar(node(unary.operand()), unary.position());
         FormulaType expected = "not".equals(unary.operator()) ? FormulaType.BOOL : FormulaType.NUMBER;
         require(operand.formulaType(), expected, unary.position());
         return FormulaNode.of(FormulaNode.UNARY, unary.operator(), expected, List.of(operand));
     }
 
     private FormulaNode binary(FormulaAst.Binary binary) {
-        FormulaNode left = node(binary.left());
-        FormulaNode right = node(binary.right());
+        FormulaNode left = scalar(node(binary.left()), binary.position());
+        FormulaNode right = scalar(node(binary.right()), binary.position());
         String operator = binary.operator();
         FormulaType a = left.formulaType();
         FormulaType b = right.formulaType();
@@ -88,9 +89,19 @@ final class FormulaChecker {
 
     private FormulaNode call(FormulaAst.Call call) {
         List<FormulaNode> args = new ArrayList<>();
-        for (FormulaAst arg : call.args()) args.add(node(arg));
+        boolean aggregate = FormulaFunctions.AGGREGATES.contains(call.function());
+        for (FormulaAst arg : call.args()) {
+            FormulaNode checked = node(arg);
+            args.add(aggregate ? checked : scalar(checked, call.position()));
+        }
         FormulaType type = FormulaFunctions.type(call.function(), args, call.position());
         return FormulaNode.of(FormulaNode.CALL, call.function(), type, args);
+    }
+
+    /** A list of rows is read only by an aggregate: {@code type} at the operator or function that meets it. */
+    private static FormulaNode scalar(FormulaNode node, int position) {
+        if (node.formulaType().list()) throw new FormulaException("type", position);
+        return node;
     }
 
     private static boolean orderedOrNull(FormulaType type) {

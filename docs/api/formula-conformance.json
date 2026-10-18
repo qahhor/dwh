@@ -10,7 +10,11 @@
     "at" : "datetime",
     "start" : "time",
     "flag" : "bool",
-    "client" : "ref"
+    "client" : "ref",
+    "lines.items" : "rows",
+    "lines.items.amount" : "numbers",
+    "lines.items.product" : "rows",
+    "doc.rate" : "number"
   },
   "scope" : {
     "zone" : "Asia/Tashkent",
@@ -3975,6 +3979,252 @@
     "error" : {
       "reason" : "type",
       "position" : 1
+    }
+  }, {
+    "formula" : "sum(lines.items.amount)",
+    "values" : {
+      "lines.items.amount" : [ "10.5", 2, null, " " ]
+    },
+    "result" : {
+      "type" : "number",
+      "value" : "12.5"
+    },
+    "ast" : {
+      "kind" : "call",
+      "name" : "sum",
+      "type" : "number",
+      "args" : [ {
+        "kind" : "field",
+        "name" : "lines.items.amount",
+        "type" : "numbers"
+      } ]
+    }
+  }, {
+    "formula" : "sum(lines.items.amount)",
+    "values" : { },
+    "result" : {
+      "type" : "number",
+      "value" : "0"
+    },
+    "ast" : {
+      "kind" : "call",
+      "name" : "sum",
+      "type" : "number",
+      "args" : [ {
+        "kind" : "field",
+        "name" : "lines.items.amount",
+        "type" : "numbers"
+      } ]
+    }
+  }, {
+    "formula" : "count(lines.items)",
+    "values" : {
+      "lines.items" : [ {
+        "qty" : 1
+      }, {
+        "qty" : 2
+      } ]
+    },
+    "result" : {
+      "type" : "number",
+      "value" : "2"
+    },
+    "ast" : {
+      "kind" : "call",
+      "name" : "count",
+      "type" : "number",
+      "args" : [ {
+        "kind" : "field",
+        "name" : "lines.items",
+        "type" : "rows"
+      } ]
+    }
+  }, {
+    "formula" : "count(lines.items)",
+    "values" : { },
+    "result" : {
+      "type" : "number",
+      "value" : "0"
+    },
+    "ast" : {
+      "kind" : "call",
+      "name" : "count",
+      "type" : "number",
+      "args" : [ {
+        "kind" : "field",
+        "name" : "lines.items",
+        "type" : "rows"
+      } ]
+    }
+  }, {
+    "formula" : "count(lines.items.product)",
+    "values" : {
+      "lines.items.product" : [ 5, null, "" ]
+    },
+    "result" : {
+      "type" : "number",
+      "value" : "1"
+    },
+    "ast" : {
+      "kind" : "call",
+      "name" : "count",
+      "type" : "number",
+      "args" : [ {
+        "kind" : "field",
+        "name" : "lines.items.product",
+        "type" : "rows"
+      } ]
+    }
+  }, {
+    "formula" : "count(lines.items.amount)",
+    "values" : {
+      "lines.items.amount" : [ "1", "x", null ]
+    },
+    "result" : {
+      "type" : "number",
+      "value" : "1"
+    },
+    "ast" : {
+      "kind" : "call",
+      "name" : "count",
+      "type" : "number",
+      "args" : [ {
+        "kind" : "field",
+        "name" : "lines.items.amount",
+        "type" : "numbers"
+      } ]
+    }
+  }, {
+    "formula" : "round(sum(lines.items.amount) / count(lines.items), 2)",
+    "values" : {
+      "lines.items.amount" : [ "10", "5" ],
+      "lines.items" : [ { }, { }, { } ]
+    },
+    "result" : {
+      "type" : "number",
+      "value" : "5"
+    },
+    "ast" : {
+      "kind" : "call",
+      "name" : "round",
+      "type" : "number",
+      "args" : [ {
+        "kind" : "binary",
+        "name" : "/",
+        "type" : "number",
+        "args" : [ {
+          "kind" : "call",
+          "name" : "sum",
+          "type" : "number",
+          "args" : [ {
+            "kind" : "field",
+            "name" : "lines.items.amount",
+            "type" : "numbers"
+          } ]
+        }, {
+          "kind" : "call",
+          "name" : "count",
+          "type" : "number",
+          "args" : [ {
+            "kind" : "field",
+            "name" : "lines.items",
+            "type" : "rows"
+          } ]
+        } ]
+      }, {
+        "kind" : "literal",
+        "value" : "2",
+        "type" : "number"
+      } ]
+    }
+  }, {
+    "formula" : "sum(lines.items.amount) > 0",
+    "values" : {
+      "lines.items.amount" : [ ]
+    },
+    "result" : {
+      "type" : "bool",
+      "value" : "false"
+    },
+    "ast" : {
+      "kind" : "binary",
+      "name" : ">",
+      "type" : "bool",
+      "args" : [ {
+        "kind" : "call",
+        "name" : "sum",
+        "type" : "number",
+        "args" : [ {
+          "kind" : "field",
+          "name" : "lines.items.amount",
+          "type" : "numbers"
+        } ]
+      }, {
+        "kind" : "literal",
+        "value" : "0",
+        "type" : "number"
+      } ]
+    }
+  }, {
+    "formula" : "qty * doc.rate",
+    "values" : {
+      "qty" : "3",
+      "doc.rate" : "1.5"
+    },
+    "result" : {
+      "type" : "number",
+      "value" : "4.5"
+    },
+    "ast" : {
+      "kind" : "binary",
+      "name" : "*",
+      "type" : "number",
+      "args" : [ {
+        "kind" : "field",
+        "name" : "qty",
+        "type" : "number"
+      }, {
+        "kind" : "field",
+        "name" : "doc.rate",
+        "type" : "number"
+      } ]
+    }
+  }, {
+    "formula" : "lines.items.amount + 1",
+    "error" : {
+      "reason" : "type",
+      "position" : 20
+    }
+  }, {
+    "formula" : "sum(lines.items.product)",
+    "error" : {
+      "reason" : "type",
+      "position" : 1
+    }
+  }, {
+    "formula" : "sum(qty)",
+    "error" : {
+      "reason" : "type",
+      "position" : 1
+    }
+  }, {
+    "formula" : "count()",
+    "error" : {
+      "reason" : "arity",
+      "position" : 1
+    }
+  }, {
+    "formula" : "isEmpty(lines.items)",
+    "error" : {
+      "reason" : "type",
+      "position" : 1
+    }
+  }, {
+    "formula" : "sum(lines.other.amount)",
+    "error" : {
+      "reason" : "unknown_field",
+      "position" : 5,
+      "name" : "lines.other.amount"
     }
   } ]
 }

@@ -17,7 +17,8 @@ import org.jspecify.annotations.Nullable;
  * {@code abs}, {@code min}, {@code max}; choice: {@code if(condition, then, else)}, {@code coalesce}, {@code isEmpty};
  * text: {@code len}, {@code upper}, {@code lower}, {@code trim}, {@code contains}; dates: {@code today()},
  * {@code now()}, {@code date(y, m, d)}, {@code year}, {@code month}, {@code day}, {@code weekday}, {@code hour},
- * {@code minute}, {@code dateOf}, {@code addDays}, {@code addMonths}, {@code daysBetween}.
+ * {@code minute}, {@code dateOf}, {@code addDays}, {@code addMonths}, {@code daysBetween}; rows of a document (ADR-0043):
+ * {@code sum(lines.items.amount)}, {@code count(lines.items)}, {@code count(lines.items.product)}.
  */
 final class FormulaFunctions {
     /** The names of the functions, as the editor lists them. */
@@ -46,7 +47,12 @@ final class FormulaFunctions {
             "dateOf",
             "addDays",
             "addMonths",
-            "daysBetween");
+            "daysBetween",
+            "sum",
+            "count");
+
+    /** The functions over the rows of a document (ADR-0043): the only ones that take a list. */
+    static final Set<String> AGGREGATES = Set.of("sum", "count");
 
     private FormulaFunctions() {}
 
@@ -73,6 +79,8 @@ final class FormulaFunctions {
             case "hour", "minute" -> moment(args, position, Set.of(TIME, DATETIME));
             case "dateOf" -> fixed(args, position, DATE, List.of(DATETIME));
             case "addDays", "addMonths" -> fixed(args, position, DATE, List.of(DATE, NUMBER));
+            case "sum" -> aggregate(args, position, Set.of(FormulaType.NUMBERS));
+            case "count" -> aggregate(args, position, Set.of(FormulaType.NUMBERS, FormulaType.ROWS));
             default -> fixed(args, position, NUMBER, List.of(DATE, DATE));
         };
     }
@@ -118,6 +126,13 @@ final class FormulaFunctions {
         arity(args, position, 1, 1);
         FormulaType type = args.getFirst().formulaType();
         if (type != FormulaType.NULL && !accepted.contains(type)) throw new FormulaException("type", position);
+        return NUMBER;
+    }
+
+    /** {@code sum} of a column of numbers, {@code count} of rows or of the filled values of a column. */
+    private static FormulaType aggregate(List<FormulaNode> args, int position, Set<FormulaType> accepted) {
+        arity(args, position, 1, 1);
+        if (!accepted.contains(args.getFirst().formulaType())) throw new FormulaException("type", position);
         return NUMBER;
     }
 

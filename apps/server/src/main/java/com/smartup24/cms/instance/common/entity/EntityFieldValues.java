@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,6 +120,23 @@ public class EntityFieldValues {
             @Nullable Map<String, ?> current,
             @Nullable Long recordId,
             long userId) {
+        return prepareAll(entity, values, current, recordId, userId, record -> Map.of());
+    }
+
+    /**
+     * {@link #prepare} without refusing, with the rows of the document prepared in its order (ADR-0043): after the
+     * entered values and the defaults, before the computed fields — a row's formula reads the header's entered fields,
+     * a computed field of the header reads the rows.
+     *
+     * @param rows prepares the rows the save sends over the record as it is then and gives them by collection key
+     */
+    public Prepared prepareAll(
+            EntityDefinition entity,
+            Map<String, ?> values,
+            @Nullable Map<String, ?> current,
+            @Nullable Long recordId,
+            long userId,
+            Function<Map<String, Object>, Map<String, Object>> rows) {
         boolean creating = current == null;
         Map<String, ?> before = current == null ? Map.of() : current;
         EntityLogicRun logic = logic(entity);
@@ -138,6 +156,7 @@ public class EntityFieldValues {
         if (creating) defaults(entity, prepared, logic, userId, errors);
         Map<String, Object> record = new LinkedHashMap<>(before);
         record.putAll(prepared);
+        record.putAll(rows.apply(record));
         Set<String> hidden = shown(entity, logic, prepared, record, errors);
         Set<String> required = logic == null ? Set.of() : logic.required(record, errors);
         errors.addAll(EntityValidator.problems(entity, record, false, hidden, required));

@@ -6,7 +6,8 @@ import java.util.Map;
 
 /**
  * Splits a formula into tokens (ADR-0042): numbers ({@code 12}, {@code 0.5}), texts in double or single quotes with the
- * escapes {@code \"}, {@code \'}, {@code \\}, {@code \n} and {@code \t}, names, the operators and parentheses. The
+ * escapes {@code \"}, {@code \'}, {@code \\}, {@code \n} and {@code \t}, names — dotted ones too, {@code lines.items.qty} and
+ * {@code doc.rate} (ADR-0043) — the operators and parentheses. The
  * typographic {@code × ÷ − ≠ ≤ ≥} and {@code <>} are read as {@code * / - != <= >= !=}. Spaces, tabs and line breaks
  * separate tokens; any other character is a {@code syntax} problem at its position.
  */
@@ -54,7 +55,12 @@ final class FormulaLexer {
         if (c >= '0' && c <= '9') return number(start);
         if (c == '"' || c == '\'') return text(start, c);
         if (letter(c)) {
-            while (at < source.length() && (letter(source.charAt(at)) || digit(source.charAt(at)))) at++;
+            word();
+            // A dotted name reads a document's rows or, from a row, its header (ADR-0043): lines.items.qty, doc.rate.
+            while (at + 1 < source.length() && source.charAt(at) == '.' && letter(source.charAt(at + 1))) {
+                at++;
+                word();
+            }
             return new Token(Kind.NAME, source.substring(start, at), start + 1);
         }
         at++;
@@ -89,6 +95,10 @@ final class FormulaLexer {
                 return new Token(Kind.OPERATOR, typographic, start + 1);
             }
         }
+    }
+
+    private void word() {
+        while (at < source.length() && (letter(source.charAt(at)) || digit(source.charAt(at)))) at++;
     }
 
     private Token number(int start) {

@@ -21,6 +21,8 @@ import org.jspecify.annotations.Nullable;
  * @param required the condition under which an optional field is required
  * @param readonly the condition, over the record as it is stored, under which a saved record's field does not change
  * @param rules    the rules, in their order
+ * @param lines    the computed fields of the rows of each collection, by its key, each after those it reads: a row's
+ *                 formula reads the row and the header's entered fields ({@code doc.<key>}, ADR-0043)
  */
 public record EntityLogic(
         List<Computed> computed,
@@ -28,11 +30,12 @@ public record EntityLogic(
         Map<String, Formula> visible,
         Map<String, Formula> required,
         Map<String, Formula> readonly,
-        List<Rule> rules) {
+        List<Rule> rules,
+        Map<String, List<Computed>> lines) {
 
     /** A form without logic. */
     public static final EntityLogic NONE =
-            new EntityLogic(List.of(), Map.of(), Map.of(), Map.of(), Map.of(), List.of());
+            new EntityLogic(List.of(), Map.of(), Map.of(), Map.of(), Map.of(), List.of(), Map.of());
 
     /** A computed field and its formula. */
     public record Computed(String field, Formula formula) {}
@@ -55,6 +58,9 @@ public record EntityLogic(
         required = Collections.unmodifiableMap(new LinkedHashMap<>(required));
         readonly = Collections.unmodifiableMap(new LinkedHashMap<>(readonly));
         rules = List.copyOf(rules);
+        Map<String, List<Computed>> rows = new LinkedHashMap<>();
+        lines.forEach((key, fields) -> rows.put(key, List.copyOf(fields)));
+        lines = Collections.unmodifiableMap(rows);
     }
 
     /** Whether the entity has no logic at all. */
@@ -64,7 +70,13 @@ public record EntityLogic(
                 && visible.isEmpty()
                 && required.isEmpty()
                 && readonly.isEmpty()
-                && rules.isEmpty();
+                && rules.isEmpty()
+                && lines.isEmpty();
+    }
+
+    /** The computed fields of the rows of the collection {@code key}, in their order; none for another. */
+    public List<Computed> lineComputed(String key) {
+        return lines.getOrDefault(key, List.of());
     }
 
     /** The keys of the computed fields: the server writes them, a save never does. */

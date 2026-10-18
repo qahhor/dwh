@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.studio.service;
 
+import com.smartup24.cms.instance.common.entity.EntityFormulaReads;
 import com.smartup24.cms.instance.common.entity.EntityLogic;
 import com.smartup24.cms.instance.common.formula.Formula;
 import com.smartup24.cms.instance.common.formula.FormulaFailure;
@@ -67,7 +68,7 @@ final class StudioFormLogic {
                                 rule.message().en())));
             }
         }
-        return new EntityLogic(ordered(computed), defaults, visible, required, readonly, rules);
+        return new EntityLogic(ordered(computed), defaults, visible, required, readonly, rules, Map.of());
     }
 
     /** The dictionary key of a rule's message. */
@@ -110,7 +111,7 @@ final class StudioFormLogic {
         public void check(EntityValues values, @Nullable EntityValues before, RuleErrors errors) {
             String at = rule.field() == null ? RuleErrors.RECORD : rule.field();
             try {
-                if (!rule.formula().fails(values::get, FormulaScope.current(CLOCK))) return;
+                if (!rule.formula().fails(EntityFormulaReads.values(values), FormulaScope.current(CLOCK))) return;
                 String message = rule.messages().get(RequestLanguage.current());
                 errors.field(
                         at,

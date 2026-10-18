@@ -12,8 +12,10 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -62,7 +64,53 @@ class FormulaTest {
         assertThat(formula.fails(Map.of("qty", "1")::get, SCOPE)).isTrue();
         assertThat(formula.fields()).containsExactly(Map.entry("qty", 1));
         assertThat(formula.type()).isEqualTo(FormulaType.BOOL);
-        assertThat(Formula.functions()).contains("round", "daysBetween").hasSize(25);
+        assertThat(Formula.functions())
+                .contains("round", "daysBetween", "sum", "count")
+                .hasSize(27);
+    }
+
+    /** ADR-0043: a document's rows are read by dotted names, only by the aggregates, and a row reads its header. */
+    @Test
+    void aggregatesReadTheRowsOfADocumentAndARowReadsItsHeader() {
+        Map<String, FormulaType> header = Map.of(
+                "lines.items", FormulaType.ROWS,
+                "lines.items.amount", FormulaType.NUMBERS,
+                "lines.items.product", FormulaType.ROWS);
+        Map<String, Object> record = Map.of(
+                "lines.items", List.of(Map.of("a", 1), Map.of("a", 2), Map.of()),
+                "lines.items.amount", List.of("10.5", "2", " "),
+                "lines.items.product", Arrays.asList(5L, null, ""));
+        assertThat(Formula.compile("sum(lines.items.amount)", header).evaluate(record::get, SCOPE))
+                .isEqualTo(new BigDecimal("12.5"));
+        assertThat(Formula.compile("count(lines.items)", header).evaluate(record::get, SCOPE))
+                .isEqualTo(BigDecimal.valueOf(3));
+        assertThat(Formula.compile("count(lines.items.product)", header).evaluate(record::get, SCOPE))
+                .isEqualTo(BigDecimal.ONE);
+        assertThat(Formula.compile("sum(lines.items.amount)", header).evaluate(Map.of()::get, SCOPE))
+                .isEqualTo(BigDecimal.ZERO);
+        assertThatThrownBy(() -> Formula.compile("lines.items.amount + 1", header))
+                .isInstanceOfSatisfying(
+                        FormulaException.class,
+                        problem -> assertThat(problem.reason()).isEqualTo("type"));
+        assertThatThrownBy(() -> Formula.compile("round(lines.items.amount)", header))
+                .isInstanceOfSatisfying(
+                        FormulaException.class,
+                        problem -> assertThat(problem.reason()).isEqualTo("type"));
+        assertThatThrownBy(() -> Formula.compile("sum(lines.items.product)", header))
+                .isInstanceOfSatisfying(
+                        FormulaException.class,
+                        problem -> assertThat(problem.reason()).isEqualTo("type"));
+        assertThatThrownBy(() -> Formula.compile("sum(lines.other.amount)", header))
+                .isInstanceOfSatisfying(FormulaException.class, problem -> {
+                    assertThat(problem.reason()).isEqualTo("unknown_field");
+                    assertThat(problem.name()).isEqualTo("lines.other.amount");
+                });
+        Formula line =
+                Formula.compile("qty * doc.rate", Map.of("qty", FormulaType.NUMBER, "doc.rate", FormulaType.NUMBER));
+        assertThat(line.fields()).containsOnlyKeys("qty", "doc.rate");
+        assertThat(line.evaluate(Map.of("qty", "3", "doc.rate", "1.5")::get, SCOPE))
+                .isEqualTo(new BigDecimal("4.5"));
+        assertThatThrownBy(() -> Formula.compile("doc.", Map.of())).isInstanceOf(FormulaException.class);
     }
 
     @Test
