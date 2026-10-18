@@ -71,6 +71,8 @@ describe('documents of live forms in the editor (ADR-0043)', () => {
     const written = withFormat({ ...declaration, formatVersion: 1, lines: [], entity: { ...declaration.entity } }, 1);
     expect(written.formatVersion).toBe(6);
     expect(written.lines).toBeUndefined();
+    // A new document is named by its number, not by the system name of earlier formats.
+    expect(written.entity).not.toHaveProperty('titleField');
     const condition = withFormat(
       {
         ...declaration,

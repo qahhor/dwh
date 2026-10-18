@@ -335,8 +335,9 @@ export function withFormat(
   const four = five || floor === 4 || usesFormatFour(copy);
   if (copy.entity.scope === 'all' && !kinds && !four && floor < 3) delete copy.entity.scope;
   if (copy.layout) copy.layout = placedLayout(copy.layout, copy.fields);
-  // A draft of an earlier format is named by the system name until it says otherwise.
-  if (four && copy.entity.titleField === undefined && declaration.formatVersion < 4)
+  // A draft of an earlier format is named by the system name until it says otherwise; a document with its number is
+  // named by it (ADR-0043).
+  if (four && copy.entity.titleField === undefined && declaration.formatVersion < 4 && !copy.entity.numbering)
     copy.entity.titleField = SYSTEM_TITLE;
   if (!four || copy.entity.titleField === NUMBER_TITLE || copy.entity.titleField === DOCUMENT_NUMBER_TITLE)
     delete copy.entity.titleField;

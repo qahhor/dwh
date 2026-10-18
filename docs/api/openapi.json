@@ -18642,7 +18642,7 @@
           },
           "type" : {
             "type" : "string",
-            "enum" : [ "number", "text", "bool", "date", "datetime", "time", "option", "ref", "null" ]
+            "enum" : [ "number", "text", "bool", "date", "datetime", "time", "option", "ref", "null", "numbers", "rows" ]
           },
           "value" : {
             "type" : "string",

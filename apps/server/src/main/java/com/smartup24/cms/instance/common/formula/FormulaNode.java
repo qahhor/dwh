@@ -31,7 +31,17 @@ public record FormulaNode(
         @Schema(
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {
-                    "number", "text", "bool", "date", "datetime", "time", "option", "ref", "null", "numbers", "rows"
+                    "number",
+                    "text",
+                    "bool",
+                    "date",
+                    "datetime",
+                    "time",
+                    "option",
+                    "ref",
+                    "null",
+                    "numbers",
+                    "rows"
                 })
         String type,
 

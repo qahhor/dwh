@@ -5511,7 +5511,7 @@ export interface components {
             /** @description The operator, function or field key */
             name?: string;
             /** @enum {string} */
-            type: "number" | "text" | "bool" | "date" | "datetime" | "time" | "option" | "ref" | "null";
+            type: "number" | "text" | "bool" | "date" | "datetime" | "time" | "option" | "ref" | "null" | "numbers" | "rows";
             /** @description The canonical text of a literal */
             value?: string;
         };
