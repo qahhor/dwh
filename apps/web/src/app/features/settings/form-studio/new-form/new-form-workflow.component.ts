@@ -103,8 +103,6 @@ export class NewFormWorkflowComponent {
   /** The statuses the active version stores, or none for a new form. */
   readonly stored = input<SimpleFormWorkflow | undefined>(undefined);
   readonly changed = output<SimpleFormWorkflow | undefined>();
-  readonly maxStates = MAX_STATES;
-  readonly maxTransitions = MAX_TRANSITIONS;
   readonly colorOptions = computed(() => {
     this.i18n.currentLang();
     return STATE_COLORS.map((id) => ({ id, label: this.i18n.translate(`studio.workflow.color_${id}`) }));
@@ -133,6 +131,8 @@ export class NewFormWorkflowComponent {
     numbered: this.document()?.numbered ?? false,
     statuses: true,
   }));
+  readonly maxStates = MAX_STATES;
+  readonly maxTransitions = MAX_TRANSITIONS;
 
   storedState(state: SimpleFormState): boolean {
     return (this.stored()?.states ?? []).some((candidate) => candidate.code === state.code);

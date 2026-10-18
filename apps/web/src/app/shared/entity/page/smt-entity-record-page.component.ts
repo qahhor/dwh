@@ -115,6 +115,9 @@ export class SMTEntityRecordPageComponent {
   readonly record = linkedSignal<EntityRecord | null>(() => (this.loaded.hasValue() ? this.loaded.value() : null));
   readonly busy = signal(false);
 
+  /** The transition whose comment the dialog asks for, or null while it is closed (ADR-0043). */
+  readonly commenting = signal<FormTransitionMeta | null>(null);
+
   readonly tab = linkedSignal<string>(() => {
     this.recordId();
     return this.context.formMeta().tabs?.[0]?.key ?? 'fields';
@@ -176,13 +179,6 @@ export class SMTEntityRecordPageComponent {
   /** The record as the server returned it, by property: the rows of its collections and the currency of their money. */
   readonly recordData = computed<Record<string, unknown>>(() => ({ ...(this.record() ?? {}) }));
 
-  /** The record's state in its process (ADR-0032 9.2), or null without one. */
-  private readonly currentState = computed<FormStateMeta | null>(() => {
-    const workflow = this.context.formMeta().workflow;
-    const record = this.recordData();
-    return workflow?.states.find((candidate) => candidate.code === record[workflow.field]) ?? null;
-  });
-
   /** The name of the record's state, or null without one. */
   readonly stateLabel = computed(() => {
     this.i18n.currentLang();
@@ -196,14 +192,18 @@ export class SMTEntityRecordPageComponent {
     return color ? STATE_VARIANTS[color] : 'blue';
   });
 
-  /** The transition whose comment the dialog asks for, or null while it is closed (ADR-0043). */
-  readonly commenting = signal<FormTransitionMeta | null>(null);
-
   /** The name of the transition the dialog asks about. */
   readonly commentTitle = computed(() => {
     this.i18n.currentLang();
     const transition = this.commenting();
     return transition ? this.actionLabel(transition.code) : '';
+  });
+
+  /** The record's state in its process (ADR-0032 9.2), or null without one. */
+  private readonly currentState = computed<FormStateMeta | null>(() => {
+    const workflow = this.context.formMeta().workflow;
+    const record = this.recordData();
+    return workflow?.states.find((candidate) => candidate.code === record[workflow.field]) ?? null;
   });
 
   /** The entity's own tabs the viewer may open: those without rights, or with one of them held. */

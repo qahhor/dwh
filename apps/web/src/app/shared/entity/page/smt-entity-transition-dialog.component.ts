@@ -70,7 +70,6 @@ export const MAX_TRANSITION_COMMENT = 1000;
 })
 export class SMTEntityTransitionDialogComponent {
   private readonly i18n = inject(I18nService);
-  readonly max = MAX_TRANSITION_COMMENT;
   readonly open = input(false);
   /** The name of the transition: the dialog's title and its button. */
   readonly title = input('');
@@ -89,6 +88,8 @@ export class SMTEntityTransitionDialogComponent {
       ? this.i18n.translate('ui.entity_page.transition_comment_missing')
       : '';
   });
+
+  readonly max = MAX_TRANSITION_COMMENT;
 
   constructor() {
     effect(() => {

@@ -1,0 +1,76 @@
+import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { describe, expect, it, vi } from 'vitest';
+import { I18nService } from '@core/services/i18n.service';
+import { StudioFormulasApi } from '../studio-formulas.api';
+import { NewFormWorkflowComponent } from './new-form-workflow.component';
+import type { SimpleFormWorkflow } from './new-form.models';
+
+describe('NewFormWorkflowComponent', () => {
+  it('edits statuses and transitions and keeps the stored ones', async () => {
+    await TestBed.configureTestingModule({
+      imports: [NewFormWorkflowComponent],
+      providers: [{ provide: StudioFormulasApi, useValue: { check: () => of({ valid: true }) } }],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(NewFormWorkflowComponent);
+    const component = fixture.componentInstance;
+    const emit = vi.spyOn(component.changed, 'emit');
+    const last = () => emit.mock.lastCall?.[0] as SimpleFormWorkflow;
+    component.toggle(true);
+    const workflow = last();
+    expect(workflow.states.map((state) => state.code)).toEqual(['draft', 'pending', 'approved', 'rejected']);
+    expect(TestBed.inject(I18nService)).toBeTruthy();
+    fixture.componentRef.setInput('workflow', workflow);
+    fixture.detectChanges();
+    expect(component.leavableOptions().map((option) => option.id)).toEqual(['draft', 'pending']);
+    expect(component.colorOptions()).toHaveLength(6);
+    expect(component.commentOptions()).toHaveLength(3);
+    component.addState();
+    expect(last().states.at(-1)?.code).toBe('status5');
+    component.patchState(0, { code: 'new' });
+    expect(last().states[0].code).toBe('new');
+    component.setStateLabel(1, 'en', 'Waiting');
+    expect(last().states[1].labels.en).toBe('Waiting');
+    component.setColor(1, 'purple');
+    expect(last().states[1].color).toBe('purple');
+    component.setColor(1, 'pink');
+    component.setStateFlag(1, 'terminal', true);
+    expect(last().states[1].terminal).toBe(true);
+    component.setStateFlag(2, 'terminal', false);
+    expect(last().states[2]).not.toHaveProperty('terminal');
+    component.setStateFlag(0, 'terminal', true);
+    component.addTransition();
+    expect(last().transitions.at(-1)).toMatchObject({ code: 'step4', from: ['draft'], to: 'pending' });
+    component.setTransitionLabel(0, 'ru', 'Отправить');
+    component.setFrom(0, ['draft', 'pending']);
+    expect(last().transitions[0].from).toEqual(['draft', 'pending']);
+    component.setTo(0, 'approved');
+    expect(last().transitions[0].to).toBe('approved');
+    component.setComment(0, 'required');
+    expect(last().transitions[0].comment).toBe('required');
+    component.setComment(0, 'maybe');
+    component.setTransitionFlag(0, 'notify', true);
+    expect(last().transitions[0].notify).toBe(true);
+    component.setTransitionFlag(1, 'notAuthor', false);
+    expect(last().transitions[1]).not.toHaveProperty('notAuthor');
+    component.setCondition(0, 'total > 0');
+    expect(last().transitions[0].condition).toBe('total > 0');
+    component.setCondition(0, undefined);
+    expect(last().transitions[0]).not.toHaveProperty('condition');
+    component.patchTransition(0, { code: 'send' });
+    expect(last().transitions[0].code).toBe('send');
+    component.removeTransition(2);
+    expect(last().transitions.map((transition) => transition.code)).toEqual(['submit', 'approve']);
+    component.removeState(3);
+    expect(last().states.map((state) => state.code)).toEqual(['draft', 'pending', 'approved']);
+    expect(last().transitions.map((transition) => transition.code)).toEqual(['submit', 'approve']);
+    fixture.componentRef.setInput('stored', workflow);
+    fixture.detectChanges();
+    const calls = emit.mock.calls.length;
+    component.removeState(3);
+    component.toggle(false);
+    expect(emit.mock.calls.length).toBe(calls);
+    expect(component.storedState(workflow.states[1])).toBe(true);
+    expect(component.text(null)).toBe('');
+  });
+});
