@@ -13,6 +13,7 @@ import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.FormField;
 import com.smartup24.cms.platform.api.entity.field.EntityField;
 import com.smartup24.cms.platform.api.entity.field.FieldDefault;
+import com.smartup24.cms.platform.api.entity.field.FieldReadonly;
 import com.smartup24.cms.platform.api.entity.field.FieldSource;
 import com.smartup24.cms.platform.api.entity.field.FieldType;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,7 @@ class StudioStoredFormatCompatibilityTest {
     private static final Path SAMPLES_V2 = Path.of("src/test/resources/studio/golden/stored-declarations-v2.json");
     private static final Path SAMPLES_V3 = Path.of("src/test/resources/studio/golden/stored-declarations-v3.json");
     private static final Path SAMPLES_V4 = Path.of("src/test/resources/studio/golden/stored-declarations-v4.json");
+    private static final Path SAMPLES_V5 = Path.of("src/test/resources/studio/golden/stored-declarations-v5.json");
     private static final Map<String, FieldType> TYPES = Map.of(
             "text", FieldType.TEXT,
             "textarea", FieldType.TEXTAREA,
@@ -273,6 +276,77 @@ class StudioStoredFormatCompatibilityTest {
         }
         assertThat(titles).containsExactlyInAnyOrder("title", "recordNumber", "name");
         assertThat(tabbed).as("a stored sample has tabs").isTrue();
+    }
+
+    /**
+     * Format 5 (ADR-0042): the formulas of the fields and the rules of the form. A computed field compiles read-only and
+     * is evaluated after the computed fields it reads; a default formula, a condition and a rule compile into the form
+     * logic; a rule is a cross-field rule of the entity with its message in the form's dictionary; the formulas of a
+     * hidden field are kept but not served.
+     */
+    @Test
+    void everyStoredFormatFiveSampleReadsBackKeepsItsChecksumAndCompilesItsFormulasAndRules() throws Exception {
+        JsonNode samples = json.readTree(Files.readString(SAMPLES_V5));
+        Set<String> kinds = new HashSet<>();
+        long id = 4000;
+        for (JsonNode sample : samples) {
+            String stored = json.writeValueAsString(sample.path("declaration"));
+            Declaration declaration = repository.declaration(stored);
+            assertThat(declaration.formatVersion()).isEqualTo(5);
+            assertThat(json.valueToTree(declaration).equals(sample.path("declaration")))
+                    .as("stored format of %s", declaration.entity().name())
+                    .isTrue();
+            var prepared = new MdSimpleFormDeclarations(json).prepare(stored.getBytes(StandardCharsets.UTF_8));
+            assertThat(prepared.declaration()).isEqualTo(declaration);
+            assertThat(prepared.checksum())
+                    .as("checksum of %s", declaration.entity().name())
+                    .isEqualTo(sample.path("checksum").asString());
+
+            var compiled = new StudioEntityCompiler().compile(id++, declaration);
+            EntityDefinition entity = compiled.entity();
+            StudioChangeRules.requireDefaults(declaration, entity);
+            var logic = compiled.logic();
+            String prefix = "studio.live." + declaration.entity().name();
+            for (Field field : declaration.fields()) {
+                if (Boolean.TRUE.equals(field.hidden())) {
+                    assertThat(entity.fieldsByKey()).doesNotContainKey(field.id());
+                    assertThat(logic.computedKeys()).doesNotContain(field.id());
+                    kinds.add("hidden");
+                    continue;
+                }
+                FormField form = entity.fieldsByKey().get(field.id());
+                if (field.formula() != null) {
+                    kinds.add("formula");
+                    assertThat(form.flags().readonly()).isEqualTo(FieldReadonly.ALWAYS);
+                    assertThat(logic.computedFormula(field.id())).isNotNull();
+                }
+                if (field.defaultFormula() != null) kinds.add("default");
+                if (field.visibleIf() != null) kinds.add("visible");
+                if (field.requiredIf() != null) kinds.add("required");
+                if (field.readonlyIf() != null) kinds.add("readonly");
+                assertThat(logic.defaults().containsKey(field.id())).isEqualTo(field.defaultFormula() != null);
+                assertThat(logic.visible().containsKey(field.id())).isEqualTo(field.visibleIf() != null);
+                assertThat(logic.required().containsKey(field.id())).isEqualTo(field.requiredIf() != null);
+                assertThat(logic.readonly().containsKey(field.id())).isEqualTo(field.readonlyIf() != null);
+            }
+            List<String> order =
+                    logic.computed().stream().map(item -> item.field()).toList();
+            for (var item : logic.computed()) {
+                for (String read : item.formula().fields().keySet()) {
+                    if (order.contains(read)) assertThat(order.indexOf(read)).isLessThan(order.indexOf(item.field()));
+                }
+            }
+            if (declaration.rules() == null) continue;
+            for (var rule : declaration.rules()) {
+                kinds.add("rule");
+                assertThat(entity.model().rules()).containsKey("rule." + rule.key());
+                assertThat(compiled.messages().get("uz"))
+                        .containsEntry(
+                                prefix + ".rule." + rule.key(), rule.message().uz());
+            }
+        }
+        assertThat(kinds)
+                .containsExactlyInAnyOrder("formula", "default", "visible", "required", "readonly", "rule", "hidden");
     }
 
     private static FieldType kind(EntityDefinition entity, Field field, Map<String, String> english) {

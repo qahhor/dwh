@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -62,13 +63,25 @@ public final class EntityValidator {
     }
 
     public static List<FieldErrorItem> problems(EntityDefinition entity, Map<String, ?> values, boolean partial) {
+        return problems(entity, values, partial, Set.of(), Set.of());
+    }
+
+    /**
+     * The problems of a record whose form logic (ADR-0042) hides some fields and makes some optional fields required
+     * over these values: a hidden field is not checked, a field {@code required} names is checked as required.
+     */
+    public static List<FieldErrorItem> problems(
+            EntityDefinition entity, Map<String, ?> values, boolean partial, Set<String> hidden, Set<String> required) {
         List<FieldErrorItem> errors = new ArrayList<>();
         for (FormField field : entity.fields()) {
-            if (field.attribute() != null || field.computed() || !visible(field, values)) continue;
+            if (field.attribute() != null
+                    || field.computed()
+                    || !visible(field, values)
+                    || hidden.contains(field.key())) continue;
             boolean present = values.containsKey(field.key());
             Object value = values.get(field.key());
             if (value == null || (value instanceof String text && text.isBlank())) {
-                if (field.required() && (!partial || present)) {
+                if ((field.required() || required.contains(field.key())) && (!partial || present)) {
                     errors.add(FieldErrorItem.keyed(field.key(), REQUIRED, "error.field.required"));
                 }
                 continue;

@@ -7,7 +7,9 @@ import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormTabMeta;
 import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormWorkflowMeta;
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.ConditionItemMeta;
 import com.smartup24.cms.instance.common.entity.FormFieldMetas.DefaultValueMeta;
+import com.smartup24.cms.instance.common.entity.FormLogicMetas.FormRuleMeta;
 import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
+import com.smartup24.cms.instance.common.formula.FormulaNode;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
@@ -42,13 +44,20 @@ public class FormMetaController {
     private final EntityGate gate;
     private final Function<String, Items> enumItems;
     private final Supplier<List<EntityTitles>> titles;
+    private final Function<String, EntityLogic> logic;
 
     /** The entity opens through {@link EntityGate}: its module switched on and its {@code view} right held. */
     @Autowired
-    public FormMetaController(EntityGate gate, EntityEnums enums, ObjectProvider<EntityTitles> titles) {
+    public FormMetaController(
+            EntityGate gate,
+            EntityEnums enums,
+            ObjectProvider<EntityTitles> titles,
+            ObjectProvider<LiveEntities> live) {
         this.gate = gate;
         this.enumItems = enums::all;
         this.titles = () -> titles.orderedStream().toList();
+        LiveEntities served = live.getIfAvailable();
+        this.logic = served == null ? code -> EntityLogic.NONE : served::logic;
     }
 
     /** A controller of the declarations alone, without reference entities: an enumeration offers no items. */
@@ -56,6 +65,7 @@ public class FormMetaController {
         this.gate = EntityGate.of(registry);
         this.enumItems = code -> Items.NONE;
         this.titles = List::of;
+        this.logic = code -> EntityLogic.NONE;
     }
 
     /**
@@ -99,7 +109,12 @@ public class FormMetaController {
             @Nullable List<String> contentTypes,
             @Nullable List<String> currencies,
             @Nullable String jsonRoot,
-            @Nullable String currencyFrom) {}
+            @Nullable String currencyFrom,
+            @Nullable FormulaNode formula,
+            @Nullable FormulaNode defaultFormula,
+            @Nullable FormulaNode visibleIf,
+            @Nullable FormulaNode requiredIf,
+            @Nullable FormulaNode readonlyIf) {}
 
     public record FormSectionMeta(String key, String labelKey, List<String> fields) {}
 
@@ -109,7 +124,8 @@ public class FormMetaController {
      * {@code titleKey} is the dictionary key of the entity's name (ADR-0031): its menu label, else the name of its
      * right, so a screen never names the entity by its code. {@code titleField} is the key of the field that names a
      * record (ADR-0041) when the entity says one and the viewer sees that field; without it a screen names a record by
-     * the first filled text field of the layout.
+     * the first filled text field of the layout. {@code rules} are the validation rules of an entity whose form logic
+     * is written in formulas (ADR-0042); the fields of such a form carry their own formulas.
      */
     public record FormMeta(
             String code,
@@ -122,7 +138,8 @@ public class FormMetaController {
             @Nullable List<FormCollectionMeta> collections,
             @Nullable FormWorkflowMeta workflow,
             @Nullable List<FormTabMeta> tabs,
-            @Nullable String titleField) {}
+            @Nullable String titleField,
+            @Nullable List<FormRuleMeta> rules) {}
 
     /** Anyone signed in may ask; the entity's own right is checked below. A string: common depends on no module. */
     @Operation(
@@ -135,6 +152,7 @@ public class FormMetaController {
         EntityDefinition entity = gate.findVisible(code).orElseThrow(EntityGate::unknownEntity);
         // A related list of the card only of an entity the viewer may see (ADR-0032, 9.3).
         FormMeta meta = titled(of(entity, enumItems, gate::visible), titleField(entity));
+        meta = FormLogicMetas.with(meta, logic.apply(entity.code()));
         return ResponseEntity.ok(gate.writable(entity) ? meta : readOnly(meta));
     }
 
@@ -151,7 +169,8 @@ public class FormMetaController {
                 meta.collections(),
                 meta.workflow(),
                 meta.tabs(),
-                meta.titleField());
+                meta.titleField(),
+                meta.rules());
     }
 
     /** The form naming its records by {@code field}, when the viewer sees that field. */
@@ -169,7 +188,8 @@ public class FormMetaController {
                 meta.collections(),
                 meta.workflow(),
                 meta.tabs(),
-                field);
+                field,
+                meta.rules());
     }
 
     private @Nullable String titleField(EntityDefinition entity) {
@@ -222,6 +242,7 @@ public class FormMetaController {
                 FormDocumentMetas.collections(entity, enumItems),
                 FormDocumentMetas.workflow(entity),
                 FormDocumentMetas.tabs(entity, viewable),
+                null,
                 null);
     }
 

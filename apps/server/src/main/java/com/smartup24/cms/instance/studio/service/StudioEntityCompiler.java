@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.studio.service;
 import static com.smartup24.cms.platform.api.entity.field.EntityFields.*;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinitionSource;
+import com.smartup24.cms.instance.common.entity.EntityLogic;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Declaration;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
@@ -96,10 +97,15 @@ public class StudioEntityCompiler {
             system.add(StudioFormLayout.RECORD_NUMBER);
         }
         List<String> fields = new ArrayList<>();
+        EntityLogic logic = StudioFormLogic.of(source, prefix);
         for (Field field : StudioFormLayout.ordered(shown(source), title)) {
-            builder.field(field(field, prefix, field.id().equals(title), named));
+            Builder compiled = field(field, prefix, field.id().equals(title), named);
+            // A computed field is written by the server on every save, never by a client (ADR-0042).
+            if (field.formula() != null) compiled.readonly();
+            builder.field(compiled);
             fields.add(field.id());
         }
+        logic.rules().forEach(rule -> builder.rule("rule." + rule.key(), new StudioFormLogic.Check(rule)));
         if (!StudioFormLayout.NAME.equals(title)) builder.field(modifiedAt());
         String last = null;
         if ("org_unit".equals(source.entity().scope())) {
@@ -125,7 +131,7 @@ public class StudioEntityCompiler {
                     .archivable()
                     .actions("delete");
         }
-        return new EntityDefinitionSource.Declaration(builder.build(), messages(source, prefix), title);
+        return new EntityDefinitionSource.Declaration(builder.build(), messages(source, prefix), title, logic);
     }
 
     /**
@@ -271,6 +277,11 @@ public class StudioEntityCompiler {
             Map<String, String> values = new LinkedHashMap<>();
             values.put(prefix + ".title", label(source.entity().title(), language));
             StudioFormLayout.messages(source, prefix, (key, labels) -> values.put(key, label(labels, language)));
+            if (source.rules() != null) {
+                source.rules()
+                        .forEach(rule -> values.put(
+                                StudioFormLogic.messageKey(prefix, rule.key()), message(rule.message(), language)));
+            }
             for (Field field : shown(source)) {
                 values.put(prefix + ".field." + field.id(), label(field.labels(), language));
                 if (field.options() == null) continue;
@@ -281,6 +292,14 @@ public class StudioEntityCompiler {
             result.put(language, values);
         }
         return result;
+    }
+
+    private static String message(MdSimpleFormDtos.RuleMessage message, String language) {
+        return switch (language) {
+            case "uz" -> message.uz();
+            case "en" -> message.en();
+            default -> message.ru();
+        };
     }
 
     private String label(Labels labels, String language) {

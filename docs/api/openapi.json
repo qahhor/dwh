@@ -135,6 +135,8 @@
   }, {
     "name" : "studio-form-version-controller"
   }, {
+    "name" : "studio-formula-controller"
+  }, {
     "name" : "studio-list-controller"
   }, {
     "name" : "studio-quarantine-controller"
@@ -8253,7 +8255,7 @@
     "/api/v1/form-studio/new-forms/check-draft" : {
       "post" : {
         "description" : "Checks bounded JSON structure and known field types, preserving empty identifiers, labels and unfinished numeric limits. Returns authoring input only, never a checksum or delivery package. Preparation independently enforces the complete declaration contract. Nothing is stored or activated.",
-        "operationId" : "check",
+        "operationId" : "check_1",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -13534,6 +13536,46 @@
         "tags" : [ "studio-form-version-controller" ]
       }
     },
+    "/api/v1/studio/formulas/check" : {
+      "post" : {
+        "description" : "Requires studio.forms.publish. Parses and checks one formula against the shown fields of the form: a computed value or a default gives its field's type, a condition and a rule a yes/no; a condition may not read the field it shows. Answers the type or the first problem with its 1-based position; stores nothing.",
+        "operationId" : "check",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudioFormulaCheckRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudioFormulaCheck"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Check a formula of a live form",
+        "tags" : [ "studio-formula-controller" ]
+      }
+    },
     "/api/v1/studio/lists" : {
       "get" : {
         "description" : "Requires studio.lists.view. The newest first; limit 1 to 100 (default 50, else 422) and the nextCursor of the previous page. Each list gives its item counts and the revision a change of its names takes in If-Match.",
@@ -17967,8 +18009,14 @@
           "currencyFrom" : {
             "type" : "string"
           },
+          "defaultFormula" : {
+            "$ref" : "#/components/schemas/FormulaNode"
+          },
           "defaultValue" : {
             "$ref" : "#/components/schemas/DefaultValueMeta"
+          },
+          "formula" : {
+            "$ref" : "#/components/schemas/FormulaNode"
           },
           "jsonRoot" : {
             "type" : "string"
@@ -18025,6 +18073,9 @@
           "readonly" : {
             "type" : "boolean"
           },
+          "readonlyIf" : {
+            "$ref" : "#/components/schemas/FormulaNode"
+          },
           "readonlyOnUpdate" : {
             "type" : "boolean"
           },
@@ -18040,12 +18091,18 @@
           "required" : {
             "type" : "boolean"
           },
+          "requiredIf" : {
+            "$ref" : "#/components/schemas/FormulaNode"
+          },
           "scale" : {
             "type" : "integer",
             "format" : "int32"
           },
           "type" : {
             "type" : "string"
+          },
+          "visibleIf" : {
+            "$ref" : "#/components/schemas/FormulaNode"
           },
           "visibleWhen" : {
             "type" : "array",
@@ -18162,6 +18219,12 @@
           "listCode" : {
             "type" : "string"
           },
+          "rules" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormRuleMeta"
+            }
+          },
           "tabs" : {
             "type" : "array",
             "items" : {
@@ -18176,6 +18239,23 @@
           },
           "workflow" : {
             "$ref" : "#/components/schemas/FormWorkflowMeta"
+          }
+        }
+      },
+      "FormRuleMeta" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "formula" : {
+            "$ref" : "#/components/schemas/FormulaNode"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "messageKey" : {
+            "type" : "string"
           }
         }
       },
@@ -18531,6 +18611,36 @@
             "format" : "int32"
           }
         }
+      },
+      "FormulaNode" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "args" : {
+            "type" : "array",
+            "description" : "The operands or arguments, in order",
+            "items" : {
+              "$ref" : "#/components/schemas/FormulaNode"
+            }
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "literal", "field", "unary", "binary", "call" ]
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "The operator, function or field key"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "number", "text", "bool", "date", "datetime", "time", "option", "ref", "null" ]
+          },
+          "value" : {
+            "type" : "string",
+            "description" : "The canonical text of a literal"
+          }
+        },
+        "required" : [ "kind", "type" ]
       },
       "GenerationStatus" : {
         "type" : "object",
@@ -21823,8 +21933,8 @@
           "formatVersion" : {
             "type" : "integer",
             "format" : "int32",
-            "description" : "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field",
-            "maximum" : 4,
+            "description" : "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules",
+            "maximum" : 5,
             "minimum" : 1
           },
           "kind" : {
@@ -21837,6 +21947,15 @@
           },
           "module" : {
             "$ref" : "#/components/schemas/SimpleFormModule"
+          },
+          "rules" : {
+            "type" : "array",
+            "description" : "Format 5: the validation rules every save of a record must meet (ADR-0042)",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormRule"
+            },
+            "maxItems" : 20,
+            "minItems" : 1
           }
         },
         "required" : [ "entity", "fields", "formatVersion", "kind", "module" ]
@@ -22005,10 +22124,22 @@
         "type" : "object",
         "additionalProperties" : false,
         "properties" : {
+          "defaultFormula" : {
+            "type" : "string",
+            "description" : "Format 5: the formula of the value a new record takes when it is sent none",
+            "maxLength" : 1000,
+            "minLength" : 1
+          },
           "defaultValue" : {
             "type" : "string",
             "description" : "Format 2: the fixed value a new record takes, written as the field reads it",
             "maxLength" : 4000,
+            "minLength" : 1
+          },
+          "formula" : {
+            "type" : "string",
+            "description" : "Format 5: the formula of a computed field (ADR-0042) - read-only, recomputed and stored on every save",
+            "maxLength" : 1000,
             "minLength" : 1
           },
           "hidden" : {
@@ -22039,8 +22170,20 @@
             },
             "maxItems" : 50
           },
+          "readonlyIf" : {
+            "type" : "string",
+            "description" : "Format 5: a saved record's field cannot be changed while this yes/no formula is true over the record as it is stored",
+            "maxLength" : 1000,
+            "minLength" : 1
+          },
           "required" : {
             "type" : "boolean"
+          },
+          "requiredIf" : {
+            "type" : "string",
+            "description" : "Format 5: an optional field is required while this yes/no formula is true",
+            "maxLength" : 1000,
+            "minLength" : 1
           },
           "scale" : {
             "type" : "integer",
@@ -22055,6 +22198,12 @@
           "type" : {
             "type" : "string",
             "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url", "select", "ref", "user" ]
+          },
+          "visibleIf" : {
+            "type" : "string",
+            "description" : "Format 5: the field is shown only while this yes/no formula is true; a hidden field keeps no value and is not required",
+            "maxLength" : 1000,
+            "minLength" : 1
           }
         },
         "required" : [ "id", "labels", "listed", "required", "type" ]
@@ -22152,6 +22301,51 @@
           }
         },
         "required" : [ "code", "labels" ]
+      },
+      "SimpleFormRule" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "field" : {
+            "type" : "string",
+            "description" : "The id of the shown field the problem is addressed to; absent: the whole record"
+          },
+          "formula" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 1
+          },
+          "key" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_]{0,19}$"
+          },
+          "message" : {
+            "$ref" : "#/components/schemas/SimpleFormRuleMessage"
+          }
+        },
+        "required" : [ "formula", "key", "message" ]
+      },
+      "SimpleFormRuleMessage" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "en" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 1
+          },
+          "ru" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 1
+          },
+          "uz" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 1
+          }
+        },
+        "required" : [ "en", "ru", "uz" ]
       },
       "SimpleFormSection" : {
         "type" : "object",
@@ -22666,6 +22860,83 @@
             "format" : "int32"
           }
         }
+      },
+      "StudioFormulaCheck" : {
+        "type" : "object",
+        "properties" : {
+          "messageKey" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "valid" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "StudioFormulaCheckRequest" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "field" : {
+            "type" : "string",
+            "description" : "The id of the field the formula belongs to; absent for a rule",
+            "pattern" : "^[a-z][a-z0-9]{0,19}$"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudioFormulaField"
+            },
+            "maxItems" : 30,
+            "minItems" : 0
+          },
+          "formula" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "kind" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^(formula|defaultFormula|visibleIf|requiredIf|readonlyIf|rule)$"
+          }
+        },
+        "required" : [ "fields", "formula", "kind" ]
+      },
+      "StudioFormulaField" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^[a-z][a-z0-9]{0,19}$"
+          },
+          "target" : {
+            "type" : "string",
+            "description" : "What a ref field names: a list keeps a code, a form a row's key",
+            "pattern" : "^(list|form)$"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url", "select", "ref", "user" ],
+            "minLength" : 1,
+            "pattern" : "^(text|textarea|number|date|datetime|time|bool|email|phone|url|select|ref|user)$"
+          }
+        },
+        "required" : [ "id", "type" ]
       },
       "StudioListCreateRequest" : {
         "type" : "object",

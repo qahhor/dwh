@@ -66,6 +66,12 @@ public class LiveEntities {
                 .toList();
     }
 
+    /** The form logic of the served entity {@code code} (ADR-0042); {@link EntityLogic#NONE} for any other. */
+    public EntityLogic logic(String code) {
+        EntityDefinitionSource.Declaration declaration = declarations().get(code);
+        return declaration == null ? EntityLogic.NONE : declaration.logic();
+    }
+
     public Optional<EntityDefinition> find(String code) {
         return Optional.ofNullable(declarations().get(code)).map(EntityDefinitionSource.Declaration::entity);
     }

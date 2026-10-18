@@ -322,7 +322,7 @@ public class EntityWrites {
             long user) {
         Map<String, Object> after = new LinkedHashMap<>(record);
         after.putAll(touched);
-        List<FieldErrorItem> errors = new ArrayList<>(EntityValidator.problems(entity, after, false));
+        List<FieldErrorItem> errors = new ArrayList<>(fieldValues.recordProblems(entity, after));
         if (errors.isEmpty()) {
             errors.addAll(checks.references(entity, touched, current, user));
             errors.addAll(checks.unit(entity, touched, current, user));

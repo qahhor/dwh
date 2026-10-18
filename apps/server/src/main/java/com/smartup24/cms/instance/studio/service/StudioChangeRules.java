@@ -32,6 +32,12 @@ import java.util.stream.Collectors;
  * <p>Format 4 (ADR-0041): the layout and the title field change freely — they only show the same data otherwise —
  * but a form keeps or goes without the system name and code fields for good: dropping them would drop data the records
  * hold ({@code name}, {@code removed}), taking them on would require a name of every record ({@code required}).
+ *
+ * <p>Format 5 (ADR-0042): formulas only act when a record is saved — a read never evaluates one — so the logic changes
+ * freely: a computed field's formula (its records take the new value on their next save), defaults by formula, the
+ * conditions and the rules may be added, changed or removed, and a new computed field starts empty in the records saved
+ * before it. A field whose records hold entered values never becomes computed ({@code computed}): the next save would
+ * replace them; a computed field may become an entered one and keeps its values.
  */
 public final class StudioChangeRules {
     /** The message of every refused change; its parameters name the field and the change. */
@@ -84,6 +90,7 @@ public final class StudioChangeRules {
             changes.add(new Change(id, "required"));
         if (shorter(before.maxLength(), after.maxLength())) changes.add(new Change(id, "max_length"));
         if (shorter(before.scale(), after.scale())) changes.add(new Change(id, "scale"));
+        if (before.formula() == null && after.formula() != null) changes.add(new Change(id, "computed"));
     }
 
     /** Whether a choice of the select before is no longer one of the choices after: records may hold its code. */

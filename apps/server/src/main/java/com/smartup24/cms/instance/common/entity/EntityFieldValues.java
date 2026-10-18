@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.common.entity;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityFiles.FileFacts;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.formula.FormulaScope;
 import com.smartup24.cms.instance.common.security.DataScopes;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.FormField;
@@ -48,11 +49,17 @@ public class EntityFieldValues {
     private final @Nullable DataScopes scopes;
     private final JdbcClient jdbc;
     private final Clock clock;
+    private @Nullable LiveEntities live;
 
     @Autowired
     public EntityFieldValues(
-            EntityEnums enums, ObjectProvider<EntityFiles> files, ObjectProvider<DataScopes> scopes, JdbcClient jdbc) {
+            EntityEnums enums,
+            ObjectProvider<EntityFiles> files,
+            ObjectProvider<DataScopes> scopes,
+            JdbcClient jdbc,
+            ObjectProvider<LiveEntities> live) {
         this(enums, files.getIfAvailable(), scopes.getIfAvailable(), jdbc, Clock.systemUTC());
+        this.live = live.getIfAvailable();
     }
 
     /** Values without org units: a {@code currentOrgUnit()} default stays empty. */
@@ -114,38 +121,92 @@ public class EntityFieldValues {
             long userId) {
         boolean creating = current == null;
         Map<String, ?> before = current == null ? Map.of() : current;
-        List<FieldErrorItem> errors = writeProblems(entity, values, current, before, creating);
+        EntityLogicRun logic = logic(entity);
+        Map<String, ?> sent = logic == null ? values : logic.unsent(values);
+        List<FieldErrorItem> errors = writeProblems(entity, sent, current, before, creating);
         Set<String> unwritable = new HashSet<>(EntityFieldRights.hidden(entity));
         unwritable.addAll(EntityFieldRights.readonly(entity));
+        if (logic != null && !creating) unwritable.addAll(logic.readonlyProblems(sent, before, errors));
         Map<String, Object> prepared = new LinkedHashMap<>();
         for (FormField field : entity.fields()) {
-            if (field.attribute() != null || !values.containsKey(field.key())) continue;
+            if (field.attribute() != null || !sent.containsKey(field.key())) continue;
             var readonly = field.flags().readonly();
             if ((readonly != null && readonly.applies(creating, before)) || unwritable.contains(field.key())) continue;
-            Object value = values.get(field.key());
+            Object value = sent.get(field.key());
             prepared.put(field.key(), value == null ? null : FieldValueRules.normalize(field, value));
         }
-        if (creating) {
-            for (FormField field : entity.fields()) {
-                FieldDefault value = field.flags().defaultValue();
-                if (value != null && field.attribute() == null && prepared.get(field.key()) == null) {
-                    prepared.put(field.key(), defaultOf(entity, field, value, userId));
-                }
-            }
-        }
+        if (creating) defaults(entity, prepared, logic, userId, errors);
         Map<String, Object> record = new LinkedHashMap<>(before);
         record.putAll(prepared);
-        for (FormField field : entity.fields()) {
-            if (field.attribute() == null && !field.computed() && !EntityValidator.visible(field, record)) {
-                prepared.put(field.key(), null);
-                record.put(field.key(), null);
-            }
-        }
-        errors.addAll(EntityValidator.problems(entity, record, false));
+        Set<String> hidden = shown(entity, logic, prepared, record, errors);
+        Set<String> required = logic == null ? Set.of() : logic.required(record, errors);
+        errors.addAll(EntityValidator.problems(entity, record, false, hidden, required));
         if (errors.isEmpty()) {
             errors.addAll(lookupProblems(entity, prepared, before, recordId, userId));
         }
         return new Prepared(prepared, errors);
+    }
+
+    /** The defaults of a new record's empty fields: the declared ones, then the default formulas (ADR-0042). */
+    private void defaults(
+            EntityDefinition entity,
+            Map<String, Object> prepared,
+            @Nullable EntityLogicRun logic,
+            long userId,
+            List<FieldErrorItem> errors) {
+        for (FormField field : entity.fields()) {
+            FieldDefault value = field.flags().defaultValue();
+            if (value != null && field.attribute() == null && prepared.get(field.key()) == null) {
+                prepared.put(field.key(), defaultOf(entity, field, value, userId));
+            }
+        }
+        if (logic != null) logic.defaults(prepared, new LinkedHashMap<>(prepared), errors);
+    }
+
+    /**
+     * Computes the computed fields, clears the fields their conditions hide and computes again over what is left
+     * (ADR-0042); the keys of the fields a formula hides.
+     */
+    private static Set<String> shown(
+            EntityDefinition entity,
+            @Nullable EntityLogicRun logic,
+            Map<String, Object> prepared,
+            Map<String, Object> record,
+            List<FieldErrorItem> errors) {
+        if (logic != null) logic.compute(prepared, record, errors);
+        Set<String> hidden = logic == null ? Set.of() : logic.hidden(record, errors);
+        for (FormField field : entity.fields()) {
+            if (field.attribute() == null
+                    && !field.computed()
+                    && (!EntityValidator.visible(field, record) || hidden.contains(field.key()))) {
+                prepared.put(field.key(), null);
+                record.put(field.key(), null);
+            }
+        }
+        if (logic != null && !hidden.isEmpty()) logic.compute(prepared, record, errors);
+        return hidden;
+    }
+
+    /**
+     * The problems of a record as the save writes it, by the field rules — the values a hook changed pass them too —
+     * with the fields its form logic hides left out and the fields it makes required checked as required (ADR-0042).
+     */
+    public List<FieldErrorItem> recordProblems(EntityDefinition entity, Map<String, ?> record) {
+        EntityLogicRun logic = logic(entity);
+        if (logic == null) return EntityValidator.problems(entity, record, false);
+        List<FieldErrorItem> errors = new ArrayList<>();
+        Set<String> hidden = logic.hidden(record, errors);
+        Set<String> required = logic.required(record, errors);
+        errors.addAll(EntityValidator.problems(entity, record, false, hidden, required));
+        return errors;
+    }
+
+    /** The form logic of the entity in the request's time zone, or null when the entity has none. */
+    private @Nullable EntityLogicRun logic(EntityDefinition entity) {
+        LiveEntities served = live;
+        if (served == null) return null;
+        EntityLogic logic = served.logic(entity.code());
+        return logic.empty() ? null : new EntityLogicRun(entity, logic, FormulaScope.current(clock));
     }
 
     /**

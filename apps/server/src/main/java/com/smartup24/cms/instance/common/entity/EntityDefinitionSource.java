@@ -19,17 +19,24 @@ public interface EntityDefinitionSource {
     }
 
     /**
-     * A loaded declaration, its dictionary entries by language and the key of the field that names a record ({@code
-     * titleField}, ADR-0041), when the source says one.
+     * A loaded declaration, its dictionary entries by language, the key of the field that names a record ({@code
+     * titleField}, ADR-0041), when the source says one, and its form logic in formulas ({@code logic}, ADR-0042).
      */
     record Declaration(
             EntityDefinition entity,
             Map<String, Map<String, String>> messages,
-            @Nullable String titleField) {
+            @Nullable String titleField,
+            EntityLogic logic) {
         public Declaration {
             Map<String, Map<String, String>> copy = new LinkedHashMap<>();
             messages.forEach((language, values) -> copy.put(language, Map.copyOf(values)));
             messages = Map.copyOf(copy);
+        }
+
+        /** A declaration without form logic. */
+        public Declaration(
+                EntityDefinition entity, Map<String, Map<String, String>> messages, @Nullable String titleField) {
+            this(entity, messages, titleField, EntityLogic.NONE);
         }
 
         /** A declaration whose records the screens name as they do any entity's. */

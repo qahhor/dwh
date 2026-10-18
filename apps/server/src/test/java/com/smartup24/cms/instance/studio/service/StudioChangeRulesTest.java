@@ -248,6 +248,44 @@ class StudioChangeRulesTest {
         return List.of(TEXT, NUMBER, DEFAULTED);
     }
 
+    @Test
+    void formulasConditionsAndRulesChangeFreelyButAnEnteredFieldNeverBecomesComputed() {
+        Declaration before = form(List.of(TEXT, logic(NUMBER, "1 + 1", null)));
+        assertThat(StudioChangeRules.incompatible(before, form(List.of(TEXT, logic(NUMBER, "2 * 3", null)))))
+                .as("a computed field's formula changes")
+                .isEmpty();
+        assertThat(StudioChangeRules.incompatible(before, form(List.of(logic(TEXT, null, "amount > 1"), NUMBER))))
+                .as("a computed field becomes entered and a condition is added")
+                .isEmpty();
+        assertThat(StudioChangeRules.incompatible(
+                        form(List.of(TEXT, NUMBER)), form(List.of(TEXT, logic(NUMBER, "1 + 1", null)))))
+                .containsExactly(new Change("amount", "computed"));
+        assertThat(StudioChangeRules.incompatible(
+                        form(List.of(TEXT)), form(List.of(TEXT, logic(NUMBER, "1 + 1", null)))))
+                .as("a new computed field starts empty in the saved records")
+                .isEmpty();
+    }
+
+    private static Field logic(Field field, String formula, String visibleIf) {
+        return new Field(
+                field.id(),
+                field.type(),
+                field.labels(),
+                field.required(),
+                field.listed(),
+                field.maxLength(),
+                field.scale(),
+                field.hidden(),
+                field.defaultValue(),
+                field.options(),
+                field.target(),
+                formula,
+                null,
+                visibleIf,
+                null,
+                null);
+    }
+
     private static Declaration form(List<Field> fields) {
         return new Declaration(
                 2,

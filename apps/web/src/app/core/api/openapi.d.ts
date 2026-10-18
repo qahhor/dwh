@@ -2033,7 +2033,7 @@ export interface paths {
          * Check an unfinished local simple form draft
          * @description Checks bounded JSON structure and known field types, preserving empty identifiers, labels and unfinished numeric limits. Returns authoring input only, never a checksum or delivery package. Preparation independently enforces the complete declaration contract. Nothing is stored or activated.
          */
-        post: operations["check"];
+        post: operations["check_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3788,6 +3788,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/studio/formulas/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a formula of a live form
+         * @description Requires studio.forms.publish. Parses and checks one formula against the shown fields of the form: a computed value or a default gives its field's type, a condition and a rule a yes/no; a condition may not read the field it shows. Answers the type or the first problem with its 1-based position; stores nothing.
+         */
+        post: operations["check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/studio/lists": {
         parameters: {
             query?: never;
@@ -5285,7 +5305,9 @@ export interface components {
             contentTypes?: string[];
             currencies?: string[];
             currencyFrom?: string;
+            defaultFormula?: components["schemas"]["FormulaNode"];
             defaultValue?: components["schemas"]["DefaultValueMeta"];
+            formula?: components["schemas"]["FormulaNode"];
             jsonRoot?: string;
             key?: string;
             label?: string;
@@ -5307,13 +5329,16 @@ export interface components {
             options?: string[];
             pattern?: string;
             readonly?: boolean;
+            readonlyIf?: components["schemas"]["FormulaNode"];
             readonlyOnUpdate?: boolean;
             readonlyWhen?: components["schemas"]["ConditionItemMeta"][];
             ref?: components["schemas"]["QueryRef"];
             required?: boolean;
+            requiredIf?: components["schemas"]["FormulaNode"];
             /** Format: int32 */
             scale?: number;
             type?: string;
+            visibleIf?: components["schemas"]["FormulaNode"];
             visibleWhen?: components["schemas"]["ConditionItemMeta"][];
         };
         FormLayoutDeclaration: {
@@ -5346,10 +5371,17 @@ export interface components {
             fields?: components["schemas"]["FormFieldMeta"][];
             layout?: components["schemas"]["FormSectionMeta"][];
             listCode?: string;
+            rules?: components["schemas"]["FormRuleMeta"][];
             tabs?: components["schemas"]["FormTabMeta"][];
             titleField?: string;
             titleKey?: string;
             workflow?: components["schemas"]["FormWorkflowMeta"];
+        };
+        FormRuleMeta: {
+            field?: string;
+            formula?: components["schemas"]["FormulaNode"];
+            key?: string;
+            messageKey?: string;
         };
         FormSectionMeta: {
             fields?: string[];
@@ -5467,6 +5499,18 @@ export interface components {
             validTo?: string;
             /** Format: int32 */
             version?: number;
+        };
+        FormulaNode: {
+            /** @description The operands or arguments, in order */
+            args?: components["schemas"]["FormulaNode"][];
+            /** @enum {string} */
+            kind: "literal" | "field" | "unary" | "binary" | "call";
+            /** @description The operator, function or field key */
+            name?: string;
+            /** @enum {string} */
+            type: "number" | "text" | "bool" | "date" | "datetime" | "time" | "option" | "ref" | "null";
+            /** @description The canonical text of a literal */
+            value?: string;
         };
         GenerationStatus: {
             active?: boolean;
@@ -6725,7 +6769,7 @@ export interface components {
             fields: components["schemas"]["SimpleFormField"][];
             /**
              * Format: int32
-             * @description 1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field
+             * @description 1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules
              */
             formatVersion: number;
             /** @enum {string} */
@@ -6733,6 +6777,8 @@ export interface components {
             /** @description Format 4: sections and tabs */
             layout?: components["schemas"]["SimpleFormLayout"];
             module: components["schemas"]["SimpleFormModule"];
+            /** @description Format 5: the validation rules every save of a record must meet (ADR-0042) */
+            rules?: components["schemas"]["SimpleFormRule"][];
         };
         SimpleFormDeliveryPackage: {
             checksum: string;
@@ -6789,8 +6835,12 @@ export interface components {
             titleField?: string;
         };
         SimpleFormField: {
+            /** @description Format 5: the formula of the value a new record takes when it is sent none */
+            defaultFormula?: string;
             /** @description Format 2: the fixed value a new record takes, written as the field reads it */
             defaultValue?: string;
+            /** @description Format 5: the formula of a computed field (ADR-0042) - read-only, recomputed and stored on every save */
+            formula?: string;
             /** @description Format 2: the field is kept with its data but leaves the form, the list, the export and the history (ADR-0041); present only when true */
             hidden?: boolean;
             id: string;
@@ -6800,13 +6850,19 @@ export interface components {
             maxLength?: number;
             /** @description Format 3: the choices of a select field, in their order */
             options?: components["schemas"]["SimpleFormOption"][];
+            /** @description Format 5: a saved record's field cannot be changed while this yes/no formula is true over the record as it is stored */
+            readonlyIf?: string;
             required: boolean;
+            /** @description Format 5: an optional field is required while this yes/no formula is true */
+            requiredIf?: string;
             /** Format: int32 */
             scale?: number;
             /** @description Format 3: what a ref field names */
             target?: components["schemas"]["SimpleFormTarget"];
             /** @enum {string} */
             type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user";
+            /** @description Format 5: the field is shown only while this yes/no formula is true; a hidden field keeps no value and is not required */
+            visibleIf?: string;
         };
         SimpleFormLabels: {
             en: string;
@@ -6832,6 +6888,18 @@ export interface components {
         SimpleFormOption: {
             code: string;
             labels: components["schemas"]["SimpleFormLabels"];
+        };
+        SimpleFormRule: {
+            /** @description The id of the shown field the problem is addressed to; absent: the whole record */
+            field?: string;
+            formula: string;
+            key: string;
+            message: components["schemas"]["SimpleFormRuleMessage"];
+        };
+        SimpleFormRuleMessage: {
+            en: string;
+            ru: string;
+            uz: string;
         };
         SimpleFormSection: {
             /** @description The ids of the shown fields of the section, in their order */
@@ -7022,6 +7090,29 @@ export interface components {
             createdBy?: number;
             /** Format: int32 */
             version?: number;
+        };
+        StudioFormulaCheck: {
+            messageKey?: string;
+            name?: string;
+            /** Format: int32 */
+            position?: number;
+            reason?: string;
+            type?: string;
+            valid?: boolean;
+        };
+        StudioFormulaCheckRequest: {
+            /** @description The id of the field the formula belongs to; absent for a rule */
+            field?: string;
+            fields: components["schemas"]["StudioFormulaField"][];
+            formula: string;
+            kind: string;
+        };
+        StudioFormulaField: {
+            id: string;
+            /** @description What a ref field names: a list keeps a code, a form a row's key */
+            target?: string;
+            /** @enum {string} */
+            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user";
         };
         StudioListCreateRequest: {
             code: string;
@@ -12791,7 +12882,7 @@ export interface operations {
             };
         };
     };
-    check: {
+    check_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -16734,6 +16825,39 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioFormulaCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioFormulaCheck"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
