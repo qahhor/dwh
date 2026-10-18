@@ -105,6 +105,46 @@ class StudioDocumentChangeRulesTest {
                                 .containsExactly("lines.items.note"));
     }
 
+    @Test
+    void aColumnKeepsItsTargetLengthOptionsAndEnteredValues() throws Exception {
+        assertThat(changes(root -> ((ObjectNode) lines(root).get(0)).put("key", "goods")))
+                .containsExactly(new Change("lines.items", "lines_moved"));
+        assertThat(changes(root -> {
+                    ArrayNode columns = columns(root);
+                    ((ObjectNode) columns.get(0)).remove("options");
+                    ((ObjectNode) columns.get(1)).put("formula", "price");
+                    ((ObjectNode) columns.get(4)).put("maxLength", 100);
+                }))
+                .containsExactlyInAnyOrder(
+                        new Change("lines.items.product", "option_removed"),
+                        new Change("lines.items.qty", "computed"),
+                        new Change("lines.items.note", "max_length"));
+        assertThat(changes(root -> ((ObjectNode) columns(root).get(4)).remove("maxLength")))
+                .isEmpty();
+        Consumer<ObjectNode> goods = root -> columns(root)
+                .addObject()
+                .put("id", "item")
+                .put("type", "ref")
+                .put("required", false)
+                .setAll((ObjectNode) json.readTree("{\"labels\":{\"ru\":\"Товар\",\"uz\":\"Tovar\",\"en\":\"Item\"},"
+                        + "\"target\":{\"kind\":\"list\",\"code\":\"goods\"}}"));
+        Declaration before = declaration(goods);
+        Declaration after = declaration(
+                goods.andThen(root -> ((ObjectNode) columns(root).get(5).get("target")).put("code", "services")));
+        assertThat(StudioChangeRules.incompatible(before, after))
+                .containsExactly(new Change("lines.items.item", "target"));
+    }
+
+    @Test
+    void theNumberKeepsItsPeriodAndAStatusItsRecords() throws Exception {
+        assertThat(changes(root -> ((ObjectNode) root.get("entity")).remove("numbering")))
+                .containsExactly(new Change("entity.numbering", "numbering"));
+        assertThat(changes(root -> ((ObjectNode) root.get("entity").get("numbering")).put("reset", "month")))
+                .containsExactly(new Change("entity.numbering", "numbering"));
+        assertThat(changes(root -> states(root).remove(3)))
+                .containsExactly(new Change("workflow.states.rejected", "state_removed"));
+    }
+
     private java.util.List<Change> changes(Consumer<ObjectNode> change) throws Exception {
         return StudioChangeRules.incompatible(declaration(root -> {}), declaration(change));
     }
