@@ -65,7 +65,11 @@ class MailingMessagesTest {
                 .doesNotContain("channel.report_mailing.link");
         String tooLarge = messages.letter(subject("{}"), false, true, false, 5 * 1024 * 1024);
         assertThat(tooLarge)
-                .contains("channel.report_mailing.too_large", "size=5", "channel.report_mailing.link", "link=https://cms.example/e/")
+                .contains(
+                        "channel.report_mailing.too_large",
+                        "size=5",
+                        "channel.report_mailing.link",
+                        "link=https://cms.example/e/")
                 .contains("channel.report_mailing.footer");
         assertThat(messages.subject(subject("{}"))).contains("channel.report_mailing.subject", "name=Итоги_*месяца*");
     }
