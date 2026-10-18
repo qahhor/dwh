@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { metaField, queryMetaFixture } from '@testing/entity-page';
+import { translateTest } from '@testing/i18n-test.stub';
 import { groupText, groupable, measurable, measureLabel, type ReportChart, type ReportResult } from './entity-reports';
 import { SMTEntityReportComponent } from './smt-entity-report.component';
 
@@ -186,5 +187,79 @@ describe('server labels and drill-down of a report table (ADR-0036, the form and
       { field: 'customerId', op: 'eq', value: 7, label: 'ООО Ромашка' },
     ]);
     expect(links[0].getAttribute('aria-label')).toContain('ООО Ромашка');
+  });
+});
+
+describe('smt-entity-report analytics (ADR-0044)', () => {
+  it('adds the totals under the table, a share and a change in percent', () => {
+    const host = render(
+      {
+        groups: [{ field: 'status', implicit: false }],
+        measures: [
+          { op: 'count_distinct', field: 'customerId' },
+          { op: 'count', share: 'total' },
+        ],
+        rows: [{ groups: ['draft'], values: [2, 75], labels: ['Черновик'] }],
+        totals: [{ kind: 'grand', groups: [null], values: [3, 100], labels: [null] }],
+        truncated: false,
+      },
+      'table',
+    );
+    const total = host.querySelector('[data-testid="report-total"]')!;
+    expect(total.querySelector('th')?.textContent?.trim()).toBe(translateTest('ui.report.total'));
+    expect(total.textContent).toContain('%');
+    expect(host.querySelector('thead')?.textContent).toContain(translateTest('ui.report.op.count_distinct'));
+  });
+
+  it('shows a comparison without groups as one card per measure with its earlier figure and the periods', () => {
+    const host = render(
+      {
+        groups: [],
+        measures: [
+          { op: 'sum', field: 'total', period: 'current' },
+          { op: 'sum', field: 'total', period: 'previous' },
+          { op: 'sum', field: 'total', period: 'change' },
+          { op: 'sum', field: 'total', period: 'change_percent' },
+        ],
+        rows: [{ groups: [], values: [110, 40, 70, 175] }],
+        truncated: false,
+        comparison: {
+          field: 'orderDate',
+          period: 'month',
+          against: 'previous',
+          currentFrom: '2026-03-01',
+          currentTo: '2026-03-31',
+          previousFrom: '2026-02-01',
+          previousTo: '2026-02-28',
+        },
+      },
+      'kpi',
+    );
+    expect(host.querySelectorAll('ui-kpi-card')).toHaveLength(1);
+    expect(host.querySelector('[data-testid="kpi-change"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="report-periods"]')?.textContent).toContain('2026');
+  });
+
+  it('renders a pivot as its matrix', () => {
+    const host = render(
+      {
+        groups: [
+          { field: 'status', implicit: false },
+          { field: 'paid', implicit: false },
+        ],
+        measures: [{ op: 'count' }],
+        rows: [{ groups: ['draft', true], values: [1] }],
+        totals: [
+          { kind: 'row', groups: ['draft', null], values: [1] },
+          { kind: 'column', groups: [null, true], values: [1] },
+          { kind: 'grand', groups: [null, null], values: [1] },
+        ],
+        truncated: false,
+        pivot: true,
+      },
+      'table',
+    );
+    expect(host.querySelector('[data-testid="report-pivot"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="report-table"]')).toBeNull();
   });
 });

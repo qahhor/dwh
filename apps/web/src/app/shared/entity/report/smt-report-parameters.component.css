@@ -1,0 +1,39 @@
+:host {
+  display: block;
+}
+.parameters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-surface);
+}
+.parameters-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.parameters-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.parameter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+}
+.parameters-missing,
+.parameter-unavailable {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.parameters-actions {
+  display: flex;
+  gap: 8px;
+}

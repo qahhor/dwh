@@ -1,0 +1,72 @@
+<div class="shape" role="group" [attr.aria-label]="'ui.report.shape' | t">
+  <div
+    smt-checkbox
+    data-testid="report-pivot-toggle"
+    [checked]="pivot()"
+    [disabled]="locked() || !canPivot()"
+    [smtHint]="canPivot() || pivot() ? null : ('ui.report.pivot_hint' | t)"
+    (checkedChange)="setPivot($event)"
+  >
+    {{ 'ui.report.pivot' | t }}
+  </div>
+  <div
+    smt-checkbox
+    data-testid="report-totals-toggle"
+    [checked]="totals() || pivot()"
+    [disabled]="locked() || pivot() || groupBy().length === 0"
+    (checkedChange)="setTotals($event)"
+  >
+    {{ 'ui.report.totals' | t }}
+  </div>
+  <div
+    smt-checkbox
+    data-testid="report-compare-toggle"
+    [checked]="!!compare()"
+    [disabled]="locked() || pivot() || fieldOptions().length === 0"
+    (checkedChange)="setCompared($event)"
+  >
+    {{ 'ui.report.compare_toggle' | t }}
+  </div>
+</div>
+@if (compare(); as current) {
+  <fieldset class="shape-compare" data-testid="report-compare" [disabled]="locked()">
+    <legend class="sr-only">{{ 'ui.report.compare_toggle' | t }}</legend>
+    <smt-control class="shape-field" [smtLabel]="'ui.report.compare.field' | t">
+      <smt-select
+        [smtTriggerId]="ids() + '-compare-field'"
+        [options]="fieldOptions()"
+        [allowClear]="false"
+        [value]="current.field"
+        (valueChange)="change({ field: $event ?? current.field })"
+      />
+    </smt-control>
+    <smt-control class="shape-field" [smtLabel]="'ui.report.compare.period' | t">
+      <smt-select
+        [smtTriggerId]="ids() + '-compare-period'"
+        data-testid="report-compare-period"
+        [options]="periodOptions()"
+        [allowClear]="false"
+        [value]="current.period"
+        (valueChange)="change({ period: $event ?? 'month' })"
+      />
+    </smt-control>
+    <smt-control class="shape-field" [smtLabel]="'ui.report.compare.against' | t">
+      <smt-select
+        [smtTriggerId]="ids() + '-compare-against'"
+        [options]="againstOptions()"
+        [allowClear]="false"
+        [value]="current.against ?? 'previous'"
+        (valueChange)="change({ against: $event ?? 'previous' })"
+      />
+    </smt-control>
+    @if (current.period === 'custom') {
+      <smt-control class="shape-field" [smtLabel]="'ui.report.compare.range' | t">
+        <smt-date-range-picker
+          [value]="range()"
+          [smtAriaLabel]="'ui.report.compare.range' | t"
+          (valueChange)="setRange($event)"
+        />
+      </smt-control>
+    }
+  </fieldset>
+}

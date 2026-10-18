@@ -1,0 +1,104 @@
+<form
+  class="parameters"
+  data-testid="report-parameters"
+  [attr.aria-labelledby]="ids + '-title'"
+  (submit)="$event.preventDefault(); apply()"
+  novalidate
+>
+  <h3 class="parameters-title" [id]="ids + '-title'">{{ 'ui.report.parameters' | t }}</h3>
+  <div class="parameters-fields">
+    @for (row of rows(); track row.parameter.key) {
+      @switch (row.kind) {
+        @case ('period') {
+          <smt-control
+            class="parameter-field"
+            [smtLabel]="row.label"
+            [required]="row.parameter.required"
+            [attr.data-testid]="'report-parameter-' + row.parameter.key"
+          >
+            <smt-select
+              [smtTriggerId]="ids + '-' + row.parameter.key + '-preset'"
+              [options]="presetOptions()"
+              [placeholder]="'ui.report.preset.choose' | t"
+              [value]="preset(row.parameter.key)"
+              (valueChange)="setPreset(row.parameter.key, $event)"
+            />
+          </smt-control>
+          @if (preset(row.parameter.key) === 'custom') {
+            <smt-control class="parameter-field" [smtLabel]="'ui.report.preset.range' | t: { name: row.label }">
+              <smt-date-range-picker
+                [attr.data-testid]="'report-parameter-' + row.parameter.key + '-range'"
+                [value]="range(row.parameter.key)"
+                [smtAriaLabel]="'ui.report.preset.range' | t: { name: row.label }"
+                (valueChange)="setRange(row.parameter.key, $event)"
+              />
+            </smt-control>
+          }
+        }
+        @case ('choice') {
+          <smt-control
+            class="parameter-field"
+            [smtLabel]="row.label"
+            [required]="row.parameter.required"
+            [attr.data-testid]="'report-parameter-' + row.parameter.key"
+          >
+            <smt-multi-select
+              [options]="choiceOptions(row.field)"
+              [placeholder]="'ui.report.parameter_any' | t"
+              [ariaLabel]="row.label"
+              [value]="list(row.parameter.key)"
+              (valueChange)="setList(row.parameter.key, $event)"
+            />
+          </smt-control>
+        }
+        @case ('reference') {
+          <smt-control
+            class="parameter-field"
+            [smtLabel]="row.label"
+            [required]="row.parameter.required"
+            [attr.data-testid]="'report-parameter-' + row.parameter.key"
+          >
+            <smt-data-select
+              [smtTriggerId]="ids + '-' + row.parameter.key + '-ref'"
+              [source]="source(row.field!)"
+              [placeholder]="'ui.report.parameter_any' | t"
+              [value]="first(row.parameter.key)"
+              (valueChange)="setList(row.parameter.key, $event === null ? null : [$event])"
+            />
+          </smt-control>
+        }
+        @case ('flag') {
+          <smt-control
+            class="parameter-field"
+            [smtLabel]="row.label"
+            [required]="row.parameter.required"
+            [attr.data-testid]="'report-parameter-' + row.parameter.key"
+          >
+            <smt-select
+              [smtTriggerId]="ids + '-' + row.parameter.key + '-flag'"
+              [options]="flagOptions()"
+              [placeholder]="'ui.report.parameter_any' | t"
+              [value]="flag(row.parameter.key)"
+              (valueChange)="setFlag(row.parameter.key, $event)"
+            />
+          </smt-control>
+        }
+        @default {
+          <p class="parameter-unavailable" role="note">
+            {{ 'ui.report.parameter_unavailable' | t: { name: row.label } }}
+          </p>
+        }
+      }
+    }
+  </div>
+  @if (missing().length) {
+    <p class="parameters-missing" role="status" data-testid="report-parameters-missing">
+      {{ 'ui.report.parameters_missing' | t: { names: missing().join(', ') } }}
+    </p>
+  }
+  <div class="parameters-actions">
+    <button smt-button type="submit" smtVariant="primary" smtSize="sm" data-testid="report-parameters-apply">
+      {{ 'ui.report.parameters_apply' | t }}
+    </button>
+  </div>
+</form>

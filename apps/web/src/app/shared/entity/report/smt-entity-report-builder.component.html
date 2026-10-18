@@ -77,56 +77,25 @@
       }
     </div>
     <div class="builder-controls">
-      @for (measure of measures(); track $index; let i = $index) {
-        <fieldset class="builder-measure" [attr.data-testid]="'report-measure-' + i">
-          <legend class="sr-only">{{ 'ui.report.measure_n' | t: { n: i + 1 } }}</legend>
-          <smt-control class="builder-field" [smtLabel]="'ui.report.measure' | t">
-            <smt-select
-              [smtTriggerId]="ids + '-op-' + i"
-              [options]="opOptions()"
-              [allowClear]="false"
-              [value]="measure.op"
-              (valueChange)="setOp(i, $event)"
-            />
-          </smt-control>
-          @if (measure.op !== 'count') {
-            <smt-control class="builder-field" [smtLabel]="'ui.report.of_field' | t">
-              <smt-select
-                [smtTriggerId]="ids + '-field-' + i"
-                [options]="measureOptions()"
-                [allowClear]="false"
-                [value]="measure.field ?? null"
-                (valueChange)="setMeasureField(i, $event)"
-              />
-            </smt-control>
-          }
-          @if (measures().length > 1) {
-            <button
-              smt-button
-              type="button"
-              smtVariant="ghost"
-              smtSize="sm"
-              smtIcon="close"
-              smtIconOnly
-              [attr.aria-label]="'ui.report.remove_measure' | t: { n: i + 1 }"
-              (click)="removeMeasure(i)"
-            ></button>
-          }
-        </fieldset>
-      }
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="sm"
-        smtIcon="add"
-        data-testid="report-add-measure"
-        [disabled]="measures().length >= maxMeasures"
-        (click)="addMeasure()"
-      >
-        {{ 'ui.report.add_measure' | t }}
-      </button>
+      <smt-report-measures
+        [(measures)]="measures"
+        [meta]="reportMeta()"
+        [pivot]="pivot()"
+        [compared]="!!effectiveCompare()"
+        [locked]="!!source()"
+        [ready]="!sources.loading() && !sources.error()"
+        [ids]="ids"
+      />
     </div>
+    <smt-report-shape
+      [meta]="reportMeta()"
+      [groupBy]="groupBy()"
+      [locked]="!!source()"
+      [ids]="ids"
+      [(pivot)]="pivot"
+      [(totals)]="totals"
+      [(compare)]="compare"
+    />
     <div class="builder-controls">
       <smt-control class="builder-field" [smtLabel]="'ui.report.sort' | t">
         <smt-select
@@ -151,15 +120,33 @@
         />
       </smt-control>
     </div>
-    <smt-radio-group
-      smtAppearance="segmented"
-      smtOrientation="horizontal"
-      [options]="chartOptions()"
-      [value]="effectiveChart()"
-      [smtAriaLabel]="'ui.report.chart' | t"
-      (valueChange)="chart.set($event ?? 'table')"
-    />
+    @if (!pivot() && !effectiveCompare()) {
+      <smt-radio-group
+        smtAppearance="segmented"
+        smtOrientation="horizontal"
+        [options]="chartOptions()"
+        [value]="effectiveChart()"
+        [smtAriaLabel]="'ui.report.chart' | t"
+        (valueChange)="chart.set($event ?? 'table')"
+      />
+    }
+    @if (canSave()) {
+      <smt-report-parameters-editor
+        [(parameters)]="parameters"
+        [meta]="reportMeta()"
+        [compareField]="effectiveCompare()?.field ?? null"
+        [locked]="!!source()"
+        [ids]="ids"
+      />
+    }
   </fieldset>
+  @if (source() && sourceParameters().length) {
+    <smt-report-parameters
+      [parameters]="sourceParameters()"
+      [meta]="reportMeta()"
+      (applied)="applyParameters($event)"
+    />
+  }
   <smt-report-export [source]="exportSource()" [disabled]="!exportSource()" />
   <div class="builder-result" aria-live="polite" [attr.aria-busy]="run().loading || null">
     @if (run().error) {

@@ -1,0 +1,126 @@
+@if (result(); as result) {
+  @if (result.rows.length === 0) {
+    <p class="report-empty" data-testid="report-empty">{{ 'ui.report.no_rows' | t }}</p>
+  } @else if (result.pivot) {
+    <smt-report-pivot
+      [result]="result"
+      [meta]="meta()"
+      [caption]="caption()"
+      [drillCode]="drillCode()"
+      [drillBase]="drillBase()"
+    />
+  } @else {
+    @if (result.comparison; as periods) {
+      <p class="report-note" data-testid="report-periods">
+        {{
+          'ui.report.periods'
+            | t
+              : {
+                  current: period(periods.currentFrom, periods.currentTo),
+                  previous: period(periods.previousFrom, periods.previousTo),
+                }
+        }}
+      </p>
+    }
+    @if (showKpi()) {
+      <div class="report-kpis" data-testid="report-kpis">
+        @for (kpi of kpis(); track $index) {
+          <ui-kpi-card [label]="kpi.label" [value]="kpi.value" [previous]="kpi.previous" goodWhen="neutral">
+            @if (kpi.note) {
+              {{ kpi.note }}
+            }
+          </ui-kpi-card>
+        }
+      </div>
+    } @else if (chart() === 'bar' && !tableFallback()) {
+      <ui-bar-chart
+        data-testid="report-chart"
+        [series]="series()"
+        [points]="points()"
+        [caption]="chartCaption()"
+        [axisLabel]="axisLabel()"
+      />
+    }
+    @if (additionalChart(); as kind) {
+      @if (!tableFallback()) {
+        <ui-report-plot [kind]="kind" [points]="plotPoints()" [caption]="chartCaption()" />
+      }
+    }
+    @if (tableFallback()) {
+      <p class="report-note" role="note" data-testid="report-chart-fallback">
+        {{ 'ui.report.chart_table_fallback' | t }}
+      </p>
+    }
+    @if (showTable() || tableFallback() || additionalChart()) {
+      <div class="report-table-wrap" tabindex="0" role="region" [attr.aria-label]="caption()">
+        <table class="report-table" data-testid="report-table">
+          <caption class="sr-only">
+            {{
+              caption()
+            }}
+          </caption>
+          <thead>
+            <tr>
+              @for (column of columns(); track $index) {
+                <th scope="col" [class.num]="column.numeric">{{ column.label }}</th>
+              }
+              @if (drillCode()) {
+                <th scope="col">
+                  <span class="sr-only">{{ 'ui.report.drill_column' | t }}</span>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of cells(); track $index; let rowIndex = $index) {
+              <tr>
+                @for (cell of row; track $index; let first = $first) {
+                  @if (first && groupCount() > 0) {
+                    <th scope="row">{{ cell.text }}</th>
+                  } @else {
+                    <td [class.num]="cell.numeric">{{ cell.text }}</td>
+                  }
+                }
+                @if (drillCode(); as code) {
+                  <td>
+                    @if (drills()[rowIndex]; as filter) {
+                      <a
+                        class="report-drill"
+                        [routerLink]="['/e', code]"
+                        [queryParams]="{ filter }"
+                        [attr.aria-label]="'ui.report.drill_label' | t: { group: rowLabels()[rowIndex] }"
+                        data-testid="report-drill"
+                        >{{ 'ui.report.drill' | t }}</a
+                      >
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+          @if (totalCells().length) {
+            <tfoot>
+              @for (row of totalCells(); track $index) {
+                <tr data-testid="report-total">
+                  @for (cell of row; track $index; let first = $first) {
+                    @if (first && groupCount() > 0) {
+                      <th scope="row">{{ cell.text }}</th>
+                    } @else {
+                      <td [class.num]="cell.numeric">{{ cell.text }}</td>
+                    }
+                  }
+                  @if (drillCode()) {
+                    <td></td>
+                  }
+                </tr>
+              }
+            </tfoot>
+          }
+        </table>
+      </div>
+    }
+    @if (result.truncated) {
+      <p class="report-note" role="note">{{ 'ui.report.truncated' | t: { n: result.rows.length } }}</p>
+    }
+  }
+}

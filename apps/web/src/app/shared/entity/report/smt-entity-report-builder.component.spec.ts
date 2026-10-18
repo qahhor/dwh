@@ -1,7 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ListViewState, type ListViewsApi } from '@shared/list-views/list-views';
@@ -9,6 +10,7 @@ import { metaField, queryMetaFixture } from '@testing/entity-page';
 import { translateTest } from '@testing/i18n-test.stub';
 import { EntityReportsApi, type ReportResult } from './entity-reports';
 import { SMTEntityReportBuilderComponent } from './smt-entity-report-builder.component';
+import { SMTReportMeasuresComponent } from './smt-report-measures.component';
 
 const LIST = queryMetaFixture('test.orders', [
   metaField('number', '', 'text', { label: 'Номер' }),
@@ -46,8 +48,11 @@ describe('SMTEntityReportBuilderComponent', () => {
     });
   });
 
+  let current: ComponentFixture<SMTEntityReportBuilderComponent> | null = null;
+
   async function render(meta = LIST) {
     const fixture = TestBed.createComponent(SMTEntityReportBuilderComponent);
+    current = fixture;
     fixture.componentRef.setInput('code', 'test.orders');
     fixture.componentRef.setInput('meta', meta);
     fixture.componentRef.setInput('views', views);
@@ -55,6 +60,11 @@ describe('SMTEntityReportBuilderComponent', () => {
     fixture.detectChanges();
     await afterDebounce(fixture);
     return { fixture, builder: fixture.componentInstance, host: fixture.nativeElement as HTMLElement };
+  }
+
+  /** The measures of the builder on screen. */
+  function measuresOf(): SMTReportMeasuresComponent {
+    return current!.debugElement.query(By.directive(SMTReportMeasuresComponent)).componentInstance;
   }
 
   async function afterDebounce(fixture: { detectChanges(): void }) {
@@ -121,7 +131,11 @@ describe('SMTEntityReportBuilderComponent', () => {
     const { builder } = await render();
 
     expect(builder.groupOptions().map((option) => option.id)).toEqual(['status', 'orderDate']);
-    expect(builder.measureOptions().map((option) => option.id)).toEqual(['total']);
+    expect(
+      measuresOf()
+        .measureOptions()
+        .map((option) => option.id),
+    ).toEqual(['total']);
     expect(builder.groupSlots()).toEqual([null]);
 
     builder.setGroup(0, 'orderDate');
@@ -140,25 +154,30 @@ describe('SMTEntityReportBuilderComponent', () => {
 
   it('measures a number field and keeps at most four measures', async () => {
     const { builder } = await render();
+    const measures = measuresOf();
 
-    builder.setOp(0, 'sum');
+    measures.setOp(0, 'sum');
     expect(builder.measures()).toEqual([{ op: 'sum', field: 'total' }]);
-    builder.setOp(0, null);
+    measures.setOp(0, null);
     expect(builder.measures()).toEqual([{ op: 'count' }]);
 
-    builder.addMeasure();
-    builder.addMeasure();
-    builder.addMeasure();
-    expect(builder.measures()).toHaveLength(builder.maxMeasures);
-    builder.setMeasureField(1, null);
+    measures.add();
+    measures.add();
+    measures.add();
+    expect(builder.measures()).toHaveLength(measures.maxMeasures);
+    measures.setField(1, null);
     expect(builder.measures()[1]).toEqual({ op: 'sum', field: 'total' });
-    builder.removeMeasure(1);
+    measures.remove(1);
     expect(builder.measures()).toHaveLength(3);
   });
 
   it('keeps only the count for a list without a number field', async () => {
     const { builder } = await render(queryMetaFixture('test.orders', [metaField('status', '', 'enum')]));
-    expect(builder.opOptions().find((option) => option.id === 'sum')?.disabled).toBe(true);
+    expect(
+      measuresOf()
+        .opOptions()
+        .find((option) => option.id === 'sum')?.disabled,
+    ).toBe(true);
 
     builder.measures.set([{ op: 'sum', field: 'missing' }]);
     TestBed.tick();
@@ -200,5 +219,59 @@ describe('SMTEntityReportBuilderComponent', () => {
     fixture.componentRef.setInput('canSave', true);
     fixture.detectChanges();
     expect(host.querySelector('smt-entity-report-saved')).not.toBeNull();
+  });
+
+  it('runs the analytic shape it is asked for and keeps it in the saved state (ADR-0044)', async () => {
+    const { fixture, builder } = await render();
+    builder.setGroup(0, 'status');
+    builder.setGroup(1, 'orderDate');
+    builder.pivot.set(true);
+    await afterDebounce(fixture);
+    expect(reports.run).toHaveBeenLastCalledWith('test.orders', expect.objectContaining({ pivot: true }));
+    expect(builder.effectiveChart()).toBe('table');
+    builder.pivot.set(false);
+    builder.setGroup(1, null);
+    builder.totals.set(true);
+    builder.compare.set({ field: 'orderDate', period: 'custom' });
+    expect(builder.effectiveCompare()).toBeNull();
+    builder.compare.set({ field: 'orderDate', period: 'month', against: 'previous' });
+    builder.parameters.set([{ key: 'status', field: 'status', required: false }]);
+    expect(builder.state()).toEqual(
+      expect.objectContaining({
+        totals: true,
+        compare: { field: 'orderDate', period: 'month', against: 'previous' },
+        parameters: [{ key: 'status', field: 'status', required: false }],
+      }),
+    );
+  });
+
+  it('waits for a required parameter of a saved report and runs it with the values applied', async () => {
+    const { fixture, builder, host } = await render();
+    reports.saved.mockClear();
+    builder.openSaved({
+      id: 12,
+      name: 'С параметрами',
+      kind: 'report',
+      state: {
+        groupBy: [],
+        measures: [{ op: 'count' }],
+        filter: [],
+        chart: 'kpi',
+        parameters: [{ key: 'day', field: 'orderDate', required: true }],
+      },
+      lockVersion: 1,
+    });
+    await afterDebounce(fixture);
+    expect(reports.saved).not.toHaveBeenCalled();
+    expect(host.querySelector('smt-report-parameters')).not.toBeNull();
+    builder.applyParameters({ day: { preset: 'this_month' } });
+    await afterDebounce(fixture);
+    expect(reports.saved).toHaveBeenCalledWith('test.orders', 12, { day: { preset: 'this_month' } });
+    expect(builder.exportSource()).toEqual({
+      kind: 'saved',
+      code: 'test.orders',
+      id: 12,
+      parameters: { day: { preset: 'this_month' } },
+    });
   });
 });

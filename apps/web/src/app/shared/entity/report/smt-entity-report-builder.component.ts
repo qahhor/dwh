@@ -12,13 +12,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Observable, catchError, debounceTime, map, of, switchMap } from 'rxjs';
-import {
-  fieldLabel,
-  type QueryFieldMeta,
-  type QueryListMeta,
-  type QueryCondition,
-  type QueryMatch,
-} from '@core/models/query-meta.models';
+import { fieldLabel, type QueryListMeta, type QueryCondition, type QueryMatch } from '@core/models/query-meta.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { filterDsl, readFilterDsl } from '@core/services/query-meta.service';
 import type { ListViewState } from '@shared/list-views/list-views';
@@ -30,13 +24,10 @@ import { SMTRadioGroupComponent } from '@shared/ui-kit/components/forms/radio-gr
 import { SMTSelectComponent, type SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import {
   MAX_GROUPS,
-  MAX_MEASURES,
-  REPORT_OPS,
   REPORT_TRUNCS,
   type ReportChart,
   type ReportGroup,
   type ReportMeasure,
-  type ReportOp,
   type ReportResult,
   type ReportSort,
   type ReportState,
@@ -46,8 +37,19 @@ import {
   dated,
   emptyReport,
   groupable,
-  measurable,
 } from './entity-reports';
+import {
+  completeCompare,
+  pendingParameters,
+  reportShape,
+  type ParameterValue,
+  type ReportCompare,
+  type ReportParameter,
+} from './report-analytics';
+import { SMTReportMeasuresComponent } from './smt-report-measures.component';
+import { SMTReportParametersComponent } from './smt-report-parameters.component';
+import { SMTReportParametersEditorComponent } from './smt-report-parameters-editor.component';
+import { SMTReportShapeComponent } from './smt-report-shape.component';
 import { chartOptions, parseSort, reportOrder, sortOptions, sortValue, topOptions } from './report-order';
 import { ReportSourcesStore } from './report-sources.store';
 import { ReportExportComponent } from './report-export.component';
@@ -80,6 +82,10 @@ interface ReportRun {
     SMTControlComponent,
     SMTEntityReportComponent,
     SMTEntityReportSavedComponent,
+    SMTReportMeasuresComponent,
+    SMTReportParametersComponent,
+    SMTReportParametersEditorComponent,
+    SMTReportShapeComponent,
     ReportExportComponent,
     SMTRadioGroupComponent,
     SMTSelectComponent,
@@ -121,6 +127,14 @@ export class SMTEntityReportBuilderComponent {
   readonly sort = signal<ReportSort | null>(null);
   /** The top of the groups kept; null — every group. */
   readonly limit = signal<number | null>(null);
+  /** The analytic shape (ADR-0044): a pivot, totals, two periods compared. */
+  readonly pivot = signal(false);
+  readonly totals = signal(false);
+  readonly compare = signal<ReportCompare | null>(null);
+  /** The parameters the report asks its reader for, as the author declares them. */
+  readonly parameters = signal<ReportParameter[]>([]);
+  /** The values a reader applied to an open saved report; null — not yet applied. */
+  readonly parameterValues = signal<Record<string, ParameterValue> | null>(null);
 
   readonly run = signal<ReportRun>({ result: null, error: '', loading: false });
 
@@ -146,9 +160,17 @@ export class SMTEntityReportBuilderComponent {
     return groups.length < MAX_GROUPS ? [...groups, null] : groups;
   });
 
-  /** A chart that fits the report: bars need a grouping, one figure has none. */
+  /** A comparison asks for both its days when its period is a range of the report's own. */
+  readonly effectiveCompare = computed(() => completeCompare(this.compare()));
+  /** The parameters of the open saved report, and whether the reader still has to fill a required one. */
+  readonly sourceParameters = computed(() => this.source()?.state.parameters ?? []);
+  readonly parametersPending = computed(() => pendingParameters(this.sourceParameters(), this.parameterValues()));
+
+  /** A chart that fits the report: bars need a grouping, one figure has none; a pivot and a comparison are tables. */
   readonly effectiveChart = computed<ReportChart>(() => {
     const grouped = this.groupBy().length > 0;
+    if (this.pivot()) return 'table';
+    if (this.effectiveCompare()) return grouped ? 'table' : 'kpi';
     const chart = this.chart();
     if (chart === 'bar' && !grouped) return 'kpi';
     if (chart === 'kpi' && grouped) return 'bar';
@@ -163,7 +185,14 @@ export class SMTEntityReportBuilderComponent {
     chart: this.effectiveChart(),
     ...(this.sources.dataset() ? { dataset: this.sources.dataset()! } : {}),
     ...this.order(),
+    ...this.shape(),
+    ...(this.parameters().length ? { parameters: this.parameters() } : {}),
   }));
+
+  /** The pivot, totals and comparison only when the report has them, as the server keeps them. */
+  readonly shape = computed(() =>
+    reportShape(this.pivot(), this.totals(), this.effectiveCompare(), this.groupBy().length),
+  );
 
   readonly sortOptions = computed(() => {
     this.i18n.currentLang();
@@ -175,24 +204,16 @@ export class SMTEntityReportBuilderComponent {
     return topOptions((key, params) => this.i18n.translate(key, params));
   });
 
-  readonly groupOptions = computed<SMTSelectOption<string>[]>(() =>
-    this.options(this.reportMeta().fields.filter(groupable)),
-  );
-  readonly measureOptions = computed<SMTSelectOption<string>[]>(() =>
-    this.options(this.reportMeta().fields.filter(measurable)),
-  );
+  readonly groupOptions = computed<SMTSelectOption<string>[]>(() => {
+    this.i18n.currentLang();
+    const translate = (key: string) => this.i18n.translate(key);
+    return this.reportMeta()
+      .fields.filter(groupable)
+      .map((field) => ({ id: field.key, label: fieldLabel(field, translate) }));
+  });
   readonly truncOptions = computed<SMTSelectOption<ReportTrunc>[]>(() => {
     this.i18n.currentLang();
     return REPORT_TRUNCS.map((trunc) => ({ id: trunc, label: this.i18n.translate(`ui.report.trunc.${trunc}`) }));
-  });
-  readonly opOptions = computed<SMTSelectOption<ReportOp>[]>(() => {
-    this.i18n.currentLang();
-    const numbers = this.measureOptions().length > 0;
-    return REPORT_OPS.map((op) => ({
-      id: op,
-      label: this.i18n.translate(`ui.report.op.${op}`),
-      disabled: op !== 'count' && !numbers,
-    }));
   });
   readonly chartOptions = computed(() => {
     this.i18n.currentLang();
@@ -215,6 +236,9 @@ export class SMTEntityReportBuilderComponent {
     measures: this.measures(),
     filter: filterDsl(this.reportFilter(), this.reportMatch()),
     ...this.order(),
+    ...this.shape(),
+    parameters: this.source() ? this.parameterValues() : null,
+    pending: this.parametersPending(),
     source: this.source()?.id ?? null,
     revision: this.source()?.lockVersion ?? null,
     refresh: this.refresh(),
@@ -229,12 +253,16 @@ export class SMTEntityReportBuilderComponent {
     )
       return null;
     return asked.source !== null
-      ? { kind: 'saved', code: asked.code, id: asked.source }
+      ? {
+          kind: 'saved',
+          code: asked.code,
+          id: asked.source,
+          ...(asked.parameters ? { parameters: asked.parameters } : {}),
+        }
       : { kind: 'query', code: asked.code, state: { ...this.state(), filter: asked.filter } };
   });
 
   readonly ids = `report-builder-${nextBuilderId++}`;
-  readonly maxMeasures = MAX_MEASURES;
 
   constructor() {
     effect(() => {
@@ -245,7 +273,7 @@ export class SMTEntityReportBuilderComponent {
       .pipe(
         debounceTime(250),
         switchMap((asked) => {
-          if (asked.metadataLoading || asked.metadataError)
+          if (asked.metadataLoading || asked.metadataError || asked.pending)
             return of<ReportRun>({
               result: null,
               loading: asked.metadataLoading,
@@ -253,7 +281,11 @@ export class SMTEntityReportBuilderComponent {
             });
           this.run.update((current) => ({ ...current, loading: true }));
           const response =
-            asked.source !== null ? this.reports.saved(asked.code, asked.source) : this.reports.run(asked.code, asked);
+            asked.source === null
+              ? this.reports.run(asked.code, asked)
+              : asked.parameters
+                ? this.reports.saved(asked.code, asked.source, asked.parameters)
+                : this.reports.saved(asked.code, asked.source);
           return response.pipe(
             map((result): ReportRun => {
               this.completedRequest.set(JSON.stringify(asked));
@@ -271,18 +303,6 @@ export class SMTEntityReportBuilderComponent {
         takeUntilDestroyed(inject(DestroyRef)),
       )
       .subscribe((run) => this.run.set(run));
-    // A measure of a number needs a number field; a list without one keeps the count only.
-    effect(() => {
-      if (
-        !this.source() &&
-        !this.sources.loading() &&
-        !this.sources.error() &&
-        this.measureOptions().length === 0 &&
-        this.measures().some((measure) => measure.op !== 'count')
-      ) {
-        this.measures.set(emptyReport().measures);
-      }
-    });
   }
 
   canLeaveRecordPage(): Observable<boolean> {
@@ -291,7 +311,13 @@ export class SMTEntityReportBuilderComponent {
   openSaved(report: SavedReport): void {
     this.open(report.state);
     this.source.set(report);
+    this.parameterValues.set(null);
     this.refresh.update((value) => value + 1);
+  }
+
+  /** Runs the open saved report with the values its reader applied (ADR-0044). */
+  applyParameters(values: Record<string, ParameterValue>): void {
+    this.parameterValues.set(values);
   }
   detachSource(): void {
     this.source.set(null);
@@ -329,37 +355,6 @@ export class SMTEntityReportBuilderComponent {
     if (!this.source()) this.limit.set(value && value > 0 ? value : null);
   }
 
-  setOp(index: number, op: ReportOp | null): void {
-    if (this.source()) return;
-    const chosen = op ?? 'count';
-    const first = this.measureOptions()[0]?.id;
-    this.measures.update((measures) =>
-      measures.map((measure, at) => {
-        if (at !== index) return measure;
-        if (chosen === 'count') return { op: 'count' };
-        return { op: chosen, field: measure.field ?? first };
-      }),
-    );
-  }
-
-  setMeasureField(index: number, field: string | null): void {
-    if (this.source()) return;
-    this.measures.update((measures) =>
-      measures.map((measure, at) => (at === index ? { ...measure, field: field ?? measure.field } : measure)),
-    );
-  }
-
-  addMeasure(): void {
-    if (this.source()) return;
-    const first = this.measureOptions()[0]?.id;
-    this.measures.update((measures) => [...measures, first ? { op: 'sum', field: first } : { op: 'count' }]);
-  }
-
-  removeMeasure(index: number): void {
-    if (this.source()) return;
-    this.measures.update((measures) => measures.filter((_measure, at) => at !== index));
-  }
-
   /** Shows a saved report: its grouping, measures and chart, and its filter in the list's filter bar. */
   open(state: ReportState): void {
     this.source.set(null);
@@ -369,6 +364,10 @@ export class SMTEntityReportBuilderComponent {
     this.chart.set(state.chart ?? 'bar');
     this.sort.set(state.sort ?? null);
     this.limit.set(state.limit ?? null);
+    this.pivot.set(state.pivot === true);
+    this.totals.set(state.totals === true);
+    this.compare.set(state.compare ?? null);
+    this.parameters.set(state.parameters ?? []);
     const saved = readFilterDsl(state.filter ?? []);
     this.setFilter(saved.conditions, saved.match);
   }
@@ -382,6 +381,9 @@ export class SMTEntityReportBuilderComponent {
     this.sources.select(dataset || null);
     this.groupBy.set([]);
     this.measures.set(emptyReport().measures);
+    this.pivot.set(false);
+    this.compare.set(null);
+    this.parameters.set([]);
   }
 
   setFilter(conditions: QueryCondition[], match?: QueryMatch): void {
@@ -390,10 +392,5 @@ export class SMTEntityReportBuilderComponent {
       this.projectedFilter.set(conditions);
       if (match) this.projectedMatch.set(match);
     } else this.views().setFilter(conditions, match);
-  }
-
-  private options(fields: QueryFieldMeta[]): SMTSelectOption<string>[] {
-    this.i18n.currentLang();
-    return fields.map((field) => ({ id: field.key, label: fieldLabel(field, (key) => this.i18n.translate(key)) }));
   }
 }

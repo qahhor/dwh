@@ -1,0 +1,74 @@
+<fieldset class="editor" data-testid="report-parameters-editor" [disabled]="locked()">
+  <legend class="editor-title">{{ 'ui.report.parameters_declare' | t }}</legend>
+  <p class="editor-hint">{{ 'ui.report.parameters_hint' | t }}</p>
+  @for (parameter of parameters(); track $index; let i = $index) {
+    <div class="editor-row" role="group" [attr.aria-label]="'ui.report.parameter_n' | t: { n: i + 1 }">
+      <smt-control class="editor-field" [smtLabel]="'ui.report.parameter_field' | t">
+        <smt-select
+          [smtTriggerId]="ids() + '-parameter-' + i"
+          [attr.data-testid]="'report-parameter-field-' + i"
+          [options]="fieldOptions()"
+          [allowClear]="false"
+          [value]="parameter.field"
+          (valueChange)="setField(i, $event)"
+        />
+      </smt-control>
+      @switch (kind(parameter)) {
+        @case ('period') {
+          <smt-control class="editor-field" [smtLabel]="'ui.report.parameter_default' | t">
+            <smt-select
+              [smtTriggerId]="ids() + '-parameter-default-' + i"
+              [options]="presetOptions()"
+              [placeholder]="'ui.report.parameter_no_default' | t"
+              [value]="preset(parameter)"
+              (valueChange)="setPreset(i, $event)"
+            />
+          </smt-control>
+        }
+        @case ('choice') {
+          <smt-control class="editor-field" [smtLabel]="'ui.report.parameter_default' | t">
+            <smt-multi-select
+              [options]="choiceOptions(parameter)"
+              [placeholder]="'ui.report.parameter_no_default' | t"
+              [ariaLabel]="'ui.report.parameter_default' | t"
+              [value]="values(parameter)"
+              (valueChange)="setValues(i, $event)"
+            />
+          </smt-control>
+        }
+      }
+      <div
+        smt-checkbox
+        [attr.data-testid]="'report-parameter-required-' + i"
+        [checked]="parameter.required"
+        (checkedChange)="setRequired(i, $event)"
+      >
+        {{ 'ui.report.parameter_required' | t }}
+      </div>
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="close"
+        smtIconOnly
+        [attr.aria-label]="'ui.report.parameter_remove' | t: { n: i + 1 }"
+        (click)="remove(i)"
+      ></button>
+    </div>
+  }
+  <div>
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtSize="sm"
+      smtIcon="add"
+      data-testid="report-parameter-add"
+      [disabled]="parameters().length >= maxParameters || fieldOptions().length === 0"
+      (click)="add()"
+    >
+      {{ 'ui.report.parameter_add' | t }}
+    </button>
+  </div>
+</fieldset>

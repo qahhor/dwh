@@ -1,0 +1,61 @@
+@for (measure of measures(); track $index; let i = $index) {
+  <fieldset class="builder-measure" [attr.data-testid]="'report-measure-' + i">
+    <legend class="sr-only">{{ 'ui.report.measure_n' | t: { n: i + 1 } }}</legend>
+    <smt-control class="builder-field" [smtLabel]="'ui.report.measure' | t">
+      <smt-select
+        [smtTriggerId]="ids() + '-op-' + i"
+        [options]="opOptions()"
+        [allowClear]="false"
+        [value]="measure.op"
+        (valueChange)="setOp(i, $event)"
+      />
+    </smt-control>
+    @if (measure.op !== 'count') {
+      <smt-control class="builder-field" [smtLabel]="'ui.report.of_field' | t">
+        <smt-select
+          [smtTriggerId]="ids() + '-field-' + i"
+          [options]="fieldOptions(measure)"
+          [allowClear]="false"
+          [value]="measure.field ?? null"
+          (valueChange)="setField(i, $event)"
+        />
+      </smt-control>
+    }
+    @if (shared(measure)) {
+      <smt-control class="builder-field" [smtLabel]="'ui.report.share_label' | t">
+        <smt-select
+          [smtTriggerId]="ids() + '-share-' + i"
+          [attr.data-testid]="'report-share-' + i"
+          [options]="shareOptions()"
+          [placeholder]="'ui.report.share_none' | t"
+          [value]="measure.share ?? null"
+          (valueChange)="setShare(i, $event)"
+        />
+      </smt-control>
+    }
+    @if (measures().length > 1) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="close"
+        smtIconOnly
+        [attr.aria-label]="'ui.report.remove_measure' | t: { n: i + 1 }"
+        (click)="remove(i)"
+      ></button>
+    }
+  </fieldset>
+}
+<button
+  smt-button
+  type="button"
+  smtVariant="secondary"
+  smtSize="sm"
+  smtIcon="add"
+  data-testid="report-add-measure"
+  [disabled]="measures().length >= maxMeasures"
+  (click)="add()"
+>
+  {{ 'ui.report.add_measure' | t }}
+</button>

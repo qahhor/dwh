@@ -154,3 +154,44 @@ describe('order and top of a report', () => {
     expect(disabled(2, false, 2)).toEqual(['line', 'horizontalBar', 'kpi']);
   });
 });
+
+describe('drill-down of a pivot total and a comparison (ADR-0044)', () => {
+  const pivot: ReportResult = {
+    ...result(
+      [
+        { field: 'region', implicit: false },
+        { field: 'visited', trunc: 'month', implicit: false },
+      ],
+      [],
+    ),
+    pivot: true,
+  };
+
+  it('narrows a row total by its row, a column total by its column and the grand total by nothing', () => {
+    expect(drillFilter(pivot, { kind: 'row', groups: ['north', null], values: [1] } as never, META, [])).toEqual([
+      { field: 'region', op: 'eq', value: 'north' },
+    ]);
+    expect(
+      drillFilter(pivot, { kind: 'column', groups: [null, '2026-10-01'], values: [1] } as never, META, []),
+    ).toEqual([
+      { field: 'visited', op: 'gte', value: '2026-10-01' },
+      { field: 'visited', op: 'lt', value: '2026-11-01' },
+    ]);
+    expect(drillFilter(pivot, { kind: 'grand', groups: [null, null], values: [1] } as never, META, [])).toEqual([]);
+  });
+
+  it('opens nothing for a comparison and sends the analytic shape as parameters', () => {
+    const compared = { ...result([], [{ groups: [], values: [1, 0, 1, null] }]), comparison: {} as never };
+    expect(drillFilter(compared, 0, META, [])).toBeNull();
+    expect(
+      reportParams({
+        groupBy: [],
+        measures: [{ op: 'count' }],
+        filter: [],
+        pivot: true,
+        totals: true,
+        compare: { field: 'visited', period: 'ytd' },
+      }),
+    ).toEqual(expect.objectContaining({ pivot: true, totals: true, compare: '{"field":"visited","period":"ytd"}' }));
+  });
+});

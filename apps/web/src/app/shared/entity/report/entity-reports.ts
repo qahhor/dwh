@@ -10,14 +10,15 @@ import {
 } from '@core/models/query-meta.models';
 import { readFilterDsl } from '@core/services/query-meta.service';
 import { ApiService } from '@core/services/api.service';
+import type { ReportCompare, ReportParameter, ReportShare } from './report-analytics';
 
 /** How a date or a moment is bucketed (ADR-0032 10.2); a moment in UTC. */
 export type ReportTrunc = 'day' | 'week' | 'month' | 'quarter' | 'year';
 export const REPORT_TRUNCS: readonly ReportTrunc[] = ['day', 'week', 'month', 'quarter', 'year'];
 
-/** What a group answers: the count of its records, or a figure of a number or of money. */
-export type ReportOp = 'count' | 'sum' | 'avg' | 'min' | 'max';
-export const REPORT_OPS: readonly ReportOp[] = ['count', 'sum', 'avg', 'min', 'max'];
+/** What a group answers: the count of its records or of a field's different values, or a figure of a number or of money. */
+export type ReportOp = 'count' | 'count_distinct' | 'sum' | 'avg' | 'min' | 'max';
+export const REPORT_OPS: readonly ReportOp[] = ['count', 'count_distinct', 'sum', 'avg', 'min', 'max'];
 
 /** How a report is drawn: a table, bars (it needs a grouping) or one figure (it has none). */
 export type ReportChart = 'table' | 'bar' | 'kpi' | 'line' | 'horizontalBar';
@@ -33,6 +34,8 @@ export interface ReportGroup {
 export interface ReportMeasure {
   op: ReportOp;
   field?: string;
+  /** The part of a total the measure shows (ADR-0044); only a count or a sum. */
+  share?: ReportShare;
 }
 
 /**
@@ -60,6 +63,14 @@ export interface ReportState {
   sort?: ReportSort;
   /** The top of the groups kept, in their order; none — every group up to the server's bound. */
   limit?: number;
+  /** The first grouping makes the rows, the second the columns (ADR-0044). */
+  pivot?: boolean;
+  /** The totals of the groups. */
+  totals?: boolean;
+  /** Two periods compared. */
+  compare?: ReportCompare;
+  /** What a reader fills when opening the saved report. */
+  parameters?: ReportParameter[];
 }
 
 /** The server's limits of one report. */
@@ -84,17 +95,47 @@ export interface ReportWidget extends SavedReport {
   entity: string;
 }
 
+/** A row of a report's answer: the values of its groups and measures, and the server's words of the groups. */
+export interface ReportRow {
+  groups: (string | number | boolean | null)[];
+  values: (number | null)[];
+  /** The server's words for the group values (a choice, a list item, a user, a record), where it names them. */
+  labels?: (string | null)[];
+}
+
+/** A measure column: a figure, its share of a total, or one of the periods of a comparison. */
+export interface ReportMeasureColumn {
+  op: ReportOp;
+  field?: string;
+  share?: ReportShare;
+  period?: 'current' | 'previous' | 'change' | 'change_percent';
+}
+
+/** A total: of a pivot's row, of its column, or of every group (ADR-0044). */
+export interface ReportTotal extends ReportRow {
+  kind: 'row' | 'column' | 'grand';
+}
+
+/** The two periods of a comparison, their first and last days included. */
+export interface ReportComparison {
+  field: string;
+  period: string;
+  against: string;
+  currentFrom: string;
+  currentTo: string;
+  previousFrom: string;
+  previousTo: string;
+}
+
 /** A report's answer: its columns and its rows (groups, then measures, in the columns' order). */
 export interface ReportResult {
   groups: { field: string; trunc?: ReportTrunc; implicit: boolean }[];
-  measures: { op: ReportOp; field?: string }[];
-  rows: {
-    groups: (string | number | boolean | null)[];
-    values: (number | null)[];
-    /** The server's words for the group values (a choice, a list item, a user, a record), where it names them. */
-    labels?: (string | null)[];
-  }[];
+  measures: ReportMeasureColumn[];
+  rows: ReportRow[];
   truncated: boolean;
+  totals?: ReportTotal[];
+  pivot?: boolean;
+  comparison?: ReportComparison | null;
 }
 
 /** A list field a report can group by: a choice, a yes/no, a date, a moment or a reference (ADR-0032 10.2). */
@@ -115,15 +156,18 @@ export function dated(field: QueryFieldMeta | undefined): boolean {
   return field?.type === 'date' || field?.type === 'instant';
 }
 
-/** A measure's heading: "Count", or "Sum: Total". */
+/** A measure's heading: "Count", or "Sum: Total", with its share ("share of total, %") or its period. */
 export function measureLabel(
-  measure: { op: ReportOp; field?: string },
+  measure: ReportMeasureColumn,
   meta: QueryListMeta | null,
   translate: (key: string) => string,
 ): string {
   const op = translate(`ui.report.op.${measure.op}`);
   const field = measure.field ? meta?.fields.find((candidate) => candidate.key === measure.field) : undefined;
-  return field ? `${op}: ${fieldLabel(field, translate)}` : op;
+  const base = field ? `${op}: ${fieldLabel(field, translate)}` : op;
+  const share = measure.share ? ` — ${translate(`ui.report.share.${measure.share}`)}` : '';
+  const period = measure.period ? ` — ${translate(`ui.report.period.${measure.period}`)}` : '';
+  return base + share + period;
 }
 
 /** A group's value in words: a choice by its label, yes/no, a bucket by its first day, a reference by its name. */
@@ -186,10 +230,12 @@ export class EntityReportsApi {
       .pipe(map(reportResult));
   }
 
-  /** A report or widget the person saved, run now. */
-  saved(code: string, id: number): Observable<ReportResult> {
+  /** A report or widget the person saved, run now with the values of its parameters (ADR-0044). */
+  saved(code: string, id: number, parameters?: Record<string, unknown>): Observable<ReportResult> {
+    const params =
+      parameters && Object.keys(parameters).length ? { parameters: JSON.stringify(parameters) } : undefined;
     return this.api
-      .get<ApiSchema<'QueryAggregateResult'>>(`${entityPath(code)}/reports/${id}`, undefined, { notifyError: false })
+      .get<ApiSchema<'QueryAggregateResult'>>(`${entityPath(code)}/reports/${id}`, params, { notifyError: false })
       .pipe(map(reportResult));
   }
 
@@ -226,10 +272,13 @@ export class EntityReportsApi {
 }
 
 /** What a report run asks for. */
-export type ReportAsked = Pick<ReportState, 'groupBy' | 'measures' | 'filter' | 'dataset' | 'sort' | 'limit'>;
+export type ReportAsked = Pick<
+  ReportState,
+  'groupBy' | 'measures' | 'filter' | 'dataset' | 'sort' | 'limit' | 'pivot' | 'totals' | 'compare'
+>;
 
-/** The request parameters of a report as asked: the JSON parts and the order and top when it has them. */
-export function reportParams(state: ReportAsked): Record<string, string | number | undefined> {
+/** The request parameters of a report as asked: the JSON parts, the order and top, and its analytic shape. */
+export function reportParams(state: ReportAsked): Record<string, string | number | boolean | undefined> {
   return {
     dataset: state.dataset,
     groupBy: JSON.stringify(state.groupBy),
@@ -237,6 +286,9 @@ export function reportParams(state: ReportAsked): Record<string, string | number
     filter: state.filter.length > 0 ? JSON.stringify(state.filter) : undefined,
     sort: state.sort ? JSON.stringify(state.sort) : undefined,
     limit: state.limit,
+    pivot: state.pivot || undefined,
+    totals: state.totals || undefined,
+    compare: state.compare ? JSON.stringify(state.compare) : undefined,
   };
 }
 
@@ -248,17 +300,23 @@ export function reportParams(state: ReportAsked): Record<string, string | number
  */
 export function drillFilter(
   result: ReportResult,
-  row: number,
+  row: number | ReportRow,
   meta: QueryListMeta,
   filter: readonly unknown[],
 ): QueryCondition[] | null {
   const read = readFilterDsl(filter);
   const exact = read.match === 'any' ? read.conditions.length <= 1 : read.conditions.length === filter.length;
-  const values = result.rows[row];
-  if (!exact || !values) return null;
+  const values = typeof row === 'number' ? result.rows[row] : row;
+  if (!exact || !values || result.comparison) return null;
+  const total = (values as Partial<ReportTotal>).kind;
   const conditions: QueryCondition[] = read.conditions.map((condition) => ({ ...condition }));
+  const explicit = result.groups.map((group, index) => (group.implicit ? -1 : index)).filter((index) => index >= 0);
   for (let index = 0; index < result.groups.length; index++) {
     const group = result.groups[index];
+    // A total keeps the groups it adds up empty: they narrow nothing (ADR-0044).
+    if (total === 'grand' && !group.implicit) continue;
+    if (total === 'row' && index === explicit[1]) continue;
+    if (total === 'column' && index === explicit[0]) continue;
     const field = meta.fields.find((candidate) => candidate.key === group.field);
     const condition = field ? groupConditions(field, group.trunc, values.groups[index], values.labels?.[index]) : null;
     if (!condition) return null;
@@ -321,13 +379,22 @@ export function reportResult(raw: ApiSchema<'QueryAggregateResult'>): ReportResu
     measures: (raw.measures ?? []).map((measure) => ({
       op: (measure.op ?? 'count') as ReportOp,
       field: measure.field,
+      ...(measure.share ? { share: measure.share as ReportShare } : {}),
+      ...(measure.period ? { period: measure.period as ReportMeasureColumn['period'] } : {}),
     })),
-    rows: (raw.rows ?? []).map((row) => ({
-      groups: (row.groups ?? []) as (string | number | boolean | null)[],
-      values: (row.values ?? []) as (number | null)[],
-      labels: (row.labels ?? []) as (string | null)[],
-    })),
+    rows: (raw.rows ?? []).map(reportRow),
     truncated: raw.truncated === true,
+    totals: (raw.totals ?? []).map((total) => ({ ...reportRow(total), kind: total.kind ?? 'grand' })),
+    pivot: raw.pivot === true,
+    comparison: (raw.comparison as ReportComparison | undefined) ?? null,
+  };
+}
+
+function reportRow(row: { groups?: unknown[]; values?: unknown[]; labels?: unknown[] }): ReportRow {
+  return {
+    groups: (row.groups ?? []) as (string | number | boolean | null)[],
+    values: (row.values ?? []) as (number | null)[],
+    labels: (row.labels ?? []) as (string | null)[],
   };
 }
 

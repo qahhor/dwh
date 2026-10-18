@@ -1,0 +1,111 @@
+<div class="pivot-wrap" tabindex="0" role="region" [attr.aria-label]="caption()">
+  <table class="pivot-table" data-testid="report-pivot">
+    <caption class="sr-only">
+      {{
+        caption()
+      }}
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col" [attr.rowspan]="measures().length > 1 ? 2 : null">{{ rowHeader() }} / {{ columnHeader() }}</th>
+        @for (column of columns(); track column.key) {
+          <th
+            [attr.scope]="measures().length > 1 ? 'colgroup' : 'col'"
+            [attr.colspan]="measures().length > 1 ? measures().length : null"
+            class="num"
+          >
+            {{ column.label }}
+          </th>
+        }
+        <th
+          [attr.scope]="measures().length > 1 ? 'colgroup' : 'col'"
+          [attr.colspan]="measures().length > 1 ? measures().length : null"
+          class="num pivot-total"
+        >
+          {{ 'ui.report.total' | t }}
+        </th>
+      </tr>
+      @if (measures().length > 1) {
+        <tr>
+          @for (column of columns(); track column.key) {
+            @for (measure of measures(); track $index) {
+              <th scope="col" class="num pivot-measure">{{ measure }}</th>
+            }
+          }
+          @for (measure of measures(); track $index) {
+            <th scope="col" class="num pivot-measure pivot-total">{{ measure }}</th>
+          }
+        </tr>
+      }
+    </thead>
+    <tbody>
+      @for (line of rows(); track line.key) {
+        <tr data-testid="report-pivot-row">
+          <th scope="row">{{ line.label }}</th>
+          @for (cell of line.cells; track $index) {
+            @for (text of cell.texts; track $index; let first = $first) {
+              <td class="num">
+                @if (first && cell.drill && text) {
+                  <a
+                    class="report-drill"
+                    [routerLink]="['/e', drillCode()]"
+                    [queryParams]="{ filter: cell.drill }"
+                    [attr.aria-label]="'ui.report.drill_cell' | t: { cell: cell.name, value: text }"
+                    data-testid="report-pivot-drill"
+                    >{{ text }}</a
+                  >
+                } @else {
+                  {{ text }}
+                }
+              </td>
+            }
+          }
+          @for (text of line.total.texts; track $index) {
+            <td class="num pivot-total" data-testid="report-pivot-row-total">{{ text }}</td>
+          }
+        </tr>
+      }
+    </tbody>
+    <tfoot>
+      @for (line of footers(); track line.key) {
+        <tr data-testid="report-pivot-footer">
+          <th scope="row">{{ line.label }}</th>
+          @for (cell of line.cells; track $index) {
+            @for (text of cell.texts; track $index) {
+              <td class="num">{{ text }}</td>
+            }
+          }
+          @for (text of line.total.texts; track $index) {
+            <td class="num pivot-total" data-testid="report-pivot-grand">{{ text }}</td>
+          }
+        </tr>
+      }
+    </tfoot>
+  </table>
+</div>
+<div class="pivot-cards" data-testid="report-pivot-cards">
+  @for (line of rows(); track line.key) {
+    <section class="pivot-card" [attr.aria-labelledby]="ids + '-card-' + $index">
+      <h4 [id]="ids + '-card-' + $index">{{ line.label }}</h4>
+      <dl>
+        @for (cell of line.cells; track $index; let c = $index) {
+          @if (cell.texts[0]) {
+            <dt>{{ columns()[c].label }}</dt>
+            <dd>{{ cell.texts.join(' · ') }}</dd>
+          }
+        }
+        <dt>{{ 'ui.report.total' | t }}</dt>
+        <dd>{{ line.total.texts.join(' · ') }}</dd>
+      </dl>
+    </section>
+  }
+  @for (line of footers(); track line.key) {
+    <section class="pivot-card pivot-card--total" [attr.aria-label]="line.label">
+      <h4>{{ line.label }}</h4>
+      <dl>
+        <dt>{{ 'ui.report.total' | t }}</dt>
+        <dd>{{ line.total.texts.join(' · ') }}</dd>
+      </dl>
+    </section>
+  }
+</div>

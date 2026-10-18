@@ -1,0 +1,97 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.pivot-wrap {
+  overflow: auto;
+  max-height: 520px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+.pivot-wrap:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.pivot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.pivot-table th,
+.pivot-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+.pivot-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.pivot-table tbody th,
+.pivot-table tfoot th {
+  position: sticky;
+  left: 0;
+  background: var(--bg-surface);
+  font-weight: 500;
+}
+.pivot-table tfoot th,
+.pivot-table tfoot td,
+.pivot-table .pivot-total {
+  font-weight: 600;
+}
+.pivot-table tfoot td,
+.pivot-table tfoot th {
+  border-top: 2px solid var(--border-color);
+}
+.pivot-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.pivot-measure {
+  font-size: 12px;
+}
+.report-drill {
+  color: var(--primary);
+}
+.report-drill:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.pivot-cards {
+  display: none;
+}
+.pivot-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+.pivot-card h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.pivot-card dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.pivot-card dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 640px) {
+  .pivot-wrap {
+    display: none;
+  }
+  .pivot-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}

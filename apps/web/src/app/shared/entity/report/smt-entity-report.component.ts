@@ -7,7 +7,9 @@ import { type BarChartPoint, type BarChartSeries, UiBarChartComponent } from '@s
 import { UiReportPlotComponent } from '@shared/ui/ui-report-plot.component';
 import { reportChartProjection } from './report-chart-projection';
 import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
-import { type ReportChart, type ReportResult, drillFilter, groupText, measureLabel } from './entity-reports';
+import { type ReportChart, type ReportResult, type ReportRow, drillFilter, measureLabel } from './entity-reports';
+import { ReportWords } from './report-words';
+import { SMTReportPivotComponent } from './smt-report-pivot.component';
 
 /** The colours of the stacks of a chart, theme tokens in a fixed order. */
 const SERIES_COLORS = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--info)', 'var(--danger)'];
@@ -33,105 +35,27 @@ interface ReportColumn {
 @Component({
   selector: 'smt-entity-report',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TranslatePipe, UiBarChartComponent, UiKpiCardComponent, UiReportPlotComponent],
+  imports: [
+    RouterLink,
+    SMTReportPivotComponent,
+    TranslatePipe,
+    UiBarChartComponent,
+    UiKpiCardComponent,
+    UiReportPlotComponent,
+  ],
   host: { class: 'smt-entity-report' },
-  template: `
-    @if (result(); as result) {
-      @if (result.rows.length === 0) {
-        <p class="report-empty" data-testid="report-empty">{{ 'ui.report.no_rows' | t }}</p>
-      } @else {
-        @if (showKpi()) {
-          <div class="report-kpis" data-testid="report-kpis">
-            @for (kpi of kpis(); track $index) {
-              <ui-kpi-card [label]="kpi.label" [value]="kpi.value" goodWhen="neutral" />
-            }
-          </div>
-        } @else if (chart() === 'bar' && !tableFallback()) {
-          <ui-bar-chart
-            data-testid="report-chart"
-            [series]="series()"
-            [points]="points()"
-            [caption]="chartCaption()"
-            [axisLabel]="axisLabel()"
-          />
-        }
-        @if (additionalChart(); as kind) {
-          @if (!tableFallback()) {
-            <ui-report-plot [kind]="kind" [points]="plotPoints()" [caption]="chartCaption()" />
-          }
-        }
-        @if (tableFallback()) {
-          <p class="report-note" role="note" data-testid="report-chart-fallback">
-            {{ 'ui.report.chart_table_fallback' | t }}
-          </p>
-        }
-        @if (showTable() || tableFallback() || additionalChart()) {
-          <div class="report-table-wrap" tabindex="0" role="region" [attr.aria-label]="caption()">
-            <table class="report-table" data-testid="report-table">
-              <caption class="sr-only">
-                {{
-                  caption()
-                }}
-              </caption>
-              <thead>
-                <tr>
-                  @for (column of columns(); track $index) {
-                    <th scope="col" [class.num]="column.numeric">{{ column.label }}</th>
-                  }
-                  @if (drillCode()) {
-                    <th scope="col">
-                      <span class="sr-only">{{ 'ui.report.drill_column' | t }}</span>
-                    </th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of cells(); track $index; let rowIndex = $index) {
-                  <tr>
-                    @for (cell of row; track $index; let first = $first) {
-                      @if (first && groupCount() > 0) {
-                        <th scope="row">{{ cell.text }}</th>
-                      } @else {
-                        <td [class.num]="cell.numeric">{{ cell.text }}</td>
-                      }
-                    }
-                    @if (drillCode(); as code) {
-                      <td>
-                        @if (drills()[rowIndex]; as filter) {
-                          <a
-                            class="report-drill"
-                            [routerLink]="['/e', code]"
-                            [queryParams]="{ filter }"
-                            [attr.aria-label]="'ui.report.drill_label' | t: { group: rowLabels()[rowIndex] }"
-                            data-testid="report-drill"
-                            >{{ 'ui.report.drill' | t }}</a
-                          >
-                        }
-                      </td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-        @if (result.truncated) {
-          <p class="report-note" role="note">{{ 'ui.report.truncated' | t: { n: result.rows.length } }}</p>
-        }
-      }
-    }
-  `,
+  templateUrl: './smt-entity-report.component.html',
   styleUrl: './smt-entity-report.component.css',
 })
 export class SMTEntityReportComponent {
   private readonly i18n = inject(I18nService);
-  private readonly refLookups = inject(RefLookups);
 
   readonly result = input.required<ReportResult | null>();
   /** The list's metadata: the words of its fields and values. */
   readonly meta = input.required<QueryListMeta | null>();
   /** What the report shows, for the accessible name of its chart and table. */
   readonly caption = input.required<string>();
+
   readonly chart = input<ReportChart>('table');
   /** The table under the chart; a widget shows only its chart. */
   readonly showTable = input(true);
@@ -183,16 +107,30 @@ export class SMTEntityReportComponent {
     })),
   );
 
+  /**
+   * One card per figure; with a comparison one per measure — its current figure with the change against the earlier
+   * one (ADR-0044).
+   */
   readonly kpis = computed(() => {
     const result = this.result();
     const meta = this.meta();
     if (!result || result.rows.length === 0) return [];
     const translate = (key: string) => this.i18n.translate(key);
+    const compared = !!result.comparison;
     return result.rows.flatMap((row) =>
-      result.measures.map((measure, index) => {
+      result.measures.flatMap((measure, index) => {
+        if (compared && measure.period !== 'current') return [];
         const suffix = this.rowText(row);
-        const label = measureLabel(measure, meta, translate);
-        return { label: suffix ? `${label} (${suffix})` : label, value: row.values[index] ?? '—' };
+        const label = measureLabel({ ...measure, period: undefined }, meta, translate);
+        const previous = compared ? (row.values[index + 1] ?? null) : null;
+        return [
+          {
+            label: suffix ? `${label} (${suffix})` : label,
+            value: (measure.share ? this.words.percent(row.values[index]) : row.values[index]) ?? '—',
+            previous: compared && row.values[index] !== null ? previous : null,
+            note: compared ? translate('ui.report.period.previous') + ': ' + this.number(previous) : '',
+          },
+        ];
       }),
     );
   });
@@ -223,8 +161,28 @@ export class SMTEntityReportComponent {
         text: this.groupWord(value, index, row.labels?.[index]),
         numeric: false,
       })),
-      ...row.values.map((value) => ({ text: this.number(value), numeric: true })),
+      ...row.values.map((value, index) => ({ text: this.figure(result, index, value), numeric: true })),
     ]);
+  });
+
+  /** The totals under the table: "Total" in the first grouping's column, the currency of money kept (ADR-0044). */
+  readonly totalCells = computed(() => {
+    const result = this.result();
+    if (!result || result.pivot) return [];
+    const total = this.i18n.translate('ui.report.total');
+    return (result.totals ?? []).map((row) => {
+      let named = false;
+      return [
+        ...row.groups.map((value, index) => {
+          if (value === null && !named && !result.groups[index].implicit) {
+            named = true;
+            return { text: total, numeric: false };
+          }
+          return { text: value === null ? '' : this.groupWord(value, index, row.labels?.[index]), numeric: false };
+        }),
+        ...row.values.map((value, index) => ({ text: this.figure(result, index, value), numeric: true })),
+      ];
+    });
   });
 
   readonly axisLabel = computed(() => {
@@ -349,6 +307,14 @@ export class SMTEntityReportComponent {
     return keys.length <= MAX_SERIES ? keys : [...keys.slice(0, MAX_SERIES - 1), REST];
   });
 
+  private readonly words = new ReportWords(this.i18n, inject(RefLookups));
+
+  /** A period as its first and last day. */
+  period(from: string, to: string): string {
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' };
+    return `${this.i18n.formatDate(from, options)} — ${this.i18n.formatDate(to, options)}`;
+  }
+
   private groupKey(value: string | number | boolean | null | undefined): string {
     return 'group:' + JSON.stringify(value ?? null);
   }
@@ -358,31 +324,24 @@ export class SMTEntityReportComponent {
   }
 
   private field(key: string): QueryFieldMeta | undefined {
-    return this.meta()?.fields.find((field) => field.key === key);
+    return this.words.field(this.meta(), key);
   }
 
   private groupWord(value: string | number | boolean | null | undefined, index: number, label?: string | null): string {
-    const group = this.result()?.groups[index];
-    if (!group) return '';
-    this.i18n.currentLang();
-    return groupText(
-      value ?? null,
-      this.field(group.field),
-      group.trunc,
-      {
-        translate: (key) => this.i18n.translate(key),
-        date: (iso, options) => this.i18n.formatDate(iso, options),
-        refName: (field, key) => (field.ref ? this.refLookups.name(field.ref, key) : null),
-      },
-      label,
-    );
+    return this.words.group(this.result(), this.meta(), value, index, label);
   }
 
-  private rowText(row: ReportResult['rows'][number]): string {
-    return row.groups.map((value, index) => this.groupWord(value, index, row.labels?.[index])).join(' · ');
+  private rowText(row: ReportRow): string {
+    return this.words.row(this.result(), this.meta(), row);
   }
 
   private number(value: number | null): string {
-    return value === null ? '—' : this.i18n.formatNumber(Number(value));
+    return this.words.number(value);
+  }
+
+  /** A measure's figure: a share or a change in percent with its sign, any other in the language's format. */
+  private figure(result: ReportResult, index: number, value: number | null): string {
+    const measure = result.measures[index];
+    return measure?.share || measure?.period === 'change_percent' ? this.words.percent(value) : this.number(value);
   }
 }
