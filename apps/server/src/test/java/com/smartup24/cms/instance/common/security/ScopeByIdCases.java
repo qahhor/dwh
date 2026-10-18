@@ -227,6 +227,34 @@ final class ScopeByIdCases {
                     "a live form code: the lifecycle of a catalog definition under studio.forms.publish, no scoped"
                             + " record (StudioFormVersionsHttpTest)"),
             Map.entry(
+                    "ReportMailingController#reportMailing",
+                    "a report mailing id: kept by who may read its saved report and holds report.mailings (MailingAccess);"
+                            + " each run reads the report as each recipient (StudioReportMailingHttpTest)"),
+            Map.entry(
+                    "ReportMailingController#updateReportMailing",
+                    "a report mailing id: kept by who may read its saved report and holds report.mailings (MailingAccess);"
+                            + " each run reads the report as each recipient (StudioReportMailingHttpTest)"),
+            Map.entry(
+                    "ReportMailingController#deleteReportMailing",
+                    "a report mailing id: kept by who may read its saved report and holds report.mailings (MailingAccess);"
+                            + " each run reads the report as each recipient (StudioReportMailingHttpTest)"),
+            Map.entry(
+                    "ReportMailingController#sendReportMailing",
+                    "a report mailing id: kept by who may read its saved report and holds report.mailings (MailingAccess);"
+                            + " each run reads the report as each recipient (StudioReportMailingHttpTest)"),
+            Map.entry(
+                    "ReportMailingController#reportMailingRuns",
+                    "a report mailing id: kept by who may read its saved report and holds report.mailings (MailingAccess);"
+                            + " each run reads the report as each recipient (StudioReportMailingHttpTest)"),
+            Map.entry(
+                    "ReportMailingController#reportMailingRun",
+                    "a report mailing id: kept by who may read its saved report and holds report.mailings (MailingAccess);"
+                            + " each run reads the report as each recipient (StudioReportMailingHttpTest)"),
+            Map.entry(
+                    "MdReportViewController#reportView",
+                    "a saved report id: answered only when the reader owns it or a role shares it, revalidated as in"
+                            + " the catalog; running it applies the reader's scope (StudioReportMailingHttpTest)"),
+            Map.entry(
                     "MdReportDatasetController#reportDataset",
                     "a report dataset code: installation settings under md.report_datasets, the same for every viewer;"
                             + " a report over it applies each reader's scope (StudioReportDatasetHttpTest)"),

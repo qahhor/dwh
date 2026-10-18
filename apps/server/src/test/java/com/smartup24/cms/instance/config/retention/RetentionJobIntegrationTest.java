@@ -69,7 +69,7 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("3.13: twelve journals are declared, each with a positive default retention")
+    @DisplayName("3.13: thirteen journals are declared, each with a positive default retention")
     void journalsAreDeclared() {
         assertThat(policies)
                 .extracting(RetentionPolicy::name)
@@ -85,7 +85,8 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
                         "notification-outbox",
                         "job-runs",
                         "failed-jobs",
-                        "search-jobs");
+                        "search-jobs",
+                        "report-mailing-runs");
         assertThat(policies)
                 .allSatisfy(policy -> assertThat(policy.defaultDays()).isPositive());
     }
