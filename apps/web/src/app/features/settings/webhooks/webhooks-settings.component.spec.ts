@@ -22,6 +22,7 @@ describe('WebhooksSettingsComponent', () => {
       targetUrl: 'https://erp.example.com/webhooks',
       subscribedEvents: ['task.created', 'task.updated'],
       state: 'A',
+      scope: 'creator',
       createdAt: '2026-09-18T10:00:00Z',
       createdBy: 42,
     },
@@ -31,6 +32,7 @@ describe('WebhooksSettingsComponent', () => {
       targetUrl: 'https://sec.example.com/log',
       subscribedEvents: ['*'],
       state: 'P',
+      scope: 'all',
       createdAt: '2026-09-17T12:00:00Z',
       createdBy: 42,
     },
@@ -51,6 +53,7 @@ describe('WebhooksSettingsComponent', () => {
           targetUrl: (body as any).targetUrl,
           subscribedEvents: (body as any).subscribedEvents,
           state: 'A',
+          scope: (body as any).scope,
           createdAt: '2026-09-18T12:00:00Z',
           createdBy: 1,
           secretToken: 'whsec_test_secret_key_12345', // gitleaks:allow -- synthetic test secret
@@ -108,6 +111,27 @@ describe('WebhooksSettingsComponent', () => {
     expect(rows[0].textContent).toContain('https://erp.example.com/webhooks');
   });
 
+  it('shows which records each subscription sends and picks the scope with the keyboard', async () => {
+    const { fixture, component, api } = await createFixture();
+    const rows = fixture.nativeElement.querySelectorAll('[role="rowgroup"] > [role="row"]');
+    expect(rows[0].textContent).toContain(translateTest('settings.webhooks.scope_creator'));
+    expect(rows[1].textContent).toContain(translateTest('settings.webhooks.scope_all'));
+
+    component.openCreateModal();
+    redraw(fixture);
+    const radios = Array.from(inScreen(fixture.nativeElement).querySelectorAll('[role="radio"]')) as HTMLElement[];
+    expect(radios.map((radio) => radio.getAttribute('aria-checked'))).toEqual(['true', 'false']);
+    radios[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    redraw(fixture);
+    expect(component.createModel().scope).toBe('all');
+
+    component.createModel.update((model) => ({ ...model, name: 'BI', targetUrl: 'https://bi.corp/hook' }));
+    component.submitCreate();
+    expect(api.post).toHaveBeenCalledWith('/webhooks/subscriptions', expect.objectContaining({ scope: 'all' }), {
+      notifyError: false,
+    });
+  });
+
   it('should display empty state if no subscriptions exist', async () => {
     const { fixture, component } = await createFixture([]);
     expect(component.subscriptions().length).toBe(0);
@@ -158,6 +182,7 @@ describe('WebhooksSettingsComponent', () => {
       name: 'New CRM Webhook',
       targetUrl: 'https://crm.corp/hook',
       events: ['task.created', 'task.completed'],
+      scope: 'all',
     });
 
     expect(component.isCreateValid()).toBe(true);
@@ -170,6 +195,7 @@ describe('WebhooksSettingsComponent', () => {
         name: 'New CRM Webhook',
         targetUrl: 'https://crm.corp/hook',
         subscribedEvents: ['task.created', 'task.completed'],
+        scope: 'all',
       },
       { notifyError: false },
     );
@@ -208,13 +234,18 @@ describe('WebhooksSettingsComponent', () => {
     name.value = 'CRM';
     name.dispatchEvent(new Event('input'));
     redraw(fixture);
-    expect(component.createModel()).toEqual({ name: 'CRM', targetUrl: 'https://crm.corp/hook', events: ['*'] });
+    expect(component.createModel()).toEqual({
+      name: 'CRM',
+      targetUrl: 'https://crm.corp/hook',
+      events: ['*'],
+      scope: 'creator',
+    });
     expect(component.isCreateValid()).toBe(true);
 
     component.closeCreateModal();
     component.openCreateModal();
     redraw(fixture);
-    expect(component.createModel()).toEqual({ name: '', targetUrl: '', events: ['*'] });
+    expect(component.createModel()).toEqual({ name: '', targetUrl: '', events: ['*'], scope: 'creator' });
     expect(component.createForm.name().touched()).toBe(false);
     expect(fixture.debugElement.query(By.css('smt-input.smt-input--invalid'))).toBeNull();
   });
@@ -245,7 +276,7 @@ describe('WebhooksSettingsComponent', () => {
   it("sends one request while a save runs and puts the server's field errors under the fields", async () => {
     const { component, api, toast } = await createFixture();
     component.openCreateModal();
-    component.createModel.set({ name: 'CRM', targetUrl: 'https://crm.corp/hook', events: ['*'] });
+    component.createModel.set({ name: 'CRM', targetUrl: 'https://crm.corp/hook', events: ['*'], scope: 'creator' });
 
     api.post.mockReturnValueOnce(NEVER);
     component.submitCreate();
@@ -265,7 +296,7 @@ describe('WebhooksSettingsComponent', () => {
   it('keeps an unknown field refusal in the form summary', async () => {
     const { fixture, component, api, toast } = await createFixture();
     component.openCreateModal();
-    component.createModel.set({ name: 'CRM', targetUrl: 'https://crm.corp/hook', events: ['*'] });
+    component.createModel.set({ name: 'CRM', targetUrl: 'https://crm.corp/hook', events: ['*'], scope: 'creator' });
     api.post.mockReturnValueOnce(
       throwError(() => ({ status: 422, errors: [{ field: 'policy', message: 'Review the delivery policy' }] })),
     );
@@ -281,7 +312,7 @@ describe('WebhooksSettingsComponent', () => {
   it('clears only the edited field refusal without another request', async () => {
     const { fixture, component, api } = await createFixture();
     component.openCreateModal();
-    component.createModel.set({ name: 'CRM', targetUrl: 'http://crm.corp/hook', events: ['*'] });
+    component.createModel.set({ name: 'CRM', targetUrl: 'http://crm.corp/hook', events: ['*'], scope: 'creator' });
     api.post.mockReturnValueOnce(
       throwError(() => ({
         status: 422,

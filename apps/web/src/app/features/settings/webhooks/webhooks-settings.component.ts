@@ -30,7 +30,9 @@ import {
   CreateWebhookSubscriptionDto,
   AVAILABLE_WEBHOOK_EVENTS,
   WebhookEventOption,
+  WebhookScope,
 } from './webhooks-settings.models';
+import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
 import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
@@ -49,10 +51,12 @@ interface WebhookCreateModel {
   targetUrl: string;
   /** Event codes; `*` is every event. */
   events: string[];
+  /** Which records are sent; the narrower choice is the default (ADR-0041, owner decisions of 2026-10-18). */
+  scope: WebhookScope;
 }
 
 function emptyCreate(): WebhookCreateModel {
-  return { name: '', targetUrl: '', events: ['*'] };
+  return { name: '', targetUrl: '', events: ['*'], scope: 'creator' };
 }
 
 @Component({
@@ -61,6 +65,7 @@ function emptyCreate(): WebhookCreateModel {
   imports: [
     SMTCheckboxComponent,
     SMTControlComponent,
+    SMTRadioGroupComponent,
     SMTInputComponent,
     FormField,
     UiFormActionsComponent,
@@ -91,6 +96,7 @@ export class WebhooksSettingsComponent {
   private readonly urlCell = viewChild.required<TemplateRef<unknown>>('urlCell');
   private readonly eventsCell = viewChild.required<TemplateRef<unknown>>('eventsCell');
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
+  private readonly scopeCell = viewChild.required<TemplateRef<unknown>>('scopeCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
   readonly isSaving = signal<boolean>(false);
@@ -114,13 +120,14 @@ export class WebhooksSettingsComponent {
       name: { header: header(i18n.translate('settings.webhooks.name')), content: cell(this.nameCell) },
       url: { header: header(i18n.translate('settings.webhooks.target_url')), content: cell(this.urlCell) },
       events: { header: header(i18n.translate('settings.webhooks.events')), content: cell(this.eventsCell) },
+      scope: { header: header(i18n.translate('settings.webhooks.scope')), content: cell(this.scopeCell) },
       status: {
         header: header(i18n.translate('settings.webhooks.status')),
         content: cell(this.statusCell),
         width: '130px',
       },
     };
-    const order = ['id', 'name', 'url', 'events', 'status'];
+    const order = ['id', 'name', 'url', 'events', 'scope', 'status'];
     if (this.canManageWebhooks()) {
       columns['actions'] = {
         header: header(i18n.translate('common.actions')),
@@ -147,6 +154,20 @@ export class WebhooksSettingsComponent {
   readonly isLoading = computed(() => this.subscriptionsResource.isLoading());
   readonly loadError = computed(() => this.subscriptionsResource.error() !== undefined);
 
+  /** The two scopes, each with what it sends; the labels follow the language of work. */
+  readonly scopeOptions = computed<readonly SMTRadioOption<WebhookScope>[]>(() => [
+    {
+      value: 'creator',
+      label: this.uiI18n.translate('settings.webhooks.scope_creator'),
+      hint: this.uiI18n.translate('settings.webhooks.scope_creator_hint'),
+    },
+    {
+      value: 'all',
+      label: this.uiI18n.translate('settings.webhooks.scope_all'),
+      hint: this.uiI18n.translate('settings.webhooks.scope_all_hint'),
+    },
+  ]);
+
   readonly canManageWebhooks = computed(() => this.permService.hasPermission('webhook.subscriptions', 'manage'));
 
   private readonly askDiscard = discardChangesQuestion();
@@ -156,6 +177,7 @@ export class WebhooksSettingsComponent {
     id: (sub: WebhookSubscription) => sub.id,
     name: (sub: WebhookSubscription) => sub.name,
     url: (sub: WebhookSubscription) => sub.targetUrl,
+    scope: (sub: WebhookSubscription) => sub.scope,
     status: (sub: WebhookSubscription) => (sub.state === 'A' ? 0 : 1),
   };
 
@@ -261,6 +283,7 @@ export class WebhooksSettingsComponent {
       name: model.name.trim(),
       targetUrl: model.targetUrl.trim(),
       subscribedEvents: [...model.events],
+      scope: model.scope,
     };
 
     this.webhooks.create(body).subscribe({
@@ -275,7 +298,7 @@ export class WebhooksSettingsComponent {
       error: (err: unknown) => {
         this.isSaving.set(false);
         const { fields, other } = problemFieldErrors(err, {
-          known: ['name', 'targetUrl', 'events'],
+          known: ['name', 'targetUrl', 'events', 'scope'],
           rename: { subscribedEvents: 'events' },
         });
         this.serverErrors.set(fields);
@@ -345,6 +368,7 @@ export class WebhooksSettingsComponent {
       ['name', 'webhook-name', 'settings.webhooks.name'],
       ['targetUrl', 'webhook-url', 'settings.webhooks.target_url'],
       ['events', 'webhook-events', 'settings.webhooks.events'],
+      ['scope', 'webhook-scope', 'settings.webhooks.scope'],
     ] as const;
     const errors: UiFormErrorItem[] = fields.flatMap(([key, fieldId, label]) => {
       const field = this.createForm[key]();

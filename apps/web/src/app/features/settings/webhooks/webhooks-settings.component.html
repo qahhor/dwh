@@ -98,6 +98,11 @@
       }
     </div>
   </ng-template>
+  <ng-template #scopeCell let-sub>
+    <span class="text-xs">{{
+      (sub.scope === 'all' ? 'settings.webhooks.scope_all' : 'settings.webhooks.scope_creator') | t
+    }}</span>
+  </ng-template>
   <ng-template #statusCell let-sub>
     <span class="status-badge" [class.active]="sub.state === 'A'" [class.paused]="sub.state !== 'A'">
       <span class="status-dot" aria-hidden="true"></span>
@@ -205,6 +210,21 @@
               {{ isAllEventsSelected() ? ('iam.common.clear_all' | t) : ('iam.common.select_all' | t) }}
             </button>
           </div>
+        </smt-control>
+
+        <smt-control
+          class="form-row"
+          data-testid="webhook-scope-control"
+          [smtLabel]="'settings.webhooks.scope' | t"
+          [smtError]="serverErrors()['scope'] ?? ''"
+        >
+          <smt-radio-group
+            smtFieldId="webhook-scope"
+            smtAppearance="cards"
+            [options]="scopeOptions()"
+            [formField]="createForm.scope"
+            (valueChange)="clearServerError('scope')"
+          />
         </smt-control>
       </form>
       <ui-form-actions

@@ -1,9 +1,13 @@
+/** Which records a subscription sends: those its creator may read (the default) or every record. */
+export type WebhookScope = 'creator' | 'all';
+
 export interface WebhookSubscription {
   id: number;
   name: string;
   targetUrl: string;
   subscribedEvents: string[];
   state: 'A' | 'P';
+  scope: WebhookScope;
   createdAt: string;
   createdBy: number;
   /** What a change of the record names in If-Match (plan item 3.6). */
@@ -18,6 +22,7 @@ export interface CreateWebhookSubscriptionDto {
   name: string;
   targetUrl: string;
   subscribedEvents: string[];
+  scope: WebhookScope;
 }
 
 export interface UpdateWebhookSubscriptionDto {
@@ -25,6 +30,7 @@ export interface UpdateWebhookSubscriptionDto {
   targetUrl?: string;
   subscribedEvents?: string[];
   state?: 'A' | 'P';
+  scope?: WebhookScope;
 }
 
 export interface WebhookEventOption {
