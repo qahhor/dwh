@@ -89,12 +89,16 @@ async function seller(browser: Browser, admin: BrowserContext, unit: number, rol
 
 /** Picks a user in the recipients of the mailing dialog by typing a part of the login. */
 async function addRecipient(page: Page, control: Locator, login: string): Promise<void> {
-  await control.getByRole('combobox').first().click();
-  const search = page.locator('.cdk-overlay-container input').last();
+  const trigger = control.getByRole('combobox').first();
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  const search = page.locator('.cdk-overlay-container input[role="combobox"][aria-autocomplete="list"]').last();
+  await expect(search).toBeFocused();
   await search.fill(login);
   const listbox = page.locator('.cdk-overlay-container [role="listbox"]').last();
   await listbox.getByRole('option', { name: new RegExp(login, 'u') }).first().click();
-  await page.keyboard.press('Escape');
+  await search.press('Escape');
+  await expect(listbox).toBeHidden();
 }
 
 /** The first and the last day of the month before the current one, in Tashkent. */
