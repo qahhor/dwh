@@ -29,7 +29,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   hooks and what form-meta shows of the process (`EntityProcessView`: state colors,
   transition names and comments); a transition guard (`TransitionGuard`) hides a
   transition its rule refuses; `common.entity.EntityNotice` is delivered by `ms.notify`.
-- XLSX export of a document list writes the rows of each collection to a sheet of its own.
+- XLSX export of a document list writes the rows of each collection to a sheet of its own,
+  their references and reference-list items by name in the language of the file.
 - Web: the new-form and new-version editors get «Строки документа», «Нумерация документа»
   and «Статусы и согласование»; the record form computes row columns and header totals as
   the server does; the card names a live form's transitions, colors its state and asks the
