@@ -192,8 +192,11 @@ custom против previous/year в `X-Time-Zone`, агрегаты `filter (wh
 `smt-report-parameters(-editor)`, страница `/settings/report-datasets`. Тесты — `QueryAggregateAnalyticsTest`,
 `StudioReportAnalyticsHttpTest`, `StudioReportDatasetHttpTest`; e2e `studio-report-analytics.spec.ts`, a11y
 `report-analytics.spec.ts`. Дальше — шаг 2.4 (рассылки): рассылка исполняет сохранённый отчёт с умолчаниями параметров
-от имени получателя, XLSX — тот же `AggregateExportService.saved`. Локальные проверки на итоговом коде — в отчёте
-агента шага 2.3 (GATES).
+от имени получателя, XLSX — тот же `AggregateExportService.saved`. Локальные проверки на итоговом коде: полный
+reactor verify (33 мин; сервер 3438 тестов, 0 пропусков), пороги покрытия (common 94,1/83,1, md 93,7/78,4, report
+93,6/80, studio 98,3/93,6), diff-cover 88 %, совместимость Platform API, OpenAPI (openapi-diff — совместимо), веб —
+аудиты, forms audit 0, 2903 теста, покрытие 92,6/90,5/87,6/82,1 и сборка, a11y 163/163, E2E 41 + 39 и карантин,
+docs/hygiene/rulesets, gitleaks — без находок.
 
 **Конструктор, этап 2 — охват вебхуков и файлы живых форм (2026-10-18, прямо в `main` поверх `4aa55bec`, не запушено —
 пушит координатор):** решения владельца 2026-10-18 записаны в ADR-0041 (охват подписки, неизменная область формы, состав
