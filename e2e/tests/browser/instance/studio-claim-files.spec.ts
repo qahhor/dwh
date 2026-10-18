@@ -76,13 +76,15 @@ async function buildClaim(page: Page, formName: string): Promise<string> {
   await page.getByTestId('new-form-add').click();
   const documents = page.getByTestId('new-field-1').first();
   await describeField(page, documents, 'documents', 'Файл', 'Документы');
-  await documents.getByTestId('field-files-multiple-1').click();
+  await documents.getByTestId('field-files-multiple-1').getByText('Несколько файлов', { exact: true }).click();
+  await expect(documents.getByRole('checkbox', { name: 'Несколько файлов' })).toBeChecked();
   await documents.getByTestId('field-files-max-1').locator('input').fill('2');
 
   const prepared = page.waitForResponse(response => response.url().endsWith('/api/v1/form-studio/new-forms/prepare'));
   await page.getByTestId('new-form-prepare').click();
   const preparedAnswer = await prepared;
-  expect(preparedAnswer.status(), await preparedAnswer.text()).toBe(200);
+  expect(preparedAnswer.status()).toBe(200);
+  await expect(page.locator('.new-form-checksum')).toHaveText(/^[a-f0-9]{64}$/u);
   const activation = page.waitForResponse(response => response.request().method() === 'POST'
     && response.url().endsWith('/api/v1/studio/forms'));
   await page.getByTestId('new-form-activate').click();
@@ -164,6 +166,9 @@ test('the files of a live form: uploaded to a record, read through it by its rea
     // The writer fills the claim and attaches a file: the field counts its files against the limit.
     await writer.page.goto(`/e/${claims}/new`);
     const form = writer.page.locator('smt-entity-form');
+    // The editor names the records of a new form by the system name and code.
+    await form.locator('.entity-field[data-field="name"] input').fill(`Претензия ${tag}`);
+    await form.locator('.entity-field[data-field="code"] input').fill(`claim-${tag}`);
     await form.locator('.entity-field[data-field="subject"] input').fill(`Претензия ${tag}`);
     const documents = form.locator('[data-field="documents"]');
     await expect(documents).toContainText('Файлов: 0 из 2');
