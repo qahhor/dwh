@@ -10,6 +10,7 @@ import {
   MAX_SECTIONS,
   MAX_TABS,
   MIN_TABS,
+  DOCUMENT_NUMBER_TITLE,
   NUMBER_TITLE,
   placedLayout,
   SYSTEM_TITLE,
@@ -70,7 +71,12 @@ export class NewFormLayoutComponent {
     const options: { id: string; label: string }[] = [];
     if (named !== false) options.push({ id: SYSTEM_TITLE, label: this.i18n.translate('studio.layout.title_system') });
     if (named !== true) {
-      options.push({ id: NUMBER_TITLE, label: this.i18n.translate('studio.layout.title_number') });
+      // A document with its number is named by it, not by the record's own number (ADR-0043).
+      options.push(
+        this.declaration().entity.numbering
+          ? { id: DOCUMENT_NUMBER_TITLE, label: this.i18n.translate('studio.layout.title_document_number') }
+          : { id: NUMBER_TITLE, label: this.i18n.translate('studio.layout.title_number') },
+      );
       for (const field of this.declaration().fields.filter(titleEligible)) {
         options.push({ id: field.id, label: field.labels[language] || field.id });
       }

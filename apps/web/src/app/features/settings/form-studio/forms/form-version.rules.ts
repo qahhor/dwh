@@ -18,7 +18,13 @@ export type VersionChangeCode =
   | 'target'
   | 'option_removed'
   | 'scope'
-  | 'computed';
+  | 'computed'
+  | 'lines_moved'
+  | 'max_rows'
+  | 'numbering'
+  | 'workflow_removed'
+  | 'state_removed'
+  | 'initial';
 
 export interface VersionChange {
   field: string;
@@ -85,6 +91,62 @@ export function incompatibleChanges(active: SimpleFormDeclaration, draft: Simple
   }
   for (const added of next.values()) {
     if (added.required && !added.defaultValue) changes.push({ field: added.id, change: 'required' });
+  }
+  return [...changes, ...documentChanges(active, draft)];
+}
+
+/**
+ * The changes of a document's parts a new version may not make (ADR-0043), as `StudioDocumentChangeRules`: a table of
+ * lines keeps its place and takes no fewer rows, its columns keep their key, type and target, choices, decimals and
+ * length and never become required or computed; the number keeps its pattern and period; the statuses stay, every
+ * status records may be in is kept and the first one stays first.
+ */
+export function documentChanges(active: SimpleFormDeclaration, draft: SimpleFormDeclaration): VersionChange[] {
+  const changes: VersionChange[] = [];
+  (active.lines ?? []).forEach((table, index) => {
+    const kept = draft.lines?.[index];
+    const at = `lines.${table.key}`;
+    if (!kept || kept.key !== table.key) {
+      changes.push({ field: at, change: 'lines_moved' });
+      return;
+    }
+    if (kept.maxRows < table.maxRows) changes.push({ field: at, change: 'max_rows' });
+    const next = new Map(kept.fields.map((column) => [column.id, column] as const));
+    for (const before of table.fields) {
+      const after = next.get(before.id);
+      next.delete(before.id);
+      const path = `${at}.${before.id}`;
+      if (!after) changes.push({ field: path, change: 'removed' });
+      else if (after.type !== before.type) changes.push({ field: path, change: 'type' });
+      else {
+        if (JSON.stringify(after.target ?? null) !== JSON.stringify(before.target ?? null))
+          changes.push({ field: path, change: 'target' });
+        const codes = new Set((after.options ?? []).map((option) => option.code));
+        if ((before.options ?? []).some((option) => !codes.has(option.code)))
+          changes.push({ field: path, change: 'option_removed' });
+        if (!before.required && after.required) changes.push({ field: path, change: 'required' });
+        if (shorter(before.maxLength, after.maxLength)) changes.push({ field: path, change: 'max_length' });
+        if (shorter(before.scale, after.scale)) changes.push({ field: path, change: 'scale' });
+        if (!before.formula && after.formula) changes.push({ field: path, change: 'computed' });
+      }
+    }
+    for (const added of next.values()) {
+      if (added.required) changes.push({ field: `${at}.${added.id}`, change: 'required' });
+    }
+  });
+  const numbering = active.entity.numbering;
+  const kept = draft.entity.numbering;
+  if (numbering && (!kept || kept.pattern !== numbering.pattern || kept.reset !== numbering.reset))
+    changes.push({ field: 'entity.numbering', change: 'numbering' });
+  const workflow = active.workflow;
+  if (workflow && !draft.workflow) changes.push({ field: 'workflow', change: 'workflow_removed' });
+  else if (workflow && draft.workflow) {
+    if (draft.workflow.states[0]?.code !== workflow.states[0].code)
+      changes.push({ field: `workflow.states.${workflow.states[0].code}`, change: 'initial' });
+    const codes = new Set(draft.workflow.states.map((state) => state.code));
+    workflow.states
+      .filter((state) => !codes.has(state.code))
+      .forEach((state) => changes.push({ field: `workflow.states.${state.code}`, change: 'state_removed' }));
   }
   return changes;
 }

@@ -25,6 +25,7 @@ import {
   serverProblems,
   withLocks,
 } from '@core/services/form-meta.service';
+import { withComputed } from '@core/services/form-logic';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { RefLookups } from '@shared/lookups/ref-lookup';
@@ -280,9 +281,9 @@ export class SMTEntityEditPageComponent implements RecordNavigationPage {
     return this.saved || this.state() !== 'ready' || !this.dirty() ? true : this.askLeave();
   }
 
-  /** The rows of a collection as the lines edit them. */
+  /** The rows of a collection as the lines edit them; computed columns and totals follow them (ADR-0043). */
   setRows(key: string, rows: unknown[]): void {
-    this.values.update((values) => ({ ...values, [key]: rows }));
+    this.values.update((values) => withComputed(this.meta(), { ...values, [key]: rows }));
   }
 
   /** Reads the record again after a save was refused over a newer revision: the form shows what is saved now. */

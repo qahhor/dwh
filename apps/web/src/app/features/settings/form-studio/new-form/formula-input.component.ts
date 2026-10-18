@@ -15,7 +15,13 @@ import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
 import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea/textarea.component';
 import type { Subscription } from 'rxjs';
-import { StudioFormulasApi, type FormulaCheck, type FormulaKind } from '../studio-formulas.api';
+import {
+  StudioFormulasApi,
+  type FormulaCheck,
+  type FormulaCheckField,
+  type FormulaDocument,
+  type FormulaKind,
+} from '../studio-formulas.api';
 import type { SimpleField } from './new-form.models';
 
 /** How long the editor waits after the last key before it asks the server to check the formula. */
@@ -86,6 +92,8 @@ export class FormulaInputComponent {
   readonly field = input<string | null>(null);
   /** Every field of the form: the shown ones are offered and checked against. */
   readonly fields = input<readonly SimpleField[]>([]);
+  /** A document's lines, number and status (ADR-0043); with `line`, the formula computes a column of that table. */
+  readonly document = input<FormulaDocument | null>(null);
   readonly disabled = input(false);
   readonly name = input('');
   readonly testId = input('');
@@ -105,13 +113,37 @@ export class FormulaInputComponent {
   readonly fieldOptions = computed(() => {
     const language = this.i18n.currentLang();
     const own = this.field();
-    return this.fields()
-      .filter((field) => !field.hidden && field.id && (this.kind() !== 'visibleIf' || field.id !== own))
-      .map((field) => {
-        const labels = field.labels as Record<string, string>;
-        const name = labels[language] || labels['ru'] || field.id;
-        return { id: field.id, label: `${name} (${field.id})` };
-      });
+    const document = this.document();
+    const named = (field: SimpleField) => {
+      const labels = field.labels as Record<string, string>;
+      return labels[language] || labels['ru'] || field.id;
+    };
+    const shown = this.fields().filter((field) => !field.hidden && field.id);
+    if (document?.line) {
+      const columns = document.lines.find((table) => table.key === document.line)?.fields ?? [];
+      return [
+        ...columns
+          .filter((column) => column.id && column.id !== own)
+          .map((column) => ({ id: column.id, label: column.id })),
+        ...shown
+          .filter((field) => !field.formula)
+          .map((field) => ({ id: `doc.${field.id}`, label: `${named(field)} (doc.${field.id})` })),
+      ];
+    }
+    const options = shown
+      .filter((field) => this.kind() !== 'visibleIf' || field.id !== own)
+      .map((field) => ({ id: field.id, label: `${named(field)} (${field.id})` }));
+    if (document?.numbered) options.push({ id: 'docNumber', label: 'docNumber' });
+    if (document?.statuses) options.push({ id: 'docStatus', label: 'docStatus' });
+    for (const table of document?.lines ?? []) {
+      options.push({ id: `lines.${table.key}`, label: `lines.${table.key}` });
+      table.fields
+        .filter((column) => column.id)
+        .forEach((column) =>
+          options.push({ id: `lines.${table.key}.${column.id}`, label: `lines.${table.key}.${column.id}` }),
+        );
+    }
+    return options;
   });
   readonly functionOptions = FORMULA_FUNCTIONS.map((name) => ({ id: name, label: `${name}()` }));
   readonly maxLength = MAX_FORMULA_LENGTH;
@@ -120,18 +152,24 @@ export class FormulaInputComponent {
   constructor() {
     effect((onCleanup) => {
       const text = (this.value() ?? '').trim();
-      const fields = this.fields()
+      const fields: FormulaCheckField[] = this.fields()
         .filter((field) => !field.hidden && field.id)
-        .map((field) => ({ id: field.id, type: field.type, ...(field.target ? { target: field.target.kind } : {}) }));
+        .map((field) => ({
+          id: field.id,
+          type: field.type,
+          ...(field.target ? { target: field.target.kind } : {}),
+          ...(field.formula ? { computed: true } : {}),
+        }));
       const kind = this.kind();
       const owner = this.field();
+      const document = this.document();
       this.request?.unsubscribe();
       if (!text) {
         this.checked.set(null);
         return;
       }
       const timer = setTimeout(() => {
-        this.request = this.api.check(fields, text, kind, owner).subscribe({
+        this.request = this.api.check(fields, text, kind, owner, document).subscribe({
           next: (check) => this.checked.set(check),
           error: () => this.checked.set(null),
         });

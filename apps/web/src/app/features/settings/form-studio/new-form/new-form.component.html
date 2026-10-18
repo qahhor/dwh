@@ -237,16 +237,41 @@
           [lists]="targets.lists()"
           [forms]="targets.forms()"
           [fields]="store.draft().fields"
+          [document]="document()"
           (changed)="editField(index, $event)"
           (moved)="moveField(index, $event)"
           (removed)="removeField(index)"
         />
       }
       @if (store.delivery() === 'live') {
+        <app-new-form-lines
+          [lines]="store.draft().lines"
+          [fields]="store.draft().fields"
+          [lists]="targets.lists()"
+          [forms]="targets.forms()"
+          [numbered]="!!store.draft().entity.numbering"
+          [statuses]="!!store.draft().workflow"
+          [disabled]="busy()"
+          (changed)="applyLines($event)"
+        />
+        <app-new-form-numbering
+          [numbering]="store.draft().entity.numbering"
+          [states]="store.draft().workflow?.states ?? []"
+          [disabled]="busy()"
+          (changed)="applyNumbering($event)"
+        />
+        <app-new-form-workflow
+          [workflow]="store.draft().workflow"
+          [fields]="store.draft().fields"
+          [document]="document()"
+          [disabled]="busy()"
+          (changed)="applyWorkflow($event)"
+        />
         <app-new-form-layout [declaration]="store.draft()" [disabled]="busy()" (changed)="applyLayout($event)" />
         <app-new-form-rules
           [rules]="store.draft().rules"
           [fields]="store.draft().fields"
+          [document]="document()"
           [disabled]="busy()"
           (changed)="applyRules($event)"
         />

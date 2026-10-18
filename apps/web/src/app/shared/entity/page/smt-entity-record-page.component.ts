@@ -3,7 +3,13 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, linkedSig
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, finalize, map, of, tap } from 'rxjs';
-import type { FormCollectionMeta, FormSectionMeta, FormTabMeta } from '@core/models/form-meta.models';
+import type {
+  FormCollectionMeta,
+  FormSectionMeta,
+  FormStateMeta,
+  FormTabMeta,
+  FormTransitionMeta,
+} from '@core/models/form-meta.models';
 import { hasCapability, recordValues } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -12,7 +18,7 @@ import { RefLookups } from '@shared/lookups/ref-lookup';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import { UiRecordHistoryComponent } from '@shared/ui/ui-record-history.component';
-import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
+import { SMTBadgeComponent, type TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
@@ -22,10 +28,21 @@ import { SMTEntityRelatedComponent } from '../smt-entity-related.component';
 import { SMTEntityRowsComponent } from '../smt-entity-rows.component';
 import { isNotFound, recordIdOf, recordName } from './entity-page';
 import { SMTEntityPageStateComponent } from './smt-entity-page-state.component';
+import { SMTEntityTransitionDialogComponent } from './smt-entity-transition-dialog.component';
 import { EntityPageContext } from './smt-entity-page.component';
 
 /** The actions the page draws as its own buttons; any other action of the record is run by its code. */
 const OWN_ACTIONS = new Set(['create', 'update', 'archive', 'delete']);
+
+/** The badge of a live form's state by its color (ADR-0043). */
+const STATE_VARIANTS: Readonly<Record<NonNullable<FormStateMeta['color']>, TBadgeVariant>> = {
+  gray: 'gray',
+  blue: 'blue',
+  green: 'success',
+  orange: 'orange',
+  red: 'error',
+  purple: 'purple',
+};
 
 /**
  * A record of a declared entity, `/e/:code/:id` (ADR-0032 7.1): its fields by the form's sections in words, its
@@ -48,6 +65,7 @@ const OWN_ACTIONS = new Set(['create', 'update', 'archive', 'delete']);
     SMTEntityRelatedComponent,
     SMTEntityRowsComponent,
     SMTEntityPageStateComponent,
+    SMTEntityTransitionDialogComponent,
     SMTTabBarComponent,
     TranslatePipe,
     UiPageHeaderComponent,
@@ -158,13 +176,34 @@ export class SMTEntityRecordPageComponent {
   /** The record as the server returned it, by property: the rows of its collections and the currency of their money. */
   readonly recordData = computed<Record<string, unknown>>(() => ({ ...(this.record() ?? {}) }));
 
-  /** The name of the record's state in its process (ADR-0032 9.2), or null without one. */
-  readonly stateLabel = computed(() => {
-    this.i18n.currentLang();
+  /** The record's state in its process (ADR-0032 9.2), or null without one. */
+  private readonly currentState = computed<FormStateMeta | null>(() => {
     const workflow = this.context.formMeta().workflow;
     const record = this.recordData();
-    const state = workflow?.states.find((candidate) => candidate.code === record[workflow.field]);
+    return workflow?.states.find((candidate) => candidate.code === record[workflow.field]) ?? null;
+  });
+
+  /** The name of the record's state, or null without one. */
+  readonly stateLabel = computed(() => {
+    this.i18n.currentLang();
+    const state = this.currentState();
     return state ? this.i18n.translate(state.labelKey) : null;
+  });
+
+  /** The badge of the record's state: its live form's color (ADR-0043), blue otherwise. */
+  readonly stateVariant = computed<TBadgeVariant>(() => {
+    const color = this.currentState()?.color;
+    return color ? STATE_VARIANTS[color] : 'blue';
+  });
+
+  /** The transition whose comment the dialog asks for, or null while it is closed (ADR-0043). */
+  readonly commenting = signal<FormTransitionMeta | null>(null);
+
+  /** The name of the transition the dialog asks about. */
+  readonly commentTitle = computed(() => {
+    this.i18n.currentLang();
+    const transition = this.commenting();
+    return transition ? this.actionLabel(transition.code) : '';
   });
 
   /** The entity's own tabs the viewer may open: those without rights, or with one of them held. */
@@ -221,8 +260,13 @@ export class SMTEntityRecordPageComponent {
     return this.ownTabs().find((tab) => tab.key === key)?.component ?? null;
   }
 
-  /** An action's label: `entity.action.<code>` when the catalog has it, otherwise the code itself. */
+  /**
+   * An action's label: a live form's name of its transition (ADR-0043), `entity.action.<code>` when the catalog has it,
+   * otherwise the code itself.
+   */
   actionLabel(action: string): string {
+    const named = this.transitionOf(action)?.labelKey;
+    if (named) return this.i18n.translate(named);
     const key = `entity.action.${action}`;
     return this.i18n.hasKey(key) ? this.i18n.translate(key) : action;
   }
@@ -251,7 +295,11 @@ export class SMTEntityRecordPageComponent {
   run(action: string): void {
     const record = this.record();
     if (!record || this.busy()) return;
-    const transition = this.context.formMeta().workflow?.transitions.find((candidate) => candidate.code === action);
+    const transition = this.transitionOf(action);
+    if (transition?.comment === 'optional' || transition?.comment === 'required') {
+      this.commenting.set(transition);
+      return;
+    }
     const confirmKey = transition?.confirmKey ?? `entity.action_confirm.${action}`;
     if (this.i18n.hasKey(confirmKey)) {
       this.modal
@@ -294,16 +342,32 @@ export class SMTEntityRecordPageComponent {
       .subscribe();
   }
 
-  private perform(action: string): void {
+  /** Takes the transition the dialog asked about, with its comment (ADR-0043). */
+  takeWithComment(comment: string): void {
+    const transition = this.commenting();
+    if (!transition) return;
+    this.perform(transition.code, comment ? { comment } : {});
+  }
+
+  private transitionOf(action: string): FormTransitionMeta | null {
+    return this.context.formMeta().workflow?.transitions.find((candidate) => candidate.code === action) ?? null;
+  }
+
+  private perform(action: string, params: Record<string, unknown> = {}): void {
     const record = this.record();
     if (!record || this.busy()) return;
-    this.track(this.entities.action(this.context.code(), record.id, action, record.revision)).subscribe({
-      next: () => this.toast.success(this.i18n.translate('ui.entity_page.action_done')),
-      error: (problem: unknown) =>
+    this.track(this.entities.action(this.context.code(), record.id, action, record.revision, params)).subscribe({
+      next: () => {
+        this.commenting.set(null);
+        this.toast.success(this.i18n.translate('ui.entity_page.action_done'));
+      },
+      error: (problem: unknown) => {
+        this.commenting.set(null);
         this.saveErrors.show(problem, {
           fallbackKey: 'ui.entity_page.action_failed',
           reload: () => this.loaded.reload(),
-        }),
+        });
+      },
     });
   }
 

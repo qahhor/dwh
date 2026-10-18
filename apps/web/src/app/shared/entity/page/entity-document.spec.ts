@@ -326,4 +326,75 @@ describe('a document card', () => {
     expect(text).toContain(translateTest('ui.history.action'));
     expect(text).toContain(translateTest('entity.action.post'));
   });
+
+  it('asks the comment of a transition of a live form, names it and colors the state (ADR-0043)', async () => {
+    const live: FormMeta = {
+      ...META,
+      workflow: {
+        field: 'status',
+        states: [
+          {
+            code: 'draft',
+            labelKey: 'example.orders.status.draft',
+            initial: true,
+            terminal: false,
+            locks: [],
+            color: 'orange',
+          },
+          {
+            code: 'posted',
+            labelKey: 'example.orders.status.posted',
+            initial: false,
+            terminal: true,
+            locks: [],
+            color: 'green',
+          },
+        ],
+        transitions: [
+          {
+            code: 'post',
+            from: ['draft'],
+            to: 'posted',
+            permission: 'post',
+            confirmKey: null,
+            labelKey: 'example.orders.status.posted',
+            comment: 'required',
+          },
+        ],
+      },
+    };
+    const order = draft({ revision: 2, actions: ['post'] });
+    const { root, api, settle } = await renderEntityScreen(`/e/${CODE}/1`, {
+      meta: live,
+      records: [order],
+      changes: {
+        [`POST /entities/${CODE}/1/actions/post`]: () => of({ ...order, status: 'posted', revision: 3, actions: [] }),
+      },
+    });
+    const button = root.querySelector('[data-action="post"]');
+    expect(button?.textContent?.trim()).toBe(translateTest('example.orders.status.posted'));
+    expect(root.querySelector('[data-testid="entity-state"]')?.className ?? '').not.toBe('');
+
+    click(root, '[data-action="post"]');
+    await settle();
+    const form = document.querySelector('[data-testid="entity-transition-form"]') as HTMLFormElement | null;
+    expect(form).not.toBeNull();
+    form?.dispatchEvent(new Event('submit', { cancelable: true }));
+    await settle();
+    expect(api.post).not.toHaveBeenCalledWith(`/entities/${CODE}/1/actions/post`, expect.anything(), expect.anything());
+    const textarea = document.querySelector('#entity-transition-comment') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+    if (textarea) {
+      textarea.value = 'Проверено';
+      textarea.dispatchEvent(new Event('input'));
+    }
+    await settle();
+    form?.dispatchEvent(new Event('submit', { cancelable: true }));
+    await settle();
+    expect(api.post).toHaveBeenCalledWith(
+      `/entities/${CODE}/1/actions/post`,
+      { comment: 'Проверено' },
+      { notifyError: false, ifMatch: 2 },
+    );
+  });
 });

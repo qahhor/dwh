@@ -28,17 +28,7 @@ export const FORMULA_REASONS = [
  * only `sum` and `count` read (ADR-0043).
  */
 export type FormulaType =
-  | 'number'
-  | 'text'
-  | 'bool'
-  | 'date'
-  | 'datetime'
-  | 'time'
-  | 'option'
-  | 'ref'
-  | 'null'
-  | 'numbers'
-  | 'rows';
+  'number' | 'text' | 'bool' | 'date' | 'datetime' | 'time' | 'option' | 'ref' | 'null' | 'numbers' | 'rows';
 
 /**
  * A checked node of a formula as the server gives it in form-meta (ADR-0042): the web interprets it with the server's
@@ -83,15 +73,7 @@ export interface FormulaList {
 
 /** A value of a formula: a number, a text or code, a yes/no, a date, a moment, a time, a row's key, or null. */
 export type FormulaValue =
-  | Decimal
-  | string
-  | boolean
-  | FormulaDate
-  | FormulaMoment
-  | FormulaTime
-  | FormulaList
-  | bigint
-  | null;
+  Decimal | string | boolean | FormulaDate | FormulaMoment | FormulaTime | FormulaList | bigint | null;
 
 /** What a formula reads besides the record: the moment of the evaluation and the viewer's time zone. */
 export interface FormulaScope {

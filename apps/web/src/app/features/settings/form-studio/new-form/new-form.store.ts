@@ -176,6 +176,9 @@ function toDeliverable(draft: SimpleFormDeclaration): void {
   delete draft.entity.titleField;
   delete draft.layout;
   delete draft.rules;
+  delete draft.lines;
+  delete draft.workflow;
+  delete draft.entity.numbering;
   draft.formatVersion = 1;
   draft.fields = draft.fields.map((source) => {
     const field = { ...source };

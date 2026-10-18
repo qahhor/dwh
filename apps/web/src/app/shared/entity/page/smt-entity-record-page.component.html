@@ -14,7 +14,7 @@
           }}</smt-badge>
         }
         @if (stateLabel(); as state) {
-          <smt-badge smtSize="SM" smtVariant="blue" data-testid="entity-state">{{ state }}</smt-badge>
+          <smt-badge smtSize="SM" [smtVariant]="stateVariant()" data-testid="entity-state">{{ state }}</smt-badge>
         }
         <a smt-button smtVariant="ghost" smtIcon="arrow_back" [routerLink]="context.listLink()">
           {{ 'ui.entity_page.back' | t }}
@@ -159,3 +159,11 @@
     <p class="sr-only" role="status">{{ 'common.loading' | t }}</p>
   }
 }
+<smt-entity-transition-dialog
+  [open]="commenting() !== null"
+  [title]="commentTitle()"
+  [required]="commenting()?.comment === 'required'"
+  [busy]="busy()"
+  (confirmed)="takeWithComment($event)"
+  (closed)="commenting.set(null)"
+/>

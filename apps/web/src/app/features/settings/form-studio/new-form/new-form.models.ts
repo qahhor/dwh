@@ -119,8 +119,81 @@ export interface SimpleFormLayout {
   tabs?: SimpleFormTab[];
   sections: SimpleFormSection[];
 }
+/** Format 6: a column of a table of lines — a value of one of the field types, or a formula (ADR-0043). */
+export interface SimpleLineField {
+  id: string;
+  type: SimpleFieldType;
+  labels: StudioLabels;
+  required: boolean;
+  maxLength?: number | null;
+  scale?: number | null;
+  options?: SimpleFieldOption[];
+  target?: SimpleFieldTarget;
+  /** A computed column: its formula over the row and the header's entered fields (`doc.<field>`). */
+  formula?: string;
+}
+
+/** Format 6: a table of lines of a document, kept apart from the record by its place in the form. */
+export interface SimpleFormLines {
+  key: string;
+  labels: StudioLabels;
+  maxRows: number;
+  fields: SimpleLineField[];
+}
+
+/** Format 6: the number of a document — a pattern, the period its counter starts again in, the status that gives it. */
+export interface SimpleFormNumbering {
+  pattern: string;
+  reset: 'never' | 'year' | 'month';
+  assignOn?: string;
+  labels?: StudioLabels;
+}
+
+/** The colors of a status's badge (ADR-0043). */
+export const STATE_COLORS = ['gray', 'blue', 'green', 'orange', 'red', 'purple'] as const;
+export type StateColor = (typeof STATE_COLORS)[number];
+
+/** Format 6: a status of a document; the first one is where a record starts. */
+export interface SimpleFormState {
+  code: string;
+  labels: StudioLabels;
+  color: StateColor;
+  terminal?: true;
+  lockAll?: true;
+  locks?: string[];
+}
+
+/** Format 6: a transition — a record action with a right of its own. */
+export interface SimpleFormTransition {
+  code: string;
+  labels: StudioLabels;
+  from: string[];
+  to: string;
+  condition?: string;
+  comment: 'none' | 'optional' | 'required';
+  notAuthor?: true;
+  notify?: true;
+}
+
+/** Format 6: the statuses of a document and the transitions between them. */
+export interface SimpleFormWorkflow {
+  labels?: StudioLabels;
+  states: SimpleFormState[];
+  transitions: SimpleFormTransition[];
+}
+
+/** Bounds of a document the server keeps (ADR-0043). */
+export const MAX_LINE_TABLES = 3;
+export const MAX_LINE_COLUMNS = 20;
+export const MAX_LINE_ROWS = 500;
+export const MAX_STATES = 20;
+export const MAX_TRANSITIONS = 30;
+
+/** The editor's title of a document named by its number: format 6 with a number and no title field. */
+export const DOCUMENT_NUMBER_TITLE = 'docNumber';
+
 export interface SimpleFormDeclaration {
-  formatVersion: 1 | 2 | 3 | 4 | 5;
+  formatVersion: 1 | 2 | 3 | 4 | 5 | 6;
   kind: 'simple-form';
   module: { code: string; title: StudioLabels };
   entity: {
@@ -133,11 +206,17 @@ export interface SimpleFormDeclaration {
      * (in the editor only) `recordNumber` for the record's number, which the server writes as no title field.
      */
     titleField?: string;
+    /** Format 6: the number of a document. */
+    numbering?: SimpleFormNumbering;
   };
   fields: SimpleField[];
   layout?: SimpleFormLayout;
   /** Format 5: the validation rules of the form. */
   rules?: SimpleFormRule[];
+  /** Format 6: the tables of lines of a document. */
+  lines?: SimpleFormLines[];
+  /** Format 6: the statuses and transitions of a document. */
+  workflow?: SimpleFormWorkflow;
 }
 
 /** The title of a form named by the system name and code fields, as formats 1 to 3 are. */
@@ -157,14 +236,16 @@ export function titleEligible(field: SimpleField): boolean {
 /** What names the records of a declaration in the editor: a field, the system name or the record's number. */
 export function titleOf(declaration: SimpleFormDeclaration): string {
   const title = declaration.entity.titleField;
-  if (declaration.formatVersion >= 4) return title ?? NUMBER_TITLE;
+  if (declaration.formatVersion >= 4)
+    return title ?? (declaration.entity.numbering ? DOCUMENT_NUMBER_TITLE : NUMBER_TITLE);
   return title ?? SYSTEM_TITLE;
 }
 
 /** A declaration as the editor keeps it: the record's number of a form of format 4 named explicitly. */
 export function editorDeclaration(declaration: SimpleFormDeclaration): SimpleFormDeclaration {
   const copy = structuredClone(declaration);
-  if (copy.formatVersion >= 4 && copy.entity.titleField === undefined) copy.entity.titleField = NUMBER_TITLE;
+  if (copy.formatVersion >= 4 && copy.entity.titleField === undefined)
+    copy.entity.titleField = copy.entity.numbering ? DOCUMENT_NUMBER_TITLE : NUMBER_TITLE;
   return copy;
 }
 
@@ -220,6 +301,10 @@ export function usesFormatFive(declaration: SimpleFormDeclaration): boolean {
     !!declaration.rules?.length || declaration.fields.some((field) => FIELD_FORMULA_KEYS.some((key) => !!field[key]))
   );
 }
+/** Whether a declaration says something only format 6 can: lines, a number or statuses (ADR-0043). */
+export function usesFormatSix(declaration: SimpleFormDeclaration): boolean {
+  return !!declaration.lines?.length || !!declaration.workflow || !!declaration.entity.numbering;
+}
 /** Whether a declaration says something only format 3 can: a select, a reference, a user or a narrower scope. */
 export function usesFormatThree(declaration: SimpleFormDeclaration): boolean {
   return (
@@ -232,21 +317,38 @@ export function usesFormatThree(declaration: SimpleFormDeclaration): boolean {
  * format 4 for a layout or a title other than the system name. The default scope `all` is left out of a form that
  * uses nothing else of format 3, so it keeps its earlier format; the record's number is written as no title field.
  */
-export function withFormat(declaration: SimpleFormDeclaration, floor: 1 | 2 | 3 | 4 | 5 = 1): SimpleFormDeclaration {
+export function withFormat(
+  declaration: SimpleFormDeclaration,
+  floor: 1 | 2 | 3 | 4 | 5 | 6 = 1,
+): SimpleFormDeclaration {
   const copy = structuredClone(declaration);
   const kinds = copy.fields.some((field) => LIVE_FIELD_TYPES.includes(field.type));
   copy.fields = copy.fields.map((field) => withoutEmptyFormulas(field));
   if (copy.rules && copy.rules.length === 0) delete copy.rules;
-  const five = floor === 5 || usesFormatFive(copy);
+  if (copy.lines && copy.lines.length === 0) delete copy.lines;
+  copy.lines?.forEach((table) => (table.fields = table.fields.map((column) => withoutEmptyFormula(column))));
+  copy.workflow?.transitions.forEach((transition) => {
+    if (!transition.condition?.trim()) delete transition.condition;
+  });
+  const six = floor === 6 || usesFormatSix(copy);
+  const five = six || floor === 5 || usesFormatFive(copy);
   const four = five || floor === 4 || usesFormatFour(copy);
   if (copy.entity.scope === 'all' && !kinds && !four && floor < 3) delete copy.entity.scope;
   if (copy.layout) copy.layout = placedLayout(copy.layout, copy.fields);
   // A draft of an earlier format is named by the system name until it says otherwise.
   if (four && copy.entity.titleField === undefined && declaration.formatVersion < 4)
     copy.entity.titleField = SYSTEM_TITLE;
-  if (!four || copy.entity.titleField === NUMBER_TITLE) delete copy.entity.titleField;
-  copy.formatVersion = five ? 5 : four ? 4 : kinds || copy.entity.scope !== undefined ? 3 : floor;
+  if (!four || copy.entity.titleField === NUMBER_TITLE || copy.entity.titleField === DOCUMENT_NUMBER_TITLE)
+    delete copy.entity.titleField;
+  copy.formatVersion = six ? 6 : five ? 5 : four ? 4 : kinds || copy.entity.scope !== undefined ? 3 : floor;
   return copy;
+}
+
+/** A column without a formula left empty in the editor. */
+function withoutEmptyFormula(column: SimpleLineField): SimpleLineField {
+  const next = { ...column };
+  if (!next.formula?.trim()) delete next.formula;
+  return next;
 }
 
 /** A field without the formulas left empty in the editor. */

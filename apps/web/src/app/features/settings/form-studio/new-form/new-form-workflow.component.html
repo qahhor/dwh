@@ -1,0 +1,210 @@
+<fieldset class="form-workflow" data-testid="form-workflow">
+  <legend>{{ 'studio.workflow.title' | t }}</legend>
+  <div
+    smt-checkbox
+    data-testid="workflow-on"
+    [checked]="!!workflow()"
+    [disabled]="disabled() || !!stored()"
+    (checkedChange)="toggle($event)"
+  >
+    {{ 'studio.workflow.enabled' | t }}
+  </div>
+  @if (workflow(); as current) {
+    <p class="workflow-note">{{ 'studio.workflow.hint' | t }}</p>
+    <h4>{{ 'studio.workflow.states' | t }}</h4>
+    @for (state of current.states; track $index; let stateIndex = $index) {
+      <fieldset class="workflow-item" [attr.data-testid]="'workflow-state-' + stateIndex">
+        <legend>
+          {{
+            (stateIndex === 0 ? 'studio.workflow.initial_state' : 'studio.workflow.state_number')
+              | t: { number: stateIndex + 1 }
+          }}
+        </legend>
+        <smt-control
+          [smtLabel]="'studio.workflow.code' | t"
+          [required]="true"
+          [smtHint]="(storedState(state) ? 'studio.workflow.state_locked' : 'studio.workflow.code_hint') | t"
+        >
+          <smt-input
+            [value]="state.code"
+            [maxLength]="20"
+            [disabled]="disabled() || storedState(state)"
+            [attr.data-testid]="'workflow-state-code-' + stateIndex"
+            (valueChange)="patchState(stateIndex, { code: text($event) })"
+          />
+        </smt-control>
+        <app-new-form-labels
+          [labels]="state.labels"
+          [disabled]="disabled()"
+          (changed)="setStateLabel(stateIndex, $event.language, $event.value)"
+        />
+        <smt-control [smtLabel]="'studio.workflow.color' | t">
+          <smt-select
+            [options]="colorOptions()"
+            [value]="state.color"
+            [allowClear]="false"
+            [disabled]="disabled()"
+            [attr.data-testid]="'workflow-state-color-' + stateIndex"
+            (valueChange)="setColor(stateIndex, $event)"
+          />
+        </smt-control>
+        <div class="workflow-flags">
+          @if (stateIndex > 0) {
+            <div
+              smt-checkbox
+              [checked]="!!state.terminal"
+              [disabled]="disabled()"
+              [attr.data-testid]="'workflow-state-terminal-' + stateIndex"
+              (checkedChange)="setStateFlag(stateIndex, 'terminal', $event)"
+            >
+              {{ 'studio.workflow.terminal' | t }}
+            </div>
+          }
+          <div
+            smt-checkbox
+            [checked]="!!state.lockAll"
+            [disabled]="disabled()"
+            [attr.data-testid]="'workflow-state-lock-' + stateIndex"
+            (checkedChange)="setStateFlag(stateIndex, 'lockAll', $event)"
+          >
+            {{ 'studio.workflow.lock_all' | t }}
+          </div>
+          @if (stateIndex > 0 && !storedState(state)) {
+            <button
+              smt-button
+              type="button"
+              smtVariant="ghost"
+              smtSize="sm"
+              smtIcon="delete"
+              [disabled]="disabled() || current.states.length <= 2"
+              [attr.aria-label]="'studio.workflow.remove_state' | t: { number: stateIndex + 1 }"
+              (click)="removeState(stateIndex)"
+            ></button>
+          }
+        </div>
+      </fieldset>
+    }
+    <div class="workflow-actions">
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        data-testid="workflow-add-state"
+        [disabled]="disabled() || current.states.length >= maxStates"
+        (click)="addState()"
+      >
+        {{ 'studio.workflow.add_state' | t }}
+      </button>
+    </div>
+    <h4>{{ 'studio.workflow.transitions' | t }}</h4>
+    <p class="workflow-note">{{ 'studio.workflow.rights_hint' | t }}</p>
+    @for (transition of current.transitions; track $index; let transitionIndex = $index) {
+      <fieldset class="workflow-item" [attr.data-testid]="'workflow-transition-' + transitionIndex">
+        <legend>{{ 'studio.workflow.transition_number' | t: { number: transitionIndex + 1 } }}</legend>
+        <smt-control
+          [smtLabel]="'studio.workflow.code' | t"
+          [required]="true"
+          [smtHint]="'studio.workflow.transition_code_hint' | t"
+        >
+          <smt-input
+            [value]="transition.code"
+            [maxLength]="20"
+            [disabled]="disabled()"
+            [attr.data-testid]="'workflow-transition-code-' + transitionIndex"
+            (valueChange)="patchTransition(transitionIndex, { code: text($event) })"
+          />
+        </smt-control>
+        <app-new-form-labels
+          [labels]="transition.labels"
+          [disabled]="disabled()"
+          (changed)="setTransitionLabel(transitionIndex, $event.language, $event.value)"
+        />
+        <smt-control [smtLabel]="'studio.workflow.from' | t" [required]="true">
+          <smt-multi-select
+            [options]="leavableOptions()"
+            [value]="transition.from"
+            [disabled]="disabled()"
+            [ariaLabel]="'studio.workflow.from' | t"
+            [attr.data-testid]="'workflow-transition-from-' + transitionIndex"
+            (valueChange)="setFrom(transitionIndex, $event)"
+          />
+        </smt-control>
+        <smt-control [smtLabel]="'studio.workflow.to' | t" [required]="true">
+          <smt-select
+            [options]="stateOptions()"
+            [value]="transition.to"
+            [allowClear]="false"
+            [disabled]="disabled()"
+            [attr.data-testid]="'workflow-transition-to-' + transitionIndex"
+            (valueChange)="setTo(transitionIndex, $event)"
+          />
+        </smt-control>
+        <smt-control [smtLabel]="'studio.workflow.comment' | t">
+          <smt-select
+            [options]="commentOptions()"
+            [value]="transition.comment"
+            [allowClear]="false"
+            [disabled]="disabled()"
+            [attr.data-testid]="'workflow-transition-comment-' + transitionIndex"
+            (valueChange)="setComment(transitionIndex, $event)"
+          />
+        </smt-control>
+        <app-formula-input
+          kind="condition"
+          [label]="'studio.workflow.condition' | t"
+          [hint]="'studio.workflow.condition_hint' | t"
+          [value]="transition.condition"
+          [fields]="fields()"
+          [document]="conditionDocument()"
+          [disabled]="disabled()"
+          [testId]="'workflow-transition-condition-' + transitionIndex"
+          (valueChange)="setCondition(transitionIndex, $event)"
+        />
+        <div class="workflow-flags">
+          <div
+            smt-checkbox
+            [checked]="!!transition.notAuthor"
+            [disabled]="disabled()"
+            [attr.data-testid]="'workflow-transition-not-author-' + transitionIndex"
+            (checkedChange)="setTransitionFlag(transitionIndex, 'notAuthor', $event)"
+          >
+            {{ 'studio.workflow.not_author' | t }}
+          </div>
+          <div
+            smt-checkbox
+            [checked]="!!transition.notify"
+            [disabled]="disabled()"
+            [attr.data-testid]="'workflow-transition-notify-' + transitionIndex"
+            (checkedChange)="setTransitionFlag(transitionIndex, 'notify', $event)"
+          >
+            {{ 'studio.workflow.notify' | t }}
+          </div>
+          <button
+            smt-button
+            type="button"
+            smtVariant="ghost"
+            smtSize="sm"
+            smtIcon="delete"
+            [disabled]="disabled() || current.transitions.length <= 1"
+            [attr.aria-label]="'studio.workflow.remove_transition' | t: { number: transitionIndex + 1 }"
+            (click)="removeTransition(transitionIndex)"
+          ></button>
+        </div>
+      </fieldset>
+    }
+    <div class="workflow-actions">
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        data-testid="workflow-add-transition"
+        [disabled]="disabled() || current.transitions.length >= maxTransitions"
+        (click)="addTransition()"
+      >
+        {{ 'studio.workflow.add_transition' | t }}
+      </button>
+    </div>
+  }
+</fieldset>

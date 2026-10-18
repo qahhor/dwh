@@ -26,7 +26,7 @@
       [attr.aria-label]="'settings.simple_form.move_down' | t: { number: index() + 1 }"
       (click)="moved.emit(1)"
     ></button>
-    @if (versioning() && locked()) {
+    @if (versioning() && locked() && !line()) {
       <button
         smt-button
         type="button"
@@ -49,7 +49,7 @@
         smtVariant="ghost"
         smtSize="sm"
         smtIcon="delete"
-        [disabled]="disabled()"
+        [disabled]="disabled() || (line() && locked())"
         [attr.aria-label]="'settings.simple_form.remove_field' | t: { number: index() + 1 }"
         (click)="removed.emit()"
       ></button>
@@ -202,7 +202,8 @@
       />
     </smt-control>
   }
-  @if (versioning() && field().formula !== undefined) {
+  @if (line()) {
+  } @else if (versioning() && field().formula !== undefined) {
     <p class="field-note">{{ 'studio.formula.computed_note' | t }}</p>
   } @else if (versioning() && field().type === 'select') {
     <smt-control
@@ -240,15 +241,42 @@
     >
       {{ 'settings.simple_form.required' | t }}
     </div>
-    <div smt-checkbox [checked]="field().listed" [disabled]="disabled()" (checkedChange)="patch({ listed: $event })">
-      {{ 'settings.simple_form.listed' | t }}
-    </div>
+    @if (!line()) {
+      <div smt-checkbox [checked]="field().listed" [disabled]="disabled()" (checkedChange)="patch({ listed: $event })">
+        {{ 'settings.simple_form.listed' | t }}
+      </div>
+    } @else if (['text', 'textarea', 'number', 'date', 'datetime', 'time', 'bool'].includes(field().type)) {
+      <div
+        smt-checkbox
+        [checked]="field().formula !== undefined"
+        [disabled]="disabled() || (locked() && stored()?.formula === undefined)"
+        [attr.data-testid]="'line-computed-' + index()"
+        (checkedChange)="setComputed($event)"
+      >
+        {{ 'studio.lines.computed' | t }}
+      </div>
+    }
   </div>
-  @if (live()) {
+  @if (line() && field().formula !== undefined) {
+    <app-formula-input
+      kind="formula"
+      [label]="'studio.formula.formula' | t"
+      [hint]="'studio.lines.formula_hint' | t"
+      [value]="field().formula"
+      [field]="field().id"
+      [fields]="fields()"
+      [document]="document()"
+      [disabled]="disabled()"
+      [testId]="'line-formula-' + index()"
+      (valueChange)="setFormula($event)"
+    />
+  }
+  @if (live() && !line()) {
     <app-new-form-field-logic
       [field]="field()"
       [index]="index()"
       [fields]="fields()"
+      [document]="document()"
       [disabled]="disabled()"
       [stored]="stored()"
       (changed)="changed.emit($event)"

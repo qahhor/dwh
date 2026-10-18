@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
+import type { FormulaDocument } from '../studio-formulas.api';
 import { FormulaInputComponent } from './formula-input.component';
 import {
   COMPUTED_TYPES,
@@ -47,6 +48,7 @@ import {
           [value]="field().formula"
           [field]="field().id"
           [fields]="fields()"
+          [document]="document()"
           [disabled]="disabled()"
           [testId]="'field-formula-' + index()"
           (valueChange)="set('formula', $event)"
@@ -60,6 +62,8 @@ import {
             [value]="field().defaultFormula"
             [field]="field().id"
             [fields]="fields()"
+            [document]="document()"
+            [document]="document()"
             [disabled]="disabled() || !!field().defaultValue"
             [testId]="'field-default-formula-' + index()"
             (valueChange)="set('defaultFormula', $event)"
@@ -72,6 +76,7 @@ import {
           [value]="field().visibleIf"
           [field]="field().id"
           [fields]="fields()"
+          [document]="document()"
           [disabled]="disabled()"
           [testId]="'field-visible-' + index()"
           (valueChange)="set('visibleIf', $event)"
@@ -84,6 +89,8 @@ import {
             [value]="field().requiredIf"
             [field]="field().id"
             [fields]="fields()"
+            [document]="document()"
+            [document]="document()"
             [disabled]="disabled()"
             [testId]="'field-required-' + index()"
             (valueChange)="set('requiredIf', $event)"
@@ -96,6 +103,7 @@ import {
           [value]="field().readonlyIf"
           [field]="field().id"
           [fields]="fields()"
+          [document]="document()"
           [disabled]="disabled()"
           [testId]="'field-readonly-' + index()"
           (valueChange)="set('readonlyIf', $event)"
@@ -115,6 +123,8 @@ export class NewFormFieldLogicComponent {
   readonly index = input.required<number>();
   /** Every field of the form: the formulas read the shown ones. */
   readonly fields = input<readonly SimpleField[]>([]);
+  /** What the formulas of a document's header read besides the fields: lines, number, status (ADR-0043). */
+  readonly document = input<FormulaDocument | null>(null);
   readonly disabled = input(false);
   /** The field as the active version stores it, or null for a field added in this version. */
   readonly stored = input<SimpleField | null>(null);

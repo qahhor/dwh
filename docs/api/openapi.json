@@ -18282,6 +18282,9 @@
           "code" : {
             "type" : "string"
           },
+          "color" : {
+            "type" : "string"
+          },
           "initial" : {
             "type" : "boolean"
           },
@@ -18488,6 +18491,9 @@
           "code" : {
             "type" : "string"
           },
+          "comment" : {
+            "type" : "string"
+          },
           "confirmKey" : {
             "type" : "string"
           },
@@ -18496,6 +18502,9 @@
             "items" : {
               "type" : "string"
             }
+          },
+          "labelKey" : {
+            "type" : "string"
           },
           "permission" : {
             "type" : "string"
@@ -21933,8 +21942,8 @@
           "formatVersion" : {
             "type" : "integer",
             "format" : "int32",
-            "description" : "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules",
-            "maximum" : 5,
+            "description" : "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules; 6 adds lines, the number and statuses",
+            "maximum" : 6,
             "minimum" : 1
           },
           "kind" : {
@@ -21944,6 +21953,15 @@
           "layout" : {
             "$ref" : "#/components/schemas/SimpleFormLayout",
             "description" : "Format 4: sections and tabs"
+          },
+          "lines" : {
+            "type" : "array",
+            "description" : "Format 6: the tables of the document's lines (ADR-0043)",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormLines"
+            },
+            "maxItems" : 3,
+            "minItems" : 1
           },
           "module" : {
             "$ref" : "#/components/schemas/SimpleFormModule"
@@ -21956,6 +21974,10 @@
             },
             "maxItems" : 20,
             "minItems" : 1
+          },
+          "workflow" : {
+            "$ref" : "#/components/schemas/SimpleFormWorkflow",
+            "description" : "Format 6: the statuses and transitions of the document (ADR-0043)"
           }
         },
         "required" : [ "entity", "fields", "formatVersion", "kind", "module" ]
@@ -22104,6 +22126,10 @@
             "type" : "string",
             "pattern" : "^[a-z][a-z0-9_]{0,19}$"
           },
+          "numbering" : {
+            "$ref" : "#/components/schemas/SimpleFormNumbering",
+            "description" : "Format 6: the number of a document (ADR-0043)"
+          },
           "scope" : {
             "type" : "string",
             "description" : "Format 3: which records a viewer sees (ADR-0041) - all, those of the viewer's org units (org_unit) or the viewer's own (owner); absent means all",
@@ -22248,6 +22274,85 @@
         },
         "required" : [ "sections" ]
       },
+      "SimpleFormLineField" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "formula" : {
+            "type" : "string",
+            "description" : "A computed column's formula over the row and the header's entered fields (doc.<field>)",
+            "maxLength" : 1000
+          },
+          "id" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9]{0,19}$"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "maxLength" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 4000,
+            "minimum" : 1
+          },
+          "options" : {
+            "type" : "array",
+            "description" : "The choices of a select column",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormOption"
+            },
+            "maxItems" : 50
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "scale" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 6,
+            "minimum" : 0
+          },
+          "target" : {
+            "$ref" : "#/components/schemas/SimpleFormTarget",
+            "description" : "What a ref column names"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "text", "textarea", "number", "date", "datetime", "time", "bool", "email", "phone", "url", "select", "ref", "user" ]
+          }
+        },
+        "required" : [ "id", "labels", "required", "type" ]
+      },
+      "SimpleFormLines" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "fields" : {
+            "type" : "array",
+            "description" : "The columns, in order",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormLineField"
+            },
+            "maxItems" : 20,
+            "minItems" : 1
+          },
+          "key" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9]{0,19}$"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "maxRows" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 500,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "fields", "key", "labels", "maxRows" ]
+      },
       "SimpleFormMenu" : {
         "type" : "object",
         "additionalProperties" : false,
@@ -22282,6 +22387,31 @@
           }
         },
         "required" : [ "code", "title" ]
+      },
+      "SimpleFormNumbering" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "assignOn" : {
+            "type" : "string",
+            "description" : "The code of the status whose first entry gives the number; absent: the creation"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels",
+            "description" : "The name of the number field; absent: the platform's own"
+          },
+          "pattern" : {
+            "type" : "string",
+            "example" : "ORD-{YYYY}-{NNNNNN}",
+            "maxLength" : 60,
+            "minLength" : 3
+          },
+          "reset" : {
+            "type" : "string",
+            "enum" : [ "never", "year", "month" ]
+          }
+        },
+        "required" : [ "pattern", "reset" ]
       },
       "SimpleFormOption" : {
         "type" : "object",
@@ -22369,6 +22499,40 @@
         },
         "required" : [ "fields", "key", "labels" ]
       },
+      "SimpleFormState" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_]{0,19}$"
+          },
+          "color" : {
+            "type" : "string",
+            "enum" : [ "gray", "blue", "green", "orange", "red", "purple" ]
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "lockAll" : {
+            "type" : "boolean",
+            "description" : "Every field and table of lines is read-only in it; present only when true"
+          },
+          "locks" : {
+            "type" : "array",
+            "description" : "The ids of the fields and the keys of the tables locked in it",
+            "items" : {
+              "type" : "string"
+            },
+            "maxItems" : 50
+          },
+          "terminal" : {
+            "type" : "boolean",
+            "description" : "No transition leaves it and the record is only read; present only when true"
+          }
+        },
+        "required" : [ "code", "color", "labels" ]
+      },
       "SimpleFormTab" : {
         "type" : "object",
         "additionalProperties" : false,
@@ -22398,6 +22562,78 @@
           }
         },
         "required" : [ "code", "kind" ]
+      },
+      "SimpleFormTransition" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_]{0,19}$"
+          },
+          "comment" : {
+            "type" : "string",
+            "enum" : [ "none", "optional", "required" ]
+          },
+          "condition" : {
+            "type" : "string",
+            "description" : "Allowed only while this yes/no formula is true",
+            "maxLength" : 1000
+          },
+          "from" : {
+            "type" : "array",
+            "description" : "The statuses it leaves",
+            "items" : {
+              "type" : "string"
+            },
+            "maxItems" : 20,
+            "minItems" : 1
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "notAuthor" : {
+            "type" : "boolean",
+            "description" : "The record's author may not take it; present only when true"
+          },
+          "notify" : {
+            "type" : "boolean",
+            "description" : "The people who may take a transition from the status it reaches get a notification; present only when true"
+          },
+          "to" : {
+            "type" : "string",
+            "description" : "The status it reaches"
+          }
+        },
+        "required" : [ "code", "comment", "from", "labels", "to" ]
+      },
+      "SimpleFormWorkflow" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels",
+            "description" : "The name of the status field; absent: the platform's own"
+          },
+          "states" : {
+            "type" : "array",
+            "description" : "The statuses, the first one where a record starts",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormState"
+            },
+            "maxItems" : 20,
+            "minItems" : 2
+          },
+          "transitions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormTransition"
+            },
+            "maxItems" : 30,
+            "minItems" : 1
+          }
+        },
+        "required" : [ "states", "transitions" ]
       },
       "SourceFreshness" : {
         "type" : "object",
@@ -22905,7 +23141,29 @@
           "kind" : {
             "type" : "string",
             "minLength" : 1,
-            "pattern" : "^(formula|defaultFormula|visibleIf|requiredIf|readonlyIf|rule)$"
+            "pattern" : "^(formula|defaultFormula|visibleIf|requiredIf|readonlyIf|rule|condition)$"
+          },
+          "line" : {
+            "type" : "string",
+            "description" : "The table of lines whose column the formula computes: it reads the row's columns and the header's entered fields as doc.<field>",
+            "pattern" : "^[a-z][a-z0-9]{0,19}$"
+          },
+          "lines" : {
+            "type" : "array",
+            "description" : "The tables of lines of a document (ADR-0043)",
+            "items" : {
+              "$ref" : "#/components/schemas/StudioFormulaLines"
+            },
+            "maxItems" : 3,
+            "minItems" : 0
+          },
+          "numbered" : {
+            "type" : "boolean",
+            "description" : "The document has its number (docNumber)"
+          },
+          "statuses" : {
+            "type" : "boolean",
+            "description" : "The document has its statuses (docStatus)"
           }
         },
         "required" : [ "fields", "formula", "kind" ]
@@ -22914,6 +23172,10 @@
         "type" : "object",
         "additionalProperties" : false,
         "properties" : {
+          "computed" : {
+            "type" : "boolean",
+            "description" : "The field is computed: a formula of a line does not read it (ADR-0043)"
+          },
           "id" : {
             "type" : "string",
             "minLength" : 1,
@@ -22932,6 +23194,26 @@
           }
         },
         "required" : [ "id", "type" ]
+      },
+      "StudioFormulaLines" : {
+        "type" : "object",
+        "additionalProperties" : false,
+        "properties" : {
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudioFormulaField"
+            },
+            "maxItems" : 20,
+            "minItems" : 0
+          },
+          "key" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "^[a-z][a-z0-9]{0,19}$"
+          }
+        },
+        "required" : [ "fields", "key" ]
       },
       "StudioListCreateRequest" : {
         "type" : "object",

@@ -7,6 +7,8 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
 import type { StudioLanguage } from '../form-studio.models';
 import type { StudioTarget } from '../studio-targets.store';
+import type { FormulaDocument } from '../studio-formulas.api';
+import { FormulaInputComponent } from './formula-input.component';
 import { NewFormFieldLogicComponent } from './new-form-field-logic.component';
 import { NewFormLabelsComponent } from './new-form-labels.component';
 import { LIVE_FIELD_TYPES, type SimpleField, type SimpleFieldOption, type SimpleFieldType } from './new-form.models';
@@ -38,7 +40,9 @@ const BASE_TYPES = (Object.keys(TYPE_KEYS) as SimpleFieldType[]).filter((type) =
  * decimals or another default, and becomes required only with a default (ADR-0041); the reason is shown
  * next to each locked control. A live form (`live`) also offers a select with fixed choices, a reference to
  * a reference list or another live form and a user; a stored select keeps every choice records may hold and
- * a stored reference keeps its target. A live form's field has its formulas and conditions (ADR-0042).
+ * a stored reference keeps its target. A live form's field has its formulas and conditions (ADR-0042). A column of a
+ * document's table of lines (`line`, ADR-0043) has no list flag, default or condition: it is entered or computed by a
+ * formula over its row and the header's entered fields.
  */
 @Component({
   selector: 'app-new-form-field',
@@ -50,6 +54,7 @@ const BASE_TYPES = (Object.keys(TYPE_KEYS) as SimpleFieldType[]).filter((type) =
     SMTControlComponent,
     SMTInputComponent,
     SMTSelectComponent,
+    FormulaInputComponent,
     NewFormFieldLogicComponent,
     NewFormLabelsComponent,
   ],
@@ -73,6 +78,10 @@ export class NewFormFieldComponent {
   readonly stored = input<SimpleField | null>(null);
   /** Every field of the form: the formulas of a live form read the shown ones (ADR-0042). */
   readonly fields = input<readonly SimpleField[]>([]);
+  /** A column of a table of lines (ADR-0043). */
+  readonly line = input(false);
+  /** What a column's formula reads: the document's tables, this table among them (ADR-0043). */
+  readonly document = input<FormulaDocument | null>(null);
   readonly changed = output<SimpleField>();
   readonly moved = output<number>();
   readonly removed = output<void>();
@@ -146,6 +155,18 @@ export class NewFormFieldComponent {
     if (text === '') delete next.defaultValue;
     else next.defaultValue = text;
     this.changed.emit(next);
+  }
+  /** A column becomes computed with an empty formula, or entered again (ADR-0043). */
+  setComputed(computed: boolean): void {
+    const next = { ...this.field() };
+    if (computed) {
+      next.formula = '';
+      next.required = false;
+    } else delete next.formula;
+    this.changed.emit(next);
+  }
+  setFormula(value: string | undefined): void {
+    this.patch({ formula: value ?? '' });
   }
   setHidden(hidden: boolean): void {
     const next = { ...this.field() };

@@ -5390,6 +5390,7 @@ export interface components {
         };
         FormStateMeta: {
             code?: string;
+            color?: string;
             initial?: boolean;
             labelKey?: string;
             locks?: string[];
@@ -5460,8 +5461,10 @@ export interface components {
         };
         FormTransitionMeta: {
             code?: string;
+            comment?: string;
             confirmKey?: string;
             from?: string[];
+            labelKey?: string;
             permission?: string;
             to?: string;
         };
@@ -6769,16 +6772,20 @@ export interface components {
             fields: components["schemas"]["SimpleFormField"][];
             /**
              * Format: int32
-             * @description 1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules
+             * @description 1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds select, ref and user fields and the data scope; 4 adds the layout and the title field; 5 adds formulas and rules; 6 adds lines, the number and statuses
              */
             formatVersion: number;
             /** @enum {string} */
             kind: "simple-form";
             /** @description Format 4: sections and tabs */
             layout?: components["schemas"]["SimpleFormLayout"];
+            /** @description Format 6: the tables of the document's lines (ADR-0043) */
+            lines?: components["schemas"]["SimpleFormLines"][];
             module: components["schemas"]["SimpleFormModule"];
             /** @description Format 5: the validation rules every save of a record must meet (ADR-0042) */
             rules?: components["schemas"]["SimpleFormRule"][];
+            /** @description Format 6: the statuses and transitions of the document (ADR-0043) */
+            workflow?: components["schemas"]["SimpleFormWorkflow"];
         };
         SimpleFormDeliveryPackage: {
             checksum: string;
@@ -6825,6 +6832,8 @@ export interface components {
         SimpleFormEntity: {
             menu?: components["schemas"]["SimpleFormMenu"];
             name: string;
+            /** @description Format 6: the number of a document (ADR-0043) */
+            numbering?: components["schemas"]["SimpleFormNumbering"];
             /**
              * @description Format 3: which records a viewer sees (ADR-0041) - all, those of the viewer's org units (org_unit) or the viewer's own (owner); absent means all
              * @enum {string}
@@ -6873,6 +6882,31 @@ export interface components {
             sections: components["schemas"]["SimpleFormSection"][];
             tabs?: components["schemas"]["SimpleFormTab"][];
         };
+        SimpleFormLineField: {
+            /** @description A computed column's formula over the row and the header's entered fields (doc.<field>) */
+            formula?: string;
+            id: string;
+            labels: components["schemas"]["SimpleFormLabels"];
+            /** Format: int32 */
+            maxLength?: number;
+            /** @description The choices of a select column */
+            options?: components["schemas"]["SimpleFormOption"][];
+            required: boolean;
+            /** Format: int32 */
+            scale?: number;
+            /** @description What a ref column names */
+            target?: components["schemas"]["SimpleFormTarget"];
+            /** @enum {string} */
+            type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user";
+        };
+        SimpleFormLines: {
+            /** @description The columns, in order */
+            fields: components["schemas"]["SimpleFormLineField"][];
+            key: string;
+            labels: components["schemas"]["SimpleFormLabels"];
+            /** Format: int32 */
+            maxRows: number;
+        };
         SimpleFormMenu: {
             /** @enum {string} */
             icon: "box" | "description" | "assignment" | "event" | "storefront" | "local_shipping" | "inventory_2" | "people" | "support_agent" | "receipt_long";
@@ -6884,6 +6918,16 @@ export interface components {
         SimpleFormModule: {
             code: string;
             title: components["schemas"]["SimpleFormLabels"];
+        };
+        SimpleFormNumbering: {
+            /** @description The code of the status whose first entry gives the number; absent: the creation */
+            assignOn?: string;
+            /** @description The name of the number field; absent: the platform's own */
+            labels?: components["schemas"]["SimpleFormLabels"];
+            /** @example ORD-{YYYY}-{NNNNNN} */
+            pattern: string;
+            /** @enum {string} */
+            reset: "never" | "year" | "month";
         };
         SimpleFormOption: {
             code: string;
@@ -6909,6 +6953,18 @@ export interface components {
             /** @description The key of the tab the section is on; present exactly when the form has tabs */
             tab?: string;
         };
+        SimpleFormState: {
+            code: string;
+            /** @enum {string} */
+            color: "gray" | "blue" | "green" | "orange" | "red" | "purple";
+            labels: components["schemas"]["SimpleFormLabels"];
+            /** @description Every field and table of lines is read-only in it; present only when true */
+            lockAll?: boolean;
+            /** @description The ids of the fields and the keys of the tables locked in it */
+            locks?: string[];
+            /** @description No transition leaves it and the record is only read; present only when true */
+            terminal?: boolean;
+        };
         SimpleFormTab: {
             key: string;
             labels: components["schemas"]["SimpleFormLabels"];
@@ -6917,6 +6973,29 @@ export interface components {
             code: string;
             /** @enum {string} */
             kind: "list" | "form";
+        };
+        SimpleFormTransition: {
+            code: string;
+            /** @enum {string} */
+            comment: "none" | "optional" | "required";
+            /** @description Allowed only while this yes/no formula is true */
+            condition?: string;
+            /** @description The statuses it leaves */
+            from: string[];
+            labels: components["schemas"]["SimpleFormLabels"];
+            /** @description The record's author may not take it; present only when true */
+            notAuthor?: boolean;
+            /** @description The people who may take a transition from the status it reaches get a notification; present only when true */
+            notify?: boolean;
+            /** @description The status it reaches */
+            to: string;
+        };
+        SimpleFormWorkflow: {
+            /** @description The name of the status field; absent: the platform's own */
+            labels?: components["schemas"]["SimpleFormLabels"];
+            /** @description The statuses, the first one where a record starts */
+            states: components["schemas"]["SimpleFormState"][];
+            transitions: components["schemas"]["SimpleFormTransition"][];
         };
         SourceFreshness: {
             code?: string;
@@ -7106,13 +7185,27 @@ export interface components {
             fields: components["schemas"]["StudioFormulaField"][];
             formula: string;
             kind: string;
+            /** @description The table of lines whose column the formula computes: it reads the row's columns and the header's entered fields as doc.<field> */
+            line?: string;
+            /** @description The tables of lines of a document (ADR-0043) */
+            lines?: components["schemas"]["StudioFormulaLines"][];
+            /** @description The document has its number (docNumber) */
+            numbered?: boolean;
+            /** @description The document has its statuses (docStatus) */
+            statuses?: boolean;
         };
         StudioFormulaField: {
+            /** @description The field is computed: a formula of a line does not read it (ADR-0043) */
+            computed?: boolean;
             id: string;
             /** @description What a ref field names: a list keeps a code, a form a row's key */
             target?: string;
             /** @enum {string} */
             type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user";
+        };
+        StudioFormulaLines: {
+            fields: components["schemas"]["StudioFormulaField"][];
+            key: string;
         };
         StudioListCreateRequest: {
             code: string;

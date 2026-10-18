@@ -2,11 +2,15 @@ import { evaluateFormula } from '../formula/formula-eval';
 import { formulaText } from '../formula/formula-values';
 import { Decimal } from '../formula/formula-decimal';
 import { FormulaFailure, type FormulaNode, type FormulaScope, type FormulaValue } from '../formula/formula.models';
-import type { FormFieldMeta, FormMeta, FormProblems, FormValues } from '../models/form-meta.models';
+import type { FormCollectionMeta, FormFieldMeta, FormMeta, FormProblems, FormValues } from '../models/form-meta.models';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
 const LOCAL_MOMENT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/;
+
+/** The prefix of a name that reads the rows of a collection, and of one a column's formula reads the header by. */
+const LINES = 'lines.';
+const DOC = 'doc.';
 
 /**
  * The form logic of a live form on the screen (ADR-0042): the checked formulas form-meta gives are evaluated with the
@@ -61,10 +65,17 @@ export function withDefaults(meta: Pick<FormMeta, 'fields'>, values: FormValues,
 }
 
 /**
- * The values with the computed fields evaluated as the server evaluates them: each after the computed fields it reads,
- * then again over the values the hidden fields leave. The same object when nothing changes.
+ * The values with the computed fields evaluated as the server evaluates them: the computed columns of a document's rows
+ * first, over each row and the header's entered fields (`doc.<key>`, ADR-0043), then the header's computed fields —
+ * each after the computed fields it reads — then again over the values the hidden fields leave. The same object when
+ * nothing changes.
  */
-export function withComputed(meta: Pick<FormMeta, 'fields'>, values: FormValues, scope = viewerScope()): FormValues {
+export function withComputed(
+  meta: Pick<FormMeta, 'fields'> & Partial<Pick<FormMeta, 'collections'>>,
+  values: FormValues,
+  scope = viewerScope(),
+): FormValues {
+  values = withComputedRows(meta.collections ?? [], values, scope);
   const computed = ordered(meta.fields.filter((field) => field.formula));
   if (computed.length === 0) return values;
   const record = compute(computed, { ...values }, scope);
@@ -107,6 +118,30 @@ function compute(fields: FormFieldMeta[], record: FormValues, scope: FormulaScop
   return record;
 }
 
+/** The rows of each collection with their computed columns evaluated; the same object when nothing changes. */
+function withComputedRows(collections: FormCollectionMeta[], values: FormValues, scope: FormulaScope): FormValues {
+  let result = values;
+  for (const collection of collections) {
+    const columns = ordered(collection.fields.filter((field) => field.formula));
+    const rows = values[collection.key];
+    if (columns.length === 0 || !Array.isArray(rows)) continue;
+    let changed = false;
+    const next = (rows as FormValues[]).map((row) => {
+      let current = row;
+      for (const column of columns) {
+        const value = evaluateWith(column.formula as FormulaNode, rowReader(current, values, column.formula), scope);
+        if (value === undefined) continue;
+        const kept = value === null ? null : shown(column, value);
+        if (!Object.is(current[column.key], kept)) current = { ...current, [column.key]: kept };
+      }
+      changed ||= current !== row;
+      return current;
+    });
+    if (changed) result = { ...result, [collection.key]: next };
+  }
+  return result;
+}
+
 /** The computed fields, each after the computed fields it reads; the form's order otherwise. */
 function ordered(fields: FormFieldMeta[]): FormFieldMeta[] {
   const keys = new Set(fields.map((field) => field.key));
@@ -136,12 +171,30 @@ function condition(node: FormulaNode, values: FormValues, scope: FormulaScope, f
 
 /** The value of a formula over the form's values; undefined when it cannot give one. */
 function evaluate(node: FormulaNode, values: FormValues, scope: FormulaScope): FormulaValue | undefined {
+  return evaluateWith(node, reader(values, node), scope);
+}
+
+function evaluateWith(
+  node: FormulaNode,
+  read: (key: string) => unknown,
+  scope: FormulaScope,
+): FormulaValue | undefined {
   try {
-    return evaluateFormula(node, reader(values, node), scope);
+    return evaluateFormula(node, read, scope);
   } catch (failure) {
     if (failure instanceof FormulaFailure) return undefined;
     throw failure;
   }
+}
+
+/** What a column's formula reads: its row by key and the header by `doc.<key>` (ADR-0043). */
+function rowReader(
+  row: FormValues,
+  values: FormValues,
+  node: FormulaNode | null | undefined,
+): (key: string) => unknown {
+  const header = reader(values, node as FormulaNode);
+  return (key) => (key.startsWith(DOC) ? header(key.slice(DOC.length)) : row[key]);
 }
 
 /**
@@ -151,6 +204,7 @@ function evaluate(node: FormulaNode, values: FormValues, scope: FormulaScope): F
 function reader(values: FormValues, node: FormulaNode): (key: string) => unknown {
   const moments = new Set(fieldsOfType(node, 'datetime'));
   return (key) => {
+    if (key.startsWith(LINES)) return rowsOf(values, key.slice(LINES.length));
     const raw = values[key];
     if (moments.has(key) && typeof raw === 'string' && LOCAL_MOMENT.test(raw)) {
       const moment = new Date(raw);
@@ -158,6 +212,14 @@ function reader(values: FormValues, node: FormulaNode): (key: string) => unknown
     }
     return raw;
   };
+}
+
+/** The rows of `lines.<collection>` or the values of a column `lines.<collection>.<field>`, in the rows' order. */
+function rowsOf(values: FormValues, name: string): unknown[] {
+  const dot = name.indexOf('.');
+  const raw = values[dot < 0 ? name : name.slice(0, dot)];
+  const rows = Array.isArray(raw) ? (raw as FormValues[]) : [];
+  return dot < 0 ? rows : rows.map((row) => row?.[name.slice(dot + 1)] ?? null);
 }
 
 function fieldsOfType(node: FormulaNode, type: string): string[] {

@@ -143,6 +143,8 @@ export interface FormStateMeta {
   /** No transition leaves it; the record is only read. */
   terminal: boolean;
   locks: string[];
+  /** A live form's color of the state's badge (ADR-0043). */
+  color?: 'gray' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | null;
 }
 
 /** A transition of the process: a record action from one of `from` to `to`, asked about first when it has a question. */
@@ -152,6 +154,10 @@ export interface FormTransitionMeta {
   to: string;
   permission: string;
   confirmKey?: string | null;
+  /** A live form's name of the transition (ADR-0043). */
+  labelKey?: string | null;
+  /** Whether the transition takes a comment: the server refuses a required one sent empty (ADR-0043). */
+  comment?: 'none' | 'optional' | 'required' | null;
 }
 
 /** The process of a document: its status field, states and transitions. */

@@ -148,3 +148,66 @@ describe('form logic on the screen (ADR-0042)', () => {
     expect(withComputed({ fields: [broken] }, { bad: '3' })['bad']).toBe('3');
   });
 });
+
+describe('the rows of a document (ADR-0043)', () => {
+  const amount = op(
+    '*',
+    'number',
+    ref('qty'),
+    op('-', 'number', num('1'), op('/', 'number', ref('doc.discount'), num('100'))),
+  );
+  const DOCUMENT: FormMeta = {
+    code: 'studio.orders',
+    fields: [
+      field('discount', { scale: 2 }),
+      field('total', {
+        scale: 2,
+        computed: true,
+        readonly: true,
+        formula: call('sum', 'number', ref('lines.items.amount', 'numbers')),
+      }),
+      field('lines', { formula: call('count', 'number', ref('lines.items', 'rows')), scale: 0 }),
+    ],
+    layout: [],
+    actions: [],
+    capabilities: [],
+    collections: [
+      {
+        key: 'items',
+        labelKey: 'items',
+        maxRows: 10,
+        fields: [
+          field('qty', { scale: 0 }),
+          field('amount', { scale: 2, computed: true, readonly: true, formula: amount }),
+        ],
+      },
+    ],
+    rules: [
+      {
+        key: 'some',
+        messageKey: 'rule.some',
+        formula: op('>', 'bool', call('count', 'number', ref('lines.items', 'rows')), num('0')),
+      },
+    ],
+  };
+
+  it('computes each row over the header, then the header over the rows', () => {
+    const values = withComputed(DOCUMENT, { discount: '10', items: [{ qty: 2 }, { qty: 3, amount: '999' }] });
+    expect(values['items']).toEqual([
+      { qty: 2, amount: '1.80' },
+      { qty: 3, amount: '2.70' },
+    ]);
+    expect(values['total']).toBe('4.50');
+    expect(values['lines']).toBe('2');
+    const same = withComputed(DOCUMENT, values);
+    expect(same['items']).toBe(values['items']);
+  });
+
+  it('reads no rows as zero and checks the rules over the rows', () => {
+    const empty = withComputed(DOCUMENT, { discount: null, items: [] });
+    expect(empty['total']).toBe('0.00');
+    expect(ruleProblems(DOCUMENT, empty, (key) => `t:${key}`)).toEqual({ '': 't:rule.some' });
+    expect(ruleProblems(DOCUMENT, withComputed(DOCUMENT, { items: [{ qty: 1 }] }), (key) => key)).toEqual({});
+    expect(withComputed(DOCUMENT, { discount: '5' })['total']).toBe('0.00');
+  });
+});

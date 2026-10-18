@@ -30,7 +30,9 @@ public record FormulaNode(
 
         @Schema(
                 requiredMode = Schema.RequiredMode.REQUIRED,
-                allowableValues = {"number", "text", "bool", "date", "datetime", "time", "option", "ref", "null"})
+                allowableValues = {
+                    "number", "text", "bool", "date", "datetime", "time", "option", "ref", "null", "numbers", "rows"
+                })
         String type,
 
         @JsonInclude(JsonInclude.Include.NON_NULL)

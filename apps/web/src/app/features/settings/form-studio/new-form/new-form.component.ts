@@ -30,13 +30,20 @@ import { NewFormFieldComponent } from './new-form-field.component';
 import { NewFormLabelsComponent } from './new-form-labels.component';
 import { NewFormRulesComponent } from './new-form-rules.component';
 import { NewFormLayoutComponent, type LayoutChange } from './new-form-layout.component';
+import { NewFormLinesComponent } from './new-form-lines.component';
+import { NewFormNumberingComponent } from './new-form-numbering.component';
+import { NewFormWorkflowComponent } from './new-form-workflow.component';
+import { documentContext } from './new-form-document';
 import { simpleFormPreview } from './new-form-preview';
 import {
   SIMPLE_FORM_MAX_BYTES,
   SIMPLE_FORM_SCOPE_KEYS,
   SIMPLE_FORM_SCOPES,
   type SimpleField,
+  type SimpleFormLines,
+  type SimpleFormNumbering,
   type SimpleFormRule,
+  type SimpleFormWorkflow,
 } from './new-form.models';
 import { StudioTargetsStore } from '../studio-targets.store';
 import { NewFormActivationStore } from './new-form-activation.store';
@@ -60,6 +67,9 @@ import { NewFormStore } from './new-form.store';
     NewFormLabelsComponent,
     NewFormLayoutComponent,
     NewFormRulesComponent,
+    NewFormLinesComponent,
+    NewFormNumberingComponent,
+    NewFormWorkflowComponent,
     NewFormAssistantComponent,
   ],
   providers: [NewFormStore, NewFormActivationStore, StudioTargetsStore],
@@ -91,6 +101,8 @@ export class NewFormComponent implements RecordNavigationPage {
       ? simpleFormPreview(value.declaration, language === 'uz' || language === 'en' ? language : 'ru')
       : null;
   });
+  /** What the formulas of the form read besides its fields: a document's lines, number and status (ADR-0043). */
+  readonly document = computed(() => documentContext(this.store.draft()));
   private readonly askDiscard = discardChangesQuestion();
   private importOperation = 0;
   private confirmation?: Subject<void>;
@@ -126,6 +138,33 @@ export class NewFormComponent implements RecordNavigationPage {
       else delete draft.rules;
     });
   }
+  /** The tables of lines of a document (ADR-0043); none leaves the declaration without them. */
+  applyLines(lines: SimpleFormLines[] | undefined): void {
+    this.store.edit((draft) => {
+      if (lines) draft.lines = lines;
+      else delete draft.lines;
+    });
+  }
+
+  /** The number of a document (ADR-0043). */
+  applyNumbering(numbering: SimpleFormNumbering | undefined): void {
+    this.store.edit((draft) => {
+      if (numbering) draft.entity.numbering = numbering;
+      else delete draft.entity.numbering;
+    });
+  }
+
+  /** The statuses of a document (ADR-0043); a number given by a status no longer there is given on create. */
+  applyWorkflow(workflow: SimpleFormWorkflow | undefined): void {
+    this.store.edit((draft) => {
+      if (workflow) draft.workflow = workflow;
+      else delete draft.workflow;
+      const assignOn = draft.entity.numbering?.assignOn;
+      if (assignOn && !workflow?.states.some((state) => state.code === assignOn))
+        delete draft.entity.numbering?.assignOn;
+    });
+  }
+
   changeIdentifier(target: 'module' | 'entity', value: unknown): void {
     this.store.edit((draft) => {
       if (target === 'module') draft.module.code = value === null ? '' : String(value);

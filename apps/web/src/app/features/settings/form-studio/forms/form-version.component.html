@@ -170,11 +170,39 @@
             [forms]="targets.forms()"
             [stored]="store.storedField(field.id)"
             [fields]="draft.fields"
+            [document]="document()"
             (changed)="editField(index, $event)"
             (moved)="moveField(index, $event)"
             (removed)="removeField(index)"
           />
         }
+        <app-new-form-lines
+          [lines]="draft.lines"
+          [fields]="draft.fields"
+          [lists]="targets.lists()"
+          [forms]="targets.forms()"
+          [versioning]="true"
+          [stored]="store.active()?.lines"
+          [numbered]="!!draft.entity.numbering"
+          [statuses]="!!draft.workflow"
+          [disabled]="store.busy()"
+          (changed)="applyLines($event)"
+        />
+        <app-new-form-numbering
+          [numbering]="draft.entity.numbering"
+          [states]="draft.workflow?.states ?? []"
+          [locked]="!!store.active()?.entity?.numbering"
+          [disabled]="store.busy()"
+          (changed)="applyNumbering($event)"
+        />
+        <app-new-form-workflow
+          [workflow]="draft.workflow"
+          [fields]="draft.fields"
+          [document]="document()"
+          [stored]="store.active()?.workflow"
+          [disabled]="store.busy()"
+          (changed)="applyWorkflow($event)"
+        />
         <app-new-form-layout
           [declaration]="draft"
           [disabled]="store.busy()"
@@ -184,6 +212,7 @@
         <app-new-form-rules
           [rules]="draft.rules"
           [fields]="draft.fields"
+          [document]="document()"
           [disabled]="store.busy()"
           (changed)="applyRules($event)"
         />

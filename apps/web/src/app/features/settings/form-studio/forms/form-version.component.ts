@@ -26,11 +26,22 @@ import type { StudioLanguage } from '../form-studio.models';
 import { NewFormFieldComponent } from '../new-form/new-form-field.component';
 import { NewFormLabelsComponent } from '../new-form/new-form-labels.component';
 import { NewFormRulesComponent } from '../new-form/new-form-rules.component';
+import { NewFormLinesComponent } from '../new-form/new-form-lines.component';
+import { NewFormNumberingComponent } from '../new-form/new-form-numbering.component';
+import { NewFormWorkflowComponent } from '../new-form/new-form-workflow.component';
+import { documentContext } from '../new-form/new-form-document';
 import { NewFormLayoutComponent, type LayoutChange } from '../new-form/new-form-layout.component';
 import { StudioTargetsStore } from '../studio-targets.store';
 import { SIMPLE_FORM_SCOPE_KEYS, SYSTEM_TITLE, titleOf } from '../new-form/new-form.models';
 import { simpleFormPreview } from '../new-form/new-form-preview';
-import type { SimpleField, SimpleFormMenu, SimpleFormRule } from '../new-form/new-form.models';
+import type {
+  SimpleField,
+  SimpleFormLines,
+  SimpleFormMenu,
+  SimpleFormNumbering,
+  SimpleFormRule,
+  SimpleFormWorkflow,
+} from '../new-form/new-form.models';
 import { MENU_ICONS, shownFields, VERSION_MAX_FIELDS, VERSION_MAX_SHOWN_FIELDS } from './form-version.rules';
 import { FormVersionStore } from './form-version.store';
 
@@ -58,6 +69,9 @@ const DEFAULT_MENU: SimpleFormMenu = { icon: 'box', section: 'workspace', order:
     NewFormLabelsComponent,
     NewFormLayoutComponent,
     NewFormRulesComponent,
+    NewFormLinesComponent,
+    NewFormNumberingComponent,
+    NewFormWorkflowComponent,
   ],
   providers: [FormVersionStore, StudioTargetsStore],
   templateUrl: './form-version.component.html',
@@ -104,6 +118,11 @@ export class FormVersionComponent implements OnInit, RecordNavigationPage {
     return draft ? simpleFormPreview(draft, language === 'uz' || language === 'en' ? language : 'ru') : null;
   });
 
+  /** What the formulas of the form read besides its fields: a document's lines, number and status (ADR-0043). */
+  readonly document = computed(() => {
+    const draft = this.store.draft();
+    return draft ? documentContext(draft) : null;
+  });
   private readonly askDiscard = discardChangesQuestion();
   private confirmation?: Subject<void>;
 
@@ -119,6 +138,30 @@ export class FormVersionComponent implements OnInit, RecordNavigationPage {
       draft.entity.titleField = change.titleField;
       if (change.layout) draft.layout = change.layout;
       else delete draft.layout;
+    });
+  }
+
+  /** The tables of lines of a document (ADR-0043): stored ones stay in their place. */
+  applyLines(lines: SimpleFormLines[] | undefined): void {
+    this.store.edit((draft) => {
+      if (lines) draft.lines = lines;
+      else delete draft.lines;
+    });
+  }
+
+  /** The number of a document (ADR-0043): a stored pattern and period stay. */
+  applyNumbering(numbering: SimpleFormNumbering | undefined): void {
+    this.store.edit((draft) => {
+      if (numbering) draft.entity.numbering = numbering;
+      else delete draft.entity.numbering;
+    });
+  }
+
+  /** The statuses of a document (ADR-0043): stored statuses stay. */
+  applyWorkflow(workflow: SimpleFormWorkflow | undefined): void {
+    this.store.edit((draft) => {
+      if (workflow) draft.workflow = workflow;
+      else delete draft.workflow;
     });
   }
 

@@ -5,6 +5,7 @@ import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
 import { STUDIO_LANGUAGES, type StudioLanguage } from '../form-studio.models';
+import type { FormulaDocument } from '../studio-formulas.api';
 import { FormulaInputComponent } from './formula-input.component';
 import { MAX_RULES, type SimpleField, type SimpleFormRule } from './new-form.models';
 
@@ -48,6 +49,7 @@ export const MAX_RULE_MESSAGE = 200;
             [hint]="'studio.rules.formula_hint' | t"
             [value]="rule.formula"
             [fields]="fields()"
+            [document]="document()"
             [disabled]="disabled()"
             [testId]="'rule-formula-' + ruleIndex"
             (valueChange)="patch(ruleIndex, { formula: $event ?? '' })"
@@ -115,6 +117,8 @@ export class NewFormRulesComponent {
   readonly rules = input<SimpleFormRule[] | undefined>(undefined);
   /** Every field of the form: a rule reads the shown ones and may be shown at one of them. */
   readonly fields = input<readonly SimpleField[]>([]);
+  /** What a rule of a document reads besides the fields: lines, number, status (ADR-0043). */
+  readonly document = input<FormulaDocument | null>(null);
   readonly disabled = input(false);
   readonly changed = output<SimpleFormRule[] | undefined>();
   readonly list = computed(() => this.rules() ?? []);
