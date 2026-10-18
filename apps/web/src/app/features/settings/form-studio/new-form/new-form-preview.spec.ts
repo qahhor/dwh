@@ -85,4 +85,23 @@ describe('simpleFormPreview of format 3', () => {
     expect(byKey['kind']).toMatchObject({ type: 'enum', options: [] });
     expect(byKey['owner']).toMatchObject({ type: 'ref', ref: { path: '/entities/md.users' } });
   });
+
+  it('shows a computed field read-only', () => {
+    const value = initialSimpleForm();
+    value.fields = [
+      {
+        id: 'total',
+        type: 'number',
+        labels: { ru: 'Сумма', uz: 'Summa', en: 'Total' },
+        required: false,
+        listed: true,
+        scale: 2,
+        formula: 'qty * 2',
+      },
+    ];
+    expect(simpleFormPreview(value, 'ru').fields.find((field) => field.key === 'total')).toMatchObject({
+      readonly: true,
+      computed: true,
+    });
+  });
 });

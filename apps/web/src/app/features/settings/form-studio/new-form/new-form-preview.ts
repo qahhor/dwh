@@ -49,6 +49,8 @@ export function simpleFormPreview(source: SimpleFormDeclaration, language: Studi
       labelKey: '',
       label: field.labels[language],
       required: field.required,
+      // A computed field is read-only on the record form (ADR-0042); the activated form shows its value live.
+      ...(field.formula !== undefined ? { readonly: true, computed: true } : {}),
       ...kind(field, language),
       ...(field.maxLength != null ? { maxLength: field.maxLength, ...(field.required ? { minLength: 1 } : {}) } : {}),
       ...(field.scale != null ? { scale: field.scale } : {}),
