@@ -284,6 +284,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `POST /api/v1/studio/formulas/check` takes the kind `condition` (a transition's condition)
+  and the document a formula reads: `lines`, `line`, `numbered`, `statuses`, and a field's
+  `computed` flag (ADR-0043). The pattern of `kind` is wider, which openapi-diff reports as a
+  break of the request; existing requests keep their meaning.
 - The aggregate XLSX export writes group labels (choices, reference list items, users,
   record titles) instead of codes and ids; a value without a label stays raw. The rows of
   every report carry `labels`, and report rows come in the requested order.
