@@ -50,7 +50,11 @@ class ErrorModelTest {
             "com.smartup24.cms.platform.api.entity.hook.EntityRefusal",
             "the refusal of a module's hook in the platform API; the runtime turns it into an ApiException (ADR-0033)",
             "com.smartup24.cms.instance.common.entity.runtime.EntityHookMisuse",
-            "a module's hook misused the values of a save: its defect, answered 500 and logged (ADR-0032, 6.17)");
+            "a module's hook misused the values of a save: its defect, answered 500 and logged (ADR-0032, 6.17)",
+            "com.smartup24.cms.instance.common.formula.FormulaException",
+            "a formula the checker refuses, caught where it is checked and answered as a field error of a 422 (ADR-0042)",
+            "com.smartup24.cms.instance.common.formula.FormulaFailure",
+            "a formula that cannot give a value, caught by the runtime and answered as a field error of a 422 (ADR-0042)");
 
     /**
      * Exceptions of modules not yet moved to the model. Empty since the fnd hierarchy joined it; kept so a temporary
