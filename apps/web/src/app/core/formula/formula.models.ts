@@ -1,5 +1,28 @@
 import type { Decimal } from './formula-decimal';
 
+/**
+ * The reasons the server gives a formula it refuses or cannot evaluate (ADR-0042); each has its text under
+ * `error.formula.<reason>`, which the editor and the record form show.
+ */
+export const FORMULA_REASONS = [
+  'syntax',
+  'unknown_field',
+  'unknown_function',
+  'arity',
+  'type',
+  'argument',
+  'limit',
+  'self',
+  'cycle',
+  'result',
+  'division_by_zero',
+  'number_too_large',
+  'text_too_long',
+  'invalid_date',
+  'invalid_argument',
+  'budget',
+] as const;
+
 /** The static types of the formula language (ADR-0042). */
 export type FormulaType = 'number' | 'text' | 'bool' | 'date' | 'datetime' | 'time' | 'option' | 'ref' | 'null';
 
