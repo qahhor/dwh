@@ -5,14 +5,21 @@ import { I18nService } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownViewComponent } from '../ui/ui-markdown-view.component';
 import { EntitiesApi } from './entities.api';
-import { fieldText } from './entity-values';
+import { fieldText, fileName } from './entity-values';
+import { fileId, fileList } from '@core/services/field-values';
 
 interface CardLine {
   key: string;
   label: string;
   text: string;
   markdown: boolean;
-  /** A file field's address, read through the record (ADR-0032 4.7); null for any other field. */
+  /** A file field's files with their addresses, read through the record (ADR-0032 4.7, ADR-0043); null otherwise. */
+  files: CardFile[] | null;
+}
+
+interface CardFile {
+  id: string;
+  name: string;
   href: string | null;
 }
 
@@ -35,10 +42,18 @@ interface CardLine {
             <dd>
               @if (line.markdown) {
                 <ui-markdown-view [content]="line.text" />
-              } @else if (line.href) {
-                <a class="entity-card-file" [href]="line.href" target="_blank" rel="noopener noreferrer">{{
-                  line.text
-                }}</a>
+              } @else if (line.files) {
+                <span class="entity-card-files">
+                  @for (file of line.files; track file.id) {
+                    @if (file.href) {
+                      <a class="entity-card-file" [href]="file.href" target="_blank" rel="noopener noreferrer">{{
+                        file.name
+                      }}</a>
+                    } @else {
+                      <span class="entity-card-file">{{ file.name }}</span>
+                    }
+                  }
+                </span>
               } @else {
                 {{ line.text }}
               }
@@ -72,6 +87,11 @@ interface CardLine {
         margin: 0;
         min-width: 0;
         overflow-wrap: anywhere;
+      }
+      .entity-card-files {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
       }
       .entity-card-file {
         color: var(--primary-text);
@@ -111,7 +131,7 @@ export class SMTEntityCardComponent {
           label: fieldLabel(field, translate),
           text: fieldText(field, value, translate, this.refLookups),
           markdown: field.type === 'markdown',
-          href: this.fileHref(field, value),
+          files: this.filesOf(field, value),
         },
       ];
     });
@@ -128,10 +148,17 @@ export class SMTEntityCardComponent {
       );
   });
 
-  private fileHref(field: FormFieldMeta, value: unknown): string | null {
+  /** The files of a file field, each opened through the record when it exists. */
+  private filesOf(field: FormFieldMeta, value: unknown): CardFile[] | null {
+    if (field.type !== 'file' && field.type !== 'image') return null;
     const recordId = this.recordId();
-    if ((field.type !== 'file' && field.type !== 'image') || recordId === null) return null;
-    const id = typeof value === 'object' && value !== null && 'id' in value ? (value as { id: unknown }).id : value;
-    return typeof id === 'string' && id !== '' ? this.entities.fileUrl(this.meta().code, recordId, id) : null;
+    return fileList(value).map((file) => {
+      const id = fileId(file) ?? '';
+      return {
+        id,
+        name: fileName(file),
+        href: recordId === null ? null : this.entities.fileUrl(this.meta().code, recordId, id),
+      };
+    });
   }
 }

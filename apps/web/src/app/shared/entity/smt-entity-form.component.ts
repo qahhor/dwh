@@ -25,7 +25,7 @@ import type {
 } from '@core/models/form-meta.models';
 import { fieldLabel, fieldReadonly, fieldVisible, formProblems, optionLabel } from '@core/services/form-meta.service';
 import { logicRequired, withComputed } from '@core/services/form-logic';
-import type { FileValue, MoneyValue } from '@core/services/field-values';
+import type { MoneyValue } from '@core/services/field-values';
 import { I18nService } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownEditorComponent } from '../ui/ui-markdown-editor.component';
@@ -42,7 +42,7 @@ import {
   type SMTDynamicFieldType,
 } from '../ui-kit/components/forms/dynamic-field';
 import type { SMTLookupKey, SMTLookupSource } from '../ui-kit/components/forms/data-select/lookup-source';
-import { SMTFileFieldComponent } from './smt-file-field.component';
+import { SMTFileFieldComponent, type FileFieldValue } from './smt-file-field.component';
 import { SMTMoneyFieldComponent } from './smt-money-field.component';
 import { EntityFormFeedback, entityProblemControlId, entityProblemLabel } from './entity-form-feedback';
 
@@ -329,8 +329,8 @@ export class SMTEntityFormComponent {
     return Array.isArray(value) ? (value as SMTLookupKey[]) : [];
   }
 
-  fileOf(key: string): FileValue | string | null {
-    return (this.value()[key] as FileValue | string | null | undefined) ?? null;
+  fileOf(key: string): FileFieldValue {
+    return (this.value()[key] as FileFieldValue | undefined) ?? null;
   }
 
   replacement(key: string): TemplateRef<SMTEntityFieldContext> | null {

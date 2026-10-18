@@ -54,6 +54,7 @@ export function simpleFormPreview(source: SimpleFormDeclaration, language: Studi
       ...kind(field, language),
       ...(field.maxLength != null ? { maxLength: field.maxLength, ...(field.required ? { minLength: 1 } : {}) } : {}),
       ...(field.scale != null ? { scale: field.scale } : {}),
+      ...fileRules(field),
     })),
   ];
   const systemKeys = system.map((field) => field.key);
@@ -113,4 +114,15 @@ function kind(
     default:
       return { type: field.type };
   }
+}
+
+/** A file field's rules as form-meta gives them (ADR-0043): several files up to a count, types and a largest size. */
+function fileRules(field: SimpleField): Pick<FormFieldMeta, 'maxItems' | 'contentTypes' | 'maxBytes'> {
+  const rules = field.type === 'file' ? field.files : undefined;
+  if (!rules) return {};
+  return {
+    ...(rules.multiple ? { maxItems: rules.maxFiles ?? 5 } : {}),
+    ...(rules.contentTypes?.length ? { contentTypes: rules.contentTypes } : {}),
+    ...(rules.maxSizeMb ? { maxBytes: rules.maxSizeMb * 1024 * 1024 } : {}),
+  };
 }

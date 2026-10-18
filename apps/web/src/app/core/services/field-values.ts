@@ -128,6 +128,29 @@ export function fileId(value: unknown): string | null {
   return null;
 }
 
+/** The files of a value in their order: none, one file, or each file of a field that holds several (ADR-0043). */
+export function fileList(value: unknown): (FileValue | string)[] {
+  const items = Array.isArray(value) ? value : [value];
+  return items.filter((item): item is FileValue | string => fileId(item) !== null);
+}
+
+/** The rules of a file field: one file id, or an array of distinct ids up to `maxItems` (ADR-0043). */
+const fileRules: FieldValueRules = {
+  empty: (value) => fileList(value).length === 0,
+  problem: (field, value) => {
+    if (field.maxItems == null) return Array.isArray(value) ? 'invalid' : null;
+    const ids = fileList(value).map((file) => fileId(file));
+    if (new Set(ids).size !== ids.length) return 'invalid';
+    return ids.length > field.maxItems ? 'too_many' : null;
+  },
+  payload: (field, value) => {
+    if (field.maxItems == null) return fileId(Array.isArray(value) ? value[0] : value);
+    const ids = fileList(value).map((file) => fileId(file));
+    return ids.length ? ids : null;
+  },
+  formValue: (_field, value) => value,
+};
+
 function money(value: unknown): MoneyValue | null {
   return value && typeof value === 'object' && 'currency' in value ? (value as MoneyValue) : null;
 }
@@ -226,7 +249,7 @@ export const FIELD_VALUE_RULES: Record<FormFieldType, FieldValueRules> = {
     payload: (_field, value) => keyList(value).map((key) => (Number.isSafeInteger(Number(key)) ? Number(key) : key)),
     formValue: (_field, value) => keyList(value),
   },
-  file: { ...plain, empty: (value) => fileId(value) === null, payload: (_field, value) => fileId(value) },
+  file: fileRules,
   image: { ...plain, empty: (value) => fileId(value) === null, payload: (_field, value) => fileId(value) },
   json: {
     ...plain,

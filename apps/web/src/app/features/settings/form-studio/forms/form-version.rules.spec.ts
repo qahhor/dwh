@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SimpleField, SimpleFormDeclaration } from '../new-form/new-form.models';
+import { withFormat, type SimpleField, type SimpleFormDeclaration } from '../new-form/new-form.models';
 import { incompatibleChanges, normalizedDeclaration, shownFields, versionDraft } from './form-version.rules';
 
 const labels = { ru: 'Поле', uz: 'Maydon', en: 'Field' };
@@ -141,5 +141,49 @@ describe('format 3 rules (ADR-0041)', () => {
       normalizedDeclaration({ ...form([text]), entity: { name: 'visits', title: labels, scope: 'owner' } })
         .formatVersion,
     ).toBe(3);
+  });
+});
+
+describe('format 7 rules (ADR-0043)', () => {
+  const act: SimpleField = { id: 'act', type: 'file', labels, required: false, listed: true };
+  const docs: SimpleField = { ...act, id: 'docs', files: { multiple: true, maxFiles: 5 } };
+  const stored = form([text, act, docs]);
+
+  it('adds a file field freely and lets its types, size and count grow', () => {
+    const grown = form([
+      text,
+      { ...act, files: { multiple: false, contentTypes: ['application/pdf'], maxSizeMb: 5 } },
+      { ...docs, files: { multiple: true, maxFiles: 8 } },
+      { ...act, id: 'photo', files: { multiple: true, maxFiles: 3 } },
+    ]);
+    expect(incompatibleChanges(stored, grown)).toEqual([]);
+  });
+
+  it('keeps one file or several and never fewer files, and no field becomes a file field', () => {
+    const changed = form([
+      { ...text, type: 'file', maxLength: undefined },
+      { ...act, files: { multiple: true, maxFiles: 2 } },
+      { ...docs, files: { multiple: true, maxFiles: 4 } },
+    ]);
+    expect(incompatibleChanges(stored, changed)).toEqual([
+      { field: 'title', change: 'type' },
+      { field: 'act', change: 'files_multiple' },
+      { field: 'docs', change: 'max_files' },
+    ]);
+  });
+
+  it('sends a form with a file field in format 7 with only the rules it says', () => {
+    const sent = withFormat(
+      form([
+        text,
+        { ...act, files: { multiple: false } },
+        { ...docs, files: { multiple: true, contentTypes: [' Application/PDF ', 'application/pdf', ''] } },
+        { ...text, id: 'note', files: { multiple: true } },
+      ]),
+    );
+    expect(sent.formatVersion).toBe(7);
+    expect(sent.fields[1].files).toBeUndefined();
+    expect(sent.fields[2].files).toEqual({ multiple: true, maxFiles: 5, contentTypes: ['application/pdf'] });
+    expect(sent.fields[3].files).toBeUndefined();
   });
 });

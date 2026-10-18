@@ -87,6 +87,7 @@
                       [image]="field.meta.type === 'image'"
                       [contentTypes]="field.meta.contentTypes ?? []"
                       [maxBytes]="field.meta.maxBytes ?? null"
+                      [maxFiles]="field.meta.type === 'file' ? (field.meta.maxItems ?? null) : null"
                       [required]="requiredNow(field.meta)"
                       [disabled]="locked(field.meta)"
                       [error]="problemOf(field.meta.key)"

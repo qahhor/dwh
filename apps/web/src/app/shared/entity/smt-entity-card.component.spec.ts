@@ -92,4 +92,27 @@ describe('SMTEntityCardComponent', () => {
 
     expect((fixture.nativeElement as HTMLElement).querySelector('dl')).toBeNull();
   });
+
+  it('lists the files of a field that holds several, each opened through the record', async () => {
+    const meta: FormMeta = {
+      code: 'studio.claims',
+      fields: [formField('docs', 'file', { maxItems: 3 })],
+      layout: [{ key: 'main', labelKey: 'entity.section.main', fields: ['docs'] }],
+      actions: [],
+      capabilities: [],
+    };
+    const { fixture, lines } = await render(meta, {
+      docs: [
+        { id: 'f-1', name: 'act.pdf' },
+        { id: 'f-2', name: 'photo.png' },
+      ],
+    });
+    fixture.componentRef.setInput('recordId', 9);
+    fixture.detectChanges();
+
+    const links = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a.entity-card-file'));
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['act.pdf', 'photo.png']);
+    expect(links[1].getAttribute('href')).toBe('/api/v1/entities/studio.claims/9/files/f-2');
+    expect(lines()[0]).toContain('act.pdf');
+  });
 });

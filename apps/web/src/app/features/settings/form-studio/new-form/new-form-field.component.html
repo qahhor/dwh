@@ -186,6 +186,15 @@
   @if (field().type === 'user') {
     <p class="field-note">{{ 'studio.field.user_hint' | t }}</p>
   }
+  @if (field().type === 'file') {
+    <app-new-form-files
+      [files]="field().files"
+      [index]="index()"
+      [disabled]="disabled()"
+      [stored]="stored() === null ? null : (stored()?.files ?? { multiple: false })"
+      (changed)="setFiles($event)"
+    />
+  }
   @if (field().type === 'number') {
     <smt-control
       [smtLabel]="'settings.simple_form.scale' | t"
@@ -218,7 +227,7 @@
         (valueChange)="setDefault($event)"
       />
     </smt-control>
-  } @else if (versioning() && field().type !== 'ref' && field().type !== 'user') {
+  } @else if (versioning() && field().type !== 'ref' && field().type !== 'user' && field().type !== 'file') {
     <smt-control
       [smtLabel]="'studio.version.default_value' | t"
       [smtHint]="(locked() ? 'studio.version.default_locked' : 'studio.version.default_hint') | t"

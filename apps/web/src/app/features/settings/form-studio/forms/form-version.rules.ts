@@ -24,7 +24,9 @@ export type VersionChangeCode =
   | 'numbering'
   | 'workflow_removed'
   | 'state_removed'
-  | 'initial';
+  | 'initial'
+  | 'files_multiple'
+  | 'max_files';
 
 export interface VersionChange {
   field: string;
@@ -55,7 +57,8 @@ export const MENU_ICONS = [
  * default never changes once the field exists. A select keeps every choice records may hold, a reference its
  * target and the form its data scope (format 3). A form keeps or goes without the system name and code for good;
  * its layout and its title field change freely (format 4). Formulas, conditions and rules change freely, but a field
- * whose records hold entered values never becomes computed (format 5, ADR-0042).
+ * whose records hold entered values never becomes computed (format 5, ADR-0042). A file field keeps one file or several
+ * and its count only grows (format 7, ADR-0043).
  */
 export function incompatibleChanges(active: SimpleFormDeclaration, draft: SimpleFormDeclaration): VersionChange[] {
   const next = new Map(draft.fields.map((field) => [field.id, field] as const));
@@ -88,6 +91,11 @@ export function incompatibleChanges(active: SimpleFormDeclaration, draft: Simple
     if (shorter(before.maxLength, after.maxLength)) changes.push({ field: before.id, change: 'max_length' });
     if (shorter(before.scale, after.scale)) changes.push({ field: before.id, change: 'scale' });
     if (!before.formula && after.formula) changes.push({ field: before.id, change: 'computed' });
+    // A file field keeps one file or several for good and never holds fewer files (ADR-0043).
+    if (!!before.files?.multiple !== !!after.files?.multiple)
+      changes.push({ field: before.id, change: 'files_multiple' });
+    else if (shorter(before.files?.maxFiles, after.files?.maxFiles))
+      changes.push({ field: before.id, change: 'max_files' });
   }
   for (const added of next.values()) {
     if (added.required && !added.defaultValue) changes.push({ field: added.id, change: 'required' });

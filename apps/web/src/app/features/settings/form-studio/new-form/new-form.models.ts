@@ -12,9 +12,22 @@ export type SimpleFieldType =
   | 'url'
   | 'select'
   | 'ref'
-  | 'user';
+  | 'user'
+  | 'file';
 /** The field types of format 3, served only by live forms (ADR-0041). */
 export const LIVE_FIELD_TYPES: readonly SimpleFieldType[] = ['select', 'ref', 'user'];
+/** The file field of format 7, served only by live forms; never a column of a table of lines (ADR-0043). */
+export const FILE_FIELD_TYPE: SimpleFieldType = 'file';
+/** Format 7: one file or several up to `maxFiles`, the content types it takes and its largest size (ADR-0043). */
+export interface SimpleFieldFiles {
+  multiple: boolean;
+  maxFiles?: number;
+  contentTypes?: string[];
+  maxSizeMb?: number;
+}
+/** Bounds of a file field the server keeps. */
+export const MAX_FIELD_FILES = 10;
+export const MAX_FILE_SIZE_MB = 50;
 /** Format 3: a fixed choice of a select; its code is what the records keep. */
 export interface SimpleFieldOption {
   code: string;
@@ -60,6 +73,8 @@ export interface SimpleField {
   requiredIf?: string;
   /** Format 5: a saved record's field cannot change while this yes/no formula is true. */
   readonlyIf?: string;
+  /** Format 7: the rules of a file field (ADR-0043). */
+  files?: SimpleFieldFiles;
 }
 
 /** The keys of a field's formulas (format 5, ADR-0042). */
@@ -193,7 +208,7 @@ export const MAX_TRANSITIONS = 30;
 export const DOCUMENT_NUMBER_TITLE = 'docNumber';
 
 export interface SimpleFormDeclaration {
-  formatVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  formatVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   kind: 'simple-form';
   module: { code: string; title: StudioLabels };
   entity: {
@@ -305,6 +320,10 @@ export function usesFormatFive(declaration: SimpleFormDeclaration): boolean {
 export function usesFormatSix(declaration: SimpleFormDeclaration): boolean {
   return !!declaration.lines?.length || !!declaration.workflow || !!declaration.entity.numbering;
 }
+/** Whether a declaration says something only format 7 can: a file field (ADR-0043). */
+export function usesFormatSeven(declaration: SimpleFormDeclaration): boolean {
+  return declaration.fields.some((field) => field.type === FILE_FIELD_TYPE);
+}
 /** Whether a declaration says something only format 3 can: a select, a reference, a user or a narrower scope. */
 export function usesFormatThree(declaration: SimpleFormDeclaration): boolean {
   return (
@@ -319,7 +338,7 @@ export function usesFormatThree(declaration: SimpleFormDeclaration): boolean {
  */
 export function withFormat(
   declaration: SimpleFormDeclaration,
-  floor: 1 | 2 | 3 | 4 | 5 | 6 = 1,
+  floor: 1 | 2 | 3 | 4 | 5 | 6 | 7 = 1,
 ): SimpleFormDeclaration {
   const copy = structuredClone(declaration);
   const kinds = copy.fields.some((field) => LIVE_FIELD_TYPES.includes(field.type));
@@ -330,7 +349,9 @@ export function withFormat(
   copy.workflow?.transitions.forEach((transition) => {
     if (!transition.condition?.trim()) delete transition.condition;
   });
-  const six = floor === 6 || usesFormatSix(copy);
+  copy.fields = copy.fields.map((field) => withFileRules(field));
+  const seven = floor === 7 || usesFormatSeven(copy);
+  const six = seven || floor === 6 || usesFormatSix(copy);
   const five = six || floor === 5 || usesFormatFive(copy);
   const four = five || floor === 4 || usesFormatFour(copy);
   if (copy.entity.scope === 'all' && !kinds && !four && floor < 3) delete copy.entity.scope;
@@ -341,8 +362,23 @@ export function withFormat(
     copy.entity.titleField = SYSTEM_TITLE;
   if (!four || copy.entity.titleField === NUMBER_TITLE || copy.entity.titleField === DOCUMENT_NUMBER_TITLE)
     delete copy.entity.titleField;
-  copy.formatVersion = six ? 6 : five ? 5 : four ? 4 : kinds || copy.entity.scope !== undefined ? 3 : floor;
+  copy.formatVersion = seven ? 7 : six ? 6 : five ? 5 : four ? 4 : kinds || copy.entity.scope !== undefined ? 3 : floor;
   return copy;
+}
+
+/** A file field's rules as the server takes them: none for one file of any type and size; others never have rules. */
+function withFileRules(field: SimpleField): SimpleField {
+  const next = { ...field };
+  const rules = next.files;
+  delete next.files;
+  if (next.type !== FILE_FIELD_TYPE || !rules) return next;
+  const kept: SimpleFieldFiles = { multiple: rules.multiple };
+  if (rules.multiple) kept.maxFiles = rules.maxFiles ?? 5;
+  const types = (rules.contentTypes ?? []).map((type) => type.trim().toLowerCase()).filter(Boolean);
+  if (types.length) kept.contentTypes = [...new Set(types)];
+  if (rules.maxSizeMb) kept.maxSizeMb = rules.maxSizeMb;
+  if (kept.multiple || kept.contentTypes || kept.maxSizeMb) next.files = kept;
+  return next;
 }
 
 /** A column without a formula left empty in the editor. */

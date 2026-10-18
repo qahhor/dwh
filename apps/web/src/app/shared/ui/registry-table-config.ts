@@ -153,7 +153,7 @@ function formatCell<T>(
       };
     case 'file':
     case 'image':
-      return shown((raw) => fileName(raw));
+      return shown((raw) => (Array.isArray(raw) ? raw.map(fileName).join(', ') : fileName(raw)));
     case 'json':
       return shown((raw) => (typeof raw === 'string' ? raw : JSON.stringify(raw)));
     default:

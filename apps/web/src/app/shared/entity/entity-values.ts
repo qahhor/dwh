@@ -32,7 +32,7 @@ export const FIELD_TEXT: Record<FormFieldType, Text> = {
     (Array.isArray(value) ? value : [value])
       .map((key) => (field.ref ? refs.name(field.ref, key) : null) ?? String(key))
       .join(', '),
-  file: (_field, value) => fileName(value),
+  file: (_field, value) => (Array.isArray(value) ? value.map(fileName).join(', ') : fileName(value)),
   image: (_field, value) => fileName(value),
   json: (_field, value) => (typeof value === 'string' ? value : JSON.stringify(value)),
 };

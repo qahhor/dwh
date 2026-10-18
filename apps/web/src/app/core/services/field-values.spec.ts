@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { FormMeta } from '../models/form-meta.models';
 import { formField } from '@testing/form-meta';
 import { translateTest } from '@testing/i18n-test.stub';
-import { conditionHolds, fieldReadonly, fieldVisible, FIELD_VALUE_RULES, keyList, normalPhone } from './field-values';
+import {
+  conditionHolds,
+  fieldReadonly,
+  fieldVisible,
+  FIELD_VALUE_RULES,
+  fileList,
+  keyList,
+  normalPhone,
+} from './field-values';
 import { formProblems, recordPayload, recordValues } from './form-meta.service';
 
 /** Plan 10/10, item 5.2 (ADR-0032 4.1–4.4): the value rules of the new types and the form flags on the web. */
@@ -176,5 +184,27 @@ describe('field values', () => {
         currency: 'JPY',
       }),
     ).toBe('invalid');
+  });
+});
+
+describe('file values (ADR-0043)', () => {
+  const single = formField('act', 'file');
+  const several = formField('docs', 'file', { maxItems: 2 });
+
+  it('holds one file id or distinct ids up to the limit', () => {
+    const rules = FIELD_VALUE_RULES.file;
+    expect(rules.empty([])).toBe(true);
+    expect(rules.empty(null)).toBe(true);
+    expect(rules.empty([{ id: 'a' }])).toBe(false);
+    expect(rules.problem(single, 'a')).toBeNull();
+    expect(rules.problem(single, ['a'])).toBe('invalid');
+    expect(rules.problem(several, ['a', { id: 'b' }])).toBeNull();
+    expect(rules.problem(several, ['a', 'a'])).toBe('invalid');
+    expect(rules.problem(several, ['a', 'b', 'c'])).toBe('too_many');
+    expect(rules.payload(single, { id: 'a', name: 'a.txt' })).toBe('a');
+    expect(rules.payload(single, [{ id: 'a' }])).toBe('a');
+    expect(rules.payload(several, [{ id: 'a' }, 'b'])).toEqual(['a', 'b']);
+    expect(rules.payload(several, [])).toBeNull();
+    expect(fileList([null, '', 'a', { id: 'b' }])).toEqual(['a', { id: 'b' }]);
   });
 });

@@ -1,11 +1,12 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { map, of, throwError, type Observable } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import type { FormMeta, FormValues } from '@core/models/form-meta.models';
 import { ApiService } from '@core/services/api.service';
 import { formField } from '@testing/form-meta';
 import { translateTest } from '@testing/i18n-test.stub';
+import { FileUploadApi } from '../ui/file-upload.api';
 import { SMTEntityFormComponent } from './smt-entity-form.component';
 
 const FILE_ID = '6f1c2a52-6b0e-4d3e-9a51-1f2d3c4b5a69';
@@ -49,9 +50,20 @@ describe('SMTEntityFormComponent with the types of item 5.2', () => {
     post = vi.fn(() => of({ id: FILE_ID, originalName: 'shelf.png', sizeBytes: 3, mimeType: 'image/png' })),
   ) {
     const api = { get: vi.fn(() => of({ items: [], nextCursor: null, hasMore: false })), post };
+    // The upload with its progress goes to the files module (ADR-0043); its answer is the stored file.
+    const uploads = {
+      upload: vi.fn((file: File) =>
+        (post as (...args: unknown[]) => Observable<unknown>)('/files/upload', file).pipe(
+          map((stored) => ({ kind: 'done' as const, file: stored as Record<string, unknown> })),
+        ),
+      ),
+    };
     await TestBed.configureTestingModule({
       imports: [HostComponent],
-      providers: [{ provide: ApiService, useValue: api }],
+      providers: [
+        { provide: ApiService, useValue: api },
+        { provide: FileUploadApi, useValue: uploads },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();
@@ -110,7 +122,7 @@ describe('SMTEntityFormComponent with the types of item 5.2', () => {
     input.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    expect(post).toHaveBeenCalledWith('/files/upload', expect.any(FormData), { notifyError: false });
+    expect(post).toHaveBeenCalledWith('/files/upload', expect.any(File));
     expect(host.values()['photo']).toEqual({ id: FILE_ID, name: 'shelf.png', size: 3, contentType: 'image/png' });
     expect(root.querySelector('[data-field="photo"] .file-name')?.textContent).toContain('shelf.png');
 

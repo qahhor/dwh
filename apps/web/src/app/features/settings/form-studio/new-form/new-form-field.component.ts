@@ -11,7 +11,15 @@ import type { FormulaDocument } from '../studio-formulas.api';
 import { FormulaInputComponent } from './formula-input.component';
 import { NewFormFieldLogicComponent } from './new-form-field-logic.component';
 import { NewFormLabelsComponent } from './new-form-labels.component';
-import { LIVE_FIELD_TYPES, type SimpleField, type SimpleFieldOption, type SimpleFieldType } from './new-form.models';
+import { NewFormFilesComponent } from './new-form-files.component';
+import {
+  FILE_FIELD_TYPE,
+  LIVE_FIELD_TYPES,
+  type SimpleField,
+  type SimpleFieldFiles,
+  type SimpleFieldOption,
+  type SimpleFieldType,
+} from './new-form.models';
 
 /** The choices of one select (server limit). */
 export const MAX_FIELD_OPTIONS = 50;
@@ -31,8 +39,11 @@ const TYPE_KEYS: Readonly<Record<SimpleFieldType, string>> = {
   select: 'settings.simple_form.types.select',
   ref: 'settings.simple_form.types.ref',
   user: 'settings.simple_form.types.user',
+  file: 'settings.simple_form.types.file',
 };
-const BASE_TYPES = (Object.keys(TYPE_KEYS) as SimpleFieldType[]).filter((type) => !LIVE_FIELD_TYPES.includes(type));
+const BASE_TYPES = (Object.keys(TYPE_KEYS) as SimpleFieldType[]).filter(
+  (type) => !LIVE_FIELD_TYPES.includes(type) && type !== FILE_FIELD_TYPE,
+);
 
 /**
  * One field of a simple form. In a new version (`versioning`) a field that the active version already has
@@ -56,6 +67,7 @@ const BASE_TYPES = (Object.keys(TYPE_KEYS) as SimpleFieldType[]).filter((type) =
     SMTSelectComponent,
     FormulaInputComponent,
     NewFormFieldLogicComponent,
+    NewFormFilesComponent,
     NewFormLabelsComponent,
   ],
   templateUrl: './new-form-field.component.html',
@@ -95,8 +107,10 @@ export class NewFormFieldComponent {
   });
   readonly options = computed(() => {
     this.i18n.currentLang();
-    const types =
-      this.live() || LIVE_FIELD_TYPES.includes(this.field().type) ? [...BASE_TYPES, ...LIVE_FIELD_TYPES] : BASE_TYPES;
+    const live = this.live() || LIVE_FIELD_TYPES.includes(this.field().type);
+    // A file field is a live form's (format 7); a row of a table of lines holds no files (ADR-0043).
+    const files = (this.live() && !this.line()) || this.field().type === FILE_FIELD_TYPE;
+    const types = [...BASE_TYPES, ...(live ? LIVE_FIELD_TYPES : []), ...(files ? [FILE_FIELD_TYPE] : [])];
     return types.map((id) => ({ id, label: this.i18n.translate(TYPE_KEYS[id]) }));
   });
   readonly targetKinds = computed(() => {
@@ -139,11 +153,15 @@ export class NewFormFieldComponent {
     delete next.defaultValue;
     delete next.options;
     delete next.target;
+    delete next.files;
     if (value === 'text' || value === 'textarea') next.maxLength = value === 'text' ? 255 : 1000;
     if (value === 'number') next.scale = 2;
     if (value === 'select') next.options = [{ code: 'option1', labels: { ru: '', uz: '', en: '' } }];
     if (value === 'ref') next.target = { kind: 'list', code: '' };
     this.changed.emit(next);
+  }
+  setFiles(files: SimpleFieldFiles): void {
+    this.patch({ files });
   }
   setLabel(language: StudioLanguage, value: string): void {
     this.patch({ labels: { ...this.field().labels, [language]: value } });
