@@ -150,6 +150,9 @@ Current ADRs that are not superseded:
   conditions and rules in a safe typed language, checked by the server and interpreted alike in the web.
 - [ADR-0043 — documents of live forms](adr/ADR-0043-live-form-documents.md) — tables of lines, the document number and
   statuses with approval, compiled into the platform's collections and processes without runtime DDL.
+- [ADR-0044 — report analytics](adr/ADR-0044-report-analytics.md) — a pivot with totals, period comparison, shares and
+  count distinct in one statement under the reader's scope; parameters of saved reports and administrators' datasets
+  over records or document lines.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

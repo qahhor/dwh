@@ -16,7 +16,7 @@ create table md_report_datasets (
     fields jsonb not null
         constraint md_report_datasets_ck_fields check (jsonb_typeof(fields) = 'array' and jsonb_array_length(fields) between 1 and 40),
     filter jsonb not null default '[]'::jsonb
-        constraint md_report_datasets_ck_filter check (jsonb_typeof(filter) = 'array' and octet_length(filter::text) <= 16384),
+        constraint md_report_datasets_ck_filter check (jsonb_typeof(filter) = 'array'),
     measures jsonb not null default '[]'::jsonb
         constraint md_report_datasets_ck_measures check (jsonb_typeof(measures) = 'array' and jsonb_array_length(measures) <= 8),
     revision bigint not null default 1

@@ -16,6 +16,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
@@ -27,7 +29,7 @@ import tools.jackson.databind.node.ObjectNode;
  * (a record, a user, an org unit) or yes/no.
  *
  * <pre>[{"key": "period", "field": "date", "required": true, "default": {"preset": "this_month"}},
- *  {"key": "region", "field": "region", "labels": {"ru": "Регион", "uz": "Hudud", "en": "Region"}}]</pre>
+ *  {"key": "region", "field": "region", "labels": {"ru": "Region", "uz": "Hudud", "en": "Region"}}]</pre>
  *
  * A value is a typed part of the filter DSL the list's own compiler checks and binds as SQL parameters; nothing a reader
  * sends becomes SQL text. A period counts in the reader's time zone: a date between its first and last day, a moment
@@ -55,6 +57,7 @@ public final class ReportParameters {
     private static final Set<String> LANGUAGES = Set.of("ru", "uz", "en");
     private static final int MAX_VALUES = QueryCompiler.MAX_IN_VALUES;
     private static final JsonMapper JSON = JsonMapper.shared();
+    private static final Logger log = LoggerFactory.getLogger(ReportParameters.class);
 
     private ReportParameters() {}
 
@@ -234,6 +237,7 @@ public final class ReportParameters {
         try {
             QueryCompiler.compile(list, conditions.toString(), null, null, null);
         } catch (ApiException failure) {
+            log.debug("Report parameter {} does not fit its field: {}", at, failure.getMessageKey());
             errors.add(invalid(at, "error.common.report_parameter_value"));
         }
         return conditions;

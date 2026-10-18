@@ -9,6 +9,38 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Report analytics (ADR-0044, stage 2, step 3 of the form and report builder), every figure an aggregate
+  of one statement under the reader's data scope and field rights: `count_distinct` of a field (exact
+  per group and per total); the share of a count or a sum in the total, the row or the column
+  (`{"op":"sum","field":"total","share":"total"}`, 2 decimals, empty over zero); totals of a flat report
+  (`totals=true`); a pivot of the two groupings (`pivot=true`) with totals of rows, columns and the whole
+  per currency, at most 50 columns and 10000 filled cells (refused with 422, never cut), rows in the
+  report's order and top; a comparison of the current month, quarter, year, year to date or a custom range
+  with the previous period or the same period a year earlier in the reader's `X-Time-Zone`
+  (`compare={...}`): each measure current, previous, change and change in percent (empty when the earlier
+  figure is 0). The answer carries `totals`, `pivot`, `comparison` and `share`/`period` of each measure.
+- Parameters of a saved report: up to 8 `parameters` (a period with a preset or fixed default, values of a
+  choice or a list, rows of a reference, a user or an org unit, yes/no; required or not) filled by the
+  reader — `GET /api/v1/entities/{code}/reports/{id}?parameters={...}` and the saved export — and bound to
+  the filter as typed values the list's compiler checks; 422 at `parameters.<key>` for a missing required
+  or an unknown value.
+- Administrators' report datasets (`/api/v1/report-datasets`, rights `md.report_datasets` `view`/`manage`
+  for administrative roles; V230 `md_report_datasets`, V231 rights): a source entity or live form,
+  optionally at the grain of one table of its document lines (fields `line<Key>`), up to 40 fields, a fixed
+  filter of the list's DSL and up to 8 measures computed by formulas over aggregates (`count`, `sum_<f>`,
+  `avg_<f>`, `min_<f>`, `max_<f>`, `distinct_<f>`). A report names one as `ds.<code>`; the catalog of a
+  report's sources gives its name and measures (`ReportDatasetItem.name`, `measures`). A dataset never
+  widens a reader's scope; changes take `If-Match` and are audited.
+- XLSX of a pivot: the matrix with the row and column names, the totals of rows and the "Итого" lines of
+  the columns and the whole; a flat report with totals ends with "Итого" lines; the metadata sheet names the
+  pivot, the totals, the shares and the compared periods.
+- Web: the report builder offers the count of different values and the share of each count or sum, a pivot
+  table (accessible matrix with scoped headers, a keyboard-scrollable region, links from a cell or a total to
+  its records when the list can say them exactly, cards on a narrow screen), totals, the comparison of
+  periods (a card with the change for a report without groupings) and the parameters of a saved report — the
+  author declares them, the reader fills them before the report runs; the settings page «Наборы данных
+  отчётов» keeps the administrators' datasets and the builder offers their computed measures.
+
 - File fields of live forms (ADR-0043, simple-form format 7): a field of type `file` holds one
   file or several up to `maxFiles` (2 to 10), with optional content types and a largest size
   (1 to 50 MB). Files go only through the files module (`POST /api/v1/files/upload`: content

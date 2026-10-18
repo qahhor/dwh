@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -46,6 +48,8 @@ public class QueryAggregateRepository {
 
     public static final String COLUMN = "column";
     public static final String GRAND = "grand";
+
+    private static final Logger log = LoggerFactory.getLogger(QueryAggregateRepository.class);
 
     /** A computed measure reads only numbers: neither the zone nor the time takes part. */
     private static final FormulaScope FORMULA_SCOPE = new FormulaScope(ZoneOffset.UTC, Instant.EPOCH);
@@ -173,6 +177,7 @@ public class QueryAggregateRepository {
             Object value = computation.formula().evaluate(values::get, FORMULA_SCOPE);
             return value instanceof BigDecimal number ? number : null;
         } catch (FormulaFailure empty) {
+            log.debug("Computed measure {} has no value here: {}", computation.key(), empty.getMessage());
             return null;
         }
     }

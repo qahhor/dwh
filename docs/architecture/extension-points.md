@@ -274,3 +274,5 @@ JSONB payload. Подписи живут в `studio.live.*`, права — в �
 ### Подготовленные отчётные проекции и LLM
 
 [ADR-0039](../adr/ADR-0039-report-datasets-and-assistant.md): EntityReportDataset и EntityReportDatasets расширяют существующий отчёт доверенной REF N:1 проекцией, сохраняя root entity и права обоих источников. Это внутренняя точка расширения встроенных модулей; она не объявлена стабильным внешним Platform API. LlmProvider — дополнительный экспериментальный SPI 2.0: генерация текста через явно выбранный провайдер, без хранения или исполнения. StudioAssistantService проверяет результат и текущий доступ. Пример и эксплуатация — [рецепт](../cookbook/report-datasets-and-assistant.md).
+
+[ADR-0044](../adr/ADR-0044-report-analytics.md): наборы данных администратора хранит модуль `md`; отчётный runtime читает их через внутренний интерфейс `EntityReportDatasetStore` (реализация — `MdReportDatasetStore`), источник строит `EntityReportAdminSources`. Это не точка расширения для модулей: набор задаётся на странице «Наборы данных отчётов», а не кодом.

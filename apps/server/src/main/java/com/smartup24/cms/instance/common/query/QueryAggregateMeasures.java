@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -27,6 +29,7 @@ import tools.jackson.databind.JsonNode;
  */
 final class QueryAggregateMeasures {
     private static final Set<String> KEYS = Set.of("op", "field", "share");
+    private static final Logger log = LoggerFactory.getLogger(QueryAggregateMeasures.class);
 
     private QueryAggregateMeasures() {}
 
@@ -98,16 +101,19 @@ final class QueryAggregateMeasures {
         }
         Optional<QueryField> found = QueryAggregates.viewerField(list, item, at, errors);
         if (found.isEmpty()) return Optional.empty();
-        boolean fits = op.get() == Op.COUNT_DISTINCT
-                ? QueryAggregates.countable(found.get())
-                : QueryAggregates.measurable(found.get());
-        if (!fits) {
+        if (op.get() == Op.COUNT_DISTINCT && !QueryAggregates.countable(found.get())) {
             errors.add(FieldErrorItem.keyed(
                     at + ".field",
                     REPORT_INVALID,
-                    op.get() == Op.COUNT_DISTINCT
-                            ? "error.common.field_report_distinct_invalid"
-                            : "error.common.field_report_measure_invalid",
+                    "error.common.field_report_distinct_invalid",
+                    Map.of("field", found.get().key())));
+            return Optional.empty();
+        }
+        if (op.get() != Op.COUNT_DISTINCT && !QueryAggregates.measurable(found.get())) {
+            errors.add(FieldErrorItem.keyed(
+                    at + ".field",
+                    REPORT_INVALID,
+                    "error.common.field_report_measure_invalid",
                     Map.of("field", found.get().key())));
             return Optional.empty();
         }
@@ -132,6 +138,7 @@ final class QueryAggregateMeasures {
         try {
             formula = declared.isEmpty() ? null : declared.get().compile(list.viewerFields());
         } catch (FormulaException unreadable) {
+            log.debug("Computed measure {} is unreadable for this reader: {}", key, unreadable.reason());
             formula = null;
         }
         if (formula == null) {
