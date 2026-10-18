@@ -9,6 +9,34 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Simple-form format 4 for live forms (ADR-0041, stage 1, branch 3): `entity.titleField`
+  names a record by a required, listed text field, keeps the system name and code
+  (`name`, as formats 1 to 3 do) or, when absent, names it by its number in the form;
+  `layout` puts each shown field on exactly one of 1 to 10 sections and each section on
+  one of 2 to 6 tabs (the card adds the history as the last tab). Layout and title field
+  change freely in a version; keeping or dropping the system name is refused
+  (`change_removed` / `change_required` on `name`). V224 makes `studio_records.name` and
+  `code` nullable and numbers every new record per form (`record_number`,
+  `studio_form_counters`, trigger). Golden samples of format 4 join formats 1 to 3.
+- `form-meta` answers `titleField`, the field that names a record (`EntityTitles`); a
+  reference to a live form names its rows by that form's title field.
+- A record of a live form scoped by org unit can be moved to another unit by a user with
+  the update right whose scope holds both the old and the new unit; the picker reads
+  `GET /api/v1/iam/org-units/scope` (the units of the signed-in user's data scope) and
+  the record audit names the move.
+- Reports order their groups (`sort`: by `group` values, `label` or `measure`, `asc`/`desc`)
+  and keep a top (`limit`, 1..1000) in the request, the saved state and the XLSX export;
+  every row names its group values (`labels`: choices and list items in the reader's
+  language, users and records by their names in the reader's scope).
+- `GET /api/v1/report-views` takes `q` (a part of the name), `owner` (`mine`/`shared`) and
+  `kind`, and each item says whether the reader owns it (`owned`).
+- Web: «Заголовок записи и раскладка» in the new-form and new-version editors; the entity
+  form draws section tabs (problem counts, a save opens the first tab with a problem);
+  the reports catalog `/reports` (search, list, owner; open, edit, share); the report
+  builder orders groups and keeps a top; a report row opens its records under the same
+  filter (drill-down). E2E: the reference report «по регионам»
+  (`e2e/tests/browser/instance/studio-regions-report.spec.ts`).
+
 - Reference lists an administrator keeps without a release (ADR-0041, stage 1, branch 2):
   `studio_lists` and `studio_list_items` (V222; permanent codes, never deleted, an item is
   deactivated), rights `studio.lists` `view`/`manage` for administrators (V223) and
@@ -195,6 +223,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a failed refresh does not present stale widgets as current data.
 
 ### Changed
+
+- The aggregate XLSX export writes group labels (choices, reference list items, users,
+  record titles) instead of codes and ids; a value without a label stays raw. The rows of
+  every report carry `labels`, and report rows come in the requested order.
+- Moving a record of an org-unit entity to another unit needs both the old and the new
+  unit in the mover's scope (422 `out_of_scope` on the unit field otherwise).
+- The org unit of a live-form record is no longer read-only.
 
 - A save whose reference names an entity that is no longer served (a quarantined or
   broken live form) answers 422 `error.field.ref_not_found` instead of 500.

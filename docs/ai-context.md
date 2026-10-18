@@ -173,10 +173,28 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   Testcontainers, профили `-P*-large`) идут по одной; агента останавливают, как
   только он отчитался. JVM самого Maven ограничена `.mvn/jvm.config` (`-Xmx2g`).
 
-## 7. Точка продолжения — 2026-10-17
+## 7. Точка продолжения — 2026-10-18
+
+**Конструктор, этап 1, ветка 3 — раскладка, заголовок записи и отчёты (2026-10-18, прямо в
+`main` поверх `eb06c03b`, не запушено — пушит координатор):** ADR-0041, «Этап 1, ветка 3»;
+этап 1 сделан, ждёт приёмки владельца. simple-form формат 4: `entity.titleField` (обязательное
+текстовое поле из списка, `name` — системные name/code форматов 1–3, нет — номер записи) и `layout`
+(1–10 разделов, 0 или 2–6 вкладок; компилятор: системные поля первыми, `orgUnit` последним, история —
+последней вкладкой). V224: `studio_records.name`/`code` nullable, `record_number` по форме
+(`studio_form_counters`, триггер). `form-meta.titleField` (`common.entity.EntityTitles`,
+`StudioTitles`); ссылки на живую форму называют строки её полем заголовка (`StudioSources`). Перенос
+записи между подразделениями: `orgUnit` редактируемый, `GET /api/v1/iam/org-units/scope`,
+`EntitySaveChecks.unit` требует прежнее и новое подразделение в области (для всех сущностей с областью
+по подразделению). Отчёты: `sort`/`limit` (`QueryAggregateOrders`, `QueryAggregate.Order`), подписи групп
+`labels` (`EntityReportLabels`, словарь — `common.entity.EntityTexts`/`MdEntityTexts`), XLSX пишет
+подписи; каталог `GET /api/v1/report-views?q&owner&kind` + `owned`. Веб: блок «Заголовок записи и
+раскладка» в редакторах, вкладки в форме записи (`entity-form-tabs.ts`), каталог `/reports`,
+порядок/top-N в конструкторе, переход к записям (`drillFilter`). E2E эталона:
+`e2e/tests/browser/instance/studio-regions-report.spec.ts`. Дальше — этап 2 (формулы, условия,
+нумерация, строки документа, статусы; pivot, параметры, рассылки).
 
 **Конструктор, этап 1, ветка 2 — справочники, ссылки и область данных (2026-10-17,
-`claude/stage1-references` от `739732c6`, не слита):** ADR-0041, решения владельца 1 и 4.
+`claude/stage1-references` от `739732c6`, слита в `main` — `eb06c03b`):** ADR-0041, решения владельца 1 и 4.
 V221 `studio_records.org_unit_id`, V222 `studio_lists`/`studio_list_items` (коды постоянны,
 значения отключают, не удаляют), V223 права `studio.lists` `view`/`manage`. API
 `/api/v1/studio/lists` (If-Match, аудит). Справочник — источник перечислений runtime
@@ -190,7 +208,7 @@ V221 `studio_records.org_unit_id`, V222 `studio_lists`/`studio_list_items` (ко
 (чтение XLSX — `e2e/support/xlsx-read.ts`). Дальше: раскладка, отказ от name/code, отчёты.
 
 **Конструктор, этап 1, ветка 1 — версии и архив живых форм (2026-10-17,
-`claude/stage1-form-versions` от `b3c8c5a2`, не слита):** ADR-0041 решения 1–4, 6, 7.
+`claude/stage1-form-versions` от `b3c8c5a2`, слита в `main` — `739732c6`):** ADR-0041 решения 1–4, 6, 7.
 V218 `studio_form_versions` (версии ≥ 2, неизменяемы; версия 1 — строка
 `studio_forms`), V219 `studio_form_state` (активная версия, `active`/`archived`,
 ревизия), V220 `studio_records.form_version` (ставит триггер БД). simple-form
