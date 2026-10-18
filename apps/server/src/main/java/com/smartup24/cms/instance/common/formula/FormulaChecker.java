@@ -1,7 +1,8 @@
 package com.smartup24.cms.instance.common.formula;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,19 +19,19 @@ final class FormulaChecker {
     private static final Set<String> ORDER = Set.of("<", "<=", ">", ">=");
 
     private final Map<String, FormulaType> fields;
-    private final Set<String> read = new LinkedHashSet<>();
+    private final Map<String, Integer> read = new LinkedHashMap<>();
 
     private FormulaChecker(Map<String, FormulaType> fields) {
         this.fields = fields;
     }
 
-    /** The checked root of {@code ast} and the keys of the fields it reads, in the order it reads them. */
-    record Checked(FormulaNode root, Set<String> fields) {}
+    /** The checked root of {@code ast} and the fields it reads, each with the position it is first read at. */
+    record Checked(FormulaNode root, Map<String, Integer> fields) {}
 
     static Checked check(FormulaAst ast, Map<String, FormulaType> fields) {
         FormulaChecker checker = new FormulaChecker(fields);
         FormulaNode root = checker.node(ast);
-        return new Checked(root, Set.copyOf(checker.read));
+        return new Checked(root, Collections.unmodifiableMap(new LinkedHashMap<>(checker.read)));
     }
 
     private FormulaNode node(FormulaAst ast) {
@@ -46,7 +47,7 @@ final class FormulaChecker {
     private FormulaNode field(FormulaAst.Name name) {
         FormulaType type = fields.get(name.name());
         if (type == null) throw new FormulaException("unknown_field", name.position(), name.name());
-        read.add(name.name());
+        read.putIfAbsent(name.name(), name.position());
         return FormulaNode.field(name.name(), type);
     }
 

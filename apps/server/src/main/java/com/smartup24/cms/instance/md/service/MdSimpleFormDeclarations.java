@@ -34,7 +34,8 @@ import tools.jackson.databind.ObjectReader;
  * Closed input; preparing a package never executes code or changes a registry (ADR-0037). Format 1 is the create-only
  * form every delivery takes; format 2 adds hidden fields, fixed defaults and a menu item for live forms (ADR-0041), which
  * the developer CLI refuses; format 3 adds select, reference and user fields and the data scope ({@link
- * MdSimpleFormKinds}); format 4 adds the title field and the layout ({@link MdSimpleFormLayouts}).
+ * MdSimpleFormKinds}); format 4 adds the title field and the layout ({@link MdSimpleFormLayouts}); format 5 adds the
+ * formulas of the fields and the validation rules ({@link MdSimpleFormLogic}, ADR-0042).
  */
 @Component
 public class MdSimpleFormDeclarations {
@@ -42,6 +43,8 @@ public class MdSimpleFormDeclarations {
     static final Set<String> ROOT = Set.of("formatVersion", "kind", "module", "entity", "fields");
     /** Format 4 adds the layout of the form (ADR-0041). */
     static final Set<String> ROOT_V4 = Set.of("formatVersion", "kind", "module", "entity", "fields", "layout");
+    /** Format 5 adds the validation rules of the form (ADR-0042). */
+    static final Set<String> ROOT_V5 = Set.of("formatVersion", "kind", "module", "entity", "fields", "layout", "rules");
 
     static final Set<String> FIELD = Set.of("id", "type", "labels", "required", "listed", "maxLength", "scale");
     /** Format 2 adds a hidden flag and a fixed default to a field and a menu item to the entity (ADR-0041). */
@@ -60,6 +63,24 @@ public class MdSimpleFormDeclarations {
             "defaultValue",
             "options",
             "target");
+    /** Format 5 adds the formulas of a field (ADR-0042). */
+    static final Set<String> FIELD_V5 = Set.of(
+            "id",
+            "type",
+            "labels",
+            "required",
+            "listed",
+            "maxLength",
+            "scale",
+            "hidden",
+            "defaultValue",
+            "options",
+            "target",
+            "formula",
+            "defaultFormula",
+            "visibleIf",
+            "requiredIf",
+            "readonlyIf");
     /** The menu icons and sections a live form may take. */
     public static final Set<String> MENU_ICONS = Set.of(
             "box",
@@ -94,8 +115,8 @@ public class MdSimpleFormDeclarations {
 
     public DeliveryPackage prepare(byte[] body) {
         JsonNode root = parse(body);
-        int format = integer(root, "formatVersion", "formatVersion", 1, 4);
-        known(root, format == 4 ? ROOT_V4 : ROOT, "declaration");
+        int format = integer(root, "formatVersion", "formatVersion", 1, 5);
+        known(root, format == 5 ? ROOT_V5 : format == 4 ? ROOT_V4 : ROOT, "declaration");
         if (!"simple-form".equals(text(root, "kind", "kind"))) throw invalid("kind", "unsupported");
         JsonNode module = required(root, "module", "module");
         known(module, Set.of("code", "title"), "module");
@@ -108,13 +129,16 @@ public class MdSimpleFormDeclarations {
         Menu menu = entity.has("menu") ? menu(entity.get("menu")) : null;
         String scope = entity.has("scope") ? MdSimpleFormKinds.scope(entity) : null;
         List<Field> fields = fields(required(root, "fields", "fields"), format);
+        var rules = MdSimpleFormLogic.rules(root, fields);
         var declaration = new Declaration(
                 format,
                 "simple-form",
                 new Module(moduleCode, labels(module, "title", "module.title")),
                 new Entity(name, title, menu, scope, MdSimpleFormLayouts.titleField(entity, fields)),
                 fields,
-                MdSimpleFormLayouts.layout(root, fields));
+                MdSimpleFormLayouts.layout(root, fields),
+                rules);
+        if (format == 5) MdSimpleFormLogic.check(fields, rules);
         return new DeliveryPackage(1, "simple-form-package", declaration, digest(declaration));
     }
 
@@ -124,6 +148,16 @@ public class MdSimpleFormDeclarations {
             case 2 -> Set.of("name", "title", "menu");
             case 3 -> Set.of("name", "title", "menu", "scope");
             default -> Set.of("name", "title", "menu", "scope", "titleField");
+        };
+    }
+
+    /** The keys a field of the format may have. */
+    private static Set<String> keys(int format) {
+        return switch (format) {
+            case 1 -> FIELD;
+            case 2 -> FIELD_V2;
+            case 3, 4 -> FIELD_V3;
+            default -> FIELD_V5;
         };
     }
 
@@ -144,7 +178,7 @@ public class MdSimpleFormDeclarations {
         for (int index = 0; index < fields.size(); index++) {
             String at = "fields[" + index + "]";
             JsonNode field = fields.get(index);
-            known(field, format == 1 ? FIELD : format == 2 ? FIELD_V2 : FIELD_V3, at);
+            known(field, keys(format), at);
             String id = identifier(field, "id", at + ".id", "[a-z][a-z0-9]{0,19}");
             if (identifiers.reservedField(id)) throw invalid(at + ".id", "identifier");
             if (!ids.add(id)) throw invalid(at + ".id", "duplicate");
@@ -171,7 +205,12 @@ public class MdSimpleFormDeclarations {
                     hidden ? Boolean.TRUE : null,
                     fallback,
                     parts.options(),
-                    parts.target()));
+                    parts.target(),
+                    MdSimpleFormLogic.formula(field, "formula", at + ".formula"),
+                    MdSimpleFormLogic.formula(field, "defaultFormula", at + ".defaultFormula"),
+                    MdSimpleFormLogic.formula(field, "visibleIf", at + ".visibleIf"),
+                    MdSimpleFormLogic.formula(field, "requiredIf", at + ".requiredIf"),
+                    MdSimpleFormLogic.formula(field, "readonlyIf", at + ".readonlyIf")));
         }
         if (result.stream().filter(field -> field.hidden() == null).count() > MAX_SHOWN_FIELDS)
             throw invalid("fields", "limit");
@@ -328,6 +367,8 @@ public class MdSimpleFormDeclarations {
             case "default" -> "error.md.simple_form_default";
             case "title" -> "error.md.simple_form_title";
             case "layout" -> "error.md.simple_form_layout";
+            case "formula" -> "error.md.simple_form_formula";
+            case "logic" -> "error.md.simple_form_logic";
             default -> "error.md.simple_form_json";
         };
         return ApiException.validation(

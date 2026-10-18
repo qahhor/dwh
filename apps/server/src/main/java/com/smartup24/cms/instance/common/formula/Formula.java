@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.common.formula;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -7,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A checked formula (ADR-0042): its text, its checked tree — which the server evaluates and form-meta gives the web —
- * its static type and the keys of the fields it reads. Formulas never become SQL or code: the tree holds only the
+ * its static type and the fields it reads, each with the position of the character it is first read at. Formulas never become SQL or code: the tree holds only the
  * fixed operators and functions of {@link FormulaFunctions} and the fields it was checked against.
  *
  * <p>The bounds: a text of at most {@link #MAX_LENGTH} characters, at most {@link #MAX_NODES} nodes nested at most
@@ -15,7 +17,7 @@ import org.jspecify.annotations.Nullable;
  * literal; values of at most {@link #MAX_TEXT} characters and numbers of {@link FormulaNumbers#MAX_INTEGER_DIGITS}
  * digits with {@link #MAX_SCALE} decimals; at most {@link #MAX_STEPS} evaluated nodes.
  */
-public record Formula(String source, FormulaNode root, FormulaType type, Set<String> fields) {
+public record Formula(String source, FormulaNode root, FormulaType type, Map<String, Integer> fields) {
     public static final int MAX_LENGTH = 1000;
     public static final int MAX_NODES = 200;
     public static final int MAX_DEPTH = 20;
@@ -26,7 +28,7 @@ public record Formula(String source, FormulaNode root, FormulaType type, Set<Str
     public static final int MAX_STEPS = 10_000;
 
     public Formula {
-        fields = Set.copyOf(fields);
+        fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
     }
 
     /**

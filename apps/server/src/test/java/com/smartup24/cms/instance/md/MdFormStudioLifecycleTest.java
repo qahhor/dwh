@@ -224,6 +224,7 @@ class MdFormStudioLifecycleTest {
                 meta.collections(),
                 meta.workflow(),
                 meta.tabs(),
+                null,
                 null);
         when(metadata.metadata(CODE)).thenReturn(changed);
         assertThatThrownBy(() -> service.verify(CODE, 1, json.writeValueAsBytes(original)))
@@ -245,6 +246,7 @@ class MdFormStudioLifecycleTest {
                 meta.collections(),
                 meta.workflow(),
                 meta.tabs(),
+                null,
                 null);
         when(metadata.metadata(CODE)).thenReturn(hidden);
         assertThatThrownBy(() -> service.get(CODE)).isInstanceOf(ApiException.class);

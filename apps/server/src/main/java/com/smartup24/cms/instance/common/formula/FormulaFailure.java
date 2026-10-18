@@ -21,8 +21,14 @@ public final class FormulaFailure extends RuntimeException {
         return reason;
     }
 
+    /** The catalog key of the failure's text. */
+    public String messageKey() {
+        return "error.formula." + reason;
+    }
+
     /** The failure as the field error of a 422, addressed to {@code at}. */
     public FieldErrorItem fieldError(String at) {
-        return FieldErrorItem.keyed(at, "formula_" + reason, "error.formula." + reason);
+        String key = messageKey();
+        return FieldErrorItem.keyed(at, "formula_" + reason, key);
     }
 }

@@ -1,0 +1,366 @@
+[
+  {
+    "checksum": "3feca12a9b17c598affc92c452ab8c6ed4c5b294ea53c2665f133f40b0ecf67b",
+    "declaration": {
+      "formatVersion": 5,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v5_orders",
+        "title": {
+          "ru": "Заказ (шапка)",
+          "uz": "Buyurtma (sarlavha)",
+          "en": "Order (header)"
+        },
+        "menu": {
+          "icon": "receipt_long",
+          "section": "workspace",
+          "order": 30
+        },
+        "scope": "all"
+      },
+      "fields": [
+        {
+          "id": "qty",
+          "type": "number",
+          "labels": {
+            "ru": "Количество",
+            "uz": "Miqdori",
+            "en": "Quantity"
+          },
+          "required": true,
+          "listed": true,
+          "scale": 0
+        },
+        {
+          "id": "price",
+          "type": "number",
+          "labels": {
+            "ru": "Цена",
+            "uz": "Narxi",
+            "en": "Price"
+          },
+          "required": true,
+          "listed": true,
+          "scale": 2
+        },
+        {
+          "id": "discount",
+          "type": "number",
+          "labels": {
+            "ru": "Скидка, %",
+            "uz": "Chegirma, %",
+            "en": "Discount, %"
+          },
+          "required": false,
+          "listed": true,
+          "scale": 2
+        },
+        {
+          "id": "total",
+          "type": "number",
+          "labels": {
+            "ru": "Сумма",
+            "uz": "Summa",
+            "en": "Total"
+          },
+          "required": false,
+          "listed": true,
+          "scale": 2,
+          "formula": "round(qty * price * (1 - coalesce(discount, 0) / 100), 2)"
+        },
+        {
+          "id": "orderdate",
+          "type": "date",
+          "labels": {
+            "ru": "Дата",
+            "uz": "Sana",
+            "en": "Date"
+          },
+          "required": true,
+          "listed": true,
+          "defaultFormula": "today()"
+        },
+        {
+          "id": "reason",
+          "type": "text",
+          "labels": {
+            "ru": "Причина скидки",
+            "uz": "Chegirma sababi",
+            "en": "Discount reason"
+          },
+          "required": false,
+          "listed": false,
+          "maxLength": 200,
+          "visibleIf": "discount > 10",
+          "requiredIf": "discount > 10"
+        },
+        {
+          "id": "status",
+          "type": "select",
+          "labels": {
+            "ru": "Статус",
+            "uz": "Holati",
+            "en": "Status"
+          },
+          "required": true,
+          "listed": true,
+          "options": [
+            {
+              "code": "new",
+              "labels": {
+                "ru": "Новый",
+                "uz": "Yangi",
+                "en": "New"
+              }
+            },
+            {
+              "code": "big",
+              "labels": {
+                "ru": "Крупный",
+                "uz": "Yirik",
+                "en": "Large"
+              }
+            }
+          ],
+          "defaultFormula": "if(qty >= 100, \"big\", \"new\")"
+        },
+        {
+          "id": "note",
+          "type": "textarea",
+          "labels": {
+            "ru": "Примечание",
+            "uz": "Izoh",
+            "en": "Note"
+          },
+          "required": false,
+          "listed": false,
+          "maxLength": 1000,
+          "readonlyIf": "status = \"big\""
+        },
+        {
+          "id": "legacy",
+          "type": "text",
+          "labels": {
+            "ru": "Старое поле",
+            "uz": "Eski maydon",
+            "en": "Old field"
+          },
+          "required": false,
+          "listed": false,
+          "maxLength": 50,
+          "hidden": true,
+          "formula": "unknown + 1"
+        }
+      ],
+      "layout": {
+        "sections": [
+          {
+            "key": "main",
+            "labels": {
+              "ru": "Основное",
+              "uz": "Asosiy",
+              "en": "Main"
+            },
+            "fields": [
+              "qty",
+              "price",
+              "discount",
+              "total",
+              "orderdate",
+              "status"
+            ]
+          },
+          {
+            "key": "more",
+            "labels": {
+              "ru": "Дополнительно",
+              "uz": "Qo'shimcha",
+              "en": "More"
+            },
+            "fields": [
+              "reason",
+              "note"
+            ]
+          }
+        ]
+      },
+      "rules": [
+        {
+          "key": "maxdiscount",
+          "formula": "coalesce(discount, 0) <= 30",
+          "message": {
+            "ru": "Скидка не больше 30%",
+            "uz": "Chegirma 30% dan oshmaydi",
+            "en": "The discount is at most 30%"
+          },
+          "field": "discount"
+        },
+        {
+          "key": "positive",
+          "formula": "qty > 0 and price >= 0",
+          "message": {
+            "ru": "Количество и цена должны быть положительными",
+            "uz": "Miqdor va narx musbat bo'lishi kerak",
+            "en": "The quantity and the price must be positive"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "checksum": "6e9a4dae969d362a7b437d37b7c6ce1fec11c95b6dc3d28e26b654acb2182277",
+    "declaration": {
+      "formatVersion": 5,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v5_mixed",
+        "title": {
+          "ru": "Смешанная логика",
+          "uz": "Aralash mantiq",
+          "en": "Mixed logic"
+        },
+        "scope": "owner",
+        "titleField": "title"
+      },
+      "fields": [
+        {
+          "id": "title",
+          "type": "text",
+          "labels": {
+            "ru": "Название",
+            "uz": "Nomi",
+            "en": "Title"
+          },
+          "required": true,
+          "listed": true,
+          "maxLength": 100
+        },
+        {
+          "id": "shout",
+          "type": "text",
+          "labels": {
+            "ru": "Крупно",
+            "uz": "Katta",
+            "en": "Loud"
+          },
+          "required": false,
+          "listed": true,
+          "maxLength": 100,
+          "formula": "upper(title)"
+        },
+        {
+          "id": "start",
+          "type": "date",
+          "labels": {
+            "ru": "Начало",
+            "uz": "Boshlanishi",
+            "en": "Start"
+          },
+          "required": false,
+          "listed": true
+        },
+        {
+          "id": "finish",
+          "type": "date",
+          "labels": {
+            "ru": "Конец",
+            "uz": "Tugashi",
+            "en": "Finish"
+          },
+          "required": false,
+          "listed": true,
+          "formula": "addDays(start, 7)"
+        },
+        {
+          "id": "late",
+          "type": "bool",
+          "labels": {
+            "ru": "Просрочено",
+            "uz": "Kechikkan",
+            "en": "Late"
+          },
+          "required": false,
+          "listed": true,
+          "formula": "finish < today()"
+        },
+        {
+          "id": "at",
+          "type": "datetime",
+          "labels": {
+            "ru": "Момент",
+            "uz": "Vaqt",
+            "en": "Moment"
+          },
+          "required": false,
+          "listed": false,
+          "defaultFormula": "now()"
+        },
+        {
+          "id": "slot",
+          "type": "time",
+          "labels": {
+            "ru": "Время",
+            "uz": "Vaqt oralig'i",
+            "en": "Slot"
+          },
+          "required": false,
+          "listed": false
+        },
+        {
+          "id": "hours",
+          "type": "number",
+          "labels": {
+            "ru": "Часы",
+            "uz": "Soatlar",
+            "en": "Hours"
+          },
+          "required": false,
+          "listed": false,
+          "scale": 0,
+          "formula": "coalesce(hour(slot), 0) + daysBetween(start, finish) * 24"
+        },
+        {
+          "id": "owner2",
+          "type": "user",
+          "labels": {
+            "ru": "Ответственный",
+            "uz": "Mas'ul",
+            "en": "Responsible"
+          },
+          "required": false,
+          "listed": false,
+          "readonlyIf": "not isEmpty(owner2)"
+        },
+        {
+          "id": "mail",
+          "type": "email",
+          "labels": {
+            "ru": "Почта",
+            "uz": "Pochta",
+            "en": "Mail"
+          },
+          "required": false,
+          "listed": false,
+          "defaultFormula": "lower(\"A@B.UZ\")",
+          "visibleIf": "late"
+        }
+      ]
+    }
+  }
+]
