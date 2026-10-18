@@ -6,6 +6,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { problemText } from '@shared/ui/problem-text';
 import { studioProblemIssues } from '../form-studio-errors';
 import {
+  editorDeclaration,
   initialSimpleForm,
   LIVE_FIELD_TYPES,
   SIMPLE_FORM_MAX_BYTES,
@@ -137,10 +138,10 @@ export class NewFormStore {
           if (imported) {
             this.delivery.set('cli');
             this.cliModule = null;
-            this.draft.set(copy as SimpleFormDeclaration);
+            this.draft.set(editorDeclaration(copy as SimpleFormDeclaration));
           } else {
             const prepared = copy as SimpleFormPackage;
-            this.draft.set(prepared.declaration);
+            this.draft.set(editorDeclaration(prepared.declaration));
             this.prepared.set(prepared);
           }
         },
@@ -165,11 +166,13 @@ export class NewFormStore {
 }
 
 /**
- * A declaration the developer CLI delivers: format 1 knows no data scope and no select, reference or user field
- * (ADR-0041), so they become plain text fields of the same key and labels.
+ * A declaration the developer CLI delivers: format 1 knows no data scope, layout or title field and no select,
+ * reference or user field (ADR-0041), so they become plain text fields of the same key and labels in one section.
  */
 function toDeliverable(draft: SimpleFormDeclaration): void {
   delete draft.entity.scope;
+  delete draft.entity.titleField;
+  delete draft.layout;
   draft.formatVersion = 1;
   draft.fields = draft.fields.map((field) => {
     if (!LIVE_FIELD_TYPES.includes(field.type)) return field;

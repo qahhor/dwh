@@ -38,3 +38,12 @@
     grid-column: 1 / -1;
   }
 }
+.entity-section[hidden] {
+  display: none;
+}
+.entity-form-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}

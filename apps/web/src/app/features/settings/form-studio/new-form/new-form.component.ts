@@ -28,6 +28,7 @@ import { downloadStudioJson } from '../form-studio-files';
 import type { StudioLanguage } from '../form-studio.models';
 import { NewFormFieldComponent } from './new-form-field.component';
 import { NewFormLabelsComponent } from './new-form-labels.component';
+import { NewFormLayoutComponent, type LayoutChange } from './new-form-layout.component';
 import { simpleFormPreview } from './new-form-preview';
 import { SIMPLE_FORM_MAX_BYTES, SIMPLE_FORM_SCOPE_KEYS, SIMPLE_FORM_SCOPES, type SimpleField } from './new-form.models';
 import { StudioTargetsStore } from '../studio-targets.store';
@@ -50,6 +51,7 @@ import { NewFormStore } from './new-form.store';
     UiPageHeaderComponent,
     NewFormFieldComponent,
     NewFormLabelsComponent,
+    NewFormLayoutComponent,
     NewFormAssistantComponent,
   ],
   providers: [NewFormStore, NewFormActivationStore, StudioTargetsStore],
@@ -98,6 +100,14 @@ export class NewFormComponent implements RecordNavigationPage {
     if (value !== 'all' && value !== 'org_unit' && value !== 'owner') return;
     this.store.edit((draft) => {
       draft.entity.scope = value;
+    });
+  }
+  /** The record title and the sections and tabs of a live form (ADR-0041, format 4). */
+  applyLayout(change: LayoutChange): void {
+    this.store.edit((draft) => {
+      draft.entity.titleField = change.titleField;
+      if (change.layout) draft.layout = change.layout;
+      else delete draft.layout;
     });
   }
   changeIdentifier(target: 'module' | 'entity', value: unknown): void {

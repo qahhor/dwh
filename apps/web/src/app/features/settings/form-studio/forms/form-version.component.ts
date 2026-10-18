@@ -25,8 +25,9 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import type { StudioLanguage } from '../form-studio.models';
 import { NewFormFieldComponent } from '../new-form/new-form-field.component';
 import { NewFormLabelsComponent } from '../new-form/new-form-labels.component';
+import { NewFormLayoutComponent, type LayoutChange } from '../new-form/new-form-layout.component';
 import { StudioTargetsStore } from '../studio-targets.store';
-import { SIMPLE_FORM_SCOPE_KEYS } from '../new-form/new-form.models';
+import { SIMPLE_FORM_SCOPE_KEYS, SYSTEM_TITLE, titleOf } from '../new-form/new-form.models';
 import { simpleFormPreview } from '../new-form/new-form-preview';
 import type { SimpleField, SimpleFormMenu } from '../new-form/new-form.models';
 import { MENU_ICONS, shownFields, VERSION_MAX_FIELDS, VERSION_MAX_SHOWN_FIELDS } from './form-version.rules';
@@ -54,6 +55,7 @@ const DEFAULT_MENU: SimpleFormMenu = { icon: 'box', section: 'workspace', order:
     UiPageHeaderComponent,
     NewFormFieldComponent,
     NewFormLabelsComponent,
+    NewFormLayoutComponent,
   ],
   providers: [FormVersionStore, StudioTargetsStore],
   templateUrl: './form-version.component.html',
@@ -70,6 +72,11 @@ export class FormVersionComponent implements OnInit, RecordNavigationPage {
   readonly values = signal<FormValues>({});
 
   readonly menu = computed(() => this.store.draft()?.entity.menu ?? DEFAULT_MENU);
+  /** Whether the active version is named by the system name and code, which a version keeps or goes without for good. */
+  readonly named = computed(() => {
+    const active = this.store.active();
+    return active ? titleOf(active) === SYSTEM_TITLE : null;
+  });
   /** The data scope chosen when the form was created; a version keeps it (ADR-0041). */
   readonly scopeKey = computed(() => SIMPLE_FORM_SCOPE_KEYS[this.store.draft()?.entity.scope ?? 'all']);
   readonly iconOptions = computed(() => {
@@ -102,6 +109,15 @@ export class FormVersionComponent implements OnInit, RecordNavigationPage {
     this.code.set(this.route.snapshot.paramMap.get('code') ?? '');
     this.store.load(this.code());
     this.targets.load();
+  }
+
+  /** The record title and the sections and tabs (ADR-0041, format 4): compatible changes of a version. */
+  applyLayout(change: LayoutChange): void {
+    this.store.edit((draft) => {
+      draft.entity.titleField = change.titleField;
+      if (change.layout) draft.layout = change.layout;
+      else delete draft.layout;
+    });
   }
 
   setTitle(language: StudioLanguage, value: string): void {

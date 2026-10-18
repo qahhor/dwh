@@ -1,0 +1,55 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.layout-group {
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+}
+.layout-group legend,
+.layout-item legend {
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+}
+.layout-list {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.layout-item {
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+}
+.layout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.layout-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.layout-placement {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.layout-placement h4 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 14px;
+}

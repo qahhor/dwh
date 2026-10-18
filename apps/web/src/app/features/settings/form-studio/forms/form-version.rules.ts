@@ -1,4 +1,11 @@
-import { withFormat, type SimpleField, type SimpleFormDeclaration } from '../new-form/new-form.models';
+import {
+  editorDeclaration,
+  SYSTEM_TITLE,
+  titleOf,
+  withFormat,
+  type SimpleField,
+  type SimpleFormDeclaration,
+} from '../new-form/new-form.models';
 
 /** A change the server refuses for a new version (ADR-0041, decision 2), named as the server names it. */
 export type VersionChangeCode =
@@ -31,13 +38,17 @@ export const MENU_ICONS = [
  * as `StudioChangeRules` on the server: a key and its type stay for good, a field may only be hidden, a
  * required field needs a default, a text may only grow longer and a number only take more decimals, and a
  * default never changes once the field exists. A select keeps every choice records may hold, a reference its
- * target and the form its data scope (format 3).
+ * target and the form its data scope (format 3). A form keeps or goes without the system name and code for good;
+ * its layout and its title field change freely (format 4).
  */
 export function incompatibleChanges(active: SimpleFormDeclaration, draft: SimpleFormDeclaration): VersionChange[] {
   const next = new Map(draft.fields.map((field) => [field.id, field] as const));
   const changes: VersionChange[] = [];
   if ((active.entity.scope ?? 'all') !== (draft.entity.scope ?? 'all'))
     changes.push({ field: 'entity.scope', change: 'scope' });
+  const named = titleOf(active) === SYSTEM_TITLE;
+  if (named && titleOf(draft) !== SYSTEM_TITLE) changes.push({ field: SYSTEM_TITLE, change: 'removed' });
+  if (!named && titleOf(draft) === SYSTEM_TITLE) changes.push({ field: SYSTEM_TITLE, change: 'required' });
   for (const before of active.fields) {
     const after = next.get(before.id);
     next.delete(before.id);
@@ -73,8 +84,8 @@ function shorter(before: number | null | undefined, after: number | null | undef
 
 /** The draft of a new version: the active declaration in format 2 or later, every field kept. */
 export function versionDraft(active: SimpleFormDeclaration): SimpleFormDeclaration {
-  const draft = structuredClone(active);
-  draft.formatVersion = active.formatVersion === 3 ? 3 : 2;
+  const draft = editorDeclaration(active);
+  draft.formatVersion = active.formatVersion >= 3 ? active.formatVersion : 2;
   return draft;
 }
 
@@ -89,7 +100,7 @@ export function shownFields(declaration: SimpleFormDeclaration): SimpleField[] {
  * format can.
  */
 export function normalizedDeclaration(draft: SimpleFormDeclaration): SimpleFormDeclaration {
-  const copy = withFormat(draft, draft.formatVersion === 3 ? 3 : 2);
+  const copy = withFormat(draft, draft.formatVersion >= 3 ? draft.formatVersion : 2);
   copy.fields = copy.fields.map((field) => {
     const next: SimpleField = { ...field };
     if (!next.hidden) delete next.hidden;

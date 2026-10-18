@@ -31,11 +31,16 @@ export function entityTitle(code: Signal<string>, meta: Signal<FormMeta | null>)
 }
 
 /**
- * What names a record on its page and in a confirmation: the first filled text field of the form's layout (a title,
- * a name, a number), otherwise its id.
+ * What names a record on its page and in a confirmation: the field the entity names it by (ADR-0041 — a live form's
+ * chosen field, or its number, read as "record #number"), else the first filled text field of the form's layout (a
+ * title, a name, a number), otherwise its id.
  */
 export function recordName(meta: FormMeta, record: EntityRecord, fallback: (id: number) => string): string {
   const byKey = new Map(meta.fields.map((field) => [field.key, field]));
+  const titled = meta.titleField ? byKey.get(meta.titleField) : undefined;
+  const title = titled ? record[titled.key] : null;
+  if (typeof title === 'number' && Number.isFinite(title)) return fallback(title);
+  if (typeof title === 'string' && title.trim() !== '') return title.trim();
   for (const key of meta.layout.flatMap((section) => section.fields)) {
     const field = byKey.get(key);
     const value = field && !field.attribute && field.type === 'text' ? record[key] : null;

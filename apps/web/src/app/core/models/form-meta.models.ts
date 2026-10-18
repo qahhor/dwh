@@ -147,6 +147,8 @@ export interface FormWorkflowMeta {
 export interface FormTabMeta {
   key: string;
   labelKey: string;
+  /** A literal tab name in a form preview. */
+  label?: string | null;
   kind: 'sections' | 'collection' | 'related' | 'history';
   sections?: string[] | null;
   collection?: string | null;
@@ -178,6 +180,11 @@ export interface FormMeta {
   workflow?: FormWorkflowMeta | null;
   /** The tabs of the card; none — the platform's own (fields, history). */
   tabs?: FormTabMeta[] | null;
+  /**
+   * The field that names a record (ADR-0041): a live form's chosen field or its record number; none — the first
+   * filled text field of the layout.
+   */
+  titleField?: string | null;
 }
 
 /** A record's values in the form, by field key. */

@@ -1,0 +1,167 @@
+<fieldset class="layout-group" data-testid="form-layout">
+  <legend>{{ 'studio.layout.legend' | t }}</legend>
+  <smt-control [smtLabel]="'studio.layout.title_label' | t" [smtHint]="'studio.layout.title_hint' | t">
+    <smt-select
+      [options]="titleOptions()"
+      [value]="title()"
+      [allowClear]="false"
+      [disabled]="disabled() || named() === true"
+      data-testid="form-title-field"
+      (valueChange)="setTitle($event)"
+    />
+  </smt-control>
+  @if (named() === true) {
+    <p class="layout-note">{{ 'studio.layout.title_kept' | t }}</p>
+  }
+  <div
+    smt-checkbox
+    [checked]="layout() !== null"
+    [disabled]="disabled()"
+    data-testid="form-layout-toggle"
+    (checkedChange)="toggleLayout($event)"
+  >
+    {{ 'studio.layout.sections_toggle' | t }}
+  </div>
+  @if (layout(); as current) {
+    <div
+      smt-checkbox
+      [checked]="!!current.tabs"
+      [disabled]="disabled()"
+      data-testid="form-tabs-toggle"
+      (checkedChange)="toggleTabs($event)"
+    >
+      {{ 'studio.layout.tabs_toggle' | t }}
+    </div>
+    @if (current.tabs; as tabs) {
+      <div class="layout-list" role="group" [attr.aria-label]="'studio.layout.tabs' | t">
+        @for (tab of tabs; track tab.key; let index = $index) {
+          <fieldset class="layout-item" [attr.data-testid]="'form-tab-' + index">
+            <legend>{{ 'studio.layout.tab_n' | t: { n: index + 1 } }}</legend>
+            <app-new-form-labels
+              [labels]="tab.labels"
+              [disabled]="disabled()"
+              (changed)="setTabLabel(index, $event.language, $event.value)"
+            />
+            <div class="layout-actions">
+              <button
+                smt-button
+                type="button"
+                smtVariant="secondary"
+                smtSize="sm"
+                [disabled]="disabled() || tabs.length <= minTabs"
+                (click)="removeTab(index)"
+              >
+                {{ 'studio.layout.remove_tab' | t }}
+              </button>
+            </div>
+          </fieldset>
+        }
+      </div>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        [disabled]="disabled() || tabs.length >= maxTabs"
+        data-testid="form-tab-add"
+        (click)="addTab()"
+      >
+        {{ 'studio.layout.add_tab' | t }}
+      </button>
+    }
+    <div class="layout-list" role="group" [attr.aria-label]="'studio.layout.sections' | t">
+      @for (section of current.sections; track section.key; let index = $index) {
+        <fieldset class="layout-item" [attr.data-testid]="'form-section-' + index">
+          <legend>{{ 'studio.layout.section_n' | t: { n: index + 1 } }}</legend>
+          <app-new-form-labels
+            [labels]="section.labels"
+            [disabled]="disabled()"
+            (changed)="setSectionLabel(index, $event.language, $event.value)"
+          />
+          @if (current.tabs) {
+            <smt-control [smtLabel]="'studio.layout.section_tab' | t">
+              <smt-select
+                [options]="tabOptions()"
+                [value]="section.tab ?? null"
+                [allowClear]="false"
+                [disabled]="disabled()"
+                [attr.data-testid]="'form-section-tab-' + index"
+                (valueChange)="setSectionTab(index, $event)"
+              />
+            </smt-control>
+          }
+          <p class="layout-note">
+            {{ 'studio.layout.section_fields' | t }}:
+            @for (id of section.fields; track id; let last = $last) {
+              {{ fieldName(id) }}{{ last ? '' : ', ' }}
+            } @empty {
+              {{ 'studio.layout.section_empty' | t }}
+            }
+          </p>
+          <div class="layout-actions">
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              [disabled]="disabled() || index === 0"
+              [attr.aria-label]="'studio.layout.section_up' | t: { n: index + 1 }"
+              (click)="moveSection(index, -1)"
+            >
+              ↑
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              [disabled]="disabled() || index === current.sections.length - 1"
+              [attr.aria-label]="'studio.layout.section_down' | t: { n: index + 1 }"
+              (click)="moveSection(index, 1)"
+            >
+              ↓
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              [disabled]="disabled() || current.sections.length <= 1"
+              (click)="removeSection(index)"
+            >
+              {{ 'studio.layout.remove_section' | t }}
+            </button>
+          </div>
+        </fieldset>
+      }
+    </div>
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtSize="sm"
+      [disabled]="disabled() || current.sections.length >= maxSections"
+      data-testid="form-section-add"
+      (click)="addSection()"
+    >
+      {{ 'studio.layout.add_section' | t }}
+    </button>
+    @if (shown().length) {
+      <div class="layout-placement" role="group" [attr.aria-label]="'studio.layout.placement' | t">
+        <h4>{{ 'studio.layout.placement' | t }}</h4>
+        @for (field of shown(); track field.id) {
+          <smt-control [smtLabel]="fieldName(field.id)">
+            <smt-select
+              [options]="sectionOptions()"
+              [value]="sectionOf(field.id)"
+              [allowClear]="false"
+              [disabled]="disabled()"
+              [attr.data-testid]="'form-place-' + field.id"
+              (valueChange)="placeField(field.id, $event)"
+            />
+          </smt-control>
+        }
+      </div>
+    }
+  }
+</fieldset>

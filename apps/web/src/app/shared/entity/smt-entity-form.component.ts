@@ -33,6 +33,8 @@ import { UiFormErrorSummaryComponent, type UiFormErrorItem } from '../ui/ui-form
 import { SMTControlComponent } from '../ui-kit/components/forms/control/control.component';
 import { SMTMultiDataSelectComponent } from '../ui-kit/components/forms/data-select/multi-data-select.component';
 import { SMTTextareaComponent } from '../ui-kit/components/forms/textarea/textarea.component';
+import { SMTTabBarComponent } from '../ui-kit/components/tab-bar';
+import { EntityFormTabs } from './entity-form-tabs';
 import {
   SMTDynamicFieldComponent,
   type SMTDynamicFieldDef,
@@ -124,6 +126,7 @@ interface DrawnSection {
     SMTMoneyFieldComponent,
     SMTMultiDataSelectComponent,
     SMTTextareaComponent,
+    SMTTabBarComponent,
     UiFormErrorSummaryComponent,
     UiMarkdownEditorComponent,
     UiMarkdownViewComponent,
@@ -207,6 +210,17 @@ export class SMTEntityFormComponent {
           .map((field) => this.draw(field, translate)),
       }))
       .filter((section) => section.fields.length > 0);
+  });
+
+  /** The tabs of sections the form is drawn in, as the card shows them (ADR-0032 9.3, ADR-0041). */
+  readonly tabs = new EntityFormTabs({
+    meta: this.meta,
+    only: this.sections,
+    drawn: this.drawnSections,
+    problems: this.problems,
+    submitted: this.submitted,
+    translate: (key) => this.i18n.translate(key),
+    language: () => this.i18n.currentLang(),
   });
 
   /** One setter per field, so the control's input keeps its identity between checks. */

@@ -241,6 +241,9 @@
           (removed)="removeField(index)"
         />
       }
+      @if (store.delivery() === 'live') {
+        <app-new-form-layout [declaration]="store.draft()" [disabled]="busy()" (changed)="applyLayout($event)" />
+      }
     </section>
     <section class="new-form-panel new-form-preview" aria-labelledby="new-form-preview-title">
       <h2 id="new-form-preview-title">{{ 'settings.form_studio.preview' | t }}</h2>
