@@ -1,10 +1,7 @@
 package com.smartup24.cms.instance.common.query;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
@@ -20,9 +17,15 @@ import org.jspecify.annotations.Nullable;
  * @param measures what each group answers, in the requested order
  * @param filter   the list's filter, validated as for a page; its sort, page and cursor are not used
  * @param order    how the groups are ordered and how many are kept
+ * @param shape    the pivot, the totals and the period comparison of the report (ADR-0044)
  */
 public record QueryAggregate(
-        QueryList list, List<Group> groups, List<Measure> measures, QueryPlan filter, Order order) {
+        QueryList list,
+        List<Group> groups,
+        List<Measure> measures,
+        QueryPlan filter,
+        Order order,
+        QueryAggregateShape shape) {
 
     /** No chart or table shows more groups; the query reads one more to tell that the answer was cut. */
     public static final int MAX_ROWS = 1000;
@@ -47,9 +50,13 @@ public record QueryAggregate(
         }
     }
 
-    /** What a group answers. {@code count} takes no field; the others a number or the amount of money. */
+    /**
+     * What a group answers. {@code count} takes no field; {@code count_distinct} the different values of a field
+     * (ADR-0044); the others a number or the amount of money.
+     */
     public enum Op {
         COUNT,
+        COUNT_DISTINCT,
         SUM,
         AVG,
         MIN,
@@ -94,26 +101,70 @@ public record QueryAggregate(
         }
     }
 
-    /** A measure: an operation over a numeric field, or the count of the group's rows. */
-    public record Measure(Op op, @Nullable QueryField field) {
+    /**
+     * The part of a total a measure shows (ADR-0044): of the grand total, of its row's total or of its column's total in
+     * a pivot, in percent.
+     */
+    public enum Share {
+        TOTAL,
+        ROW,
+        COLUMN;
+
+        public String wire() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+
+        static Optional<Share> fromWire(String text) {
+            for (Share share : values()) {
+                if (share.wire().equals(text)) return Optional.of(share);
+            }
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * A measure: an operation over a field, or the count of the group's rows; with a share, the part of a total its
+     * count or sum is (ADR-0044).
+     */
+    public record Measure(
+            Op op, @Nullable QueryField field, @Nullable Share share) {
+
+        public Measure(Op op, @Nullable QueryField field) {
+            this(op, field, null);
+        }
 
         public Measure {
             Objects.requireNonNull(op, "op");
             if ((op == Op.COUNT) != (field == null)) {
                 throw new IllegalArgumentException("Measure " + op.wire() + ": only count goes without a field");
             }
+            if (share != null && op != Op.COUNT && op != Op.SUM) {
+                throw new IllegalArgumentException("Measure " + op.wire() + ": only a count or a sum has a share");
+            }
         }
 
         String sql() {
-            if (op == Op.COUNT) return "count(*)";
+            return sql(null);
+        }
+
+        /** The aggregate over the rows that meet {@code condition}, or over every row of the group without one. */
+        String sql(@Nullable String condition) {
+            String only = condition == null ? "" : " filter (where " + condition + ")";
+            if (op == Op.COUNT) return "count(*)" + only;
             String value = Objects.requireNonNull(field, "field").sql();
             return switch (op) {
-                case SUM -> "sum(" + value + ")";
-                case AVG -> "round(avg(" + value + "), 4)";
-                case MIN -> "min(" + value + ")";
-                case MAX -> "max(" + value + ")";
+                case COUNT_DISTINCT -> "count(distinct " + value + ")" + only;
+                case SUM -> "sum(" + value + ")" + only;
+                case AVG -> "round(avg(" + value + ")" + only + ", 4)";
+                case MIN -> "min(" + value + ")" + only;
+                case MAX -> "max(" + value + ")" + only;
                 case COUNT -> throw new IllegalStateException("count has no field");
             };
+        }
+
+        /** Whether the answer is a whole number: a count of rows or of different values. */
+        public boolean counted() {
+            return op == Op.COUNT || op == Op.COUNT_DISTINCT;
         }
 
         /** The field's key, or null for {@code count}. */
@@ -173,10 +224,16 @@ public record QueryAggregate(
         this(list, groups, measures, filter, Order.DEFAULT);
     }
 
+    /** A flat aggregate: groups and measures, no pivot, totals or comparison. */
+    public QueryAggregate(QueryList list, List<Group> groups, List<Measure> measures, QueryPlan filter, Order order) {
+        this(list, groups, measures, filter, order, QueryAggregateShape.FLAT);
+    }
+
     public QueryAggregate {
         Objects.requireNonNull(list, "list");
         Objects.requireNonNull(filter, "filter");
         Objects.requireNonNull(order, "order");
+        Objects.requireNonNull(shape, "shape");
         if (order.by() == By.MEASURE && order.measure() >= measures.size()) {
             throw new IllegalArgumentException("The order names a measure the aggregate does not answer");
         }
@@ -185,6 +242,24 @@ public record QueryAggregate(
         if (measures.isEmpty()) {
             throw new IllegalArgumentException("An aggregate answers at least one measure");
         }
+        if (shape.pivot() && groups.stream().filter(group -> !group.implicit()).count() != 2) {
+            throw new IllegalArgumentException("A pivot has exactly two groupings: its rows and its columns");
+        }
+    }
+
+    /** The groups the report asks for, without the currency the platform adds. */
+    public List<Group> explicitGroups() {
+        return groups.stream().filter(group -> !group.implicit()).toList();
+    }
+
+    /**
+     * Whether the statement also reads the totals (ADR-0044): a pivot, a share or totals asked for, over at least one
+     * grouping — a report without one is its own total.
+     */
+    public boolean totaled() {
+        boolean wanted =
+                shape.pivot() || shape.totals() || measures.stream().anyMatch(measure -> measure.share() != null);
+        return wanted && !explicitGroups().isEmpty();
     }
 
     /** The column of the {@code i}-th group in the query's answer. */
@@ -192,50 +267,24 @@ public record QueryAggregate(
         return "q_g" + i;
     }
 
-    /** The column of the {@code i}-th measure in the query's answer. */
+    /** The column of the {@code i}-th measure in the query's answer, over the current period of a comparison. */
     static String measureColumn(int i) {
         return "q_m" + i;
     }
 
+    /** The column of the {@code i}-th measure over the earlier period of a comparison. */
+    static String previousColumn(int i) {
+        return "q_p" + i;
+    }
+
     /**
-     * The aggregate as SQL: {@code select <groups>, <measures> from <list> where <extra> <filter> group by <groups>
-     * order by [<measure>,] <groups> limit} the {@link Order#cap() cap} + 1. Groups are numbered by position, so each
-     * expression is written once; the measure ordered by is named by its column.
+     * The aggregate as SQL ({@link QueryAggregateSql}): {@code select <groups>, <measures> from <list> where <extra>
+     * <filter> group by <groups> order by [<measure>,] <groups> limit} the {@link Order#cap() cap} + 1, or the
+     * statement of the totals and periods of an analytic shape.
      *
      * @param extra the data scope of the viewer ({@code " and ..."}), its parameters not prefixed {@code q_}
      */
     public QueryPlan.SqlFragment sql(QueryPlan.SqlFragment extra) {
-        List<String> columns = new ArrayList<>();
-        List<String> positions = new ArrayList<>();
-        for (int i = 0; i < groups.size(); i++) {
-            columns.add(groups.get(i).sql() + " as " + groupColumn(i));
-            positions.add(Integer.toString(i + 1));
-        }
-        for (int i = 0; i < measures.size(); i++) {
-            columns.add(measures.get(i).sql() + " as " + measureColumn(i));
-        }
-        QueryPlan.SqlFragment where = filter.where();
-        StringBuilder sql = new StringBuilder("select ")
-                .append(String.join(", ", columns))
-                .append(" from ")
-                .append(list.from())
-                .append(" where 1=1")
-                .append(extra.sql())
-                .append(where.sql());
-        if (!positions.isEmpty()) {
-            sql.append(" group by ").append(String.join(", ", positions));
-            sql.append(" order by ");
-            if (order.by() == By.MEASURE) {
-                sql.append(measureColumn(order.measure()))
-                        .append(order.descending() ? " desc" : " asc")
-                        .append(" nulls last, ");
-            }
-            sql.append(String.join(" nulls last, ", positions)).append(" nulls last");
-        }
-        sql.append(" limit :q_rows");
-        Map<String, Object> params = new LinkedHashMap<>(extra.params());
-        params.putAll(where.params());
-        params.put("q_rows", order.cap() + 1);
-        return new QueryPlan.SqlFragment(sql.toString(), params);
+        return QueryAggregateSql.of(this, extra);
     }
 }

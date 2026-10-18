@@ -46,13 +46,6 @@ public class MdReportWidgetService implements EntityReportViews {
 
     private SavedReport saved(ReportViewItem view) {
         JsonNode state = view.state();
-        JsonNode filter = state.get("filter");
-        return new SavedReport(
-                state.get("groupBy"),
-                state.get("measures"),
-                filter == null || filter.isNull() ? null : filter.toString(),
-                MdReportViewState.dataset(state),
-                state.get("sort"),
-                state.get("limit"));
+        return new SavedReport(state, MdReportViewState.dataset(state));
     }
 }

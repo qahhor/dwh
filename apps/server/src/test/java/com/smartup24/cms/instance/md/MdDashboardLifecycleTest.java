@@ -291,7 +291,10 @@ class MdDashboardLifecycleTest {
 
     private MdReportCatalogService catalog() {
         return new MdReportCatalogService(
-                new MdReportAccessRepository(jdbc), runtime, new MdReportViewState(json), json);
+                new MdReportAccessRepository(jdbc),
+                runtime,
+                new MdReportViewState(json, java.time.Clock.systemUTC()),
+                json);
     }
 
     private MdPreferenceSharing sharing(AuditLogService logging) {

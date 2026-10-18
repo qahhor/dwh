@@ -33,8 +33,9 @@ public class AggregateExportService {
         return workbook(code, result.list(), result.data(), lang);
     }
 
-    public byte[] saved(String code, long viewId, String lang) throws IOException {
-        var result = RequestLanguage.with(lang, () -> reports.executeSaved(code, viewId, null));
+    /** A saved report with the values of its parameters (ADR-0044), as its reader sees it. */
+    public byte[] saved(String code, long viewId, @Nullable String parameters, String lang) throws IOException {
+        var result = RequestLanguage.with(lang, () -> reports.executeSaved(code, viewId, null, parameters));
         return workbook(code, result.list(), result.data(), lang);
     }
 

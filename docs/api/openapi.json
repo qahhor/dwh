@@ -6961,7 +6961,7 @@
     },
     "/api/v1/entities/{code}/report" : {
       "get" : {
-        "description" : "Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups, ordered by their values, their words or a measure and cut to a top when asked; each row names its group values in the viewer's language and scope.",
+        "description" : "Groups the records of an entity the viewer may see and answers counts and totals per group: at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000 groups, ordered by their values, their words or a measure and cut to a top when asked; each row names its group values in the viewer's language and scope. A measure may count different values or show its share of a total; a pivot lays the two groupings out as rows and columns (at most 50 columns and 10000 cells) with totals; a comparison answers each measure over the current and an earlier period with the change.",
         "operationId" : "report",
         "parameters" : [ {
           "in" : "path",
@@ -7017,6 +7017,30 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "description" : "A pivot (ADR-0044): the first grouping makes the rows, the second the columns, with totals of rows, columns and the whole",
+          "in" : "query",
+          "name" : "pivot",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "The totals of the groups (ADR-0044)",
+          "in" : "query",
+          "name" : "totals",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "JSON object: the period comparison (ADR-0044) - {\"field\":\"date\",\"period\":\"month\",\"against\":\"previous\"}; period month, quarter, year, ytd or custom (with from and to), against previous or year; periods in the X-Time-Zone of the request",
+          "in" : "query",
+          "name" : "compare",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -7130,7 +7154,7 @@
     },
     "/api/v1/entities/{code}/report/export" : {
       "get" : {
-        "description" : "Exports the report's original groups and measures in its order and top, its group values named in the export language, with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.",
+        "description" : "Exports the report's original groups and measures in its order and top, its group values named in the export language, with currency, UTC buckets and truncation metadata; a pivot as its matrix with the totals of rows, columns and the whole; a comparison with its periods. Does not export source records or chart series reductions.",
         "operationId" : "report_1",
         "parameters" : [ {
           "in" : "path",
@@ -7184,6 +7208,27 @@
           }
         }, {
           "in" : "query",
+          "name" : "pivot",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "totals",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "compare",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
           "name" : "lang",
           "required" : false,
           "schema" : {
@@ -7220,7 +7265,7 @@
     },
     "/api/v1/entities/{code}/reports/{viewId}" : {
       "get" : {
-        "description" : "Runs an owned or role-shared report or widget using the current reader's data and field access.",
+        "description" : "Runs an owned or role-shared report or widget using the current reader's data and field access, narrowed by the values of its parameters.",
         "operationId" : "saved",
         "parameters" : [ {
           "in" : "path",
@@ -7236,6 +7281,14 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "description" : "JSON object: the values of the report's parameters (ADR-0044) by key - {\"period\":{\"from\":\"2026-10-01\",\"to\":\"2026-10-31\"},\"region\":[\"north\"]}; a period may name a preset ({\"preset\":\"this_month\"}); a missing value takes its default",
+          "in" : "query",
+          "name" : "parameters",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -7282,6 +7335,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "query",
+          "name" : "parameters",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         }, {
           "in" : "query",
@@ -15848,6 +15908,32 @@
           }
         }
       },
+      "AggregateComparison" : {
+        "type" : "object",
+        "properties" : {
+          "against" : {
+            "type" : "string"
+          },
+          "currentFrom" : {
+            "type" : "string"
+          },
+          "currentTo" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "period" : {
+            "type" : "string"
+          },
+          "previousFrom" : {
+            "type" : "string"
+          },
+          "previousTo" : {
+            "type" : "string"
+          }
+        }
+      },
       "AggregateGroup" : {
         "type" : "object",
         "properties" : {
@@ -15870,6 +15956,12 @@
           },
           "op" : {
             "type" : "string"
+          },
+          "period" : {
+            "type" : "string"
+          },
+          "share" : {
+            "type" : "string"
           }
         }
       },
@@ -15881,6 +15973,33 @@
             "items" : {
               "type" : [ "string", "number", "boolean", "null" ]
             }
+          },
+          "labels" : {
+            "type" : "array",
+            "items" : {
+              "type" : [ "string", "null" ]
+            }
+          },
+          "values" : {
+            "type" : "array",
+            "items" : {
+              "type" : [ "number", "null" ]
+            }
+          }
+        }
+      },
+      "AggregateTotal" : {
+        "type" : "object",
+        "properties" : {
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "type" : [ "string", "number", "boolean", "null" ]
+            }
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "row", "column", "grand" ]
           },
           "labels" : {
             "type" : "array",
@@ -21385,6 +21504,9 @@
       "QueryAggregateResult" : {
         "type" : "object",
         "properties" : {
+          "comparison" : {
+            "$ref" : "#/components/schemas/AggregateComparison"
+          },
           "groups" : {
             "type" : "array",
             "items" : {
@@ -21397,10 +21519,19 @@
               "$ref" : "#/components/schemas/AggregateMeasure"
             }
           },
+          "pivot" : {
+            "type" : "boolean"
+          },
           "rows" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/AggregateRow"
+            }
+          },
+          "totals" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AggregateTotal"
             }
           },
           "truncated" : {

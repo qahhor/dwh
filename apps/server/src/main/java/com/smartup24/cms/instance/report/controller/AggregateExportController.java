@@ -38,7 +38,9 @@ public class AggregateExportController {
             summary = "Export aggregate report rows",
             description =
                     "Exports the report's original groups and measures in its order and top, its group values named"
-                            + " in the export language, with currency, UTC buckets and truncation metadata. Does not export source records or chart series reductions.")
+                            + " in the export language, with currency, UTC buckets and truncation metadata; a pivot as"
+                            + " its matrix with the totals of rows, columns and the whole; a comparison with its periods."
+                            + " Does not export source records or chart series reductions.")
     @GetMapping(value = "/entities/{code}/report/export", produces = XLSX)
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.OK)
@@ -50,10 +52,16 @@ public class AggregateExportController {
             @RequestParam(required = false) @Nullable String dataset,
             @RequestParam(required = false) @Nullable String sort,
             @RequestParam(required = false) @Nullable Integer limit,
+            @RequestParam(required = false) @Nullable Boolean pivot,
+            @RequestParam(required = false) @Nullable Boolean totals,
+            @RequestParam(required = false) @Nullable String compare,
             @RequestParam(defaultValue = "ru") String lang)
             throws IOException {
-        return file(
-                exports.report(code, dataset, new EntityReports.Request(groupBy, measures, filter, sort, limit), lang));
+        return file(exports.report(
+                code,
+                dataset,
+                new EntityReports.Request(groupBy, measures, filter, sort, limit, pivot, totals, compare),
+                lang));
     }
 
     @Operation(
@@ -63,9 +71,12 @@ public class AggregateExportController {
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<byte[]> saved(
-            @PathVariable String code, @PathVariable long viewId, @RequestParam(defaultValue = "ru") String lang)
+            @PathVariable String code,
+            @PathVariable long viewId,
+            @RequestParam(required = false) @Nullable String parameters,
+            @RequestParam(defaultValue = "ru") String lang)
             throws IOException {
-        return file(exports.saved(code, viewId, lang));
+        return file(exports.saved(code, viewId, parameters, lang));
     }
 
     @Operation(

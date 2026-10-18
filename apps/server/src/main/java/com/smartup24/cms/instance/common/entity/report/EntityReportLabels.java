@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.common.query.QueryAggregate;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Group;
 import com.smartup24.cms.instance.common.query.QueryAggregateResult;
 import com.smartup24.cms.instance.common.query.QueryAggregateResult.AggregateRow;
+import com.smartup24.cms.instance.common.query.QueryAggregateResult.AggregateTotal;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.web.RequestLanguage;
@@ -62,17 +63,14 @@ public class EntityReportLabels {
             }
         }
         List<AggregateRow> rows = new ArrayList<>();
-        for (AggregateRow row : raw.rows()) {
-            List<@Nullable String> labels = new ArrayList<>();
-            for (int index = 0; index < row.groups().size(); index++) {
-                Object value = row.groups().get(index);
-                labels.add(value == null ? null : words.get(index).get(value));
-            }
-            rows.add(new AggregateRow(row.groups(), row.values(), labels));
+        for (AggregateRow row : raw.rows()) rows.add(named(row, words));
+        List<AggregateTotal> totals = new ArrayList<>();
+        for (AggregateTotal total : raw.totals()) {
+            totals.add(AggregateTotal.of(total.kind(), named(total.row(), words)));
         }
         QueryAggregate.Order order = aggregate.order();
         boolean truncated = raw.truncated();
-        if (order.by() == QueryAggregate.By.LABEL) {
+        if (order.by() == QueryAggregate.By.LABEL && !aggregate.shape().pivot()) {
             rows.sort(byWords(order.descending()));
             Integer limit = order.limit();
             if (limit != null && rows.size() > limit) {
@@ -80,13 +78,27 @@ public class EntityReportLabels {
                 truncated = true;
             }
         }
-        return new QueryAggregateResult(raw.groups(), raw.measures(), rows, truncated);
+        return raw.with(rows, totals, truncated);
     }
 
+    private static AggregateRow named(AggregateRow row, List<Map<Object, String>> words) {
+        List<@Nullable String> labels = new ArrayList<>();
+        for (int index = 0; index < row.groups().size(); index++) {
+            Object value = row.groups().get(index);
+            labels.add(value == null ? null : words.get(index).get(value));
+        }
+        return new AggregateRow(row.groups(), row.values(), labels);
+    }
+
+    /** The values of a grouping in the rows and the totals (ADR-0044: a pivot's totals name its rows and columns). */
     private static Set<Object> values(QueryAggregateResult raw, int index) {
         Set<Object> values = new LinkedHashSet<>();
         for (AggregateRow row : raw.rows()) {
             Object value = row.groups().get(index);
+            if (value != null) values.add(value);
+        }
+        for (AggregateTotal total : raw.totals()) {
+            Object value = total.groups().get(index);
             if (value != null) values.add(value);
         }
         return values;

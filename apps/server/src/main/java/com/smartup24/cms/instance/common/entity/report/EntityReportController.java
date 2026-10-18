@@ -69,7 +69,10 @@ public class EntityReportController {
             description = "Groups the records of an entity the viewer may see and answers counts and totals per group:"
                     + " at most 2 groupings (a choice, a yes/no, a reference or a date bucket), 4 measures and 1000"
                     + " groups, ordered by their values, their words or a measure and cut to a top when asked; each"
-                    + " row names its group values in the viewer's language and scope.")
+                    + " row names its group values in the viewer's language and scope. A measure may count different"
+                    + " values or show its share of a total; a pivot lays the two groupings out as rows and columns"
+                    + " (at most 50 columns and 10000 cells) with totals; a comparison answers each measure over the"
+                    + " current and an earlier period with the change.")
     @GetMapping("/{code}/report")
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.OK)
@@ -98,20 +101,50 @@ public class EntityReportController {
             @Parameter(description = "The most groups kept, 1 to 1000, in the order asked for")
                     @RequestParam(required = false)
                     @Nullable
-                    Integer limit) {
-        return ResponseEntity.ok(
-                reports.execute(code, dataset, new EntityReports.Request(groupBy, measures, filter, sort, limit))
-                        .data());
+                    Integer limit,
+            @Parameter(
+                            description =
+                                    "A pivot (ADR-0044): the first grouping makes the rows, the second the columns,"
+                                            + " with totals of rows, columns and the whole")
+                    @RequestParam(required = false)
+                    @Nullable
+                    Boolean pivot,
+            @Parameter(description = "The totals of the groups (ADR-0044)") @RequestParam(required = false) @Nullable
+                    Boolean totals,
+            @Parameter(
+                            description = "JSON object: the period comparison (ADR-0044) -"
+                                    + " {\"field\":\"date\",\"period\":\"month\",\"against\":\"previous\"};"
+                                    + " period month, quarter, year, ytd or custom (with from and to), against previous"
+                                    + " or year; periods in the X-Time-Zone of the request")
+                    @RequestParam(required = false)
+                    @Nullable
+                    String compare) {
+        return ResponseEntity.ok(reports.execute(
+                        code,
+                        dataset,
+                        new EntityReports.Request(groupBy, measures, filter, sort, limit, pivot, totals, compare))
+                .data());
     }
 
     @Operation(
             summary = "Run a saved report",
-            description =
-                    "Runs an owned or role-shared report or widget using the current reader's data and field access.")
+            description = "Runs an owned or role-shared report or widget using the current reader's data and field"
+                    + " access, narrowed by the values of its parameters.")
     @GetMapping("/{code}/reports/{viewId}")
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<QueryAggregateResult> saved(@PathVariable String code, @PathVariable long viewId) {
-        return ResponseEntity.ok(reports.saved(code, viewId));
+    public ResponseEntity<QueryAggregateResult> saved(
+            @PathVariable String code,
+            @PathVariable long viewId,
+            @Parameter(
+                            description = "JSON object: the values of the report's parameters (ADR-0044) by key -"
+                                    + " {\"period\":{\"from\":\"2026-10-01\",\"to\":\"2026-10-31\"},"
+                                    + "\"region\":[\"north\"]}; a period may name a preset"
+                                    + " ({\"preset\":\"this_month\"}); a missing value takes its default")
+                    @RequestParam(required = false)
+                    @Nullable
+                    String parameters) {
+        return ResponseEntity.ok(
+                reports.executeSaved(code, viewId, null, parameters).data());
     }
 }

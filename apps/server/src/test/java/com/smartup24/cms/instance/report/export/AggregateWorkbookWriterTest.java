@@ -127,4 +127,79 @@ class AggregateWorkbookWriterTest {
             }
         }
     }
+
+    @Test
+    void aComparisonNamesItsPeriodsAndAPivotWithCurrenciesHasATotalLinePerCurrency() throws Exception {
+        var compared = new QueryAggregateResult(
+                List.of(),
+                List.of(
+                        new AggregateMeasure("count_distinct", "id", null, "current"),
+                        new AggregateMeasure("sum", "total", "total", null)),
+                List.of(new AggregateRow(List.of(), List.of(3L, new BigDecimal("12.50")))),
+                false,
+                List.of(),
+                false,
+                new QueryAggregateResult.AggregateComparison(
+                        "createdAt", "month", "previous", "2026-10-01", "2026-10-31", "2026-09-01", "2026-09-30"));
+        String text = AggregateXlsxCells.xml(AggregateWorkbookWriter.write("test.rows", LIST, compared, key -> key));
+        assertThat(text)
+                .contains(
+                        "ui.report.op.count_distinct: ID",
+                        "ui.report.period.current",
+                        "ui.report.share.total",
+                        "2026-10-01..2026-10-31 against 2026-09-01..2026-09-30");
+
+        var pivot = new QueryAggregateResult(
+                List.of(
+                        new AggregateGroup("id", null, false),
+                        new AggregateGroup("createdAt", "month", false),
+                        new AggregateGroup("totalCurrency", null, true)),
+                List.of(new AggregateMeasure("sum", "total")),
+                List.of(
+                        new AggregateRow(Arrays.asList(1L, "2026-10-01", "UZS"), List.of(new BigDecimal("5"))),
+                        new AggregateRow(Arrays.asList(1L, "2026-10-01", "USD"), List.of(new BigDecimal("2")))),
+                false,
+                List.of(
+                        new QueryAggregateResult.AggregateTotal(
+                                "row",
+                                Arrays.asList(1L, null, "UZS"),
+                                List.of(new BigDecimal("5")),
+                                Arrays.asList("One", null, null)),
+                        new QueryAggregateResult.AggregateTotal(
+                                "row",
+                                Arrays.asList(1L, null, "USD"),
+                                List.of(new BigDecimal("2")),
+                                Arrays.asList("One", null, null)),
+                        new QueryAggregateResult.AggregateTotal(
+                                "column",
+                                Arrays.asList(null, "2026-10-01", "UZS"),
+                                List.of(new BigDecimal("5")),
+                                Arrays.asList(null, null, null)),
+                        new QueryAggregateResult.AggregateTotal(
+                                "column",
+                                Arrays.asList(null, "2026-10-01", "USD"),
+                                List.of(new BigDecimal("2")),
+                                Arrays.asList(null, null, null)),
+                        new QueryAggregateResult.AggregateTotal(
+                                "grand",
+                                Arrays.asList(null, null, "UZS"),
+                                List.of(new BigDecimal("5")),
+                                Arrays.asList(null, null, null)),
+                        new QueryAggregateResult.AggregateTotal(
+                                "grand",
+                                Arrays.asList(null, null, "USD"),
+                                List.of(new BigDecimal("2")),
+                                Arrays.asList(null, null, null))),
+                true,
+                null);
+        var cells = AggregateXlsxCells.data(AggregateWorkbookWriter.write("test.rows", LIST, pivot, key -> key));
+        assertThat(cells)
+                .containsEntry("A2", new Cell("text", "One"))
+                .containsEntry("B2", new Cell("text", "UZS"))
+                .containsEntry("C2", new Cell("number", "5"))
+                .containsEntry("D3", new Cell("number", "2"))
+                .containsEntry("A4", new Cell("text", "ui.report.total"))
+                .containsEntry("B5", new Cell("text", "USD"))
+                .containsEntry("C5", new Cell("number", "2"));
+    }
 }

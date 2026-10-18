@@ -17,28 +17,14 @@ public interface EntityReportViews {
     Optional<SavedReport> report(long userId, String listCode, long viewId);
 
     /**
-     * What a saved report asks for, as the view holds it.
-     *
-     * @param groupBy  the grouping, a JSON array
-     * @param measures the measures, a JSON array
-     * @param filter   the filter DSL as JSON text, or null
-     * @param sort     the order of the groups, a JSON object, or null
-     * @param limit    the most groups kept, a JSON number, or null
+     * What a saved report asks for, as the view holds it: its canonical state (ADR-0032, 10.2; ADR-0044) — groups,
+     * measures, filter, order, top, pivot, totals, comparison and parameters — and the dataset it reads.
      */
-    record SavedReport(
-            @Nullable JsonNode groupBy,
-            @Nullable JsonNode measures,
-            @Nullable String filter,
-            @Nullable String dataset,
-            @Nullable JsonNode sort,
-            @Nullable JsonNode limit) {
-        /** A report in the default order of its groups. */
-        public SavedReport(
-                @Nullable JsonNode groupBy,
-                @Nullable JsonNode measures,
-                @Nullable String filter,
-                @Nullable String dataset) {
-            this(groupBy, measures, filter, dataset, null, null);
+    record SavedReport(JsonNode state, @Nullable String dataset) {
+        /** The saved filter DSL as JSON text, or null. */
+        public @Nullable String filter() {
+            JsonNode filter = state.get("filter");
+            return filter == null || filter.isNull() ? null : filter.toString();
         }
     }
 }

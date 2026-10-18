@@ -5,7 +5,9 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Group;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Measure;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Op;
+import com.smartup24.cms.instance.common.query.QueryAggregate.Share;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Trunc;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +32,8 @@ import tools.jackson.databind.json.JsonMapper;
  * currency as well, so different currencies are never added up. Only the fields the viewer may see take part (a
  * restricted field answers as an unknown one, ADR-0016), and the filter is the list's own. Any error is a 422 whose
  * fields point at the part to fix: {@code groupBy[1].trunc}, {@code measures[0].field}, {@code filter[2].op}.
+ * ADR-0044: {@code count_distinct}, a share of a count or a sum ({@code "share":"total"}) and the analytic shape of
+ * {@link QueryAggregateShapes} — a pivot, totals, a period comparison ({@link QueryAggregateSpec}).
  */
 public final class QueryAggregates {
 
@@ -50,7 +54,7 @@ public final class QueryAggregates {
     public static final String CURRENCY_SUFFIX = "Currency";
 
     private static final Set<String> GROUP_KEYS = Set.of("field", "trunc");
-    private static final Set<String> MEASURE_KEYS = Set.of("op", "field");
+    private static final Set<String> MEASURE_KEYS = Set.of("op", "field", "share");
 
     /** A static compiler reads the client's JSON text with the shared default mapper (plan 10/10, item 3.11). */
     private static final JsonMapper JSON = JsonMapper.shared();
@@ -76,20 +80,40 @@ public final class QueryAggregates {
             @Nullable String filter,
             @Nullable String sort,
             @Nullable Integer limit) {
+        return compile(list, spec(groupBy, measures, filter, sort, limit, null, null, null));
+    }
+
+    /**
+     * A report given as request parameters with its analytic shape (ADR-0044): the JSON parts read into trees, a part
+     * that is not JSON refused as one 422 naming each.
+     */
+    public static QueryAggregateSpec spec(
+            @Nullable String groupBy,
+            @Nullable String measures,
+            @Nullable String filter,
+            @Nullable String sort,
+            @Nullable Integer limit,
+            @Nullable Boolean pivot,
+            @Nullable Boolean totals,
+            @Nullable String compare) {
         List<FieldErrorItem> errors = new ArrayList<>();
         JsonNode groups = readArray(groupBy, "groupBy", errors);
         JsonNode values = readArray(measures, "measures", errors);
         JsonNode order = readArray(sort, "sort", errors);
+        JsonNode periods = readArray(compare, "compare", errors);
         if (!errors.isEmpty()) {
             throw invalid(errors);
         }
-        return compile(
-                list,
+        var nodes = JSON.getNodeFactory();
+        return new QueryAggregateSpec(
                 groups,
                 values,
                 filter,
                 order,
-                limit == null ? null : JSON.getNodeFactory().numberNode(limit));
+                limit == null ? null : nodes.numberNode(limit),
+                pivot == null ? null : nodes.booleanNode(pivot),
+                totals == null ? null : nodes.booleanNode(totals),
+                periods);
     }
 
     /** A report as a saved view holds it: {@code groupBy} and {@code measures} as JSON trees, the filter DSL. */
@@ -106,10 +130,23 @@ public final class QueryAggregates {
             @Nullable String filter,
             @Nullable JsonNode sort,
             @Nullable JsonNode limit) {
+        return compile(list, QueryAggregateSpec.flat(groupBy, measures, filter, sort, limit));
+    }
+
+    /** A report with its analytic shape (ADR-0044), its periods counted from today in the zone of the request. */
+    public static QueryAggregate compile(QueryList list, QueryAggregateSpec spec) {
+        return compile(list, spec, QueryAggregateSpec.Anchor.now(Clock.systemUTC()));
+    }
+
+    /** A report with its analytic shape (ADR-0044), its periods counted from {@code anchor}. */
+    public static QueryAggregate compile(QueryList list, QueryAggregateSpec spec, QueryAggregateSpec.Anchor anchor) {
         List<FieldErrorItem> errors = new ArrayList<>();
-        List<Group> groups = groups(list, groupBy, errors);
-        List<Measure> parsed = measures(list, measures, errors);
-        QueryAggregate.Order order = QueryAggregateOrders.order(sort, limit, groups.size(), parsed.size(), errors);
+        List<Group> groups = groups(list, spec.groupBy(), errors);
+        List<Measure> parsed = measures(list, spec.measures(), errors);
+        QueryAggregate.Order order =
+                QueryAggregateOrders.order(spec.sort(), spec.limit(), groups.size(), parsed.size(), errors);
+        QueryAggregateShape shape = QueryAggregateShapes.shape(list, spec, groups, parsed, anchor, errors);
+        String filter = spec.filter();
         QueryPlan plan = null;
         try {
             plan = QueryCompiler.compile(list, filter, null, null, null);
@@ -129,7 +166,7 @@ public final class QueryAggregates {
                                     group.field().key().equals(currency.field().key())))
                     .ifPresent(all::add);
         }
-        return new QueryAggregate(list, all, parsed, plan, order);
+        return new QueryAggregate(list, all, parsed, plan, order, shape);
     }
 
     private static List<Group> groups(QueryList list, @Nullable JsonNode node, List<FieldErrorItem> errors) {
@@ -218,7 +255,8 @@ public final class QueryAggregates {
             if (!knownKeys(item, MEASURE_KEYS, at, errors)) continue;
             Optional<Measure> measure = measure(list, item, at, errors);
             if (measure.isEmpty()) continue;
-            if (!seen.add(measure.get().op().wire() + ":" + measure.get().fieldKey())) {
+            Share share = measure.get().share();
+            if (!seen.add(measure.get().op().wire() + ":" + measure.get().fieldKey() + ":" + share)) {
                 errors.add(FieldErrorItem.keyed(at, REPORT_INVALID, "error.common.field_report_repeated"));
                 continue;
             }
@@ -234,6 +272,9 @@ public final class QueryAggregates {
             errors.add(FieldErrorItem.keyed(at + ".op", REPORT_INVALID, "error.common.field_report_op_invalid"));
             return Optional.empty();
         }
+        int problems = errors.size();
+        Share share = share(item, op.get(), at, errors);
+        if (errors.size() > problems) return Optional.empty();
         JsonNode fieldNode = item.get("field");
         boolean hasField = fieldNode != null && !fieldNode.isNull();
         if (op.get() == Op.COUNT) {
@@ -242,10 +283,19 @@ public final class QueryAggregates {
                         FieldErrorItem.keyed(at + ".field", REPORT_INVALID, "error.common.field_report_count_field"));
                 return Optional.empty();
             }
-            return Optional.of(new Measure(Op.COUNT, null));
+            return Optional.of(new Measure(Op.COUNT, null, share));
         }
         Optional<QueryField> found = viewerField(list, item, at, errors);
         if (found.isEmpty()) return Optional.empty();
+        if (op.get() == Op.COUNT_DISTINCT) {
+            if (countable(found.get())) return Optional.of(new Measure(Op.COUNT_DISTINCT, found.get()));
+            errors.add(FieldErrorItem.keyed(
+                    at + ".field",
+                    REPORT_INVALID,
+                    "error.common.field_report_distinct_invalid",
+                    Map.of("field", found.get().key())));
+            return Optional.empty();
+        }
         if (!measurable(found.get())) {
             errors.add(FieldErrorItem.keyed(
                     at + ".field",
@@ -254,7 +304,22 @@ public final class QueryAggregates {
                     Map.of("field", found.get().key())));
             return Optional.empty();
         }
-        return Optional.of(new Measure(op.get(), found.get()));
+        return Optional.of(new Measure(op.get(), found.get(), share));
+    }
+
+    /**
+     * The share a measure asks for, null without one; a problem goes to {@code errors} — only a count or a sum is a part
+     * of a total (ADR-0044).
+     */
+    private static @Nullable Share share(JsonNode item, Op op, String at, List<FieldErrorItem> errors) {
+        JsonNode node = item.get("share");
+        if (node == null || node.isNull()) return null;
+        Optional<Share> share = node.isString() ? Share.fromWire(node.asString()) : Optional.empty();
+        if (share.isEmpty() || (op != Op.COUNT && op != Op.SUM)) {
+            errors.add(FieldErrorItem.keyed(at + ".share", REPORT_INVALID, "error.common.field_report_share_invalid"));
+            return null;
+        }
+        return share.get();
     }
 
     /** The field named by {@code item.field} if the viewer can see it; a hidden field answers as a missing one. */
@@ -279,6 +344,14 @@ public final class QueryAggregates {
             case ENUM, BOOLEAN, DATE, INSTANT -> true;
             case NUMBER -> field.ref() != null;
             case TEXT, TIME, REF_SET, OBJECT -> false;
+        };
+    }
+
+    /** A field whose different values can be counted: a plain value, a choice or a reference (ADR-0044). */
+    static boolean countable(QueryField field) {
+        return switch (field.type()) {
+            case ENUM, BOOLEAN, NUMBER, TEXT, DATE, INSTANT, TIME -> true;
+            case REF_SET, OBJECT -> false;
         };
     }
 
