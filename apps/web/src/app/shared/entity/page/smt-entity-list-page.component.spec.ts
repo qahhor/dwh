@@ -130,6 +130,30 @@ describe('SMTEntityListPageComponent', () => {
     expect(await router.navigateByUrl('/tasks')).toBe(false);
     expect(leave).toHaveBeenCalledTimes(2);
   });
+  it('opens the report of a catalog link and follows a drill-down back to the filtered list on the same page', async () => {
+    const { harness, root, settle, router } = await renderEntityScreen(`/e/${CODE}?mode=report&report=7`, {
+      meta: META,
+      list: LIST,
+      records: ORDERS,
+      answers: {
+        [`/entities/${CODE}/report`]: { groups: [], measures: [{ op: 'count' }], rows: [], truncated: false },
+        '/report-views': { items: [], hasMore: false },
+      },
+    });
+    const page = harness.fixture.debugElement.query(By.css('smt-entity-list-page')).componentInstance;
+    expect(page.mode()).toBe('report');
+    expect(page.openReport()).toBe(7);
+    expect(root.querySelector('smt-entity-report-builder')).not.toBeNull();
+    const filter = JSON.stringify([{ field: 'status', op: 'eq', value: 'draft' }]);
+    await router.navigateByUrl(`/e/${CODE}?filter=${encodeURIComponent(filter)}`);
+    await settle();
+    expect(page.mode()).toBe('list');
+    expect(page.views.filter()).toEqual([{ field: 'status', op: 'eq', value: 'draft' }]);
+    await router.navigateByUrl(`/e/${CODE}?mode=report&report=x`);
+    await settle();
+    expect(page.mode()).toBe('report');
+    expect(page.openReport()).toBeNull();
+  });
   it('offers no create button to a viewer who may not create', async () => {
     const { root } = await renderEntityScreen(`/e/${CODE}`, { meta: META, list: LIST, records: [] });
     expect(root.querySelector('[data-testid="entity-create"]')).toBeNull();
