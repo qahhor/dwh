@@ -1,0 +1,100 @@
+<div class="datasets-page" data-testid="report-datasets">
+  <ui-page-header [title]="'md.report_datasets.title' | t" [subtitle]="'md.report_datasets.subtitle' | t">
+    <a smt-button smtVariant="secondary" routerLink="/settings">{{ 'studio.forms.back' | t }}</a>
+    @if (mayManage()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="primary"
+        smtIcon="add"
+        data-testid="report-datasets-new"
+        (click)="editing.set(null)"
+      >
+        {{ 'md.report_datasets.new' | t }}
+      </button>
+    }
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="refresh"
+      [smtLoading]="loading()"
+      [attr.aria-label]="'common.refresh' | t"
+      (click)="load()"
+    ></button>
+  </ui-page-header>
+  @if (!mayView()) {
+    <smt-alert smtTone="warning" data-testid="report-datasets-denied">{{ 'md.report_datasets.denied' | t }}</smt-alert>
+  } @else {
+    <smt-alert smtTone="info" smtLive="off">{{ 'md.report_datasets.hint' | t }}</smt-alert>
+    @if (error()) {
+      <smt-alert smtTone="danger" data-testid="report-datasets-error">
+        {{ error() }}
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="load()">
+          {{ 'common.retry' | t }}
+        </button>
+      </smt-alert>
+    }
+    @if (loading() && datasets().length === 0) {
+      <p role="status">{{ 'common.loading' | t }}</p>
+    } @else if (datasets().length === 0 && !error()) {
+      <p class="datasets-empty" data-testid="report-datasets-empty">{{ 'md.report_datasets.empty' | t }}</p>
+    }
+    <ul class="datasets-list" [attr.aria-label]="'md.report_datasets.title' | t">
+      @for (dataset of datasets(); track dataset.code) {
+        <li class="dataset-card" data-testid="report-datasets-item">
+          <div class="dataset-card-main">
+            <h2>{{ name(dataset) }}</h2>
+            <code>ds.{{ dataset.code }}</code>
+            <p>
+              {{ source(dataset) }}
+              @if (dataset.lines) {
+                · {{ 'md.report_datasets.by_lines' | t: { lines: dataset.lines } }}
+              }
+              · {{ 'md.report_datasets.field_count' | t: { n: dataset.fields.length } }}
+              @if (dataset.measures.length) {
+                · {{ 'md.report_datasets.measure_count' | t: { n: dataset.measures.length } }}
+              }
+            </p>
+          </div>
+          @if (mayManage()) {
+            <div class="dataset-card-actions">
+              <button
+                smt-button
+                type="button"
+                smtVariant="secondary"
+                smtSize="sm"
+                smtIcon="edit"
+                data-testid="report-datasets-edit"
+                [attr.aria-label]="'md.report_datasets.edit_named' | t: { name: name(dataset) }"
+                (click)="editing.set(dataset)"
+              >
+                {{ 'md.report_datasets.edit' | t }}
+              </button>
+              <button
+                smt-button
+                type="button"
+                smtVariant="ghost"
+                smtSize="sm"
+                smtIcon="delete"
+                data-testid="report-datasets-delete"
+                [attr.aria-label]="'md.report_datasets.delete_named' | t: { name: name(dataset) }"
+                (click)="remove(dataset)"
+              >
+                {{ 'common.delete' | t }}
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+  @if (editing() !== undefined) {
+    <app-report-dataset-dialog
+      [dataset]="editing() ?? null"
+      [sources]="sources()"
+      (saved)="saved($event)"
+      (closed)="editing.set(undefined)"
+    />
+  }
+</div>

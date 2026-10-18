@@ -172,11 +172,13 @@ public class EntityReports {
     }
 
     private Execution run(EntityReportDatasets.Source source, QueryAggregateSpec spec) {
-        QueryAggregate aggregate = QueryAggregates.compile(source.list(), spec, QueryAggregateSpec.Anchor.now(clock));
+        QueryAggregate aggregate = QueryAggregates.compile(
+                source.list(), spec.withComputed(source.measures()), QueryAggregateSpec.Anchor.now(clock));
         var scope = scopes.listPredicate(source.entity(), aggregate.filter(), EntityReads.userId());
         var params = new LinkedHashMap<>(source.params());
         params.putAll(scope.params());
-        QueryAggregateResult raw = aggregates.run(aggregate, new QueryPlan.SqlFragment(scope.sql(), params));
+        QueryAggregateResult raw =
+                aggregates.run(aggregate, new QueryPlan.SqlFragment(scope.sql() + source.where(), params));
         return new Execution(source.list(), QueryAggregateFinish.finish(aggregate, labels.label(aggregate, raw)));
     }
 }

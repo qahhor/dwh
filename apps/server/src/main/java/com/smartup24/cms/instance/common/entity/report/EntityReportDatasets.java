@@ -10,8 +10,10 @@ import com.smartup24.cms.instance.common.entity.api.ReportDatasetDtos.Item;
 import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.common.entity.runtime.EntityReads;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.QueryComputedMeasure;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryList;
+import com.smartup24.cms.instance.common.web.RequestLanguage;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.field.EntityField;
@@ -22,22 +24,42 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Current root, target and field access share one source resolver in every report path (ADR-0039). */
 @Component
 public class EntityReportDatasets {
+    /** The title key of an administrator's dataset in the catalog; its own name goes beside it. */
+    public static final String ADMIN_TITLE = "report.dataset.custom";
+
     private final Map<String, EntityReportDataset> declarations;
     private final EntityGate gate;
     private final EntityReads reads;
     private final EntityScopes scopes;
+    private final @Nullable ObjectProvider<EntityReportDatasetStore> store;
+    private final @Nullable EntityReportAdminSources admin;
 
+    /** The datasets declared in code only: no administrator's datasets. */
     public EntityReportDatasets(
             List<EntityReportDataset> datasets,
             List<EntityDefinition> entities,
             EntityGate gate,
             EntityReads reads,
             EntityScopes scopes) {
+        this(datasets, entities, gate, reads, scopes, null, null);
+    }
+
+    @Autowired
+    public EntityReportDatasets(
+            List<EntityReportDataset> datasets,
+            List<EntityDefinition> entities,
+            EntityGate gate,
+            EntityReads reads,
+            EntityScopes scopes,
+            @Nullable ObjectProvider<EntityReportDatasetStore> store,
+            @Nullable EntityReportAdminSources admin) {
         var definitions = new LinkedHashMap<String, EntityDefinition>();
         entities.forEach(entity -> definitions.put(entity.code(), entity));
         var declared = new LinkedHashMap<String, EntityReportDataset>();
@@ -53,9 +75,29 @@ public class EntityReportDatasets {
         this.gate = gate;
         this.reads = reads;
         this.scopes = scopes;
+        this.store = store;
+        this.admin = admin;
     }
 
-    public record Source(EntityDefinition entity, QueryList list, Map<String, Object> params) {}
+    /**
+     * A report's source: its entity, its list, and what narrows it beyond the reader's scope — the parameters and the
+     * SQL of an administrator's fixed filter ({@code " and ..."}) — with the measures computed over its aggregates.
+     */
+    public record Source(
+            EntityDefinition entity,
+            QueryList list,
+            Map<String, Object> params,
+            String where,
+            List<QueryComputedMeasure> measures) {
+        public Source(EntityDefinition entity, QueryList list, Map<String, Object> params) {
+            this(entity, list, params, "", List.of());
+        }
+
+        public Source {
+            params = Map.copyOf(params);
+            measures = List.copyOf(measures);
+        }
+    }
 
     public Catalog catalog(String code) {
         gate.viewable(code);
@@ -64,9 +106,30 @@ public class EntityReportDatasets {
             if (!dataset.rootEntity().equals(code)) continue;
             try {
                 resolve(code, dataset.code());
-                items.add(new Item(dataset.code(), dataset.titleKey()));
+                items.add(new Item(dataset.code(), dataset.titleKey(), null, List.of()));
             } catch (ApiException denied) {
                 if (denied.getErrorCode() != ErrorCode.NOT_FOUND) throw denied;
+            }
+        }
+        EntityReportDatasetStore datasets = store == null ? null : store.getIfAvailable();
+        if (datasets != null) {
+            String language = RequestLanguage.current();
+            for (var dataset : datasets.over(code)) {
+                if (items.size() >= ReportDatasetDtos.MAX_ITEMS) break;
+                String full = EntityReportDatasetStore.PREFIX + dataset.code();
+                try {
+                    resolve(code, full);
+                    items.add(new Item(
+                            full,
+                            ADMIN_TITLE,
+                            dataset.names().getOrDefault(language, dataset.code()),
+                            dataset.measures().stream()
+                                    .map(measure -> new ReportDatasetDtos.ItemMeasure(
+                                            measure.key(), measure.labels().getOrDefault(language, measure.key())))
+                                    .toList()));
+                } catch (ApiException denied) {
+                    if (denied.getErrorCode() != ErrorCode.NOT_FOUND) throw denied;
+                }
             }
         }
         return new Catalog(List.copyOf(items));
@@ -76,6 +139,7 @@ public class EntityReportDatasets {
         EntityDefinition root = gate.viewable(code);
         QueryList base = reads.list(root);
         if (datasetCode == null) return new Source(root, base, Map.of());
+        if (datasetCode.startsWith(EntityReportDatasetStore.PREFIX)) return adminSource(root, datasetCode);
         EntityReportDataset dataset = declarations.get(datasetCode);
         if (dataset == null || !dataset.rootEntity().equals(code)) throw missing();
         EntityField reference = EntityReportDatasetRules.reference(dataset, root);
@@ -84,6 +148,19 @@ public class EntityReportDatasets {
                         Objects.requireNonNull(reference.options().target()))
                 .orElseThrow(EntityReportDatasets::missing);
         return project(root, base, reference, target, dataset);
+    }
+
+    /** An administrator's dataset over {@code root} (ADR-0044); 404 when there is none or the reader may not read it. */
+    private Source adminSource(EntityDefinition root, String datasetCode) {
+        String code = datasetCode.substring(EntityReportDatasetStore.PREFIX.length());
+        EntityReportDatasetStore datasets = store == null ? null : store.getIfAvailable();
+        if (datasets == null
+                || admin == null
+                || !EntityReportDatasetStore.CODE.matcher(code).matches()) throw missing();
+        var dataset = datasets.find(code)
+                .filter(found -> found.entity().equals(root.code()))
+                .orElseThrow(EntityReportDatasets::missing);
+        return admin.source(root, dataset);
     }
 
     private Source project(

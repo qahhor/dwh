@@ -67,6 +67,8 @@
   }, {
     "name" : "md-org-unit-controller"
   }, {
+    "name" : "md-report-dataset-controller"
+  }, {
     "name" : "md-report-view-controller"
   }, {
     "name" : "md-report-widget-controller"
@@ -12150,6 +12152,332 @@
         "tags" : [ "query-meta-controller" ]
       }
     },
+    "/api/v1/report-datasets" : {
+      "get" : {
+        "description" : "Requires md.report_datasets.view. The newest first; limit 1 to 100 (default 50, else 422).",
+        "operationId" : "reportDatasets",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KeysetPageReportDataset"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List report datasets",
+        "tags" : [ "md-report-dataset-controller" ]
+      },
+      "post" : {
+        "description" : "Requires md.report_datasets.manage. A permanent code, names in ru, uz and en, a source entity the administrator may view, optionally a table of its lines, 1 to 40 fields, a fixed filter of the list's DSL and up to 8 measures computed by formulas over aggregates. 409 for a taken code, 422 at the part to fix or above 100 datasets (8 per entity). Audited.",
+        "operationId" : "createReportDataset",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportDatasetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportDataset"
+                }
+              }
+            },
+            "description" : "Created",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a report dataset",
+        "tags" : [ "md-report-dataset-controller" ]
+      }
+    },
+    "/api/v1/report-datasets/fields" : {
+      "get" : {
+        "description" : "Requires md.report_datasets.manage and the view right of the entity: its list fields and, with lines, each field of a line as line<Key>, as the administrator sees them.",
+        "operationId" : "reportDatasetFields",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "entity",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lines",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ListMeta"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Describe the fields a dataset may offer",
+        "tags" : [ "md-report-dataset-controller" ]
+      }
+    },
+    "/api/v1/report-datasets/{code}" : {
+      "delete" : {
+        "description" : "Requires md.report_datasets.manage and If-Match with its revision (428/409). The saved reports over it are no longer offered; the records are untouched. Audited.",
+        "operationId" : "deleteReportDataset",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Delete a report dataset",
+        "tags" : [ "md-report-dataset-controller" ]
+      },
+      "get" : {
+        "description" : "Requires md.report_datasets.view; its revision as ETag. 404 for an unknown dataset.",
+        "operationId" : "reportDataset",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportDataset"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read a report dataset",
+        "tags" : [ "md-report-dataset-controller" ]
+      },
+      "put" : {
+        "description" : "Requires md.report_datasets.manage and If-Match with its revision (428 without it, 409 when stale). The code never changes. Saved reports over fields it no longer offers are no longer offered to their readers. Audited.",
+        "operationId" : "updateReportDataset",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportDatasetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportDataset"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Change a report dataset",
+        "tags" : [ "md-report-dataset-controller" ]
+      }
+    },
     "/api/v1/report-sharing/roles" : {
       "get" : {
         "description" : "Returns only role identifiers and names under settings-update permission. The default limit is 20, maximum 100; larger limits return 422.",
@@ -19347,6 +19675,30 @@
           }
         }
       },
+      "KeysetPageReportDataset" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportDataset"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "KeysetPageReportViewItem" : {
         "type" : "object",
         "properties" : {
@@ -21596,6 +21948,52 @@
         },
         "required" : [ "grants" ]
       },
+      "ReportDataset" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "entity" : {
+            "type" : "string"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "filter" : {
+            "type" : "array",
+            "additionalProperties" : true
+          },
+          "lines" : {
+            "type" : "string"
+          },
+          "measures" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportDatasetMeasure"
+            }
+          },
+          "modifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "code", "createdAt", "entity", "fields", "filter", "measures", "modifiedAt", "name", "revision" ]
+      },
       "ReportDatasetCatalog" : {
         "type" : "object",
         "properties" : {
@@ -21615,11 +22013,89 @@
           "code" : {
             "type" : "string"
           },
+          "measures" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportDatasetItemMeasure"
+            },
+            "maxItems" : 8
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
           "titleKey" : {
             "type" : "string"
           }
         },
-        "required" : [ "code", "titleKey" ]
+        "required" : [ "code", "measures", "titleKey" ]
+      },
+      "ReportDatasetItemMeasure" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "key", "label" ]
+      },
+      "ReportDatasetMeasure" : {
+        "type" : "object",
+        "properties" : {
+          "formula" : {
+            "type" : "string",
+            "example" : "sum_total / count",
+            "maxLength" : 1000
+          },
+          "key" : {
+            "type" : "string",
+            "pattern" : "[a-z][a-zA-Z0-9]{0,63}"
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "formula", "key", "labels" ]
+      },
+      "ReportDatasetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "pattern" : "[a-z][a-z0-9_]{0,39}"
+          },
+          "entity" : {
+            "type" : "string"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            },
+            "maxItems" : 40,
+            "minItems" : 1
+          },
+          "filter" : {
+            "type" : [ "array", "null" ],
+            "additionalProperties" : true
+          },
+          "lines" : {
+            "type" : "string"
+          },
+          "measures" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportDatasetMeasure"
+            },
+            "maxItems" : 8
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "entity", "fields", "name" ]
       },
       "ReportViewItem" : {
         "type" : "object",

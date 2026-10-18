@@ -147,6 +147,15 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
     void this.router?.navigate(['/settings/form-studio/lists']);
   }
 
+  /** The report datasets open for whoever may read them (ADR-0044). */
+  canOpenDatasets(): boolean {
+    return this.permissions.hasPermission('md.report_datasets', 'view');
+  }
+
+  openDatasets(): void {
+    void this.router?.navigate(['/settings/report-datasets']);
+  }
+
   isTabAvailable(tab: string): tab is SettingsTab {
     switch (tab) {
       case 'general':

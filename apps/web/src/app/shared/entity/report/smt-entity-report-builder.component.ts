@@ -148,7 +148,7 @@ export class SMTEntityReportBuilderComponent {
   readonly reportFilter = computed(() => (this.sources.dataset() ? this.projectedFilter() : this.views().filter()));
   readonly reportMatch = computed(() => (this.sources.dataset() ? this.projectedMatch() : this.views().match()));
   readonly reportMeta = computed(() =>
-    this.sources.dataset() ? (this.sources.projected() ?? { ...this.meta(), fields: [] }) : this.meta(),
+    this.sources.dataset() ? (this.sources.meta() ?? { ...this.meta(), fields: [] }) : this.meta(),
   );
   readonly displayResult = computed(() =>
     JSON.stringify(this.request()) === this.completedRequest() ? this.run().result : null,

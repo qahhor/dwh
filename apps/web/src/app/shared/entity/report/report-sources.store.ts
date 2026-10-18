@@ -2,12 +2,15 @@ import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, Subscription } from 'rxjs';
 import type { ApiSchema } from '@core/api/api-schema';
-import type { QueryListMeta } from '@core/models/query-meta.models';
+import type { QueryFieldMeta, QueryListMeta } from '@core/models/query-meta.models';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
 import { problemText } from '@shared/ui/problem-text';
 
 type ReportDataset = ApiSchema<'ReportDatasetItem'>;
+
+/** The format of a measure a dataset computes by a formula, among the fields of its metadata (ADR-0044). */
+export const FORMULA_FORMAT = 'formula';
 
 /** A projection never silently falls back to a different data source (ADR-0039). */
 @Injectable()
@@ -26,8 +29,35 @@ export class ReportSourcesStore {
 
   readonly options = computed(() => [
     { id: '', label: this.i18n.translate('ui.report.dataset_base') },
-    ...this.catalog().map((item) => ({ id: item.code, label: this.i18n.translate(item.titleKey) })),
+    ...this.catalog().map((item) => ({ id: item.code, label: item.name ?? this.i18n.translate(item.titleKey) })),
   ]);
+
+  /** The metadata of the selected dataset with its computed measures. */
+  readonly meta = computed<QueryListMeta | null>(() => {
+    const projected = this.projected();
+    return projected ? { ...projected, fields: [...projected.fields, ...this.computedFields()] } : null;
+  });
+
+  /**
+   * The measures the selected administrator's dataset computes by formulas (ADR-0044), as fields of its metadata a
+   * measure names: a number nobody filters, groups or sums, its format `formula`.
+   */
+  private readonly computedFields = computed<QueryFieldMeta[]>(() => {
+    const item = this.catalog().find((candidate) => candidate.code === this.dataset());
+    return (item?.measures ?? []).map((measure) => ({
+      key: measure.key,
+      labelKey: '',
+      label: measure.label,
+      type: 'number',
+      ops: [],
+      sortable: false,
+      nullable: true,
+      defaultVisible: false,
+      enumValues: [],
+      enumLabelPrefix: null,
+      format: FORMULA_FORMAT,
+    }));
+  });
 
   private code = '';
   private request?: Subscription;

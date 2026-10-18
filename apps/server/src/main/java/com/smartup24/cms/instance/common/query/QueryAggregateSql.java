@@ -49,9 +49,21 @@ final class QueryAggregateSql {
             columns.add(groups.get(i).sql() + " as " + QueryAggregate.groupColumn(i));
         }
         for (int i = 0; i < measures.size(); i++) {
-            columns.add(measures.get(i).sql(current) + " as " + QueryAggregate.measureColumn(i));
+            Measure measure = measures.get(i);
+            if (measure.computation() != null) {
+                // A computed measure reads its aggregates; the formula combines them in the repository (ADR-0044).
+                List<Measure> bases = measure.computation().bases();
+                for (int j = 0; j < bases.size(); j++) {
+                    columns.add(bases.get(j).sql(current) + " as " + QueryAggregate.baseColumn(i, j, false));
+                    if (compare != null) {
+                        columns.add(bases.get(j).sql(previous) + " as " + QueryAggregate.baseColumn(i, j, true));
+                    }
+                }
+                continue;
+            }
+            columns.add(measure.sql(current) + " as " + QueryAggregate.measureColumn(i));
             if (compare != null) {
-                columns.add(measures.get(i).sql(previous) + " as " + QueryAggregate.previousColumn(i));
+                columns.add(measure.sql(previous) + " as " + QueryAggregate.previousColumn(i));
             }
         }
         String body = " from " + aggregate.list().from() + " where 1=1" + extra.sql() + where.sql() + periods;

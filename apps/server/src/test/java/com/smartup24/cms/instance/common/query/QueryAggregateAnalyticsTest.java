@@ -373,4 +373,42 @@ class QueryAggregateAnalyticsTest {
                         LocalDate.of(2023, 2, 1),
                         LocalDate.of(2023, 2, 28));
     }
+
+    @Test
+    @DisplayName("ADR-0044: a measure computed by a formula over aggregates, per period and per total; empty over zero")
+    void computedMeasures() {
+        List<QueryComputedMeasure> computed = List.of(
+                new QueryComputedMeasure("avgOrder", Map.of("ru", "Средний"), "sum_amount / count"),
+                new QueryComputedMeasure("broken", Map.of("ru", "Ноль"), "sum_amount / (count - count)"),
+                new QueryComputedMeasure("clients", Map.of("ru", "Клиенты"), "distinct_client"));
+        JsonNode node = JSON.readTree("{\"measures\":[{\"op\":\"formula\",\"field\":\"avgOrder\"},"
+                + "{\"op\":\"formula\",\"field\":\"broken\"}],"
+                + "\"compare\":{\"field\":\"day\",\"period\":\"month\"}}");
+        QueryAggregate aggregate = QueryAggregates.compile(
+                LIST, QueryAggregateSpec.ofState(node, null).withComputed(computed), MARCH_20);
+        QueryAggregateResult result = tx.execute(
+                status -> new QueryAggregateRepository(jdbc).run(aggregate, new QueryPlan.SqlFragment("", Map.of())));
+        assertThat(result.measures().getFirst())
+                .isEqualTo(new AggregateMeasure("formula", "avgOrder", null, "current"));
+        assertThat(result.rows().getFirst().values())
+                .containsExactly(dec("55"), dec("40"), dec("15"), dec("37.50"), null, null, null, null);
+
+        JsonNode grouped = JSON.readTree("{\"groupBy\":[{\"field\":\"region\"}],\"totals\":true,"
+                + "\"measures\":[{\"op\":\"formula\",\"field\":\"clients\"}]}");
+        QueryAggregate byRegion = QueryAggregates.compile(
+                LIST, QueryAggregateSpec.ofState(grouped, null).withComputed(computed), MARCH_20);
+        QueryAggregateResult totals = tx.execute(
+                status -> new QueryAggregateRepository(jdbc).run(byRegion, new QueryPlan.SqlFragment("", Map.of())));
+        assertThat(totals.totals().getFirst().values()).containsExactly(dec("6"));
+
+        ApiException unknown = catchThrowableOfType(
+                ApiException.class,
+                () -> QueryAggregates.compile(
+                        LIST,
+                        QueryAggregateSpec.ofState(
+                                        JSON.readTree("{\"measures\":[{\"op\":\"formula\",\"field\":\"none\"}]}"), null)
+                                .withComputed(computed),
+                        MARCH_20));
+        assertThat(unknown.getFieldErrors()).extracting(FieldErrorItem::field).containsExactly("measures[0].field");
+    }
 }

@@ -17,8 +17,8 @@ export type ReportTrunc = 'day' | 'week' | 'month' | 'quarter' | 'year';
 export const REPORT_TRUNCS: readonly ReportTrunc[] = ['day', 'week', 'month', 'quarter', 'year'];
 
 /** What a group answers: the count of its records or of a field's different values, or a figure of a number or of money. */
-export type ReportOp = 'count' | 'count_distinct' | 'sum' | 'avg' | 'min' | 'max';
-export const REPORT_OPS: readonly ReportOp[] = ['count', 'count_distinct', 'sum', 'avg', 'min', 'max'];
+export type ReportOp = 'count' | 'count_distinct' | 'sum' | 'avg' | 'min' | 'max' | 'formula';
+export const REPORT_OPS: readonly ReportOp[] = ['count', 'count_distinct', 'sum', 'avg', 'min', 'max', 'formula'];
 
 /** How a report is drawn: a table, bars (it needs a grouping) or one figure (it has none). */
 export type ReportChart = 'table' | 'bar' | 'kpi' | 'line' | 'horizontalBar';

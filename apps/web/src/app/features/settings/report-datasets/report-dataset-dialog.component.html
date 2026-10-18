@@ -1,0 +1,192 @@
+<smt-dialog
+  [open]="true"
+  [smtTitle]="(creating() ? 'md.report_datasets.new' : 'md.report_datasets.edit') | t"
+  smtSize="lg"
+  [dismissible]="!busy()"
+  (closed)="closed.emit()"
+>
+  <ng-template smtDialogContent>
+    <form
+      id="report-dataset-form"
+      class="dataset-form"
+      uiFocusFirstInvalid
+      novalidate
+      data-testid="report-dataset-form"
+      (submit)="$event.preventDefault(); submit()"
+    >
+      @if (alert()) {
+        <div class="dataset-alert" role="alert" data-testid="report-dataset-alert">{{ alert() }}</div>
+      }
+      @if (creating()) {
+        <smt-control
+          [smtLabel]="'md.report_datasets.code' | t"
+          [smtHint]="'md.report_datasets.code_hint' | t"
+          [smtError]="error('code')"
+          [required]="true"
+        >
+          <smt-input
+            smtFieldId="report-dataset-code"
+            smtTestId="report-dataset-code"
+            smtFocusInitial
+            [value]="code()"
+            (valueChange)="code.set($event === null ? '' : '' + $event)"
+          />
+        </smt-control>
+      }
+      <div class="dataset-names">
+        <smt-control [smtLabel]="'settings.form_studio.labels.ru' | t" [smtError]="error('name.ru')" [required]="true">
+          <smt-input smtFieldId="report-dataset-ru" [value]="names().ru" (valueChange)="setName('ru', $event)" />
+        </smt-control>
+        <smt-control [smtLabel]="'settings.form_studio.labels.uz' | t" [smtError]="error('name.uz')" [required]="true">
+          <smt-input smtFieldId="report-dataset-uz" [value]="names().uz" (valueChange)="setName('uz', $event)" />
+        </smt-control>
+        <smt-control [smtLabel]="'settings.form_studio.labels.en' | t" [smtError]="error('name.en')" [required]="true">
+          <smt-input smtFieldId="report-dataset-en" [value]="names().en" (valueChange)="setName('en', $event)" />
+        </smt-control>
+      </div>
+      <div class="dataset-row">
+        <smt-control [smtLabel]="'md.report_datasets.entity' | t" [smtError]="error('entity')" [required]="true">
+          <smt-select
+            smtTriggerId="report-dataset-entity"
+            data-testid="report-dataset-entity"
+            [options]="entityOptions()"
+            [disabled]="!creating()"
+            [value]="entity()"
+            (valueChange)="setEntity($event)"
+          />
+        </smt-control>
+        <smt-control
+          [smtLabel]="'md.report_datasets.lines' | t"
+          [smtHint]="'md.report_datasets.lines_hint' | t"
+          [smtError]="error('lines')"
+        >
+          <smt-select
+            smtTriggerId="report-dataset-lines"
+            data-testid="report-dataset-lines"
+            [options]="lineOptions()"
+            [placeholder]="'md.report_datasets.lines_none' | t"
+            [disabled]="!entity() || lineOptions().length === 0"
+            [value]="lines()"
+            (valueChange)="setLines($event)"
+          />
+        </smt-control>
+      </div>
+      <smt-control
+        [smtLabel]="'md.report_datasets.fields' | t"
+        [smtHint]="'md.report_datasets.fields_hint' | t"
+        [smtError]="error('fields')"
+        [required]="true"
+      >
+        <smt-multi-select
+          data-testid="report-dataset-fields"
+          [options]="fieldOptions()"
+          [ariaLabel]="'md.report_datasets.fields' | t"
+          [disabled]="!meta()"
+          [value]="fields()"
+          (valueChange)="fields.set([...$event])"
+        />
+      </smt-control>
+      @if (meta(); as list) {
+        <div class="dataset-filter">
+          <h3>{{ 'md.report_datasets.filter' | t }}</h3>
+          <p class="dataset-hint">{{ 'md.report_datasets.filter_hint' | t }}</p>
+          <ui-filter-bar
+            [meta]="list"
+            [conditions]="conditions()"
+            [match]="match()"
+            (conditionsChange)="setFilter($event)"
+            (filterChange)="setFilter($event.conditions, $event.match)"
+          />
+        </div>
+      }
+      <fieldset class="dataset-measures">
+        <legend>{{ 'md.report_datasets.measures' | t }}</legend>
+        <p class="dataset-hint">{{ 'md.report_datasets.measures_hint' | t }}</p>
+        @for (measure of measures(); track $index; let i = $index) {
+          <div
+            class="dataset-measure"
+            role="group"
+            [attr.aria-label]="'md.report_datasets.measure_n' | t: { n: i + 1 }"
+          >
+            <smt-control
+              [smtLabel]="'md.report_datasets.measure_key' | t"
+              [smtError]="error('measures[' + i + '].key')"
+            >
+              <smt-input
+                [smtFieldId]="'report-dataset-measure-key-' + i"
+                [value]="measure.key"
+                (valueChange)="setMeasure(i, 'key', $event)"
+              />
+            </smt-control>
+            <smt-control
+              [smtLabel]="'settings.form_studio.labels.ru' | t"
+              [smtError]="error('measures[' + i + '].labels')"
+            >
+              <smt-input
+                [smtFieldId]="'report-dataset-measure-ru-' + i"
+                [value]="measure.labels.ru"
+                (valueChange)="setMeasure(i, 'ru', $event)"
+              />
+            </smt-control>
+            <smt-control [smtLabel]="'settings.form_studio.labels.uz' | t">
+              <smt-input
+                [smtFieldId]="'report-dataset-measure-uz-' + i"
+                [value]="measure.labels.uz"
+                (valueChange)="setMeasure(i, 'uz', $event)"
+              />
+            </smt-control>
+            <smt-control [smtLabel]="'settings.form_studio.labels.en' | t">
+              <smt-input
+                [smtFieldId]="'report-dataset-measure-en-' + i"
+                [value]="measure.labels.en"
+                (valueChange)="setMeasure(i, 'en', $event)"
+              />
+            </smt-control>
+            <smt-control
+              class="dataset-formula"
+              [smtLabel]="'md.report_datasets.measure_formula' | t"
+              [smtError]="error('measures[' + i + '].formula')"
+            >
+              <smt-textarea
+                [smtFieldId]="'report-dataset-measure-formula-' + i"
+                [value]="measure.formula"
+                (valueChange)="setMeasure(i, 'formula', $event)"
+              />
+            </smt-control>
+            <button
+              smt-button
+              type="button"
+              smtVariant="ghost"
+              smtSize="sm"
+              smtIcon="close"
+              smtIconOnly
+              [attr.aria-label]="'md.report_datasets.measure_remove' | t: { n: i + 1 }"
+              (click)="removeMeasure(i)"
+            ></button>
+          </div>
+        }
+        <div>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="add"
+            data-testid="report-dataset-measure-add"
+            [disabled]="measures().length >= maxMeasures"
+            (click)="addMeasure()"
+          >
+            {{ 'md.report_datasets.measure_add' | t }}
+          </button>
+        </div>
+      </fieldset>
+    </form>
+    <ui-form-actions
+      footer
+      form="report-dataset-form"
+      data-testid="report-dataset-actions"
+      [submitting]="busy()"
+      (cancelled)="closed.emit()"
+    />
+  </ng-template>
+</smt-dialog>

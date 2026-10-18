@@ -33,6 +33,18 @@
         {{ 'studio.lists.title' | t }}
       </button>
     }
+    @if (canOpenDatasets()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtIcon="dataset"
+        data-testid="settings-report-datasets"
+        (click)="openDatasets()"
+      >
+        {{ 'md.report_datasets.title' | t }}
+      </button>
+    }
     <button
       smt-button
       type="button"

@@ -1,18 +1,25 @@
 package com.smartup24.cms.instance.common.query;
 
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.formula.FormulaFailure;
+import com.smartup24.cms.instance.common.formula.FormulaScope;
 import com.smartup24.cms.instance.common.jdbc.StatementTimeouts;
+import com.smartup24.cms.instance.common.query.QueryAggregate.Computation;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Group;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Measure;
 import com.smartup24.cms.instance.common.query.QueryAggregateResult.AggregateGroup;
 import com.smartup24.cms.instance.common.query.QueryAggregateResult.AggregateRow;
 import com.smartup24.cms.instance.common.query.QueryAggregateResult.AggregateTotal;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -39,6 +46,9 @@ public class QueryAggregateRepository {
 
     public static final String COLUMN = "column";
     public static final String GRAND = "grand";
+
+    /** A computed measure reads only numbers: neither the zone nor the time takes part. */
+    private static final FormulaScope FORMULA_SCOPE = new FormulaScope(ZoneOffset.UTC, Instant.EPOCH);
 
     /** The SQL state of a statement cancelled by its time limit. */
     private static final String QUERY_CANCELED = "57014";
@@ -129,9 +139,13 @@ public class QueryAggregateRepository {
         List<@Nullable Object> values = new ArrayList<>();
         for (int i = 0; i < aggregate.measures().size(); i++) {
             Measure measure = aggregate.measures().get(i);
-            Object current = measureValue(rs, QueryAggregate.measureColumn(i), measure);
+            Object current = measure.computation() != null
+                    ? computed(rs, i, measure.computation(), false)
+                    : measureValue(rs, QueryAggregate.measureColumn(i), measure);
             if (compared) {
-                Object previous = measureValue(rs, QueryAggregate.previousColumn(i), measure);
+                Object previous = measure.computation() != null
+                        ? computed(rs, i, measure.computation(), true)
+                        : measureValue(rs, QueryAggregate.previousColumn(i), measure);
                 values.addAll(QueryAggregateFinish.periods(measure, current, previous));
             } else {
                 values.add(current);
@@ -139,6 +153,28 @@ public class QueryAggregateRepository {
         }
         int total = aggregate.totaled() ? rs.getInt("q_t") : 0;
         return new Read(total, new AggregateRow(groups, values, Collections.nCopies(groups.size(), null)));
+    }
+
+    /**
+     * A computed measure over the aggregates of its row (ADR-0044): an empty aggregate is an empty value of the formula,
+     * and a formula that cannot give a value — a division by zero — gives an empty one.
+     */
+    private static @Nullable Object computed(ResultSet rs, int index, Computation computation, boolean previous)
+            throws SQLException {
+        Map<String, Object> values = new HashMap<>();
+        for (int j = 0; j < computation.bases().size(); j++) {
+            Object value = measureValue(
+                    rs,
+                    QueryAggregate.baseColumn(index, j, previous),
+                    computation.bases().get(j));
+            if (value != null) values.put(computation.names().get(j), QueryAggregateFinish.decimal(value));
+        }
+        try {
+            Object value = computation.formula().evaluate(values::get, FORMULA_SCOPE);
+            return value instanceof BigDecimal number ? number : null;
+        } catch (FormulaFailure empty) {
+            return null;
+        }
     }
 
     private static @Nullable Object measureValue(ResultSet rs, String column, Measure measure) throws SQLException {

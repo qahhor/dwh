@@ -1,0 +1,47 @@
+.dataset-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dataset-names,
+.dataset-row,
+.dataset-measure {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.dataset-formula {
+  grid-column: 1 / -1;
+}
+.dataset-measures {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.dataset-measures legend,
+.dataset-filter h3 {
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.dataset-measure {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+.dataset-hint {
+  margin: 4px 0 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.dataset-alert {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}

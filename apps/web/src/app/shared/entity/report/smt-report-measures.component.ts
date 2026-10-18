@@ -5,7 +5,7 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTSelectComponent, type SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { MAX_MEASURES, REPORT_OPS, emptyReport, measurable, type ReportMeasure, type ReportOp } from './entity-reports';
-import { countable, type ReportShare } from './report-analytics';
+import { computedMeasure, countable, type ReportShare } from './report-analytics';
 
 /**
  * The measures of a report in the builder (ADR-0032 10.2; ADR-0044): up to four, each a count, a count of a field's
@@ -43,13 +43,18 @@ export class SMTReportMeasuresComponent {
   readonly distinctOptions = computed<SMTSelectOption<string>[]>(() =>
     this.options(this.meta().fields.filter(countable)),
   );
+  /** The measures the dataset computes by formulas (ADR-0044). */
+  readonly formulaOptions = computed<SMTSelectOption<string>[]>(() =>
+    this.options(this.meta().fields.filter(computedMeasure)),
+  );
   readonly opOptions = computed<SMTSelectOption<ReportOp>[]>(() => {
     this.i18n.currentLang();
     const numbers = this.measureOptions().length > 0;
     return REPORT_OPS.map((op) => ({
       id: op,
       label: this.i18n.translate(`ui.report.op.${op}`),
-      disabled: op !== 'count' && op !== 'count_distinct' && !numbers,
+      disabled:
+        op === 'formula' ? this.formulaOptions().length === 0 : op !== 'count' && op !== 'count_distinct' && !numbers,
     }));
   });
   readonly shareOptions = computed<SMTSelectOption<ReportShare>[]>(() => {
@@ -67,7 +72,7 @@ export class SMTReportMeasuresComponent {
         !this.locked() &&
         this.ready() &&
         this.measureOptions().length === 0 &&
-        this.measures().some((measure) => measure.op !== 'count' && measure.op !== 'count_distinct')
+        this.measures().some((measure) => !['count', 'count_distinct', 'formula'].includes(measure.op))
       ) {
         this.measures.set(emptyReport().measures);
       }
@@ -95,6 +100,7 @@ export class SMTReportMeasuresComponent {
   }
 
   fieldOptions(measure: ReportMeasure): SMTSelectOption<string>[] {
+    if (measure.op === 'formula') return this.formulaOptions();
     return measure.op === 'count_distinct' ? this.distinctOptions() : this.measureOptions();
   }
 
@@ -103,7 +109,7 @@ export class SMTReportMeasuresComponent {
     const chosen = op ?? 'count';
     this.update(index, (measure) => {
       if (chosen === 'count') return { op: 'count', ...(measure.share ? { share: measure.share } : {}) };
-      const options = chosen === 'count_distinct' ? this.distinctOptions() : this.measureOptions();
+      const options = this.fieldOptions({ op: chosen });
       const field = options.some((option) => option.id === measure.field) ? measure.field : options[0]?.id;
       const share = chosen === 'sum' && measure.share ? { share: measure.share } : {};
       return { op: chosen, ...(field ? { field } : {}), ...share };

@@ -88,7 +88,14 @@ export function parameterKind(field: QueryFieldMeta | undefined): ParameterKind 
 
 /** A field whose different values can be counted: a plain value, a choice or a reference. */
 export function countable(field: QueryFieldMeta): boolean {
-  return ['enum', 'boolean', 'number', 'text', 'date', 'instant', 'time'].includes(field.type);
+  return (
+    field.format !== 'formula' && ['enum', 'boolean', 'number', 'text', 'date', 'instant', 'time'].includes(field.type)
+  );
+}
+
+/** A measure an administrator's dataset computes by a formula over aggregates (ADR-0044). */
+export function computedMeasure(field: QueryFieldMeta): boolean {
+  return field.format === 'formula';
 }
 
 /** A field a comparison may place records in periods by: a date or a moment it can filter by. */

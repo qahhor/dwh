@@ -60,7 +60,9 @@ public record QueryAggregate(
         SUM,
         AVG,
         MIN,
-        MAX;
+        MAX,
+        /** A measure of a dataset computed by a formula over aggregates (ADR-0044). */
+        FORMULA;
 
         public String wire() {
             return name().toLowerCase(Locale.ROOT);
@@ -127,16 +129,27 @@ public record QueryAggregate(
      * count or sum is (ADR-0044).
      */
     public record Measure(
-            Op op, @Nullable QueryField field, @Nullable Share share) {
+            Op op,
+            @Nullable QueryField field,
+            @Nullable Share share,
+            @Nullable Computation computation) {
 
         public Measure(Op op, @Nullable QueryField field) {
-            this(op, field, null);
+            this(op, field, null, null);
+        }
+
+        public Measure(Op op, @Nullable QueryField field, @Nullable Share share) {
+            this(op, field, share, null);
         }
 
         public Measure {
             Objects.requireNonNull(op, "op");
-            if ((op == Op.COUNT) != (field == null)) {
+            boolean fieldless = op == Op.COUNT || op == Op.FORMULA;
+            if (fieldless != (field == null)) {
                 throw new IllegalArgumentException("Measure " + op.wire() + ": only count goes without a field");
+            }
+            if ((op == Op.FORMULA) != (computation != null)) {
+                throw new IllegalArgumentException("Measure " + op.wire() + ": a formula goes with its computation");
             }
             if (share != null && op != Op.COUNT && op != Op.SUM) {
                 throw new IllegalArgumentException("Measure " + op.wire() + ": only a count or a sum has a share");
@@ -151,6 +164,7 @@ public record QueryAggregate(
         String sql(@Nullable String condition) {
             String only = condition == null ? "" : " filter (where " + condition + ")";
             if (op == Op.COUNT) return "count(*)" + only;
+            if (op == Op.FORMULA) throw new IllegalStateException("A formula reads the columns of its aggregates");
             String value = Objects.requireNonNull(field, "field").sql();
             return switch (op) {
                 case COUNT_DISTINCT -> "count(distinct " + value + ")" + only;
@@ -158,7 +172,7 @@ public record QueryAggregate(
                 case AVG -> "round(avg(" + value + ")" + only + ", 4)";
                 case MIN -> "min(" + value + ")" + only;
                 case MAX -> "max(" + value + ")" + only;
-                case COUNT -> throw new IllegalStateException("count has no field");
+                case COUNT, FORMULA -> throw new IllegalStateException(op.wire() + " has no field");
             };
         }
 
@@ -167,10 +181,38 @@ public record QueryAggregate(
             return op == Op.COUNT || op == Op.COUNT_DISTINCT;
         }
 
-        /** The field's key, or null for {@code count}. */
+        /** The field's key, the key of a computed measure, or null for {@code count}. */
         public @Nullable String fieldKey() {
+            if (computation != null) return computation.key();
             return field == null ? null : field.key();
         }
+    }
+
+    /**
+     * A measure of a dataset computed by a formula (ADR-0044): the aggregates it reads, in the order of their names.
+     *
+     * @param key     the computed measure's key
+     * @param formula the checked formula
+     * @param bases   the aggregates, each read as a column of the statement
+     * @param names   the names the formula reads them by ({@code sum_total})
+     */
+    public record Computation(
+            String key,
+            com.smartup24.cms.instance.common.formula.Formula formula,
+            List<Measure> bases,
+            List<String> names) {
+        public Computation {
+            Objects.requireNonNull(key, "key");
+            Objects.requireNonNull(formula, "formula");
+            bases = List.copyOf(bases);
+            names = List.copyOf(names);
+            if (bases.size() != names.size()) throw new IllegalArgumentException("Every aggregate has its name");
+        }
+    }
+
+    /** The column of the {@code j}-th aggregate of the formula of the {@code i}-th measure. */
+    static String baseColumn(int i, int j, boolean previous) {
+        return (previous ? "q_p" : "q_m") + i + "_" + j;
     }
 
     /** What the groups are ordered by: their values, their words or a measure. */

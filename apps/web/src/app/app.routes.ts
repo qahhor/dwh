@@ -163,6 +163,15 @@ export const routes: Routes = [
           import('./features/settings/form-studio/lists/studio-lists.component').then((m) => m.StudioListsComponent),
       },
       {
+        // The datasets administrators define for reports (ADR-0044).
+        path: 'settings/report-datasets',
+        canActivate: [permissionGuard('md.report_datasets', 'view')],
+        loadComponent: () =>
+          import('./features/settings/report-datasets/report-datasets.component').then(
+            (m) => m.ReportDatasetsComponent,
+          ),
+      },
+      {
         path: 'settings/form-studio/forms/:code/version',
         canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.forms', 'publish')],
         canDeactivate: [recordNavigationGuard],

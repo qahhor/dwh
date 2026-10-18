@@ -64,7 +64,14 @@ class ReportDatasetHttpTest extends EmbeddedPostgresTest {
         status(catalog, 200);
         assertThat(TestSession.object(catalog))
                 .isEqualTo(Map.of(
-                        "items", List.of(Map.of("code", DATASET, "titleKey", "example.requests.col.product_id"))));
+                        "items",
+                        List.of(Map.of(
+                                "code",
+                                DATASET,
+                                "titleKey",
+                                "example.requests.col.product_id",
+                                "measures",
+                                List.of()))));
         var meta = session.send(get(PATH + "/report-meta").param("dataset", DATASET));
         status(meta, 200);
         assertThat(meta.getContentAsString()).contains("productUnit", "pcs", "nullable\":true");

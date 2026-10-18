@@ -3248,6 +3248,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/report-datasets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List report datasets
+         * @description Requires md.report_datasets.view. The newest first; limit 1 to 100 (default 50, else 422).
+         */
+        get: operations["reportDatasets"];
+        put?: never;
+        /**
+         * Create a report dataset
+         * @description Requires md.report_datasets.manage. A permanent code, names in ru, uz and en, a source entity the administrator may view, optionally a table of its lines, 1 to 40 fields, a fixed filter of the list's DSL and up to 8 measures computed by formulas over aggregates. 409 for a taken code, 422 at the part to fix or above 100 datasets (8 per entity). Audited.
+         */
+        post: operations["createReportDataset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-datasets/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Describe the fields a dataset may offer
+         * @description Requires md.report_datasets.manage and the view right of the entity: its list fields and, with lines, each field of a line as line<Key>, as the administrator sees them.
+         */
+        get: operations["reportDatasetFields"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-datasets/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a report dataset
+         * @description Requires md.report_datasets.view; its revision as ETag. 404 for an unknown dataset.
+         */
+        get: operations["reportDataset"];
+        /**
+         * Change a report dataset
+         * @description Requires md.report_datasets.manage and If-Match with its revision (428 without it, 409 when stale). The code never changes. Saved reports over fields it no longer offers are no longer offered to their readers. Audited.
+         */
+        put: operations["updateReportDataset"];
+        post?: never;
+        /**
+         * Delete a report dataset
+         * @description Requires md.report_datasets.manage and If-Match with its revision (428/409). The saved reports over it are no longer offered; the records are untouched. Audited.
+         */
+        delete: operations["deleteReportDataset"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/report-sharing/roles": {
         parameters: {
             query?: never;
@@ -5752,6 +5824,14 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageReportDataset: {
+            hasMore?: boolean;
+            items?: components["schemas"]["ReportDataset"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageReportViewItem: {
             hasMore?: boolean;
             items?: components["schemas"]["ReportViewItem"][];
@@ -6617,12 +6697,48 @@ export interface components {
         ReplacePermissionsDto: {
             grants: components["schemas"]["GrantDto"][];
         };
+        ReportDataset: {
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            entity: string;
+            fields: string[];
+            filter: unknown[];
+            lines?: string;
+            measures: components["schemas"]["ReportDatasetMeasure"][];
+            /** Format: date-time */
+            modifiedAt: string;
+            name: components["schemas"]["SimpleFormLabels"];
+            /** Format: int64 */
+            revision: number;
+        };
         ReportDatasetCatalog: {
             items: components["schemas"]["ReportDatasetItem"][];
         };
         ReportDatasetItem: {
             code: string;
+            measures: components["schemas"]["ReportDatasetItemMeasure"][];
+            name?: string | null;
             titleKey: string;
+        };
+        ReportDatasetItemMeasure: {
+            key: string;
+            label: string;
+        };
+        ReportDatasetMeasure: {
+            /** @example sum_total / count */
+            formula: string;
+            key: string;
+            labels: components["schemas"]["SimpleFormLabels"];
+        };
+        ReportDatasetRequest: {
+            code?: string;
+            entity: string;
+            fields: string[];
+            filter?: unknown[] | null;
+            lines?: string;
+            measures?: components["schemas"]["ReportDatasetMeasure"][];
+            name: components["schemas"]["SimpleFormLabels"];
         };
         ReportViewItem: {
             canEdit: boolean;
@@ -15883,6 +15999,246 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListMeta"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    reportDatasets: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageReportDataset"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createReportDataset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportDatasetRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDataset"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    reportDatasetFields: {
+        parameters: {
+            query: {
+                entity: string;
+                lines?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListMeta"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    reportDataset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDataset"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    updateReportDataset: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportDatasetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportDataset"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    deleteReportDataset: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */

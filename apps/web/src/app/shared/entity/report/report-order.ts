@@ -39,6 +39,8 @@ export function sortOptions(
     { id: 'label:asc', label: translate('ui.report.sort_label_asc') },
     { id: 'label:desc', label: translate('ui.report.sort_label_desc') },
     ...measures.flatMap((measure, index) => {
+      // A measure computed by a formula is not ordered by (ADR-0044): the statement does not hold its values.
+      if (measure.op === 'formula') return [];
       const name = measureLabel(measure, meta, (key) => translate(key));
       return [
         { id: 'measure:' + index + ':desc', label: translate('ui.report.sort_measure_desc', { measure: name }) },

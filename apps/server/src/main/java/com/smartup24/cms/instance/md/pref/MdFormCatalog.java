@@ -225,6 +225,13 @@ public final class MdFormCatalog {
                         "studio.lists.rights.form",
                         ordered("view", "studio.lists.rights.view", "manage", "studio.lists.rights.manage")));
         forms.put(
+                "md.report_datasets",
+                new FormMeta(
+                        "md.report_datasets.rights.form",
+                        ordered(
+                                "view", "md.report_datasets.rights.view",
+                                "manage", "md.report_datasets.rights.manage")));
+        forms.put(
                 "webhook.subscriptions",
                 new FormMeta(
                         "webhook.subscriptions.rights.form",

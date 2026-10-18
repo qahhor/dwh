@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.web.RequestZone;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -27,7 +28,30 @@ public record QueryAggregateSpec(
         @Nullable JsonNode limit,
         @Nullable JsonNode pivot,
         @Nullable JsonNode totals,
-        @Nullable JsonNode compare) {
+        @Nullable JsonNode compare,
+        List<QueryComputedMeasure> computed) {
+
+    public QueryAggregateSpec {
+        computed = List.copyOf(computed);
+    }
+
+    /** A report without measures computed by formulas. */
+    public QueryAggregateSpec(
+            @Nullable JsonNode groupBy,
+            @Nullable JsonNode measures,
+            @Nullable String filter,
+            @Nullable JsonNode sort,
+            @Nullable JsonNode limit,
+            @Nullable JsonNode pivot,
+            @Nullable JsonNode totals,
+            @Nullable JsonNode compare) {
+        this(groupBy, measures, filter, sort, limit, pivot, totals, compare, List.of());
+    }
+
+    /** The same report able to name the measures a dataset computes by formulas (ADR-0044). */
+    public QueryAggregateSpec withComputed(List<QueryComputedMeasure> measures) {
+        return new QueryAggregateSpec(groupBy, measures(), filter, sort, limit, pivot, totals, compare, measures);
+    }
 
     /** A flat report: groups, measures and a filter, ordered and cut as asked. */
     public static QueryAggregateSpec flat(
@@ -54,7 +78,7 @@ public record QueryAggregateSpec(
 
     /** The same report over another filter. */
     public QueryAggregateSpec withFilter(@Nullable String other) {
-        return new QueryAggregateSpec(groupBy, measures, other, sort, limit, pivot, totals, compare);
+        return new QueryAggregateSpec(groupBy, measures, other, sort, limit, pivot, totals, compare, computed);
     }
 
     /**

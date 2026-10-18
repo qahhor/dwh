@@ -5,7 +5,6 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Group;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Measure;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Op;
-import com.smartup24.cms.instance.common.query.QueryAggregate.Share;
 import com.smartup24.cms.instance.common.query.QueryAggregate.Trunc;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -54,7 +53,6 @@ public final class QueryAggregates {
     public static final String CURRENCY_SUFFIX = "Currency";
 
     private static final Set<String> GROUP_KEYS = Set.of("field", "trunc");
-    private static final Set<String> MEASURE_KEYS = Set.of("op", "field", "share");
 
     /** A static compiler reads the client's JSON text with the shared default mapper (plan 10/10, item 3.11). */
     private static final JsonMapper JSON = JsonMapper.shared();
@@ -142,9 +140,14 @@ public final class QueryAggregates {
     public static QueryAggregate compile(QueryList list, QueryAggregateSpec spec, QueryAggregateSpec.Anchor anchor) {
         List<FieldErrorItem> errors = new ArrayList<>();
         List<Group> groups = groups(list, spec.groupBy(), errors);
-        List<Measure> parsed = measures(list, spec.measures(), errors);
+        List<Measure> parsed = QueryAggregateMeasures.parse(list, spec.measures(), spec.computed(), errors);
         QueryAggregate.Order order =
                 QueryAggregateOrders.order(spec.sort(), spec.limit(), groups.size(), parsed.size(), errors);
+        if (order.by() == QueryAggregate.By.MEASURE
+                && order.measure() < parsed.size()
+                && parsed.get(order.measure()).op() == Op.FORMULA) {
+            errors.add(FieldErrorItem.keyed("sort.measure", REPORT_INVALID, "error.common.field_report_sort_formula"));
+        }
         QueryAggregateShape shape = QueryAggregateShapes.shape(list, spec, groups, parsed, anchor, errors);
         String filter = spec.filter();
         QueryPlan plan = null;
@@ -226,105 +229,8 @@ public final class QueryAggregates {
         return Optional.of(new Group(field, trunc.get(), false));
     }
 
-    private static List<Measure> measures(QueryList list, @Nullable JsonNode node, List<FieldErrorItem> errors) {
-        List<Measure> measures = new ArrayList<>();
-        if (node == null || node.isNull() || (node.isArray() && node.isEmpty())) {
-            measures.add(new Measure(Op.COUNT, null));
-            return measures;
-        }
-        if (!node.isArray()) {
-            errors.add(FieldErrorItem.keyed("measures", REPORT_INVALID, "error.common.field_report_not_array"));
-            return measures;
-        }
-        if (node.size() > MAX_MEASURES) {
-            errors.add(FieldErrorItem.keyed(
-                    "measures",
-                    REPORT_INVALID,
-                    "error.common.field_report_measures_too_many",
-                    Map.of("max", MAX_MEASURES)));
-            return measures;
-        }
-        Set<String> seen = new HashSet<>();
-        for (int i = 0; i < node.size(); i++) {
-            String at = "measures[" + i + "]";
-            JsonNode item = node.get(i);
-            if (!item.isObject()) {
-                errors.add(FieldErrorItem.keyed(at, REPORT_INVALID, "error.common.field_report_item_invalid"));
-                continue;
-            }
-            if (!knownKeys(item, MEASURE_KEYS, at, errors)) continue;
-            Optional<Measure> measure = measure(list, item, at, errors);
-            if (measure.isEmpty()) continue;
-            Share share = measure.get().share();
-            if (!seen.add(measure.get().op().wire() + ":" + measure.get().fieldKey() + ":" + share)) {
-                errors.add(FieldErrorItem.keyed(at, REPORT_INVALID, "error.common.field_report_repeated"));
-                continue;
-            }
-            measures.add(measure.get());
-        }
-        return measures;
-    }
-
-    private static Optional<Measure> measure(QueryList list, JsonNode item, String at, List<FieldErrorItem> errors) {
-        JsonNode opNode = item.get("op");
-        Optional<Op> op = opNode != null && opNode.isString() ? Op.fromWire(opNode.asString()) : Optional.empty();
-        if (op.isEmpty()) {
-            errors.add(FieldErrorItem.keyed(at + ".op", REPORT_INVALID, "error.common.field_report_op_invalid"));
-            return Optional.empty();
-        }
-        int problems = errors.size();
-        Share share = share(item, op.get(), at, errors);
-        if (errors.size() > problems) return Optional.empty();
-        JsonNode fieldNode = item.get("field");
-        boolean hasField = fieldNode != null && !fieldNode.isNull();
-        if (op.get() == Op.COUNT) {
-            if (hasField) {
-                errors.add(
-                        FieldErrorItem.keyed(at + ".field", REPORT_INVALID, "error.common.field_report_count_field"));
-                return Optional.empty();
-            }
-            return Optional.of(new Measure(Op.COUNT, null, share));
-        }
-        Optional<QueryField> found = viewerField(list, item, at, errors);
-        if (found.isEmpty()) return Optional.empty();
-        if (op.get() == Op.COUNT_DISTINCT) {
-            if (countable(found.get())) return Optional.of(new Measure(Op.COUNT_DISTINCT, found.get()));
-            errors.add(FieldErrorItem.keyed(
-                    at + ".field",
-                    REPORT_INVALID,
-                    "error.common.field_report_distinct_invalid",
-                    Map.of("field", found.get().key())));
-            return Optional.empty();
-        }
-        if (!measurable(found.get())) {
-            errors.add(FieldErrorItem.keyed(
-                    at + ".field",
-                    REPORT_INVALID,
-                    "error.common.field_report_measure_invalid",
-                    Map.of("field", found.get().key())));
-            return Optional.empty();
-        }
-        return Optional.of(new Measure(op.get(), found.get(), share));
-    }
-
-    /**
-     * The share a measure asks for, null without one; a problem goes to {@code errors} — only a count or a sum is a part
-     * of a total (ADR-0044).
-     */
-    private static @Nullable Share share(JsonNode item, Op op, String at, List<FieldErrorItem> errors) {
-        JsonNode node = item.get("share");
-        if (node == null || node.isNull()) return null;
-        Optional<Share> share = node.isString() ? Share.fromWire(node.asString()) : Optional.empty();
-        if (share.isEmpty() || (op != Op.COUNT && op != Op.SUM)) {
-            errors.add(FieldErrorItem.keyed(at + ".share", REPORT_INVALID, "error.common.field_report_share_invalid"));
-            return null;
-        }
-        return share.get();
-    }
-
     /** The field named by {@code item.field} if the viewer can see it; a hidden field answers as a missing one. */
-    private static Optional<QueryField> viewerField(
-            QueryList list, JsonNode item, String at, List<FieldErrorItem> errors) {
+    static Optional<QueryField> viewerField(QueryList list, JsonNode item, String at, List<FieldErrorItem> errors) {
         JsonNode keyNode = item.get("field");
         String key = keyNode != null && keyNode.isString() ? keyNode.asString() : "";
         Optional<QueryField> found = list.viewerField(key);
@@ -371,7 +277,7 @@ public final class QueryAggregates {
                 .map(currency -> new Group(currency, null, true));
     }
 
-    private static boolean knownKeys(JsonNode item, Set<String> keys, String at, List<FieldErrorItem> errors) {
+    static boolean knownKeys(JsonNode item, Set<String> keys, String at, List<FieldErrorItem> errors) {
         boolean known = true;
         for (Map.Entry<String, JsonNode> entry : item.properties()) {
             if (!keys.contains(entry.getKey())) {

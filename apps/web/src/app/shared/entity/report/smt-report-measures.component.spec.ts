@@ -77,4 +77,22 @@ describe('smt-report-measures (ADR-0044)', () => {
     component.remove(0);
     expect(component.measures()).toEqual([{ op: 'sum', field: 'total' }]);
   });
+
+  it('offers the measures a dataset computes by formulas, never to count or order by', () => {
+    TestBed.resetTestingModule();
+    const fixture = TestBed.createComponent(SMTReportMeasuresComponent);
+    fixture.componentRef.setInput('measures', [{ op: 'count' }]);
+    fixture.componentRef.setInput('meta', {
+      ...META,
+      fields: [...META.fields, metaField('avgLine', '', 'number', { label: 'Средняя', ops: [], format: 'formula' })],
+    });
+    fixture.componentRef.setInput('ids', 'm');
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    expect(component.opOptions().find((option) => option.id === 'formula')?.disabled).toBe(false);
+    expect(component.distinctOptions().map((option) => option.id)).not.toContain('avgLine');
+    component.setOp(0, 'formula');
+    expect(component.measures()).toEqual([{ op: 'formula', field: 'avgLine' }]);
+    expect(component.shared({ op: 'formula', field: 'avgLine' })).toBe(false);
+  });
 });

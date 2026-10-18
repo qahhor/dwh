@@ -1,0 +1,41 @@
+.datasets-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.datasets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dataset-card {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-surface);
+}
+.dataset-card h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.dataset-card p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.dataset-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.datasets-empty {
+  margin: 0;
+  color: var(--text-muted);
+}
