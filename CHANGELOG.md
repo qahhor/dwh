@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Webhook subscriptions get a scope (ADR-0041, owner decisions of 2026-10-18): `creator`,
+  the records the subscription's creator may read when the event is written — an active
+  user holding the entity's `view` right whose data scope holds the record — or `all`,
+  every record. Checked in the transaction of the change, once per creator; a deletion
+  reaches a scoped subscription only when its creator could read the record just before it
+  (`common.entity.EntityRemoving`). Withheld events are never queued and are counted in
+  `smc.webhook.events.withheld{reason}`. V229 adds `kwh_subscriptions.scope`. The web
+  create dialog chooses the scope and the list shows it.
+
 - Documents of live forms (ADR-0043, stage 2, step 2.2), simple-form format 6: up to three
   tables of lines (1 to 20 columns of the field types, 1 to 500 rows, computed columns by a
   formula over the row and `doc.<field>`), the document number (a pattern of fixed text,
@@ -283,6 +292,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a failed refresh does not present stale widgets as current data.
 
 ### Changed
+
+- **Breaking:** a webhook subscription created without `scope` sends only the records its
+  creator may read (`creator`); existing subscriptions take the same scope. `all` restores
+  the previous delivery of every record. Webhook DTOs moved to `webhook.api.WebhookDtos`
+  (schema names unchanged); `scope` is a new field of the create and update requests and of
+  the subscription answers; another value is 422 `error.webhook.scope_invalid`.
 
 - `POST /api/v1/studio/formulas/check` takes the kind `condition` (a transition's condition)
   and the document a formula reads: `lines`, `line`, `numbered`, `statuses`, and a field's
