@@ -102,6 +102,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_RATE_LIMIT_TOKEN_PER_MINUTE` | `smc.rate-limit.token-per-minute` | `300` |
 | `SMC_RATE_LIMIT_USER_PER_MINUTE` | `smc.rate-limit.user-per-minute` | `600` |
 | `SMC_REPORTS_EXPORT_MAX_ROWS` | `smc.reports.export.max-rows` | `50000` |
+| `SMC_REPORT_MAILINGS_MAX_ATTACHMENT_BYTES` | `smc.report-mailings.max-attachment-bytes` | `5242880` |
 | `SMC_RETENTION_BATCH_SIZE` | `smc.retention.batch-size` | `5000` |
 | `SMC_RETENTION_CLOSED_SESSIONS_DAYS` | `smc.retention.days.closed-sessions` | `90` |
 | `SMC_RETENTION_CRON` | `smc.retention.cron` | `0 30 3 * * *` |
@@ -113,6 +114,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_RETENTION_NOTIFICATION_OUTBOX_DAYS` | `smc.retention.days.notification-outbox` | `30` |
 | `SMC_RETENTION_OTP_CODES_DAYS` | `smc.retention.days.otp-codes` | `7` |
 | `SMC_RETENTION_PASSWORD_RESET_CODES_DAYS` | `smc.retention.days.password-reset-codes` | `7` |
+| `SMC_RETENTION_REPORT_MAILING_RUNS_DAYS` | `smc.retention.days.report-mailing-runs` | `180` |
 | `SMC_RETENTION_SEARCH_JOBS_DAYS` | `smc.retention.days.search-jobs` | `90` |
 | `SMC_RETENTION_SECURITY_EVENTS_DAYS` | `smc.retention.days.security-events` | `365` |
 | `SMC_RETENTION_WEBHOOK_LOGS_DAYS` | `smc.retention.days.webhook-logs` | `90` |

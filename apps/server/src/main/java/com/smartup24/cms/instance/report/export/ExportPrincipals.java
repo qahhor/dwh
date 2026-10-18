@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserService;
+import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,6 +24,14 @@ public class ExportPrincipals {
     }
 
     public void runAs(long userId, Runnable work) {
+        callAs(userId, () -> {
+            work.run();
+            return Boolean.TRUE;
+        });
+    }
+
+    /** Computes {@code work} as the person, with the rights the person has now (ADR-0018, ADR-0045). */
+    public <T> T callAs(long userId, Supplier<T> work) {
         var previous = SecurityContext.getPrincipal();
         var user = users.getUserIdentity(userId);
         if (!"A".equals(user.state())) {
@@ -40,7 +49,7 @@ public class ExportPrincipals {
                 user.authenticationVersion(),
                 null));
         try {
-            work.run();
+            return work.get();
         } finally {
             if (previous == null) SecurityContext.clear();
             else SecurityContext.setPrincipal(previous);

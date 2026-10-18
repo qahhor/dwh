@@ -3,10 +3,15 @@ package com.smartup24.cms.instance.ms.notify.repository;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.metrics.Backlog;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
+import java.sql.Types;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -26,15 +31,31 @@ public class MsOutboxRepository {
 
     public OutboxRecord enqueue(
             String channel, String recipient, String templateCode, Map<String, Object> payload, UUID idempotencyKey) {
+        return enqueue(channel, recipient, templateCode, payload, idempotencyKey, null);
+    }
+
+    /**
+     * Enqueues a delivery, with one attachment for a letter (ADR-0045); a second call with the same idempotency key
+     * enqueues nothing and answers null.
+     */
+    public OutboxRecord enqueue(
+            String channel,
+            String recipient,
+            String templateCode,
+            Map<String, Object> payload,
+            UUID idempotencyKey,
+            @Nullable Attachment attachment) {
         String payloadJson = jsonColumns.object(payload);
 
         return jdbcClient
                 .sql("""
                 insert into ms_notification_outbox (channel, recipient, template_code, payload,
                                                    status, attempts, max_attempts, next_attempt_at,
-                                                   idempotency_key, created_at)
+                                                   idempotency_key, created_at,
+                                                   attachment_name, attachment_type, attachment)
                 values (:channel, :recipient, :templateCode, cast(:payload as jsonb),
-                        :status, 0, 5, now(), :idempotencyKey, now())
+                        :status, 0, 5, now(), :idempotencyKey, now(),
+                        :attachmentName, :attachmentType, :attachment)
                 on conflict (idempotency_key) do nothing
                 returning id, channel, recipient, template_code, payload::text as payload_str,
                           status, attempts, max_attempts, next_attempt_at, idempotency_key,
@@ -46,9 +67,40 @@ public class MsOutboxRepository {
                 .param("payload", payloadJson)
                 .param("status", MsNotifyPref.OUTBOX_PENDING)
                 .param("idempotencyKey", idempotencyKey)
+                .param("attachmentName", attachment == null ? null : attachment.name(), Types.VARCHAR)
+                .param("attachmentType", attachment == null ? null : attachment.type(), Types.VARCHAR)
+                .param("attachment", attachment == null ? null : attachment.content(), Types.BINARY)
                 .query(this::mapRecord)
                 .optional()
                 .orElse(null);
+    }
+
+    /** The attachment of a delivery while it waits; none once the delivery is sent or given up (ADR-0045). */
+    public Optional<Attachment> attachment(long id) {
+        return jdbcClient
+                .sql("""
+                select attachment_name, attachment_type, attachment
+                from ms_notification_outbox
+                where id = :id and attachment is not null
+                """)
+                .param("id", id)
+                .query((rs, row) -> new Attachment(
+                        rs.getString("attachment_name"), rs.getString("attachment_type"), rs.getBytes("attachment")))
+                .optional();
+    }
+
+    /** The states of the deliveries with these idempotency keys; a key no longer kept is absent. */
+    public Map<UUID, String> states(Collection<UUID> keys) {
+        Map<UUID, String> states = new HashMap<>();
+        if (keys.isEmpty()) {
+            return states;
+        }
+        jdbcClient
+                .sql("select idempotency_key, status from ms_notification_outbox where idempotency_key in (:keys)")
+                .param("keys", List.copyOf(keys))
+                .query((rs, row) -> states.put(rs.getObject("idempotency_key", UUID.class), rs.getString("status")))
+                .list();
+        return states;
     }
 
     public List<OutboxRecord> fetchPending(int limit) {
@@ -98,7 +150,8 @@ public class MsOutboxRepository {
         return jdbcClient
                         .sql("""
                 update ms_notification_outbox
-                set status = 'SENT', processed_at = now(), claim_token = null, claimed_at = null
+                set status = 'SENT', processed_at = now(), claim_token = null, claimed_at = null,
+                    attachment = null, attachment_name = null, attachment_type = null
                 where id = :id
                   and status = 'PROCESSING'
                   and claim_token = :claimToken
@@ -122,7 +175,10 @@ public class MsOutboxRepository {
                     last_error = :error,
                     processed_at = case when :isDeadLetter then now() else null end,
                     claim_token = null,
-                    claimed_at = null
+                    claimed_at = null,
+                    attachment = case when :isDeadLetter then null else attachment end,
+                    attachment_name = case when :isDeadLetter then null else attachment_name end,
+                    attachment_type = case when :isDeadLetter then null else attachment_type end
                 where id = :id
                   and status = 'PROCESSING'
                   and claim_token = :claimToken
@@ -177,4 +233,7 @@ public class MsOutboxRepository {
             Instant processedAt,
             UUID claimToken,
             Instant claimedAt) {}
+
+    /** One file a letter carries (ADR-0045). */
+    public record Attachment(String name, String type, byte[] content) {}
 }

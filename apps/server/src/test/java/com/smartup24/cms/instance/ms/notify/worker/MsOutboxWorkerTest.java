@@ -87,7 +87,9 @@ class MsOutboxWorkerTest {
         verify(mailProvider).send(captor.capture());
         assertThat(captor.getValue().recipientEmail()).isEqualTo("dev@example.com");
         assertThat(captor.getValue().subject()).isEqualTo("Новая задача");
-        assertThat(captor.getValue().htmlBody()).isEqualTo("Вам назначена задача #42");
+        assertThat(captor.getValue().textBody()).isEqualTo("Вам назначена задача #42");
+        assertThat(captor.getValue().htmlBody()).isNull();
+        assertThat(captor.getValue().attachments()).isEmpty();
         verify(consoleMailProvider, never()).send(any(MailMessage.class));
 
         verify(outboxRepository).markSuccess(1L, claimToken);
@@ -126,6 +128,62 @@ class MsOutboxWorkerTest {
         assertThat(captor.getValue().textMarkdown()).isEqualTo("Вам назначена задача #42");
 
         verify(outboxRepository).markSuccess(2L, claimToken);
+    }
+
+    @Test
+    @DisplayName("ADR-0045: a letter carries its attachment, a Telegram message its link button")
+    void deliversTheAttachmentAndTheLinkButton() {
+        UUID claimToken = UUID.randomUUID();
+        var letter = record(
+                5L, "email", "reader@example.com", Map.of("subject", "Отчёт", "body", "Во вложении"), claimToken);
+        var message = record(
+                6L,
+                "telegram",
+                "42",
+                Map.of("body", "Отчёт готов", "buttonText", "Открыть", "buttonUrl", "https://cms.example/e/x"),
+                claimToken);
+        byte[] file = {1, 2, 3};
+        when(outboxRepository.fetchPending(20)).thenReturn(List.of(letter, message));
+        when(outboxRepository.attachment(5L))
+                .thenReturn(
+                        java.util.Optional.of(new MsOutboxRepository.Attachment("report.xlsx", "application/x", file)));
+        when(mailProvider.send(any(MailMessage.class))).thenReturn(MailSendResult.success("m", 1));
+        when(messengerProvider.send(any(MessengerMessage.class))).thenReturn(MessengerSendResult.success("t", 1));
+
+        worker.processOutbox();
+
+        ArgumentCaptor<MailMessage> mail = ArgumentCaptor.forClass(MailMessage.class);
+        verify(mailProvider).send(mail.capture());
+        assertThat(mail.getValue().attachments()).singleElement().satisfies(attachment -> {
+            assertThat(attachment.filename()).isEqualTo("report.xlsx");
+            assertThat(attachment.content()).containsExactly(1, 2, 3);
+        });
+        ArgumentCaptor<MessengerMessage> telegram = ArgumentCaptor.forClass(MessengerMessage.class);
+        verify(messengerProvider).send(telegram.capture());
+        assertThat(telegram.getValue().inlineButtonText()).isEqualTo("Открыть");
+        assertThat(telegram.getValue().inlineButtonUrl()).isEqualTo("https://cms.example/e/x");
+        verify(outboxRepository).markSuccess(5L, claimToken);
+        verify(outboxRepository).markSuccess(6L, claimToken);
+    }
+
+    private static MsOutboxRepository.OutboxRecord record(
+            long id, String channel, String recipient, Map<String, Object> payload, UUID claimToken) {
+        return new MsOutboxRepository.OutboxRecord(
+                id,
+                channel,
+                recipient,
+                "report_mailing",
+                payload,
+                "PROCESSING",
+                0,
+                5,
+                Instant.now(),
+                UUID.randomUUID(),
+                null,
+                Instant.now(),
+                null,
+                claimToken,
+                Instant.now());
     }
 
     @Test

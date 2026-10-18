@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.ms.notify.api.AnnouncementView;
 import com.smartup24.cms.instance.ms.notify.api.NotificationPrefUpdate;
 import com.smartup24.cms.instance.ms.notify.api.NotificationPrefView;
 import com.smartup24.cms.instance.ms.notify.api.NotificationView;
+import com.smartup24.cms.instance.ms.notify.api.OutboxAttachment;
 import com.smartup24.cms.instance.ms.notify.repository.MsAnnouncementRepository;
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository;
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationRepository;
@@ -13,9 +14,11 @@ import com.smartup24.cms.instance.ms.notify.repository.MsOutboxRepository;
 import com.smartup24.cms.instance.ms.notify.sse.MsNotificationCreatedEvent;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -105,6 +108,42 @@ public class MsNotificationService {
     public void enqueueExternalNotification(
             String channel, String recipient, String templateCode, Map<String, Object> payload, UUID idempotencyKey) {
         outboxRepository.enqueue(channel, recipient, templateCode, payload, idempotencyKey);
+    }
+
+    /**
+     * Enqueues a delivery through the outbox of external channels, a letter with one attachment (ADR-0045). The key
+     * makes it idempotent: a second call with the same key enqueues nothing.
+     *
+     * @return whether the delivery was enqueued now
+     */
+    @Transactional
+    public boolean enqueueExternalNotification(
+            String channel,
+            String recipient,
+            String templateCode,
+            Map<String, Object> payload,
+            UUID idempotencyKey,
+            @Nullable OutboxAttachment attachment) {
+        return outboxRepository.enqueue(
+                        channel,
+                        recipient,
+                        templateCode,
+                        payload,
+                        idempotencyKey,
+                        attachment == null
+                                ? null
+                                : new MsOutboxRepository.Attachment(
+                                        attachment.fileName(), attachment.contentType(), attachment.content()))
+                != null;
+    }
+
+    /**
+     * The states of outbox deliveries by their keys ({@code PENDING}, {@code PROCESSING}, {@code SENT},
+     * {@code DEAD_LETTER}); a key the outbox no longer keeps is absent.
+     */
+    @Transactional(readOnly = true)
+    public Map<UUID, String> deliveryStates(Collection<UUID> idempotencyKeys) {
+        return outboxRepository.states(idempotencyKeys);
     }
 
     @Transactional(readOnly = true)

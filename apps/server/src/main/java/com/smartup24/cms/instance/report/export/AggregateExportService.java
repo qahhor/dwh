@@ -46,6 +46,11 @@ public class AggregateExportService {
         return workbook(result.entity(), result.list(), result.data(), lang);
     }
 
+    /** The XLSX of a result already executed for its reader (a report mailing, ADR-0045), its words in {@code lang}. */
+    public byte[] workbook(String code, EntityReports.Execution execution, String lang) throws IOException {
+        return workbook(code, execution.list(), execution.data(), lang);
+    }
+
     private byte[] workbook(String code, QueryList list, QueryAggregateResult result, String lang) throws IOException {
         var dictionary = i18n.effectiveDictionary(lang);
         return AggregateWorkbookWriter.write(code, list, result, key -> dictionary.getOrDefault(key, key));

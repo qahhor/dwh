@@ -51,6 +51,27 @@ class MsOutboxRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("ADR-0045: a letter keeps its attachment until it is sent, and one key enqueues it once")
+    void anAttachmentLivesUntilTheLetterIsSent() {
+        UUID key = UUID.randomUUID();
+        var attachment = new MsOutboxRepository.Attachment("report.xlsx", "application/x", new byte[] {7, 8});
+        var first = firstWorkerRepository.enqueue(
+                "email", "reader@example.test", "report_mailing", Map.of("subject", "R"), key, attachment);
+        var again = firstWorkerRepository.enqueue(
+                "email", "reader@example.test", "report_mailing", Map.of("subject", "R"), key, attachment);
+        assertThat(again).isNull();
+        assertThat(firstWorkerRepository.attachment(first.id()))
+                .hasValueSatisfying(file -> assertThat(file.content()).containsExactly(7, 8));
+        assertThat(firstWorkerRepository.states(java.util.List.of(key))).containsEntry(key, "PENDING");
+
+        var claimed = firstWorkerRepository.fetchPending(1).getFirst();
+        assertThat(firstWorkerRepository.markSuccess(claimed.id(), claimed.claimToken()))
+                .isTrue();
+        assertThat(firstWorkerRepository.attachment(first.id())).isEmpty();
+        assertThat(firstWorkerRepository.states(java.util.List.of(key))).containsEntry(key, "SENT");
+    }
+
+    @Test
     @DisplayName("Заявленная одним worker запись не должна выдаваться второму worker")
     void claimedItemIsNotReturnedToAnotherWorker() {
         firstWorkerRepository.enqueue(

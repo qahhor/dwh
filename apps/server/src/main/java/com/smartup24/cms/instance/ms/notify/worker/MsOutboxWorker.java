@@ -9,6 +9,7 @@ import com.smartup24.cms.spi.sms.SmsMessage;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -107,9 +108,14 @@ public class MsOutboxWorker {
 
         switch (item.channel().toLowerCase()) {
             case "email" -> {
+                List<MailMessage.MailAttachment> attachments = outboxRepository
+                        .attachment(item.id())
+                        .map(file -> List.of(new MailMessage.MailAttachment(file.name(), file.type(), file.content())))
+                        .orElse(List.of());
                 var res = providers
                         .getActiveMailProvider()
-                        .send(new MailMessage(item.recipient(), subject, body, null, List.of(), idempotencyKey));
+                        .send(new MailMessage(
+                                item.recipient(), subject, text(item, "html"), body, attachments, idempotencyKey));
                 if (!res.isSuccess()) throw new RuntimeException("Email failed: " + res.errorMessage());
             }
             case "sms" -> {
@@ -121,10 +127,21 @@ public class MsOutboxWorker {
             case "telegram" -> {
                 var res = providers
                         .getActiveMessengerProvider()
-                        .send(new MessengerMessage(item.recipient(), body, null, null, idempotencyKey));
+                        .send(new MessengerMessage(
+                                item.recipient(),
+                                body,
+                                text(item, "buttonText"),
+                                text(item, "buttonUrl"),
+                                idempotencyKey));
                 if (!res.isSuccess()) throw new RuntimeException("Telegram failed: " + res.errorMessage());
             }
             default -> throw new IllegalArgumentException("Unsupported notification channel: " + item.channel());
         }
+    }
+
+    /** A text of the payload, or null when it has none. */
+    private static @Nullable String text(MsOutboxRepository.OutboxRecord item, String key) {
+        Object value = item.payload() == null ? null : item.payload().get(key);
+        return value == null ? null : value.toString();
     }
 }

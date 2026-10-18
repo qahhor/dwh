@@ -3320,6 +3320,122 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/report-mailings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the mailings of a saved report
+         * @description The newest first; limit 1 to 50 (default 20, else 422). 404 when the caller may not read the report, 403 without the right to keep its mailings.
+         */
+        get: operations["reportMailings"];
+        put?: never;
+        /**
+         * Create a mailing
+         * @description A saved report the caller may read, a name, 1 to 50 active users, channels configured here, an XLSX attachment and/or a link, a daily, weekly or monthly schedule at a local time of a time zone, values of the report's parameters (presets counted when it runs) and a condition (always, has_rows, threshold on a grand total). 422 at the part to fix or above 10 mailings per report. Audited.
+         */
+        post: operations["createReportMailing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-mailings/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Describe what a mailing may use
+         * @description The channels this installation delivers on (in_app always; email and telegram when their provider is configured), the most recipients, the largest attachment and whether the caller keeps the mailings of every report they may read.
+         */
+        get: operations["reportMailingOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-mailings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a mailing
+         * @description Its revision as ETag. 404 for an unknown mailing.
+         */
+        get: operations["reportMailing"];
+        /**
+         * Change, pause or resume a mailing
+         * @description If-Match with its revision (428 without it, 409 when stale). The saved report never changes. Pausing stops scheduled sends; resuming sends from the next slot on. Audited.
+         */
+        put: operations["updateReportMailing"];
+        post?: never;
+        /**
+         * Delete a mailing
+         * @description If-Match with its revision (428/409). Its history goes with it. Audited.
+         */
+        delete: operations["deleteReportMailing"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-mailings/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the runs of a mailing
+         * @description The newest first: scheduled, sent now and test runs with their counts; limit 1 to 100 (default 20).
+         */
+        get: operations["reportMailingRuns"];
+        put?: never;
+        /**
+         * Send a mailing now
+         * @description scope all: to every recipient of an active mailing (409 while paused); scope me: a test to the caller, paused or not, whatever the condition. At most 10 per mailing an hour (429). The run is queued; its outcome is in the run history.
+         */
+        post: operations["sendReportMailing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/report-mailings/{id}/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a run of a mailing
+         * @description The run with what each recipient got on each channel: sent, queued (with the outbox state), skipped or failed, and why.
+         */
+        get: operations["reportMailingRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/report-sharing/roles": {
         parameters: {
             query?: never;
@@ -5832,6 +5948,22 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageReportMailing: {
+            hasMore?: boolean;
+            items?: components["schemas"]["ReportMailing"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        KeysetPageReportMailingRun: {
+            hasMore?: boolean;
+            items?: components["schemas"]["ReportMailingRun"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageReportViewItem: {
             hasMore?: boolean;
             items?: components["schemas"]["ReportViewItem"][];
@@ -6743,6 +6875,150 @@ export interface components {
             lines?: string;
             measures?: components["schemas"]["ReportDatasetMeasure"][];
             name: components["schemas"]["SimpleFormLabels"];
+        };
+        ReportMailing: {
+            active: boolean;
+            attachXlsx: boolean;
+            channels: string[];
+            condition: components["schemas"]["ReportMailingCondition"];
+            /** Format: date-time */
+            createdAt: string;
+            entity: string;
+            /** Format: int64 */
+            id: number;
+            includeLink: boolean;
+            lastRun?: components["schemas"]["ReportMailingLastRun"];
+            /** Format: date-time */
+            modifiedAt: string;
+            name: string;
+            /**
+             * Format: date-time
+             * @description The next scheduled send; none while paused
+             */
+            nextRunAt?: string;
+            /** Format: int64 */
+            ownerId: number;
+            parameters: string;
+            recipients: components["schemas"]["ReportMailingRecipient"][];
+            /** Format: int64 */
+            revision: number;
+            schedule: components["schemas"]["ReportMailingSchedule"];
+            /** Format: int64 */
+            viewId: number;
+        };
+        ReportMailingCondition: {
+            /** @enum {string} */
+            kind: "always" | "has_rows" | "threshold";
+            /**
+             * Format: int32
+             * @description Threshold: the measure's position in the report
+             */
+            measure?: number;
+            /** @enum {string} */
+            op?: "gt" | "gte" | "lt" | "lte" | "eq";
+            value?: number;
+        };
+        ReportMailingDelivery: {
+            /** @enum {string} */
+            channel: "email" | "telegram" | "in_app";
+            outbox?: string;
+            /** @description inactive, no_access, no_address, channel_unavailable, opted_out, condition, condition_ignored, parameters, report_failed, attachment_too_large */
+            reason?: string;
+            /** Format: int32 */
+            rows?: number;
+            /** @enum {string} */
+            status: "sent" | "queued" | "skipped" | "failed";
+            /** Format: int64 */
+            userId: number;
+            userName: string;
+        };
+        ReportMailingLastRun: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            status: "queued" | "running" | "done" | "partial" | "failed" | "skipped";
+        };
+        ReportMailingOptions: {
+            canManageAll: boolean;
+            channels: ("email" | "telegram" | "in_app")[];
+            /** Format: int64 */
+            maxAttachmentBytes: number;
+            /** Format: int32 */
+            maxRecipients: number;
+        };
+        ReportMailingRecipient: {
+            /** Format: int64 */
+            id: number;
+            login: string;
+            name: string;
+            state: string;
+        };
+        ReportMailingRequest: {
+            active: boolean;
+            attachXlsx: boolean;
+            channels: ("email" | "telegram" | "in_app")[];
+            condition?: components["schemas"]["ReportMailingCondition"];
+            includeLink: boolean;
+            name: string;
+            /** @description Values of the report's parameters */
+            parameters?: string;
+            recipientIds: number[];
+            schedule: components["schemas"]["ReportMailingSchedule"];
+            /** Format: int64 */
+            viewId?: number;
+        };
+        ReportMailingRun: {
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Why the whole run failed or was skipped */
+            error?: string;
+            /** Format: int32 */
+            failed: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "scheduled" | "manual" | "test";
+            /** Format: int32 */
+            recipients: number;
+            /** Format: int64 */
+            requestedBy?: number;
+            /** Format: int32 */
+            sent: number;
+            /** Format: int32 */
+            skipped: number;
+            /** Format: date-time */
+            slot: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "done" | "partial" | "failed" | "skipped";
+        };
+        ReportMailingRunDetail: {
+            deliveries: components["schemas"]["ReportMailingDelivery"][];
+            run: components["schemas"]["ReportMailingRun"];
+        };
+        ReportMailingRunRequest: {
+            /** @enum {string} */
+            scope: "all" | "me";
+        };
+        ReportMailingSchedule: {
+            /** @enum {string} */
+            frequency: "daily" | "weekly" | "monthly";
+            /**
+             * Format: int32
+             * @description Monthly: the day; past the month's end, its last day
+             */
+            monthDay?: number;
+            time: string;
+            /** @example Asia/Tashkent */
+            timeZone: string;
+            /**
+             * Format: int32
+             * @description Weekly: 1 Monday … 7 Sunday
+             */
+            weekday?: number;
         };
         ReportViewItem: {
             canEdit: boolean;
@@ -16243,6 +16519,347 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    reportMailings: {
+        parameters: {
+            query: {
+                viewId: number;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageReportMailing"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createReportMailing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportMailingRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportMailing"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    reportMailingOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportMailingOptions"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    reportMailing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportMailing"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    updateReportMailing: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportMailingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportMailing"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    deleteReportMailing: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    reportMailingRuns: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageReportMailingRun"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    sendReportMailing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportMailingRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportMailingRun"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    reportMailingRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                runId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportMailingRunDetail"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
