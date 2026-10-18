@@ -7,6 +7,7 @@ import { problemText } from '@shared/ui/problem-text';
 import { studioProblemIssues } from '../form-studio-errors';
 import {
   editorDeclaration,
+  FIELD_FORMULA_KEYS,
   initialSimpleForm,
   LIVE_FIELD_TYPES,
   SIMPLE_FORM_MAX_BYTES,
@@ -167,14 +168,18 @@ export class NewFormStore {
 
 /**
  * A declaration the developer CLI delivers: format 1 knows no data scope, layout or title field and no select,
- * reference or user field (ADR-0041), so they become plain text fields of the same key and labels in one section.
+ * reference or user field (ADR-0041), so they become plain text fields of the same key and labels in one section;
+ * the formulas and rules of format 5 (ADR-0042) are live-form only and are left out.
  */
 function toDeliverable(draft: SimpleFormDeclaration): void {
   delete draft.entity.scope;
   delete draft.entity.titleField;
   delete draft.layout;
+  delete draft.rules;
   draft.formatVersion = 1;
-  draft.fields = draft.fields.map((field) => {
+  draft.fields = draft.fields.map((source) => {
+    const field = { ...source };
+    FIELD_FORMULA_KEYS.forEach((key) => delete field[key]);
     if (!LIVE_FIELD_TYPES.includes(field.type)) return field;
     const next = { ...field, type: 'text' as const, maxLength: 255 };
     delete next.options;

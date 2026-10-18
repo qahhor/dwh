@@ -1,3 +1,4 @@
+import type { FormulaNode } from '../formula/formula.models';
 import type { QueryRefMeta } from './query-meta.models';
 
 /**
@@ -103,6 +104,26 @@ export interface FormFieldMeta {
    * document for a line of its collection. The form shows that currency and does not offer another.
    */
   currencyFrom?: string | null;
+  /** The checked formula of a computed field (ADR-0042): the form shows its value live; the server writes it. */
+  formula?: FormulaNode | null;
+  /** The formula of the value a new record starts with when it has none. */
+  defaultFormula?: FormulaNode | null;
+  /** The form shows the field only while this formula is true; hidden, it is not required and keeps no value. */
+  visibleIf?: FormulaNode | null;
+  /** An optional field is required while this formula is true. */
+  requiredIf?: FormulaNode | null;
+  /** A saved record's field cannot change while this formula is true over the record as it is stored. */
+  readonlyIf?: FormulaNode | null;
+}
+
+/** A validation rule of a form (ADR-0042): a save fails while its formula is false; empty values pass. */
+export interface FormRuleMeta {
+  key: string;
+  /** The field the problem is shown at; none — the whole record. */
+  field?: string | null;
+  /** Catalog key of the message. */
+  messageKey: string;
+  formula: FormulaNode;
 }
 
 /** A collection of a document (ADR-0032 9.1): the rows saved with the record, each with the fields of a row. */
@@ -185,6 +206,8 @@ export interface FormMeta {
    * filled text field of the layout.
    */
   titleField?: string | null;
+  /** The validation rules of a form whose logic is written in formulas (ADR-0042). */
+  rules?: FormRuleMeta[] | null;
 }
 
 /** A record's values in the form, by field key. */

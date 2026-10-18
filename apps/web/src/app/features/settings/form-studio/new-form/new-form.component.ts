@@ -28,9 +28,16 @@ import { downloadStudioJson } from '../form-studio-files';
 import type { StudioLanguage } from '../form-studio.models';
 import { NewFormFieldComponent } from './new-form-field.component';
 import { NewFormLabelsComponent } from './new-form-labels.component';
+import { NewFormRulesComponent } from './new-form-rules.component';
 import { NewFormLayoutComponent, type LayoutChange } from './new-form-layout.component';
 import { simpleFormPreview } from './new-form-preview';
-import { SIMPLE_FORM_MAX_BYTES, SIMPLE_FORM_SCOPE_KEYS, SIMPLE_FORM_SCOPES, type SimpleField } from './new-form.models';
+import {
+  SIMPLE_FORM_MAX_BYTES,
+  SIMPLE_FORM_SCOPE_KEYS,
+  SIMPLE_FORM_SCOPES,
+  type SimpleField,
+  type SimpleFormRule,
+} from './new-form.models';
 import { StudioTargetsStore } from '../studio-targets.store';
 import { NewFormActivationStore } from './new-form-activation.store';
 import { NewFormAssistantComponent } from './new-form-assistant.component';
@@ -52,6 +59,7 @@ import { NewFormStore } from './new-form.store';
     NewFormFieldComponent,
     NewFormLabelsComponent,
     NewFormLayoutComponent,
+    NewFormRulesComponent,
     NewFormAssistantComponent,
   ],
   providers: [NewFormStore, NewFormActivationStore, StudioTargetsStore],
@@ -108,6 +116,14 @@ export class NewFormComponent implements RecordNavigationPage {
       draft.entity.titleField = change.titleField;
       if (change.layout) draft.layout = change.layout;
       else delete draft.layout;
+    });
+  }
+
+  /** The validation rules of the form (ADR-0042); none leaves the declaration without them. */
+  applyRules(rules: SimpleFormRule[] | undefined): void {
+    this.store.edit((draft) => {
+      if (rules) draft.rules = rules;
+      else delete draft.rules;
     });
   }
   changeIdentifier(target: 'module' | 'entity', value: unknown): void {

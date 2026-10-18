@@ -40,7 +40,7 @@
                     } @else {
                       <smt-control
                         [smtLabel]="field.label"
-                        [required]="field.meta.required"
+                        [required]="requiredNow(field.meta)"
                         [smtError]="problemOf(field.meta.key)"
                       >
                         <ui-markdown-editor
@@ -56,7 +56,7 @@
                     <smt-money-field
                       [label]="field.label"
                       [currencies]="field.meta.currencies ?? []"
-                      [required]="field.meta.required"
+                      [required]="requiredNow(field.meta)"
                       [disabled]="locked(field.meta)"
                       [error]="problemOf(field.meta.key)"
                       [value]="moneyOf(field.meta.key)"
@@ -66,14 +66,14 @@
                   @case ('multi_ref') {
                     <smt-control
                       [smtLabel]="field.label"
-                      [required]="field.meta.required"
+                      [required]="requiredNow(field.meta)"
                       [smtError]="problemOf(field.meta.key)"
                     >
                       @if (field.source; as lookup) {
                         <smt-multi-data-select
                           [source]="lookup"
                           [ariaLabel]="field.label"
-                          [required]="field.meta.required"
+                          [required]="requiredNow(field.meta)"
                           [disabled]="locked(field.meta)"
                           [value]="keysOf(field.meta.key)"
                           (valueChange)="set(field.meta.key, $event)"
@@ -87,7 +87,7 @@
                       [image]="field.meta.type === 'image'"
                       [contentTypes]="field.meta.contentTypes ?? []"
                       [maxBytes]="field.meta.maxBytes ?? null"
-                      [required]="field.meta.required"
+                      [required]="requiredNow(field.meta)"
                       [disabled]="locked(field.meta)"
                       [error]="problemOf(field.meta.key)"
                       [entity]="meta().code"
@@ -99,13 +99,13 @@
                   @case ('json') {
                     <smt-control
                       [smtLabel]="field.label"
-                      [required]="field.meta.required"
+                      [required]="requiredNow(field.meta)"
                       [smtError]="problemOf(field.meta.key)"
                     >
                       <smt-textarea
                         class="entity-json"
                         [name]="field.meta.key"
-                        [required]="field.meta.required"
+                        [required]="requiredNow(field.meta)"
                         [disabled]="locked(field.meta)"
                         [value]="textOf(field.meta.key)"
                         (valueChange)="set(field.meta.key, $event)"
@@ -114,7 +114,7 @@
                   }
                   @default {
                     <smt-dynamic-field
-                      [field]="field.def"
+                      [field]="defOf(field)"
                       [source]="field.source"
                       [disabled]="locked(field.meta)"
                       [error]="problemOf(field.meta.key)"

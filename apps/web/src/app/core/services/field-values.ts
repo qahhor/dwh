@@ -5,6 +5,7 @@ import type {
   FormFieldType,
   FormValues,
 } from '../models/form-meta.models';
+import { logicReadonly, logicVisible } from './form-logic';
 
 /**
  * The value rules of each field type on the web (ADR-0032 4.1–4.2, plan 10/10, item 5.2), the same the server checks
@@ -288,9 +289,9 @@ function clauseHolds(clause: Partial<ConditionClauseMeta>, values: FormValues): 
   }
 }
 
-/** Whether the form shows the field over these values (ADR-0032 4.4). */
+/** Whether the form shows the field over these values: its condition and its formula hold (ADR-0032 4.4, ADR-0042). */
 export function fieldVisible(field: FormFieldMeta, values: FormValues): boolean {
-  return conditionHolds(field.visibleWhen, values);
+  return conditionHolds(field.visibleWhen, values) && logicVisible(field, values);
 }
 
 /**
@@ -300,5 +301,9 @@ export function fieldVisible(field: FormFieldMeta, values: FormValues): boolean 
 export function fieldReadonly(field: FormFieldMeta, values: FormValues, creating: boolean): boolean {
   if (field.readonly || field.computed) return true;
   if (creating) return false;
-  return !!field.readonlyOnUpdate || (!!field.readonlyWhen?.length && conditionHolds(field.readonlyWhen, values));
+  return (
+    !!field.readonlyOnUpdate ||
+    (!!field.readonlyWhen?.length && conditionHolds(field.readonlyWhen, values)) ||
+    logicReadonly(field, values)
+  );
 }

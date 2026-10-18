@@ -4,6 +4,7 @@ import type { FieldErrorItem } from '../models/common.models';
 import type { FormCollectionMeta, FormFieldMeta, FormMeta, FormProblems, FormValues } from '../models/form-meta.models';
 import { ApiService } from './api.service';
 import { FIELD_VALUE_RULES, fieldReadonly, fieldVisible, localMoment, utcMoment } from './field-values';
+import { logicRequired, ruleProblems, withComputed, withDefaults } from './form-logic';
 import { MetaCache, MetaCacheState } from './meta-cache';
 
 export { fieldReadonly, fieldVisible, localMoment, utcMoment };
@@ -71,7 +72,8 @@ export function recordValues(meta: FormMeta, row: Row | null | undefined): FormV
     const edited = FIELD_VALUE_RULES[field.type].formValue(field, value);
     values[field.key] = edited ?? (field.type === 'boolean' ? false : null);
   }
-  return values;
+  // A new record takes its default formulas, then the computed fields show their values (ADR-0042).
+  return withComputed(meta, row ? values : withDefaults(meta, values));
 }
 
 /** The default a new record's field starts with on the form, or null when the server gives it. */
@@ -229,8 +231,13 @@ export function formProblems(meta: FormMeta, values: FormValues, translate: Tran
   const problems: FormProblems = {};
   for (const field of meta.fields) {
     if (!fieldVisible(field, values) || fieldReadonly(field, values, creating)) continue;
-    const problem = fieldProblem(field, values[field.key]);
+    // An optional field its formula makes required is checked as required (ADR-0042).
+    const checked = !field.required && logicRequired(field, values) ? { ...field, required: true } : field;
+    const problem = fieldProblem(checked, values[field.key]);
     if (problem) problems[field.key] = problemText(problem, field, translate);
+  }
+  for (const [key, message] of Object.entries(ruleProblems(meta, values, translate))) {
+    if (!problems[key]) problems[key] = message;
   }
   const locked = creating ? new Set<string>() : lockedKeys(meta, values);
   for (const collection of meta.collections ?? []) {

@@ -50,7 +50,53 @@ export interface SimpleField {
   options?: SimpleFieldOption[];
   /** Format 3: what a reference names. */
   target?: SimpleFieldTarget;
+  /** Format 5: the formula of a computed field — read-only, recomputed on every save (ADR-0042). */
+  formula?: string;
+  /** Format 5: the formula of the value a new record takes when it has none. */
+  defaultFormula?: string;
+  /** Format 5: the field is shown only while this yes/no formula is true. */
+  visibleIf?: string;
+  /** Format 5: an optional field is required while this yes/no formula is true. */
+  requiredIf?: string;
+  /** Format 5: a saved record's field cannot change while this yes/no formula is true. */
+  readonlyIf?: string;
 }
+
+/** The keys of a field's formulas (format 5, ADR-0042). */
+export const FIELD_FORMULA_KEYS = ['formula', 'defaultFormula', 'visibleIf', 'requiredIf', 'readonlyIf'] as const;
+export type FieldFormulaKey = (typeof FIELD_FORMULA_KEYS)[number];
+
+/** The field types whose value a formula may compute. */
+export const COMPUTED_TYPES: readonly SimpleFieldType[] = [
+  'text',
+  'textarea',
+  'number',
+  'date',
+  'datetime',
+  'time',
+  'bool',
+];
+
+/** The field types whose default a formula may give. */
+export const DEFAULTED_TYPES: readonly SimpleFieldType[] = [...COMPUTED_TYPES, 'select', 'email', 'phone', 'url'];
+
+/** Format 5: the message of a rule in each language, up to 200 characters. */
+export interface SimpleFormRuleMessage {
+  ru: string;
+  uz: string;
+  en: string;
+}
+
+/** Format 5: a validation rule — a yes/no formula every save must not make false, its message and its field. */
+export interface SimpleFormRule {
+  key: string;
+  formula: string;
+  message: SimpleFormRuleMessage;
+  field?: string;
+}
+
+/** Rules of one form (server limit). */
+export const MAX_RULES = 20;
 export interface SimpleFormMenu {
   icon: string;
   section: 'workspace' | 'administration';
@@ -74,7 +120,7 @@ export interface SimpleFormLayout {
   sections: SimpleFormSection[];
 }
 export interface SimpleFormDeclaration {
-  formatVersion: 1 | 2 | 3 | 4;
+  formatVersion: 1 | 2 | 3 | 4 | 5;
   kind: 'simple-form';
   module: { code: string; title: StudioLabels };
   entity: {
@@ -90,6 +136,8 @@ export interface SimpleFormDeclaration {
   };
   fields: SimpleField[];
   layout?: SimpleFormLayout;
+  /** Format 5: the validation rules of the form. */
+  rules?: SimpleFormRule[];
 }
 
 /** The title of a form named by the system name and code fields, as formats 1 to 3 are. */
@@ -109,14 +157,14 @@ export function titleEligible(field: SimpleField): boolean {
 /** What names the records of a declaration in the editor: a field, the system name or the record's number. */
 export function titleOf(declaration: SimpleFormDeclaration): string {
   const title = declaration.entity.titleField;
-  if (declaration.formatVersion === 4) return title ?? NUMBER_TITLE;
+  if (declaration.formatVersion >= 4) return title ?? NUMBER_TITLE;
   return title ?? SYSTEM_TITLE;
 }
 
 /** A declaration as the editor keeps it: the record's number of a form of format 4 named explicitly. */
 export function editorDeclaration(declaration: SimpleFormDeclaration): SimpleFormDeclaration {
   const copy = structuredClone(declaration);
-  if (copy.formatVersion === 4 && copy.entity.titleField === undefined) copy.entity.titleField = NUMBER_TITLE;
+  if (copy.formatVersion >= 4 && copy.entity.titleField === undefined) copy.entity.titleField = NUMBER_TITLE;
   return copy;
 }
 
@@ -166,6 +214,12 @@ export function usesFormatFour(declaration: SimpleFormDeclaration): boolean {
   const title = declaration.entity.titleField;
   return declaration.layout !== undefined || (title !== undefined && title !== SYSTEM_TITLE);
 }
+/** Whether a declaration says something only format 5 can: a formula of a field or a rule (ADR-0042). */
+export function usesFormatFive(declaration: SimpleFormDeclaration): boolean {
+  return (
+    !!declaration.rules?.length || declaration.fields.some((field) => FIELD_FORMULA_KEYS.some((key) => !!field[key]))
+  );
+}
 /** Whether a declaration says something only format 3 can: a select, a reference, a user or a narrower scope. */
 export function usesFormatThree(declaration: SimpleFormDeclaration): boolean {
   return (
@@ -178,16 +232,28 @@ export function usesFormatThree(declaration: SimpleFormDeclaration): boolean {
  * format 4 for a layout or a title other than the system name. The default scope `all` is left out of a form that
  * uses nothing else of format 3, so it keeps its earlier format; the record's number is written as no title field.
  */
-export function withFormat(declaration: SimpleFormDeclaration, floor: 1 | 2 | 3 | 4 = 1): SimpleFormDeclaration {
+export function withFormat(declaration: SimpleFormDeclaration, floor: 1 | 2 | 3 | 4 | 5 = 1): SimpleFormDeclaration {
   const copy = structuredClone(declaration);
   const kinds = copy.fields.some((field) => LIVE_FIELD_TYPES.includes(field.type));
-  const four = floor === 4 || usesFormatFour(copy);
+  copy.fields = copy.fields.map((field) => withoutEmptyFormulas(field));
+  if (copy.rules && copy.rules.length === 0) delete copy.rules;
+  const five = floor === 5 || usesFormatFive(copy);
+  const four = five || floor === 4 || usesFormatFour(copy);
   if (copy.entity.scope === 'all' && !kinds && !four && floor < 3) delete copy.entity.scope;
   if (copy.layout) copy.layout = placedLayout(copy.layout, copy.fields);
   // A draft of an earlier format is named by the system name until it says otherwise.
   if (four && copy.entity.titleField === undefined && declaration.formatVersion < 4)
     copy.entity.titleField = SYSTEM_TITLE;
   if (!four || copy.entity.titleField === NUMBER_TITLE) delete copy.entity.titleField;
-  copy.formatVersion = four ? 4 : kinds || copy.entity.scope !== undefined ? 3 : floor;
+  copy.formatVersion = five ? 5 : four ? 4 : kinds || copy.entity.scope !== undefined ? 3 : floor;
   return copy;
+}
+
+/** A field without the formulas left empty in the editor. */
+function withoutEmptyFormulas(field: SimpleField): SimpleField {
+  const next = { ...field };
+  for (const key of FIELD_FORMULA_KEYS) {
+    if (!next[key]?.trim()) delete next[key];
+  }
+  return next;
 }

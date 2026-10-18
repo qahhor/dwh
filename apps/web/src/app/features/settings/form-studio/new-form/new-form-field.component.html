@@ -202,7 +202,9 @@
       />
     </smt-control>
   }
-  @if (versioning() && field().type === 'select') {
+  @if (versioning() && field().formula !== undefined) {
+    <p class="field-note">{{ 'studio.formula.computed_note' | t }}</p>
+  } @else if (versioning() && field().type === 'select') {
     <smt-control
       [smtLabel]="'studio.version.default_value' | t"
       [smtHint]="(locked() ? 'studio.version.default_locked' : 'studio.version.default_hint') | t"
@@ -233,7 +235,7 @@
     <div
       smt-checkbox
       [checked]="field().required"
-      [disabled]="disabled() || (requiredLocked() && !field().required)"
+      [disabled]="disabled() || (requiredLocked() && !field().required) || field().formula !== undefined"
       (checkedChange)="patch({ required: $event })"
     >
       {{ 'settings.simple_form.required' | t }}
@@ -242,6 +244,16 @@
       {{ 'settings.simple_form.listed' | t }}
     </div>
   </div>
+  @if (live()) {
+    <app-new-form-field-logic
+      [field]="field()"
+      [index]="index()"
+      [fields]="fields()"
+      [disabled]="disabled()"
+      [stored]="stored()"
+      (changed)="changed.emit($event)"
+    />
+  }
   @if (versioning() && requiredLocked() && !field().required) {
     <p class="field-note">{{ 'studio.version.required_locked' | t }}</p>
   } @else if (versioning() && !locked() && field().required && !field().defaultValue) {

@@ -24,6 +24,7 @@ import type {
   FormValues,
 } from '@core/models/form-meta.models';
 import { fieldLabel, fieldReadonly, fieldVisible, formProblems, optionLabel } from '@core/services/form-meta.service';
+import { logicRequired, withComputed } from '@core/services/form-logic';
 import type { FileValue, MoneyValue } from '@core/services/field-values';
 import { I18nService } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
@@ -223,6 +224,9 @@ export class SMTEntityFormComponent {
     language: () => this.i18n.currentLang(),
   });
 
+  /** The kit fields of the fields a formula makes required, by key and state, so their identity stays. */
+  private readonly requiredDefs = new Map<string, SMTDynamicFieldDef>();
+
   /** One setter per field, so the control's input keeps its identity between checks. */
   private readonly setters = new Map<string, (value: unknown) => void>();
 
@@ -258,8 +262,28 @@ export class SMTEntityFormComponent {
 
   set(key: string, value: unknown): void {
     if (Object.is(this.value()[key], value)) return;
-    this.value.update((values) => ({ ...values, [key]: value }));
+    // The computed fields follow every change, as the server computes them on save (ADR-0042).
+    this.value.update((values) => withComputed(this.meta(), { ...values, [key]: value }));
     this.feedback.changed(key);
+  }
+
+  /** Whether the field is required now: by its declaration or while its formula holds (ADR-0042). */
+  requiredNow(field: FormFieldMeta): boolean {
+    return field.required || logicRequired(field, this.value());
+  }
+
+  /** The kit field of a drawn field, required while its formula holds; the same object while nothing changes. */
+  defOf(field: DrawnField): SMTDynamicFieldDef {
+    if (!field.meta.requiredIf) return field.def;
+    const required = this.requiredNow(field.meta);
+    if (field.def.required === required) return field.def;
+    const key = `${field.meta.key}:${required}`;
+    let def = this.requiredDefs.get(key);
+    if (!def || def.label !== field.def.label) {
+      def = { ...field.def, required };
+      this.requiredDefs.set(key, def);
+    }
+    return def;
   }
 
   problemOf(key: string): string {

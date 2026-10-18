@@ -151,6 +151,11 @@ export class ApiService {
     if (lang) {
       headers = headers.set('Accept-Language', lang);
     }
+    // The viewer's time zone: the server reads a formula's today() in it, as the form's live preview does (ADR-0042).
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (zone) {
+      headers = headers.set('X-Time-Zone', zone);
+    }
     const xsrf = this.getXsrfToken();
     if (xsrf) {
       headers = headers.set('X-XSRF-TOKEN', xsrf);

@@ -25,11 +25,12 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 import type { StudioLanguage } from '../form-studio.models';
 import { NewFormFieldComponent } from '../new-form/new-form-field.component';
 import { NewFormLabelsComponent } from '../new-form/new-form-labels.component';
+import { NewFormRulesComponent } from '../new-form/new-form-rules.component';
 import { NewFormLayoutComponent, type LayoutChange } from '../new-form/new-form-layout.component';
 import { StudioTargetsStore } from '../studio-targets.store';
 import { SIMPLE_FORM_SCOPE_KEYS, SYSTEM_TITLE, titleOf } from '../new-form/new-form.models';
 import { simpleFormPreview } from '../new-form/new-form-preview';
-import type { SimpleField, SimpleFormMenu } from '../new-form/new-form.models';
+import type { SimpleField, SimpleFormMenu, SimpleFormRule } from '../new-form/new-form.models';
 import { MENU_ICONS, shownFields, VERSION_MAX_FIELDS, VERSION_MAX_SHOWN_FIELDS } from './form-version.rules';
 import { FormVersionStore } from './form-version.store';
 
@@ -56,6 +57,7 @@ const DEFAULT_MENU: SimpleFormMenu = { icon: 'box', section: 'workspace', order:
     NewFormFieldComponent,
     NewFormLabelsComponent,
     NewFormLayoutComponent,
+    NewFormRulesComponent,
   ],
   providers: [FormVersionStore, StudioTargetsStore],
   templateUrl: './form-version.component.html',
@@ -117,6 +119,14 @@ export class FormVersionComponent implements OnInit, RecordNavigationPage {
       draft.entity.titleField = change.titleField;
       if (change.layout) draft.layout = change.layout;
       else delete draft.layout;
+    });
+  }
+
+  /** The validation rules of the form (ADR-0042); none leaves the declaration without them. */
+  applyRules(rules: SimpleFormRule[] | undefined): void {
+    this.store.edit((draft) => {
+      if (rules) draft.rules = rules;
+      else delete draft.rules;
     });
   }
 

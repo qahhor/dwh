@@ -169,6 +169,7 @@
             [lists]="targets.lists()"
             [forms]="targets.forms()"
             [stored]="store.storedField(field.id)"
+            [fields]="draft.fields"
             (changed)="editField(index, $event)"
             (moved)="moveField(index, $event)"
             (removed)="removeField(index)"
@@ -179,6 +180,12 @@
           [disabled]="store.busy()"
           [named]="named()"
           (changed)="applyLayout($event)"
+        />
+        <app-new-form-rules
+          [rules]="draft.rules"
+          [fields]="draft.fields"
+          [disabled]="store.busy()"
+          (changed)="applyRules($event)"
         />
       </section>
       <section class="version-panel" aria-labelledby="version-preview-title">

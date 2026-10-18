@@ -236,6 +236,7 @@
           [live]="store.delivery() === 'live'"
           [lists]="targets.lists()"
           [forms]="targets.forms()"
+          [fields]="store.draft().fields"
           (changed)="editField(index, $event)"
           (moved)="moveField(index, $event)"
           (removed)="removeField(index)"
@@ -243,6 +244,12 @@
       }
       @if (store.delivery() === 'live') {
         <app-new-form-layout [declaration]="store.draft()" [disabled]="busy()" (changed)="applyLayout($event)" />
+        <app-new-form-rules
+          [rules]="store.draft().rules"
+          [fields]="store.draft().fields"
+          [disabled]="busy()"
+          (changed)="applyRules($event)"
+        />
       }
     </section>
     <section class="new-form-panel new-form-preview" aria-labelledby="new-form-preview-title">
