@@ -9,6 +9,39 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The formula language of live forms (ADR-0042, stage 2, step 2.1): a small, typed,
+  deterministic expression language — not SQL, no loops or reflection — with exact
+  decimals (10 decimals, `HALF_UP`), SQL null semantics, 25 functions (`round`, `if`,
+  `coalesce`, `isEmpty`, `upper`, `contains`, `today`, `addMonths`, `daysBetween`, …) and
+  bounds on size, nesting, text and evaluation steps. The server parses and type-checks a
+  formula once; the web interprets the same checked tree. The shared conformance cases
+  (`docs/api/formula-conformance.json`) run in `FormulaConformanceTest` and
+  `formula-conformance.spec.ts`.
+- Simple-form format 5 for live forms: a field's `formula` (a computed, read-only value
+  stored on every save, so lists, filters, reports and exports see it), `defaultFormula`,
+  `visibleIf`, `requiredIf` and `readonlyIf`, and the form's `rules` (a yes/no formula, a
+  message in ru/uz/en, an optional field). Formulas are checked at prepare, activation and
+  new-version time: 422 at the formula's address with `error.formula.<reason>`, the
+  position and the name; cycles among computed fields are refused. A new version changes
+  formulas freely but never makes a field with entered values computed
+  (`change_computed`). Golden samples of format 5 join formats 1 to 4.
+- The general runtime applies the form logic on every write path (create, update, bulk,
+  import): computed fields are never taken from the body, defaults by formula fill a new
+  record, hidden fields keep no value and are not required, conditions make optional
+  fields required or keep a saved field read-only, and a failed rule answers 422
+  `rule_failed` with `error.studio.rule_failed`; a formula that cannot give a value
+  (division by zero, …) answers 422 at its field, never 500. `today()` reads the request's
+  `X-Time-Zone` (a region of the zone database), else UTC.
+- `form-meta` gives each field the checked trees of its formulas (`formula`,
+  `defaultFormula`, `visibleIf`, `requiredIf`, `readonlyIf`) and the form its `rules`;
+  `POST /api/v1/studio/formulas/check` checks one formula for the editor.
+- Web: the record form shows computed values, defaults and the visible, required and
+  read-only conditions live and checks the rules before the request; requests carry
+  `X-Time-Zone`; the new-form and new-version editors edit a field's «Формулы и условия»
+  and the form's «Правила проверки» with field and function pickers and inline problems.
+  E2E: the order header «Заказ (шапка)»
+  (`e2e/tests/browser/instance/studio-order-formulas.spec.ts`).
+
 - Simple-form format 4 for live forms (ADR-0041, stage 1, branch 3): `entity.titleField`
   names a record by a required, listed text field, keeps the system name and code
   (`name`, as formats 1 to 3 do) or, when absent, names it by its number in the form;

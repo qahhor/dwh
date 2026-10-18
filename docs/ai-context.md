@@ -1,6 +1,6 @@
 # Контекст SmartupCMS для AI-ассистентов
 
-**Актуализировано:** 2026-10-16
+**Актуализировано:** 2026-10-18
 
 **Назначение:** краткий воспроизводимый handoff для следующей AI-сессии
 
@@ -174,6 +174,21 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   только он отчитался. JVM самого Maven ограничена `.mvn/jvm.config` (`-Xmx2g`).
 
 ## 7. Точка продолжения — 2026-10-18
+
+**Конструктор, этап 2, шаг 2.1 — формулы и логика живых форм (2026-10-18, прямо в `main` поверх `a8ffca8c`, не
+запушено — пушит координатор):** [ADR-0042](adr/ADR-0042-live-form-formulas.md), ADR-0041 «Этап 2, шаг 2.1». Язык формул
+`common.formula` (лексер, парсер с границами, проверка типов, интерпретатор: `BigDecimal`, 10 знаков `HALF_UP`, семантика
+null SQL, 25 функций); веб не парсит — интерпретирует проверенное дерево (`core/formula`, BigInt), общий набор случаев
+`docs/api/formula-conformance.json` (сервер пишет деревья `-Dformula.update=true`). simple-form формат 5: у поля
+`formula`/`defaultFormula`/`visibleIf`/`requiredIf`/`readonlyIf`, у формы `rules` (`MdSimpleFormLogic` — проверка при
+подготовке, циклы вычисляемых полей). Runtime: `common.entity.EntityLogic` в декларации источника
+(`LiveEntities.logic`), `EntityLogicRun` в `EntityFieldValues.prepareAll` (умолчания → вычисление → скрытие → повторное
+вычисление → `requiredIf`), правила — `EntityRule` сущности (`rule_failed`, `error.studio.rule_failed`), часовой пояс —
+`X-Time-Zone` (`RequestZone`). `form-meta` отдаёт деревья полям и `rules` форме; `POST /api/v1/studio/formulas/check`.
+Совместимость: логика меняется свободно, поле с введёнными значениями не становится вычисляемым (`change_computed`).
+Миграций нет. Веб: живой расчёт и условия в `smt-entity-form` (`core/services/form-logic.ts`), блоки «Формулы и условия» и
+«Правила проверки» в редакторах. E2E эталона: `e2e/tests/browser/instance/studio-order-formulas.spec.ts`. Дальше — шаг 2.2
+(строки документа, нумерация, файлы, статусы с согласованием), язык формул готов для итогов строк и условий статусов.
 
 **Конструктор, этап 1, ветка 3 — раскладка, заголовок записи и отчёты (2026-10-18, прямо в
 `main` поверх `eb06c03b`, не запушено — пушит координатор):** ADR-0041, «Этап 1, ветка 3»;

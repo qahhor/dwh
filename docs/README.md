@@ -146,6 +146,8 @@ Current ADRs that are not superseded:
 - [ADR-0036 — shared reports, aggregate exports and named dashboards](adr/ADR-0036-shared-reports-and-dashboards.md)
 - [ADR-0040 — signed staging prereleases and exact release identity](adr/ADR-0040-signed-staging-prereleases.md)
 - [ADR-0041 — live form evolution: schema versions in JSONB and export to code](adr/ADR-0041-live-form-evolution.md)
+- [ADR-0042 — the formula language of live forms](adr/ADR-0042-live-form-formulas.md) — computed fields, defaults,
+  conditions and rules in a safe typed language, checked by the server and interpreted alike in the web.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
