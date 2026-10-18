@@ -10,9 +10,11 @@ import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.EntityDefinition.FormSection;
 import com.smartup24.cms.platform.api.entity.EntityModel;
 import com.smartup24.cms.platform.api.entity.FormField;
+import com.smartup24.cms.platform.api.entity.field.EntityField;
 import com.smartup24.cms.platform.api.entity.hook.EntityActionHandler;
 import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -309,7 +311,8 @@ public class EntityRegistry {
                                 collection.fields().stream()
                                         .map(field -> EntityListFields.queryField(field, collection.alias()))
                                         .filter(Objects::nonNull)
-                                        .toList()))
+                                        .toList(),
+                                enumerations(collection.fields())))
                         .toList();
         return new QueryListExporter() {
             @Override
@@ -334,6 +337,16 @@ public class EntityRegistry {
                 return records.page(limit, cursor, filter, sort, search);
             }
         };
+    }
+
+    /** The reference lists the enumerations among {@code fields} take their items from, by field key. */
+    private static Map<String, String> enumerations(List<EntityField> fields) {
+        Map<String, String> references = new HashMap<>();
+        for (EntityField field : fields) {
+            String reference = field.options().enumeration();
+            if (reference != null) references.put(field.key(), reference);
+        }
+        return references;
     }
 
     private static EntityRecordStore noStore() {

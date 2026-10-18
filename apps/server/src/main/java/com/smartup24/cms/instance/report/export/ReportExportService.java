@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.EntityEnums;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.runtime.EntityGate;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -106,10 +107,11 @@ public class ReportExportService {
             AuditLogService audit,
             ObjectMapper json,
             ExportAccess access,
+            EntityEnums enums,
             @Value("${smc.reports.export.max-rows:50000}") int maxRows) {
         this.repo = repo;
         this.registry = registry;
-        this.exporters = new ReportExportSources(exporters, entities);
+        this.exporters = new ReportExportSources(exporters, entities, enums);
         this.principals = principals;
         this.gate = gate;
         this.i18n = i18n;
@@ -283,7 +285,6 @@ public class ReportExportService {
         ExportAccess.Snapshot snapshot = access.start(fields);
         Map<String, String> dictionary = i18n.effectiveDictionary(request.lang());
         Function<String, String> text = key -> dictionary.getOrDefault(key, key);
-
         Path temp = null;
         try {
             temp = Files.createTempFile("export-", ".xlsx");
@@ -294,7 +295,7 @@ public class ReportExportService {
                             out,
                             row.listCode(),
                             fields,
-                            exporter.details(),
+                            exporters.details(exporter),
                             text,
                             ExportWorkbookWriter.APPLICATION,
                             ExportWorkbookWriter.APP_VERSION)) {

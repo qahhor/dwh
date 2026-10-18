@@ -5,6 +5,7 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Lets a registry list be exported to a file (ADR-0018). The module hands out
@@ -39,11 +40,34 @@ public interface QueryListExporter {
 
     /**
      * The rows of a document an item holds under a key — the lines of an order (ADR-0043) — each written to a sheet of
-     * its own after the list: the title of the sheet and the fields of a row. None for a list of plain records.
+     * its own after the list: the title of the sheet, the fields of a row and the reference lists their enumerations
+     * take their items from (field key to the code of the reference). None for a list of plain records.
      */
-    record Detail(String key, String labelKey, List<QueryField> fields) {
+    record Detail(String key, String labelKey, List<QueryField> fields, Map<String, String> enumerations) {
         public Detail {
             fields = List.copyOf(fields);
+            enumerations = Map.copyOf(enumerations);
+        }
+
+        public Detail(String key, String labelKey, List<QueryField> fields) {
+            this(key, labelKey, fields, Map.of());
+        }
+
+        /**
+         * The detail with the items of its enumerations as they are now, named by {@code items} (the code of a
+         * reference to its items' names in the current language), so a file names a row's item as the list does.
+         */
+        public Detail named(Function<String, Map<String, String>> items) {
+            if (enumerations.isEmpty()) return this;
+            List<QueryField> named = fields.stream()
+                    .map(field -> {
+                        String reference = enumerations.get(field.key());
+                        return reference == null || field.type() != QueryFieldType.ENUM
+                                ? field
+                                : field.withEnumeration(items.apply(reference));
+                    })
+                    .toList();
+            return new Detail(key, labelKey, named, enumerations);
         }
     }
 
