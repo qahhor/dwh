@@ -21,8 +21,11 @@ public final class StudioFormulaDtos {
     /** A field id of a simple form. */
     public static final String FIELD_ID = "^[a-z][a-z0-9]{0,19}$";
 
-    /** Where a formula stands: a field's computed value, default or condition, or a rule. */
-    public static final String KIND = "^(formula|defaultFormula|visibleIf|requiredIf|readonlyIf|rule)$";
+    /**
+     * Where a formula stands: a field's computed value, default or condition, a rule, or a transition's condition of a
+     * document (ADR-0043).
+     */
+    public static final String KIND = "^(formula|defaultFormula|visibleIf|requiredIf|readonlyIf|rule|condition)$";
 
     /** A shown field of the form as a formula reads it. */
     @Schema(name = "StudioFormulaField", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
@@ -57,7 +60,31 @@ public final class StudioFormulaDtos {
             @Schema(description = "What a ref field names: a list keeps a code, a form a row's key")
             @Nullable
             @Pattern(regexp = "^(list|form)$")
-            String target) {}
+            String target,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "The field is computed: a formula of a line does not read it (ADR-0043)")
+            @Nullable
+            Boolean computed) {
+        /** A field as formulas of the header read it. */
+        public Field(String id, String type, @Nullable String target) {
+            this(id, type, target, null);
+        }
+    }
+
+    /** A table of lines of a document, as the formulas read its columns (ADR-0043). */
+    @Schema(name = "StudioFormulaLines", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
+    public record Lines(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, pattern = FIELD_ID)
+            @NotBlank
+            @Pattern(regexp = FIELD_ID)
+            String key,
+
+            @ArraySchema(maxItems = 20, arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
+            @NotNull
+            @Size(max = 20)
+            @Valid
+            List<Field> fields) {}
 
     @Schema(name = "StudioFormulaCheckRequest", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
     public record CheckRequest(
@@ -77,7 +104,40 @@ public final class StudioFormulaDtos {
             @Schema(description = "The id of the field the formula belongs to; absent for a rule", pattern = FIELD_ID)
             @Nullable
             @Pattern(regexp = FIELD_ID)
-            String field) {}
+            String field,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @ArraySchema(
+                    maxItems = 3,
+                    arraySchema = @Schema(description = "The tables of lines of a document (ADR-0043)"))
+            @Nullable
+            @Size(max = 3)
+            @Valid
+            List<Lines> lines,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(
+                    description = "The table of lines whose column the formula computes: it reads the row's columns"
+                            + " and the header's entered fields as doc.<field>",
+                    pattern = FIELD_ID)
+            @Nullable
+            @Pattern(regexp = FIELD_ID)
+            String line,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "The document has its number (docNumber)")
+            @Nullable
+            Boolean numbered,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "The document has its statuses (docStatus)")
+            @Nullable
+            Boolean statuses) {
+        /** A check of a formula of a form that is no document. */
+        public CheckRequest(List<Field> fields, String formula, String kind, @Nullable String field) {
+            this(fields, formula, kind, field, null, null, null, null);
+        }
+    }
 
     /**
      * The outcome: {@code valid} with the formula's {@code type}, or the {@code reason} of its first problem, the

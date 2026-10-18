@@ -1,0 +1,275 @@
+[
+  {
+    "checksum": "bed139e17ef03c122ab49a63603155d991e56c3d10d4fea4dbb6b13312cfced8",
+    "declaration": {
+      "formatVersion": 6,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v6_orders",
+        "title": {
+          "ru": "Заказ",
+          "uz": "Buyurtma",
+          "en": "Order"
+        },
+        "menu": {
+          "icon": "receipt_long",
+          "section": "workspace",
+          "order": 31
+        },
+        "scope": "org_unit",
+        "numbering": {
+          "pattern": "ЗК-{YYYY}-{NNNNNN}",
+          "reset": "year",
+          "assignOn": "approved",
+          "labels": {
+            "ru": "Номер заказа",
+            "uz": "Buyurtma raqami",
+            "en": "Order number"
+          }
+        }
+      },
+      "fields": [
+        {
+          "id": "client",
+          "type": "text",
+          "labels": {
+            "ru": "Клиент",
+            "uz": "Mijoz",
+            "en": "Client"
+          },
+          "required": true,
+          "listed": true,
+          "maxLength": 200
+        },
+        {
+          "id": "discount",
+          "type": "number",
+          "labels": {
+            "ru": "Скидка, %",
+            "uz": "Chegirma, %",
+            "en": "Discount, %"
+          },
+          "required": false,
+          "listed": true,
+          "scale": 2
+        },
+        {
+          "id": "total",
+          "type": "number",
+          "labels": {
+            "ru": "Итого",
+            "uz": "Jami",
+            "en": "Total"
+          },
+          "required": false,
+          "listed": true,
+          "scale": 2,
+          "formula": "sum(lines.items.amount)"
+        }
+      ],
+      "rules": [
+        {
+          "key": "lines",
+          "formula": "count(lines.items) <= 100",
+          "message": {
+            "ru": "Не больше 100 строк",
+            "uz": "100 qatordan ko‘p emas",
+            "en": "At most 100 lines"
+          }
+        }
+      ],
+      "lines": [
+        {
+          "key": "items",
+          "labels": {
+            "ru": "Строки заказа",
+            "uz": "Buyurtma qatorlari",
+            "en": "Order lines"
+          },
+          "maxRows": 100,
+          "fields": [
+            {
+              "id": "product",
+              "type": "select",
+              "labels": {
+                "ru": "Товар",
+                "uz": "Tovar",
+                "en": "Product"
+              },
+              "required": true,
+              "options": [
+                {
+                  "code": "tea",
+                  "labels": {
+                    "ru": "Чай",
+                    "uz": "Choy",
+                    "en": "Tea"
+                  }
+                },
+                {
+                  "code": "coffee",
+                  "labels": {
+                    "ru": "Кофе",
+                    "uz": "Qahva",
+                    "en": "Coffee"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "qty",
+              "type": "number",
+              "labels": {
+                "ru": "Количество",
+                "uz": "Miqdori",
+                "en": "Quantity"
+              },
+              "required": true,
+              "scale": 3
+            },
+            {
+              "id": "price",
+              "type": "number",
+              "labels": {
+                "ru": "Цена",
+                "uz": "Narxi",
+                "en": "Price"
+              },
+              "required": true,
+              "scale": 2
+            },
+            {
+              "id": "amount",
+              "type": "number",
+              "labels": {
+                "ru": "Сумма",
+                "uz": "Summa",
+                "en": "Amount"
+              },
+              "required": false,
+              "scale": 2,
+              "formula": "round(qty * price * (1 - coalesce(doc.discount, 0) / 100), 2)"
+            },
+            {
+              "id": "note",
+              "type": "text",
+              "labels": {
+                "ru": "Примечание",
+                "uz": "Izoh",
+                "en": "Note"
+              },
+              "required": false,
+              "maxLength": 200
+            }
+          ]
+        }
+      ],
+      "workflow": {
+        "labels": {
+          "ru": "Статус заказа",
+          "uz": "Buyurtma holati",
+          "en": "Order status"
+        },
+        "states": [
+          {
+            "code": "draft",
+            "labels": {
+              "ru": "Черновик",
+              "uz": "Qoralama",
+              "en": "Draft"
+            },
+            "color": "gray"
+          },
+          {
+            "code": "pending",
+            "labels": {
+              "ru": "На согласовании",
+              "uz": "Kelishuvda",
+              "en": "Pending"
+            },
+            "color": "blue",
+            "lockAll": true
+          },
+          {
+            "code": "approved",
+            "labels": {
+              "ru": "Согласовано",
+              "uz": "Kelishilgan",
+              "en": "Approved"
+            },
+            "color": "green",
+            "terminal": true
+          },
+          {
+            "code": "rejected",
+            "labels": {
+              "ru": "Отклонено",
+              "uz": "Rad etilgan",
+              "en": "Rejected"
+            },
+            "color": "red",
+            "locks": [
+              "client",
+              "items"
+            ]
+          }
+        ],
+        "transitions": [
+          {
+            "code": "submit",
+            "labels": {
+              "ru": "На согласование",
+              "uz": "Kelishuvga",
+              "en": "Submit"
+            },
+            "from": [
+              "draft",
+              "rejected"
+            ],
+            "to": "pending",
+            "condition": "total > 0",
+            "comment": "none"
+          },
+          {
+            "code": "approve",
+            "labels": {
+              "ru": "Согласовать",
+              "uz": "Kelishish",
+              "en": "Approve"
+            },
+            "from": [
+              "pending"
+            ],
+            "to": "approved",
+            "comment": "optional",
+            "notAuthor": true,
+            "notify": true
+          },
+          {
+            "code": "reject",
+            "labels": {
+              "ru": "Отклонить",
+              "uz": "Rad etish",
+              "en": "Reject"
+            },
+            "from": [
+              "pending"
+            ],
+            "to": "rejected",
+            "comment": "required",
+            "notAuthor": true,
+            "notify": true
+          }
+        ]
+      }
+    }
+  }
+]

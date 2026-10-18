@@ -2,18 +2,11 @@ package com.smartup24.cms.instance.studio.controller;
 
 import com.smartup24.cms.instance.common.annotation.NoIdempotency;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.common.formula.FormulaException;
-import com.smartup24.cms.instance.common.formula.FormulaType;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos;
-import com.smartup24.cms.instance.md.service.MdSimpleFormLogic;
 import com.smartup24.cms.instance.studio.api.StudioFormulaDtos.Check;
 import com.smartup24.cms.instance.studio.api.StudioFormulaDtos.CheckRequest;
-import com.smartup24.cms.instance.studio.api.StudioFormulaDtos.Field;
+import com.smartup24.cms.instance.studio.service.StudioFormulaChecks;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -43,48 +36,7 @@ public class StudioFormulaController {
     @NoIdempotency
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Check> check(@Valid @RequestBody CheckRequest request) {
-        Map<String, FormulaType> types = new LinkedHashMap<>();
-        Map<String, String> fieldTypes = new LinkedHashMap<>();
-        for (Field field : request.fields()) {
-            types.put(field.id(), MdSimpleFormLogic.type(declared(field)));
-            fieldTypes.put(field.id(), field.type());
-        }
-        String kind = request.kind();
-        boolean value = "formula".equals(kind) || "defaultFormula".equals(kind);
-        String owner = request.field();
-        String fieldType = value && owner != null ? fieldTypes.get(owner) : null;
-        // A rule, required and read-only conditions take a yes/no and may read every field; a condition that shows
-        // a field may not read it.
-        String self = "visibleIf".equals(kind) ? owner : null;
-        if (value && fieldType == null) {
-            return answer(new MdSimpleFormLogic.Checked(null, new FormulaException("result", 1, null)));
-        }
-        return answer(MdSimpleFormLogic.check(request.formula(), types, fieldType, self));
-    }
-
-    private static ResponseEntity<Check> answer(MdSimpleFormLogic.Checked checked) {
-        FormulaException problem = checked.problem();
-        FormulaType type = checked.type();
-        Check body = problem == null
-                ? new Check(true, Objects.requireNonNull(type).wire(), null, null, null, null)
-                : new Check(false, null, problem.reason(), problem.position(), problem.name(), problem.messageKey());
+        Check body = StudioFormulaChecks.check(request);
         return ResponseEntity.ok().header("Cache-Control", "no-store").body(body);
-    }
-
-    private static MdSimpleFormDtos.Field declared(Field field) {
-        MdSimpleFormDtos.Target target =
-                field.target() == null ? null : new MdSimpleFormDtos.Target(field.target(), field.id());
-        return new MdSimpleFormDtos.Field(
-                field.id(),
-                field.type(),
-                new MdSimpleFormDtos.Labels(field.id(), field.id(), field.id()),
-                false,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null,
-                target);
     }
 }

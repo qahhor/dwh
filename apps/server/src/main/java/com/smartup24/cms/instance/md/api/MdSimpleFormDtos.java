@@ -1,6 +1,10 @@
 package com.smartup24.cms.instance.md.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDocumentDtos.Lines;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDocumentDtos.Numbering;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDocumentDtos.Workflow;
+import com.smartup24.cms.instance.md.api.MdSimpleFormLayoutDtos.Layout;
 import com.smartup24.cms.instance.md.api.MdSimpleFormRuleDtos.Rule;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -82,69 +86,33 @@ public final class MdSimpleFormDtos {
                             + " or name for the system name and code fields; absent means the record's number",
                     pattern = "^[a-z][a-z0-9]{0,19}$")
             @Nullable
-            String titleField) {
+            String titleField,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Format 6: the number of a document (ADR-0043)")
+            @Nullable
+            Numbering numbering) {
         /** An entity of format 1, which has no menu of its own. */
         public Entity(String name, Labels title) {
-            this(name, title, null, null, null);
+            this(name, title, null, null, null, null);
         }
 
         /** An entity of format 2, which sees every record. */
         public Entity(String name, Labels title, @Nullable Menu menu) {
-            this(name, title, menu, null, null);
+            this(name, title, menu, null, null, null);
         }
 
         /** An entity of format 3, named by its system name field. */
         public Entity(String name, Labels title, @Nullable Menu menu, @Nullable String scope) {
-            this(name, title, menu, scope, null);
+            this(name, title, menu, scope, null, null);
+        }
+
+        /** An entity of formats 4 and 5, which has no number of its own. */
+        public Entity(
+                String name, Labels title, @Nullable Menu menu, @Nullable String scope, @Nullable String titleField) {
+            this(name, title, menu, scope, titleField, null);
         }
     }
-
-    /** A tab of a live form's card and form, from format 4 on (ADR-0041): it shows the sections that name it. */
-    @Schema(name = "SimpleFormTab", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
-    public record Tab(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, pattern = "^[a-z][a-z0-9_]{0,19}$")
-            String key,
-
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-            Labels labels) {}
-
-    /** A titled group of the fields of a live form, from format 4 on (ADR-0041); on a tab when the form has tabs. */
-    @Schema(name = "SimpleFormSection", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
-    public record Section(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, pattern = "^[a-z][a-z0-9_]{0,19}$")
-            String key,
-
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-            Labels labels,
-
-            @JsonInclude(JsonInclude.Include.NON_NULL)
-            @Schema(description = "The key of the tab the section is on; present exactly when the form has tabs")
-            @Nullable
-            String tab,
-
-            @ArraySchema(
-                    minItems = 1,
-                    maxItems = 20,
-                    arraySchema =
-                            @Schema(
-                                    requiredMode = Schema.RequiredMode.REQUIRED,
-                                    description = "The ids of the shown fields of the section, in their order"))
-            List<String> fields) {}
-
-    /**
-     * The layout of a live form, from format 4 on (ADR-0041): sections, each shown field on exactly one of them, and
-     * optionally 2 to 6 tabs; without it the form has one section of every field.
-     */
-    @Schema(name = "SimpleFormLayout", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
-    public record Layout(
-            @JsonInclude(JsonInclude.Include.NON_NULL) @ArraySchema(minItems = 2, maxItems = 6) @Nullable
-            List<Tab> tabs,
-
-            @ArraySchema(
-                    minItems = 1,
-                    maxItems = 10,
-                    arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
-            List<Section> sections) {}
 
     /** A fixed choice of a select field, from format 3 on (ADR-0041): its code is what the records keep. */
     @Schema(name = "SimpleFormOption", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
@@ -325,10 +293,10 @@ public final class MdSimpleFormDtos {
             @Schema(
                     requiredMode = Schema.RequiredMode.REQUIRED,
                     minimum = "1",
-                    maximum = "5",
+                    maximum = "6",
                     description = "1; 2 for a live form with hidden fields, defaults or its own menu item; 3 adds"
                             + " select, ref and user fields and the data scope; 4 adds the layout and the title"
-                            + " field; 5 adds formulas and rules")
+                            + " field; 5 adds formulas and rules; 6 adds lines, the number and statuses")
             int formatVersion,
 
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = "simple-form")
@@ -360,10 +328,35 @@ public final class MdSimpleFormDtos {
                                     description = "Format 5: the validation rules every save of a record must meet"
                                             + " (ADR-0042)"))
             @Nullable
-            List<Rule> rules) {
+            List<Rule> rules,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @ArraySchema(
+                    minItems = 1,
+                    maxItems = 3,
+                    arraySchema = @Schema(description = "Format 6: the tables of the document's lines (ADR-0043)"))
+            @Nullable
+            List<Lines> lines,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Format 6: the statuses and transitions of the document (ADR-0043)")
+            @Nullable
+            Workflow workflow) {
         /** A declaration of formats 1 to 3, which has no layout of its own. */
         public Declaration(int formatVersion, String kind, Module module, Entity entity, List<Field> fields) {
             this(formatVersion, kind, module, entity, fields, null, null);
+        }
+
+        /** A declaration of format 5, which is no document. */
+        public Declaration(
+                int formatVersion,
+                String kind,
+                Module module,
+                Entity entity,
+                List<Field> fields,
+                @Nullable Layout layout,
+                @Nullable List<Rule> rules) {
+            this(formatVersion, kind, module, entity, fields, layout, rules, null, null);
         }
 
         /** A declaration of format 4, which has no rules. */

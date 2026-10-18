@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,6 +71,16 @@ public class LiveEntities {
     public EntityLogic logic(String code) {
         EntityDefinitionSource.Declaration declaration = declarations().get(code);
         return declaration == null ? EntityLogic.NONE : declaration.logic();
+    }
+
+    /** The hooks of the saves of the served entity {@code code}, when its source gives them (ADR-0043). */
+    public Optional<EntityHooks> hooks(String code) {
+        return Optional.ofNullable(declarations().get(code)).map(EntityDefinitionSource.Declaration::hooks);
+    }
+
+    /** What the screens show of the process of the served entity {@code code}, when its source says it (ADR-0043). */
+    public Optional<EntityProcessView> process(String code) {
+        return Optional.ofNullable(declarations().get(code)).map(EntityDefinitionSource.Declaration::process);
     }
 
     public Optional<EntityDefinition> find(String code) {

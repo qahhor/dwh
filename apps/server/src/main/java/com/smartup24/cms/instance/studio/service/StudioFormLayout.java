@@ -3,15 +3,16 @@ package com.smartup24.cms.instance.studio.service;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Declaration;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Labels;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Layout;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Section;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Tab;
+import com.smartup24.cms.instance.md.api.MdSimpleFormLayoutDtos.Layout;
+import com.smartup24.cms.instance.md.api.MdSimpleFormLayoutDtos.Section;
+import com.smartup24.cms.instance.md.api.MdSimpleFormLayoutDtos.Tab;
+import com.smartup24.cms.instance.md.service.MdSimpleFormDocumentLogic;
 import com.smartup24.cms.platform.api.entity.Entity;
 import com.smartup24.cms.platform.api.entity.EntityTab;
+import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
-import org.jspecify.annotations.Nullable;
 
 /**
  * The record title and the layout of a live form (ADR-0041). Formats 1 to 3 — and a form of format 4 whose title field
@@ -30,13 +31,20 @@ final class StudioFormLayout {
     /** The key of the single section of a form without a layout. */
     static final String MAIN = "main";
 
+    /** The key of the tab of every section of a document whose layout has no tabs (ADR-0043). */
+    static final String FIELDS_TAB = "fields";
+
     private StudioFormLayout() {}
 
-    /** The key of the field that names a record of the form: its title field, {@code name} or the record's number. */
+    /**
+     * The key of the field that names a record of the form: its title field, {@code name}, the document's number of a
+     * form of format 6 that numbers its records (ADR-0043) or the record's own number.
+     */
     static String titleKey(Declaration source) {
         String field = source.entity().titleField();
         if (source.formatVersion() < 4 || NAME.equals(field)) return NAME;
-        return field == null ? RECORD_NUMBER : field;
+        if (field != null) return field;
+        return source.entity().numbering() != null ? MdSimpleFormDocumentLogic.NUMBER : RECORD_NUMBER;
     }
 
     /** The served fields, the title field first. */
@@ -49,7 +57,9 @@ final class StudioFormLayout {
 
     /**
      * Declares the sections and tabs: {@code system} keys open the first section, {@code last} closes it; the fields of a
-     * form without a layout make one section in {@code fields} order.
+     * form without a layout make one section in {@code fields} order. A document's tables of lines (ADR-0043) are tabs
+     * of the card after the tabs of sections — one tab of every section when the layout has none — and before the
+     * history.
      */
     static void declare(
             Entity builder,
@@ -57,31 +67,43 @@ final class StudioFormLayout {
             String prefix,
             List<String> system,
             List<String> fields,
-            @Nullable String last) {
+            List<String> last,
+            List<EntityCollection> collections) {
         Layout layout = source.layout();
+        List<String> declared = new ArrayList<>();
         if (layout == null) {
             List<String> keys = new ArrayList<>(system);
             keys.addAll(fields);
-            if (last != null) keys.add(last);
+            keys.addAll(last);
             builder.section(MAIN, "entity.section.main", keys.toArray(String[]::new));
+            declared.add(MAIN);
+        } else {
+            List<Section> sections = layout.sections();
+            for (int index = 0; index < sections.size(); index++) {
+                Section section = sections.get(index);
+                List<String> keys = new ArrayList<>();
+                if (index == 0) keys.addAll(system);
+                keys.addAll(section.fields());
+                if (index == 0) keys.addAll(last);
+                builder.section(section.key(), sectionKey(prefix, section.key()), keys.toArray(String[]::new));
+                declared.add(section.key());
+            }
+        }
+        if (layout != null && layout.tabs() != null) {
+            for (Tab tab : layout.tabs()) {
+                String[] shown = layout.sections().stream()
+                        .filter(section -> tab.key().equals(section.tab()))
+                        .map(Section::key)
+                        .toArray(String[]::new);
+                builder.tab(EntityTab.sections(tab.key(), tabKey(prefix, tab.key()), shown));
+            }
+        } else if (!collections.isEmpty()) {
+            builder.tab(EntityTab.sections(FIELDS_TAB, "ui.entity_page.tab_fields", declared.toArray(String[]::new)));
+        } else {
             return;
         }
-        List<Section> sections = layout.sections();
-        for (int index = 0; index < sections.size(); index++) {
-            Section section = sections.get(index);
-            List<String> keys = new ArrayList<>();
-            if (index == 0) keys.addAll(system);
-            keys.addAll(section.fields());
-            if (index == 0 && last != null) keys.add(last);
-            builder.section(section.key(), sectionKey(prefix, section.key()), keys.toArray(String[]::new));
-        }
-        if (layout.tabs() == null) return;
-        for (Tab tab : layout.tabs()) {
-            String[] shown = sections.stream()
-                    .filter(section -> tab.key().equals(section.tab()))
-                    .map(Section::key)
-                    .toArray(String[]::new);
-            builder.tab(EntityTab.sections(tab.key(), tabKey(prefix, tab.key()), shown));
+        for (EntityCollection collection : collections) {
+            builder.tab(EntityTab.collection(collection.key(), collection.labelKey(), collection.key()));
         }
         builder.tab(EntityTab.history("history", "ui.entity_page.tab_history"));
     }

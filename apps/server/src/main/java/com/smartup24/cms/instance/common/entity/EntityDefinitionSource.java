@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
+import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -20,17 +21,29 @@ public interface EntityDefinitionSource {
 
     /**
      * A loaded declaration, its dictionary entries by language, the key of the field that names a record ({@code
-     * titleField}, ADR-0041), when the source says one, and its form logic in formulas ({@code logic}, ADR-0042).
+     * titleField}, ADR-0041), when the source says one, its form logic in formulas ({@code logic}, ADR-0042) and, for
+     * a document (ADR-0043), the hooks of its saves and what the screens show of its process.
      */
     record Declaration(
             EntityDefinition entity,
             Map<String, Map<String, String>> messages,
             @Nullable String titleField,
-            EntityLogic logic) {
+            EntityLogic logic,
+            @Nullable EntityHooks hooks,
+            @Nullable EntityProcessView process) {
         public Declaration {
             Map<String, Map<String, String>> copy = new LinkedHashMap<>();
             messages.forEach((language, values) -> copy.put(language, Map.copyOf(values)));
             messages = Map.copyOf(copy);
+        }
+
+        /** A declaration that is no document. */
+        public Declaration(
+                EntityDefinition entity,
+                Map<String, Map<String, String>> messages,
+                @Nullable String titleField,
+                EntityLogic logic) {
+            this(entity, messages, titleField, logic, null, null);
         }
 
         /** A declaration without form logic. */

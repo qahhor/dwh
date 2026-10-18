@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.entity;
 
+import com.smartup24.cms.instance.common.entity.FormDocumentMetas.FormCollectionMeta;
 import com.smartup24.cms.instance.common.entity.FormMetaController.FormFieldMeta;
 import com.smartup24.cms.instance.common.entity.FormMetaController.FormMeta;
 import com.smartup24.cms.instance.common.formula.Formula;
@@ -25,6 +26,11 @@ public final class FormLogicMetas {
         if (logic.empty()) return meta;
         List<FormFieldMeta> fields =
                 meta.fields().stream().map(field -> field(field, logic)).toList();
+        List<FormCollectionMeta> collections = meta.collections() == null
+                ? null
+                : meta.collections().stream()
+                        .map(collection -> collection(collection, logic))
+                        .toList();
         List<FormRuleMeta> rules = logic.rules().stream()
                 .map(rule -> new FormRuleMeta(
                         rule.key(),
@@ -40,11 +46,23 @@ public final class FormLogicMetas {
                 meta.layout(),
                 meta.actions(),
                 meta.capabilities(),
-                meta.collections(),
+                collections,
                 meta.workflow(),
                 meta.tabs(),
                 meta.titleField(),
                 rules.isEmpty() ? null : rules);
+    }
+
+    /** A collection whose computed columns carry their formulas over the row and the header (ADR-0043). */
+    private static FormCollectionMeta collection(FormCollectionMeta collection, EntityLogic logic) {
+        List<EntityLogic.Computed> computed = logic.lineComputed(collection.key());
+        if (computed.isEmpty()) return collection;
+        EntityLogic row = new EntityLogic(computed, Map.of(), Map.of(), Map.of(), Map.of(), List.of(), Map.of());
+        return new FormCollectionMeta(
+                collection.key(),
+                collection.labelKey(),
+                collection.fields().stream().map(field -> field(field, row)).toList(),
+                collection.maxRows());
     }
 
     private static FormFieldMeta field(FormFieldMeta field, EntityLogic logic) {

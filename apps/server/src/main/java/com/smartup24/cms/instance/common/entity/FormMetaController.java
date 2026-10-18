@@ -45,6 +45,7 @@ public class FormMetaController {
     private final Function<String, Items> enumItems;
     private final Supplier<List<EntityTitles>> titles;
     private final Function<String, EntityLogic> logic;
+    private final Function<String, @Nullable EntityProcessView> process;
 
     /** The entity opens through {@link EntityGate}: its module switched on and its {@code view} right held. */
     @Autowired
@@ -58,6 +59,8 @@ public class FormMetaController {
         this.titles = () -> titles.orderedStream().toList();
         LiveEntities served = live.getIfAvailable();
         this.logic = served == null ? code -> EntityLogic.NONE : served::logic;
+        this.process =
+                served == null ? code -> null : code -> served.process(code).orElse(null);
     }
 
     /** A controller of the declarations alone, without reference entities: an enumeration offers no items. */
@@ -66,6 +69,7 @@ public class FormMetaController {
         this.enumItems = code -> Items.NONE;
         this.titles = List::of;
         this.logic = code -> EntityLogic.NONE;
+        this.process = code -> null;
     }
 
     /**
@@ -153,6 +157,7 @@ public class FormMetaController {
         // A related list of the card only of an entity the viewer may see (ADR-0032, 9.3).
         FormMeta meta = titled(of(entity, enumItems, gate::visible), titleField(entity));
         meta = FormLogicMetas.with(meta, logic.apply(entity.code()));
+        meta = withProcess(meta, process.apply(entity.code()));
         return ResponseEntity.ok(gate.writable(entity) ? meta : readOnly(meta));
     }
 
@@ -168,6 +173,24 @@ public class FormMetaController {
                 meta.capabilities(),
                 meta.collections(),
                 meta.workflow(),
+                meta.tabs(),
+                meta.titleField(),
+                meta.rules());
+    }
+
+    /** The form whose process says what a live form adds to it (ADR-0043); the form as it is without that. */
+    static FormMeta withProcess(FormMeta meta, @Nullable EntityProcessView view) {
+        if (view == null || meta.workflow() == null) return meta;
+        return new FormMeta(
+                meta.code(),
+                meta.titleKey(),
+                meta.listCode(),
+                meta.fields(),
+                meta.layout(),
+                meta.actions(),
+                meta.capabilities(),
+                meta.collections(),
+                FormDocumentMetas.withView(meta.workflow(), view),
                 meta.tabs(),
                 meta.titleField(),
                 meta.rules());

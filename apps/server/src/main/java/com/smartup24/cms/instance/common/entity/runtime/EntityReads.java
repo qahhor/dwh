@@ -131,10 +131,11 @@ public class EntityReads {
 
     /**
      * A page of records with the labels of their references in {@code labels}, resolved in batch in the viewer's
-     * scope, for the export, which writes names rather than keys (ADR-0041); a record without references is unchanged.
+     * scope, for the export, which writes names rather than keys (ADR-0041); a record without references is unchanged. A
+     * document's records hold their rows, read for the page in one statement per collection (ADR-0043).
      */
     public KeysetPage<Map<String, Object>> labelled(EntityDefinition entity, KeysetPage<Map<String, Object>> page) {
-        List<Map<String, Object>> items = page.items();
+        List<Map<String, Object>> items = lines.withRows(entity, page.items());
         if (items.isEmpty()) return page;
         List<Map<String, Object>> labels = resolver.resolveBatch(entity, items, userId());
         List<Map<String, Object>> labelled = new ArrayList<>(items.size());

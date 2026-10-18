@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.entity.FieldValueRules;
+import com.smartup24.cms.instance.common.entity.TransitionGuard;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
@@ -18,6 +19,7 @@ import com.smartup24.cms.platform.api.entity.workflow.EntityState;
 import com.smartup24.cms.platform.api.entity.workflow.EntityTransition;
 import com.smartup24.cms.platform.api.entity.workflow.EntityWorkflow;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -58,12 +60,30 @@ public final class EntityProcess {
             if (!SecurityContext.hasPermission(entity.form(), action.permission())) continue;
             if (action.kind() == EntityAction.Kind.TRANSITION) {
                 if (workflow == null || !workflow.allows(action.code(), state)) continue;
+                if (!admitted(entity, workflow, action.code(), record)) continue;
             } else if ((terminal && "update".equals(action.code())) || (kept && removes(action.code()))) {
                 continue;
             }
             actions.add(action.code());
         }
         return actions;
+    }
+
+    /**
+     * Whether the guards of a transition admit the record as the transition would leave it (ADR-0043): a transition a
+     * guard refuses is not offered; one without guards is.
+     */
+    private static boolean admitted(
+            EntityDefinition entity, EntityWorkflow workflow, String code, Map<String, ?> record) {
+        EntityTransition transition = workflow.transition(code).orElse(null);
+        if (transition == null || transition.rules().stream().noneMatch(TransitionGuard.class::isInstance)) return true;
+        Map<String, Object> left = new LinkedHashMap<>(record);
+        left.put(workflow.field(), transition.to());
+        EntityValues values = EntityValues.readOnly(entity, left);
+        return transition.rules().stream()
+                .filter(TransitionGuard.class::isInstance)
+                .map(TransitionGuard.class::cast)
+                .allMatch(guard -> guard.admits(values));
     }
 
     /**

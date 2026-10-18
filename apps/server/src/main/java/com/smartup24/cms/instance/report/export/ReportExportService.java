@@ -294,6 +294,7 @@ public class ReportExportService {
                             out,
                             row.listCode(),
                             fields,
+                            exporter.details(),
                             text,
                             ExportWorkbookWriter.APPLICATION,
                             ExportWorkbookWriter.APP_VERSION)) {

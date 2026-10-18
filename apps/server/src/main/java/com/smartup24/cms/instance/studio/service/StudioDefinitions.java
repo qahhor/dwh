@@ -326,7 +326,8 @@ public class StudioDefinitions implements EntityDefinitionSource {
                 : source.entity().title();
         Declaration rights;
         try {
-            rights = compiler.rights(row.id(), row.code().substring(PREFIX.length()), title);
+            rights = compiler.rights(
+                    row.id(), row.code().substring(PREFIX.length()), title, source == null ? null : source.workflow());
         } catch (RuntimeException failure) {
             log.error(
                     "studio_form_rights_skipped code={} formId={} error={}", row.code(), row.id(), failure.toString());

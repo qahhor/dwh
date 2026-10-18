@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
  * conditions and the rules may be added, changed or removed, and a new computed field starts empty in the records saved
  * before it. A field whose records hold entered values never becomes computed ({@code computed}): the next save would
  * replace them; a computed field may become an entered one and keeps its values.
+ *
+ * <p>Format 6 (ADR-0043): the tables of lines, the number and the statuses follow {@link StudioDocumentChangeRules}.
  */
 public final class StudioChangeRules {
     /** The message of every refused change; its parameters name the field and the change. */
@@ -74,6 +76,7 @@ public final class StudioChangeRules {
         for (Field added : following.values()) {
             if (added.required() && added.defaultValue() == null) changes.add(new Change(added.id(), "required"));
         }
+        StudioDocumentChangeRules.incompatible(active, next, changes);
         return changes;
     }
 
@@ -126,8 +129,11 @@ public final class StudioChangeRules {
                 continue;
             }
             Map<String, String> params = Map.of("field", change.field(), "change", change.change());
-            errors.add(FieldErrorItem.keyed(
-                    "fields." + change.field(), "change_" + change.change(), INCOMPATIBLE, params));
+            // A field id has no dot; a document's part is addressed by its own path (ADR-0043).
+            String at = change.field().contains(".") || "workflow".equals(change.field())
+                    ? change.field()
+                    : "fields." + change.field();
+            errors.add(FieldErrorItem.keyed(at, "change_" + change.change(), INCOMPATIBLE, params));
         }
         if (first.equals(SCOPE_CHANGE)) return ApiException.validation(SCOPE, errors);
         return ApiException.validation(INCOMPATIBLE, Map.of("field", first.field(), "change", first.change()), errors);

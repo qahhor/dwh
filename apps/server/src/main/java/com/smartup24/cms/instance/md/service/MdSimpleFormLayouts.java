@@ -7,9 +7,9 @@ import static com.smartup24.cms.instance.md.service.MdSimpleFormDeclarations.req
 import static com.smartup24.cms.instance.md.service.MdSimpleFormDeclarations.text;
 
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Layout;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Section;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Tab;
+import com.smartup24.cms.instance.md.api.MdSimpleFormLayoutDtos.Layout;
+import com.smartup24.cms.instance.md.api.MdSimpleFormLayoutDtos.Section;
+import com.smartup24.cms.instance.md.api.MdSimpleFormLayoutDtos.Tab;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;

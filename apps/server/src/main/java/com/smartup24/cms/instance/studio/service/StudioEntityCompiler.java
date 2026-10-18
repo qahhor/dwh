@@ -4,29 +4,30 @@ import static com.smartup24.cms.platform.api.entity.field.EntityFields.*;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinitionSource;
 import com.smartup24.cms.instance.common.entity.EntityLogic;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDocumentDtos.Numbering;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDocumentDtos.Workflow;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Declaration;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Labels;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Menu;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Option;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Target;
 import com.smartup24.cms.instance.md.api.MdSimpleFormRuleDtos;
+import com.smartup24.cms.instance.md.service.MdSimpleFormDocumentLogic;
 import com.smartup24.cms.platform.api.entity.Entity;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityMenu;
 import com.smartup24.cms.platform.api.entity.EntityScope;
+import com.smartup24.cms.platform.api.entity.collection.EntityCollection;
 import com.smartup24.cms.platform.api.entity.field.EntityFields.Builder;
-import com.smartup24.cms.platform.api.entity.field.FieldDefault;
-import com.smartup24.cms.platform.api.entity.field.FieldSource.SystemColumn;
-import com.smartup24.cms.platform.api.entity.field.QueryRef;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -43,6 +44,10 @@ import org.springframework.stereotype.Component;
  *
  * <p>Format 4 (ADR-0041): a form is named by its title field or by the record's number instead of the system name and
  * code, and lays its fields out in sections and tabs ({@link StudioFormLayout}).
+ *
+ * <p>Format 6 (ADR-0043): a document has its number, its status and the comment of its last transition as system
+ * fields, its tables of lines as collections and its statuses as a process ({@link StudioDocumentCompiler}); its saves
+ * run the hooks of its number, comments and notices ({@link StudioDocumentHooks}).
  */
 @Component
 public class StudioEntityCompiler {
@@ -64,6 +69,22 @@ public class StudioEntityCompiler {
 
     /** The units a record may be moved to: those of the mover's data scope. */
     public static final String ORG_UNITS = "/iam/org-units/scope";
+
+    private final @Nullable StudioDocuments documents;
+
+    /** A compiler without the services of documents: their numbers, comments and notices are not served. */
+    public StudioEntityCompiler() {
+        this((StudioDocuments) null);
+    }
+
+    public StudioEntityCompiler(@Nullable StudioDocuments documents) {
+        this.documents = documents;
+    }
+
+    @Autowired
+    public StudioEntityCompiler(ObjectProvider<StudioDocuments> documents) {
+        this(documents.getIfAvailable());
+    }
 
     public EntityDefinitionSource.Declaration compile(long id, Declaration source) {
         return compile(id, source, false);
@@ -88,51 +109,128 @@ public class StudioEntityCompiler {
                 .partition("form_id", id)
                 .scope(scope(source.entity().scope()))
                 .auditTable("studio_" + source.entity().name())
-                .rights("studio", prefix + ".title", RIGHTS);
-        List<String> system = new ArrayList<>();
-        if (StudioFormLayout.NAME.equals(title)) {
-            builder.field(name()).field(code()).field(modifiedAt());
-            system.addAll(List.of("name", "code"));
-        } else if (StudioFormLayout.RECORD_NUMBER.equals(title)) {
-            builder.field(recordNumber());
-            system.add(StudioFormLayout.RECORD_NUMBER);
-        }
+                .rights("studio", prefix + ".title", StudioDocumentCompiler.rights(source, prefix, RIGHTS));
+        List<String> system = system(builder, source, title, prefix);
         List<String> fields = new ArrayList<>();
         EntityLogic logic = StudioFormLogic.of(source, prefix);
         for (Field field : StudioFormLayout.ordered(shown(source), title)) {
-            Builder compiled = field(field, prefix, field.id().equals(title), named);
+            Builder compiled = StudioFields.field(field, prefix, field.id().equals(title), named);
             // A computed field is written by the server on every save, never by a client (ADR-0042).
             if (field.formula() != null) compiled.readonly();
             builder.field(compiled);
             fields.add(field.id());
         }
         logic.rules().forEach(rule -> builder.rule("rule." + rule.key(), new StudioFormLogic.Check(rule)));
-        if (!StudioFormLayout.NAME.equals(title)) builder.field(modifiedAt());
-        String last = null;
-        if ("org_unit".equals(source.entity().scope())) {
-            builder.field(orgUnit());
-            last = ORG_UNIT;
+        if (!StudioFormLayout.NAME.equals(title)) builder.field(StudioFields.modifiedAt());
+        List<EntityCollection> collections = StudioDocumentCompiler.collections(source, prefix, named);
+        collections.forEach(builder::collection);
+        StudioFormLayout.declare(builder, source, prefix, system, fields, last(builder, source), collections);
+        Workflow workflow = source.workflow();
+        if (workflow != null) {
+            builder.workflow(StudioDocumentCompiler.workflow(
+                    workflow,
+                    prefix,
+                    StudioDocumentCompiler.lockable(shown(source), source.lines()),
+                    MdSimpleFormDocumentLogic.header(
+                            source.fields(),
+                            source.lines(),
+                            workflow,
+                            source.entity().numbering())));
         }
-        StudioFormLayout.declare(builder, source, prefix, system, fields, last);
         builder.defaultSort("modifiedAt", Entity.Sort.DESC)
                 .capabilities(
                         EntityCapability.SAVED_VIEWS,
                         EntityCapability.EXPORT,
                         EntityCapability.HISTORY,
                         EntityCapability.BULK);
+        actions(builder, source, prefix, archived);
+        var entity = builder.build();
+        return new EntityDefinitionSource.Declaration(
+                entity,
+                messages(source, prefix),
+                title,
+                logic,
+                hooks(id, source, title, archived),
+                StudioDocumentCompiler.view(source, prefix));
+    }
+
+    /**
+     * The menu item and the write actions of a served form; an archived form keeps neither — archived records stay apart
+     * in the list, and the archive action itself is refused like every write.
+     */
+    private static void actions(Entity builder, Declaration source, String prefix, boolean archived) {
         if (archived) {
-            // Archived records stay apart in the list; the archive action itself is refused like every write.
             builder.archivable();
-        } else {
-            Menu menu = source.entity().menu() == null
-                    ? DEFAULT_MENU
-                    : source.entity().menu();
-            builder.menu(new EntityMenu(prefix + ".title", menu.icon(), menu.section(), menu.order(), "studio"))
-                    .actions("create", "update")
-                    .archivable()
-                    .actions("delete");
+            return;
         }
-        return new EntityDefinitionSource.Declaration(builder.build(), messages(source, prefix), title, logic);
+        Menu menu =
+                source.entity().menu() == null ? DEFAULT_MENU : source.entity().menu();
+        builder.menu(new EntityMenu(prefix + ".title", menu.icon(), menu.section(), menu.order(), "studio"))
+                .actions("create", "update")
+                .archivable()
+                .actions("delete");
+    }
+
+    /**
+     * The system fields that open the first section: the name and code or the record's number, then a document's
+     * number and status (ADR-0043).
+     */
+    private static List<String> system(Entity builder, Declaration source, String title, String prefix) {
+        List<String> system = new ArrayList<>();
+        if (StudioFormLayout.NAME.equals(title)) {
+            builder.field(StudioFields.name()).field(StudioFields.code()).field(StudioFields.modifiedAt());
+            system.addAll(List.of("name", "code"));
+        } else if (StudioFormLayout.RECORD_NUMBER.equals(title)) {
+            builder.field(StudioFields.recordNumber());
+            system.add(StudioFormLayout.RECORD_NUMBER);
+        }
+        Numbering numbering = source.entity().numbering();
+        if (numbering != null) {
+            builder.field(StudioDocumentCompiler.numberField(numbering, prefix));
+            system.add(MdSimpleFormDocumentLogic.NUMBER);
+        }
+        Workflow workflow = source.workflow();
+        if (workflow != null) {
+            builder.field(StudioDocumentCompiler.status(workflow, prefix));
+            system.add(MdSimpleFormDocumentLogic.STATUS);
+        }
+        return system;
+    }
+
+    /** The system fields that close the first section: a document's last comment, then the record's org unit. */
+    private static List<String> last(Entity builder, Declaration source) {
+        List<String> last = new ArrayList<>();
+        if (source.workflow() != null) {
+            builder.field(StudioDocumentCompiler.comment());
+            last.add(MdSimpleFormDocumentLogic.COMMENT);
+        }
+        if ("org_unit".equals(source.entity().scope())) {
+            builder.field(StudioFields.orgUnit());
+            last.add(ORG_UNIT);
+        }
+        return last;
+    }
+
+    /**
+     * The hooks of a document's saves: its number, the comments of its transitions and the notices of its steps; none
+     * for a form that is no document, an archived one (read-only) or a compiler without the services of documents.
+     */
+    private @Nullable StudioDocumentHooks hooks(long id, Declaration source, String title, boolean archived) {
+        StudioDocuments services = documents;
+        if (services == null || archived || (source.entity().numbering() == null && source.workflow() == null)) {
+            return null;
+        }
+        String scope = source.entity().scope() == null ? "all" : source.entity().scope();
+        return new StudioDocumentHooks(
+                new StudioDocumentHooks.Spec(
+                        "studio." + source.entity().name(),
+                        id,
+                        scope,
+                        title,
+                        source.entity().title(),
+                        source.entity().numbering(),
+                        source.workflow()),
+                services);
     }
 
     /**
@@ -155,65 +253,27 @@ public class StudioEntityCompiler {
      * The form of a stored declaration that is not served — it no longer compiles, it clashes or it is held — reduced
      * to what its rights need: the entity, its actions and its title. The fields add no right, so the permission pairs
      * are the ones {@link #compile} registers for the same code (ADR-0038, decision 10). Without a readable title the
-     * code names the form.
+     * code names the form. A document keeps the right of each transition (ADR-0043): its statuses and transitions are
+     * kept without what reads the fields — locks and conditions.
      */
-    public EntityDefinitionSource.Declaration rights(long id, String name, @Nullable Labels title) {
+    public EntityDefinitionSource.Declaration rights(
+            long id, String name, @Nullable Labels title, @Nullable Workflow workflow) {
         Labels named = title == null || title.ru() == null || title.uz() == null || title.en() == null
                 ? new Labels("studio." + name, "studio." + name, "studio." + name)
                 : title;
+        Workflow process = workflow == null ? null : StudioDocumentCompiler.rightsOnly(workflow);
         return compile(
                 id,
                 new Declaration(
-                        1,
+                        process == null ? 1 : 6,
                         "simple-form",
                         new MdSimpleFormDtos.Module(StudioDefinitions.MODULE, named),
                         new MdSimpleFormDtos.Entity(name, named),
-                        List.of()));
-    }
-
-    /**
-     * The record's org unit: its author's home unit by default (ADR-0041, owner decision 1). A user with the update right
-     * moves the record to another unit; the runtime keeps both the old and the new unit within the mover's scope, and
-     * the picker offers the units of that scope.
-     */
-    private static Builder orgUnit() {
-        return ref(ORG_UNIT, "studio.record.org_unit", QueryRef.whole(ORG_UNITS, "name"))
-                .column("org_unit_id")
-                .defaultValue(FieldDefault.currentOrgUnit())
-                .list(hidden());
-    }
-
-    private static Builder name() {
-        return text("name", "studio.record.name")
-                .column("name")
-                .required()
-                .length(1, 255)
-                .list(sortable().searchable());
-    }
-
-    private static Builder code() {
-        return text("code", "studio.record.code")
-                .column("code")
-                .required()
-                .length(1, 64)
-                .matching("[a-z0-9_-]+")
-                .list(sortable().searchable());
-    }
-
-    private static Builder modifiedAt() {
-        return instant("modifiedAt", "studio.record.modified_at")
-                .system(SystemColumn.MODIFIED_AT)
-                .list(sortable());
-    }
-
-    /**
-     * The record's number in its form, given by the database in turn (V224) and only read; a record saved before V224
-     * has none, so the number is listed but not sorted.
-     */
-    private static Builder recordNumber() {
-        return number(StudioFormLayout.RECORD_NUMBER, "studio.record.number")
-                .column("record_number")
-                .readonly();
+                        List.of(),
+                        null,
+                        null,
+                        null,
+                        process));
     }
 
     /** The rows a viewer sees, by the scope the form names; a form of format 1 or 2 sees all of them. */
@@ -225,59 +285,13 @@ public class StudioEntityCompiler {
         };
     }
 
-    private Builder field(Field field, String prefix, boolean title, Function<String, String> titles) {
-        String key = field.id();
-        String label = prefix + ".field." + key;
-        Builder builder = switch (field.type()) {
-            case "text" -> text(key, label);
-            case "textarea" -> textarea(key, label);
-            case "number" -> number(key, label);
-            case "date" -> date(key, label);
-            case "datetime" -> instant(key, label);
-            case "time" -> time(key, label);
-            case "bool" -> bool(key, label);
-            case "email" -> email(key, label);
-            case "phone" -> phone(key, label);
-            case "url" -> url(key, label);
-            case "select" -> select(key, label, codes(field), optionPrefix(prefix, key));
-            case "user" -> ref(key, label).target(USERS, "name");
-            case "ref" -> reference(key, label, field, titles);
-            default -> throw new IllegalArgumentException("Unsupported live field type");
-        };
-        builder.jsonProperty("payload", key);
-        if (field.required()) builder.required();
-        if (field.maxLength() != null) builder.length(null, field.maxLength());
-        if (field.scale() != null) builder.scale(field.scale());
-        if (!field.listed()) builder.formOnly();
-        else if (title) builder.list(searchable());
-        if (field.defaultValue() != null) builder.defaultValue(FieldDefault.fixed(field.defaultValue()));
-        return builder;
-    }
-
-    /** A reference to a list is an enumeration of it; one to a live form keeps the key of its record. */
-    private static Builder reference(String key, String label, Field field, Function<String, String> titles) {
-        Target target = Objects.requireNonNull(field.target(), "A live reference names its target");
-        return "list".equals(target.kind())
-                ? enumeration(key, label, StudioListEnums.reference(target.code()))
-                : ref(key, label).target(target.code(), titles.apply(target.code()));
-    }
-
-    private static List<String> codes(Field field) {
-        return Objects.requireNonNull(field.options(), "A live select has its choices").stream()
-                .map(Option::code)
-                .toList();
-    }
-
-    private static String optionPrefix(String prefix, String key) {
-        return prefix + ".option." + key + ".";
-    }
-
     private Map<String, Map<String, String>> messages(Declaration source, String prefix) {
         Map<String, Map<String, String>> result = new LinkedHashMap<>();
         for (String language : List.of("ru", "uz", "en")) {
             Map<String, String> values = new LinkedHashMap<>();
             values.put(prefix + ".title", label(source.entity().title(), language));
             StudioFormLayout.messages(source, prefix, (key, labels) -> values.put(key, label(labels, language)));
+            StudioDocumentCompiler.messages(source, prefix, (key, labels) -> values.put(key, label(labels, language)));
             if (source.rules() != null) {
                 source.rules()
                         .forEach(rule -> values.put(
@@ -287,7 +301,9 @@ public class StudioEntityCompiler {
                 values.put(prefix + ".field." + field.id(), label(field.labels(), language));
                 if (field.options() == null) continue;
                 for (Option option : field.options()) {
-                    values.put(optionPrefix(prefix, field.id()) + option.code(), label(option.labels(), language));
+                    values.put(
+                            StudioFields.optionPrefix(prefix, field.id()) + option.code(),
+                            label(option.labels(), language));
                 }
             }
             result.put(language, values);

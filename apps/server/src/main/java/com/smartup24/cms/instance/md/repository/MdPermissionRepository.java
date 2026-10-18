@@ -125,6 +125,28 @@ public class MdPermissionRepository {
                 """).query(String.class).list());
     }
 
+    /**
+     * The active users who hold {@code form.view} and at least one of {@code form.<actions>}, by id, at most
+     * {@code limit} of them: the people a document's step waits for (ADR-0043).
+     */
+    public List<Long> holders(String form, Set<String> actions, int limit) {
+        if (actions.isEmpty()) return List.of();
+        return jdbcClient
+                .sql("""
+                        select distinct ep.user_id from md_effective_permissions ep
+                        join md_users u on u.id = ep.user_id and u.state = 'A'
+                        where ep.form_code = :form and ep.action in (:actions)
+                          and exists (select 1 from md_effective_permissions v
+                                      where v.user_id = ep.user_id and v.form_code = :form and v.action = 'view')
+                        order by ep.user_id
+                        limit :limit""")
+                .param("form", form)
+                .param("actions", List.copyOf(actions))
+                .param("limit", limit)
+                .query(Long.class)
+                .list();
+    }
+
     public Set<String> getEffectivePermissionsForUser(Long userId) {
         return jdbcClient.sql("""
                 select form_code || '.' || action as perm

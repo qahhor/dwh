@@ -201,5 +201,14 @@ public class MdPermissionService {
         return permissionRepository.getGrantablePairs();
     }
 
+    /**
+     * The active users who may open the records of {@code form} and take one of {@code actions} on them, at most
+     * {@code limit}: who a document's step waits for (ADR-0043). The data scope of each record is the caller's check.
+     */
+    @Transactional(readOnly = true)
+    public List<Long> holders(String form, Set<String> actions, int limit) {
+        return permissionRepository.holders(form, actions, limit);
+    }
+
     public record CatalogSyncResult(int declared, int deprecated, List<String> deprecatedPairs) {}
 }

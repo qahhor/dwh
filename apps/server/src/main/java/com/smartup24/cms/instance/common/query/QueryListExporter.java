@@ -37,6 +37,21 @@ public interface QueryListExporter {
         return List.of();
     }
 
+    /**
+     * The rows of a document an item holds under a key — the lines of an order (ADR-0043) — each written to a sheet of
+     * its own after the list: the title of the sheet and the fields of a row. None for a list of plain records.
+     */
+    record Detail(String key, String labelKey, List<QueryField> fields) {
+        public Detail {
+            fields = List.copyOf(fields);
+        }
+    }
+
+    /** The rows of documents the items of a page hold, in the order of their sheets; none by default. */
+    default List<Detail> details() {
+        return List.of();
+    }
+
     /** One page for the signed-in person, exactly as the list endpoint would return it. */
     KeysetPage<?> page(
             int limit, String cursor, String filter, String sort, String search, Map<String, String> options);

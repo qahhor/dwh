@@ -157,9 +157,14 @@ public class EntityRegistry {
         return live.get().find(code).map(runtimeStore::of);
     }
 
-    /** The hooks of the entity, if its module has them (ADR-0032, 6.5). */
+    /**
+     * The hooks of the entity, if its module has them (ADR-0032, 6.5); a live entity's come with its declaration
+     * (ADR-0043), and a declared entity's lookup never reads the live catalog.
+     */
     public Optional<EntityHooks> hooks(String code) {
-        return Optional.ofNullable(hooks.get(code));
+        EntityHooks declared = hooks.get(code);
+        if (declared != null || entities.containsKey(code)) return Optional.ofNullable(declared);
+        return live.get().hooks(code);
     }
 
     /** The handler of a declared record action (ADR-0032, 6.7). */
@@ -294,7 +299,24 @@ public class EntityRegistry {
     }
 
     private static QueryListExporter exporter(EntityDefinition entity, EntityRecords records) {
+        EntityModel model = entity.model();
+        List<QueryListExporter.Detail> details = model == null
+                ? List.of()
+                : model.collections().stream()
+                        .map(collection -> new QueryListExporter.Detail(
+                                collection.key(),
+                                collection.labelKey(),
+                                collection.fields().stream()
+                                        .map(field -> EntityListFields.queryField(field, collection.alias()))
+                                        .filter(Objects::nonNull)
+                                        .toList()))
+                        .toList();
         return new QueryListExporter() {
+            @Override
+            public List<Detail> details() {
+                return details;
+            }
+
             @Override
             public boolean visible(Set<String> ids) {
                 for (String id : ids) records.requireVisible(Long.parseLong(id));

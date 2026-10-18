@@ -30,6 +30,9 @@ public class EntityCollectionStore {
     /** The alias of the document in the statement of its rows: the currency of a row's money may be the document's. */
     private static final String DOCUMENT = EntityCollection.DOCUMENT_ALIAS;
 
+    /** The column of a read row that names its record; no field key has an underscore at its end. */
+    private static final String PARENT = "parent_";
+
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
 
@@ -47,31 +50,42 @@ public class EntityCollectionStore {
 
     /** The rows of the record {@code parentId}, in their order, each with its id, its place and its values. */
     public List<Map<String, Object>> rows(EntityModel parent, EntityCollection collection, long parentId) {
+        return rowsOf(parent, collection, List.of(parentId)).getOrDefault(parentId, List.of());
+    }
+
+    /**
+     * The rows of the records {@code parentIds}, by record, each record's in their order — one statement for a page of
+     * records, as an export reads them (ADR-0043). A record without rows is absent.
+     */
+    public Map<Long, List<Map<String, Object>>> rowsOf(
+            EntityModel parent, EntityCollection collection, List<Long> parentIds) {
+        if (parentIds.isEmpty()) return Map.of();
         String alias = collection.alias();
         JsonColumns json = new JsonColumns(mapper, collection.table());
         List<String> columns = new ArrayList<>();
         columns.add(alias + ".id as \"" + EntityCollection.ID + "\"");
         columns.add(alias + "." + collection.positionColumn() + " as \"" + EntityCollection.POSITION + "\"");
+        columns.add(alias + "." + collection.parentColumn() + " as \"" + PARENT + "\"");
         for (EntityField field : collection.fields()) {
             columns.addAll(EntitySelect.columns(field, alias, key -> parentSql(parent, key)));
         }
         String sql = "select " + String.join(", ", columns) + " from " + collection.table() + " " + alias + " join "
                 + parent.table() + " " + DOCUMENT + " on " + DOCUMENT + ".id = " + alias + "."
-                + collection.parentColumn() + " where " + alias + "." + collection.parentColumn() + " = :rid order by "
-                + alias + "." + collection.positionColumn() + ", " + alias + ".id";
-        return jdbc.sql(sql)
-                .param("rid", parentId)
-                .query((rs, rowNum) -> {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put(EntityCollection.ID, rs.getLong(EntityCollection.ID));
-                    row.put(EntityCollection.POSITION, rs.getInt(EntityCollection.POSITION));
-                    for (EntityField field : collection.fields()) {
-                        Object value = EntityRowMapper.fieldValue(rs, field, json);
-                        if (value != null) row.put(field.key(), value);
-                    }
-                    return row;
-                })
-                .list();
+                + collection.parentColumn() + " where " + alias + "." + collection.parentColumn()
+                + " in (:rids) order by " + alias + "." + collection.parentColumn() + ", " + alias + "."
+                + collection.positionColumn() + ", " + alias + ".id";
+        Map<Long, List<Map<String, Object>>> rows = new LinkedHashMap<>();
+        jdbc.sql(sql).param("rids", parentIds).query(rs -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put(EntityCollection.ID, rs.getLong(EntityCollection.ID));
+            row.put(EntityCollection.POSITION, rs.getInt(EntityCollection.POSITION));
+            for (EntityField field : collection.fields()) {
+                Object value = EntityRowMapper.fieldValue(rs, field, json);
+                if (value != null) row.put(field.key(), value);
+            }
+            rows.computeIfAbsent(rs.getLong(PARENT), key -> new ArrayList<>()).add(row);
+        });
+        return rows;
     }
 
     /**

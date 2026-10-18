@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
@@ -37,8 +38,7 @@ public final class MdSimpleFormLogic {
     /** Rules of one form. */
     static final int MAX_RULES = 20;
 
-    private static final Set<String> COMPUTED =
-            Set.of("text", "textarea", "number", "date", "datetime", "time", "bool");
+    static final Set<String> COMPUTED = Set.of("text", "textarea", "number", "date", "datetime", "time", "bool");
     private static final Set<String> DEFAULTED =
             Set.of("text", "textarea", "number", "date", "datetime", "time", "bool", "select", "email", "phone", "url");
     private static final String RULE_KEY = "[a-z][a-z0-9_]{0,19}";
@@ -157,7 +157,16 @@ public final class MdSimpleFormLogic {
      * field or yes/no, no field shown by its own value, no cycle among the computed fields. 422 naming every problem.
      */
     static void check(List<Field> fields, @Nullable List<Rule> rules) {
-        Map<String, FormulaType> types = types(fields);
+        List<FieldErrorItem> problems = problems(fields, rules, types(fields));
+        if (!problems.isEmpty()) throw ApiException.validation("error.md.simple_form_invalid", problems);
+    }
+
+    /**
+     * The problems of every formula of the fields and rules, checked against {@code types}: the shown fields and, for a
+     * document of format 6, its number, its status and its rows (ADR-0043).
+     */
+    static List<FieldErrorItem> problems(
+            List<Field> fields, @Nullable List<Rule> rules, Map<String, FormulaType> types) {
         List<FieldErrorItem> problems = new ArrayList<>();
         Map<String, Formula> computed = new LinkedHashMap<>();
         Map<String, Integer> places = new LinkedHashMap<>();
@@ -181,13 +190,13 @@ public final class MdSimpleFormLogic {
             checked(field.requiredIf(), types, at + ".requiredIf", null, problems);
             checked(field.readonlyIf(), types, at + ".readonlyIf", null, problems);
         }
-        cycles(computed, places, problems);
+        cycles(computed, id -> "fields[" + places.get(id) + "].formula", problems);
         if (rules != null) {
             for (int index = 0; index < rules.size(); index++) {
                 checked(rules.get(index).formula(), types, "rules[" + index + "].formula", null, problems);
             }
         }
-        if (!problems.isEmpty()) throw ApiException.validation("error.md.simple_form_invalid", problems);
+        return problems;
     }
 
     /** The outcome of checking one formula: its type when it is accepted, else its problem. */
@@ -234,7 +243,7 @@ public final class MdSimpleFormLogic {
         if (field.requiredIf() != null && field.required()) problems.add(logic(at + ".requiredIf"));
     }
 
-    private static FieldErrorItem logic(String at) {
+    static FieldErrorItem logic(String at) {
         return FieldErrorItem.keyed(at, "simple_form_logic", "error.md.simple_form_logic");
     }
 
@@ -242,7 +251,7 @@ public final class MdSimpleFormLogic {
      * The checked formula, or null with its problem added: a formula of a field's value gives that field's type, any
      * other a yes/no.
      */
-    private static @Nullable Formula checked(
+    static @Nullable Formula checked(
             @Nullable String source,
             Map<String, FormulaType> types,
             String at,
@@ -268,9 +277,11 @@ public final class MdSimpleFormLogic {
     /** A read of one computed field by another. */
     private record Edge(String reader, String read) {}
 
-    /** A computed field that reads itself through other computed fields: the read that closes the first cycle. */
-    private static void cycles(
-            Map<String, Formula> computed, Map<String, Integer> places, List<FieldErrorItem> problems) {
+    /**
+     * A computed field that reads itself through other computed fields: the read that closes the first cycle, addressed
+     * to the formula of the reader ({@code at}).
+     */
+    static void cycles(Map<String, Formula> computed, Function<String, String> at, List<FieldErrorItem> problems) {
         Set<String> done = new HashSet<>();
         for (String start : computed.keySet()) {
             if (done.contains(start)) continue;
@@ -278,8 +289,7 @@ public final class MdSimpleFormLogic {
             if (edge == null) continue;
             int position = Objects.requireNonNull(
                     Objects.requireNonNull(computed.get(edge.reader())).fields().get(edge.read()));
-            problems.add(new FormulaException("cycle", position, edge.read())
-                    .fieldError("fields[" + places.get(edge.reader()) + "].formula"));
+            problems.add(new FormulaException("cycle", position, edge.read()).fieldError(at.apply(edge.reader())));
             return;
         }
     }

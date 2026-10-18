@@ -7,9 +7,11 @@ import com.smartup24.cms.instance.common.formula.FormulaFailure;
 import com.smartup24.cms.instance.common.formula.FormulaScope;
 import com.smartup24.cms.instance.common.formula.FormulaType;
 import com.smartup24.cms.instance.common.web.RequestLanguage;
+import com.smartup24.cms.instance.md.api.MdSimpleFormDocumentDtos.Lines;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Declaration;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
 import com.smartup24.cms.instance.md.api.MdSimpleFormRuleDtos.Rule;
+import com.smartup24.cms.instance.md.service.MdSimpleFormDocumentLogic;
 import com.smartup24.cms.instance.md.service.MdSimpleFormLogic;
 import com.smartup24.cms.platform.api.entity.hook.EntityRule;
 import com.smartup24.cms.platform.api.entity.hook.EntityValues;
@@ -35,10 +37,19 @@ final class StudioFormLogic {
 
     private StudioFormLogic() {}
 
-    /** The logic of the form; none for formats 1 to 4. */
+    /**
+     * The logic of the form; none for formats 1 to 4. The formulas of a document of format 6 also read its number, its
+     * status and its rows, and its computed columns are evaluated per row (ADR-0043).
+     */
     static EntityLogic of(Declaration source, String prefix) {
         if (source.formatVersion() < 5) return EntityLogic.NONE;
-        Map<String, FormulaType> types = MdSimpleFormLogic.types(source.fields());
+        Map<String, FormulaType> types = source.formatVersion() < 6
+                ? MdSimpleFormLogic.types(source.fields())
+                : MdSimpleFormDocumentLogic.header(
+                        source.fields(),
+                        source.lines(),
+                        source.workflow(),
+                        source.entity().numbering());
         Map<String, Formula> computed = new LinkedHashMap<>();
         Map<String, Formula> defaults = new LinkedHashMap<>();
         Map<String, Formula> visible = new LinkedHashMap<>();
@@ -68,7 +79,20 @@ final class StudioFormLogic {
                                 rule.message().en())));
             }
         }
-        return new EntityLogic(ordered(computed), defaults, visible, required, readonly, rules, Map.of());
+        return new EntityLogic(ordered(computed), defaults, visible, required, readonly, rules, lines(source));
+    }
+
+    /** The computed columns of each table of lines, by its key, each after the columns it reads. */
+    private static Map<String, List<EntityLogic.Computed>> lines(Declaration source) {
+        Map<String, List<EntityLogic.Computed>> lines = new LinkedHashMap<>();
+        if (source.lines() == null) return lines;
+        for (Lines table : source.lines()) {
+            Map<String, FormulaType> types = MdSimpleFormDocumentLogic.line(table, source.fields());
+            Map<String, Formula> computed = new LinkedHashMap<>();
+            table.fields().forEach(column -> put(computed, column.id(), column.formula(), types));
+            if (!computed.isEmpty()) lines.put(table.key(), ordered(computed));
+        }
+        return lines;
     }
 
     /** The dictionary key of a rule's message. */

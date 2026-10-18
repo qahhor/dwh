@@ -25,16 +25,31 @@ public final class FormDocumentMetas {
     /** A collection: its key, title, the fields of a row in order and the most rows a record has. */
     public record FormCollectionMeta(String key, String labelKey, List<FormFieldMeta> fields, int maxRows) {}
 
-    /** A state of the process: what it is called, whether a record starts in it or ends there, what it locks. */
-    public record FormStateMeta(String code, String labelKey, boolean initial, boolean terminal, List<String> locks) {}
+    /**
+     * A state of the process: what it is called, whether a record starts in it or ends there, what it locks and, for a
+     * live form, the color of its badge (ADR-0043).
+     */
+    public record FormStateMeta(
+            String code,
+            String labelKey,
+            boolean initial,
+            boolean terminal,
+            List<String> locks,
+            @Nullable String color) {}
 
-    /** A transition: the states it leaves, the one it reaches, its right and the question to ask first, if any. */
+    /**
+     * A transition: the states it leaves, the one it reaches, its right and the question to ask first, if any; for a
+     * live form the dictionary key of its name and whether it takes a comment ({@code none}, {@code optional},
+     * {@code required}, ADR-0043).
+     */
     public record FormTransitionMeta(
             String code,
             List<String> from,
             String to,
             String permission,
-            @Nullable String confirmKey) {}
+            @Nullable String confirmKey,
+            @Nullable String labelKey,
+            @Nullable String comment) {}
 
     /** The process: the key of its status field, its states and its transitions, in declaration order. */
     public record FormWorkflowMeta(String field, List<FormStateMeta> states, List<FormTransitionMeta> transitions) {}
@@ -89,7 +104,8 @@ public final class FormDocumentMetas {
                 state.labelKey(),
                 state.initial(),
                 state.terminal(),
-                state.locks().stream().sorted().toList());
+                state.locks().stream().sorted().toList(),
+                null);
     }
 
     private static FormTransitionMeta transition(EntityTransition transition) {
@@ -98,7 +114,39 @@ public final class FormDocumentMetas {
                 transition.from().stream().sorted().toList(),
                 transition.to(),
                 transition.permission(),
-                transition.confirmKey());
+                transition.confirmKey(),
+                null,
+                null);
+    }
+
+    /** The process with what a live form says of it (ADR-0043): its states' colors, its transitions' names. */
+    static @Nullable FormWorkflowMeta withView(@Nullable FormWorkflowMeta workflow, @Nullable EntityProcessView view) {
+        if (workflow == null || view == null) return workflow;
+        return new FormWorkflowMeta(
+                workflow.field(),
+                workflow.states().stream()
+                        .map(state -> new FormStateMeta(
+                                state.code(),
+                                state.labelKey(),
+                                state.initial(),
+                                state.terminal(),
+                                state.locks(),
+                                view.colors().get(state.code())))
+                        .toList(),
+                workflow.transitions().stream()
+                        .map(transition -> {
+                            EntityProcessView.Transition named =
+                                    view.transitions().get(transition.code());
+                            return new FormTransitionMeta(
+                                    transition.code(),
+                                    transition.from(),
+                                    transition.to(),
+                                    transition.permission(),
+                                    transition.confirmKey(),
+                                    named == null ? null : named.labelKey(),
+                                    named == null ? null : named.comment());
+                        })
+                        .toList());
     }
 
     /**

@@ -42,6 +42,7 @@ class StudioStoredFormatCompatibilityTest {
     private static final Path SAMPLES_V3 = Path.of("src/test/resources/studio/golden/stored-declarations-v3.json");
     private static final Path SAMPLES_V4 = Path.of("src/test/resources/studio/golden/stored-declarations-v4.json");
     private static final Path SAMPLES_V5 = Path.of("src/test/resources/studio/golden/stored-declarations-v5.json");
+    private static final Path SAMPLES_V6 = Path.of("src/test/resources/studio/golden/stored-declarations-v6.json");
     private static final Map<String, FieldType> TYPES = Map.of(
             "text", FieldType.TEXT,
             "textarea", FieldType.TEXTAREA,
@@ -410,5 +411,44 @@ class StudioStoredFormatCompatibilityTest {
         assertThat(stored.source()).as(where).isEqualTo(new FieldSource.JsonProperty("payload", field.id()));
         assertThat(stored.list() != null).as(where).isEqualTo(field.listed());
         return form.type();
+    }
+
+    /**
+     * Format 6 (ADR-0043): a document — its number, its lines with a computed column reading the header, its statuses and
+     * transitions. The stored sample reads back with its checksum and compiles into a collection in the table of its
+     * place, a process on the status and the rights of the transitions.
+     */
+    @Test
+    void storedDocumentsOfFormatSixCompileIntoLinesStatusesAndRights() throws Exception {
+        JsonNode samples = json.readTree(Files.readString(SAMPLES_V6));
+        long id = 6000;
+        for (JsonNode sample : samples) {
+            String stored = json.writeValueAsString(sample.path("declaration"));
+            Declaration declaration = repository.declaration(stored);
+            assertThat(declaration.formatVersion()).isEqualTo(6);
+            assertThat(json.valueToTree(declaration).equals(sample.path("declaration")))
+                    .as("stored format of %s", declaration.entity().name())
+                    .isTrue();
+            var prepared = new MdSimpleFormDeclarations(json).prepare(stored.getBytes(StandardCharsets.UTF_8));
+            assertThat(prepared.declaration()).isEqualTo(declaration);
+            assertThat(prepared.checksum()).isEqualTo(sample.path("checksum").asString());
+
+            var compiled = new StudioEntityCompiler().compile(id++, declaration);
+            EntityDefinition entity = compiled.entity();
+            var model = java.util.Objects.requireNonNull(entity.model());
+            assertThat(model.collections()).singleElement().satisfies(lines -> {
+                assertThat(lines.table()).isEqualTo("studio_record_lines_1");
+                assertThat(lines.maxRows()).isEqualTo(100);
+            });
+            assertThat(java.util.Objects.requireNonNull(model.workflow())
+                            .initial()
+                            .code())
+                    .isEqualTo("draft");
+            assertThat(entity.rights().actionKeys()).containsKeys("submit", "approve", "reject");
+            assertThat(entity.fieldsByKey()).containsKeys("docNumber", "docStatus", "docComment");
+            assertThat(compiled.logic().lineComputed("items")).hasSize(1);
+            assertThat(compiled.process()).isNotNull();
+            assertThat(compiled.titleField()).isEqualTo("docNumber");
+        }
     }
 }

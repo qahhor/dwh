@@ -35,7 +35,9 @@ import tools.jackson.databind.ObjectReader;
  * form every delivery takes; format 2 adds hidden fields, fixed defaults and a menu item for live forms (ADR-0041), which
  * the developer CLI refuses; format 3 adds select, reference and user fields and the data scope ({@link
  * MdSimpleFormKinds}); format 4 adds the title field and the layout ({@link MdSimpleFormLayouts}); format 5 adds the
- * formulas of the fields and the validation rules ({@link MdSimpleFormLogic}, ADR-0042).
+ * formulas of the fields and the validation rules ({@link MdSimpleFormLogic}, ADR-0042); format 6 adds the tables of
+ * lines, the number and the statuses of a document ({@link MdSimpleFormDocuments}, {@link MdSimpleFormWorkflows},
+ * ADR-0043).
  */
 @Component
 public class MdSimpleFormDeclarations {
@@ -45,6 +47,9 @@ public class MdSimpleFormDeclarations {
     static final Set<String> ROOT_V4 = Set.of("formatVersion", "kind", "module", "entity", "fields", "layout");
     /** Format 5 adds the validation rules of the form (ADR-0042). */
     static final Set<String> ROOT_V5 = Set.of("formatVersion", "kind", "module", "entity", "fields", "layout", "rules");
+    /** Format 6 adds the tables of lines and the statuses of a document (ADR-0043). */
+    static final Set<String> ROOT_V6 =
+            Set.of("formatVersion", "kind", "module", "entity", "fields", "layout", "rules", "lines", "workflow");
 
     static final Set<String> FIELD = Set.of("id", "type", "labels", "required", "listed", "maxLength", "scale");
     /** Format 2 adds a hidden flag and a fixed default to a field and a menu item to the entity (ADR-0041). */
@@ -115,8 +120,8 @@ public class MdSimpleFormDeclarations {
 
     public DeliveryPackage prepare(byte[] body) {
         JsonNode root = parse(body);
-        int format = integer(root, "formatVersion", "formatVersion", 1, 5);
-        known(root, format == 5 ? ROOT_V5 : format == 4 ? ROOT_V4 : ROOT, "declaration");
+        int format = integer(root, "formatVersion", "formatVersion", 1, 6);
+        known(root, format == 6 ? ROOT_V6 : format == 5 ? ROOT_V5 : format == 4 ? ROOT_V4 : ROOT, "declaration");
         if (!"simple-form".equals(text(root, "kind", "kind"))) throw invalid("kind", "unsupported");
         JsonNode module = required(root, "module", "module");
         known(module, Set.of("code", "title"), "module");
@@ -130,15 +135,22 @@ public class MdSimpleFormDeclarations {
         String scope = entity.has("scope") ? MdSimpleFormKinds.scope(entity) : null;
         List<Field> fields = fields(required(root, "fields", "fields"), format);
         var rules = MdSimpleFormLogic.rules(root, fields);
+        var numbering = MdSimpleFormDocuments.numbering(entity);
+        var lines = MdSimpleFormDocuments.lines(root, fields, identifiers::reservedField);
+        var workflow = MdSimpleFormWorkflows.workflow(root, fields, lines);
+        MdSimpleFormWorkflows.assignOn(numbering, workflow);
         var declaration = new Declaration(
                 format,
                 "simple-form",
                 new Module(moduleCode, labels(module, "title", "module.title")),
-                new Entity(name, title, menu, scope, MdSimpleFormLayouts.titleField(entity, fields)),
+                new Entity(name, title, menu, scope, MdSimpleFormLayouts.titleField(entity, fields), numbering),
                 fields,
                 MdSimpleFormLayouts.layout(root, fields),
-                rules);
+                rules,
+                lines,
+                workflow);
         if (format == 5) MdSimpleFormLogic.check(fields, rules);
+        if (format == 6) MdSimpleFormDocumentLogic.check(fields, rules, lines, workflow, numbering);
         return new DeliveryPackage(1, "simple-form-package", declaration, digest(declaration));
     }
 
@@ -147,7 +159,8 @@ public class MdSimpleFormDeclarations {
             case 1 -> Set.of("name", "title");
             case 2 -> Set.of("name", "title", "menu");
             case 3 -> Set.of("name", "title", "menu", "scope");
-            default -> Set.of("name", "title", "menu", "scope", "titleField");
+            case 4, 5 -> Set.of("name", "title", "menu", "scope", "titleField");
+            default -> Set.of("name", "title", "menu", "scope", "titleField", "numbering");
         };
     }
 
@@ -346,7 +359,7 @@ public class MdSimpleFormDeclarations {
         return value.booleanValue();
     }
 
-    private static int integer(JsonNode owner, String key, String at, int min, int max) {
+    static int integer(JsonNode owner, String key, String at, int min, int max) {
         JsonNode value = required(owner, key, at);
         if (!value.isIntegralNumber() || !value.canConvertToInt()) throw invalid(at, "structure");
         int number = value.intValue();
@@ -369,6 +382,8 @@ public class MdSimpleFormDeclarations {
             case "layout" -> "error.md.simple_form_layout";
             case "formula" -> "error.md.simple_form_formula";
             case "logic" -> "error.md.simple_form_logic";
+            case "numbering" -> "error.md.simple_form_numbering";
+            case "workflow" -> "error.md.simple_form_workflow";
             default -> "error.md.simple_form_json";
         };
         return ApiException.validation(
