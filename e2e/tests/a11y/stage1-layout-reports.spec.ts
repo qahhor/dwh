@@ -105,6 +105,8 @@ for (const theme of ["light", "dark"] as const) {
       await search.press("ArrowDown");
       await search.press("Enter");
       await page.getByTestId("new-form-add").click();
+      // The new field takes the focus after it is drawn; the layout is reached by keyboard only after that.
+      await expect(page.getByTestId("new-field-0").locator("input").first()).toBeFocused();
       const layout = page.getByTestId("form-layout");
       await expect(layout.getByTestId("form-title-field").getByRole("combobox")).toBeVisible();
       const toggle = layout.getByTestId("form-layout-toggle").getByRole("checkbox");
