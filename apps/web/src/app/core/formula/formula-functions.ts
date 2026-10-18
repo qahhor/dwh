@@ -31,6 +31,8 @@ export const FORMULA_FUNCTIONS = [
   'addDays',
   'addMonths',
   'daysBetween',
+  'sum',
+  'count',
 ] as const;
 
 /**
@@ -49,6 +51,10 @@ export function callFunction(name: string, args: FormulaValue[], scope: FormulaS
     case 'min':
     case 'max':
       return extreme(name === 'max', args);
+    case 'sum':
+      return filled(args[0]).reduce<Decimal>((total, value) => total.add(value as Decimal), Decimal.from(0));
+    case 'count':
+      return Decimal.from(filled(args[0]).length);
     case 'today':
       return date(zonedDays(scope.now, scope.zone));
     case 'now':
@@ -57,6 +63,15 @@ export function callFunction(name: string, args: FormulaValue[], scope: FormulaS
       if (args.includes(null)) return null;
       return strict(name, args, scope);
   }
+}
+
+/**
+ * The filled values of a list of rows (ADR-0043): neither null nor a text of only spaces. `sum` of none is zero, as a
+ * document's total of no lines is zero on the server.
+ */
+function filled(list: FormulaValue): unknown[] {
+  if (list === null || typeof list !== 'object' || !('tag' in list) || list.tag !== 'list') return [];
+  return list.items.filter((value) => value !== null && !(typeof value === 'string' && blank(value)));
 }
 
 function strict(name: string, args: FormulaValue[], scope: FormulaScope): FormulaValue {
@@ -98,7 +113,7 @@ function part(name: string, value: FormulaValue, scope: FormulaScope): Decimal {
       seconds = zoned.hour * 3600 + zoned.minute * 60;
     } else if (value.tag === 'date') {
       days = value.days;
-    } else {
+    } else if (value.tag === 'time') {
       seconds = value.seconds;
     }
   }

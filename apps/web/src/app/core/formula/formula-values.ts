@@ -2,6 +2,7 @@ import { Decimal } from './formula-decimal';
 import {
   FormulaFailure,
   type FormulaDate,
+  type FormulaList,
   type FormulaMoment,
   type FormulaTime,
   type FormulaType,
@@ -71,6 +72,7 @@ export function trim(text: string): string {
  */
 export function formulaValue(type: FormulaType, raw: unknown): FormulaValue {
   if (type === 'bool') return raw === true || (typeof raw !== 'boolean' && String(raw) === 'true');
+  if (type === 'numbers' || type === 'rows') return listOf(type, raw);
   if (raw === null || raw === undefined) return null;
   if (typeof raw === 'string' && blank(raw)) return null;
   switch (type) {
@@ -90,6 +92,19 @@ export function formulaValue(type: FormulaType, raw: unknown): FormulaValue {
     default:
       return null;
   }
+}
+
+/**
+ * The values of a column of rows (ADR-0043), as the server reads them: numbers as numbers — a value that does not read
+ * as one is null — rows and other values as they are, an empty text as null; anything that is not a list is no rows.
+ */
+function listOf(type: 'numbers' | 'rows', raw: unknown): FormulaList {
+  if (!Array.isArray(raw)) return { tag: 'list', items: [] };
+  const items = raw.map((item: unknown) => {
+    if (item === null || item === undefined || (typeof item === 'string' && blank(item))) return null;
+    return type === 'numbers' ? numberOf(item) : item;
+  });
+  return { tag: 'list', items };
 }
 
 /** The canonical text of a value: what `&` joins and what a text field keeps. */

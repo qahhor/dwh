@@ -23,8 +23,22 @@ export const FORMULA_REASONS = [
   'budget',
 ] as const;
 
-/** The static types of the formula language (ADR-0042). */
-export type FormulaType = 'number' | 'text' | 'bool' | 'date' | 'datetime' | 'time' | 'option' | 'ref' | 'null';
+/**
+ * The static types of the formula language (ADR-0042); `numbers` and `rows` are the lists of a document's rows that
+ * only `sum` and `count` read (ADR-0043).
+ */
+export type FormulaType =
+  | 'number'
+  | 'text'
+  | 'bool'
+  | 'date'
+  | 'datetime'
+  | 'time'
+  | 'option'
+  | 'ref'
+  | 'null'
+  | 'numbers'
+  | 'rows';
 
 /**
  * A checked node of a formula as the server gives it in form-meta (ADR-0042): the web interprets it with the server's
@@ -58,8 +72,26 @@ export interface FormulaTime {
   readonly seconds: number;
 }
 
+/**
+ * The values of a column of a document's rows, or the rows themselves (ADR-0043): numbers as numbers, the rest as
+ * they are, an empty value as null.
+ */
+export interface FormulaList {
+  readonly tag: 'list';
+  readonly items: readonly unknown[];
+}
+
 /** A value of a formula: a number, a text or code, a yes/no, a date, a moment, a time, a row's key, or null. */
-export type FormulaValue = Decimal | string | boolean | FormulaDate | FormulaMoment | FormulaTime | bigint | null;
+export type FormulaValue =
+  | Decimal
+  | string
+  | boolean
+  | FormulaDate
+  | FormulaMoment
+  | FormulaTime
+  | FormulaList
+  | bigint
+  | null;
 
 /** What a formula reads besides the record: the moment of the evaluation and the viewer's time zone. */
 export interface FormulaScope {
