@@ -8,7 +8,7 @@ import com.smartup24.cms.instance.common.formula.FormulaType;
 import com.smartup24.cms.instance.common.web.RequestLanguage;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Declaration;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Rule;
+import com.smartup24.cms.instance.md.api.MdSimpleFormRuleDtos.Rule;
 import com.smartup24.cms.instance.md.service.MdSimpleFormLogic;
 import com.smartup24.cms.platform.api.entity.hook.EntityRule;
 import com.smartup24.cms.platform.api.entity.hook.EntityValues;

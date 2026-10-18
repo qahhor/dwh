@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.smartup24.cms.instance.md.api.MdSimpleFormRuleDtos.Rule;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
@@ -235,44 +236,28 @@ public final class MdSimpleFormDtos {
             Target target,
 
             @JsonInclude(JsonInclude.Include.NON_NULL)
-            @Schema(
-                    description = "Format 5: the formula of a computed field (ADR-0042) - read-only, recomputed and"
-                            + " stored on every save",
-                    minLength = 1,
-                    maxLength = 1000)
+            @Schema(description = "Format 5: a computed field's formula (ADR-0042)", maxLength = 1000)
             @Nullable
             String formula,
 
             @JsonInclude(JsonInclude.Include.NON_NULL)
-            @Schema(
-                    description = "Format 5: the formula of the value a new record takes when it is sent none",
-                    minLength = 1,
-                    maxLength = 1000)
+            @Schema(description = "Format 5: the formula of a new record's default", maxLength = 1000)
             @Nullable
             String defaultFormula,
 
             @JsonInclude(JsonInclude.Include.NON_NULL)
-            @Schema(
-                    description = "Format 5: the field is shown only while this yes/no formula is true; a hidden field"
-                            + " keeps no value and is not required",
-                    minLength = 1,
-                    maxLength = 1000)
+            @Schema(description = "Format 5: shown only while this formula is true", maxLength = 1000)
             @Nullable
             String visibleIf,
 
             @JsonInclude(JsonInclude.Include.NON_NULL)
-            @Schema(
-                    description = "Format 5: an optional field is required while this yes/no formula is true",
-                    minLength = 1,
-                    maxLength = 1000)
+            @Schema(description = "Format 5: required while this formula is true", maxLength = 1000)
             @Nullable
             String requiredIf,
 
             @JsonInclude(JsonInclude.Include.NON_NULL)
             @Schema(
-                    description = "Format 5: a saved record's field cannot be changed while this yes/no formula is"
-                            + " true over the record as it is stored",
-                    minLength = 1,
+                    description = "Format 5: read-only while this formula is true of the stored record",
                     maxLength = 1000)
             @Nullable
             String readonlyIf) {
@@ -306,15 +291,6 @@ public final class MdSimpleFormDtos {
                     null,
                     null,
                     null);
-        }
-
-        /** Whether the field has a formula of format 5. */
-        public boolean hasLogic() {
-            return formula != null
-                    || defaultFormula != null
-                    || visibleIf != null
-                    || requiredIf != null
-                    || readonlyIf != null;
         }
 
         /** A field of format 1: shown, without a default. */
@@ -401,38 +377,6 @@ public final class MdSimpleFormDtos {
             this(formatVersion, kind, module, entity, fields, layout, null);
         }
     }
-
-    /** The message of a rule, from format 5 on (ADR-0042): what the person who saves reads when the rule fails. */
-    @Schema(name = "SimpleFormRuleMessage", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
-    public record RuleMessage(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 200)
-            String ru,
-
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 200)
-            String uz,
-
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 200)
-            String en) {}
-
-    /**
-     * A validation rule of a live form, from format 5 on (ADR-0042): a yes/no formula every save must not make false
-     * (an empty value passes), its message and, optionally, the field the problem is shown at.
-     */
-    @Schema(name = "SimpleFormRule", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
-    public record Rule(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, pattern = "^[a-z][a-z0-9_]{0,19}$")
-            String key,
-
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 1000)
-            String formula,
-
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-            RuleMessage message,
-
-            @JsonInclude(JsonInclude.Include.NON_NULL)
-            @Schema(description = "The id of the shown field the problem is addressed to; absent: the whole record")
-            @Nullable
-            String field) {}
 
     @Schema(name = "SimpleFormDeliveryPackage", additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
     public record DeliveryPackage(

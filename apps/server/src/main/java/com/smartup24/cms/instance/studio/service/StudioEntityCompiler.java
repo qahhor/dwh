@@ -11,6 +11,7 @@ import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Labels;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Menu;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Option;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Target;
+import com.smartup24.cms.instance.md.api.MdSimpleFormRuleDtos;
 import com.smartup24.cms.platform.api.entity.Entity;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition.EntityMenu;
@@ -294,7 +295,7 @@ public class StudioEntityCompiler {
         return result;
     }
 
-    private static String message(MdSimpleFormDtos.RuleMessage message, String language) {
+    private static String message(MdSimpleFormRuleDtos.RuleMessage message, String language) {
         return switch (language) {
             case "uz" -> message.uz();
             case "en" -> message.en();

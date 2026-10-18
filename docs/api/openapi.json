@@ -22126,9 +22126,8 @@
         "properties" : {
           "defaultFormula" : {
             "type" : "string",
-            "description" : "Format 5: the formula of the value a new record takes when it is sent none",
-            "maxLength" : 1000,
-            "minLength" : 1
+            "description" : "Format 5: the formula of a new record's default",
+            "maxLength" : 1000
           },
           "defaultValue" : {
             "type" : "string",
@@ -22138,9 +22137,8 @@
           },
           "formula" : {
             "type" : "string",
-            "description" : "Format 5: the formula of a computed field (ADR-0042) - read-only, recomputed and stored on every save",
-            "maxLength" : 1000,
-            "minLength" : 1
+            "description" : "Format 5: a computed field's formula (ADR-0042)",
+            "maxLength" : 1000
           },
           "hidden" : {
             "type" : "boolean",
@@ -22172,18 +22170,16 @@
           },
           "readonlyIf" : {
             "type" : "string",
-            "description" : "Format 5: a saved record's field cannot be changed while this yes/no formula is true over the record as it is stored",
-            "maxLength" : 1000,
-            "minLength" : 1
+            "description" : "Format 5: read-only while this formula is true of the stored record",
+            "maxLength" : 1000
           },
           "required" : {
             "type" : "boolean"
           },
           "requiredIf" : {
             "type" : "string",
-            "description" : "Format 5: an optional field is required while this yes/no formula is true",
-            "maxLength" : 1000,
-            "minLength" : 1
+            "description" : "Format 5: required while this formula is true",
+            "maxLength" : 1000
           },
           "scale" : {
             "type" : "integer",
@@ -22201,9 +22197,8 @@
           },
           "visibleIf" : {
             "type" : "string",
-            "description" : "Format 5: the field is shown only while this yes/no formula is true; a hidden field keeps no value and is not required",
-            "maxLength" : 1000,
-            "minLength" : 1
+            "description" : "Format 5: shown only while this formula is true",
+            "maxLength" : 1000
           }
         },
         "required" : [ "id", "labels", "listed", "required", "type" ]

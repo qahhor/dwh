@@ -11,8 +11,8 @@ import com.smartup24.cms.instance.common.formula.Formula;
 import com.smartup24.cms.instance.common.formula.FormulaException;
 import com.smartup24.cms.instance.common.formula.FormulaType;
 import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Field;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.Rule;
-import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.RuleMessage;
+import com.smartup24.cms.instance.md.api.MdSimpleFormRuleDtos.Rule;
+import com.smartup24.cms.instance.md.api.MdSimpleFormRuleDtos.RuleMessage;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -44,6 +44,15 @@ public final class MdSimpleFormLogic {
     private static final String RULE_KEY = "[a-z][a-z0-9_]{0,19}";
 
     private MdSimpleFormLogic() {}
+
+    /** Whether the field has a formula of format 5. */
+    public static boolean hasLogic(Field field) {
+        return field.formula() != null
+                || field.defaultFormula() != null
+                || field.visibleIf() != null
+                || field.requiredIf() != null
+                || field.readonlyIf() != null;
+    }
 
     /** The formula types of the fields a formula of the form may read: its shown fields, by id. */
     public static Map<String, FormulaType> types(List<Field> fields) {
@@ -154,7 +163,7 @@ public final class MdSimpleFormLogic {
         Map<String, Integer> places = new LinkedHashMap<>();
         for (int index = 0; index < fields.size(); index++) {
             Field field = fields.get(index);
-            if (Boolean.TRUE.equals(field.hidden()) || !field.hasLogic()) continue;
+            if (Boolean.TRUE.equals(field.hidden()) || !hasLogic(field)) continue;
             String at = "fields[" + index + "]";
             place(field, at, problems);
             Formula value = checked(field.formula(), types, at + ".formula", field.type(), problems);

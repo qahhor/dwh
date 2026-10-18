@@ -6835,11 +6835,11 @@ export interface components {
             titleField?: string;
         };
         SimpleFormField: {
-            /** @description Format 5: the formula of the value a new record takes when it is sent none */
+            /** @description Format 5: the formula of a new record's default */
             defaultFormula?: string;
             /** @description Format 2: the fixed value a new record takes, written as the field reads it */
             defaultValue?: string;
-            /** @description Format 5: the formula of a computed field (ADR-0042) - read-only, recomputed and stored on every save */
+            /** @description Format 5: a computed field's formula (ADR-0042) */
             formula?: string;
             /** @description Format 2: the field is kept with its data but leaves the form, the list, the export and the history (ADR-0041); present only when true */
             hidden?: boolean;
@@ -6850,10 +6850,10 @@ export interface components {
             maxLength?: number;
             /** @description Format 3: the choices of a select field, in their order */
             options?: components["schemas"]["SimpleFormOption"][];
-            /** @description Format 5: a saved record's field cannot be changed while this yes/no formula is true over the record as it is stored */
+            /** @description Format 5: read-only while this formula is true of the stored record */
             readonlyIf?: string;
             required: boolean;
-            /** @description Format 5: an optional field is required while this yes/no formula is true */
+            /** @description Format 5: required while this formula is true */
             requiredIf?: string;
             /** Format: int32 */
             scale?: number;
@@ -6861,7 +6861,7 @@ export interface components {
             target?: components["schemas"]["SimpleFormTarget"];
             /** @enum {string} */
             type: "text" | "textarea" | "number" | "date" | "datetime" | "time" | "bool" | "email" | "phone" | "url" | "select" | "ref" | "user";
-            /** @description Format 5: the field is shown only while this yes/no formula is true; a hidden field keeps no value and is not required */
+            /** @description Format 5: shown only while this formula is true */
             visibleIf?: string;
         };
         SimpleFormLabels: {

@@ -36,8 +36,8 @@ class MdSimpleFormLogicTest {
         assertThat(declaration.formatVersion()).isEqualTo(5);
         assertThat(declaration.rules()).extracting(rule -> rule.key()).containsExactly("maxdiscount", "positive");
         assertThat(declaration.fields().get(3).formula()).startsWith("round(");
-        assertThat(declaration.fields().get(5).hasLogic()).isTrue();
-        assertThat(declaration.fields().getFirst().hasLogic()).isFalse();
+        assertThat(MdSimpleFormLogic.hasLogic(declaration.fields().get(5))).isTrue();
+        assertThat(MdSimpleFormLogic.hasLogic(declaration.fields().getFirst())).isFalse();
     }
 
     @Test
