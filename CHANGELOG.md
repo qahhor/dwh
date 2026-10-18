@@ -309,9 +309,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- **Breaking (OpenAPI):** `SimpleFormField.type` and `StudioFormulaField.type` take `file`,
-  `SimpleFormField` takes `files` and `formatVersion` goes up to 7 (ADR-0043); openapi-diff
-  reports the wider enumerations of answers as a break. Existing declarations keep their
+- **Breaking for strict clients:** `SimpleFormField.type` and `StudioFormulaField.type` take
+  `file`, `SimpleFormField` takes `files` and `formatVersion` goes up to 7 (ADR-0043). openapi-diff
+  finds the change compatible; it is marked breaking because a client that validates the
+  enumerations of answers strictly refuses the new value. Existing declarations keep their
   meaning and checksums.
 - **Breaking:** a webhook subscription created without `scope` sends only the records its
   creator may read (`creator`); existing subscriptions take the same scope. `all` restores
