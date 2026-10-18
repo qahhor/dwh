@@ -49,6 +49,48 @@ export class Mailbox {
     return body.Text;
   }
 
+  /**
+   * Waits for the next letter to the recipient and gives its text and attachments (a report mailing, ADR-0045). The
+   * attachments are read through the stub's part API; nothing here prints them.
+   */
+  async nextLetter(timeout = 30_000): Promise<{ text: string; subject: string; attachments: Attachment[] }> {
+    let id: string | undefined;
+    await expect.poll(async () => {
+      id = await this.newestUnseenId();
+      return id !== undefined;
+    }, { message: 'a new letter reaches the mail stub', timeout, intervals: [500, 1_000, 2_000] }).toBe(true);
+    if (!id) throw new Error('Mail stub returned no message id');
+    this.seen.add(id);
+    const response = await this.api.get(`/api/v1/message/${encodeURIComponent(id)}`);
+    const status = response.status();
+    if (status !== 200) {
+      await response.dispose();
+      throw new Error(`Mail stub message read returned HTTP ${status}`);
+    }
+    const body = await response.json() as {
+      Text?: unknown;
+      Subject?: unknown;
+      Attachments?: Array<{ PartID?: unknown; FileName?: unknown; ContentType?: unknown }>;
+    };
+    await response.dispose();
+    const attachments: Attachment[] = [];
+    for (const part of body.Attachments ?? []) {
+      const download = await this.api.get(`/api/v1/message/${encodeURIComponent(id)}/part/${String(part.PartID)}`);
+      attachments.push({
+        name: String(part.FileName ?? ''),
+        contentType: String(part.ContentType ?? ''),
+        content: Buffer.from(await download.body()),
+      });
+      await download.dispose();
+    }
+    return { text: typeof body.Text === 'string' ? body.Text : '', subject: String(body.Subject ?? ''), attachments };
+  }
+
+  /** Whether a message to the recipient that this mailbox has not returned yet is in the stub now. */
+  async hasUnseen(): Promise<boolean> {
+    return (await this.newestUnseenId()) !== undefined;
+  }
+
   /** Removes what this mailbox read, so no code or link outlives the test in the stub. */
   async close(): Promise<void> {
     try {
@@ -79,6 +121,13 @@ export class Mailbox {
       .map(message => String(message.ID))
       .find(id => !this.seen.has(id));
   }
+}
+
+/** A file a letter carries. */
+export interface Attachment {
+  name: string;
+  contentType: string;
+  content: Buffer;
 }
 
 /** The six-digit code of a login or channel confirmation message. */

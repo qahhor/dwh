@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.report.controller;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.common.annotation.NoIdempotency;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Created;
@@ -94,7 +93,6 @@ public class ReportMailingController {
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.CREATED)
     @AnswersRevision
-    @NoIdempotency
     public ResponseEntity<Mailing> createReportMailing(@Valid @RequestBody MailingRequest body) {
         Mailing mailing = mailings.create(body);
         ResponseEntity<Mailing> created = Created.at(ONE, mailing.id(), mailing);
@@ -112,7 +110,6 @@ public class ReportMailingController {
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.OK)
     @AnswersRevision
-    @NoIdempotency
     public ResponseEntity<Mailing> updateReportMailing(
             @PathVariable long id,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) @Nullable String ifMatch,
@@ -127,7 +124,6 @@ public class ReportMailingController {
     @DeleteMapping("/{id}")
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @NoIdempotency
     public void deleteReportMailing(
             @PathVariable long id,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) @Nullable String ifMatch) {
@@ -142,7 +138,6 @@ public class ReportMailingController {
     @PostMapping("/{id}/runs")
     @RequiresPermission(form = "md.profile", action = "view")
     @ResponseStatus(HttpStatus.CREATED)
-    @NoIdempotency
     public ResponseEntity<Run> sendReportMailing(@PathVariable long id, @Valid @RequestBody RunRequest body) {
         Run run = mailings.request(id, body.scope());
         return Created.at(RUN, new Object[] {id, run.id()}, run);

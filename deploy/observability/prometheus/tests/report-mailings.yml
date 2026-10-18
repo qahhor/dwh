@@ -1,0 +1,49 @@
+# promtool unit tests: report mailings (ADR-0045; plan 10/10, item 7.3).
+rule_files:
+  - ../rules/recording.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Two nodes run the mailings; three failed runs within the hour on either of them, held 15 minutes, raise the alert.
+  - name: report mailings failing
+    interval: 1m
+    input_series:
+      - series: 'smc_report_mailing_runs_total{application="smartupcms", instance="a", outcome="failed"}'
+        values: '0 1 1 2 2x100'
+      - series: 'smc_report_mailing_runs_total{application="smartupcms", instance="b", outcome="failed"}'
+        values: '0 0 0 0 1x100'
+      - series: 'smc_report_mailing_runs_total{application="smartupcms", instance="a", outcome="done"}'
+        values: '0 5 10 15 20x100'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: SmartupcmsReportMailingsFailing
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: SmartupcmsReportMailingsFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "Report mailing runs keep failing"
+              description: "At least three report mailing runs failed for every recipient within the last hour."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-14-report-mailings.md"
+      # An hour later no run has failed meanwhile: the alert clears.
+      - eval_time: 90m
+        alertname: SmartupcmsReportMailingsFailing
+        exp_alerts: []
+
+  # Successful and skipped runs never raise it, however many.
+  - name: report mailings succeeding
+    interval: 1m
+    input_series:
+      - series: 'smc_report_mailing_runs_total{application="smartupcms", instance="a", outcome="done"}'
+        values: '0+10x60'
+      - series: 'smc_report_mailing_runs_total{application="smartupcms", instance="a", outcome="skipped"}'
+        values: '0+3x60'
+    alert_rule_test:
+      - eval_time: 40m
+        alertname: SmartupcmsReportMailingsFailing
+        exp_alerts: []

@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.security.PermissionDeclarations;
 import com.smartup24.cms.platform.api.entity.EntityCapability;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import com.smartup24.cms.platform.api.entity.EntityModel;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
@@ -23,8 +25,9 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
  * Synchronizes the form catalog with the code (FR-PERM-1).
  *
  * The source of truth about whether a permission exists is what actually guards an
- * endpoint: the {@code @RequiresPermission} annotation on a handler, and the declaration of
- * an entity whose records the general runtime checks against it (ADR-0032, 6.10). The
+ * endpoint: the {@code @RequiresPermission} annotation on a handler, the declaration of
+ * an entity whose records the general runtime checks against it (ADR-0032, 6.10), and the
+ * pairs a module checks in its own code ({@link PermissionDeclarations}, ADR-0045). The
  * catalog in the database derives from them, not the other way round.
  *
  * Why this was needed: the catalog was filled by migrations, and the registration method
@@ -44,20 +47,24 @@ public class MdFormCatalogSynchronizer {
     private final RequestMappingHandlerMapping handlerMapping;
     private final MdPermissionService permissionService;
     private final List<EntityDefinition> entities;
+    private final List<PermissionDeclarations> declarations;
 
     public MdFormCatalogSynchronizer(
             RequestMappingHandlerMapping handlerMapping,
             MdPermissionService permissionService,
-            List<EntityDefinition> entities) {
+            List<EntityDefinition> entities,
+            ObjectProvider<PermissionDeclarations> declarations) {
         this.handlerMapping = handlerMapping;
         this.permissionService = permissionService;
         this.entities = List.copyOf(entities);
+        this.declarations = declarations.orderedStream().toList();
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void synchronizeOnStartup() {
         Set<String> declared = declaredPairs(handlerMapping.getHandlerMethods().values());
         declared.addAll(entityPairs(entities));
+        declarations.forEach(declaration -> declared.addAll(declaration.pairs()));
         var result = permissionService.syncFormCatalog(declared);
 
         log.info("permission_catalog_synced declared={} deprecatedNow={}", result.declared(), result.deprecated());

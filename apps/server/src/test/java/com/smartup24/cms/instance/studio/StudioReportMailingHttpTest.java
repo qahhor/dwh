@@ -379,4 +379,39 @@ class StudioReportMailingHttpTest extends EmbeddedPostgresTest {
                         .getStatus())
                 .isEqualTo(403);
     }
+
+    @Test
+    void telegramGoesOnlyToAConfirmedChatAndATestIgnoresTheCondition() throws Exception {
+        jdbc.sql("""
+                        insert into kauth_user_channels (user_id, channel, address, is_verified, created_at)
+                        values (:user, 'telegram', '424242', true, now())
+                        """).param("user", southUser.id()).update();
+        Map<String, Object> mailing = create(request(
+                List.of(southUser.id(), eastUser.id()),
+                Map.of("channels", List.of("telegram"), "attachXlsx", false, "includeLink", true)));
+        long id = ((Number) mailing.get("id")).longValue();
+        var got = deliveries(id, run(id, "all", owner));
+        assertThat(got.get(southUser.id() + ":telegram")).containsEntry("status", "queued");
+        assertThat(got.get(eastUser.id() + ":telegram"))
+                .containsEntry("status", "skipped")
+                .containsEntry("reason", "no_address");
+        String payload = jdbc.sql("select payload::text from ms_notification_outbox where recipient = '424242'")
+                .query(String.class)
+                .single();
+        assertThat(payload).contains("Итоги прошлого месяца");
+
+        MockHttpServletResponse eastTest = TestSession.signIn(context, eastUser.login())
+                .send(post("/api/v1/report-mailings/" + id + "/runs"), Map.of("scope", "me"), null);
+        assertThat(eastTest.getStatus())
+                .as("only who keeps the mailing sends it")
+                .isEqualTo(403);
+        Map<String, Object> other = create(request(
+                List.of(eastUser.id()), Map.of("channels", List.of("telegram", "in_app"), "attachXlsx", false)));
+        long otherId = ((Number) other.get("id")).longValue();
+        var noChat = deliveries(otherId, run(otherId, "all", owner));
+        assertThat(noChat.get(eastUser.id() + ":telegram")).containsEntry("reason", "no_address");
+        var test = deliveries(otherId, run(otherId, "me", owner));
+        assertThat(test.get(ownerUser.id() + ":in_app")).containsEntry("status", "sent");
+        assertThat(test.get(ownerUser.id() + ":telegram")).containsEntry("reason", "no_address");
+    }
 }

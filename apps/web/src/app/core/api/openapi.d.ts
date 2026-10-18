@@ -16592,7 +16592,10 @@ export interface operations {
     createReportMailing: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -16693,6 +16696,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -16750,6 +16755,8 @@ export interface operations {
             query?: never;
             header?: {
                 "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: number;
@@ -16831,7 +16838,10 @@ export interface operations {
     sendReportMailing: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: number;
             };

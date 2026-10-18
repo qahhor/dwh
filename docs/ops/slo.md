@@ -132,6 +132,7 @@ recording rules подставляют нулевой числитель для 
 | `SmartupcmsPostgresConnectionsExhausted` | critical | [RB-11](../runbooks/RB-11-postgresql-health.md) |
 | `SmartupcmsPostgresConnectionsHigh`, `SmartupcmsPostgresDatabaseGrowthHigh`, `SmartupcmsPostgresDeadTuplesHigh`, `SmartupcmsPostgresExporterDown` | warning | [RB-11](../runbooks/RB-11-postgresql-health.md) |
 | `SmartupcmsStudioFormsBroken` | warning | [RB-13](../runbooks/RB-13-live-studio-forms.md) |
+| `SmartupcmsReportMailingsFailing` | warning | [RB-14](../runbooks/RB-14-report-mailings.md) |
 
 Алерты хоста и PostgreSQL (`rules/infrastructure.yml`) читают метрики
 необязательных экспортеров (раздел 7); без них ряды отсутствуют и алерты

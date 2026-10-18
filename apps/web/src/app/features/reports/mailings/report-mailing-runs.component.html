@@ -40,31 +40,38 @@
               <p class="run-error">{{ 'reports.mailings.runs.reason.' + run.error | t }}</p>
             }
             @if (detail()?.run?.id === run.id) {
-              <table class="deliveries" data-testid="report-mailing-deliveries">
-                <caption class="sr-only">
-                  {{
-                    'reports.mailings.runs.deliveries' | t
-                  }}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">{{ 'reports.mailings.runs.recipient' | t }}</th>
-                    <th scope="col">{{ 'reports.mailings.runs.channel' | t }}</th>
-                    <th scope="col">{{ 'reports.mailings.runs.result' | t }}</th>
-                    <th scope="col" class="numeric">{{ 'reports.mailings.runs.rows' | t }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (delivery of detail()!.deliveries; track delivery.userId + delivery.channel) {
-                    <tr data-testid="report-mailing-delivery">
-                      <th scope="row">{{ delivery.userName }}</th>
-                      <td>{{ 'reports.mailings.channel.' + delivery.channel | t }}</td>
-                      <td>{{ result(delivery) }}</td>
-                      <td class="numeric">{{ delivery.rows ?? '—' }}</td>
+              <div
+                class="deliveries-wrap"
+                role="region"
+                tabindex="0"
+                [attr.aria-label]="'reports.mailings.runs.deliveries' | t"
+              >
+                <table class="deliveries" data-testid="report-mailing-deliveries">
+                  <caption class="sr-only">
+                    {{
+                      'reports.mailings.runs.deliveries' | t
+                    }}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{{ 'reports.mailings.runs.recipient' | t }}</th>
+                      <th scope="col">{{ 'reports.mailings.runs.channel' | t }}</th>
+                      <th scope="col">{{ 'reports.mailings.runs.result' | t }}</th>
+                      <th scope="col" class="numeric">{{ 'reports.mailings.runs.rows' | t }}</th>
                     </tr>
-                  }
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    @for (delivery of detail()!.deliveries; track delivery.userId + delivery.channel) {
+                      <tr data-testid="report-mailing-delivery">
+                        <th scope="row">{{ delivery.userName }}</th>
+                        <td>{{ 'reports.mailings.channel.' + delivery.channel | t }}</td>
+                        <td>{{ result(delivery) }}</td>
+                        <td class="numeric">{{ delivery.rows ?? '—' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
             }
           </li>
         }

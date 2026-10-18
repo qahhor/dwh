@@ -9,6 +9,34 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Scheduled report mailings (ADR-0045, stage 2, step 4 of the form and report builder):
+  `/api/v1/report-mailings` keeps mailings of a saved report — 1 to 50 active users, the channels this
+  installation delivers on (`email`, `telegram`, `in_app`; `GET …/options`), an XLSX attachment and/or a
+  link, a daily, weekly (weekday) or monthly (day; past the month's end its last day) schedule at a local
+  `HH:mm` of a time zone, fixed values of the report's parameters (presets such as `last_month` counted when
+  it runs) and a condition (`always`, `has_rows`, `threshold` on a grand total). Rights `report.mailings`
+  `own` (the owner of the report; every role) and `manage` (any readable report; administrators); 404 for a
+  report the caller may not read; changes take `If-Match` and are audited; at most 10 per report.
+- A run executes the saved report as each recipient — their rights, data scope, field rights, language and
+  the mailing's zone — and judges the condition on that result; letters (with the recipient's XLSX up to
+  `smc.report-mailings.max-attachment-bytes`, 5 MB, else a link and a note) and Telegram messages (text and
+  a link button) go through the notification outbox to the recipient's confirmed address only; in-app
+  notifications carry the path of the report with its parameters (no token). A tick job of the shared queue
+  (`report.mailing_tick`, every minute) starts the run of the latest due slot once across nodes — one send
+  after downtime, never a burst — and DST-safe local slots. `POST …/{id}/runs` sends now to everyone
+  (`all`, active only) or a test to the caller (`me`), at most 10 an hour; `GET …/{id}/runs` and
+  `…/runs/{runId}` give the history with what each recipient got (sent, queued with the outbox state,
+  skipped or failed, and why). V232 tables, V233 the outbox attachment (cleared once sent), V234 rights and
+  the tick schedule; retention `report-mailing-runs` 180 days.
+- `GET /api/v1/report-views/{id}`: one owned or role-shared saved report revalidated for the reader.
+- Metrics `smc_report_mailing_runs_total{outcome}`, `smc_report_mailing_deliveries_total{channel,status}`
+  and the alert `SmartupcmsReportMailingsFailing` with runbook RB-14.
+- Web: «Рассылки» of a report from the catalog (`/reports/:id/mailings`): mailings with their schedule,
+  channels, recipients, next send and latest run; create and change (recipients, channels, format,
+  schedule with a time zone, the report's parameters, condition), pause and resume, send now, send to me,
+  run history with each delivery, delete. A mailing's link opens the report with its parameters
+  (`parameters` in the link of `/e/<entity>?mode=report&report=<id>`).
+
 - Report analytics (ADR-0044, stage 2, step 3 of the form and report builder), every figure an aggregate
   of one statement under the reader's data scope and field rights: `count_distinct` of a field (exact
   per group and per total); the share of a count or a sum in the total, the row or the column
@@ -341,6 +369,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The notification outbox sends a letter's `body` as plain text and an optional `html` as its HTML part
+  (it sent `body` as HTML; nothing enqueued letters before report mailings), and carries one attachment.
 - **Breaking for strict clients:** `SimpleFormField.type` and `StudioFormulaField.type` take
   `file`, `SimpleFormField` takes `files` and `formatVersion` goes up to 7 (ADR-0043). openapi-diff
   finds the change compatible; it is marked breaking because a client that validates the

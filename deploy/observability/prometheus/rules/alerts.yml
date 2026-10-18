@@ -274,3 +274,17 @@ groups:
           summary: "A stored live form fails to load and is left out"
           description: "{{ $value }} stored live form(s) fail to load on at least one node; the other forms and the declared entities keep serving."
           runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-13-live-studio-forms.md"
+
+  - name: smartupcms-report-mailings
+    rules:
+      # ADR-0045: a run fails when no recipient could be delivered to (the report failed for each, or every delivery
+      # did); a single failure is retried by the job queue, three in an hour mean a broken report or channel.
+      - alert: SmartupcmsReportMailingsFailing
+        expr: sum by (application) (increase(smc_report_mailing_runs_total{outcome="failed"}[1h])) >= 3
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Report mailing runs keep failing"
+          description: "At least three report mailing runs failed for every recipient within the last hour."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-14-report-mailings.md"
