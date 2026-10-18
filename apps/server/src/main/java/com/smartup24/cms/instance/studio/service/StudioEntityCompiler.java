@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +38,9 @@ import org.springframework.stereotype.Component;
  * key of the row they name, which the runtime checks against the target's rights and scope. The data scope of the form
  * restricts every read and write of its records: all, the viewer's org units (the record keeps its author's home unit)
  * or the viewer's own.
+ *
+ * <p>Format 4 (ADR-0041): a form is named by its title field or by the record's number instead of the system name and
+ * code, and lays its fields out in sections and tabs ({@link StudioFormLayout}).
  */
 @Component
 public class StudioEntityCompiler {
@@ -56,44 +60,54 @@ public class StudioEntityCompiler {
     /** The key of the org unit of a record, served when the form's scope is the org unit. */
     public static final String ORG_UNIT = "orgUnit";
 
+    /** The units a record may be moved to: those of the mover's data scope. */
+    public static final String ORG_UNITS = "/iam/org-units/scope";
+
     public EntityDefinitionSource.Declaration compile(long id, Declaration source) {
         return compile(id, source, false);
     }
 
     public EntityDefinitionSource.Declaration compile(long id, Declaration source, boolean archived) {
+        return compile(id, source, archived, target -> StudioFormLayout.NAME);
+    }
+
+    /**
+     * The runtime declaration of a stored form; {@code titles} gives, for the code of a live form a reference targets,
+     * the key of the field that names its records ({@link #titleKey}).
+     */
+    public EntityDefinitionSource.Declaration compile(
+            long id, Declaration source, boolean archived, Function<String, String> titles) {
         String code = "studio." + source.entity().name();
         String prefix = "studio.live." + source.entity().name();
+        String title = titleKey(source);
+        Function<String, String> named = target -> target.equals(code) ? title : titles.apply(target);
         Entity builder = Entity.define(code, code)
                 .table("studio_records", "t")
                 .partition("form_id", id)
                 .scope(scope(source.entity().scope()))
                 .auditTable("studio_" + source.entity().name())
-                .rights("studio", prefix + ".title", RIGHTS)
-                .field(text("name", "studio.record.name")
-                        .column("name")
-                        .required()
-                        .length(1, 255)
-                        .list(sortable().searchable()))
-                .field(text("code", "studio.record.code")
-                        .column("code")
-                        .required()
-                        .length(1, 64)
-                        .matching("[a-z0-9_-]+")
-                        .list(sortable().searchable()))
-                .field(instant("modifiedAt", "studio.record.modified_at")
-                        .system(SystemColumn.MODIFIED_AT)
-                        .list(sortable()));
-        List<String> layout = new ArrayList<>(List.of("name", "code"));
-        for (Field field : shown(source)) {
-            builder.field(field(field, prefix));
-            layout.add(field.id());
+                .rights("studio", prefix + ".title", RIGHTS);
+        List<String> system = new ArrayList<>();
+        if (StudioFormLayout.NAME.equals(title)) {
+            builder.field(name()).field(code()).field(modifiedAt());
+            system.addAll(List.of("name", "code"));
+        } else if (StudioFormLayout.RECORD_NUMBER.equals(title)) {
+            builder.field(recordNumber());
+            system.add(StudioFormLayout.RECORD_NUMBER);
         }
+        List<String> fields = new ArrayList<>();
+        for (Field field : StudioFormLayout.ordered(shown(source), title)) {
+            builder.field(field(field, prefix, field.id().equals(title), named));
+            fields.add(field.id());
+        }
+        if (!StudioFormLayout.NAME.equals(title)) builder.field(modifiedAt());
+        String last = null;
         if ("org_unit".equals(source.entity().scope())) {
             builder.field(orgUnit());
-            layout.add(ORG_UNIT);
+            last = ORG_UNIT;
         }
-        builder.section("main", "entity.section.main", layout.toArray(String[]::new))
-                .defaultSort("modifiedAt", Entity.Sort.DESC)
+        StudioFormLayout.declare(builder, source, prefix, system, fields, last);
+        builder.defaultSort("modifiedAt", Entity.Sort.DESC)
                 .capabilities(
                         EntityCapability.SAVED_VIEWS,
                         EntityCapability.EXPORT,
@@ -111,7 +125,16 @@ public class StudioEntityCompiler {
                     .archivable()
                     .actions("delete");
         }
-        return new EntityDefinitionSource.Declaration(builder.build(), messages(source, prefix));
+        return new EntityDefinitionSource.Declaration(builder.build(), messages(source, prefix), title);
+    }
+
+    /**
+     * The key of the field that names a record of the form - on its card, in references to it and in reports: the
+     * system {@code name} for formats 1 to 3 and a form of format 4 that keeps it, else the form's title field, else the
+     * record's number.
+     */
+    public static String titleKey(Declaration source) {
+        return StudioFormLayout.titleKey(source);
     }
 
     /** The fields a form serves: every field that is not hidden, in declaration order. */
@@ -141,13 +164,49 @@ public class StudioEntityCompiler {
                         List.of()));
     }
 
-    /** The record's org unit: its author's home unit, set by the server and only read (ADR-0041, owner decision 1). */
+    /**
+     * The record's org unit: its author's home unit by default (ADR-0041, owner decision 1). A user with the update right
+     * moves the record to another unit; the runtime keeps both the old and the new unit within the mover's scope, and
+     * the picker offers the units of that scope.
+     */
     private static Builder orgUnit() {
-        return ref(ORG_UNIT, "studio.record.org_unit", QueryRef.whole("/iam/org-units", "name"))
+        return ref(ORG_UNIT, "studio.record.org_unit", QueryRef.whole(ORG_UNITS, "name"))
                 .column("org_unit_id")
-                .readonly()
                 .defaultValue(FieldDefault.currentOrgUnit())
                 .list(hidden());
+    }
+
+    private static Builder name() {
+        return text("name", "studio.record.name")
+                .column("name")
+                .required()
+                .length(1, 255)
+                .list(sortable().searchable());
+    }
+
+    private static Builder code() {
+        return text("code", "studio.record.code")
+                .column("code")
+                .required()
+                .length(1, 64)
+                .matching("[a-z0-9_-]+")
+                .list(sortable().searchable());
+    }
+
+    private static Builder modifiedAt() {
+        return instant("modifiedAt", "studio.record.modified_at")
+                .system(SystemColumn.MODIFIED_AT)
+                .list(sortable());
+    }
+
+    /**
+     * The record's number in its form, given by the database in turn (V224) and only read; a record saved before V224
+     * has none, so the number is listed but not sorted.
+     */
+    private static Builder recordNumber() {
+        return number(StudioFormLayout.RECORD_NUMBER, "studio.record.number")
+                .column("record_number")
+                .readonly();
     }
 
     /** The rows a viewer sees, by the scope the form names; a form of format 1 or 2 sees all of them. */
@@ -159,7 +218,7 @@ public class StudioEntityCompiler {
         };
     }
 
-    private Builder field(Field field, String prefix) {
+    private Builder field(Field field, String prefix, boolean title, Function<String, String> titles) {
         String key = field.id();
         String label = prefix + ".field." + key;
         Builder builder = switch (field.type()) {
@@ -175,7 +234,7 @@ public class StudioEntityCompiler {
             case "url" -> url(key, label);
             case "select" -> select(key, label, codes(field), optionPrefix(prefix, key));
             case "user" -> ref(key, label).target(USERS, "name");
-            case "ref" -> reference(key, label, field);
+            case "ref" -> reference(key, label, field, titles);
             default -> throw new IllegalArgumentException("Unsupported live field type");
         };
         builder.jsonProperty("payload", key);
@@ -183,16 +242,17 @@ public class StudioEntityCompiler {
         if (field.maxLength() != null) builder.length(null, field.maxLength());
         if (field.scale() != null) builder.scale(field.scale());
         if (!field.listed()) builder.formOnly();
+        else if (title) builder.list(searchable());
         if (field.defaultValue() != null) builder.defaultValue(FieldDefault.fixed(field.defaultValue()));
         return builder;
     }
 
     /** A reference to a list is an enumeration of it; one to a live form keeps the key of its record. */
-    private static Builder reference(String key, String label, Field field) {
+    private static Builder reference(String key, String label, Field field, Function<String, String> titles) {
         Target target = Objects.requireNonNull(field.target(), "A live reference names its target");
         return "list".equals(target.kind())
                 ? enumeration(key, label, StudioListEnums.reference(target.code()))
-                : ref(key, label).target(target.code(), "name");
+                : ref(key, label).target(target.code(), titles.apply(target.code()));
     }
 
     private static List<String> codes(Field field) {
@@ -210,6 +270,7 @@ public class StudioEntityCompiler {
         for (String language : List.of("ru", "uz", "en")) {
             Map<String, String> values = new LinkedHashMap<>();
             values.put(prefix + ".title", label(source.entity().title(), language));
+            StudioFormLayout.messages(source, prefix, (key, labels) -> values.put(key, label(labels, language)));
             for (Field field : shown(source)) {
                 values.put(prefix + ".field." + field.id(), label(field.labels(), language));
                 if (field.options() == null) continue;

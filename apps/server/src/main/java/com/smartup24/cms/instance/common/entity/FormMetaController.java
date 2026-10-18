@@ -20,7 +20,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,18 +41,21 @@ public class FormMetaController {
 
     private final EntityGate gate;
     private final Function<String, Items> enumItems;
+    private final Supplier<List<EntityTitles>> titles;
 
     /** The entity opens through {@link EntityGate}: its module switched on and its {@code view} right held. */
     @Autowired
-    public FormMetaController(EntityGate gate, EntityEnums enums) {
+    public FormMetaController(EntityGate gate, EntityEnums enums, ObjectProvider<EntityTitles> titles) {
         this.gate = gate;
         this.enumItems = enums::all;
+        this.titles = () -> titles.orderedStream().toList();
     }
 
     /** A controller of the declarations alone, without reference entities: an enumeration offers no items. */
     public FormMetaController(EntityRegistry registry) {
         this.gate = EntityGate.of(registry);
         this.enumItems = code -> Items.NONE;
+        this.titles = List::of;
     }
 
     /**
@@ -102,7 +107,9 @@ public class FormMetaController {
      * An entity's form. A document also gives its collections with the fields of a row, its process and the tabs of
      * its card (ADR-0032, 9; plan 10/10, item 5.7); an entity without them answers without these properties.
      * {@code titleKey} is the dictionary key of the entity's name (ADR-0031): its menu label, else the name of its
-     * right, so a screen never names the entity by its code.
+     * right, so a screen never names the entity by its code. {@code titleField} is the key of the field that names a
+     * record (ADR-0041) when the entity says one and the viewer sees that field; without it a screen names a record by
+     * the first filled text field of the layout.
      */
     public record FormMeta(
             String code,
@@ -114,7 +121,8 @@ public class FormMetaController {
             List<String> capabilities,
             @Nullable List<FormCollectionMeta> collections,
             @Nullable FormWorkflowMeta workflow,
-            @Nullable List<FormTabMeta> tabs) {}
+            @Nullable List<FormTabMeta> tabs,
+            @Nullable String titleField) {}
 
     /** Anyone signed in may ask; the entity's own right is checked below. A string: common depends on no module. */
     @Operation(
@@ -126,7 +134,7 @@ public class FormMetaController {
     public ResponseEntity<FormMeta> get(@PathVariable String code) {
         EntityDefinition entity = gate.findVisible(code).orElseThrow(EntityGate::unknownEntity);
         // A related list of the card only of an entity the viewer may see (ADR-0032, 9.3).
-        FormMeta meta = of(entity, enumItems, gate::visible);
+        FormMeta meta = titled(of(entity, enumItems, gate::visible), titleField(entity));
         return ResponseEntity.ok(gate.writable(entity) ? meta : readOnly(meta));
     }
 
@@ -142,7 +150,34 @@ public class FormMetaController {
                 meta.capabilities(),
                 meta.collections(),
                 meta.workflow(),
-                meta.tabs());
+                meta.tabs(),
+                meta.titleField());
+    }
+
+    /** The form naming its records by {@code field}, when the viewer sees that field. */
+    static FormMeta titled(FormMeta meta, @Nullable String field) {
+        if (field == null
+                || meta.fields().stream().noneMatch(candidate -> candidate.key().equals(field))) return meta;
+        return new FormMeta(
+                meta.code(),
+                meta.titleKey(),
+                meta.listCode(),
+                meta.fields(),
+                meta.layout(),
+                meta.actions(),
+                meta.capabilities(),
+                meta.collections(),
+                meta.workflow(),
+                meta.tabs(),
+                field);
+    }
+
+    private @Nullable String titleField(EntityDefinition entity) {
+        for (EntityTitles source : titles.get()) {
+            String field = source.titleField(entity);
+            if (field != null) return field;
+        }
+        return null;
     }
 
     /** The form as the viewer may use it, for an entity without enumerations. */
@@ -186,7 +221,8 @@ public class FormMetaController {
                         .toList(),
                 FormDocumentMetas.collections(entity, enumItems),
                 FormDocumentMetas.workflow(entity),
-                FormDocumentMetas.tabs(entity, viewable));
+                FormDocumentMetas.tabs(entity, viewable),
+                null);
     }
 
     /** The dictionary key of the entity's name: its menu label, else the name of its right; null without either. */

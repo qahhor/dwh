@@ -84,6 +84,18 @@ public class EntityLabelResolver {
         return result;
     }
 
+    /**
+     * The names of the rows {@code ids} of the reference {@code ref} in the viewer's scope, by key, read in one
+     * statement — a report names the groups of a reference by them (ADR-0036); a row the viewer may not see, or a target
+     * they may not view, has no name.
+     */
+    public Map<Long, String> labels(QueryRef ref, Collection<Long> ids, long userId) {
+        String target = parseTarget(ref);
+        if (target == null || ids.isEmpty()) return Map.of();
+        String labelField = ref.labelField().isBlank() ? "name" : ref.labelField();
+        return queryTarget(target, labelField, new LinkedHashSet<>(ids), userId);
+    }
+
     List<RefField> findRefFields(EntityDefinition entity) {
         List<RefField> list = new ArrayList<>();
         EntityModel model = entity.model();
@@ -151,7 +163,7 @@ public class EntityLabelResolver {
         if ("/iam/users".equals(path)) {
             return "md.users";
         }
-        if ("/iam/org-units".equals(path)) {
+        if ("/iam/org-units".equals(path) || "/iam/org-units/scope".equals(path)) {
             return "sys:org-units";
         }
         if ("/iam/roles".equals(path)) {

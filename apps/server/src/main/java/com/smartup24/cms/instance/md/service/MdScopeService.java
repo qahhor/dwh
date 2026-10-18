@@ -258,6 +258,12 @@ public class MdScopeService implements DataScopes {
         return scopeRepository.isUnitAvailable(userId, orgUnitId, scopeRepository.getUserRule(userId));
     }
 
+    /** The units the user may put a record in, the units {@link #unitVisible} accepts (ADR-0032, 5.1). */
+    @Transactional(readOnly = true)
+    public Set<Long> availableUnits(long userId) {
+        return scopeRepository.availableUnits(userId, scopeRepository.getUserRule(userId));
+    }
+
     /** The user's home unit, the default unit of a new record (ADR-0032, 5.1). */
     @Override
     @Transactional(readOnly = true)

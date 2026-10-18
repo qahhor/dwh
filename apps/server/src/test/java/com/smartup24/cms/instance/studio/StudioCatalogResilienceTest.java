@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -173,9 +174,10 @@ class StudioCatalogResilienceTest {
         AtomicInteger compiled = new AtomicInteger();
         StudioEntityCompiler counting = new StudioEntityCompiler() {
             @Override
-            public EntityDefinitionSource.Declaration compile(long id, Declaration source) {
+            public EntityDefinitionSource.Declaration compile(
+                    long id, Declaration source, boolean archived, Function<String, String> titles) {
                 compiled.incrementAndGet();
-                return super.compile(id, source);
+                return super.compile(id, source, archived, titles);
             }
         };
         List<Runnable> handlers = new ArrayList<>();
@@ -309,9 +311,10 @@ class StudioCatalogResilienceTest {
         AtomicInteger compiled = new AtomicInteger();
         StudioEntityCompiler counting = new StudioEntityCompiler() {
             @Override
-            public EntityDefinitionSource.Declaration compile(long id, Declaration source) {
+            public EntityDefinitionSource.Declaration compile(
+                    long id, Declaration source, boolean archived, Function<String, String> titles) {
                 compiled.incrementAndGet();
-                return super.compile(id, source);
+                return super.compile(id, source, archived, titles);
             }
         };
         List<String> published = new ArrayList<>();

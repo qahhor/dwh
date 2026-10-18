@@ -56,6 +56,24 @@ public class MdOrgUnitController {
         return ResponseEntity.ok(orgUnitService.listAll());
     }
 
+    /**
+     * The units the signed-in user may put a record in — those of their data scope (ADR-0032, 5.1): a record of a live
+     * form scoped by org unit is moved to one of them (ADR-0041). Open to whoever is signed in; it names units only.
+     */
+    @Operation(
+            summary = "List the units of my data scope",
+            description = "The units the signed-in user may put a record in, as a flat list; every unit for a user"
+                    + " whose data scope is all.")
+    @GetMapping("/scope")
+    @RequiresPermission(form = "md.profile", action = "view")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<List<OrgUnitView>> scope() {
+        var available = scopeService.availableUnits(SecurityContext.getCurrentUserId());
+        return ResponseEntity.ok(orgUnitService.listAll().stream()
+                .filter(unit -> available.contains(unit.id()))
+                .toList());
+    }
+
     @Operation(summary = "Get an org unit", description = "One unit of the organisation structure.")
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")

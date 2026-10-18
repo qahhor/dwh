@@ -1,0 +1,309 @@
+[
+  {
+    "checksum": "8a4d36c2ae6c023a0c252af354f68cf897406747c764240f7d8bbcb56c1f0b2c",
+    "declaration": {
+      "formatVersion": 4,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v4_clients",
+        "title": {
+          "ru": "Клиенты",
+          "uz": "Mijozlar",
+          "en": "Clients"
+        },
+        "menu": {
+          "icon": "storefront",
+          "section": "workspace",
+          "order": 20
+        },
+        "scope": "org_unit",
+        "titleField": "title"
+      },
+      "fields": [
+        {
+          "id": "title",
+          "type": "text",
+          "labels": {
+            "ru": "Название",
+            "uz": "Nomi",
+            "en": "Title"
+          },
+          "required": true,
+          "listed": true,
+          "maxLength": 200
+        },
+        {
+          "id": "region",
+          "type": "ref",
+          "labels": {
+            "ru": "Регион",
+            "uz": "Hudud",
+            "en": "Region"
+          },
+          "required": true,
+          "listed": true,
+          "target": {
+            "kind": "list",
+            "code": "golden_regions"
+          }
+        },
+        {
+          "id": "segment",
+          "type": "select",
+          "labels": {
+            "ru": "Сегмент",
+            "uz": "Segment",
+            "en": "Segment"
+          },
+          "required": false,
+          "listed": true,
+          "options": [
+            {
+              "code": "a",
+              "labels": {
+                "ru": "Ключевой",
+                "uz": "Asosiy",
+                "en": "Key"
+              }
+            },
+            {
+              "code": "b",
+              "labels": {
+                "ru": "Обычный",
+                "uz": "Oddiy",
+                "en": "Regular"
+              }
+            }
+          ]
+        },
+        {
+          "id": "phone",
+          "type": "phone",
+          "labels": {
+            "ru": "Телефон",
+            "uz": "Telefon",
+            "en": "Phone"
+          },
+          "required": false,
+          "listed": false
+        },
+        {
+          "id": "old",
+          "type": "text",
+          "labels": {
+            "ru": "Старое",
+            "uz": "Eski",
+            "en": "Old"
+          },
+          "required": false,
+          "listed": true,
+          "hidden": true,
+          "maxLength": 100
+        }
+      ],
+      "layout": {
+        "tabs": [
+          {
+            "key": "main",
+            "labels": {
+              "ru": "Основное",
+              "uz": "Asosiy",
+              "en": "Main"
+            }
+          },
+          {
+            "key": "contacts",
+            "labels": {
+              "ru": "Контакты",
+              "uz": "Kontaktlar",
+              "en": "Contacts"
+            }
+          }
+        ],
+        "sections": [
+          {
+            "key": "general",
+            "labels": {
+              "ru": "Общее",
+              "uz": "Umumiy",
+              "en": "General"
+            },
+            "tab": "main",
+            "fields": [
+              "title",
+              "region"
+            ]
+          },
+          {
+            "key": "sales",
+            "labels": {
+              "ru": "Продажи",
+              "uz": "Savdo",
+              "en": "Sales"
+            },
+            "tab": "main",
+            "fields": [
+              "segment"
+            ]
+          },
+          {
+            "key": "reach",
+            "labels": {
+              "ru": "Связь",
+              "uz": "Aloqa",
+              "en": "Reach"
+            },
+            "tab": "contacts",
+            "fields": [
+              "phone"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "checksum": "6c3ae8b354814b241e75157d14987d9c35c1bd8244a915b8f25ca1eec937e389",
+    "declaration": {
+      "formatVersion": 4,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v4_visits",
+        "title": {
+          "ru": "Визиты",
+          "uz": "Tashriflar",
+          "en": "Visits"
+        },
+        "scope": "owner"
+      },
+      "fields": [
+        {
+          "id": "client",
+          "type": "ref",
+          "labels": {
+            "ru": "Клиент",
+            "uz": "Mijoz",
+            "en": "Client"
+          },
+          "required": true,
+          "listed": true,
+          "target": {
+            "kind": "form",
+            "code": "studio.golden_v4_clients"
+          }
+        },
+        {
+          "id": "visitdate",
+          "type": "date",
+          "labels": {
+            "ru": "Дата",
+            "uz": "Sana",
+            "en": "Date"
+          },
+          "required": true,
+          "listed": true
+        },
+        {
+          "id": "manager",
+          "type": "user",
+          "labels": {
+            "ru": "Менеджер",
+            "uz": "Menejer",
+            "en": "Manager"
+          },
+          "required": false,
+          "listed": true
+        }
+      ]
+    }
+  },
+  {
+    "checksum": "7d26f652d1ef3df93178453d8a03ae5e33e1676af96265374ccd82fad4e73b5c",
+    "declaration": {
+      "formatVersion": 4,
+      "kind": "simple-form",
+      "module": {
+        "code": "studio",
+        "title": {
+          "ru": "Созданные формы",
+          "uz": "Yaratilgan shakllar",
+          "en": "Custom forms"
+        }
+      },
+      "entity": {
+        "name": "golden_v4_named",
+        "title": {
+          "ru": "Справочник",
+          "uz": "Ma'lumotnoma",
+          "en": "Directory"
+        },
+        "menu": {
+          "icon": "box",
+          "section": "administration",
+          "order": 5
+        },
+        "scope": "all",
+        "titleField": "name"
+      },
+      "fields": [
+        {
+          "id": "note",
+          "type": "textarea",
+          "labels": {
+            "ru": "Заметка",
+            "uz": "Izoh",
+            "en": "Note"
+          },
+          "required": false,
+          "listed": false,
+          "maxLength": 500
+        },
+        {
+          "id": "amount",
+          "type": "number",
+          "labels": {
+            "ru": "Сумма",
+            "uz": "Summa",
+            "en": "Amount"
+          },
+          "required": false,
+          "listed": true,
+          "scale": 2,
+          "defaultValue": "0"
+        }
+      ],
+      "layout": {
+        "sections": [
+          {
+            "key": "details",
+            "labels": {
+              "ru": "Подробно",
+              "uz": "Batafsil",
+              "en": "Details"
+            },
+            "fields": [
+              "amount",
+              "note"
+            ]
+          }
+        ]
+      }
+    }
+  }
+]

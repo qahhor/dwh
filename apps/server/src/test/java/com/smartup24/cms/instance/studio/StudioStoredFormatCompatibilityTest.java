@@ -38,6 +38,7 @@ class StudioStoredFormatCompatibilityTest {
     private static final Path SAMPLES = Path.of("src/test/resources/studio/golden/stored-declarations-v1.json");
     private static final Path SAMPLES_V2 = Path.of("src/test/resources/studio/golden/stored-declarations-v2.json");
     private static final Path SAMPLES_V3 = Path.of("src/test/resources/studio/golden/stored-declarations-v3.json");
+    private static final Path SAMPLES_V4 = Path.of("src/test/resources/studio/golden/stored-declarations-v4.json");
     private static final Map<String, FieldType> TYPES = Map.of(
             "text", FieldType.TEXT,
             "textarea", FieldType.TEXTAREA,
@@ -197,6 +198,81 @@ class StudioStoredFormatCompatibilityTest {
         }
         assertThat(kinds).containsAll(Set.of(FieldType.SELECT, FieldType.ENUM, FieldType.REF));
         assertThat(scopes).containsExactlyInAnyOrder("org_unit", "owner", "all");
+    }
+
+    /**
+     * Format 4 (ADR-0041): a form named by its title field, by the record's number or by the system name and code; its
+     * sections in order — the system fields first, the org unit last on the first one — its tabs with the history last,
+     * and the labels of both in the form's own dictionary.
+     */
+    @Test
+    void everyStoredFormatFourSampleReadsBackKeepsItsChecksumAndCompilesItsTitleSectionsAndTabs() throws Exception {
+        JsonNode samples = json.readTree(Files.readString(SAMPLES_V4));
+        Set<String> titles = new HashSet<>();
+        boolean tabbed = false;
+        long id = 3000;
+        for (JsonNode sample : samples) {
+            String stored = json.writeValueAsString(sample.path("declaration"));
+            Declaration declaration = repository.declaration(stored);
+            assertThat(declaration.formatVersion()).isEqualTo(4);
+            assertThat(json.valueToTree(declaration).equals(sample.path("declaration")))
+                    .as("stored format of %s", declaration.entity().name())
+                    .isTrue();
+            var prepared = new MdSimpleFormDeclarations(json).prepare(stored.getBytes(StandardCharsets.UTF_8));
+            assertThat(prepared.declaration()).isEqualTo(declaration);
+            assertThat(prepared.checksum())
+                    .as("checksum of %s", declaration.entity().name())
+                    .isEqualTo(sample.path("checksum").asString());
+
+            var compiled = new StudioEntityCompiler().compile(id++, declaration);
+            EntityDefinition entity = compiled.entity();
+            StudioChangeRules.requireDefaults(declaration, entity);
+            String title = StudioEntityCompiler.titleKey(declaration);
+            titles.add(title);
+            assertThat(compiled.titleField()).isEqualTo(title);
+            assertThat(entity.model().fields().getFirst().key()).isEqualTo(title);
+            boolean named = "name".equals(title);
+            assertThat(entity.fieldsByKey().containsKey("code")).isEqualTo(named);
+            assertThat(entity.fieldsByKey().containsKey("recordNumber")).isEqualTo("recordNumber".equals(title));
+            String prefix = "studio.live." + declaration.entity().name();
+            var layout = declaration.layout();
+            if (layout == null) {
+                assertThat(entity.layout())
+                        .singleElement()
+                        .satisfies(section -> assertThat(section.key()).isEqualTo("main"));
+                continue;
+            }
+            assertThat(entity.layout().stream().map(section -> section.key()).toList())
+                    .containsExactlyElementsOf(layout.sections().stream()
+                            .map(section -> section.key())
+                            .toList());
+            var first = entity.layout().getFirst().fields();
+            if (named) assertThat(first.subList(0, 2)).containsExactly("name", "code");
+            if ("org_unit".equals(declaration.entity().scope()))
+                assertThat(first.getLast()).isEqualTo(StudioEntityCompiler.ORG_UNIT);
+            for (var section : layout.sections()) {
+                assertThat(compiled.messages().get("en"))
+                        .containsEntry(
+                                prefix + ".section." + section.key(),
+                                section.labels().en());
+            }
+            if (layout.tabs() == null) {
+                assertThat(entity.model().tabs()).isEmpty();
+                continue;
+            }
+            tabbed = true;
+            assertThat(entity.model().tabs().stream().map(tab -> tab.key()).toList())
+                    .containsExactlyElementsOf(java.util.stream.Stream.concat(
+                                    layout.tabs().stream().map(tab -> tab.key()), java.util.stream.Stream.of("history"))
+                            .toList());
+            for (var tab : layout.tabs()) {
+                assertThat(compiled.messages().get("uz"))
+                        .containsEntry(
+                                prefix + ".tab." + tab.key(), tab.labels().uz());
+            }
+        }
+        assertThat(titles).containsExactlyInAnyOrder("title", "recordNumber", "name");
+        assertThat(tabbed).as("a stored sample has tabs").isTrue();
     }
 
     private static FieldType kind(EntityDefinition entity, Field field, Map<String, String> english) {

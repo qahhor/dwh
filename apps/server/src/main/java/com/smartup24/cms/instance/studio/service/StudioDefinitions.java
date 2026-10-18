@@ -265,6 +265,7 @@ public class StudioDefinitions implements EntityDefinitionSource {
         Set<String> archived = new HashSet<>();
         List<Broken> broken = new ArrayList<>();
         List<Row> rows = stored.rows();
+        StudioSources sources = StudioSources.read(repository, rows);
         int active = 0;
         for (int index = 0; index < rows.size(); index++) {
             Row row = rows.get(index);
@@ -277,9 +278,8 @@ public class StudioDefinitions implements EntityDefinitionSource {
             MdSimpleFormDtos.Declaration source = null;
             Declaration declaration;
             try {
-                source = repository.declaration(row.declaration());
-                declaration =
-                        row.archived() ? compiler.compile(row.id(), source, true) : compiler.compile(row.id(), source);
+                source = sources.read(row);
+                declaration = compiler.compile(row.id(), source, row.archived(), sources::title);
             } catch (RuntimeException failure) {
                 // A quarantined form is held on purpose: it is not served, so a failure is not reported again.
                 if (row.quarantine() == null) broken.add(report(row, "declaration", failure));

@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.common.entity;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 /** Immutable declarations loaded together from an authoritative source (ADR-0038). */
 public interface EntityDefinitionSource {
@@ -17,11 +18,23 @@ public interface EntityDefinitionSource {
         return snapshot();
     }
 
-    record Declaration(EntityDefinition entity, Map<String, Map<String, String>> messages) {
+    /**
+     * A loaded declaration, its dictionary entries by language and the key of the field that names a record ({@code
+     * titleField}, ADR-0041), when the source says one.
+     */
+    record Declaration(
+            EntityDefinition entity,
+            Map<String, Map<String, String>> messages,
+            @Nullable String titleField) {
         public Declaration {
             Map<String, Map<String, String>> copy = new LinkedHashMap<>();
             messages.forEach((language, values) -> copy.put(language, Map.copyOf(values)));
             messages = Map.copyOf(copy);
+        }
+
+        /** A declaration whose records the screens name as they do any entity's. */
+        public Declaration(EntityDefinition entity, Map<String, Map<String, String>> messages) {
+            this(entity, messages, null);
         }
     }
 }

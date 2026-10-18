@@ -107,7 +107,11 @@ public class EntitySaveChecks {
         return keys;
     }
 
-    /** The problem of an org-unit record put in a unit outside the saver's scope (ADR-0032, 5.1), or none. */
+    /**
+     * The problem of an org-unit record put in a unit outside the saver's scope (ADR-0032, 5.1), or none. A record moved
+     * from one unit to another needs both in the mover's scope (ADR-0041): an author who sees a record only as its
+     * author may not take it out of a unit they do not hold.
+     */
     public List<FieldErrorItem> unit(
             EntityDefinition entity, Map<String, ?> values, Map<String, ?> before, long userId) {
         EntityModel model = model(entity);
@@ -117,8 +121,11 @@ public class EntitySaveChecks {
                     && column.name().equals(unit.orgUnitColumn())
                     && values.get(field.key()) instanceof Number id
                     && !Objects.equals(String.valueOf(id), String.valueOf(before.get(field.key())))) {
-                return scopes.unitProblem(entity, field.key(), userId, id.longValue()).stream()
-                        .toList();
+                Optional<FieldErrorItem> problem = scopes.unitProblem(entity, field.key(), userId, id.longValue());
+                if (problem.isEmpty() && before.get(field.key()) instanceof Number old) {
+                    problem = scopes.unitProblem(entity, field.key(), userId, old.longValue());
+                }
+                return problem.stream().toList();
             }
         }
         return List.of();

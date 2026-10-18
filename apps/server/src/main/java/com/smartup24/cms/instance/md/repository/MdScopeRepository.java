@@ -340,6 +340,22 @@ public class MdScopeRepository {
                 .single();
     }
 
+    /**
+     * The units the user may put a record in (ADR-0032, 5.1), by the same rule as {@link #isUnitAvailable}: those of
+     * the effective scope, the user's own units for {@code SELF}, every unit otherwise.
+     */
+    public Set<Long> availableUnits(long userId, String rule) {
+        String sql = switch (rule) {
+            case "SUBTREE", "UNITS" -> "select org_unit_id from md_effective_scope where user_id = :userId";
+            case "SELF" ->
+                "select org_unit_id from md_user_org_units where user_id = :userId union "
+                        + "select org_unit_id from md_users where id = :userId and org_unit_id is not null";
+            default -> "select id from md_org_units";
+        };
+        return Set.copyOf(
+                jdbcClient.sql(sql).param("userId", userId).query(Long.class).list());
+    }
+
     /** The user's home unit ({@code md_users.org_unit_id}), when they have one. */
     public Optional<Long> homeUnit(long userId) {
         return jdbcClient

@@ -34,12 +34,15 @@ import tools.jackson.databind.ObjectReader;
  * Closed input; preparing a package never executes code or changes a registry (ADR-0037). Format 1 is the create-only
  * form every delivery takes; format 2 adds hidden fields, fixed defaults and a menu item for live forms (ADR-0041), which
  * the developer CLI refuses; format 3 adds select, reference and user fields and the data scope ({@link
- * MdSimpleFormKinds}).
+ * MdSimpleFormKinds}); format 4 adds the title field and the layout ({@link MdSimpleFormLayouts}).
  */
 @Component
 public class MdSimpleFormDeclarations {
     public static final int MAX_BYTES = 32 * 1024;
     static final Set<String> ROOT = Set.of("formatVersion", "kind", "module", "entity", "fields");
+    /** Format 4 adds the layout of the form (ADR-0041). */
+    static final Set<String> ROOT_V4 = Set.of("formatVersion", "kind", "module", "entity", "fields", "layout");
+
     static final Set<String> FIELD = Set.of("id", "type", "labels", "required", "listed", "maxLength", "scale");
     /** Format 2 adds a hidden flag and a fixed default to a field and a menu item to the entity (ADR-0041). */
     static final Set<String> FIELD_V2 =
@@ -91,8 +94,8 @@ public class MdSimpleFormDeclarations {
 
     public DeliveryPackage prepare(byte[] body) {
         JsonNode root = parse(body);
-        known(root, ROOT, "declaration");
-        int format = integer(root, "formatVersion", "formatVersion", 1, 3);
+        int format = integer(root, "formatVersion", "formatVersion", 1, 4);
+        known(root, format == 4 ? ROOT_V4 : ROOT, "declaration");
         if (!"simple-form".equals(text(root, "kind", "kind"))) throw invalid("kind", "unsupported");
         JsonNode module = required(root, "module", "module");
         known(module, Set.of("code", "title"), "module");
@@ -100,16 +103,18 @@ public class MdSimpleFormDeclarations {
         known(entity, entityKeys(format), "entity");
         String moduleCode = identifier(module, "code", "module.code", "[a-z][a-z0-9]{1,11}");
         if (identifiers.reservedModule(moduleCode)) throw invalid("module.code", "identifier");
+        String name = identifier(entity, "name", "entity.name", "[a-z][a-z0-9_]{0,19}");
+        Labels title = labels(entity, "title", "entity.title");
+        Menu menu = entity.has("menu") ? menu(entity.get("menu")) : null;
+        String scope = entity.has("scope") ? MdSimpleFormKinds.scope(entity) : null;
+        List<Field> fields = fields(required(root, "fields", "fields"), format);
         var declaration = new Declaration(
                 format,
                 "simple-form",
                 new Module(moduleCode, labels(module, "title", "module.title")),
-                new Entity(
-                        identifier(entity, "name", "entity.name", "[a-z][a-z0-9_]{0,19}"),
-                        labels(entity, "title", "entity.title"),
-                        entity.has("menu") ? menu(entity.get("menu")) : null,
-                        entity.has("scope") ? MdSimpleFormKinds.scope(entity) : null),
-                fields(required(root, "fields", "fields"), format));
+                new Entity(name, title, menu, scope, MdSimpleFormLayouts.titleField(entity, fields)),
+                fields,
+                MdSimpleFormLayouts.layout(root, fields));
         return new DeliveryPackage(1, "simple-form-package", declaration, digest(declaration));
     }
 
@@ -117,7 +122,8 @@ public class MdSimpleFormDeclarations {
         return switch (format) {
             case 1 -> Set.of("name", "title");
             case 2 -> Set.of("name", "title", "menu");
-            default -> Set.of("name", "title", "menu", "scope");
+            case 3 -> Set.of("name", "title", "menu", "scope");
+            default -> Set.of("name", "title", "menu", "scope", "titleField");
         };
     }
 
@@ -143,7 +149,7 @@ public class MdSimpleFormDeclarations {
             if (identifiers.reservedField(id)) throw invalid(at + ".id", "identifier");
             if (!ids.add(id)) throw invalid(at + ".id", "duplicate");
             String type = text(field, "type", at + ".type");
-            if (!TYPES.contains(type) && !(format == 3 && MdSimpleFormKinds.TYPES.contains(type)))
+            if (!TYPES.contains(type) && !(format >= 3 && MdSimpleFormKinds.TYPES.contains(type)))
                 throw invalid(at + ".type", "unsupported");
             boolean textual = Set.of("text", "textarea").contains(type);
             boolean number = "number".equals(type);
@@ -320,6 +326,8 @@ public class MdSimpleFormDeclarations {
             case "label" -> "error.md.simple_form_label";
             case "identifier" -> "error.md.simple_form_identifier";
             case "default" -> "error.md.simple_form_default";
+            case "title" -> "error.md.simple_form_title";
+            case "layout" -> "error.md.simple_form_layout";
             default -> "error.md.simple_form_json";
         };
         return ApiException.validation(

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
@@ -53,6 +54,50 @@ final class StudioFormFixtures {
                         field("client", "ref", false, Map.of("target", Map.of("kind", "form", "code", clients))),
                         field("kind", "ref", true, Map.of("target", Map.of("kind", "list", "code", list))),
                         field("responsible", "user", false, Map.of())));
+    }
+
+    /**
+     * The declaration in format 4 (ADR-0041): named by {@code titleField} (none: the record's number; {@code name}: the
+     * system name and code) and laid out by {@code layout} when given.
+     */
+    @SuppressWarnings("unchecked")
+    Map<String, Object> format4(
+            Map<String, Object> declaration, @Nullable String titleField, @Nullable Map<String, Object> layout) {
+        Map<String, Object> copy = new LinkedHashMap<>(declaration);
+        copy.put("formatVersion", 4);
+        Map<String, Object> entity = new LinkedHashMap<>((Map<String, Object>) declaration.get("entity"));
+        if (titleField != null) entity.put("titleField", titleField);
+        copy.put("entity", entity);
+        if (layout != null) copy.put("layout", layout);
+        return copy;
+    }
+
+    /** A field of a declaration, optional extras merged. */
+    static Map<String, Object> field(String id, String type, boolean required, boolean listed) {
+        Map<String, Object> field = field(id, type, required, Map.of());
+        field.put("listed", listed);
+        if (List.of("text", "textarea").contains(type)) field.put("maxLength", 200);
+        return field;
+    }
+
+    /** A section of a layout, on {@code tab} when it is given. */
+    static Map<String, Object> section(String key, @Nullable String tab, String... fields) {
+        Map<String, Object> section = new LinkedHashMap<>();
+        section.put("key", key);
+        section.put("labels", labels("Раздел " + key));
+        if (tab != null) section.put("tab", tab);
+        section.put("fields", List.of(fields));
+        return section;
+    }
+
+    /** A tab of a layout. */
+    static Map<String, Object> tab(String key) {
+        return Map.of("key", key, "labels", labels("Вкладка " + key));
+    }
+
+    /** A plain declaration of format 3 with the given fields. */
+    Map<String, Object> plain(String name, String title, String scope, List<Object> fields) {
+        return declaration(name, title, scope, fields);
     }
 
     /** Prepares and activates a declaration; the code of the new form. */
@@ -113,7 +158,7 @@ final class StudioFormFixtures {
         return declaration;
     }
 
-    private static Map<String, Object> field(String id, String type, boolean required, Map<String, Object> extra) {
+    static Map<String, Object> field(String id, String type, boolean required, Map<String, Object> extra) {
         Map<String, Object> field = new LinkedHashMap<>();
         field.put("id", id);
         field.put("type", type);
@@ -128,7 +173,7 @@ final class StudioFormFixtures {
         return Map.of("code", code, "labels", Map.of("ru", ru, "uz", code, "en", code));
     }
 
-    private static Map<String, String> labels(String text) {
+    static Map<String, String> labels(String text) {
         return Map.of("ru", text, "uz", text, "en", text);
     }
 }

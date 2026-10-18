@@ -28,6 +28,10 @@ import java.util.stream.Collectors;
  * is never dropped ({@code option_removed}); a reference keeps its target ({@code target}); the data scope of the form
  * stays the one chosen at creation ({@link #SCOPE}): a wider one would show records to viewers who never saw them, a
  * narrower one would hide records saved without an org unit.
+ *
+ * <p>Format 4 (ADR-0041): the layout and the title field change freely — they only show the same data otherwise —
+ * but a form keeps or goes without the system name and code fields for good: dropping them would drop data the records
+ * hold ({@code name}, {@code removed}), taking them on would require a name of every record ({@code required}).
  */
 public final class StudioChangeRules {
     /** The message of every refused change; its parameters name the field and the change. */
@@ -50,6 +54,9 @@ public final class StudioChangeRules {
                 .collect(Collectors.toMap(Field::id, Function.identity(), (a, b) -> a, LinkedHashMap::new));
         List<Change> changes = new ArrayList<>();
         if (!scope(active).equals(scope(next))) changes.add(SCOPE_CHANGE);
+        boolean named = named(active);
+        if (named && !named(next)) changes.add(new Change(StudioFormLayout.NAME, "removed"));
+        if (!named && named(next)) changes.add(new Change(StudioFormLayout.NAME, "required"));
         for (Field before : active.fields()) {
             Field after = following.remove(before.id());
             if (after == null) {
@@ -86,6 +93,11 @@ public final class StudioChangeRules {
                 ? Set.of()
                 : after.options().stream().map(Option::code).collect(Collectors.toSet());
         return before.options().stream().map(Option::code).anyMatch(code -> !kept.contains(code));
+    }
+
+    /** Whether the form keeps the system name and code fields: formats 1 to 3, or format 4 named by {@code name}. */
+    private static boolean named(Declaration declaration) {
+        return StudioFormLayout.NAME.equals(StudioFormLayout.titleKey(declaration));
     }
 
     private static String scope(Declaration declaration) {

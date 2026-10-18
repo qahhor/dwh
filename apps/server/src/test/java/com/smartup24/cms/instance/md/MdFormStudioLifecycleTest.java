@@ -223,7 +223,8 @@ class MdFormStudioLifecycleTest {
                 meta.capabilities(),
                 meta.collections(),
                 meta.workflow(),
-                meta.tabs());
+                meta.tabs(),
+                null);
         when(metadata.metadata(CODE)).thenReturn(changed);
         assertThatThrownBy(() -> service.verify(CODE, 1, json.writeValueAsBytes(original)))
                 .isInstanceOfSatisfying(
@@ -243,7 +244,8 @@ class MdFormStudioLifecycleTest {
                 meta.capabilities(),
                 meta.collections(),
                 meta.workflow(),
-                meta.tabs());
+                meta.tabs(),
+                null);
         when(metadata.metadata(CODE)).thenReturn(hidden);
         assertThatThrownBy(() -> service.get(CODE)).isInstanceOf(ApiException.class);
         assertThatThrownBy(() -> service.version(CODE, 1)).isInstanceOf(ApiException.class);
