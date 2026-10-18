@@ -1,0 +1,123 @@
+<div class="reports-page" data-testid="reports-catalog">
+  <ui-page-header [title]="'reports.catalog.title' | t" [subtitle]="'reports.catalog.subtitle' | t">
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="refresh"
+      [smtLoading]="pager.loading()"
+      [attr.aria-label]="'common.refresh' | t"
+      (click)="pager.reload()"
+    ></button>
+  </ui-page-header>
+  <div class="reports-filters" role="search" [attr.aria-label]="'reports.catalog.filters' | t">
+    <smt-control [smtLabel]="'reports.catalog.search' | t" class="reports-filter">
+      <smt-input
+        smtTestId="reports-search"
+        type="search"
+        [value]="search()"
+        [maxLength]="80"
+        (valueChange)="setSearch($event)"
+      />
+    </smt-control>
+    <smt-control [smtLabel]="'reports.catalog.entity' | t" class="reports-filter">
+      <smt-select
+        data-testid="reports-entity"
+        [options]="entityOptions()"
+        [placeholder]="'reports.catalog.entity_all' | t"
+        [value]="listCode()"
+        (valueChange)="setList($event)"
+      />
+    </smt-control>
+    <smt-control [smtLabel]="'reports.catalog.owner' | t" class="reports-filter">
+      <smt-select
+        data-testid="reports-owner"
+        [options]="ownerOptions()"
+        [placeholder]="'reports.catalog.owner_all' | t"
+        [value]="owner()"
+        (valueChange)="setOwner($event)"
+      />
+    </smt-control>
+  </div>
+  @if (pager.failed()) {
+    <smt-alert smtTone="danger" data-testid="reports-error">
+      {{ 'reports.catalog.failed' | t }}
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="pager.retry()">
+        {{ 'common.retry' | t }}
+      </button>
+    </smt-alert>
+  } @else if (pager.loading() && !pager.items().length) {
+    <p role="status" class="reports-note">{{ 'common.loading' | t }}</p>
+  } @else if (!pager.items().length) {
+    <p class="reports-note" data-testid="reports-empty">
+      {{ (pager.hasMore() ? 'reports.catalog.empty_page' : 'reports.catalog.empty') | t }}
+    </p>
+  }
+  <ul class="reports-list" [attr.aria-label]="'reports.catalog.title' | t" [attr.aria-busy]="pager.loading() || null">
+    @for (report of pager.items(); track report.id) {
+      <li class="reports-item card" data-testid="reports-item">
+        <div class="reports-head">
+          <h2 class="reports-name">{{ report.name }}</h2>
+          <div class="reports-tags">
+            @if (report.owned) {
+              <smt-tag [label]="'reports.catalog.mine' | t" smtTone="success" />
+            } @else {
+              <smt-tag [label]="'reports.catalog.shared_with_me' | t" smtTone="neutral" />
+            }
+            @if (report.shared && report.owned) {
+              <smt-tag [label]="'ui.report.shared' | t" smtTone="neutral" />
+            }
+          </div>
+        </div>
+        <p class="reports-meta">
+          {{ entityName(report) }} · {{ 'reports.catalog.modified' | t }} {{ report.modifiedAt | date: 'medium' }}
+        </p>
+        <div class="reports-actions">
+          <a
+            smt-button
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="bar_chart"
+            data-testid="reports-open"
+            [routerLink]="['/e', report.entity]"
+            [queryParams]="openParams(report)"
+            [attr.aria-label]="'reports.catalog.open_named' | t: { name: report.name }"
+            >{{ 'reports.catalog.open' | t }}</a
+          >
+          @if (report.canEdit) {
+            <a
+              smt-button
+              smtVariant="ghost"
+              smtSize="sm"
+              smtIcon="edit"
+              [routerLink]="['/e', report.entity]"
+              [queryParams]="openParams(report)"
+              [attr.aria-label]="'reports.catalog.edit_named' | t: { name: report.name }"
+              >{{ 'reports.catalog.edit' | t }}</a
+            >
+          }
+          @if (report.canShare) {
+            <smt-report-sharing [path]="sharingPath(report)" (changed)="shared()" />
+          }
+        </div>
+      </li>
+    }
+  </ul>
+  @if (pager.hasMore() && !pager.failed()) {
+    <div class="reports-more">
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        data-testid="reports-more"
+        [smtLoading]="pager.loadingMore()"
+        (click)="pager.loadMore()"
+      >
+        {{ 'reports.catalog.more' | t }}
+      </button>
+    </div>
+  }
+  @if (pager.loadMoreFailed()) {
+    <smt-alert smtTone="danger">{{ 'reports.catalog.failed' | t }}</smt-alert>
+  }
+</div>

@@ -84,6 +84,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/analytics/analytics.component').then((m) => m.AnalyticsComponent),
       },
       {
+        path: 'reports',
+        loadComponent: () =>
+          import('./features/reports/reports-catalog.component').then((m) => m.ReportsCatalogComponent),
+      },
+      {
         path: 'settings',
         canDeactivate: [recordNavigationGuard],
         loadComponent: () => import('./features/settings/settings.component').then((m) => m.SettingsComponent),

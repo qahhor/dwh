@@ -26,7 +26,7 @@ import { problemText } from '@shared/ui/problem-text';
 import { UiFilterBarComponent } from '@shared/ui/ui-filter-bar.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
-import { SMTRadioGroupComponent, type SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { SMTRadioGroupComponent } from '@shared/ui-kit/components/forms/radio-group';
 import { SMTSelectComponent, type SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import {
   MAX_GROUPS,
@@ -38,6 +38,7 @@ import {
   type ReportMeasure,
   type ReportOp,
   type ReportResult,
+  type ReportSort,
   type ReportState,
   type ReportTrunc,
   type SavedReport,
@@ -47,6 +48,7 @@ import {
   groupable,
   measurable,
 } from './entity-reports';
+import { chartOptions, parseSort, reportOrder, sortOptions, sortValue, topOptions } from './report-order';
 import { ReportSourcesStore } from './report-sources.store';
 import { ReportExportComponent } from './report-export.component';
 import type { ReportExportSource } from './report-export.api';
@@ -66,8 +68,9 @@ interface ReportRun {
  * The report tab of an entity's list (ADR-0032 10.2; plan 10/10, item 5.8): a report without code — up to two
  * groupings (a choice, a yes/no, a reference or a date by day, week, month, quarter or year), up to four measures
  * (count, or sum, average, minimum and maximum of a number or of money) and the list's own filter — drawn as a table,
- * bars or one figure as soon as it changes. The server builds the query from the list's declaration, under the
- * viewer's scope and field rights; the person saves what they built as a report, or as a widget of their dashboard.
+ * bars or one figure as soon as it changes, its groups ordered and cut to a top when asked. The server builds the query
+ * under the viewer's scope and field rights; the person saves it as a report or a widget of their dashboard. A table row
+ * opens its records under the same filter (drill-down), unless the report reads a prepared dataset.
  */
 @Component({
   selector: 'smt-entity-report-builder',
@@ -103,6 +106,8 @@ export class SMTEntityReportBuilderComponent {
   readonly title = input('');
   /** The person may save reports of this list. */
   readonly canSave = input(false);
+  /** A saved report to open once the person's reports are read: the reports catalog opens one this way. */
+  readonly openId = input<number | null>(null);
 
   private readonly savedReports = viewChild(SMTEntityReportSavedComponent);
 
@@ -112,6 +117,11 @@ export class SMTEntityReportBuilderComponent {
   readonly measures = signal<ReportMeasure[]>(emptyReport().measures);
   /** Bars by default: one figure until something is grouped. */
   readonly chart = signal<ReportChart>('bar');
+  /** The order of the groups; null — by their values. */
+  readonly sort = signal<ReportSort | null>(null);
+  /** The top of the groups kept; null — every group. */
+  readonly limit = signal<number | null>(null);
+
 
   readonly run = signal<ReportRun>({ result: null, error: '', loading: false });
 
@@ -120,6 +130,8 @@ export class SMTEntityReportBuilderComponent {
   private readonly projectedFilter = signal<QueryCondition[]>([]);
   private readonly projectedMatch = signal<QueryMatch>('all');
 
+  /** The order and the top as asked: only for a grouped report, and an order by a measure the report has. */
+  readonly order = computed(() => reportOrder(this.groupBy().length, this.measures(), this.sort(), this.limit()));
   readonly reportFilter = computed(() => (this.sources.dataset() ? this.projectedFilter() : this.views().filter()));
   readonly reportMatch = computed(() => (this.sources.dataset() ? this.projectedMatch() : this.views().match()));
   readonly reportMeta = computed(() =>
@@ -151,7 +163,18 @@ export class SMTEntityReportBuilderComponent {
     filter: filterDsl(this.reportFilter(), this.reportMatch(), true),
     chart: this.effectiveChart(),
     ...(this.sources.dataset() ? { dataset: this.sources.dataset()! } : {}),
+    ...this.order(),
   }));
+
+  readonly sortOptions = computed(() => {
+    this.i18n.currentLang();
+    return sortOptions(this.measures(), this.reportMeta(), (key, params) => this.i18n.translate(key, params));
+  });
+  readonly sortValue = computed(() => sortValue(this.order().sort));
+  readonly topOptions = computed(() => {
+    this.i18n.currentLang();
+    return topOptions((key, params) => this.i18n.translate(key, params));
+  });
 
   readonly groupOptions = computed<SMTSelectOption<string>[]>(() =>
     this.options(this.reportMeta().fields.filter(groupable)),
@@ -172,28 +195,15 @@ export class SMTEntityReportBuilderComponent {
       disabled: op !== 'count' && !numbers,
     }));
   });
-  readonly chartOptions = computed<SMTRadioOption<ReportChart>[]>(() => {
+  readonly chartOptions = computed(() => {
     this.i18n.currentLang();
-    const grouped = this.groupBy().length > 0;
-    return [
-      { value: 'table', label: this.i18n.translate('ui.report.chart_table'), icon: 'table' },
-      { value: 'bar', label: this.i18n.translate('ui.report.chart_bar'), icon: 'bar_chart', disabled: !grouped },
-      {
-        value: 'line',
-        label: this.i18n.translate('ui.report.chart_line'),
-        icon: 'show_chart',
-        disabled:
-          this.groupBy().length !== 1 || !this.isDated(this.groupBy()[0]?.field ?? '') || this.measures().length !== 1,
-      },
-      {
-        value: 'horizontalBar',
-        label: this.i18n.translate('ui.report.chart_horizontal_bar'),
-        icon: 'bar_chart',
-        disabled:
-          this.groupBy().length !== 1 || this.isDated(this.groupBy()[0]?.field ?? '') || this.measures().length !== 1,
-      },
-      { value: 'kpi', label: this.i18n.translate('ui.report.chart_kpi'), icon: 'pin', disabled: grouped },
-    ];
+    const first = this.groupBy()[0]?.field;
+    return chartOptions(
+      this.groupBy().length,
+      first !== undefined && this.isDated(first),
+      this.measures().length,
+      (key) => this.i18n.translate(key),
+    );
   });
 
   readonly caption = computed(() => this.i18n.translate('ui.report.caption', { list: this.title() }));
@@ -205,6 +215,7 @@ export class SMTEntityReportBuilderComponent {
     groupBy: this.groupBy(),
     measures: this.measures(),
     filter: filterDsl(this.reportFilter(), this.reportMatch()),
+    ...this.order(),
     source: this.source()?.id ?? null,
     revision: this.source()?.lockVersion ?? null,
     refresh: this.refresh(),
@@ -310,6 +321,15 @@ export class SMTEntityReportBuilderComponent {
     );
   }
 
+  /** Orders the groups as the option names it: `group`, `label:asc`, `measure:0:desc`. */
+  setSort(value: string | null): void {
+    if (!this.source()) this.sort.set(parseSort(value));
+  }
+
+  setLimit(value: number | null): void {
+    if (!this.source()) this.limit.set(value && value > 0 ? value : null);
+  }
+
   setOp(index: number, op: ReportOp | null): void {
     if (this.source()) return;
     const chosen = op ?? 'count';
@@ -348,6 +368,8 @@ export class SMTEntityReportBuilderComponent {
     this.groupBy.set(state.groupBy ?? []);
     this.measures.set(state.measures?.length ? state.measures : emptyReport().measures);
     this.chart.set(state.chart ?? 'bar');
+    this.sort.set(state.sort ?? null);
+    this.limit.set(state.limit ?? null);
     const saved = readFilterDsl(state.filter ?? []);
     this.setFilter(saved.conditions, saved.match);
   }

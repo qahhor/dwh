@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
-import type { ReportState } from './entity-reports';
+import { reportParams, type ReportState } from './entity-reports';
 export type ReportExportSource =
   | { kind: 'query'; code: string; state: ReportState }
   | { kind: 'saved'; code: string; id: number }
@@ -19,16 +19,6 @@ export class ReportExportApi {
     const base = `/entities/${encodeURIComponent(source.code)}`;
     if (source.kind === 'saved')
       return this.api.getBlob(`${base}/reports/${source.id}/export`, { lang }, { notifyError: false });
-    return this.api.getBlob(
-      `${base}/report/export`,
-      {
-        dataset: source.state.dataset,
-        groupBy: JSON.stringify(source.state.groupBy),
-        measures: JSON.stringify(source.state.measures),
-        filter: source.state.filter.length ? JSON.stringify(source.state.filter) : undefined,
-        lang,
-      },
-      { notifyError: false },
-    );
+    return this.api.getBlob(`${base}/report/export`, { ...reportParams(source.state), lang }, { notifyError: false });
   }
 }

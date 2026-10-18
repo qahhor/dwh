@@ -140,6 +140,14 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
       permission: options.canViewAnalytics,
     },
     {
+      id: 'reports',
+      route: '/reports',
+      labelKey: 'nav.reports',
+      titleKey: 'reports.catalog.title',
+      icon: 'summarize',
+      permission: options.canViewAnalytics,
+    },
+    {
       id: 'notifications',
       route: '/notifications',
       labelKey: 'nav.notifications',

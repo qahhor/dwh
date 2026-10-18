@@ -150,6 +150,7 @@ describe('AppShellNavService', () => {
       'upl-packages',
       'files',
       'analytics',
+      'reports',
       'notifications',
     ]);
     expect(itemIds('iam')).toEqual(['users', 'roles', 'org-units', 'custom-fields']);

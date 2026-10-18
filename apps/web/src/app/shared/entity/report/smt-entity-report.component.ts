@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { fieldLabel, type QueryFieldMeta, type QueryListMeta } from '@core/models/query-meta.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { RefLookups } from '@shared/lookups/ref-lookup';
@@ -6,7 +7,7 @@ import { type BarChartPoint, type BarChartSeries, UiBarChartComponent } from '@s
 import { UiReportPlotComponent } from '@shared/ui/ui-report-plot.component';
 import { reportChartProjection } from './report-chart-projection';
 import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
-import { type ReportChart, type ReportResult, groupText, measureLabel } from './entity-reports';
+import { type ReportChart, type ReportResult, drillFilter, groupText, measureLabel } from './entity-reports';
 
 /** The colours of the stacks of a chart, theme tokens in a fixed order. */
 const SERIES_COLORS = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--info)', 'var(--danger)'];
@@ -25,13 +26,14 @@ interface ReportColumn {
  * A report's answer on screen (ADR-0032 10.2): one figure per measure when nothing is grouped, bars of the first
  * measure — stacked by the second grouping when there is one — and the table of every group and measure. The chart is
  * an image with a name, its figures in a table for screen readers (`ui-bar-chart`); the visible table carries the same
- * figures with column headers, so nothing is told by colour alone. Group values are read in words: a choice by its
- * label, a reference by its name, a date bucket by its period.
+ * figures with column headers, so nothing is told by colour alone. Group values are read in words: the server's label
+ * of a choice, a list item, a user or a record, else a choice by its label, a reference by its name, a date bucket by its
+ * period. With `drillCode` each row links to the list of its records under the same filter (drill-down).
  */
 @Component({
   selector: 'smt-entity-report',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, UiBarChartComponent, UiKpiCardComponent, UiReportPlotComponent],
+  imports: [RouterLink, TranslatePipe, UiBarChartComponent, UiKpiCardComponent, UiReportPlotComponent],
   host: { class: 'smt-entity-report' },
   template: `
     @if (result(); as result) {
@@ -76,10 +78,15 @@ interface ReportColumn {
                   @for (column of columns(); track $index) {
                     <th scope="col" [class.num]="column.numeric">{{ column.label }}</th>
                   }
+                  @if (drillCode()) {
+                    <th scope="col">
+                      <span class="sr-only">{{ 'ui.report.drill_column' | t }}</span>
+                    </th>
+                  }
                 </tr>
               </thead>
               <tbody>
-                @for (row of cells(); track $index) {
+                @for (row of cells(); track $index; let rowIndex = $index) {
                   <tr>
                     @for (cell of row; track $index; let first = $first) {
                       @if (first && groupCount() > 0) {
@@ -87,6 +94,20 @@ interface ReportColumn {
                       } @else {
                         <td [class.num]="cell.numeric">{{ cell.text }}</td>
                       }
+                    }
+                    @if (drillCode(); as code) {
+                      <td>
+                        @if (drills()[rowIndex]; as filter) {
+                          <a
+                            class="report-drill"
+                            [routerLink]="['/e', code]"
+                            [queryParams]="{ filter }"
+                            [attr.aria-label]="'ui.report.drill_label' | t: { group: rowLabels()[rowIndex] }"
+                            data-testid="report-drill"
+                            >{{ 'ui.report.drill' | t }}</a
+                          >
+                        }
+                      </td>
                     }
                   </tr>
                 }
@@ -114,6 +135,26 @@ export class SMTEntityReportComponent {
   readonly chart = input<ReportChart>('table');
   /** The table under the chart; a widget shows only its chart. */
   readonly showTable = input(true);
+  /**
+   * The entity whose records a row opens (drill-down), with the report's filter; none — the rows open nothing, as on a
+   * dashboard or for a prepared dataset, whose fields the list does not have.
+   */
+  readonly drillCode = input<string | null>(null);
+  readonly drillBase = input<readonly unknown[]>([]);
+
+  /** The filter of each row's records as the list link carries it; null where the list cannot say it exactly. */
+  readonly drills = computed<(string | null)[]>(() => {
+    const result = this.result();
+    const meta = this.meta();
+    if (!result || !meta || !this.drillCode()) return [];
+    return result.rows.map((_row, index) => {
+      const filter = drillFilter(result, index, meta, this.drillBase());
+      return filter ? JSON.stringify(filter) : null;
+    });
+  });
+
+  /** Each row's groups in words, for the name of its link. */
+  readonly rowLabels = computed(() => (this.result()?.rows ?? []).map((row) => this.rowText(row)));
 
   /** The groups the person chose, without the currency the platform adds to money. */
   readonly groupCount = computed(() => (this.result()?.groups ?? []).length);
@@ -137,7 +178,7 @@ export class SMTEntityReportComponent {
   readonly plotPoints = computed(() =>
     (this.projection() ?? []).map((point) => ({
       ...point,
-      label: this.rowText(this.result()!.rows[point.row].groups),
+      label: this.rowText(this.result()!.rows[point.row]),
       text: this.number(point.value),
     })),
   );
@@ -149,7 +190,7 @@ export class SMTEntityReportComponent {
     const translate = (key: string) => this.i18n.translate(key);
     return result.rows.flatMap((row) =>
       result.measures.map((measure, index) => {
-        const suffix = this.rowText(row.groups);
+        const suffix = this.rowText(row);
         const label = measureLabel(measure, meta, translate);
         return { label: suffix ? `${label} (${suffix})` : label, value: row.values[index] ?? '—' };
       }),
@@ -178,7 +219,10 @@ export class SMTEntityReportComponent {
     const result = this.result();
     if (!result) return [];
     return result.rows.map((row) => [
-      ...row.groups.map((value, index) => ({ text: this.groupWord(value, index), numeric: false })),
+      ...row.groups.map((value, index) => ({
+        text: this.groupWord(value, index, row.labels?.[index]),
+        numeric: false,
+      })),
       ...row.values.map((value) => ({ text: this.number(value), numeric: true })),
     ]);
   });
@@ -209,7 +253,9 @@ export class SMTEntityReportComponent {
     return this.stackKeys().map((key, index) => ({
       key,
       label:
-        key === REST ? this.i18n.translate('ui.report.others') : this.groupWord(this.stackGroups().get(key), stack),
+        key === REST
+          ? this.i18n.translate('ui.report.others')
+          : this.groupWord(this.stackGroups().get(key), stack, this.stackLabels().get(key)),
       color: SERIES_COLORS[index],
     }));
   });
@@ -221,7 +267,7 @@ export class SMTEntityReportComponent {
     const axis = this.chosenGroups()[0]?.index ?? 0;
     const points = new Map<string, BarChartPoint>();
     for (const row of result.rows) {
-      const label = this.groupWord(row.groups[axis], axis);
+      const label = this.groupWord(row.groups[axis], axis, row.labels?.[axis]);
       const axisKey = this.groupKey(row.groups[axis]);
       const point = points.get(axisKey) ?? { label, values: {} };
       const key = stack < 0 ? 'value' : this.stackKey(this.groupKey(row.groups[stack]));
@@ -283,6 +329,20 @@ export class SMTEntityReportComponent {
     return groups;
   });
 
+  /** The server's words of the stacks' values, by their keys. */
+  private readonly stackLabels = computed(() => {
+    const result = this.result();
+    const stack = this.stackIndex();
+    const labels = new Map<string, string>();
+    if (result && stack >= 0) {
+      for (const row of result.rows) {
+        const label = row.labels?.[stack];
+        if (label) labels.set(this.groupKey(row.groups[stack]), label);
+      }
+    }
+    return labels;
+  });
+
   /** The raw keys in order of appearance; the remaining additive series share a reserved key. */
   private readonly stackKeys = computed(() => {
     const keys = [...this.stackGroups().keys()];
@@ -301,19 +361,25 @@ export class SMTEntityReportComponent {
     return this.meta()?.fields.find((field) => field.key === key);
   }
 
-  private groupWord(value: string | number | boolean | null | undefined, index: number): string {
+  private groupWord(value: string | number | boolean | null | undefined, index: number, label?: string | null): string {
     const group = this.result()?.groups[index];
     if (!group) return '';
     this.i18n.currentLang();
-    return groupText(value ?? null, this.field(group.field), group.trunc, {
-      translate: (key) => this.i18n.translate(key),
-      date: (iso, options) => this.i18n.formatDate(iso, options),
-      refName: (field, key) => (field.ref ? this.refLookups.name(field.ref, key) : null),
-    });
+    return groupText(
+      value ?? null,
+      this.field(group.field),
+      group.trunc,
+      {
+        translate: (key) => this.i18n.translate(key),
+        date: (iso, options) => this.i18n.formatDate(iso, options),
+        refName: (field, key) => (field.ref ? this.refLookups.name(field.ref, key) : null),
+      },
+      label,
+    );
   }
 
-  private rowText(groups: (string | number | boolean | null)[]): string {
-    return groups.map((value, index) => this.groupWord(value, index)).join(' · ');
+  private rowText(row: ReportResult['rows'][number]): string {
+    return row.groups.map((value, index) => this.groupWord(value, index, row.labels?.[index])).join(' · ');
   }
 
   private number(value: number | null): string {

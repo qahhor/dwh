@@ -1,7 +1,12 @@
 <section class="builder" [attr.aria-labelledby]="ids + '-title'" data-testid="report-builder">
   <h2 class="sr-only" [id]="ids + '-title'">{{ 'ui.report.title' | t }}</h2>
   @if (canSave()) {
-    <smt-entity-report-saved [listCode]="meta().code" [state]="state()" (opened)="openSaved($event)" />
+    <smt-entity-report-saved
+      [listCode]="meta().code"
+      [state]="state()"
+      [openId]="openId()"
+      (opened)="openSaved($event)"
+    />
   }
   @if (source(); as report) {
     <div class="source-note" data-testid="report-source">
@@ -122,6 +127,30 @@
         {{ 'ui.report.add_measure' | t }}
       </button>
     </div>
+    <div class="builder-controls">
+      <smt-control class="builder-field" [smtLabel]="'ui.report.sort' | t">
+        <smt-select
+          [smtTriggerId]="ids + '-sort'"
+          data-testid="report-sort"
+          [options]="sortOptions()"
+          [allowClear]="false"
+          [disabled]="groupBy().length === 0"
+          [value]="sortValue()"
+          (valueChange)="setSort($event)"
+        />
+      </smt-control>
+      <smt-control class="builder-field" [smtLabel]="'ui.report.top' | t">
+        <smt-select
+          [smtTriggerId]="ids + '-top'"
+          data-testid="report-top"
+          [options]="topOptions()"
+          [placeholder]="'ui.report.top_all' | t"
+          [disabled]="groupBy().length === 0"
+          [value]="order().limit ?? null"
+          (valueChange)="setLimit($event)"
+        />
+      </smt-control>
+    </div>
     <smt-radio-group
       smtAppearance="segmented"
       smtOrientation="horizontal"
@@ -146,6 +175,8 @@
         [meta]="reportMeta()"
         [chart]="effectiveChart()"
         [caption]="caption()"
+        [drillCode]="sources.dataset() ? null : code()"
+        [drillBase]="request().filter"
       />
     }
   </div>

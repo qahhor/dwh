@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
 import { metaField, queryMetaFixture } from '@testing/entity-page';
 import { groupText, groupable, measurable, measureLabel, type ReportChart, type ReportResult } from './entity-reports';
@@ -148,5 +149,42 @@ describe('smt-entity-report', () => {
   it('says when the report has no rows', () => {
     const host = render({ groups: [], measures: [{ op: 'count' }], rows: [], truncated: false }, 'table');
     expect(host.querySelector('[data-testid="report-empty"]')).not.toBeNull();
+  });
+});
+
+describe('server labels and drill-down of a report table (ADR-0036, the form and report builder)', () => {
+  it('names groups by the server labels and links each row to its records under the same filter', () => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(SMTEntityReportComponent);
+    fixture.componentRef.setInput('result', {
+      groups: [{ field: 'customerId', implicit: false }],
+      measures: [{ op: 'count' }],
+      rows: [
+        { groups: [7], values: [3], labels: ['ООО Ромашка'] },
+        { groups: [8], values: [1], labels: [null] },
+      ],
+      truncated: true,
+    } satisfies ReportResult);
+    fixture.componentRef.setInput('meta', META);
+    fixture.componentRef.setInput('chart', 'table');
+    fixture.componentRef.setInput('caption', 'Отчёт: Заказы');
+    fixture.componentRef.setInput('drillCode', 'test.orders');
+    fixture.componentRef.setInput('drillBase', [{ field: 'paid', op: 'eq', value: true }]);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(Array.from(root.querySelectorAll('tbody th')).map((cell) => cell.textContent?.trim())[0]).toBe(
+      'ООО Ромашка',
+    );
+    const links = Array.from(root.querySelectorAll<HTMLAnchorElement>('[data-testid="report-drill"]'));
+    expect(links).toHaveLength(2);
+    const href = decodeURIComponent(links[0].getAttribute('href')!);
+    expect(href).toContain('/e/test.orders?filter=');
+    expect(JSON.parse(href.split('filter=')[1])).toEqual([
+      { field: 'paid', op: 'eq', value: true },
+      { field: 'customerId', op: 'eq', value: 7, label: 'ООО Ромашка' },
+    ]);
+    expect(links[0].getAttribute('aria-label')).toContain('ООО Ромашка');
   });
 });

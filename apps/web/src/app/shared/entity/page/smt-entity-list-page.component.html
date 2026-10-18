@@ -41,6 +41,7 @@
     [views]="views"
     [title]="context.title()"
     [canSave]="savedViews()"
+    [openId]="openReport()"
   />
 } @else if (config(); as config) {
   <ui-server-table

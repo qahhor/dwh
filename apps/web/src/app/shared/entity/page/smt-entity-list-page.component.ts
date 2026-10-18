@@ -115,8 +115,15 @@ export class SMTEntityListPageComponent {
   private readonly report = viewChild(SMTEntityReportBuilderComponent);
 
   readonly search = signal('');
-  /** The list itself, or its report (ADR-0032 10.2). */
-  readonly mode = signal<'list' | 'report'>('list');
+  /**
+   * The list itself, or its report (ADR-0032 10.2): a link of the reports catalog opens the report, with `report` the
+   * saved report to show.
+   */
+  readonly mode = signal<'list' | 'report'>(
+    this.route.snapshot.queryParamMap.get('mode') === 'report' ? 'report' : 'list',
+  );
+  /** The saved report a link of the reports catalog names. */
+  readonly openReport = signal<number | null>(reportIdOf(this.route.snapshot.queryParamMap.get('report')));
   readonly selectedRows = signal<EntityRecord[]>([]);
 
   /** Raised by a retry: the list's metadata is asked for again. */
@@ -322,4 +329,9 @@ export class SMTEntityListPageComponent {
     );
     if (conditions.length > 0) this.views.setFilter(conditions, 'all');
   }
+}
+
+/** A saved report's id in a link: digits only. */
+function reportIdOf(value: string | null): number | null {
+  return value && /^\d{1,15}$/.test(value) ? Number(value) : null;
 }

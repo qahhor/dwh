@@ -77,8 +77,12 @@ export class SMTEntityReportSavedComponent {
   /** What is on screen now: what a save writes. */
   readonly state = input.required<ReportState>();
 
+  /** A saved report to open once the reports are read, as the reports catalog asks; once. */
+  readonly openId = input<number | null>(null);
+
   /** A saved report was chosen: the builder shows it. */
   readonly opened = output<SavedReport>();
+
 
   private readonly sharing = viewChild(ReportSharingComponent);
 
@@ -126,11 +130,23 @@ export class SMTEntityReportSavedComponent {
   });
 
   private readonly askDiscard = discardChangesQuestion();
+  /** The report the catalog named has been opened. */
+  private openedFromCatalog: number | null = null;
 
   readonly ids = `report-saved-${nextSavedId++}`;
   readonly nameMax = NAME_MAX;
 
   constructor() {
+    effect(() => {
+      const id = this.openId();
+      const report = id === null ? undefined : this.list.items().find((item) => item.id === id);
+      if (!report || this.openedFromCatalog === id) return;
+      untracked(() => {
+        this.openedFromCatalog = id;
+        this.activeId.set(id);
+        this.opened.emit(report);
+      });
+    });
     effect(() => {
       this.listCode();
       untracked(() => {

@@ -109,9 +109,11 @@ describe('the report tab of the general entity list', () => {
       { notifyError: false },
     );
     const table = root.querySelector('[data-testid="report-table"]') as HTMLTableElement;
+    // The last column opens the records of each group (drill-down); its heading is read by screen readers only.
     expect(Array.from(table.querySelectorAll('thead th')).map((cell) => cell.textContent?.trim())).toEqual([
       'Статус',
       'Количество',
+      'Записи группы',
     ]);
     expect(Array.from(table.querySelectorAll('tbody th')).map((cell) => cell.textContent?.trim())).toEqual([
       'draft',

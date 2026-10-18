@@ -1,5 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,7 +37,12 @@ describe('SMTEntityReportBuilderComponent', () => {
     const api = { list: () => of([]), create: vi.fn(), update: vi.fn(), remove: vi.fn() } as unknown as ListViewsApi;
     views = new ListViewState('test.orders', api, { defaultSort: () => null, onApply: () => undefined });
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: EntityReportsApi, useValue: reports }],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: EntityReportsApi, useValue: reports },
+      ],
     });
   });
 
