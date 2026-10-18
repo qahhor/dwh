@@ -9,6 +9,32 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Documents of live forms (ADR-0043, stage 2, step 2.2), simple-form format 6: up to three
+  tables of lines (1 to 20 columns of the field types, 1 to 500 rows, computed columns by a
+  formula over the row and `doc.<field>`), the document number (a pattern of fixed text,
+  `{YYYY}`, `{YY}`, `{MM}` and one counter `{N…}`, reset never, yearly or monthly, given on
+  creation or on the first entry into a status; unique in the form and never given again),
+  and statuses with approval (states with colors, read-only and final states, transitions
+  with a right of their own, a condition in a formula, a comment none/optional/required, a
+  rule that the author may not take them, and an in-app notice to those who may take
+  them). V227 adds `studio_record_lines_1..3`, V228 `studio_records.doc_number` and
+  `studio_form_number_counters`. Transitions are record actions with If-Match; the server
+  answers 403 without the right, 422 `transition_condition`, `transition_author`,
+  `comment_required` and `readonly` for an approved document.
+- The formula language reads a document's rows: `lines.<table>.<column>` and
+  `lines.<table>` go into `sum` (zero for no rows) and `count`; new conformance cases.
+- The platform runtime: a partitioned entity keeps collections in another table and a
+  process on a JSON status; a row holds JSON properties, enumeration items and references,
+  checked per field for all rows of a save (`EntityLineChecks`); live declarations carry
+  hooks and what form-meta shows of the process (`EntityProcessView`: state colors,
+  transition names and comments); a transition guard (`TransitionGuard`) hides a
+  transition its rule refuses; `common.entity.EntityNotice` is delivered by `ms.notify`.
+- XLSX export of a document list writes the rows of each collection to a sheet of its own.
+- Web: the new-form and new-version editors get «Строки документа», «Нумерация документа»
+  and «Статусы и согласование»; the record form computes row columns and header totals as
+  the server does; the card names a live form's transitions, colors its state and asks the
+  comment a transition takes.
+
 - The formula language of live forms (ADR-0042, stage 2, step 2.1): a small, typed,
   deterministic expression language — not SQL, no loops or reflection — with exact
   decimals (10 decimals, `HALF_UP`), SQL null semantics, 25 functions (`round`, `if`,

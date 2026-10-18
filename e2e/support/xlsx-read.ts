@@ -6,11 +6,16 @@ import { inflateRawSync } from 'node:zlib';
  * export wrote, not a general reader.
  */
 export function xlsxRows(file: Buffer): string[][] {
+  return xlsxSheet(file, 1);
+}
+
+/** The rows of the sheet `index` (1 for the first) of the workbook; none when it has no such sheet. */
+export function xlsxSheet(file: Buffer, index: number): string[][] {
   const parts = zipEntries(file);
   const shared = [...(parts.get('xl/sharedStrings.xml') ?? '').matchAll(/<si>([\s\S]*?)<\/si>/gu)].map(([, item]) =>
     [...item.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/gu)].map(([, text]) => unescape(text)).join(''),
   );
-  const sheet = parts.get('xl/worksheets/sheet1.xml') ?? '';
+  const sheet = parts.get(`xl/worksheets/sheet${index}.xml`) ?? '';
   return [...sheet.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/gu)].map(([, row]) =>
     [...row.matchAll(/<c([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/gu)].map(([, attributes, body = '']) => {
       const value = /<v>([\s\S]*?)<\/v>/u.exec(body)?.[1];

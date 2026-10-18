@@ -148,6 +148,8 @@ Current ADRs that are not superseded:
 - [ADR-0041 — live form evolution: schema versions in JSONB and export to code](adr/ADR-0041-live-form-evolution.md)
 - [ADR-0042 — the formula language of live forms](adr/ADR-0042-live-form-formulas.md) — computed fields, defaults,
   conditions and rules in a safe typed language, checked by the server and interpreted alike in the web.
+- [ADR-0043 — documents of live forms](adr/ADR-0043-live-form-documents.md) — tables of lines, the document number and
+  statuses with approval, compiled into the platform's collections and processes without runtime DDL.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
