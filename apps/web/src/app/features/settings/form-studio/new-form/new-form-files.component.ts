@@ -90,20 +90,20 @@ import { MAX_FIELD_FILES, MAX_FILE_SIZE_MB, type SimpleFieldFiles } from './new-
   ],
 })
 export class NewFormFilesComponent {
-  readonly files = input<SimpleFieldFiles | undefined>(undefined);
   readonly index = input.required<number>();
+  readonly files = input<SimpleFieldFiles | undefined>(undefined);
   readonly disabled = input(false);
   /** The rules the active version stores, or null for a field added in this version. */
   readonly stored = input<SimpleFieldFiles | null>(null);
   readonly changed = output<SimpleFieldFiles>();
 
-  readonly maxFiles = MAX_FIELD_FILES;
-  readonly maxSize = MAX_FILE_SIZE_MB;
-
   readonly rules = computed<SimpleFieldFiles>(() => this.files() ?? { multiple: false });
 
   /** A stored field never holds fewer files than before. */
   readonly minFiles = computed(() => Math.max(2, this.stored()?.maxFiles ?? 2));
+
+  readonly maxFiles = MAX_FIELD_FILES;
+  readonly maxSize = MAX_FILE_SIZE_MB;
 
   setMultiple(multiple: boolean): void {
     if (this.stored() !== null) return;
