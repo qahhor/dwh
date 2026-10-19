@@ -160,8 +160,10 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql
     networks: [backend]
+    # Over TCP: on first start the image runs a temporary socket-only server for its init scripts and then
+    # restarts it, so a socket check reports ready too early and a migration started then loses its connection.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${DB_NAME:-smartupcms}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U ${POSTGRES_USER:-postgres} -d ${DB_NAME:-smartupcms}"]
       interval: 10s
       timeout: 5s
       retries: 5
