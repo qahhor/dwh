@@ -4006,5 +4006,6 @@
   "reports.mailings.runs.reason.parameters": "parametr qiymatlari hisobotga mos emas",
   "reports.mailings.runs.reason.report_failed": "hisobot tuzilmadi",
   "reports.mailings.runs.reason.attachment_too_large": "fayl juda katta, havola yuborildi",
-  "reports.mailings.runs.reason.paused": "tarqatma to‘xtatilgan"
+  "reports.mailings.runs.reason.paused": "tarqatma to‘xtatilgan",
+  "iam.roles.area.report": "Hisobotlar va tarqatmalar"
 }

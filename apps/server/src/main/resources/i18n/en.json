@@ -4006,5 +4006,6 @@
   "reports.mailings.runs.reason.parameters": "the parameter values do not fit the report",
   "reports.mailings.runs.reason.report_failed": "the report failed",
   "reports.mailings.runs.reason.attachment_too_large": "the file is too large; a link was sent",
-  "reports.mailings.runs.reason.paused": "the mailing is paused"
+  "reports.mailings.runs.reason.paused": "the mailing is paused",
+  "iam.roles.area.report": "Reports and mailings"
 }

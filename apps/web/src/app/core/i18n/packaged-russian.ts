@@ -4008,5 +4008,6 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "reports.mailings.runs.reason.parameters": "значения параметров не подходят отчёту",
   "reports.mailings.runs.reason.report_failed": "отчёт не построен",
   "reports.mailings.runs.reason.attachment_too_large": "файл слишком большой, отправлена ссылка",
-  "reports.mailings.runs.reason.paused": "рассылка приостановлена"
+  "reports.mailings.runs.reason.paused": "рассылка приостановлена",
+  "iam.roles.area.report": "Отчёты и рассылки"
 });
