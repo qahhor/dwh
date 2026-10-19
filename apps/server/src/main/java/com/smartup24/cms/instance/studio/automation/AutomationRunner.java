@@ -117,7 +117,7 @@ public class AutomationRunner implements JobHandler {
             AtomicReference<AutomationExecutor.Outcome> refused) {
         runs.lockRecord(form, recordId);
         Optional<RunRow> next = runs.nextQueued(form, recordId);
-        if (next.isEmpty() || next.get().notBefore().isAfter(clock.instant())) return false;
+        if (next.isEmpty() || !next.get().due()) return false;
         RunRow run = next.get();
         current.set(run);
         AutomationExecutor.Outcome outcome = execute(run);

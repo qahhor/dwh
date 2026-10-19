@@ -13,6 +13,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.smartup24.cms.instance.jobs.runner.JobRunner;
+import com.smartup24.cms.instance.studio.automation.AutomationRunner;
+import com.smartup24.cms.instance.studio.automation.AutomationScans;
 import com.smartup24.cms.instance.studio.automation.AutomationScheduler;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestSession;
@@ -55,6 +57,12 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
 
     @Autowired
     private AutomationScheduler scheduler;
+
+    @Autowired
+    private AutomationRunner runner;
+
+    @Autowired
+    private AutomationScans scans;
 
     private final StudioFormFixtures forms = new StudioFormFixtures();
     private TestUsers users;
@@ -177,7 +185,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
         long revision = ((Number) flagged.get("revision")).longValue();
         MockHttpServletResponse submitted = transition(writer, orders, order, "submit", revision, Map.of());
         assertThat(submitted.getStatus()).as(submitted.getContentAsString()).isEqualTo(200);
-        jobs.runQueued();
+        settle();
         String docNumber = String.valueOf(created.get("docNumber"));
         assertThat(jdbc.sql("select count(*) from ms_notifications where user_id = :user and title like :title"
                                 + " and source_code like 'automation:%'")
@@ -189,7 +197,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
 
         MockHttpServletResponse approved = transition(manager, orders, order, "approve", revision + 1, Map.of());
         assertThat(approved.getStatus()).as(approved.getContentAsString()).isEqualTo(200);
-        jobs.runQueued();
+        settle();
         List<Map<String, Object>> shipped = rows(admin.send(get("/api/v1/entities/" + tasks)));
         assertThat(shipped).hasSize(1);
         assertThat(shipped.getFirst().get("ordernum")).isEqualTo(docNumber);
@@ -206,8 +214,8 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
     void anAutomationIsNotTriggeredByItsOwnChangeAndAConditionHolds() throws Exception {
         long flag = automation(admin, saved("Всегда помечать", null, setReview()));
         long order = id(newOrder(Map.of("discount", "5")));
-        jobs.runQueued();
-        jobs.runQueued();
+        settle();
+        settle();
         assertThat(read(writer, order).get("review")).isEqualTo(true);
         assertThat(runs(flag)).hasSize(1);
 
@@ -219,7 +227,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
                         .header("If-Match", "\"" + current.get("revision") + "\""),
                 Map.of("discount", "10"));
         assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(200);
-        jobs.runQueued();
+        settle();
         assertThat(runs(strict))
                 .isNotEmpty()
                 .allSatisfy(run -> assertThat(run.get("reason")).isEqualTo("condition"));
@@ -240,7 +248,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
                 .param("id", adminUser.id())
                 .update();
         long order = id(newOrder(Map.of("discount", "1")));
-        jobs.runQueued();
+        settle();
         assertThat(read(writer, order).get("review")).isNotEqualTo(true);
         Map<String, Object> run = runs(flag).getFirst();
         assertThat(run.get("status")).isEqualTo("failed");
@@ -271,7 +279,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
         MockHttpServletResponse now = admin.send(post(API + "/" + scheduled + "/runs"), Map.of(), null);
         assertThat(now.getStatus()).as(now.getContentAsString()).isEqualTo(202);
         assertThat(((Number) TestSession.object(now).get("queued")).intValue()).isEqualTo(1);
-        jobs.runQueued();
+        settle();
         assertThat(runs(scheduled)).extracting(run -> run.get("status")).containsExactly("done");
         assertThat(TestSession.object(auditor.send(get(API + "/" + scheduled))).get("nextRunAt"))
                 .isNotNull();
@@ -281,8 +289,17 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
                 .param("id", scheduled)
                 .update();
         assertThat(scheduler.tick()).isPositive();
-        jobs.runQueued();
-        jobs.runQueued();
+        String slot = jdbc.sql("""
+                        select args ->> 'slot' from fnd_job_queue
+                        where handler = 'studio.automation_scan' and args ->> 'automationId' = :id
+                        """)
+                .param("id", Long.toString(scheduled))
+                .query(String.class)
+                .optional()
+                .orElse(null);
+        if (slot != null) scans.run(Map.of("automationId", scheduled, "slot", slot));
+        settle();
+        settle();
         assertThat(runs(scheduled)).extracting(run -> run.get("kind")).containsExactlyInAnyOrder("scheduled", "manual");
         assertThat(TestSession.object(auditor.send(get(API + "/" + scheduled))).get("nextRunAt"))
                 .isNotNull();
@@ -310,7 +327,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
         long order = id(created);
         MockHttpServletResponse submitted = transition(writer, orders, order, "submit", 1, Map.of());
         assertThat(submitted.getStatus()).as(submitted.getContentAsString()).isEqualTo(200);
-        jobs.runQueued();
+        settle();
         Map<String, Object> run = runs(locked).getFirst();
         assertThat(run.get("status")).isEqualTo("failed");
         assertThat(run.get("reason")).isEqualTo("action_failed");
@@ -323,7 +340,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
         assertThat(admin.send(delete("/api/v1/entities/" + orders + "/" + other))
                         .getStatus())
                 .isEqualTo(204);
-        jobs.runQueued();
+        settle();
         assertThat(runs(gone)).extracting(each -> each.get("reason")).containsExactly("record_gone");
     }
 
@@ -463,7 +480,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
         Map<String, Object> request = saved("Всем причастным", null, notify);
         long tell = automation(admin, request);
         long order = id(newOrder(Map.of("discount", "7.50")));
-        jobs.runQueued();
+        settle();
         assertThat(runs(tell)).extracting(run -> run.get("status")).containsExactly("done");
         int told = jdbc.sql("""
                         select count(distinct user_id) from ms_notifications
@@ -479,6 +496,24 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
                 .query(String.class)
                 .single();
         assertThat(body).contains("7.5").doesNotContain("{");
+    }
+
+    /**
+     * Runs the queued jobs, then takes the queued runs of this test's forms directly: another test class may hold the
+     * shared queue switched off or busy, and the runs of a record are taken the same way either way.
+     */
+    private void settle() {
+        jobs.runQueued();
+        for (int round = 0; round < 5; round++) {
+            List<Map<String, Object>> due =
+                    jdbc.sql("""
+                            select distinct form_code, record_id from studio_automation_runs
+                            where status = 'queued' and not_before <= clock_timestamp() and form_code in (:forms)
+                            """).param("forms", List.of(orders, tasks)).query().listOfRows();
+            if (due.isEmpty()) return;
+            due.forEach(row ->
+                    runner.drain(String.valueOf(row.get("form_code")), ((Number) row.get("record_id")).longValue()));
+        }
     }
 
     private Map<String, Object> newOrder(Map<String, Object> extra) throws Exception {

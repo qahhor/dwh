@@ -25,13 +25,16 @@ public class StudioAutomationRunRepository {
     private static final String SELECT = """
             select id, automation_id, event_key, kind, trigger_kind, form_code, record_id, depth, payload::text as payload,
                    status, reason, error::text as error, results::text as results, attempts, not_before, created_at,
-                   finished_at
+                   finished_at, not_before <= clock_timestamp() as due
             from studio_automation_runs
             """;
 
     private final JdbcClient jdbc;
 
-    /** A run as stored: its payload, error and results as JSON text. */
+    /**
+     * A run as stored: its payload, error and results as JSON text; {@code due} — its attempt may start now, by the
+     * database's clock, the one that set {@code not_before}.
+     */
     public record RunRow(
             long id,
             long automationId,
@@ -49,7 +52,8 @@ public class StudioAutomationRunRepository {
             int attempts,
             Instant notBefore,
             Instant createdAt,
-            @Nullable Instant finishedAt) {}
+            @Nullable Instant finishedAt,
+            boolean due) {}
 
     /** A run to queue. */
     public record NewRun(
@@ -252,6 +256,7 @@ public class StudioAutomationRunRepository {
                 rs.getInt("attempts"),
                 rs.getTimestamp("not_before").toInstant(),
                 rs.getTimestamp("created_at").toInstant(),
-                StudioAutomationRepository.instant(rs.getTimestamp("finished_at")));
+                StudioAutomationRepository.instant(rs.getTimestamp("finished_at")),
+                rs.getBoolean("due"));
     }
 }
