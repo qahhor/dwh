@@ -48,10 +48,11 @@ rules:
       left to actions and queries, whose path ends with the action, and to the record actions of an entity
       (ADR-0032, 6.13: .../{id}/actions/<code>). The exact Studio package-verification path is also a read-only
       action (ADR-0035). Exact simple-form validation, assistant proposal and formula check paths are read-only
-      actions (ADR-0037, ADR-0039, ADR-0042); unrelated paths retain the creation-status requirement.
+      actions (ADR-0037, ADR-0039, ADR-0042), as are the formula check and the dry run of automations (ADR-0046);
+      unrelated paths retain the creation-status requirement.
     severity: error
     given: >-
-      $.paths[?(!@property.match(/\/(login|logout|otp|password|confirm|request|archive|restore|publish|read|read-all|bulk|block|unblock|force-password-change|reset-2fa|reorder|status|view|apply|cancel|retry|preview|actions\/[a-z][a-z0-9_]*)$/) && @property !== '/api/v1/form-studio/drafts/{entityCode}/versions/{version}/verify' && @property !== '/api/v1/form-studio/new-forms/prepare' && @property !== '/api/v1/form-studio/new-forms/check-draft' && @property !== '/api/v1/studio/assistant/drafts' && @property !== '/api/v1/studio/formulas/check')][?(@property === 'post' && @.deprecated != true)].responses
+      $.paths[?(!@property.match(/\/(login|logout|otp|password|confirm|request|archive|restore|publish|read|read-all|bulk|block|unblock|force-password-change|reset-2fa|reorder|status|view|apply|cancel|retry|preview|actions\/[a-z][a-z0-9_]*)$/) && @property !== '/api/v1/form-studio/drafts/{entityCode}/versions/{version}/verify' && @property !== '/api/v1/form-studio/new-forms/prepare' && @property !== '/api/v1/form-studio/new-forms/check-draft' && @property !== '/api/v1/studio/assistant/drafts' && @property !== '/api/v1/studio/formulas/check' && @property !== '/api/v1/automations/formulas/check' && @property !== '/api/v1/automations/dry-run')][?(@property === 'post' && @.deprecated != true)].responses
     then:
       function: schema
       functionOptions:
