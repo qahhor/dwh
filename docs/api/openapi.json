@@ -25206,7 +25206,8 @@
           "trigger" : {
             "$ref" : "#/components/schemas/StudioAutomationTrigger"
           }
-        }
+        },
+        "required" : [ "actions", "active", "author", "createdAt", "form", "formArchived", "id", "modifiedAt", "name", "revision", "timeZone", "trigger" ]
       },
       "StudioAutomationAction" : {
         "type" : "object",
@@ -25291,7 +25292,8 @@
             "type" : "object",
             "additionalProperties" : { }
           }
-        }
+        },
+        "required" : [ "index", "status", "type" ]
       },
       "StudioAutomationCheckRequest" : {
         "type" : "object",
@@ -25337,7 +25339,8 @@
             "type" : "string",
             "description" : "Why the run would stop: condition, form_archived, author_access, action_failed"
           }
-        }
+        },
+        "required" : [ "actions", "conditionHolds" ]
       },
       "StudioAutomationDryRunRequest" : {
         "type" : "object",
@@ -25365,7 +25368,8 @@
             "type" : "object",
             "additionalProperties" : { }
           }
-        }
+        },
+        "required" : [ "field", "key", "params" ]
       },
       "StudioAutomationMessage" : {
         "type" : "object",
@@ -25376,7 +25380,8 @@
           "title" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "body", "title" ]
       },
       "StudioAutomationOptions" : {
         "type" : "object",
@@ -25403,7 +25408,8 @@
             "type" : "integer",
             "format" : "int32"
           }
-        }
+        },
+        "required" : [ "channels", "maxActions", "maxDepth", "maxPerForm", "maxRunsPerRecordHour" ]
       },
       "StudioAutomationProblem" : {
         "type" : "object",
@@ -25421,7 +25427,8 @@
             "type" : "object",
             "additionalProperties" : { }
           }
-        }
+        },
+        "required" : [ "fields", "key", "params" ]
       },
       "StudioAutomationRecipient" : {
         "type" : "object",
@@ -25442,7 +25449,8 @@
           "skipped" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "channels", "id", "name" ]
       },
       "StudioAutomationRecipients" : {
         "type" : "object",
@@ -25575,7 +25583,8 @@
           "trigger" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "attempts", "createdAt", "depth", "id", "kind", "recordId", "results", "status", "trigger" ]
       },
       "StudioAutomationRunNow" : {
         "type" : "object",
@@ -25587,7 +25596,8 @@
           "truncated" : {
             "type" : "boolean"
           }
-        }
+        },
+        "required" : [ "queued", "truncated" ]
       },
       "StudioAutomationRunSummary" : {
         "type" : "object",
@@ -25611,7 +25621,8 @@
             "type" : "string",
             "enum" : [ "queued", "done", "skipped", "failed" ]
           }
-        }
+        },
+        "required" : [ "createdAt", "id", "status" ]
       },
       "StudioAutomationSchedule" : {
         "type" : "object",
@@ -25701,7 +25712,8 @@
           "name" : {
             "type" : "string"
           }
-        }
+        },
+        "required" : [ "id", "name" ]
       },
       "StudioAutomationValue" : {
         "type" : "object",

@@ -444,6 +444,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/automations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List automations
+         * @description Of one live form or of all, the newest first, each with its last run; limit 1 to 100 (default 20, else 422).
+         */
+        get: operations["automations"];
+        put?: never;
+        /**
+         * Create an automation
+         * @description A live form, a name, a trigger (created, updated, saved, transition, deleted or scheduled), an optional condition formula and 1 to 10 actions (set_field, create_record, transition, notify), checked against the active versions of the forms — 422 at the part to fix, or above 20 automations per form. The caller becomes its author, the person it runs as: 403 when the caller may not do by hand what an action does. Audited.
+         */
+        post: operations["createAutomation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Try an automation on a record
+         * @description Checks the automation as a save does, with the caller as its author, then runs it over the record in a transaction that never commits: whether the condition holds and what each action would write, create, run or send to whom. Nothing is stored or sent.
+         */
+        post: operations["dryRunAutomation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/formulas/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a formula of an automation
+         * @description Against the active version of the form: a condition gives a yes/no and may read old.<field> and changed.<field> for a change; a value gives the type of its target field. Answers the type or the first problem with its 1-based position; stores nothing.
+         */
+        post: operations["checkAutomationFormula"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Describe what an automation may use
+         * @description The channels this installation delivers on (in_app always; email and telegram when their provider is configured) and the limits: automations per form, actions, the depth of a chain and the runs of one automation for one record an hour.
+         */
+        get: operations["automationOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an automation
+         * @description Its revision as ETag. 404 for an unknown automation.
+         */
+        get: operations["automation"];
+        /**
+         * Change, switch on or pause an automation
+         * @description If-Match with its revision (428 without it, 409 when stale). Its form never changes. The caller becomes its author, checked as on creation. Audited.
+         */
+        put: operations["updateAutomation"];
+        post?: never;
+        /**
+         * Delete an automation
+         * @description If-Match with its revision (428/409). Its run log goes with it. Audited.
+         */
+        delete: operations["deleteAutomation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/automations/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the runs of an automation
+         * @description The newest first: the trigger, the record, the outcome with its reason and what each action did; limit 1 to 100 (default 20).
+         */
+        get: operations["automationRuns"];
+        put?: never;
+        /**
+         * Run a scheduled automation now
+         * @description Looks at the records of its form as its author and queues a run for each record that meets its condition (at most 1000 records read). 422 for an automation of an event, 409 while paused, 429 above 10 an hour. The runs follow in the run log.
+         */
+        post: operations["runAutomationNow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/custom-fields": {
         parameters: {
             query?: never;
@@ -6016,6 +6152,22 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageStudioAutomation: {
+            hasMore?: boolean;
+            items?: components["schemas"]["StudioAutomation"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        KeysetPageStudioAutomationRun: {
+            hasMore?: boolean;
+            items?: components["schemas"]["StudioAutomationRun"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageStudioFormSummary: {
             hasMore?: boolean;
             items?: components["schemas"]["StudioFormSummary"][];
@@ -7578,6 +7730,210 @@ export interface components {
         StudioAssistantRequest: {
             prompt: string;
         };
+        StudioAutomation: {
+            actions: components["schemas"]["StudioAutomationAction"][];
+            active: boolean;
+            author: components["schemas"]["StudioAutomationUser"];
+            condition?: string;
+            /** Format: date-time */
+            createdAt: string;
+            form: string;
+            formArchived: boolean;
+            /** Format: int64 */
+            id: number;
+            lastRun?: components["schemas"]["StudioAutomationRunSummary"];
+            /** Format: date-time */
+            modifiedAt: string;
+            name: string;
+            /** Format: date-time */
+            nextRunAt?: string;
+            /** Format: int64 */
+            revision: number;
+            timeZone: string;
+            trigger: components["schemas"]["StudioAutomationTrigger"];
+        };
+        StudioAutomationAction: {
+            body?: components["schemas"]["StudioAutomationTexts"];
+            channels?: ("in_app" | "email" | "telegram")[];
+            comment?: string;
+            form?: string;
+            recipients?: components["schemas"]["StudioAutomationRecipients"];
+            title?: components["schemas"]["StudioAutomationTexts"];
+            transition?: string;
+            /** @enum {string} */
+            type: "set_field" | "create_record" | "transition" | "notify";
+            values?: components["schemas"]["StudioAutomationValue"][];
+        };
+        StudioAutomationActionResult: {
+            error?: components["schemas"]["StudioAutomationProblem"];
+            form?: string;
+            /** Format: int32 */
+            index: number;
+            message?: components["schemas"]["StudioAutomationMessage"];
+            reason?: string;
+            recipients?: components["schemas"]["StudioAutomationRecipient"][];
+            /** Format: int64 */
+            recordId?: number;
+            /** @enum {string} */
+            status: "done" | "would_apply" | "skipped" | "failed";
+            type: string;
+            values?: {
+                [key: string]: unknown;
+            };
+        };
+        StudioAutomationCheckRequest: {
+            form: string;
+            formula: string;
+            /** @description The field a value is computed for; without it the formula is a condition */
+            targetField?: string;
+            /** @description The live form of the field a value is computed for; the automation's by default */
+            targetForm?: string;
+            /** @enum {string} */
+            trigger: "created" | "updated" | "saved" | "transition" | "deleted" | "scheduled";
+        };
+        StudioAutomationDryRun: {
+            actions: components["schemas"]["StudioAutomationActionResult"][];
+            conditionHolds: boolean;
+            error?: components["schemas"]["StudioAutomationProblem"];
+            /** @description Why the run would stop: condition, form_archived, author_access, action_failed */
+            reason?: string;
+        };
+        StudioAutomationDryRunRequest: {
+            automation: components["schemas"]["StudioAutomationRequest"];
+            /** Format: int64 */
+            recordId: number;
+        };
+        StudioAutomationFieldProblem: {
+            field: string;
+            key: string;
+            params: {
+                [key: string]: unknown;
+            };
+        };
+        StudioAutomationMessage: {
+            body: string;
+            title: string;
+        };
+        StudioAutomationOptions: {
+            channels: string[];
+            /** Format: int32 */
+            maxActions: number;
+            /** Format: int32 */
+            maxDepth: number;
+            /** Format: int32 */
+            maxPerForm: number;
+            /** Format: int32 */
+            maxRunsPerRecordHour: number;
+        };
+        StudioAutomationProblem: {
+            fields: components["schemas"]["StudioAutomationFieldProblem"][];
+            key: string;
+            params: {
+                [key: string]: unknown;
+            };
+        };
+        StudioAutomationRecipient: {
+            channels: string[];
+            /** Format: int64 */
+            id: number;
+            name: string;
+            skipped?: string;
+        };
+        StudioAutomationRecipients: {
+            author?: boolean;
+            fields?: string[];
+            rights?: components["schemas"]["StudioAutomationRight"][];
+            users?: number[];
+        };
+        StudioAutomationRequest: {
+            actions: components["schemas"]["StudioAutomationAction"][];
+            /** @description Switched on; true by default */
+            active?: boolean;
+            /** @description A yes/no formula over the record */
+            condition?: string;
+            /**
+             * @description The live form, on creation only
+             * @example studio.orders
+             */
+            form?: string;
+            name: string;
+            /** @example Asia/Tashkent */
+            timeZone?: string;
+            trigger: components["schemas"]["StudioAutomationTrigger"];
+        };
+        StudioAutomationRight: {
+            action: string;
+            form: string;
+        };
+        StudioAutomationRun: {
+            /** Format: int32 */
+            attempts: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            depth: number;
+            error?: components["schemas"]["StudioAutomationProblem"];
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            kind: "event" | "scheduled" | "manual";
+            reason?: string;
+            /** Format: int64 */
+            recordId: number;
+            results: components["schemas"]["StudioAutomationActionResult"][];
+            /** @enum {string} */
+            status: "queued" | "done" | "skipped" | "failed";
+            trigger: string;
+        };
+        StudioAutomationRunNow: {
+            /** Format: int32 */
+            queued: number;
+            truncated: boolean;
+        };
+        StudioAutomationRunSummary: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: int64 */
+            id: number;
+            reason?: string;
+            /** @enum {string} */
+            status: "queued" | "done" | "skipped" | "failed";
+        };
+        StudioAutomationSchedule: {
+            /** @enum {string} */
+            frequency: "daily" | "weekly" | "monthly";
+            /** Format: int32 */
+            monthDay?: number;
+            time: string;
+            /** Format: int32 */
+            weekday?: number;
+        };
+        StudioAutomationTexts: {
+            en?: string;
+            ru: string;
+            uz?: string;
+        };
+        StudioAutomationTrigger: {
+            fields?: string[];
+            from?: string[];
+            /** @enum {string} */
+            kind: "created" | "updated" | "saved" | "transition" | "deleted" | "scheduled";
+            schedule?: components["schemas"]["StudioAutomationSchedule"];
+            to?: string[];
+        };
+        StudioAutomationUser: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+        };
+        StudioAutomationValue: {
+            field: string;
+            formula: string;
+        };
         StudioAvailability: {
             enabled?: boolean;
             /** Format: int32 */
@@ -8767,6 +9123,385 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    automations: {
+        parameters: {
+            query?: {
+                form?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageStudioAutomation"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    createAutomation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioAutomationRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioAutomation"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    dryRunAutomation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioAutomationDryRunRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioAutomationDryRun"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    checkAutomationFormula: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioAutomationCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioFormulaCheck"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    automationOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioAutomationOptions"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioAutomation"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    updateAutomation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudioAutomationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioAutomation"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    deleteAutomation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    automationRuns: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageStudioAutomationRun"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    runAutomationNow: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioAutomationRunNow"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {

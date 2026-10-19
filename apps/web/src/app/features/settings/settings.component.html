@@ -33,6 +33,18 @@
         {{ 'studio.lists.title' | t }}
       </button>
     }
+    @if (canOpenAutomations()) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtIcon="bolt"
+        data-testid="settings-automations"
+        (click)="openAutomations()"
+      >
+        {{ 'studio.automations.title' | t }}
+      </button>
+    }
     @if (canOpenDatasets()) {
       <button
         smt-button

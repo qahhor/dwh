@@ -161,6 +161,24 @@ export const routes: Routes = [
           import('./features/settings/form-studio/forms/my-forms.component').then((m) => m.MyFormsComponent),
       },
       {
+        // The automations of live forms: triggers, conditions and actions (ADR-0046).
+        path: 'settings/form-studio/automations',
+        canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.automations', 'view')],
+        loadComponent: () =>
+          import('./features/settings/form-studio/automations/automations.component').then(
+            (m) => m.AutomationsComponent,
+          ),
+      },
+      {
+        path: 'settings/form-studio/automations/:id',
+        canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.automations', 'manage')],
+        canDeactivate: [recordNavigationGuard],
+        loadComponent: () =>
+          import('./features/settings/form-studio/automations/automation-editor.component').then(
+            (m) => m.AutomationEditorComponent,
+          ),
+      },
+      {
         // The reference lists an administrator keeps without a release (ADR-0041).
         path: 'settings/form-studio/lists',
         canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.lists', 'view')],

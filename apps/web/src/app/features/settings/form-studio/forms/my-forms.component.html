@@ -98,6 +98,19 @@
         >{{ 'studio.forms.open_records' | t }}</a
       >
     }
+    @if (mayAutomate()) {
+      <a
+        smt-button
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="bolt"
+        [routerLink]="['/settings/form-studio/automations']"
+        [queryParams]="{ form: form.entityCode }"
+        [attr.aria-label]="'studio.automations.of_form_named' | t: { name: store.title(form) }"
+        [attr.data-testid]="'my-forms-automations-' + form.entityCode"
+        >{{ 'studio.automations.title' | t }}</a
+      >
+    }
     @if (form.status === 'active') {
       <a
         smt-button

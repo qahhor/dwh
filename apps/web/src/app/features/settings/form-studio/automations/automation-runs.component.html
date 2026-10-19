@@ -1,0 +1,72 @@
+<smt-dialog
+  [open]="true"
+  [smtTitle]="'studio.automations.runs_title' | t: { name: automation().name }"
+  smtSize="lg"
+  (closed)="closed.emit()"
+>
+  <ng-template smtDialogContent>
+    <div class="runs" data-testid="automation-runs-dialog">
+      @if (error()) {
+        <smt-alert smtTone="danger">{{ error() }}</smt-alert>
+      }
+      @if (loading() && !runs().length) {
+        <p role="status">{{ 'common.loading' | t }}</p>
+      } @else if (!runs().length && !error()) {
+        <p class="runs-empty" data-testid="automation-runs-empty">{{ 'studio.automations.runs_empty' | t }}</p>
+      }
+      <ul class="runs-list" [attr.aria-label]="'studio.automations.runs' | t">
+        @for (run of runs(); track run.id) {
+          <li class="run" data-testid="automation-run">
+            <div class="run-head">
+              <smt-tag [label]="'studio.automations.status.' + run.status | t" [smtTone]="tone(run.status)" />
+              <span class="run-kind">{{ 'studio.automations.trigger.' + run.trigger | t }}</span>
+              <span>{{ 'studio.automations.run_record' | t: { id: run.recordId } }}</span>
+              <span class="run-at">{{ run.createdAt | date: 'medium' }}</span>
+              @if (run.reason) {
+                <span class="run-detail">{{ 'studio.automations.reason.' + run.reason | t }}</span>
+              }
+              @if (run.results.length) {
+                <button
+                  smt-button
+                  type="button"
+                  smtVariant="ghost"
+                  smtSize="sm"
+                  data-testid="automation-run-open"
+                  [attr.aria-expanded]="open() === run.id"
+                  (click)="toggle(run)"
+                >
+                  {{ 'studio.automations.run_details' | t }}
+                </button>
+              }
+            </div>
+            @if (run.error) {
+              <p class="run-error">{{ problem(run.error) }}</p>
+            }
+            @if (open() === run.id) {
+              <ul class="run-results" data-testid="automation-run-results">
+                @for (result of run.results; track result.index) {
+                  <li>
+                    <smt-tag
+                      [label]="'studio.automations.result.' + result.status | t"
+                      [smtTone]="tone(result.status)"
+                    />
+                    <span>{{ 'studio.automations.action.' + result.type | t }}</span>
+                    <span class="run-detail">{{ detail(result) }}</span>
+                    @if (result.error) {
+                      <span class="run-error">{{ problem(result.error) }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </li>
+        }
+      </ul>
+      @if (cursor()) {
+        <button smt-button type="button" smtVariant="secondary" [smtLoading]="loading()" (click)="load(cursor())">
+          {{ 'studio.automations.runs_more' | t }}
+        </button>
+      }
+    </div>
+  </ng-template>
+</smt-dialog>

@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTTagComponent } from '@shared/ui-kit/components/tag';
@@ -40,6 +41,7 @@ import { MyFormsStore, type StudioFormSummary } from './my-forms.store';
 export class MyFormsComponent implements OnInit {
   readonly store = inject(MyFormsStore);
   private readonly i18n = inject(I18nService);
+  private readonly permissions = inject(PermissionService);
 
   private readonly titleCell = viewChild.required<TemplateRef<unknown>>('titleCell');
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
@@ -48,6 +50,8 @@ export class MyFormsComponent implements OnInit {
   private readonly modifiedCell = viewChild.required<TemplateRef<unknown>>('modifiedCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
+  /** The automations of a form open for whoever may read them (ADR-0046). */
+  readonly mayAutomate = computed(() => this.permissions.hasPermission('studio.automations', 'view'));
   readonly config = computed<TableConfig<StudioFormSummary>>(() => {
     this.i18n.currentLang();
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });

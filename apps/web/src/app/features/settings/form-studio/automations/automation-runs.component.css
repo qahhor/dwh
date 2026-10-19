@@ -1,0 +1,53 @@
+.runs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.runs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.run {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+.run-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.run-kind {
+  font-weight: 600;
+}
+.run-at,
+.runs-empty,
+.run-detail {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.run-error {
+  margin: 6px 0 0;
+  color: var(--danger-text);
+  font-size: 13px;
+}
+.run-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.run-results li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}

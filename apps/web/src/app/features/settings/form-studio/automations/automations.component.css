@@ -1,0 +1,57 @@
+.automations-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.automations-filter {
+  max-width: 360px;
+}
+.automations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.automation-card {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-surface);
+}
+.automation-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.automation-title h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.automation-main p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+.automation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+.automation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.automations-empty {
+  margin: 0;
+  color: var(--text-muted);
+}

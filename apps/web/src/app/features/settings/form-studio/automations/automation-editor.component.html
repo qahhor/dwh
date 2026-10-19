@@ -1,0 +1,265 @@
+<div class="automation-editor" data-testid="automation-editor">
+  <ui-page-header
+    [title]="(creating() ? 'studio.automations.new' : 'studio.automations.edit') | t"
+    [subtitle]="'studio.automations.editor_subtitle' | t"
+  >
+    <a
+      smt-button
+      smtVariant="secondary"
+      routerLink="/settings/form-studio/automations"
+      [queryParams]="form() ? { form: form() } : {}"
+      >{{ 'studio.automations.back' | t }}</a
+    >
+  </ui-page-header>
+  @if (loadError()) {
+    <smt-alert smtTone="danger" data-testid="automation-load-error">{{ loadError() }}</smt-alert>
+  } @else {
+    <smt-alert smtTone="info" smtLive="off">{{ 'studio.automations.author_hint' | t }}</smt-alert>
+    <form
+      id="automation-form"
+      class="automation-form"
+      uiFocusFirstInvalid
+      novalidate
+      data-testid="automation-form"
+      (submit)="$event.preventDefault(); submit()"
+    >
+      @if (alert()) {
+        <div class="automation-alert" role="alert" data-testid="automation-alert">{{ alert() }}</div>
+      }
+      <div class="automation-row">
+        <smt-control
+          [smtLabel]="'studio.automations.name' | t"
+          [smtHint]="'studio.automations.name_hint' | t"
+          [smtError]="error('name')"
+          [required]="true"
+        >
+          <smt-input
+            smtFieldId="automation-name"
+            smtTestId="automation-name"
+            smtFocusInitial
+            [maxLength]="120"
+            [value]="name()"
+            (valueChange)="name.set($event === null ? '' : '' + $event); touch()"
+          />
+        </smt-control>
+        <smt-control
+          [smtLabel]="'studio.automations.form' | t"
+          [smtHint]="(creating() ? 'studio.automations.form_hint' : 'studio.automations.form_fixed') | t"
+          [smtError]="error('form')"
+          [required]="true"
+        >
+          <smt-select
+            smtTriggerId="automation-form-code"
+            data-testid="automation-form-code"
+            [options]="formOptions().length ? formOptions() : [{ id: form(), label: form() }]"
+            [value]="form() || null"
+            [disabled]="!creating()"
+            (valueChange)="chooseForm($event); touch()"
+          />
+        </smt-control>
+      </div>
+
+      <fieldset class="automation-group" data-testid="automation-trigger">
+        <legend>{{ 'studio.automations.when' | t }}</legend>
+        <div class="automation-row">
+          <smt-control [smtLabel]="'studio.automations.trigger_kind' | t" [smtError]="error('trigger.kind')">
+            <smt-select
+              smtTriggerId="automation-trigger-kind"
+              data-testid="automation-trigger-kind"
+              [options]="kindOptions()"
+              [value]="kind()"
+              [allowClear]="false"
+              (valueChange)="kind.set($event ?? 'saved'); touch()"
+            />
+          </smt-control>
+          @if (kind() === 'updated' || kind() === 'saved') {
+            <smt-control
+              [smtLabel]="'studio.automations.trigger_fields' | t"
+              [smtHint]="'studio.automations.trigger_fields_hint' | t"
+              [smtError]="error('trigger.fields')"
+            >
+              <smt-multi-select
+                data-testid="automation-trigger-fields"
+                [options]="fieldOptions()"
+                [value]="fields()"
+                [ariaLabel]="'studio.automations.trigger_fields' | t"
+                (valueChange)="fields.set([...$event]); touch()"
+              />
+            </smt-control>
+          }
+          @if (kind() === 'transition') {
+            <smt-control
+              [smtLabel]="'studio.automations.trigger_from' | t"
+              [smtHint]="'studio.automations.trigger_any' | t"
+              [smtError]="error('trigger.from')"
+            >
+              <smt-multi-select
+                data-testid="automation-trigger-from"
+                [options]="stateOptions()"
+                [value]="from()"
+                [ariaLabel]="'studio.automations.trigger_from' | t"
+                (valueChange)="from.set([...$event]); touch()"
+              />
+            </smt-control>
+            <smt-control
+              [smtLabel]="'studio.automations.trigger_to' | t"
+              [smtHint]="'studio.automations.trigger_any' | t"
+              [smtError]="error('trigger.to')"
+            >
+              <smt-multi-select
+                data-testid="automation-trigger-to"
+                [options]="stateOptions()"
+                [value]="to()"
+                [ariaLabel]="'studio.automations.trigger_to' | t"
+                (valueChange)="to.set([...$event]); touch()"
+              />
+            </smt-control>
+          }
+        </div>
+        @if (kind() === 'scheduled') {
+          <div class="automation-row">
+            <smt-control [smtLabel]="'studio.automations.frequency' | t" [smtError]="error('trigger.schedule')">
+              <smt-select
+                smtTriggerId="automation-frequency"
+                data-testid="automation-frequency"
+                [options]="frequencyOptions()"
+                [value]="frequency()"
+                [allowClear]="false"
+                (valueChange)="frequency.set($event ?? 'daily'); touch()"
+              />
+            </smt-control>
+            @if (frequency() === 'weekly') {
+              <smt-control [smtLabel]="'studio.automations.weekday' | t">
+                <smt-select
+                  smtTriggerId="automation-weekday"
+                  [options]="weekdayOptions()"
+                  [value]="weekday()"
+                  [allowClear]="false"
+                  (valueChange)="weekday.set($event ?? 1); touch()"
+                />
+              </smt-control>
+            }
+            @if (frequency() === 'monthly') {
+              <smt-control
+                [smtLabel]="'studio.automations.month_day' | t"
+                [smtHint]="'studio.automations.month_day_hint' | t"
+              >
+                <smt-input
+                  type="number"
+                  smtFieldId="automation-month-day"
+                  [smtMin]="1"
+                  [smtMax]="31"
+                  [value]="monthDay()"
+                  (valueChange)="monthDay.set($event === null ? '' : '' + $event); touch()"
+                />
+              </smt-control>
+            }
+            <smt-control [smtLabel]="'studio.automations.time' | t">
+              <smt-time-picker
+                smtFieldId="automation-time"
+                data-testid="automation-time"
+                [step]="15"
+                [value]="time()"
+                (valueChange)="time.set($event ?? '09:00'); touch()"
+              />
+            </smt-control>
+          </div>
+        }
+        <smt-control
+          [smtLabel]="'studio.automations.time_zone' | t"
+          [smtHint]="'studio.automations.time_zone_hint' | t"
+          [smtError]="error('timeZone')"
+        >
+          <smt-select
+            smtTriggerId="automation-zone"
+            data-testid="automation-zone"
+            [options]="zoneOptions()"
+            [value]="timeZone()"
+            [allowClear]="false"
+            (valueChange)="timeZone.set($event ?? timeZone()); touch()"
+          />
+        </smt-control>
+      </fieldset>
+
+      <fieldset class="automation-group">
+        <legend>{{ 'studio.automations.if' | t }}</legend>
+        @if (form()) {
+          <app-automation-formula
+            [label]="'studio.automations.condition' | t"
+            [hint]="(change() ? 'studio.automations.condition_hint_change' : 'studio.automations.condition_hint') | t"
+            [value]="condition()"
+            [form]="form()"
+            [trigger]="kind()"
+            [names]="conditionNames()"
+            [error]="error('condition')"
+            testId="automation-condition"
+            (valueChange)="condition.set($event); touch()"
+          />
+        }
+      </fieldset>
+
+      <fieldset class="automation-group" data-testid="automation-actions">
+        <legend>{{ 'studio.automations.then' | t }}</legend>
+        @if (error('actions')) {
+          <p class="automation-problem" role="alert">{{ error('actions') }}</p>
+        }
+        @for (action of actions(); track $index; let index = $index) {
+          <app-automation-action
+            [action]="action"
+            [index]="index"
+            [count]="actions().length"
+            [form]="form()"
+            [meta]="meta()"
+            [trigger]="kind()"
+            [forms]="forms()"
+            [channels]="options()?.channels ?? ['in_app']"
+            [errors]="errors()"
+            (changed)="changeAction(index, $event)"
+            (removed)="removeAction(index)"
+            (moved)="moveAction(index, $event)"
+          />
+        }
+        <div class="automation-add">
+          <smt-control [smtLabel]="'studio.automations.new_action' | t">
+            <smt-select
+              smtTriggerId="automation-new-action"
+              data-testid="automation-new-action"
+              [options]="actionOptions()"
+              [value]="newAction()"
+              [allowClear]="false"
+              (valueChange)="newAction.set($event ?? 'notify')"
+            />
+          </smt-control>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtIcon="add"
+            data-testid="automation-add-action"
+            [disabled]="actions().length >= (options()?.maxActions ?? 10)"
+            (click)="addAction()"
+          >
+            {{ 'studio.automations.add_action' | t }}
+          </button>
+        </div>
+      </fieldset>
+
+      <smt-switch
+        data-testid="automation-active"
+        [checked]="active()"
+        [smtLabel]="'studio.automations.active_label' | t"
+        (checkedChange)="active.set($event); touch()"
+      />
+    </form>
+    <ui-form-actions
+      form="automation-form"
+      data-testid="automation-actions-bar"
+      [submitting]="busy()"
+      (cancelled)="cancel()"
+    />
+
+    @if (form()) {
+      <app-automation-dry-run [form]="form()" [request]="request()" (problems)="errors.set($event)" />
+    }
+  }
+</div>

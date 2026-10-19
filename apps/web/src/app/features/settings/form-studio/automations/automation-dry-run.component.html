@@ -1,0 +1,70 @@
+<section class="automation-dry" data-testid="automation-dry-run" [attr.aria-label]="'studio.automations.dry' | t">
+  <h2>{{ 'studio.automations.dry' | t }}</h2>
+  <p class="automation-hint">{{ 'studio.automations.dry_hint' | t }}</p>
+  <div class="automation-add">
+    <smt-control [smtLabel]="'studio.automations.dry_record' | t">
+      <smt-data-select
+        data-testid="automation-dry-record"
+        [source]="source()"
+        [value]="record()"
+        [ariaLabel]="'studio.automations.dry_record' | t"
+        (valueChange)="record.set($any($event))"
+      />
+    </smt-control>
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="science"
+      data-testid="automation-dry-run-button"
+      [smtLoading]="busy()"
+      [disabled]="!record()"
+      (click)="run()"
+    >
+      {{ 'studio.automations.dry_run' | t }}
+    </button>
+  </div>
+  @if (alert()) {
+    <smt-alert smtTone="danger" data-testid="automation-dry-alert">{{ alert() }}</smt-alert>
+  }
+  @if (result(); as result) {
+    <div class="automation-dry-result" data-testid="automation-dry-result" role="status">
+      <p>
+        <smt-tag
+          [label]="
+            (result.conditionHolds ? 'studio.automations.condition_holds' : 'studio.automations.condition_fails') | t
+          "
+          [smtTone]="result.conditionHolds ? 'success' : 'warning'"
+        />
+        @if (result.reason) {
+          {{ 'studio.automations.reason.' + result.reason | t }}
+        }
+      </p>
+      @if (result.error) {
+        <p class="automation-problem">{{ problem(result.error) }}</p>
+      }
+      <ul class="automation-results">
+        @for (item of result.actions; track item.index) {
+          <li [attr.data-testid]="'automation-dry-action-' + item.index">
+            <smt-tag [label]="'studio.automations.result.' + item.status | t" [smtTone]="tone(item.status)" />
+            {{ 'studio.automations.action.' + item.type | t }}
+            @if (item.values) {
+              <code>{{ valuesText(item.values) }}</code>
+            }
+            @if (item.message) {
+              <span class="automation-message">{{
+                'studio.automations.message' | t: { title: item.message.title, body: item.message.body }
+              }}</span>
+            }
+            @if (item.recipients?.length) {
+              <span>{{ 'studio.automations.to_people' | t: { people: peopleText(item) } }}</span>
+            }
+            @if (item.error) {
+              <span class="automation-problem">{{ problem(item.error) }}</span>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</section>

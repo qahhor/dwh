@@ -1,0 +1,245 @@
+<fieldset class="automation-action" [attr.data-testid]="'automation-action-' + index()">
+  <legend>{{ 'studio.automations.action_number' | t: { n: index() + 1 } }} · {{ typeLabel() }}</legend>
+  <div class="automation-action-tools">
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="arrow_upward"
+      [disabled]="index() === 0"
+      [attr.aria-label]="'studio.automations.action_up' | t: { n: index() + 1 }"
+      (click)="moved.emit(-1)"
+    ></button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="arrow_downward"
+      [disabled]="index() === count() - 1"
+      [attr.aria-label]="'studio.automations.action_down' | t: { n: index() + 1 }"
+      (click)="moved.emit(1)"
+    ></button>
+    <button
+      smt-button
+      type="button"
+      smtVariant="ghost"
+      smtSize="sm"
+      smtIcon="delete"
+      [attr.data-testid]="'automation-action-remove-' + index()"
+      [attr.aria-label]="'studio.automations.action_remove' | t: { n: index() + 1 }"
+      (click)="removed.emit()"
+    ></button>
+  </div>
+  @if (error('.type')) {
+    <p class="automation-problem" role="alert">{{ error('.type') }}</p>
+  }
+
+  @switch (action().type) {
+    @case ('create_record') {
+      <smt-control
+        [smtLabel]="'studio.automations.target_form' | t"
+        [smtHint]="'studio.automations.target_form_hint' | t"
+        [smtError]="error('.form')"
+        [required]="true"
+      >
+        <smt-select
+          [smtTriggerId]="'automation-target-' + index()"
+          [attr.data-testid]="'automation-target-' + index()"
+          [options]="formOptions()"
+          [value]="action().form ?? null"
+          (valueChange)="setTarget($event)"
+        />
+      </smt-control>
+    }
+    @case ('transition') {
+      <div class="automation-action-row">
+        <smt-control
+          [smtLabel]="'studio.automations.transition' | t"
+          [smtError]="error('.transition')"
+          [required]="true"
+        >
+          <smt-select
+            [smtTriggerId]="'automation-transition-' + index()"
+            [attr.data-testid]="'automation-transition-' + index()"
+            [options]="transitionOptions()"
+            [value]="action().transition ?? null"
+            (valueChange)="change({ transition: $event ?? undefined })"
+          />
+        </smt-control>
+        <smt-control
+          [smtLabel]="'studio.automations.comment' | t"
+          [smtHint]="'studio.automations.comment_hint' | t"
+          [smtError]="error('.comment')"
+        >
+          <smt-input
+            [smtFieldId]="'automation-comment-' + index()"
+            [maxLength]="1000"
+            [value]="action().comment ?? ''"
+            (valueChange)="change({ comment: $event ? '' + $event : undefined })"
+          />
+        </smt-control>
+      </div>
+    }
+    @case ('notify') {
+      <fieldset class="automation-subgroup" [attr.data-testid]="'automation-channels-' + index()">
+        <legend>{{ 'studio.automations.channels' | t }}</legend>
+        <div class="automation-checks">
+          @for (channel of channelOptions(); track channel.id) {
+            <div
+              smt-checkbox
+              [attr.data-testid]="'automation-channel-' + index() + '-' + channel.id"
+              [checked]="hasChannel(channel.id)"
+              (checkedChange)="toggleChannel(channel.id, $event)"
+            >
+              {{ channel.label }}
+            </div>
+          }
+        </div>
+        @if (error('.channels')) {
+          <p class="automation-problem" role="alert">{{ error('.channels') }}</p>
+        }
+      </fieldset>
+      <fieldset class="automation-subgroup">
+        <legend>{{ 'studio.automations.recipients' | t }}</legend>
+        @if (error('.recipients')) {
+          <p class="automation-problem" role="alert">{{ error('.recipients') }}</p>
+        }
+        <div class="automation-action-row">
+          <smt-control
+            [smtLabel]="'studio.automations.recipient_fields' | t"
+            [smtHint]="'studio.automations.recipient_fields_hint' | t"
+          >
+            <smt-multi-select
+              [attr.data-testid]="'automation-recipient-fields-' + index()"
+              [options]="userFieldOptions()"
+              [value]="action().recipients?.fields ?? []"
+              [ariaLabel]="'studio.automations.recipient_fields' | t"
+              (valueChange)="setRecipients('fields', $event)"
+            />
+          </smt-control>
+          <smt-control [smtLabel]="'studio.automations.recipient_users' | t">
+            <smt-multi-data-select
+              [attr.data-testid]="'automation-recipient-users-' + index()"
+              [source]="lookups.activeUsers"
+              [knownRows]="knownUsers()"
+              [value]="action().recipients?.users ?? []"
+              [ariaLabel]="'studio.automations.recipient_users' | t"
+              (valueChange)="setRecipients('users', $any([...$event]))"
+            />
+          </smt-control>
+          <smt-control
+            [smtLabel]="'studio.automations.recipient_rights' | t"
+            [smtHint]="'studio.automations.recipient_rights_hint' | t"
+          >
+            <smt-multi-select
+              [options]="rightOptions()"
+              [value]="rights()"
+              [ariaLabel]="'studio.automations.recipient_rights' | t"
+              (valueChange)="setRecipients('rights', $event)"
+            />
+          </smt-control>
+        </div>
+        <div
+          smt-checkbox
+          [attr.data-testid]="'automation-recipient-author-' + index()"
+          [checked]="action().recipients?.author === true"
+          (checkedChange)="setRecipients('author', $event)"
+        >
+          {{ 'studio.automations.recipient_author' | t }}
+        </div>
+      </fieldset>
+      <p class="automation-hint">{{ 'studio.automations.placeholders' | t: { names: placeholders() } }}</p>
+      <div class="automation-texts">
+        @for (language of languages; track language) {
+          <smt-control
+            [smtLabel]="'studio.automations.title_' + language | t"
+            [smtError]="error('.title.' + language)"
+            [required]="language === 'ru'"
+          >
+            <smt-input
+              [smtFieldId]="'automation-title-' + index() + '-' + language"
+              [smtTestId]="'automation-title-' + index() + '-' + language"
+              [maxLength]="200"
+              [value]="text('title', language)"
+              (valueChange)="setText('title', language, $event === null ? '' : '' + $event)"
+            />
+          </smt-control>
+        }
+        @for (language of languages; track language) {
+          <smt-control
+            [smtLabel]="'studio.automations.body_' + language | t"
+            [smtError]="error('.body.' + language)"
+            [required]="language === 'ru'"
+          >
+            <smt-textarea
+              [attr.data-testid]="'automation-body-' + index() + '-' + language"
+              [rows]="3"
+              [maxLength]="2000"
+              [value]="text('body', language)"
+              (valueChange)="setText('body', language, $event)"
+            />
+          </smt-control>
+        }
+      </div>
+    }
+  }
+
+  @if (action().type === 'set_field' || action().type === 'create_record') {
+    @if (error('.values')) {
+      <p class="automation-problem" role="alert">{{ error('.values') }}</p>
+    }
+    @for (value of action().values ?? []; track $index; let row = $index) {
+      <div class="automation-value" [attr.data-testid]="'automation-value-' + index() + '-' + row">
+        <smt-control
+          [smtLabel]="'studio.automations.value_field' | t"
+          [smtError]="error('.values[' + row + '].field')"
+          [required]="true"
+        >
+          <smt-select
+            [smtTriggerId]="'automation-value-field-' + index() + '-' + row"
+            [attr.data-testid]="'automation-value-field-' + index() + '-' + row"
+            [options]="fieldOptions()"
+            [value]="value.field || null"
+            (valueChange)="setValue(row, 'field', $event)"
+          />
+        </smt-control>
+        <app-automation-formula
+          [label]="'studio.automations.value_formula' | t"
+          [hint]="'studio.automations.value_formula_hint' | t"
+          [required]="true"
+          [value]="value.formula || undefined"
+          [form]="form()"
+          [trigger]="trigger()"
+          [targetField]="value.field || null"
+          [targetForm]="action().type === 'create_record' ? (action().form ?? null) : null"
+          [names]="nameOptions()"
+          [error]="error('.values[' + row + '].formula')"
+          [testId]="'automation-value-formula-' + index() + '-' + row"
+          (valueChange)="setValue(row, 'formula', $event)"
+        />
+        <button
+          smt-button
+          type="button"
+          smtVariant="ghost"
+          smtSize="sm"
+          smtIcon="close"
+          [attr.aria-label]="'studio.automations.value_remove' | t: { n: row + 1 }"
+          (click)="removeValue(row)"
+        ></button>
+      </div>
+    }
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtSize="sm"
+      smtIcon="add"
+      [attr.data-testid]="'automation-value-add-' + index()"
+      (click)="addValue()"
+    >
+      {{ 'studio.automations.value_add' | t }}
+    </button>
+  }
+</fieldset>

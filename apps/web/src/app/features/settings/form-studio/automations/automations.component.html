@@ -1,0 +1,148 @@
+<div class="automations-page" data-testid="automations">
+  <ui-page-header [title]="'studio.automations.title' | t" [subtitle]="'studio.automations.subtitle' | t">
+    <a smt-button smtVariant="secondary" routerLink="/settings/form-studio/forms">{{
+      'studio.automations.to_forms' | t
+    }}</a>
+    @if (mayManage()) {
+      <a
+        smt-button
+        smtVariant="primary"
+        smtIcon="add"
+        data-testid="automations-new"
+        routerLink="/settings/form-studio/automations/new"
+        [queryParams]="form() ? { form: form() } : {}"
+        >{{ 'studio.automations.new' | t }}</a
+      >
+    }
+  </ui-page-header>
+  <smt-alert smtTone="info" smtLive="off">{{ 'studio.automations.hint' | t }}</smt-alert>
+  <div class="automations-filter">
+    <smt-control [smtLabel]="'studio.automations.filter_form' | t">
+      <smt-select
+        smtTriggerId="automations-filter-form"
+        data-testid="automations-filter-form"
+        [options]="formOptions()"
+        [value]="form()"
+        [placeholder]="'studio.automations.all_forms' | t"
+        (valueChange)="filter($event)"
+      />
+    </smt-control>
+  </div>
+  @if (error()) {
+    <smt-alert smtTone="danger" data-testid="automations-error">{{ error() }}</smt-alert>
+  }
+  @if (loading() && !automations().length) {
+    <p role="status">{{ 'common.loading' | t }}</p>
+  } @else if (!automations().length && !error()) {
+    <p class="automations-empty" data-testid="automations-empty">{{ 'studio.automations.empty' | t }}</p>
+  }
+  <ul class="automations-list" [attr.aria-label]="'studio.automations.title' | t">
+    @for (automation of automations(); track automation.id) {
+      <li class="automation-card" data-testid="automation">
+        <div class="automation-main">
+          <div class="automation-title">
+            <h2>{{ automation.name }}</h2>
+            <smt-tag
+              [label]="(automation.active ? 'studio.automations.active' : 'studio.automations.paused') | t"
+              [smtTone]="automation.active ? 'success' : 'neutral'"
+            />
+            @if (automation.formArchived) {
+              <smt-tag [label]="'studio.automations.form_archived' | t" smtTone="warning" />
+            }
+          </div>
+          <p>{{ title(automation.form) }} · {{ trigger(automation) }}</p>
+          <p class="automation-meta">
+            {{ 'studio.automations.actions_count' | t: { n: automation.actions.length } }} ·
+            {{ 'studio.automations.author' | t: { name: automation.author.name } }}
+          </p>
+          @if (automation.nextRunAt) {
+            <p class="automation-meta">
+              {{ 'studio.automations.next_run' | t: { at: (automation.nextRunAt | date: 'medium') ?? '' } }}
+            </p>
+          }
+          @if (automation.lastRun; as last) {
+            <p class="automation-meta">
+              {{ 'studio.automations.last_run' | t }}
+              <smt-tag [label]="'studio.automations.status.' + last.status | t" [smtTone]="tone(last.status)" />
+              {{ last.createdAt | date: 'medium' }}
+            </p>
+          }
+        </div>
+        <div class="automation-actions">
+          @if (mayManage()) {
+            <a
+              smt-button
+              smtVariant="secondary"
+              smtSize="sm"
+              smtIcon="edit"
+              data-testid="automation-edit"
+              [routerLink]="['/settings/form-studio/automations', automation.id]"
+              [attr.aria-label]="'studio.automations.edit_named' | t: { name: automation.name }"
+              >{{ 'studio.automations.edit_short' | t }}</a
+            >
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              [smtIcon]="automation.active ? 'pause' : 'play_arrow'"
+              data-testid="automation-toggle"
+              [smtLoading]="busy() === automation.id"
+              [attr.aria-label]="
+                (automation.active ? 'studio.automations.pause_named' : 'studio.automations.resume_named')
+                  | t: { name: automation.name }
+              "
+              (click)="toggle(automation)"
+            >
+              {{ (automation.active ? 'studio.automations.pause' : 'studio.automations.resume') | t }}
+            </button>
+            @if (automation.trigger.kind === 'scheduled') {
+              <button
+                smt-button
+                type="button"
+                smtVariant="secondary"
+                smtSize="sm"
+                smtIcon="play_circle"
+                data-testid="automation-run-now"
+                [disabled]="!automation.active"
+                [attr.aria-label]="'studio.automations.run_now_named' | t: { name: automation.name }"
+                (click)="runNow(automation)"
+              >
+                {{ 'studio.automations.run_now' | t }}
+              </button>
+            }
+          }
+          <button
+            smt-button
+            type="button"
+            smtVariant="ghost"
+            smtSize="sm"
+            smtIcon="history"
+            data-testid="automation-runs"
+            [attr.aria-label]="'studio.automations.runs_named' | t: { name: automation.name }"
+            (click)="history.set(automation)"
+          >
+            {{ 'studio.automations.runs' | t }}
+          </button>
+          @if (mayManage()) {
+            <button
+              smt-button
+              type="button"
+              smtVariant="ghost"
+              smtSize="sm"
+              smtIcon="delete"
+              data-testid="automation-delete"
+              [attr.aria-label]="'studio.automations.delete_named' | t: { name: automation.name }"
+              (click)="remove(automation)"
+            >
+              {{ 'common.delete' | t }}
+            </button>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+  @if (history(); as automation) {
+    <app-automation-runs [automation]="automation" (closed)="history.set(null)" />
+  }
+</div>

@@ -1,0 +1,74 @@
+.automation-action {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 16px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+.automation-action > legend {
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.automation-action-tools {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+}
+.automation-action-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.automation-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.automation-subgroup > legend {
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.automation-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.automation-value {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(0, 2fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+.automation-texts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.automation-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.automation-problem {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: 13px;
+}
+@media (max-width: 720px) {
+  .automation-value,
+  .automation-texts {
+    grid-template-columns: 1fr;
+  }
+}

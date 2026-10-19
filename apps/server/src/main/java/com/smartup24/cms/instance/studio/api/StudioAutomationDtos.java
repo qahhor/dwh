@@ -187,18 +187,29 @@ public final class StudioAutomationDtos {
 
     /** A user as an automation names it. */
     @Schema(name = "StudioAutomationUser")
-    public record UserRef(long id, String name) {}
+    public record UserRef(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            long id,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            String name) {}
 
     /** The last run of an automation. */
     @Schema(name = "StudioAutomationRunSummary")
     public record RunSummary(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             long id,
 
-            @Schema(allowableValues = {"queued", "done", "skipped", "failed"})
+            @Schema(
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    allowableValues = {"queued", "done", "skipped", "failed"})
             String status,
 
             @Nullable String reason,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Instant createdAt,
+
             @Nullable Instant finishedAt) {}
 
     /**
@@ -209,41 +220,93 @@ public final class StudioAutomationDtos {
      */
     @Schema(name = "StudioAutomation")
     public record Automation(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             long id,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String form,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String name,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             boolean active,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             boolean formArchived,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Trigger trigger,
+
             @Nullable String condition,
+
+            @ArraySchema(arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
             List<Action> actions,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String timeZone,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             UserRef author,
+
             @Nullable Instant nextRunAt,
             @Nullable RunSummary lastRun,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             long revision,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Instant createdAt,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Instant modifiedAt) {}
 
     /** A problem of a field of a record an action wrote, with the dictionary key of its text. */
     @Schema(name = "StudioAutomationFieldProblem")
-    public record FieldProblem(String field, String key, Map<String, Object> params) {}
+    public record FieldProblem(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            String field,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            String key,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            Map<String, Object> params) {}
 
     /** Why a run or an action failed: the dictionary key of the text, its values and the problems of fields. */
     @Schema(name = "StudioAutomationProblem")
-    public record Problem(String key, Map<String, Object> params, List<FieldProblem> fields) {}
+    public record Problem(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            String key,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            Map<String, Object> params,
+
+            @ArraySchema(arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
+            List<FieldProblem> fields) {}
 
     /** A recipient of a notification and the channels it goes on, or why the person was left out. */
     @Schema(name = "StudioAutomationRecipient")
     public record Recipient(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             long id,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String name,
+
+            @ArraySchema(arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
             List<String> channels,
+
             @Nullable String skipped) {}
 
     /** A notification as its first recipient reads it, or in the author's language when none. */
     @Schema(name = "StudioAutomationMessage")
-    public record Message(String title, String body) {}
+    public record Message(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            String title,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            String body) {}
 
     /**
      * What one action did — or, in a dry run, would do: the values it writes, the record it creates or changes, the
@@ -251,10 +314,15 @@ public final class StudioAutomationDtos {
      */
     @Schema(name = "StudioAutomationActionResult")
     public record ActionResult(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             int index,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String type,
 
-            @Schema(allowableValues = {"done", "would_apply", "skipped", "failed"})
+            @Schema(
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    allowableValues = {"done", "would_apply", "skipped", "failed"})
             String status,
 
             @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable
@@ -281,23 +349,40 @@ public final class StudioAutomationDtos {
     /** One run of an automation for one record. */
     @Schema(name = "StudioAutomationRun")
     public record Run(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             long id,
 
-            @Schema(allowableValues = {"event", "scheduled", "manual"})
+            @Schema(
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    allowableValues = {"event", "scheduled", "manual"})
             String kind,
 
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String trigger,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             long recordId,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             int depth,
 
-            @Schema(allowableValues = {"queued", "done", "skipped", "failed"})
+            @Schema(
+                    requiredMode = Schema.RequiredMode.REQUIRED,
+                    allowableValues = {"queued", "done", "skipped", "failed"})
             String status,
 
             @Nullable String reason,
             @Nullable Problem error,
+
+            @ArraySchema(arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
             List<ActionResult> results,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             int attempts,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Instant createdAt,
+
             @Nullable Instant finishedAt) {}
 
     /** A dry run: the automation as the editor holds it, over one record of its form. */
@@ -315,6 +400,7 @@ public final class StudioAutomationDtos {
      */
     @Schema(name = "StudioAutomationDryRun")
     public record DryRun(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             boolean conditionHolds,
 
             @Schema(description = "Why the run would stop: condition, form_archived, author_access, action_failed")
@@ -322,11 +408,18 @@ public final class StudioAutomationDtos {
             String reason,
 
             @Nullable Problem error,
+
+            @ArraySchema(arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
             List<ActionResult> actions) {}
 
     /** The runs a run now of a scheduled automation queued: one per record meeting the condition. */
     @Schema(name = "StudioAutomationRunNow")
-    public record RunNow(int queued, boolean truncated) {}
+    public record RunNow(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int queued,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            boolean truncated) {}
 
     /** A formula of an automation to check while the editor types it. */
     @Schema(name = "StudioAutomationCheckRequest")
@@ -352,5 +445,18 @@ public final class StudioAutomationDtos {
     /** What the editor may offer: the channels configured here and the limits. */
     @Schema(name = "StudioAutomationOptions")
     public record Options(
-            List<String> channels, int maxPerForm, int maxActions, int maxDepth, int maxRunsPerRecordHour) {}
+            @ArraySchema(arraySchema = @Schema(requiredMode = Schema.RequiredMode.REQUIRED))
+            List<String> channels,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int maxPerForm,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int maxActions,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int maxDepth,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int maxRunsPerRecordHour) {}
 }
