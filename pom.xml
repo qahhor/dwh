@@ -32,7 +32,7 @@
         <argon2.version>2.12</argon2.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <typesense.version>0.6.0</typesense.version>
-        <aws.sdk.version>2.55.16</aws.sdk.version>
+        <aws.sdk.version>2.56.0</aws.sdk.version>
         <!-- OpenAPI generated from the controllers (plan 10/10, item 3.3); 3.1.x is built on Spring Boot 4.1. -->
         <springdoc.version>3.1.1</springdoc.version>
 
