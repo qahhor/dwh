@@ -95,25 +95,29 @@ Details and links: `CODE_STYLE.md`, `docs/ai-context.md` §5, ADR-0020…0025.
 
 ## 5. Checks (run all before a push)
 
-The full list with commands is in `docs/ai-context.md` §6. In short:
+The full list with commands is in `docs/ai-context.md` §6. While developing,
+run only the tests of the changed modules (`-pl <module> -Dtest=...`, the web
+specs you touched); run the full list below once, on the final commits, right
+before the push (owner, 2026-10-19). A failure found there is fixed and the
+affected checks run again; the push waits for a fully green run. In short:
 
 - Server: `mvn -B clean spotless:check verify`, then
   `scripts/quality/test-no-skipped-tests.ps1`,
   `scripts/quality/test-coverage-floors.ps1` and
   `scripts/api/test-platform-api-compat.ps1`; diff coverage of the branch
   (diff-cover 10.6.0, as in `ci.yml`): `python -m diff_cover.diff_cover_tool
-  apps/server/target/site/jacoco/jacoco.xml --compare-branch=main
+  apps/server/target/site/jacoco/jacoco.xml --compare-branch=origin/main
   --src-roots apps/server/src/main/java --fail-under=80`.
 - Web (`apps/web`): `npm run -s typecheck|lint|i18n:audit|aria:audit|contrast:audit|signals:audit|api:audit|comments:audit|test:coverage|build`,
   then `node scripts/coverage-summary.mjs` (the coverage floor).
 - Accessibility: `cd e2e && npm run test:a11y`; E2E: `scripts/dev/test-e2e.ps1`
   on a fresh Compose stack, both shards (`-Shard 1/2`, `-Shard 2/2`).
-- API contract: `scripts/api/test-api-contract.ps1 -BaseRef main`.
+- API contract: `scripts/api/test-api-contract.ps1 -BaseRef origin/main`.
 - Repository: `scripts/docs/test-repository-hygiene.ps1`,
   `scripts/docs/test-public-docs.ps1`, `scripts/github/test-rulesets.ps1`, the
   docs contract (`node --test scripts/docs/docs-contract.test.mjs`,
-  `node scripts/docs/test-docs-contract.mjs`); secrets: gitleaks over the branch's
-  commits (`gitleaks git --log-opts="main..HEAD"`).
+  `node scripts/docs/test-docs-contract.mjs`); secrets: gitleaks over the unpushed
+  commits (`gitleaks git --log-opts="origin/main..HEAD"`).
 - Developer CLI (`tools/cms-cli`): `npm test` there (as CI:
   `node --test 'tools/cms-cli/test/**/*.test.mjs'` and
   `node tools/cms-cli/scripts/smoke.mjs --skip-build`); after changing the CLI

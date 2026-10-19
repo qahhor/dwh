@@ -128,7 +128,7 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   `skip`/`only`/`todo` в тестах веба и e2e) и
   `scripts/quality/test-coverage-floors.ps1`; покрытие изменённых строк
   ветки (diff-cover 10.6.0, как в `ci.yml`, порог 80 %):
-  `python -m diff_cover.diff_cover_tool apps/server/target/site/jacoco/jacoco.xml --compare-branch=main --src-roots apps/server/src/main/java --fail-under=80`.
+  `python -m diff_cover.diff_cover_tool apps/server/target/site/jacoco/jacoco.xml --compare-branch=origin/main --src-roots apps/server/src/main/java --fail-under=80`.
 - Совместимость публичного API (`libs/platform-api`, `libs/provider-spi`):
   `scripts/api/test-platform-api-compat.ps1`.
 - Web (`apps/web`): `npm run lint`, `npm run typecheck`, `npm run i18n:audit`,
