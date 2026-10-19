@@ -66,7 +66,7 @@ public class AutomationTexts {
         if (choice != null) return choice;
         return switch (value) {
             case Boolean flag -> yesNo(flag, lang);
-            case BigDecimal number -> FormulaValues.text(number);
+            case BigDecimal number -> FormulaValues.text(number.stripTrailingZeros());
             case Number number -> number(number.toString());
             case LocalDate date -> DATE.format(date);
             case Instant moment -> MOMENT.format(moment.atZone(run.scope().zone()));

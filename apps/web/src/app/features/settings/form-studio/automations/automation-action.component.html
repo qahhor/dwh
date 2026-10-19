@@ -36,7 +36,7 @@
     <p class="automation-problem" role="alert">{{ error('.type') }}</p>
   }
 
-  @switch (action().type) {
+  @switch (current().type) {
     @case ('create_record') {
       <smt-control
         [smtLabel]="'studio.automations.target_form' | t"
@@ -48,7 +48,7 @@
           [smtTriggerId]="'automation-target-' + index()"
           [attr.data-testid]="'automation-target-' + index()"
           [options]="formOptions()"
-          [value]="action().form ?? null"
+          [value]="current().form ?? null"
           (valueChange)="setTarget($event)"
         />
       </smt-control>
@@ -64,7 +64,7 @@
             [smtTriggerId]="'automation-transition-' + index()"
             [attr.data-testid]="'automation-transition-' + index()"
             [options]="transitionOptions()"
-            [value]="action().transition ?? null"
+            [value]="current().transition ?? null"
             (valueChange)="change({ transition: $event ?? undefined })"
           />
         </smt-control>
@@ -76,7 +76,7 @@
           <smt-input
             [smtFieldId]="'automation-comment-' + index()"
             [maxLength]="1000"
-            [value]="action().comment ?? ''"
+            [value]="current().comment ?? ''"
             (valueChange)="change({ comment: $event ? '' + $event : undefined })"
           />
         </smt-control>
@@ -114,7 +114,7 @@
             <smt-multi-select
               [attr.data-testid]="'automation-recipient-fields-' + index()"
               [options]="userFieldOptions()"
-              [value]="action().recipients?.fields ?? []"
+              [value]="current().recipients?.fields ?? []"
               [ariaLabel]="'studio.automations.recipient_fields' | t"
               (valueChange)="setRecipients('fields', $event)"
             />
@@ -124,7 +124,7 @@
               [attr.data-testid]="'automation-recipient-users-' + index()"
               [source]="lookups.activeUsers"
               [knownRows]="knownUsers()"
-              [value]="action().recipients?.users ?? []"
+              [value]="current().recipients?.users ?? []"
               [ariaLabel]="'studio.automations.recipient_users' | t"
               (valueChange)="setRecipients('users', $any([...$event]))"
             />
@@ -144,7 +144,7 @@
         <div
           smt-checkbox
           [attr.data-testid]="'automation-recipient-author-' + index()"
-          [checked]="action().recipients?.author === true"
+          [checked]="current().recipients?.author === true"
           (checkedChange)="setRecipients('author', $event)"
         >
           {{ 'studio.automations.recipient_author' | t }}
@@ -186,11 +186,11 @@
     }
   }
 
-  @if (action().type === 'set_field' || action().type === 'create_record') {
+  @if (current().type === 'set_field' || current().type === 'create_record') {
     @if (error('.values')) {
       <p class="automation-problem" role="alert">{{ error('.values') }}</p>
     }
-    @for (value of action().values ?? []; track $index; let row = $index) {
+    @for (value of current().values ?? []; track $index; let row = $index) {
       <div class="automation-value" [attr.data-testid]="'automation-value-' + index() + '-' + row">
         <smt-control
           [smtLabel]="'studio.automations.value_field' | t"
@@ -213,7 +213,7 @@
           [form]="form()"
           [trigger]="trigger()"
           [targetField]="value.field || null"
-          [targetForm]="action().type === 'create_record' ? (action().form ?? null) : null"
+          [targetForm]="current().type === 'create_record' ? (current().form ?? null) : null"
           [names]="nameOptions()"
           [error]="error('.values[' + row + '].formula')"
           [testId]="'automation-value-formula-' + index() + '-' + row"

@@ -6,6 +6,7 @@ import {
   effect,
   inject,
   input,
+  linkedSignal,
   output,
   signal,
 } from '@angular/core';
@@ -90,16 +91,21 @@ export class AutomationActionComponent {
   readonly removed = output<void>();
   readonly moved = output<-1 | 1>();
 
+  /**
+   * The action as this editor last changed it: the parent's copy comes back on the next change detection, and two
+   * changes may land before it does (a choice closed by the next field's input).
+   */
+  readonly current = linkedSignal(() => this.action());
   readonly targetMeta = signal<FormMeta | null>(null);
   readonly knownUsers = signal<UserRef[]>([]);
 
   readonly prefix = computed(() => `actions[${this.index()}]`);
   readonly typeLabel = computed(() => {
     this.i18n.currentLang();
-    return this.i18n.translate(`studio.automations.action.${this.action().type}`);
+    return this.i18n.translate(`studio.automations.action.${this.current().type}`);
   });
   /** The form whose fields the action writes: the automation's own, or the target of a new record. */
-  readonly writtenMeta = computed(() => (this.action().type === 'create_record' ? this.targetMeta() : this.meta()));
+  readonly writtenMeta = computed(() => (this.current().type === 'create_record' ? this.targetMeta() : this.meta()));
   readonly fieldOptions = computed<SMTSelectOption<string>[]>(() => {
     this.i18n.currentLang();
     return writableFields(this.writtenMeta()).map((field) => ({
@@ -157,14 +163,14 @@ export class AutomationActionComponent {
   });
   readonly placeholders = computed(() => ['form', ...readableNames(this.meta())].map((name) => `{${name}}`).join(', '));
   readonly rights = computed(() =>
-    (this.action().recipients?.rights ?? []).map((right) => `${right.form}.${right.action}`),
+    (this.current().recipients?.rights ?? []).map((right) => `${right.form}.${right.action}`),
   );
 
   readonly languages: readonly Language[] = ['ru', 'uz', 'en'];
 
   constructor() {
     effect((onCleanup) => {
-      const target = this.action().type === 'create_record' ? this.action().form : null;
+      const target = this.current().type === 'create_record' ? this.current().form : null;
       if (!target) {
         this.targetMeta.set(null);
         return;
@@ -182,21 +188,23 @@ export class AutomationActionComponent {
   }
 
   change(changes: Partial<AutomationAction>): void {
-    this.changed.emit({ ...this.action(), ...changes });
+    const next = { ...this.current(), ...changes };
+    this.current.set(next);
+    this.changed.emit(next);
   }
 
   setValue(row: number, part: 'field' | 'formula', text: string | null | undefined): void {
-    const values = [...(this.action().values ?? [])];
+    const values = [...(this.current().values ?? [])];
     values[row] = { ...values[row], [part]: text ?? '' };
     this.change({ values });
   }
 
   addValue(): void {
-    this.change({ values: [...(this.action().values ?? []), { field: '', formula: '' }] });
+    this.change({ values: [...(this.current().values ?? []), { field: '', formula: '' }] });
   }
 
   removeValue(row: number): void {
-    this.change({ values: (this.action().values ?? []).filter((_value, at) => at !== row) });
+    this.change({ values: (this.current().values ?? []).filter((_value, at) => at !== row) });
   }
 
   setTarget(form: string | null): void {
@@ -204,16 +212,16 @@ export class AutomationActionComponent {
   }
 
   hasChannel(channel: string): boolean {
-    return (this.action().channels ?? []).includes(channel as 'in_app');
+    return (this.current().channels ?? []).includes(channel as 'in_app');
   }
 
   toggleChannel(channel: string, on: boolean): void {
-    const chosen = (this.action().channels ?? []).filter((candidate) => candidate !== channel);
+    const chosen = (this.current().channels ?? []).filter((candidate) => candidate !== channel);
     this.change({ channels: (on ? [...chosen, channel] : chosen) as AutomationAction['channels'] });
   }
 
   setRecipients(part: 'fields' | 'users' | 'author' | 'rights', value: unknown): void {
-    const recipients = { ...(this.action().recipients ?? {}) };
+    const recipients = { ...(this.current().recipients ?? {}) };
     if (part === 'rights') {
       recipients.rights = (value as string[]).map((pair) => {
         const dot = pair.lastIndexOf('.');
@@ -230,11 +238,11 @@ export class AutomationActionComponent {
   }
 
   text(part: 'title' | 'body', language: Language): string {
-    return this.action()[part]?.[language] ?? '';
+    return this.current()[part]?.[language] ?? '';
   }
 
   setText(part: 'title' | 'body', language: Language, text: string | null | undefined): void {
-    const texts: AutomationTexts = { ru: '', ...(this.action()[part] ?? {}) };
+    const texts: AutomationTexts = { ru: '', ...(this.current()[part] ?? {}) };
     const value = text ?? '';
     if (language === 'ru') texts.ru = value;
     else if (value) texts[language] = value;

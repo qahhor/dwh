@@ -125,7 +125,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
                         "studio.automations",
                         Set.of("view", "manage"),
                         orders,
-                        Set.of("view", "create", "update", "submit", "approve"),
+                        Set.of("view", "create", "update", "submit", "approve", "delete"),
                         tasks,
                         Set.of("view", "create"),
                         "md.users",
@@ -257,7 +257,56 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
         assertThat(runs(scheduled)).extracting(run -> run.get("status")).containsExactly("done");
         assertThat(TestSession.object(auditor.send(get(API + "/" + scheduled))).get("nextRunAt"))
                 .isNotNull();
-        assertThat(scheduler.tick()).isNotNegative();
+
+        // The slot comes: the tick starts the look at the records once, and the run of the slot follows.
+        jdbc.sql("update studio_automations set next_run_at = clock_timestamp() - interval '1 minute' where id = :id")
+                .param("id", scheduled)
+                .update();
+        assertThat(scheduler.tick()).isPositive();
+        jobs.runQueued();
+        jobs.runQueued();
+        assertThat(runs(scheduled)).extracting(run -> run.get("kind")).containsExactlyInAnyOrder("scheduled", "manual");
+        assertThat(TestSession.object(auditor.send(get(API + "/" + scheduled))).get("nextRunAt"))
+                .isNotNull();
+
+        // A paused automation is not run now, nor is an automation of an event.
+        Map<String, Object> stored = TestSession.object(admin.send(get(API + "/" + scheduled)));
+        reminder.put("active", false);
+        assertThat(admin.send(
+                                put(API + "/" + scheduled).header("If-Match", "\"" + stored.get("revision") + "\""),
+                                reminder)
+                        .getStatus())
+                .isEqualTo(200);
+        assertThat(admin.send(post(API + "/" + scheduled + "/runs"), Map.of(), null)
+                        .getStatus())
+                .isEqualTo(409);
+        long flag = automation(admin, saved("Помечать", null, setReview()));
+        assertThat(admin.send(post(API + "/" + flag + "/runs"), Map.of(), null).getStatus())
+                .isEqualTo(422);
+    }
+
+    @Test
+    void aRefusedActionRollsTheRunBackAndTheLogSaysWhy() throws Exception {
+        long locked = automation(admin, onTransition("Пометить на согласовании", List.of("pending"), setReview()));
+        Map<String, Object> created = newOrder(Map.of("discount", "1"));
+        long order = id(created);
+        MockHttpServletResponse submitted = transition(writer, orders, order, "submit", 1, Map.of());
+        assertThat(submitted.getStatus()).as(submitted.getContentAsString()).isEqualTo(200);
+        jobs.runQueued();
+        Map<String, Object> run = runs(locked).getFirst();
+        assertThat(run.get("status")).isEqualTo("failed");
+        assertThat(run.get("reason")).isEqualTo("action_failed");
+        assertThat(read(writer, order).get("review")).isNotEqualTo(true);
+        assertThat(read(writer, order).get("revision")).isEqualTo(2);
+
+        // The record goes before its run: the run is skipped.
+        long gone = automation(admin, saved("После удаления", null, setReview()));
+        long other = id(newOrder(Map.of("discount", "2")));
+        assertThat(admin.send(delete("/api/v1/entities/" + orders + "/" + other))
+                        .getStatus())
+                .isEqualTo(204);
+        jobs.runQueued();
+        assertThat(runs(gone)).extracting(each -> each.get("reason")).containsExactly("record_gone");
     }
 
     @Test
@@ -287,6 +336,131 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
         assertThat(admin.send(delete(API + "/" + flag).header("If-Match", "\"1\""))
                         .getStatus())
                 .isEqualTo(409);
+    }
+
+    @Test
+    void everyPartOfAnAutomationIsCheckedAtItsPlace() throws Exception {
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("form", orders);
+        request.put("name", " ");
+        request.put("timeZone", "Mars/Olympus");
+        request.put("trigger", Map.of("kind", "transition", "fields", List.of("discount"), "to", List.of("nowhere")));
+        request.put("condition", "discount +");
+        request.put(
+                "actions",
+                List.of(
+                        Map.of("type", "set_field", "values", List.of(Map.of("field", "total", "formula", "1"))),
+                        Map.of(
+                                "type",
+                                "create_record",
+                                "form",
+                                tasks,
+                                "values",
+                                List.of(Map.of("field", "note", "formula", "1"))),
+                        Map.of("type", "transition", "transition", "fly"),
+                        Map.of(
+                                "type", "notify",
+                                "channels", List.of("pigeon"),
+                                "recipients",
+                                        Map.of(
+                                                "fields",
+                                                List.of("client"),
+                                                "users",
+                                                List.of(-5L),
+                                                "rights",
+                                                List.of(Map.of("form", "x", "action", "y"))),
+                                "title", Map.of("ru", "Заказ {nothing}"),
+                                "body", Map.of("ru", ""))));
+        MockHttpServletResponse refused = admin.send(post(API), request);
+        assertThat(refused.getStatus()).isEqualTo(422);
+        String problems = refused.getContentAsString();
+        assertThat(problems)
+                .contains("\"name\"", "\"timeZone\"", "\"trigger.fields\"", "\"trigger.to[0]\"", "\"condition\"")
+                .contains("actions[0].values[0].field", "actions[1].values", "actions[1].values[0].formula")
+                .contains("actions[2].transition", "actions[3].channels", "actions[3].recipients.fields[0]")
+                .contains("actions[3].recipients.users[0]", "actions[3].recipients.rights[0]")
+                .contains("actions[3].title.ru", "actions[3].body.ru");
+
+        request.put("name", "Удаление");
+        request.put("timeZone", "UTC");
+        request.put("condition", "discount");
+        request.put("trigger", Map.of("kind", "deleted"));
+        request.put("actions", List.of(setReview()));
+        String deleted = admin.send(post(API), request).getContentAsString();
+        assertThat(deleted).contains("error.studio.automation_deleted_action", "\"condition\"");
+
+        request.put("trigger", Map.of("kind", "scheduled", "schedule", Map.of("frequency", "hourly", "time", "25:00")));
+        request.put("condition", "count(lines.items) > 0");
+        String scheduled = admin.send(post(API), request).getContentAsString();
+        assertThat(scheduled).contains("trigger.schedule", "error.studio.automation_condition_lines");
+
+        request.put("trigger", Map.of("kind", "teleport"));
+        request.put("actions", List.of());
+        assertThat(admin.send(post(API), request).getContentAsString()).contains("trigger.kind", "\"actions\"");
+        request.remove("form");
+        assertThat(admin.send(post(API), request).getContentAsString()).contains("error.studio.automation_form");
+        request.put("form", "studio.unknown_form");
+        assertThat(admin.send(post(API), request).getStatus()).isEqualTo(422);
+        assertThat(admin.send(get(API + "/999999999")).getStatus()).isEqualTo(404);
+
+        Map<String, Object> check = new LinkedHashMap<>();
+        check.put("form", orders);
+        check.put("trigger", "updated");
+        check.put("formula", "old.discount > discount and changed.discount");
+        assertThat(TestSession.object(admin.send(post(API + "/formulas/check"), check, null))
+                        .get("valid"))
+                .isEqualTo(true);
+        check.put("formula", "responsible");
+        check.put("targetForm", tasks);
+        check.put("targetField", "assignee");
+        assertThat(TestSession.object(admin.send(post(API + "/formulas/check"), check, null))
+                        .get("valid"))
+                .isEqualTo(true);
+        check.put("targetField", "missing");
+        assertThat(TestSession.object(admin.send(post(API + "/formulas/check"), check, null))
+                        .get("reason"))
+                .isEqualTo("unknown_field");
+        check.put("targetField", "note");
+        check.put("formula", "discount > 1");
+        assertThat(TestSession.object(admin.send(post(API + "/formulas/check"), check, null))
+                        .get("reason"))
+                .isEqualTo("result");
+        Map<String, Object> options = TestSession.object(auditor.send(get(API + "/options")));
+        assertThat(String.valueOf(options.get("channels"))).contains("in_app");
+    }
+
+    @Test
+    void aNotificationReachesTheAuthorFixedUsersAndHoldersOfARightWhoSeeTheRecord() throws Exception {
+        Map<String, Object> notify = new LinkedHashMap<>();
+        notify.put("type", "notify");
+        notify.put("channels", List.of("in_app", "email"));
+        notify.put(
+                "recipients",
+                Map.of(
+                        "author", true,
+                        "users", List.of(responsibleUser.id()),
+                        "rights", List.of(Map.of("form", orders, "action", "approve"))));
+        notify.put("title", Map.of("ru", "{form}: {docNumber}", "uz", "{form}", "en", "{form}"));
+        notify.put("body", Map.of("ru", "Скидка {discount}, проверка {review}, дата {modifiedAt}"));
+        Map<String, Object> request = saved("Всем причастным", null, notify);
+        long tell = automation(admin, request);
+        long order = id(newOrder(Map.of("discount", "7.50")));
+        jobs.runQueued();
+        assertThat(runs(tell)).extracting(run -> run.get("status")).containsExactly("done");
+        int told = jdbc.sql("""
+                        select count(distinct user_id) from ms_notifications
+                        where source_code = :source and user_id in (:users)
+                        """)
+                .param("source", "automation:" + tell + ":" + order)
+                .param("users", List.of(writerUser.id(), responsibleUser.id(), managerUser.id()))
+                .query(Integer.class)
+                .single();
+        assertThat(told).isEqualTo(3);
+        String body = jdbc.sql("select body from ms_notifications where source_code = :source limit 1")
+                .param("source", "automation:" + tell + ":" + order)
+                .query(String.class)
+                .single();
+        assertThat(body).contains("7.5").doesNotContain("{");
     }
 
     private Map<String, Object> newOrder(Map<String, Object> extra) throws Exception {

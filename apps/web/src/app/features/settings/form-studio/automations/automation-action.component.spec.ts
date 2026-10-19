@@ -63,7 +63,7 @@ describe('AutomationActionComponent', () => {
     component.removeValue(0);
     expect(changes[0].values).toEqual([{ field: 'review', formula: 'discount > 20' }]);
     expect(changes[1].values).toHaveLength(2);
-    expect(changes[2].values).toEqual([]);
+    expect(changes[2].values).toEqual([{ field: '', formula: '' }]);
   });
 
   it('creates a record in the form chosen, with the fields of that form', () => {
@@ -110,14 +110,15 @@ describe('AutomationActionComponent', () => {
     component.setText('body', 'en', '');
     component.setText('title', 'ru', 'Новый');
     expect(changes[0].channels).toEqual(['in_app', 'email']);
-    expect(changes[1].channels).toEqual([]);
+    expect(changes[1].channels).toEqual(['email']);
     expect(changes[2].recipients?.fields).toEqual(['manager']);
     expect(changes[3].recipients?.users).toEqual([7]);
     expect(changes[4].recipients?.author).toBe(true);
     expect(changes[5].recipients?.rights).toEqual([{ form: 'studio.orders', action: 'submit' }]);
     expect(changes[6].title).toEqual({ ru: 'Заказ', uz: 'Buyurtma' });
     expect(changes[7].body).toEqual({ ru: 'Текст' });
-    expect(changes[8].title).toEqual({ ru: 'Новый' });
-    expect(component.text('body', 'en')).toBe('Text');
+    expect(changes[8].title).toEqual({ ru: 'Новый', uz: 'Buyurtma' });
+    expect(component.text('body', 'en')).toBe('');
+    expect(component.text('body', 'ru')).toBe('Текст');
   });
 });

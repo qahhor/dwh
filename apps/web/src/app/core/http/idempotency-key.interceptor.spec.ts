@@ -140,6 +140,16 @@ describe('idempotencyKeyInterceptor', () => {
     request.flush({});
   });
 
+  it.each(['/api/v1/automations/formulas/check', '/api/v1/automations/dry-run'])(
+    'sends a check or a dry run of an automation, which stores nothing, without a key at %s',
+    (url) => {
+      http.post(url, {}).subscribe();
+      const request = backend.expectOne(url);
+      expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
+      request.flush({});
+    },
+  );
+
   it('sends the check of a formula, which stores nothing, without a key', () => {
     http.post('/api/v1/studio/formulas/check', { formula: 'qty * 2' }).subscribe();
     const request = backend.expectOne('/api/v1/studio/formulas/check');
