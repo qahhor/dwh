@@ -200,9 +200,13 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 `SmartupcmsAutomationsFailing`, `SmartupcmsAutomationQueueStuck` + RB-15, хранение запусков 90 дней. Веб:
 `features/settings/form-studio/automations` (список `/settings/form-studio/automations?form=`, редактор `…/:id`,
 `app-automation-action`, `app-automation-formula`, `app-automation-dry-run`, журнал), ссылки из настроек и «Моих форм».
-Тесты — `StudioAutomationHttpTest`, `AutomationTextsTest`; e2e `studio-automations.spec.ts`, a11y `automations.spec.ts`,
+Тесты — `StudioAutomationHttpTest` и модульные `Automation*Test` (проверки, события, исполнитель, раннер, сканы
+и тик, уведомления и действия, защита версии); e2e `studio-automations.spec.ts`, a11y `automations.spec.ts`,
 promtool `tests/automations.yml`. Дальше — шаг 3.2 (перенос пакетов и шаблоны; переносить и автоматизации), 3.3
-(витрины хранилища как источник отчётов). Локальные проверки на итоговом коде: GATES_PLACEHOLDER.
+(витрины хранилища как источник отчётов). Локальные проверки на итоговом коде: `mvn clean spotless:check verify` зелёный (37 мин), без
+пропусков (3604 теста), пороги покрытия (studio 98,4/92,7), diff-cover 98 %, совместимость platform-api, API-контракт
+(Spectral, `openapi-diff` — совместимо), веб (typecheck, lint, аудиты, forms 0, 2943 теста, порог покрытия, build), a11y
+175, e2e 41 + 41 и карантин, promtool, rulesets, гигиена, публичные документы, контракт документов, gitleaks.
 
 **Конструктор, этап 2, шаг 2.4 — рассылки отчётов (2026-10-19, прямо в `main` поверх `a0942057`, не запушено — пушит
 координатор); этап 2 сделан, ждёт приёмки владельца:** [ADR-0045](adr/ADR-0045-report-mailings.md), ADR-0041 «Этап 2,
