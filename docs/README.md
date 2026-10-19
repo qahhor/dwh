@@ -158,6 +158,10 @@ Current ADRs that are not superseded:
 - [ADR-0046 — automations of live forms](adr/ADR-0046-live-form-automations.md) — if-then rules on the records of a
   live form: queued with the change, run after its commit once per event and in order per record, as the author whose
   rights are checked on save and on every run, with loop limits, a dry run and a run log.
+- [ADR-0047 — solution packages and templates](adr/ADR-0047-solution-packages-and-templates.md) — live forms with
+  their lists, datasets, reports, mailings and automations in one checksummed package; checked by applying it in a
+  transaction that rolls back, applied with roles and users mapped to placeholders, mailings and automations paused;
+  templates shipped in the product.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

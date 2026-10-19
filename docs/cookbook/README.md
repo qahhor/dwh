@@ -39,6 +39,7 @@ cookbook — короткий путь от задачи к коду.
 |---|---|
 | Новая форма из Студии: пакет, CLI, Flyway | [simple-form-delivery.md](simple-form-delivery.md) |
 | Новая форма без выпуска приложения: активация, права, восстановление | [live-simple-forms.md](live-simple-forms.md) |
+| Перенести решение / создать из шаблона: пакет, проверка, сопоставление, применение | [solution-packages.md](solution-packages.md) |
 | Справочник: код, название, архив | [reference-list.md](reference-list.md) |
 | Список: фильтры, сортировка, виды, поиск | [list-filters-search.md](list-filters-search.md) |
 | Документ со строками | [document-lines.md](document-lines.md) |

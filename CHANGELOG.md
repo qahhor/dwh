@@ -9,6 +9,33 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Solution packages and templates (ADR-0047, stage 3, step 2 of the form and report builder): a package of
+  live forms with their active declarations (lines, numbering, statuses, files, formulas, layout) as
+  simple-form packages, the reference lists they use (items optional), report datasets, saved reports,
+  mailings and automations over them, in one versioned JSON file with a SHA-256 checksum over its
+  canonical form. `POST /api/v1/studio/packages/export/preview` lists what a selection holds and why — the
+  forms and lists it stands on are added — and what else uses its forms; `POST …/export` downloads it. Roles
+  and fixed users become placeholders; a filter or parameter value naming a record of the installation is
+  refused (422); no record data, user ids, secrets or webhook subscriptions go in.
+- `POST /api/v1/studio/packages/imports` (optional `suffix` for a second copy under other codes) verifies a
+  package — size, depth, checksum, format, the simple-form format this installation reads, strict structure,
+  every form as a simple-form package — and checks it by applying it in a transaction that always rolls
+  back: each item is `create`, `upgrade` (a new version of a form under the compatible-change rules),
+  `unchanged`, `skip` or `refused` with its reasons. `POST …/imports/{id}/apply` takes the mapping of the
+  placeholders (one role, active users) and applies every item in one transaction or none (422 with the
+  reasons kept); mailings and automations are created paused; rights go only to a mapped role and only for
+  an importer who may grant them; each item needs its own right too. Re-applying the same package creates
+  nothing. History `GET …/imports`, one import `GET …/imports/{id}`. Rights `studio.packages`
+  `export`/`import` (administrators); V237 `studio_package_imports`, `studio_package_objects`, V238 rights;
+  unapplied checks kept 30 days (`package-previews`).
+- Templates shipped in the product (`GET /api/v1/studio/templates`, `POST …/{code}/imports`): «Визит
+  торгового представителя», «Заявка клиента» and «Заказ со строками и согласованием» with the report by
+  region, its weekly mailing and an approval automation, each with a description in ru/uz/en.
+- Web: Studio «Пакеты и шаблоны» (`/settings/form-studio/packages`, from Settings and My forms): the
+  template gallery, the upload of a package, the export wizard with its contents and related items, the
+  history; the import page with each item's outcome and reasons, the mapping of roles and users, a check
+  of the mapping and the application.
+
 - Automations of live forms (ADR-0046, stage 3, step 1 of the form and report builder): `/api/v1/automations`
   keeps if-then rules of a live form — a trigger (`created`, `updated` optionally on listed fields, `saved`,
   `transition` from/to statuses, `deleted`, or a daily/weekly/monthly `scheduled` look at the records), an
