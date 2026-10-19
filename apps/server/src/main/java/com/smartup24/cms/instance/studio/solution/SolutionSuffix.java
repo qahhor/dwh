@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -32,6 +33,7 @@ import tools.jackson.databind.node.ObjectNode;
  * so their checksums are the server's; the codes of list items and of fields do not change.
  */
 @Component
+@Profile("!migrate")
 public class SolutionSuffix {
     private static final int MAX_FORM_NAME = 20;
     private static final int MAX_CODE = 40;

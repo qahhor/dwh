@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.URI;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
  * automations paused.
  */
 @RestController
+@Profile("!migrate")
 @RequestMapping("/api/v1/studio/packages")
 public class StudioPackageController {
     private static final String FORM = "studio.packages";

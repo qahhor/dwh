@@ -21,6 +21,7 @@ import com.smartup24.cms.instance.studio.solution.SolutionItems.Done;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Component;
  * the package's forms to the role its placeholder is mapped to, and only for an importer who may grant rights.
  */
 @Component
+@Profile("!migrate")
 public class SolutionRunSteps {
     static final String MAILING = "mailing";
     static final String AUTOMATION = "automation";

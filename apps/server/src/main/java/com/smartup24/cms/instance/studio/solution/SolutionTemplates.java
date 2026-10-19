@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Component;
  * as working. A test imports each into an empty installation.
  */
 @Component
+@Profile("!migrate")
 public class SolutionTemplates {
     static final String LOCATION = "classpath*:studio/templates/*.json";
     private static final Pattern CODE = Pattern.compile("^[a-z][a-z0-9-]{1,39}$");

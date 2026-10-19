@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -21,6 +22,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * path that creates the item ({@link ApiException}) is an outcome; anything else is a fault that stops the run.
  */
 @Component
+@Profile("!migrate")
 public class SolutionItems {
     public static final String CREATE = "create";
     public static final String UPGRADE = "upgrade";

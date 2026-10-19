@@ -36,6 +36,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -46,6 +47,7 @@ import tools.jackson.databind.ObjectMapper;
  * that names a record of this installation is reported, never carried.
  */
 @Component
+@Profile("!migrate")
 public class SolutionSources {
     static final String AUTOMATION_TEXT = "studio.packages.placeholder.automation";
     static final String MAILING_TEXT = "studio.packages.placeholder.mailing";

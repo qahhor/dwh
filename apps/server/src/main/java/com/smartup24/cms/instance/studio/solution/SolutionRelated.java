@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.studio.service.StudioAutomationService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
  * each read with the right its own screen asks. At most one page of each is offered.
  */
 @Component
+@Profile("!migrate")
 public class SolutionRelated {
     private static final int PAGE = 50;
     private static final String RELATED = "related";

@@ -19,6 +19,7 @@ import com.smartup24.cms.instance.studio.solution.SolutionItems.Done;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
@@ -29,6 +30,7 @@ import tools.jackson.databind.ObjectMapper;
  * report is shared only with the roles its role placeholders are mapped to.
  */
 @Component
+@Profile("!migrate")
 public class SolutionReportSteps {
     static final String REPORT = "report";
 

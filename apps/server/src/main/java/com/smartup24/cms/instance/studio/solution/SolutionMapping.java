@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
  * needs every required placeholder mapped; a check maps a missing one to the importer for the time of the check.
  */
 @Component
+@Profile("!migrate")
 public class SolutionMapping {
     static final int MAX_USERS = 50;
 

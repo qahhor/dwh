@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonToken;
@@ -38,6 +39,7 @@ import tools.jackson.databind.node.ObjectNode;
  * it.
  */
 @Component
+@Profile("!migrate")
 public class SolutionFormat {
     static final int MAX_DEPTH = 16;
     private static final Set<String> ROOT = Set.of(

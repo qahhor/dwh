@@ -10,12 +10,14 @@ import com.smartup24.cms.instance.studio.repository.StudioPackageRepository;
 import com.smartup24.cms.instance.studio.repository.StudioPackageRepository.ImportRow;
 import java.util.List;
 import java.util.Map;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /** The JSON columns of an import and its views (ADR-0047). */
 @Component
+@Profile("!migrate")
 public class SolutionViews {
     private static final TypeReference<List<ImportItem>> ITEMS = new TypeReference<>() {};
     private static final TypeReference<Map<String, List<Long>>> MAPPING = new TypeReference<>() {};

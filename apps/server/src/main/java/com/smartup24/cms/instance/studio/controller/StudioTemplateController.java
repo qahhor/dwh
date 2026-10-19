@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * import of its package, checked and then applied with the mapping like an upload.
  */
 @RestController
+@Profile("!migrate")
 @RequestMapping("/api/v1/studio/templates")
 public class StudioTemplateController {
     private final StudioPackageService packages;
