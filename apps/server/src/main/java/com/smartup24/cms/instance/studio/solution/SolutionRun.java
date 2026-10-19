@@ -40,19 +40,19 @@ public record SolutionRun(
     public List<Long> users(@Nullable String key) {
         if (key == null) return List.of();
         List<Long> mapped = mapping.get(key);
-        if (mapped != null && !mapped.isEmpty()) return mapped;
+        if (mapped != null) return mapped;
         return !apply && placeholder(key).map(Placeholder::required).orElse(false) ? List.of(importer) : List.of();
     }
 
     /** Whether the placeholder is mapped. */
     public boolean mapped(@Nullable String key) {
-        return key != null && mapping.containsKey(key) && !mapping.get(key).isEmpty();
+        return key != null && mapping.containsKey(key);
     }
 
     /** The role a placeholder is mapped to, or null. */
     public @Nullable Long role(String key) {
         List<Long> mapped = mapping.get(key);
-        return mapped == null || mapped.isEmpty() ? null : mapped.getFirst();
+        return mapped == null ? null : mapped.getFirst();
     }
 
     public Optional<Placeholder> placeholder(String key) {

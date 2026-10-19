@@ -71,9 +71,7 @@ final class SolutionChecks {
         matches(pack.version(), VERSION, "version");
         labels(pack.title(), "title");
         if (pack.description() != null) description(pack.description());
-        if (pack.requires() == null
-                || pack.requires().simpleFormFormat() < 1
-                || pack.requires().simpleFormFormat() > MdSimpleFormDeclarations.MAX_FORMAT) fail("requires");
+        if (pack.requires() == null || pack.requires().simpleFormFormat() < 1) fail("requires");
         if (pack.producedBy() == null
                 || pack.producedBy().isBlank()
                 || pack.producedBy().length() > 64) fail("producedBy");
@@ -84,7 +82,11 @@ final class SolutionChecks {
         for (int i = 0; i < list.size(); i++) {
             Placeholder placeholder = list.get(i);
             String at = "placeholders[" + i + "]";
-            if (placeholder == null || !matches(placeholder.key(), KEY, at + ".key")) continue;
+            if (placeholder == null) {
+                fail(at);
+                continue;
+            }
+            if (!matches(placeholder.key(), KEY, at + ".key")) continue;
             if (!ROLE.equals(placeholder.kind()) && !USERS.equals(placeholder.kind())) fail(at + ".kind");
             labels(placeholder.labels(), at + ".labels");
             if (placeholders.put(placeholder.key(), String.valueOf(placeholder.kind())) != null) fail(at + ".key");
@@ -230,8 +232,8 @@ final class SolutionChecks {
                 continue;
             }
             placeholder(grant.role(), ROLE, at + ".role");
-            if (bounded(grant.permissions(), 100, at + ".permissions")
-                    || grant.permissions().isEmpty()) {
+            if (bounded(grant.permissions(), 100, at + ".permissions")) continue;
+            if (grant.permissions().isEmpty()) {
                 fail(at + ".permissions");
                 continue;
             }

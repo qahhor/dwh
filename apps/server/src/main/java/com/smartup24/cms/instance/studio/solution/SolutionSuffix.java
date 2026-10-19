@@ -115,13 +115,11 @@ public class SolutionSuffix {
             entity.put(
                     "name", formCode("studio." + entity.get("name").asString()).substring("studio.".length()));
             targets(declaration.get("fields"));
-            JsonNode tables = declaration.get("lines");
-            if (tables != null) tables.forEach(table -> targets(table.get("fields")));
+            declaration.path("lines").forEach(table -> targets(table.get("fields")));
             return declarations.prepare(json.writeValueAsBytes(declaration));
         }
 
-        private void targets(@Nullable JsonNode fields) {
-            if (fields == null) return;
+        private void targets(JsonNode fields) {
             for (JsonNode field : fields) {
                 if (!(field.get("target") instanceof ObjectNode target)) continue;
                 String code = target.path("code").asString();
@@ -142,15 +140,12 @@ public class SolutionSuffix {
 
         PackageReport report(PackageReport report) {
             ObjectNode state = (ObjectNode) report.state().deepCopy();
-            JsonNode dataset = state.get("dataset");
-            if (dataset != null && dataset.isString()) {
-                String value = dataset.asString();
-                if (value.startsWith(EntityReportDatasetStore.PREFIX)) {
-                    state.put(
-                            "dataset",
-                            EntityReportDatasetStore.PREFIX
-                                    + datasetCode(value.substring(EntityReportDatasetStore.PREFIX.length())));
-                }
+            String dataset = state.path("dataset").asString("");
+            if (dataset.startsWith(EntityReportDatasetStore.PREFIX)) {
+                state.put(
+                        "dataset",
+                        EntityReportDatasetStore.PREFIX
+                                + datasetCode(dataset.substring(EntityReportDatasetStore.PREFIX.length())));
             }
             return new PackageReport(report.key(), report.name(), formCode(report.list()), state, report.share());
         }

@@ -17,10 +17,6 @@ import org.jspecify.annotations.Nullable;
 public final class StudioPackageImportDtos {
     private StudioPackageImportDtos() {}
 
-    /** The kinds of items, in the order an import applies them. */
-    public static final List<String> KINDS =
-            List.of("list", "form", "grant", "dataset", "report", "mailing", "automation");
-
     /**
      * What to put into a package: the chosen forms, datasets, reports, mailings and automations; the forms and lists
      * they use are added by the server.

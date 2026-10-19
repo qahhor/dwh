@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.studio;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
@@ -31,6 +32,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -216,6 +218,155 @@ class StudioPackageHttpTest extends EmbeddedPostgresTest {
         assertThat(applied.get("status")).isEqualTo("applied");
         assertThat(importer.send(get("/api/v1/studio/forms/" + orders + next)).getStatus())
                 .isEqualTo(200);
+    }
+
+    @Test
+    void aDatasetAndItsReportTravelAndAChangedDatasetUpgrades() throws Exception {
+        String orders = "studio.orders" + suffix;
+        applied(number(fromTemplate("order-approval", suffix).get("id")), mapping());
+        String code = "sales" + suffix;
+        Map<String, Object> dataset = new LinkedHashMap<>();
+        dataset.put("code", code);
+        dataset.put("name", Map.of("ru", "Строки заказов", "uz", "Buyurtma qatorlari", "en", "Order lines"));
+        dataset.put("entity", orders);
+        dataset.put("lines", "items");
+        dataset.put("fields", List.of("region", "lineProduct", "lineQty", "lineAmount"));
+        dataset.put("filter", List.of(Map.of("field", "lineQty", "op", "gt", "value", 0)));
+        dataset.put("measures", List.of());
+        MockHttpServletResponse saved = importer.send(post("/api/v1/report-datasets"), dataset, null);
+        assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(201);
+        Map<String, Object> state = Map.of(
+                "dataset",
+                "ds." + code,
+                "groupBy",
+                List.of(Map.of("field", "lineProduct")),
+                "measures",
+                List.of(Map.of("op", "sum", "field", "lineAmount")),
+                "chart",
+                "table");
+        MockHttpServletResponse report = importer.send(
+                post("/api/v1/list-views/" + orders),
+                Map.of("name", "Товары", "state", state, "isDefault", false, "kind", "report"),
+                null);
+        assertThat(report.getStatus()).as(report.getContentAsString()).isEqualTo(201);
+        long reportId = number(TestSession.object(report).get("id"));
+
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("code", "order-lines");
+        request.put("version", "1.0.0");
+        request.put("title", Map.of("ru", "Строки", "uz", "Qatorlar", "en", "Lines"));
+        request.put("forms", List.of(orders));
+        request.put("listItems", false);
+        String plan =
+                importer.send(post(API + "/export/preview"), request, null).getContentAsString(StandardCharsets.UTF_8);
+        assertThat(plan).contains("\"related\"", "\"" + code + "\"", "\"" + reportId + "\"");
+        request.put("datasets", List.of(code));
+        request.put("reports", List.of(reportId));
+        byte[] file = importer.send(post(API + "/export"), request, null).getContentAsByteArray();
+        assertThat(json.readTree(file).path("lists").path(0).path("items")).isEmpty();
+
+        String next = "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 3);
+        Map<String, Object> preview = upload(file, next);
+        assertThat(outcomes(preview))
+                .containsEntry("dataset:" + code + next, "create")
+                .containsEntry("report:report-" + reportId, "create");
+        long id = number(preview.get("id"));
+        MockHttpServletResponse checked = importer.send(
+                post(API + "/imports/" + id + "/apply"), Map.of("mapping", Map.of(), "dryRun", true), null);
+        assertThat(checked.getStatus()).as(checked.getContentAsString()).isEqualTo(200);
+        assertThat(TestSession.object(checked).get("status")).isEqualTo("preview");
+        applied(id, Map.of());
+        assertThat(importer.send(get(API + "/imports").param("limit", "5")).getContentAsString())
+                .contains("\"id\":" + id);
+        assertThat(importer.send(get(API + "/imports/" + id)).getStatus()).isEqualTo(200);
+        assertThat(importer.send(get(API + "/imports/999999999")).getStatus()).isEqualTo(404);
+
+        Map<String, Object> renamed = new LinkedHashMap<>(dataset);
+        renamed.remove("code");
+        renamed.put("name", Map.of("ru", "Строки заказов 2", "uz", "Qatorlar 2", "en", "Order lines 2"));
+        assertThat(importer.send(put("/api/v1/report-datasets/" + code).header("If-Match", "\"1\""), renamed, null)
+                        .getStatus())
+                .isEqualTo(200);
+        byte[] changed = importer.send(post(API + "/export"), request, null).getContentAsByteArray();
+        Map<String, Object> again = upload(changed, next);
+        assertThat(outcomes(again))
+                .containsEntry("dataset:" + code + next, "upgrade")
+                .containsEntry("report:report-" + reportId, "unchanged")
+                .containsEntry("form:" + orders + next, "unchanged");
+        applied(number(again.get("id")), Map.of());
+    }
+
+    @Test
+    void aChangedTemplateUpgradesItsItemsAndPausesThemAgain() throws Exception {
+        String orders = "studio.orders" + suffix;
+        applied(number(fromTemplate("order-approval", suffix).get("id")), mapping());
+        jdbc.sql("update studio_automations set active = true where form_code = :form")
+                .param("form", orders)
+                .update();
+        ObjectNode root = (ObjectNode) json.readTree(Files.readString(ORDER, StandardCharsets.UTF_8));
+        ObjectNode products = (ObjectNode) root.path("lists").path(1);
+        ObjectNode juice = ((ArrayNode) products.get("items")).addObject();
+        juice.put("code", "juice").put("sortOrder", 50).put("active", true);
+        juice.set("name", json.readTree("{\"ru\": \"Сок\", \"uz\": \"Sharbat\", \"en\": \"Juice\"}"));
+        ObjectNode declaration = (ObjectNode) root.path("forms").path(1).path("declaration");
+        ObjectNode promo = ((ArrayNode) declaration.get("fields")).addObject();
+        promo.put("id", "promo").put("type", "text").put("required", false).put("listed", false);
+        promo.put("maxLength", 100);
+        promo.set("labels", json.readTree("{\"ru\": \"Акция\", \"uz\": \"Aksiya\", \"en\": \"Promo\"}"));
+        ((ObjectNode) root.path("reports").path(0)).put("name", "Заказы по регионам (v2)");
+        ((ObjectNode) root.path("mailings").path(0)).put("name", "Заказы по регионам по понедельникам");
+        ((ObjectNode) root.path("automations").path(0)).put("name", "Согласование заказа v2");
+        ObjectNode form = (ObjectNode) root.path("forms").path(1);
+        form.put(
+                "checksum",
+                declarations.prepare(json.writeValueAsBytes(declaration)).checksum());
+        root.put("version", "1.1.0");
+        root.put("checksum", format.checksum(root));
+
+        Map<String, Object> preview = upload(json.writeValueAsBytes(root), suffix);
+        assertThat(outcomes(preview))
+                .containsEntry("list:products" + suffix, "upgrade")
+                .containsEntry("list:regions" + suffix, "unchanged")
+                .containsEntry("form:" + orders, "upgrade")
+                .containsEntry("report:orders-by-region", "upgrade")
+                .containsEntry("mailing:orders-by-region-weekly", "upgrade")
+                .containsEntry("automation:order-approval", "upgrade");
+        applied(number(preview.get("id")), mapping());
+        assertThat(jdbc.sql("select active from studio_automations where form_code = :form")
+                        .param("form", orders)
+                        .query(Boolean.class)
+                        .list())
+                .containsExactly(false);
+        assertThat(jdbc.sql("select name from report_mailings where entity_code = :form")
+                        .param("form", orders)
+                        .query(String.class)
+                        .single())
+                .isEqualTo("Заказы по регионам по понедельникам");
+    }
+
+    @Test
+    void aCheckWithoutSuffixChangesNothingAndImportsArePaged() throws Exception {
+        MockHttpServletResponse checked =
+                importer.send(post("/api/v1/studio/templates/sales-visit/imports"), Map.of(), null);
+        assertThat(checked.getStatus()).as(checked.getContentAsString()).isEqualTo(201);
+        Map<String, Object> preview = TestSession.object(checked);
+        assertThat(preview.get("suffix")).isNull();
+        assertThat(outcomes(preview)).containsKey("form:studio.visits");
+        assertThat(importer.send(get("/api/v1/studio/forms/studio.visits")).getStatus())
+                .isEqualTo(404);
+        fromTemplate("client-request", suffix);
+        Map<String, Object> first =
+                TestSession.object(importer.send(get(API + "/imports").param("limit", "1")));
+        assertThat((List<?>) first.get("items")).hasSize(1);
+        Map<String, Object> next = TestSession.object(importer.send(
+                get(API + "/imports").param("limit", "1").param("cursor", String.valueOf(first.get("nextCursor")))));
+        assertThat((List<?>) next.get("items")).hasSize(1);
+        assertThat(importer.send(post("/api/v1/studio/templates/no-such/imports"), Map.of(), null)
+                        .getStatus())
+                .isEqualTo(404);
+        assertThat(importer.send(post("/api/v1/studio/templates/Bad_Code/imports"), Map.of(), null)
+                        .getStatus())
+                .isEqualTo(404);
     }
 
     @Test

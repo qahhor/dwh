@@ -6,7 +6,6 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.studio.api.StudioPackageDtos;
 import com.smartup24.cms.instance.studio.api.StudioPackageDtos.SolutionPackage;
 import com.smartup24.cms.instance.studio.api.StudioPackageImportDtos.ApplyRequest;
 import com.smartup24.cms.instance.studio.api.StudioPackageImportDtos.Counts;
@@ -90,39 +89,32 @@ public class StudioPackageService {
     }
 
     public ExportPlan plan(ExportRequest request) {
-        require("export");
         return exporter.plan(request);
     }
 
     public byte[] export(ExportRequest request) {
-        require("export");
         return exporter.export(request);
     }
 
     public List<Template> templates() {
-        require("import");
         return templates.list();
     }
 
     /** Verifies and checks an uploaded package, then keeps the import with the outcome of its items. */
     public ImportView upload(byte[] body, @Nullable String suffix) {
-        require("import");
         return keep(format.read(body), "upload", suffix);
     }
 
     /** Checks a template like an upload: creating a solution from it is applying this import. */
     public ImportView fromTemplate(String code, @Nullable String suffix) {
-        require("import");
         return keep(templates.get(code).pack(), "template", suffix);
     }
 
     public ImportView get(long id) {
-        require("import");
         return views.view(row(id));
     }
 
     public KeysetPage<ImportSummary> list(@Nullable Integer limit, @Nullable String cursor) {
-        require("import");
         TimePage page = TimePage.of(limit, cursor, 20, 100);
         return page.page(imports.page(page), row -> new TimePage.Position(row.createdAt(), row.id()))
                 .map(views::summary);
@@ -133,7 +125,6 @@ public class StudioPackageService {
      * application back whole: 422, and the import shows each item's outcome and reasons.
      */
     public ImportView apply(long id, ApplyRequest request) {
-        require("import");
         ImportRow seen = row(id);
         if ("applied".equals(seen.status())) throw applied();
         SolutionPackage pack = views.pack(seen);
@@ -175,10 +166,8 @@ public class StudioPackageService {
     }
 
     private ImportView keep(SolutionPackage pack, String source, @Nullable String suffix) {
-        if (suffix != null && !suffix.matches(StudioPackageDtos.SUFFIX))
-            throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.solution_suffix");
         SolutionPackage named = suffixes.apply(pack, suffix);
-        List<ImportItem> items = check(named, pack.code() + (suffix == null ? "" : suffix), Map.of(), 0);
+        List<ImportItem> items = check(named, scope(pack.code(), suffix), Map.of(), 0);
         long user = currentUser();
         Long id = keeping.execute(status -> {
             long created = imports.insert(
@@ -202,7 +191,7 @@ public class StudioPackageService {
                             "version", pack.version(),
                             "checksum", pack.checksum(),
                             "source", source,
-                            "suffix", suffix == null ? "" : suffix));
+                            "suffix", Objects.requireNonNullElse(suffix, "")));
             return created;
         });
         return views.view(row(Objects.requireNonNull(id)));
@@ -232,16 +221,16 @@ public class StudioPackageService {
     }
 
     private static String scope(ImportRow row) {
-        return row.code() + (row.suffix() == null ? "" : row.suffix());
+        return scope(row.code(), row.suffix());
+    }
+
+    /** What the objects of an import are remembered under: the package code with the suffix it is applied under. */
+    private static String scope(String code, @Nullable String suffix) {
+        return code + Objects.requireNonNullElse(suffix, "");
     }
 
     private static long currentUser() {
         return Objects.requireNonNull(SecurityContext.getCurrentUserId(), "user");
-    }
-
-    private static void require(String action) {
-        if (!SecurityContext.hasPermission("studio.packages", action))
-            throw ApiException.permissionDenied("studio.packages", action);
     }
 
     private static ApiException applied() {

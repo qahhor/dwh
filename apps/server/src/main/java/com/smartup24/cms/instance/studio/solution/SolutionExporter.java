@@ -18,6 +18,7 @@ import com.smartup24.cms.instance.studio.api.StudioPackageImportDtos.ExportReque
 import com.smartup24.cms.instance.studio.service.StudioFormViews;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Profile;
@@ -54,8 +55,9 @@ public class SolutionExporter {
         this.roles = roles;
         this.i18n = i18n;
         this.format = format;
-        BuildProperties properties = build.getIfAvailable();
-        this.version = properties == null || properties.getVersion() == null ? "development" : properties.getVersion();
+        this.version = Optional.ofNullable(build.getIfAvailable())
+                .map(BuildProperties::getVersion)
+                .orElse("development");
     }
 
     public ExportPlan plan(ExportRequest request) {
@@ -75,7 +77,7 @@ public class SolutionExporter {
         SolutionSelection selection = new SolutionSelection(forms, sources).pick(request);
         SolutionPlaceholders placeholders = new SolutionPlaceholders(i18n::effectiveDictionary);
         List<FieldErrorItem> problems = new ArrayList<>();
-        boolean items = request.listItems() == null || request.listItems();
+        boolean items = !Boolean.FALSE.equals(request.listItems());
         List<PackageList> lists = selection.lists().stream()
                 .map(code -> sources.list(code, items))
                 .toList();

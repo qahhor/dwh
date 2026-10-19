@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -26,7 +27,6 @@ import org.springframework.stereotype.Component;
 public class SolutionTemplates {
     static final String LOCATION = "classpath*:studio/templates/*.json";
     private static final Pattern CODE = Pattern.compile("^[a-z][a-z0-9-]{1,39}$");
-    private static final int MAX_TEMPLATES = 20;
 
     private final SolutionFormat format;
 
@@ -45,7 +45,7 @@ public class SolutionTemplates {
                     pack.code(),
                     pack.version(),
                     pack.title(),
-                    pack.description() == null ? pack.title() : pack.description(),
+                    Objects.requireNonNullElse(pack.description(), pack.title()),
                     pack.forms().size(),
                     pack.lists().size(),
                     pack.reports().size(),
@@ -76,9 +76,7 @@ public class SolutionTemplates {
 
     private static Resource[] resources() {
         try {
-            Resource[] found = new PathMatchingResourcePatternResolver().getResources(LOCATION);
-            if (found.length > MAX_TEMPLATES) throw new IllegalStateException("Too many templates: " + found.length);
-            return found;
+            return new PathMatchingResourcePatternResolver().getResources(LOCATION);
         } catch (IOException unreadable) {
             throw new UncheckedIOException("The templates of solution packages are not readable", unreadable);
         }

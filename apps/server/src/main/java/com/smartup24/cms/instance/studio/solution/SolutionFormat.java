@@ -105,7 +105,6 @@ public class SolutionFormat {
         } catch (JacksonException malformed) {
             throw invalid("package");
         }
-        if (mapped == null) throw invalid("package");
         SolutionPackage verified = withVerifiedForms(mapped, root.path("forms"));
         SolutionChecks.require(verified);
         return verified;
@@ -134,8 +133,7 @@ public class SolutionFormat {
     }
 
     private SolutionPackage withVerifiedForms(SolutionPackage mapped, JsonNode nodes) {
-        if (mapped.forms() == null || !nodes.isArray() || nodes.size() > StudioPackageDtos.MAX_FORMS)
-            throw invalid("forms");
+        if (!nodes.isArray() || nodes.size() > StudioPackageDtos.MAX_FORMS) throw invalid("forms");
         List<DeliveryPackage> verified = new ArrayList<>();
         int index = 0;
         for (JsonNode node : nodes) {
