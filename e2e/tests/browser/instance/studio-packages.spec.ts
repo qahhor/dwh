@@ -117,7 +117,8 @@ test('packages: export and import under new codes, an order solution from its te
   test.setTimeout(480_000);
   await loginToInstance(page);
   const admin = page.context();
-  const assertNoPageErrors = collectPageErrors(page);
+  // The changed file and the incompatible form are refused on purpose: the browser logs those two 422 answers.
+  const assertNoPageErrors = collectPageErrors(page, [/status of 422/u]);
   const tag = Date.now().toString(36);
   const modules = (await expectCall(admin, 'GET', '/api/v1/modules', 200)).body as { code: string; status: string }[];
   const wasEnabled = modules.find(entry => entry.code === 'studio')?.status === 'ACTIVE';
@@ -191,7 +192,7 @@ test('packages: export and import under new codes, an order solution from its te
     await activate(admin, {
       formatVersion: 4, kind: 'simple-form', module,
       entity: { name: `pclients_${tag}_d`, title: labels('Клиенты пакета'), scope: 'all', titleField: 'title' },
-      fields: [field('title', 'text', 'Название', { required: true, maxLength: 120 }), field('region', 'text', 'Регион')],
+      fields: [field('title', 'text', 'Название', { required: true, maxLength: 120 }), field('region', 'text', 'Регион', { maxLength: 60 })],
     });
     await upload(page, file, '_d');
     await expect(page).toHaveURL(/\/settings\/form-studio\/packages\/imports\/\d+$/u);
