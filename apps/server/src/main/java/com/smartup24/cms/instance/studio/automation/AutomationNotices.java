@@ -6,10 +6,10 @@ import com.smartup24.cms.instance.kauth.service.KauthDeliveryAddresses;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserTexts;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
-import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.ActionResult;
-import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.Message;
-import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.Recipient;
 import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.Right;
+import com.smartup24.cms.instance.studio.api.StudioAutomationRunDtos.ActionResult;
+import com.smartup24.cms.instance.studio.api.StudioAutomationRunDtos.Message;
+import com.smartup24.cms.instance.studio.api.StudioAutomationRunDtos.Recipient;
 import com.smartup24.cms.instance.studio.repository.StudioAutomationRepository;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
 import java.nio.charset.StandardCharsets;
@@ -116,13 +116,9 @@ public class AutomationNotices {
         Set<Long> people = new LinkedHashSet<>();
         for (String field : step.fields()) {
             Object value = run.record().get(field);
-            if (value != null) {
-                try {
-                    people.add(Long.parseLong(String.valueOf(value)));
-                } catch (NumberFormatException notAUser) {
-                    // A user field keeps a user's key; any other value names nobody.
-                }
-            }
+            String text = value == null ? "" : String.valueOf(value);
+            // A user field keeps a user's key; any other value names nobody.
+            if (text.matches("[0-9]{1,18}")) people.add(Long.parseLong(text));
         }
         if (step.author() && !gone)
             automations.recordAuthor(run.form().code(), run.recordId()).ifPresent(people::add);

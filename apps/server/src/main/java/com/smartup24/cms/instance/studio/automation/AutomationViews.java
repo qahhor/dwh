@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.studio.automation;
 
 import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.Automation;
-import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.Run;
 import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.RunSummary;
 import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.UserRef;
+import com.smartup24.cms.instance.studio.api.StudioAutomationRunDtos.Run;
 import com.smartup24.cms.instance.studio.repository.StudioAutomationRepository.AutomationRow;
 import com.smartup24.cms.instance.studio.repository.StudioAutomationRunRepository.RunRow;
 import org.jspecify.annotations.Nullable;

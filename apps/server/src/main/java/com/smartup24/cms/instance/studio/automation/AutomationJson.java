@@ -2,10 +2,10 @@ package com.smartup24.cms.instance.studio.automation;
 
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.Action;
-import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.ActionResult;
 import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.AutomationRequest;
-import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.Problem;
 import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.Trigger;
+import com.smartup24.cms.instance.studio.api.StudioAutomationRunDtos.ActionResult;
+import com.smartup24.cms.instance.studio.api.StudioAutomationRunDtos.Problem;
 import com.smartup24.cms.instance.studio.repository.StudioAutomationRepository.AutomationRow;
 import java.util.List;
 import java.util.Map;

@@ -10,7 +10,7 @@ import com.smartup24.cms.instance.common.web.RequestZone;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.md.service.MdPrincipals;
-import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.RunNow;
+import com.smartup24.cms.instance.studio.api.StudioAutomationRunDtos.RunNow;
 import com.smartup24.cms.instance.studio.repository.StudioAutomationRepository;
 import com.smartup24.cms.instance.studio.repository.StudioAutomationRepository.AutomationRow;
 import com.smartup24.cms.instance.studio.repository.StudioAutomationRunRepository;

@@ -51,12 +51,10 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Asynchronous exports of registry lists to xlsx and their journal (ADR-0018).
- * A request is checked at once — the list, the right to it, the filter, sort
- * and search, the columns — and queued; the job then pages through the list
- * as the person who asked, with their rights at that moment, writes the file
- * to the instance storage and marks the export done. The file stays for a
- * week; a person sees and downloads only their own exports.
+ * Asynchronous exports of registry lists to xlsx and their journal (ADR-0018). A request is checked at once — the list,
+ * the right to it, the filter, sort and search, the columns — and queued; the job then pages through the list as the
+ * person who asked, with their rights at that moment, writes the file to the instance storage and marks the export
+ * done. The file stays for a week; a person sees and downloads only their own exports.
  */
 @Service
 public class ReportExportService {

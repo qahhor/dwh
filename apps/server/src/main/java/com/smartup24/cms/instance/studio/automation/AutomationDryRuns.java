@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.studio.automation;
 
 import com.smartup24.cms.instance.common.entity.runtime.EntityRecordView;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.DryRun;
+import com.smartup24.cms.instance.studio.api.StudioAutomationRunDtos.DryRun;
 import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.Map;

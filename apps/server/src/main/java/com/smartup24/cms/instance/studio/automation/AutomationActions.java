@@ -6,7 +6,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.formula.FormulaFailure;
 import com.smartup24.cms.instance.common.formula.FormulaValues;
 import com.smartup24.cms.instance.common.web.Revisions;
-import com.smartup24.cms.instance.studio.api.StudioAutomationDtos.ActionResult;
+import com.smartup24.cms.instance.studio.api.StudioAutomationRunDtos.ActionResult;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
