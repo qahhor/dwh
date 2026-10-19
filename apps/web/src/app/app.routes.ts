@@ -179,6 +179,21 @@ export const routes: Routes = [
           ),
       },
       {
+        // Solution packages and templates: export, import with a check and the mapping of roles and users (ADR-0047).
+        path: 'settings/form-studio/packages',
+        canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.packages', 'import')],
+        loadComponent: () =>
+          import('./features/settings/form-studio/packages/packages.component').then((m) => m.PackagesComponent),
+      },
+      {
+        path: 'settings/form-studio/packages/imports/:id',
+        canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.packages', 'import')],
+        loadComponent: () =>
+          import('./features/settings/form-studio/packages/package-import.component').then(
+            (m) => m.PackageImportComponent,
+          ),
+      },
+      {
         // The reference lists an administrator keeps without a release (ADR-0041).
         path: 'settings/form-studio/lists',
         canActivate: [moduleActiveGuard('studio'), permissionGuard('studio.lists', 'view')],

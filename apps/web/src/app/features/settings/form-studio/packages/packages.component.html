@@ -1,0 +1,163 @@
+<div class="packages-page" data-testid="packages">
+  <ui-page-header [title]="'studio.packages.title' | t" [subtitle]="'studio.packages.subtitle' | t">
+    <a smt-button smtVariant="secondary" routerLink="/settings/form-studio/forms">{{
+      'studio.automations.to_forms' | t
+    }}</a>
+  </ui-page-header>
+  <smt-tab-bar
+    smtIdPrefix="packages"
+    [tabs]="tabs()"
+    [value]="tab()"
+    [smtAriaLabel]="'studio.packages.title' | t"
+    (valueChange)="$event && choose($event)"
+  />
+  @if (error()) {
+    <smt-alert smtTone="danger" data-testid="packages-error">{{ error() }}</smt-alert>
+  }
+
+  @switch (tab()) {
+    @case ('templates') {
+      <section id="packages-panel-templates" role="tabpanel" aria-labelledby="packages-tab-templates">
+        <p class="packages-hint">{{ 'studio.packages.templates_hint' | t }}</p>
+        @if (loading() && !templates().length) {
+          <p role="status">{{ 'common.loading' | t }}</p>
+        }
+        <ul class="packages-cards" [attr.aria-label]="'studio.packages.tab.templates' | t">
+          @for (template of templates(); track template.code) {
+            <li class="packages-card" data-testid="package-template">
+              <h2>{{ title(template.title) }}</h2>
+              <p>{{ title(template.description) }}</p>
+              <p class="packages-meta">{{ holds(template) }} · {{ template.version }}</p>
+              <div class="packages-card-actions">
+                <button
+                  smt-button
+                  type="button"
+                  smtIcon="library_add"
+                  [attr.data-testid]="'package-template-create-' + template.code"
+                  [smtLoading]="busy() === template.code"
+                  [attr.aria-label]="'studio.packages.create_from_named' | t: { name: title(template.title) }"
+                  (click)="create(template)"
+                >
+                  {{ 'studio.packages.create_from' | t }}
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+    @case ('import') {
+      <section id="packages-panel-import" role="tabpanel" aria-labelledby="packages-tab-import">
+        <p class="packages-hint">{{ 'studio.packages.import_hint' | t }}</p>
+        <form
+          id="package-upload"
+          class="packages-form"
+          novalidate
+          data-testid="package-upload"
+          (submit)="$event.preventDefault(); upload()"
+        >
+          <smt-control
+            [smtLabel]="'studio.packages.file' | t"
+            [smtHint]="'studio.packages.file_hint' | t"
+            [smtError]="fileError()"
+            [required]="true"
+          >
+            <div class="packages-file">
+              <button
+                smt-button
+                type="button"
+                smtVariant="secondary"
+                smtIcon="upload_file"
+                data-testid="package-file-choose"
+                (click)="filePicker.click()"
+              >
+                {{ 'studio.packages.file_choose' | t }}
+              </button>
+              <span class="packages-file-name" data-testid="package-file-name">{{
+                file()?.name ?? ('studio.packages.file_none' | t)
+              }}</span>
+              <input
+                #filePicker
+                data-testid="package-file"
+                type="file"
+                accept=".json,application/json"
+                hidden
+                (change)="pick($event)"
+              />
+            </div>
+          </smt-control>
+          <smt-control
+            [smtLabel]="'studio.packages.suffix' | t"
+            [smtHint]="'studio.packages.suffix_hint' | t"
+            [smtError]="suffixError()"
+          >
+            <smt-input smtFieldId="package-suffix" data-testid="package-suffix" [formField]="uploadForm.suffix" />
+          </smt-control>
+          @if (uploadError()) {
+            <smt-alert smtTone="danger" data-testid="package-upload-error">{{ uploadError() }}</smt-alert>
+          }
+        </form>
+        <ui-form-actions
+          form="package-upload"
+          [showCancel]="false"
+          [submitLabel]="'studio.packages.check' | t"
+          [submitting]="busy() === 'upload'"
+        />
+      </section>
+    }
+    @case ('export') {
+      <section id="packages-panel-export" role="tabpanel" aria-labelledby="packages-tab-export">
+        <app-package-export />
+      </section>
+    }
+    @case ('history') {
+      <section id="packages-panel-history" role="tabpanel" aria-labelledby="packages-tab-history">
+        @if (loading() && !imports().length) {
+          <p role="status">{{ 'common.loading' | t }}</p>
+        } @else if (!imports().length && !error()) {
+          <p class="packages-hint" data-testid="packages-history-empty">{{ 'studio.packages.history_empty' | t }}</p>
+        }
+        <ul class="packages-cards" [attr.aria-label]="'studio.packages.tab.history' | t">
+          @for (item of imports(); track item.id) {
+            <li class="packages-card" data-testid="package-import">
+              <div class="packages-card-title">
+                <h2>{{ title(item.title) }}</h2>
+                <smt-tag
+                  [label]="'studio.packages.status.' + item.status | t"
+                  [smtTone]="item.status === 'applied' ? 'success' : 'neutral'"
+                />
+              </div>
+              <p class="packages-meta">
+                {{ item.code }}{{ item.suffix ?? '' }} · {{ item.version }} ·
+                {{ 'studio.packages.source.' + item.source | t }} ·
+                {{ item.createdAt | date: 'dd.MM.yyyy HH:mm' }}
+              </p>
+              <p class="packages-meta">{{ counts(item) }}</p>
+              <div class="packages-card-actions">
+                <a
+                  smt-button
+                  smtVariant="secondary"
+                  smtSize="sm"
+                  [routerLink]="['/settings/form-studio/packages/imports', item.id]"
+                  [attr.aria-label]="'studio.packages.open_named' | t: { name: title(item.title) }"
+                  >{{ 'studio.packages.open' | t }}</a
+                >
+              </div>
+            </li>
+          }
+        </ul>
+        @if (nextCursor(); as cursor) {
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            [smtLoading]="loading()"
+            (click)="loadImports(cursor)"
+          >
+            {{ 'common.load_more' | t }}
+          </button>
+        }
+      </section>
+    }
+  }
+</div>

@@ -156,6 +156,15 @@ export class SettingsComponent implements OnInit, RecordNavigationPage {
     void this.router?.navigate(['/settings/form-studio/automations']);
   }
 
+  /** Solution packages and templates open for whoever may import them while the module is on (ADR-0047). */
+  canOpenPackages(): boolean {
+    return this.permissions.hasPermission('studio.packages', 'import') && this.modules.isModuleActive('studio');
+  }
+
+  openPackages(): void {
+    void this.router?.navigate(['/settings/form-studio/packages']);
+  }
+
   /** The report datasets open for whoever may read them (ADR-0044). */
   canOpenDatasets(): boolean {
     return this.permissions.hasPermission('md.report_datasets', 'view');

@@ -131,7 +131,21 @@ public final class StudioPackageImportDtos {
             List<String> notes) {}
 
     @Schema(name = "SolutionImportCounts")
-    public record Counts(int create, int upgrade, int unchanged, int skip, int refused) {}
+    public record Counts(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int create,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int upgrade,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int unchanged,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int skip,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            int refused) {}
 
     /**
      * An uploaded package or template being checked ({@code preview}) or applied ({@code applied}): the items with their

@@ -4,6 +4,16 @@
     <a smt-button smtVariant="secondary" smtIcon="add" routerLink="/settings/form-studio/new">{{
       'studio.forms.new_form' | t
     }}</a>
+    @if (mayPackage()) {
+      <a
+        smt-button
+        smtVariant="secondary"
+        smtIcon="inventory_2"
+        data-testid="my-forms-packages"
+        routerLink="/settings/form-studio/packages"
+        >{{ 'studio.packages.title' | t }}</a
+      >
+    }
     <button
       smt-button
       type="button"

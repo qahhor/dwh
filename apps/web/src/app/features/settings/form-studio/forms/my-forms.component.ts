@@ -52,6 +52,7 @@ export class MyFormsComponent implements OnInit {
 
   /** The automations of a form open for whoever may read them (ADR-0046). */
   readonly mayAutomate = computed(() => this.permissions.hasPermission('studio.automations', 'view'));
+  readonly mayPackage = computed(() => this.permissions.hasPermission('studio.packages', 'import'));
   readonly config = computed<TableConfig<StudioFormSummary>>(() => {
     this.i18n.currentLang();
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });

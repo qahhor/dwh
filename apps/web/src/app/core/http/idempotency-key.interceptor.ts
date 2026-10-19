@@ -61,6 +61,13 @@ function wantsKey(request: HttpRequest<unknown>): boolean {
     ].includes(path)
   )
     return false;
+  // A solution package is checked in a transaction that rolls back and applied at most once by its import's state;
+  // the server refuses a key on these paths (ADR-0047).
+  if (
+    request.method === 'POST' &&
+    (path.startsWith('/api/v1/studio/packages/') || path.startsWith('/api/v1/studio/templates/'))
+  )
+    return false;
   // A new version, an archive and a restore take If-Match and recheck access on every retry (ADR-0041).
   if (request.method === 'POST' && /^\/api\/v1\/studio\/forms\/[^/]+\/(versions|archive|restore)$/u.test(path))
     return false;

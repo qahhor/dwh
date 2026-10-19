@@ -1,0 +1,159 @@
+<div class="packages-page" data-testid="package-import">
+  <ui-page-header
+    [title]="view() ? title(view()!.title) : ('studio.packages.import_title' | t)"
+    [subtitle]="'studio.packages.import_subtitle' | t"
+  >
+    <a
+      smt-button
+      smtVariant="secondary"
+      routerLink="/settings/form-studio/packages"
+      [queryParams]="{ tab: 'history' }"
+      >{{ 'studio.packages.to_packages' | t }}</a
+    >
+  </ui-page-header>
+  @if (error()) {
+    <smt-alert smtTone="danger" data-testid="package-import-error">{{ error() }}</smt-alert>
+  }
+  @if (loading() && !view()) {
+    <p role="status">{{ 'common.loading' | t }}</p>
+  }
+  @if (view(); as current) {
+    <section class="package-import-head" [attr.aria-label]="'studio.packages.about' | t">
+      <div class="packages-card-title">
+        <smt-tag
+          data-testid="package-import-status"
+          [label]="'studio.packages.status.' + current.status | t"
+          [smtTone]="applied() ? 'success' : 'neutral'"
+        />
+        <span class="packages-meta">
+          {{ current.code }}{{ current.suffix ?? '' }} · {{ current.version }} ·
+          {{ 'studio.packages.source.' + current.source | t }} · {{ current.checkedAt | date: 'dd.MM.yyyy HH:mm' }}
+        </span>
+      </div>
+      @if (current.description) {
+        <p>{{ title(current.description) }}</p>
+      }
+      <p class="packages-meta" data-testid="package-import-counts">{{ counts() }}</p>
+    </section>
+
+    @if (applied()) {
+      <smt-alert smtTone="success" data-testid="package-import-applied">
+        {{ 'studio.packages.applied_hint' | t }}
+        <span class="package-import-links">
+          <a routerLink="/settings/form-studio/forms">{{ 'studio.forms.title' | t }}</a>
+          @if (hasAutomations()) {
+            <a routerLink="/settings/form-studio/automations">{{ 'studio.automations.title' | t }}</a>
+          }
+        </span>
+      </smt-alert>
+    } @else if (refused()) {
+      <smt-alert smtTone="danger" data-testid="package-import-refused">{{
+        'studio.packages.refused_hint' | t: { n: refused() }
+      }}</smt-alert>
+    }
+    @if (failure()) {
+      <smt-alert smtTone="danger" data-testid="package-import-failure">{{ failure() }}</smt-alert>
+    }
+
+    @if (!applied() && current.placeholders.length) {
+      <form
+        id="package-apply"
+        class="packages-form package-import-mapping"
+        novalidate
+        data-testid="package-import-mapping"
+        (submit)="$event.preventDefault(); apply()"
+      >
+        <h2>{{ 'studio.packages.mapping' | t }}</h2>
+        <p class="packages-hint">{{ 'studio.packages.mapping_hint' | t }}</p>
+        @for (placeholder of current.placeholders; track placeholder.key) {
+          <smt-control
+            [smtLabel]="title(placeholder.labels)"
+            [smtHint]="
+              (placeholder.kind === 'role' ? 'studio.packages.mapping_role_hint' : 'studio.packages.mapping_users_hint')
+                | t
+            "
+            [smtError]="mappingErrors()[placeholder.key] ?? ''"
+            [required]="placeholder.required"
+          >
+            @if (placeholder.kind === 'role') {
+              <smt-select
+                [smtTriggerId]="'package-map-' + placeholder.key"
+                [attr.data-testid]="'package-map-' + placeholder.key"
+                [options]="roleOptions()"
+                [value]="role(placeholder.key)"
+                [placeholder]="'studio.packages.mapping_none' | t"
+                (valueChange)="setRole(placeholder.key, $event)"
+              />
+            } @else {
+              <smt-multi-data-select
+                [attr.data-testid]="'package-map-' + placeholder.key"
+                [source]="lookups.activeUsers"
+                [value]="users(placeholder.key)"
+                [ariaLabel]="title(placeholder.labels)"
+                [placeholder]="'studio.packages.mapping_users_placeholder' | t"
+                (valueChange)="setUsers(placeholder.key, $any($event))"
+              />
+            }
+          </smt-control>
+        }
+      </form>
+    }
+
+    @if (!applied()) {
+      <ui-form-actions
+        [form]="current.placeholders.length ? 'package-apply' : ''"
+        [showCancel]="false"
+        [submitLabel]="'studio.packages.apply' | t"
+        [submitting]="busy() === 'apply'"
+        (submitted)="apply()"
+      >
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          data-testid="package-import-check"
+          [smtLoading]="busy() === 'check'"
+          (click)="check()"
+        >
+          {{ 'studio.packages.check_mapping' | t }}
+        </button>
+      </ui-form-actions>
+    }
+
+    <div class="package-import-table">
+      <table data-testid="package-import-items">
+        <caption>
+          {{
+            'studio.packages.items' | t
+          }}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">{{ 'studio.packages.column.kind' | t }}</th>
+            <th scope="col">{{ 'studio.packages.column.name' | t }}</th>
+            <th scope="col">{{ 'studio.packages.column.outcome' | t }}</th>
+            <th scope="col">{{ 'studio.packages.column.details' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of current.items; track item.kind + item.key) {
+            <tr [attr.data-testid]="'package-item-' + item.kind + '-' + item.key">
+              <td>{{ 'studio.packages.kind.' + item.kind | t }}</td>
+              <th scope="row">
+                {{ title(item.title) }} <span class="packages-meta">{{ item.key }}</span>
+              </th>
+              <td>
+                <smt-tag [label]="'studio.packages.outcome.' + item.outcome | t" [smtTone]="tone(item.outcome)" />
+              </td>
+              <td>
+                @for (line of details(item); track $index) {
+                  <p class="packages-problem">{{ line }}</p>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

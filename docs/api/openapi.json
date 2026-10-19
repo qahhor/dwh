@@ -25458,7 +25458,8 @@
             "type" : "integer",
             "format" : "int32"
           }
-        }
+        },
+        "required" : [ "create", "refused", "skip", "unchanged", "upgrade" ]
       },
       "SolutionImportItem" : {
         "type" : "object",

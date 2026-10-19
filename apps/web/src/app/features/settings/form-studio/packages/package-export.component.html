@@ -1,0 +1,122 @@
+<p class="packages-hint">{{ 'studio.packages.export_hint' | t }}</p>
+<form
+  id="package-export"
+  class="packages-form"
+  uiFocusFirstInvalid
+  novalidate
+  data-testid="package-export"
+  (submit)="$event.preventDefault(); download()"
+>
+  <ui-form-error-summary [errors]="summary()" />
+  <smt-control
+    [smtLabel]="'studio.packages.export.code' | t"
+    [smtHint]="'studio.packages.export.code_hint' | t"
+    [smtError]="error('code')"
+  >
+    <smt-input smtFieldId="package-export-code" data-testid="package-export-code" [formField]="exportForm.code" />
+  </smt-control>
+  <smt-control
+    [smtLabel]="'studio.packages.export.version' | t"
+    [smtHint]="'studio.packages.export.version_hint' | t"
+    [smtError]="error('version')"
+  >
+    <smt-input
+      smtFieldId="package-export-version"
+      data-testid="package-export-version"
+      [formField]="exportForm.version"
+    />
+  </smt-control>
+  <smt-control [smtLabel]="'settings.form_studio.labels.ru' | t" [smtError]="error('ru')">
+    <smt-input smtFieldId="package-export-ru" data-testid="package-export-ru" [formField]="exportForm.ru" />
+  </smt-control>
+  <smt-control [smtLabel]="'settings.form_studio.labels.uz' | t" [smtError]="error('uz')">
+    <smt-input smtFieldId="package-export-uz" data-testid="package-export-uz" [formField]="exportForm.uz" />
+  </smt-control>
+  <smt-control [smtLabel]="'settings.form_studio.labels.en' | t" [smtError]="error('en')">
+    <smt-input smtFieldId="package-export-en" data-testid="package-export-en" [formField]="exportForm.en" />
+  </smt-control>
+  <fieldset class="packages-fieldset" data-testid="package-export-forms">
+    <legend>{{ 'studio.packages.export.forms' | t }}</legend>
+    @for (form of forms(); track form.entityCode) {
+      <div
+        smt-checkbox
+        [attr.data-testid]="'package-export-form-' + form.entityCode"
+        [checked]="chosen().includes(form.entityCode)"
+        (checkedChange)="toggleForm(form.entityCode, $event)"
+      >
+        {{ title(form.title) }} ({{ form.entityCode }})
+      </div>
+    } @empty {
+      <p class="packages-hint">{{ 'studio.packages.export.no_forms' | t }}</p>
+    }
+    @if (selectionError()) {
+      <p class="packages-error" role="alert" data-testid="package-export-forms-error">{{ selectionError() }}</p>
+    }
+  </fieldset>
+  <div smt-checkbox data-testid="package-export-items" [formField]="exportForm.listItems">
+    {{ 'studio.packages.export.list_items' | t }}
+  </div>
+  @if (problems().length) {
+    <smt-alert smtTone="danger" data-testid="package-export-error">
+      @for (problem of problems(); track $index) {
+        <p class="packages-problem">{{ problem }}</p>
+      }
+    </smt-alert>
+  }
+</form>
+<ui-form-actions
+  form="package-export"
+  [showCancel]="false"
+  [submitLabel]="'studio.packages.export.download' | t"
+  [submitting]="exporting()"
+>
+  <button
+    smt-button
+    type="button"
+    smtVariant="secondary"
+    data-testid="package-export-show"
+    [smtLoading]="planning()"
+    (click)="show()"
+  >
+    {{ 'studio.packages.export.show' | t }}
+  </button>
+</ui-form-actions>
+@if (plan(); as shown) {
+  <section class="packages-plan" data-testid="package-export-plan" aria-labelledby="package-export-plan-title">
+    <h2 id="package-export-plan-title">{{ 'studio.packages.export.contents' | t }}</h2>
+    <ul class="packages-items">
+      @for (item of included(); track item.kind + item.key) {
+        <li data-testid="package-export-included">
+          <smt-tag [label]="'studio.packages.kind.' + item.kind | t" smtTone="neutral" />
+          <span>{{ title(item.title) }}</span>
+          <span class="packages-meta">{{ reason(item) }}</span>
+        </li>
+      }
+    </ul>
+    @if (shown.placeholders.length) {
+      <h3>{{ 'studio.packages.export.placeholders' | t }}</h3>
+      <ul class="packages-items">
+        @for (placeholder of shown.placeholders; track placeholder.key) {
+          <li>
+            <smt-tag [label]="'studio.packages.placeholder_kind.' + placeholder.kind | t" smtTone="info" />
+            <span>{{ title(placeholder.labels) }}</span>
+          </li>
+        }
+      </ul>
+    }
+    @if (related().length) {
+      <h3>{{ 'studio.packages.export.related' | t }}</h3>
+      <p class="packages-hint">{{ 'studio.packages.export.related_hint' | t }}</p>
+      @for (item of related(); track item.kind + item.key) {
+        <div
+          smt-checkbox
+          [attr.data-testid]="'package-export-related-' + item.kind + '-' + item.key"
+          [checked]="isAdded(item)"
+          (checkedChange)="toggleRelated(item, $event)"
+        >
+          {{ 'studio.packages.kind.' + item.kind | t }}: {{ title(item.title) }}
+        </div>
+      }
+    }
+  </section>
+}

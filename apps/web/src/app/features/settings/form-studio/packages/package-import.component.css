@@ -1,0 +1,41 @@
+.package-import-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.package-import-head p {
+  margin: 0;
+}
+.package-import-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-left: 8px;
+}
+.package-import-mapping h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.package-import-table {
+  overflow-x: auto;
+}
+.package-import-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.package-import-table caption {
+  padding-bottom: 8px;
+  font-weight: 600;
+  text-align: left;
+}
+.package-import-table th,
+.package-import-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  vertical-align: top;
+}
+.package-import-table th[scope='row'] {
+  font-weight: 500;
+}

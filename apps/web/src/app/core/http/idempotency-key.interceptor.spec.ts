@@ -150,6 +150,18 @@ describe('idempotencyKeyInterceptor', () => {
     },
   );
 
+  it.each([
+    '/api/v1/studio/packages/imports',
+    '/api/v1/studio/packages/imports/4/apply',
+    '/api/v1/studio/packages/export',
+    '/api/v1/studio/templates/order-approval/imports',
+  ])('sends a step of a solution package, which the server refuses to key, without a key at %s', (url) => {
+    http.post(url, {}).subscribe();
+    const request = backend.expectOne(url);
+    expect(request.request.headers.has(IDEMPOTENCY_HEADER)).toBe(false);
+    request.flush({});
+  });
+
   it('sends the check of a formula, which stores nothing, without a key', () => {
     http.post('/api/v1/studio/formulas/check', { formula: 'qty * 2' }).subscribe();
     const request = backend.expectOne('/api/v1/studio/formulas/check');

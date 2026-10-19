@@ -2307,7 +2307,7 @@ export interface paths {
          * Export a language
          * @description The texts of an interface language as one key-to-text map.
          */
-        get: operations["export"];
+        get: operations["export_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4240,6 +4240,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/studio/packages/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download a solution package
+         * @description Requires studio.packages.export. The package of the selection as a JSON file with its checksum (SHA-256 of its canonical JSON without the checksum). No record data, user id or secret goes in; roles and fixed users become placeholders.
+         */
+        post: operations["export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/packages/export/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan a solution package
+         * @description Requires studio.packages.export. Lists what a package of the selection would hold — the selected items and, as dependencies, the forms they stand on, the forms those refer to, the lists of the forms, the datasets of the reports and the reports of the mailings — what else uses its forms, and the placeholders its roles and users become. Each item is read with the right of its own screen; 422 when a filter or a parameter names a record of this installation.
+         */
+        post: operations["plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/packages/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the imports of solution packages
+         * @description Requires studio.packages.import. Newest first; the default limit is 20, maximum 100.
+         */
+        get: operations["imports"];
+        put?: never;
+        /**
+         * Upload and check a solution package
+         * @description Requires studio.packages.import. The body is a package file of at most 2 MiB. It is verified — format, checksum, the simple-form format this installation reads, structure, every form as a simple-form package — and checked by applying it in a transaction that always rolls back: each item is to be created, upgraded (a new version of a form under the compatible change rules), left unchanged or skipped, or is refused with its reasons. A suffix copies the solution under other codes of its forms, lists and datasets. 201 with Location; nothing but the import is kept.
+         */
+        post: operations["upload_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/packages/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an import of a solution package
+         * @description Requires studio.packages.import. The items with their outcome at the last check or the application, the placeholders to map and the mapping given.
+         */
+        get: operations["importOf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/packages/imports/{id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply an import of a solution package
+         * @description Requires studio.packages.import and the rights of each kind of item it creates. Takes the mapping of the placeholders (a role placeholder: one active role; a placeholder of users: active users; each required one mapped). Applies every item in one transaction: a refused item rolls everything back (422) and the import shows the reasons. Mailings and automations are created paused. With dryRun the mapping is only checked. 409 when already applied; applying the same package again creates nothing new.
+         */
+        post: operations["apply_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/studio/quarantine": {
         parameters: {
             query?: never;
@@ -4279,6 +4383,46 @@ export interface paths {
          * @description Requires studio.forms.publish. 404 when the form is unknown or not quarantined, or the code is not a live form code; the code is not repeated. Audited.
          */
         delete: operations["releaseForm"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the templates of solutions
+         * @description Requires studio.packages.import. The packages the product ships, each verified like an upload, with its description and what it holds.
+         */
+        get: operations["templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/studio/templates/{code}/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a solution from a template
+         * @description Requires studio.packages.import. Checks the template's package like an upload and keeps the import (201 with Location); applying it with the mapping creates the solution. A suffix creates a second copy under other codes.
+         */
+        post: operations["fromTemplate"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -6144,6 +6288,14 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageSolutionImportSummary: {
+            hasMore?: boolean;
+            items?: components["schemas"]["SolutionImportSummary"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageSourceItem: {
             hasMore?: boolean;
             items?: components["schemas"]["SourceItem"][];
@@ -7614,6 +7766,257 @@ export interface components {
             /** @description The statuses, the first one where a record starts */
             states: components["schemas"]["SimpleFormState"][];
             transitions: components["schemas"]["SimpleFormTransition"][];
+        };
+        SolutionApplyRequest: {
+            /** @description Check the mapping without applying; false by default */
+            dryRun?: boolean;
+            mapping: {
+                [key: string]: number[];
+            };
+        };
+        SolutionExportItem: {
+            /** @description A code or an id */
+            key: string;
+            /** @enum {string} */
+            kind: "list" | "form" | "dataset" | "report" | "mailing" | "automation";
+            /** @description The item that needs it, as kind:key */
+            of?: string;
+            /** @enum {string} */
+            reason: "selected" | "dependency" | "related";
+            title: components["schemas"]["SimpleFormLabels"];
+        };
+        SolutionExportPlan: {
+            included: components["schemas"]["SolutionExportItem"][];
+            placeholders: components["schemas"]["SolutionPackagePlaceholder"][];
+            related: components["schemas"]["SolutionExportItem"][];
+        };
+        SolutionExportRequest: {
+            automations?: number[];
+            code: string;
+            datasets?: string[];
+            description?: components["schemas"]["SimpleFormLabels"];
+            forms?: string[];
+            listItems?: boolean;
+            mailings?: number[];
+            reports?: number[];
+            title: components["schemas"]["SimpleFormLabels"];
+            version: string;
+        };
+        SolutionImport: {
+            /** Format: date-time */
+            appliedAt?: string;
+            /** Format: int64 */
+            appliedBy?: number;
+            /** Format: date-time */
+            checkedAt: string;
+            checksum: string;
+            code: string;
+            counts: components["schemas"]["SolutionImportCounts"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            createdBy: number;
+            description?: components["schemas"]["SimpleFormLabels"];
+            /** Format: int64 */
+            id: number;
+            items: components["schemas"]["SolutionImportItem"][];
+            /** @description Placeholder key: role or user ids */
+            mapping: {
+                [key: string]: number[];
+            };
+            placeholders: components["schemas"]["SolutionPackagePlaceholder"][];
+            producedBy: string;
+            /** @enum {string} */
+            source: "upload" | "template";
+            /** @enum {string} */
+            status: "preview" | "applied";
+            suffix?: string;
+            title: components["schemas"]["SimpleFormLabels"];
+            version: string;
+        };
+        SolutionImportCounts: {
+            /** Format: int32 */
+            create: number;
+            /** Format: int32 */
+            refused: number;
+            /** Format: int32 */
+            skip: number;
+            /** Format: int32 */
+            unchanged: number;
+            /** Format: int32 */
+            upgrade: number;
+        };
+        SolutionImportItem: {
+            /** @description A code, or the key in the package */
+            key: string;
+            /** @enum {string} */
+            kind: "list" | "form" | "grant" | "dataset" | "report" | "mailing" | "automation";
+            notes: string[];
+            /** @enum {string} */
+            outcome: "create" | "upgrade" | "unchanged" | "skip" | "refused";
+            problems: components["schemas"]["SolutionItemProblem"][];
+            title: components["schemas"]["SimpleFormLabels"];
+        };
+        SolutionImportSummary: {
+            /** Format: date-time */
+            appliedAt?: string;
+            code: string;
+            counts: components["schemas"]["SolutionImportCounts"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            source: "upload" | "template";
+            /** @enum {string} */
+            status: "preview" | "applied";
+            suffix?: string;
+            title: components["schemas"]["SimpleFormLabels"];
+            version: string;
+        };
+        SolutionItemProblem: {
+            field?: string;
+            message: string;
+            params?: {
+                [key: string]: unknown;
+            };
+        };
+        SolutionPackage: {
+            automations: components["schemas"]["SolutionPackageAutomation"][];
+            checksum: string;
+            code: string;
+            datasets: components["schemas"]["SolutionPackageDataset"][];
+            description?: components["schemas"]["SimpleFormLabels"];
+            /**
+             * Format: int32
+             * @enum {integer}
+             */
+            formatVersion: "1";
+            /** @description Simple-form packages, a form after the forms it refers to */
+            forms: components["schemas"]["SimpleFormDeliveryPackage"][];
+            grants: components["schemas"]["SolutionPackageGrant"][];
+            /** @enum {string} */
+            kind: "solution-package";
+            lists: components["schemas"]["SolutionPackageList"][];
+            mailings: components["schemas"]["SolutionPackageMailing"][];
+            placeholders: components["schemas"]["SolutionPackagePlaceholder"][];
+            /** @description The version of the application */
+            producedBy: string;
+            reports: components["schemas"]["SolutionPackageReport"][];
+            requires: components["schemas"]["SolutionPackageRequires"];
+            title: components["schemas"]["SimpleFormLabels"];
+            version: string;
+        };
+        SolutionPackageAction: {
+            body?: components["schemas"]["StudioAutomationTexts"];
+            channels?: string[];
+            comment?: string;
+            form?: string;
+            recipients?: components["schemas"]["SolutionPackageRecipients"];
+            title?: components["schemas"]["StudioAutomationTexts"];
+            transition?: string;
+            /** @enum {string} */
+            type: "set_field" | "create_record" | "transition" | "notify";
+            values?: components["schemas"]["StudioAutomationValue"][];
+        };
+        SolutionPackageAutomation: {
+            actions: components["schemas"]["SolutionPackageAction"][];
+            condition?: string;
+            form: string;
+            key: string;
+            name: string;
+            timeZone: string;
+            trigger: components["schemas"]["StudioAutomationTrigger"];
+        };
+        SolutionPackageDataset: {
+            code: string;
+            entity: string;
+            fields: string[];
+            filter: {
+                [key: string]: unknown;
+            }[];
+            lines?: string;
+            measures: components["schemas"]["ReportDatasetMeasure"][];
+            name: components["schemas"]["SimpleFormLabels"];
+        };
+        SolutionPackageGrant: {
+            permissions: components["schemas"]["SolutionPackagePermission"][];
+            /** @description A role placeholder */
+            role: string;
+        };
+        SolutionPackageList: {
+            code: string;
+            items: components["schemas"]["SolutionPackageListItem"][];
+            name: components["schemas"]["SimpleFormLabels"];
+        };
+        SolutionPackageListItem: {
+            active: boolean;
+            code: string;
+            name: components["schemas"]["SimpleFormLabels"];
+            /** Format: int32 */
+            sortOrder: number;
+        };
+        SolutionPackageMailing: {
+            attachXlsx: boolean;
+            channels: ("email" | "telegram" | "in_app")[];
+            condition: components["schemas"]["ReportMailingCondition"];
+            includeLink: boolean;
+            key: string;
+            name: string;
+            parameters: {
+                [key: string]: unknown;
+            };
+            /** @description A placeholder of users */
+            recipients: string;
+            /** @description The key of the report */
+            report: string;
+            schedule: components["schemas"]["ReportMailingSchedule"];
+        };
+        SolutionPackagePermission: {
+            action: string;
+            form: string;
+        };
+        SolutionPackagePlaceholder: {
+            key: string;
+            /** @enum {string} */
+            kind: "role" | "users";
+            labels: components["schemas"]["SimpleFormLabels"];
+            required: boolean;
+        };
+        SolutionPackageRecipients: {
+            author?: boolean;
+            fields?: string[];
+            rights?: components["schemas"]["StudioAutomationRight"][];
+            /** @description A placeholder of users */
+            users?: string;
+        };
+        SolutionPackageReport: {
+            key: string;
+            list: string;
+            name: string;
+            /** @description Role placeholders */
+            share: string[];
+            state: string;
+        };
+        SolutionPackageRequires: {
+            /** Format: int32 */
+            simpleFormFormat: number;
+        };
+        SolutionTemplate: {
+            /** Format: int32 */
+            automations: number;
+            code: string;
+            description: components["schemas"]["SimpleFormLabels"];
+            /** Format: int32 */
+            forms: number;
+            /** Format: int32 */
+            lists: number;
+            /** Format: int32 */
+            mailings: number;
+            /** Format: int32 */
+            reports: number;
+            title: components["schemas"]["SimpleFormLabels"];
+            version: string;
         };
         SourceFreshness: {
             code?: string;
@@ -14426,7 +14829,7 @@ export interface operations {
             };
         };
     };
-    export: {
+    export_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -19073,6 +19476,207 @@ export interface operations {
             };
         };
     };
+    export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SolutionExportRequest"];
+            };
+        };
+        responses: {
+            /** @description The package file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolutionPackage"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    plan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SolutionExportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolutionExportPlan"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    imports: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageSolutionImportSummary"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    upload_1: {
+        parameters: {
+            query?: {
+                suffix?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SolutionPackage"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolutionImport"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    importOf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolutionImport"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    apply_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SolutionApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolutionImport"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
     quarantineForm: {
         parameters: {
             query?: never;
@@ -19159,6 +19763,70 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    templates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolutionTemplate"][];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    fromTemplate: {
+        parameters: {
+            query?: {
+                suffix?: string;
+            };
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolutionImport"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
