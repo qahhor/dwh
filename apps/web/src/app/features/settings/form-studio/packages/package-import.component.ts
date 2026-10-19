@@ -149,6 +149,7 @@ export class PackageImportComponent implements OnInit {
     this.modal
       .confirm({
         message: this.i18n.translate('studio.packages.apply_confirm', { name: this.title(this.view()?.title) }),
+        yesLabel: this.i18n.translate('studio.packages.apply'),
       })
       .subscribe((confirmed) => {
         if (confirmed) this.run(false);
