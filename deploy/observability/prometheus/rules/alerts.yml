@@ -288,3 +288,33 @@ groups:
           summary: "Report mailing runs keep failing"
           description: "At least three report mailing runs failed for every recipient within the last hour."
           runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-14-report-mailings.md"
+
+  - name: smartupcms-automations
+    rules:
+      # ADR-0046: a run fails when an action is refused (a field locked by the status, a right the author lost) or its
+      # retries run out; the run log names each. Five failures within the hour that are more than a fifth of the runs
+      # mean a broken automation or a form changed under it.
+      - alert: SmartupcmsAutomationsFailing
+        expr: |
+          sum by (application) (increase(smc_automation_runs_total{outcome="failed"}[1h])) >= 5
+          and
+          sum by (application) (increase(smc_automation_runs_total{outcome="failed"}[1h]))
+            > 0.2 * sum by (application) (increase(smc_automation_runs_total{outcome=~"done|skipped|failed"}[1h]))
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Automation runs keep failing"
+          description: "At least five automation runs failed within the last hour, more than a fifth of all runs."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-15-automations.md"
+      # ADR-0046: a run waits in the queue for at most a few seconds, or two minutes before a retry; a run queued for
+      # more than fifteen minutes means the job queue or the scheduler tick does not take the runs.
+      - alert: SmartupcmsAutomationQueueStuck
+        expr: max by (application) (smc_automation_queue_oldest_seconds) > 900
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Automation runs are not taken from the queue"
+          description: "The oldest queued automation run has waited for more than 15 minutes."
+          runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-15-automations.md"

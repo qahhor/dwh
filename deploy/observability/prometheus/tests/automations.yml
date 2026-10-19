@@ -1,0 +1,67 @@
+# promtool unit tests: automations of live forms (ADR-0046; plan 10/10, item 7.3).
+rule_files:
+  - ../rules/recording.yml
+  - ../rules/alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Six failed runs within the hour against ten done ones, held 15 minutes, raise the alert; an hour later it clears.
+  - name: automations failing
+    interval: 1m
+    input_series:
+      - series: 'smc_automation_runs_total{application="smartupcms", instance="a", outcome="failed"}'
+        values: '0 1 2 3 4 5 6x100'
+      - series: 'smc_automation_runs_total{application="smartupcms", instance="a", outcome="done"}'
+        values: '0 2 4 6 8 10x100'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: SmartupcmsAutomationsFailing
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: SmartupcmsAutomationsFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "Automation runs keep failing"
+              description: "At least five automation runs failed within the last hour, more than a fifth of all runs."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-15-automations.md"
+      - eval_time: 100m
+        alertname: SmartupcmsAutomationsFailing
+        exp_alerts: []
+
+  # Five failures among two hundred runs are a small share: no alert.
+  - name: automations failing rarely
+    interval: 1m
+    input_series:
+      - series: 'smc_automation_runs_total{application="smartupcms", instance="a", outcome="failed"}'
+        values: '0 1 2 3 4 5x60'
+      - series: 'smc_automation_runs_total{application="smartupcms", instance="a", outcome="done"}'
+        values: '0+5x60'
+    alert_rule_test:
+      - eval_time: 40m
+        alertname: SmartupcmsAutomationsFailing
+        exp_alerts: []
+
+  # The oldest queued run ages past 15 minutes and stays there for 10 more: the queue is stuck.
+  - name: automation queue stuck
+    interval: 1m
+    input_series:
+      - series: 'smc_automation_queue_oldest_seconds{application="smartupcms", instance="a"}'
+        values: '0 60 120 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1000+60x40'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: SmartupcmsAutomationQueueStuck
+        exp_alerts: []
+      - eval_time: 35m
+        alertname: SmartupcmsAutomationQueueStuck
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              application: smartupcms
+            exp_annotations:
+              summary: "Automation runs are not taken from the queue"
+              description: "The oldest queued automation run has waited for more than 15 minutes."
+              runbook_url: "https://github.com/qahhor/dwh/blob/main/docs/runbooks/RB-15-automations.md"

@@ -4117,7 +4117,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "studio.automations.time_zone_hint": "Для расписания и для today() в формулах",
   "studio.automations.condition": "Условие",
   "studio.automations.condition_hint": "Формула да/нет над записью; пусто — всегда",
-  "studio.automations.condition_hint_change": "Формула да/нет над записью; old.<поле> — значение до изменения, changed.<поле> — поле изменилось",
+  "studio.automations.condition_hint_change": "Формула да/нет над записью; old.поле — значение до изменения, changed.поле — поле изменилось",
   "studio.automations.new_action": "Тип действия",
   "studio.automations.add_action": "Добавить действие",
   "studio.automations.active_label": "Автоматизация включена",

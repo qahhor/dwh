@@ -9,6 +9,36 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Automations of live forms (ADR-0046, stage 3, step 1 of the form and report builder): `/api/v1/automations`
+  keeps if-then rules of a live form — a trigger (`created`, `updated` optionally on listed fields, `saved`,
+  `transition` from/to statuses, `deleted`, or a daily/weekly/monthly `scheduled` look at the records), an
+  optional yes/no formula over the record with `old.<field>` and `changed.<field>` for a change, and 1 to 10
+  ordered actions: `set_field` (entered fields, formula values), `create_record` (a record of another live
+  form, required fields mapped), `transition` (with a comment template) and `notify` (in-app, email,
+  Telegram through the notification outbox to confirmed addresses; users of user fields, the record's author,
+  fixed users, holders of rights; ru/uz/en texts with `{field}` placeholders). Rights `studio.automations`
+  `view`/`manage` (administrators); changes take `If-Match` and are audited; at most 20 per form, 500 in all.
+- Runs are queued in the transaction of the triggering change (`studio_automation_runs`, unique per
+  automation and event) and executed after the commit by the shared job queue (`studio.automation_drain`),
+  one record at a time in order; a run applies its actions and its outcome in one transaction, retries a
+  stale revision after 30 s and 2 min, and fails at once on a refusal. A run executes as the automation's
+  author — whoever last saved or switched it on — through the general runtime (rights, data scope, field
+  rights, status locks), and the save checks the same rights (403); the record's history names the
+  automation. An automation never triggers itself; chains stop at depth 3, one automation at 20 runs per
+  record an hour, the installation at `smc.automations.max-runs-per-minute` (600). Scheduled automations:
+  tick `studio.automation_tick` every minute, `POST …/{id}/runs` runs one now (at most 10 an hour).
+  `POST …/dry-run` tries an automation over a record in a transaction that always rolls back;
+  `GET …/{id}/runs` is the run log (90 days, `automation-runs`); `POST …/formulas/check` checks a formula.
+  A new version of a live form that would break a switched-on automation is refused (422). V235 tables,
+  V236 rights and the tick schedule.
+- Metrics `smc_automation_runs_total{outcome}`, `smc_automation_run_seconds`,
+  `smc_automation_events_withheld_total{reason}`, `smc_automation_queue_oldest_seconds`; alerts
+  `SmartupcmsAutomationsFailing` and `SmartupcmsAutomationQueueStuck` with runbook RB-15.
+- Web: Studio «Автоматизации» (`/settings/form-studio/automations`, from Settings and My forms): the
+  automations of a form with their trigger, author and last run, pause or switch on, run now, run log,
+  delete; the editor page with the trigger, the condition checked by the server while it is typed, the
+  actions and a dry run over a chosen record.
+
 - Scheduled report mailings (ADR-0045, stage 2, step 4 of the form and report builder):
   `/api/v1/report-mailings` keeps mailings of a saved report — 1 to 50 active users, the channels this
   installation delivers on (`email`, `telegram`, `in_app`; `GET …/options`), an XLSX attachment and/or a
@@ -369,6 +399,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Internal: the calendar slots of report mailings moved to `common.schedule.CalendarSchedule` and running
+  background work as a person to `md.service.MdPrincipals`, shared with automations (ADR-0046); the runtime
+  publishes `common.entity.EntityChangeImages` (the record before and after) right after `EntityChanged`, and
+  an audit row of a change an automation makes carries `_automation` (the history shows it as «Автоматизация»).
 - The notification outbox sends a letter's `body` as plain text and an optional `html` as its HTML part
   (it sent `body` as HTML; nothing enqueued letters before report mailings), and carries one attachment.
 - **Breaking for strict clients:** `SimpleFormField.type` and `StudioFormulaField.type` take

@@ -4115,7 +4115,7 @@
   "studio.automations.time_zone_hint": "For the schedule and today() in formulas",
   "studio.automations.condition": "Condition",
   "studio.automations.condition_hint": "A yes/no formula over the record; empty: always",
-  "studio.automations.condition_hint_change": "A yes/no formula over the record; old.<field> is the value before the change, changed.<field> tells whether it changed",
+  "studio.automations.condition_hint_change": "A yes/no formula over the record; old.field is the value before the change, changed.field tells whether it changed",
   "studio.automations.new_action": "Action type",
   "studio.automations.add_action": "Add an action",
   "studio.automations.active_label": "The automation is on",

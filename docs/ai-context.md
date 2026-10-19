@@ -175,6 +175,35 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 
 ## 7. Точка продолжения — 2026-10-19
 
+**Конструктор, этап 3, шаг 3.1 — автоматизации живых форм «если — то» (2026-10-19, прямо в `main` поверх `2aaef503`, не
+запушено — пушит координатор):** [ADR-0046](adr/ADR-0046-live-form-automations.md), ADR-0041 «Этап 3, шаг 3.1». Модуль
+`studio`, пакет `studio.automation`: V235 `studio_automations` (триггер `created`/`updated`/`saved`/`transition`/
+`deleted`/`scheduled`, условие-формула, 1–10 действий JSON, часовой пояс, автор, ревизия) и `studio_automation_runs`
+(уникально `(automation_id, event_key)`, статус `queued`/`done`/`skipped`/`failed`, причина, проблема, результаты
+действий, попытки, `not_before`); V236 права `studio.automations` `view`/`manage` и задание `studio.automation_tick`
+(60 с). Runtime публикует за `EntityChanged` внутреннее `common.entity.EntityChangeImages` (запись до и после;
+`EntityEvents.changed(..., before, after)`), `AutomationEvents` в транзакции изменения ставит запуски и задание
+`studio.automation_drain`; `AutomationRunner` берёт запуски записи по порядку (advisory-блокировка, одна транзакция на
+запуск, отказ — откат и запись итога после; конфликт ревизии — повтор 30 с/2 мин, три попытки); `AutomationExecutor`
+исполняет от имени автора (`md.service.MdPrincipals.callAs`, бывший `report.export.ExportPrincipals`) через
+`EntityRuntime` с `common.entity.EntityChangeOrigin` (аудит `_automation`, история — `ui.history.automation`; себя не
+запускает, глубина ≤ 3, 20 запусков на запись в час, `smc.automations.max-runs-per-minute` 600). Действия —
+`AutomationActions` (`set_field`, `create_record`, `transition`), уведомления — `AutomationNotices` (получатели из полей,
+автор записи, пользователи, держатели прав; только видящие запись; outbox на подтверждённые адреса), тексты —
+`AutomationTexts`. Проверка — `AutomationChecks`/`AutomationActionChecks` (форма — `AutomationForms`, имена формул
+`old.`/`changed.`, `recordNumber`, `modifiedAt`), права автора — `StudioAutomationRights` (403); новая версия формы —
+`AutomationCompatibility` в `StudioVersionService` (422). Расписание — `AutomationScheduler` + `AutomationScans`
+(`studio.automation_scan`, до 1000 записей), общий `common.schedule.CalendarSchedule` (бывший `MailingSchedule`).
+Проверка на записи — `AutomationDryRuns` (транзакция всегда откатывается). API `/api/v1/automations` (options, CRUD по
+ревизии, `/runs` журнал и «запустить сейчас» 202, `/dry-run`, `/formulas/check`). Метрики `smc_automation_runs_total`,
+`smc_automation_run_seconds`, `smc_automation_events_withheld_total`, `smc_automation_queue_oldest_seconds`, алерты
+`SmartupcmsAutomationsFailing`, `SmartupcmsAutomationQueueStuck` + RB-15, хранение запусков 90 дней. Веб:
+`features/settings/form-studio/automations` (список `/settings/form-studio/automations?form=`, редактор `…/:id`,
+`app-automation-action`, `app-automation-formula`, `app-automation-dry-run`, журнал), ссылки из настроек и «Моих форм».
+Тесты — `StudioAutomationHttpTest`, `AutomationTextsTest`; e2e `studio-automations.spec.ts`, a11y `automations.spec.ts`,
+promtool `tests/automations.yml`. Дальше — шаг 3.2 (перенос пакетов и шаблоны; переносить и автоматизации), 3.3
+(витрины хранилища как источник отчётов). Локальные проверки на итоговом коде: GATES_PLACEHOLDER.
+
 **Конструктор, этап 2, шаг 2.4 — рассылки отчётов (2026-10-19, прямо в `main` поверх `a0942057`, не запушено — пушит
 координатор); этап 2 сделан, ждёт приёмки владельца:** [ADR-0045](adr/ADR-0045-report-mailings.md), ADR-0041 «Этап 2,
 шаг 2.4». Модуль `report`, пакет `report.mailing`: V232 `report_mailings`, `report_mailing_recipients`,

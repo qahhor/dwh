@@ -155,6 +155,9 @@ Current ADRs that are not superseded:
   over records or document lines.
 - [ADR-0045 — report mailings](adr/ADR-0045-report-mailings.md) — scheduled mailings of saved reports by email,
   Telegram and in-app notification, each run executed as each recipient, a slot sent once across nodes.
+- [ADR-0046 — automations of live forms](adr/ADR-0046-live-form-automations.md) — if-then rules on the records of a
+  live form: queued with the change, run after its commit once per event and in order per record, as the author whose
+  rights are checked on save and on every run, with loop limits, a dry run and a run log.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
@@ -245,6 +248,7 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 - [RB-12 Ops recovery and alerting (Russian)](runbooks/RB-12-ops-recovery-and-alerting.md)
 - [RB-13 live studio form fails to load](runbooks/RB-13-live-studio-forms.md)
 - [RB-14 report mailings fail](runbooks/RB-14-report-mailings.md)
+- [RB-15 automations fail or wait](runbooks/RB-15-automations.md)
 - [Threat model and personal-data inventory](security/threat-model.md)
 
 These documents govern execution for a concrete installation but cannot supply

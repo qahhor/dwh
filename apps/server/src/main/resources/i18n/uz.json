@@ -4115,7 +4115,7 @@
   "studio.automations.time_zone_hint": "Jadval va formulalardagi today() uchun",
   "studio.automations.condition": "Shart",
   "studio.automations.condition_hint": "Yozuv ustidagi ha/yoʻq formulasi; boʻsh — har doim",
-  "studio.automations.condition_hint_change": "Yozuv ustidagi ha/yoʻq formulasi; old.<maydon> — oʻzgarishdan oldingi qiymat, changed.<maydon> — maydon oʻzgardi",
+  "studio.automations.condition_hint_change": "Yozuv ustidagi ha/yoʻq formulasi; old.maydon — oʻzgarishdan oldingi qiymat, changed.maydon — maydon oʻzgardi",
   "studio.automations.new_action": "Amal turi",
   "studio.automations.add_action": "Amal qoʻshish",
   "studio.automations.active_label": "Avtomatlashtirish yoqilgan",
