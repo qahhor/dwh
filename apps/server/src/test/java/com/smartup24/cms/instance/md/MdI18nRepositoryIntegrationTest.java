@@ -25,7 +25,9 @@ class MdI18nRepositoryIntegrationTest {
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("smc_i18n_repository_test")
             .withUsername("test_user")
-            .withPassword("test_pass");
+            .withPassword("test_pass")
+            // A busy build host may take more than the default minute to initialise a fresh cluster.
+            .withStartupTimeout(java.time.Duration.ofMinutes(3));
 
     static JdbcClient jdbc;
     static MdI18nRepository repository;
