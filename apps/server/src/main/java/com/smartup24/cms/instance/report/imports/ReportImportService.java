@@ -10,12 +10,12 @@ import com.smartup24.cms.instance.jobs.api.JobAttempt;
 import com.smartup24.cms.instance.jobs.api.JobFailures;
 import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.md.service.MdI18nService;
+import com.smartup24.cms.instance.md.service.MdPrincipals;
 import com.smartup24.cms.instance.mf.api.FileView;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.report.api.ImportRequest;
 import com.smartup24.cms.instance.report.api.ImportRowError;
 import com.smartup24.cms.instance.report.api.ImportView;
-import com.smartup24.cms.instance.report.export.ExportPrincipals;
 import com.smartup24.cms.instance.report.repository.ReportImportRepository;
 import com.smartup24.cms.instance.report.repository.ReportImportRepository.ImportRow;
 import com.smartup24.cms.spi.storage.StorageProvider;
@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Imports of entity records and their journal (ADR-0032, 10.1; plan 10/10, item 5.8). A request is checked at once —
  * the entity and the right's {@code import}, the mode, the person's own uploaded xlsx file — and queued; the job then
- * runs the file as the person who asked, with their rights at that moment ({@link ExportPrincipals}), and the person
+ * runs the file as the person who asked, with their rights at that moment ({@link MdPrincipals}), and the person
  * follows it by its journal row. The template is written in the request. Only the owner sees an import; a week after
  * its start the cleanup removes its report and its row.
  */
@@ -62,7 +62,7 @@ public class ReportImportService {
     private final EntityImporter importer;
     private final ReportImportRepository repo;
     private final ImportRunner runner;
-    private final ExportPrincipals principals;
+    private final MdPrincipals principals;
     private final MfFileService files;
     private final StorageProvider storage;
     private final MdI18nService i18n;
@@ -73,7 +73,7 @@ public class ReportImportService {
             EntityImporter importer,
             ReportImportRepository repo,
             ImportRunner runner,
-            ExportPrincipals principals,
+            MdPrincipals principals,
             MfFileService files,
             StorageProvider storage,
             MdI18nService i18n,

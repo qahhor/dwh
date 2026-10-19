@@ -6,12 +6,12 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.web.RequestLanguage;
 import com.smartup24.cms.instance.common.web.RequestZone;
 import com.smartup24.cms.instance.kauth.service.KauthDeliveryAddresses;
+import com.smartup24.cms.instance.md.service.MdPrincipals;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.MdUserTexts;
 import com.smartup24.cms.instance.ms.notify.api.OutboxAttachment;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import com.smartup24.cms.instance.report.export.AggregateExportService;
-import com.smartup24.cms.instance.report.export.ExportPrincipals;
 import com.smartup24.cms.instance.report.repository.ReportMailingRepository.MailingRow;
 import com.smartup24.cms.instance.report.repository.ReportMailingRunRepository;
 import com.smartup24.cms.instance.report.repository.ReportMailingRunRepository.DeliveryValues;
@@ -53,7 +53,7 @@ public class MailingDispatcher {
 
     private final EntityReports reports;
     private final AggregateExportService exports;
-    private final ExportPrincipals principals;
+    private final MdPrincipals principals;
     private final MdUserService users;
     private final MdUserTexts texts;
     private final KauthDeliveryAddresses addresses;
@@ -68,7 +68,7 @@ public class MailingDispatcher {
     public MailingDispatcher(
             EntityReports reports,
             AggregateExportService exports,
-            ExportPrincipals principals,
+            MdPrincipals principals,
             MdUserService users,
             MdUserTexts texts,
             KauthDeliveryAddresses addresses,

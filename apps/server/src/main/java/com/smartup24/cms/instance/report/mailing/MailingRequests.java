@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.entity.report.ReportParameters;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.QueryAggregateSpec;
+import com.smartup24.cms.instance.common.schedule.CalendarSchedule;
 import com.smartup24.cms.instance.kauth.service.KauthDeliveryAddresses;
 import com.smartup24.cms.instance.md.api.MdReportDashboardDtos.ReportViewItem;
 import com.smartup24.cms.instance.report.api.ReportMailingDtos;
@@ -72,7 +73,7 @@ public class MailingRequests {
     }
 
     /** What a checked request stores: the values, the recipients and the schedule. */
-    public record Checked(Values values, List<Long> recipients, MailingSchedule schedule) {}
+    public record Checked(Values values, List<Long> recipients, CalendarSchedule schedule) {}
 
     /** The channels this installation delivers mailings on: in-app always, email and Telegram when configured. */
     public List<String> channels() {
@@ -93,7 +94,7 @@ public class MailingRequests {
         if (!request.attachXlsx() && !request.includeLink()) {
             errors.add(invalid("attachXlsx", "error.report.mailing_format"));
         }
-        MailingSchedule schedule = schedule(request.schedule(), errors);
+        CalendarSchedule schedule = schedule(request.schedule(), errors);
         Map<String, Object> parameters = request.parameters() == null ? Map.of() : request.parameters();
         if (schedule != null) parameters(report, parameters, schedule.zone(), errors);
         Condition condition = condition(request.condition(), report.state(), errors);
@@ -119,7 +120,7 @@ public class MailingRequests {
     }
 
     /** The next send: kept when an active mailing keeps its schedule, else the first slot from now. */
-    private @Nullable Instant next(MailingSchedule schedule, @Nullable MailingRow before) {
+    private @Nullable Instant next(CalendarSchedule schedule, @Nullable MailingRow before) {
         if (before != null && before.active() && before.nextRunAt() != null && schedule.equals(schedule(before))) {
             return before.nextRunAt();
         }
@@ -127,8 +128,8 @@ public class MailingRequests {
     }
 
     /** The schedule of a stored mailing. */
-    public static MailingSchedule schedule(MailingRow row) {
-        return new MailingSchedule(
+    public static CalendarSchedule schedule(MailingRow row) {
+        return new CalendarSchedule(
                 row.frequency(), row.time(), ZoneId.of(row.timeZone()), row.weekday(), row.monthDay());
     }
 
@@ -170,7 +171,7 @@ public class MailingRequests {
         return CHANNELS.stream().filter(chosen::contains).toList();
     }
 
-    private static @Nullable MailingSchedule schedule(@Nullable Schedule asked, List<FieldErrorItem> errors) {
+    private static @Nullable CalendarSchedule schedule(@Nullable Schedule asked, List<FieldErrorItem> errors) {
         if (asked == null) {
             errors.add(invalid("schedule", "error.report.mailing_schedule"));
             return null;
@@ -185,10 +186,10 @@ public class MailingRequests {
         }
         ZoneId zone = ZoneId.of(asked.timeZone());
         String frequency = asked.frequency() == null ? "" : asked.frequency();
-        Integer weekday = MailingSchedule.WEEKLY.equals(frequency) ? asked.weekday() : null;
-        Integer monthDay = MailingSchedule.MONTHLY.equals(frequency) ? asked.monthDay() : null;
+        Integer weekday = CalendarSchedule.WEEKLY.equals(frequency) ? asked.weekday() : null;
+        Integer monthDay = CalendarSchedule.MONTHLY.equals(frequency) ? asked.monthDay() : null;
         try {
-            return new MailingSchedule(frequency, LocalTime.parse(asked.time()), zone, weekday, monthDay);
+            return new CalendarSchedule(frequency, LocalTime.parse(asked.time()), zone, weekday, monthDay);
         } catch (IllegalArgumentException e) {
             String field = switch (e.getMessage()) {
                 case "weekday" -> "schedule.weekday";

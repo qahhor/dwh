@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.report.mailing;
 
+import com.smartup24.cms.instance.common.schedule.CalendarSchedule;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.report.repository.ReportMailingRepository;
@@ -63,7 +64,7 @@ public class MailingScheduler implements JobHandler {
         Integer started = transaction.execute(status -> {
             int count = 0;
             for (MailingRow mailing : mailings.lockDue(now, BATCH)) {
-                MailingSchedule schedule = MailingRequests.schedule(mailing);
+                CalendarSchedule schedule = MailingRequests.schedule(mailing);
                 Optional<Long> run = runs.insertScheduled(mailing.id(), schedule.latestAtOrBefore(now));
                 if (run.isPresent()) {
                     jobs.enqueueOnce(MailingRunner.JOB, Map.of("runId", run.get()));

@@ -1,24 +1,22 @@
-package com.smartup24.cms.instance.report.export;
+package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.md.service.MdPermissionService;
-import com.smartup24.cms.instance.md.service.MdUserService;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 
 /**
- * Runs background work as a person (ADR-0018): an export reads the list with
+ * Runs background work as a person (ADR-0018, ADR-0045, ADR-0046): an export reads the list with
  * the rights its owner has when the job runs, not when it was asked for, so a
  * right taken away meanwhile is respected. A blocked person's work does not run.
  */
 @Component
-public class ExportPrincipals {
+public class MdPrincipals {
 
     private final MdUserService users;
     private final MdPermissionService permissions;
 
-    public ExportPrincipals(MdUserService users, MdPermissionService permissions) {
+    public MdPrincipals(MdUserService users, MdPermissionService permissions) {
         this.users = users;
         this.permissions = permissions;
     }

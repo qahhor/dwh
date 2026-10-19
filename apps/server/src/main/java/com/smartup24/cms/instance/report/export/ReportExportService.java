@@ -18,6 +18,7 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.RequestLanguage;
 import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.md.service.MdI18nService;
+import com.smartup24.cms.instance.md.service.MdPrincipals;
 import com.smartup24.cms.instance.report.api.ExportItem;
 import com.smartup24.cms.instance.report.api.ExportRequest;
 import com.smartup24.cms.instance.report.repository.ReportExportRepository;
@@ -82,7 +83,7 @@ public class ReportExportService {
     private final ReportExportRepository repo;
     private final QueryListRegistry registry;
     private final ReportExportSources exporters;
-    private final ExportPrincipals principals;
+    private final MdPrincipals principals;
     private final EntityGate gate;
     private final MdI18nService i18n;
     private final StorageProvider storage;
@@ -99,7 +100,7 @@ public class ReportExportService {
             List<QueryListExporter> exporters,
             EntityRegistry entities,
             EntityGate gate,
-            ExportPrincipals principals,
+            MdPrincipals principals,
             MdI18nService i18n,
             StorageProvider storage,
             // Lazy: the runner collects every job, including ours, which needs this service.

@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.report.mailing;
+package com.smartup24.cms.instance.common.schedule;
 
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -10,7 +10,8 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
- * When a mailing goes out (ADR-0045): every day, on a weekday or on a day of the month, at a local time of a time zone.
+ * When scheduled work runs — a report mailing (ADR-0045), a scheduled automation (ADR-0046): every day, on a weekday
+ * or on a day of the month, at a local time of a time zone.
  *
  * <p>The slots are local: a time a clock change skips (02:30 on the night the clocks go forward) is sent at the same
  * distance after the change (03:30), a time that happens twice is sent at its first occurrence, so every scheduled day
@@ -20,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * @param weekday   weekly: 1 Monday … 7 Sunday
  * @param monthDay  monthly: 1 … 31
  */
-public record MailingSchedule(
+public record CalendarSchedule(
         String frequency,
         LocalTime time,
         ZoneId zone,
@@ -33,7 +34,7 @@ public record MailingSchedule(
     /** A monthly schedule has a slot within any 31 days; a year of days bounds every search with room to spare. */
     private static final int HORIZON_DAYS = 400;
 
-    public MailingSchedule {
+    public CalendarSchedule {
         Objects.requireNonNull(frequency, "frequency");
         Objects.requireNonNull(time, "time");
         Objects.requireNonNull(zone, "zone");
