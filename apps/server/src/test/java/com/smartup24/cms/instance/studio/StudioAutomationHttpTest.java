@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +61,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
     private TestSession publisher;
     private String orders;
     private String tasks;
+    private String clients;
     private Map<String, Object> declaration;
     private long client;
     private TestUser writerUser;
@@ -87,7 +89,7 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
                         .login());
         String products = "aproducts_" + tag;
         forms.list(publisher, products, List.of("tea", "coffee"));
-        String clients = forms.activate(publisher, forms.clients("aclients_" + tag));
+        clients = forms.activate(publisher, forms.clients("aclients_" + tag));
         tasks = forms.activate(
                 publisher,
                 forms.format4(
@@ -139,6 +141,22 @@ class StudioAutomationHttpTest extends EmbeddedPostgresTest {
                 users.withRights(Map.of("studio.automations", Set.of("view")), unit)
                         .login());
         client = forms.create(writer, clients, Map.of("name", "Клиент", "code", "c1"));
+    }
+
+    /** The forms of a test go to the archive, so the tests of the class leave the limit of active forms alone. */
+    @AfterEach
+    @SuppressWarnings("unchecked")
+    void archiveForms() throws Exception {
+        for (String code : List.of(orders, tasks, clients)) {
+            if (code == null) continue;
+            Map<String, Object> detail = TestSession.object(publisher.send(get("/api/v1/studio/forms/" + code)));
+            Object revision = ((Map<String, Object>) detail.get("form")).get("revision");
+            MockHttpServletResponse archived = publisher.send(
+                    post("/api/v1/studio/forms/" + code + "/archive").header("If-Match", "\"" + revision + "\""),
+                    Map.of(),
+                    null);
+            assertThat(archived.getStatus()).as(archived.getContentAsString()).isEqualTo(200);
+        }
     }
 
     @Test

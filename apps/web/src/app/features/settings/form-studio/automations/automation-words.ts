@@ -1,4 +1,5 @@
 import type { FormFieldMeta, FormMeta } from '@core/models/form-meta.models';
+import { USERS_PATH } from '@shared/lookups/lookup-sources';
 import type { ActionType, AutomationTrigger, TriggerKind } from './automations.api';
 
 /** What starts an automation, in the order the editor offers it (ADR-0046). */
@@ -33,7 +34,7 @@ export function fieldLabel(field: FormFieldMeta, translate: Translate): string {
 
 /** Whether a field names a user of the system: a notification may go to that user. */
 export function isUserField(field: FormFieldMeta): boolean {
-  return field.type === 'ref' && (field.ref?.path ?? '').includes('md.users');
+  return field.type === 'ref' && field.ref?.path === USERS_PATH;
 }
 
 /** The fields an action may write: entered by a person — neither computed nor kept by the platform, nor a file. */

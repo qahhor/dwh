@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.common.metrics.TaskRunMetrics;
 import com.smartup24.cms.instance.jobs.runner.JobMetrics;
 import com.smartup24.cms.instance.report.mailing.MailingMetrics;
 import com.smartup24.cms.instance.search.service.SearchMetrics;
+import com.smartup24.cms.instance.studio.automation.AutomationMetrics;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
@@ -59,6 +60,9 @@ class PrometheusScrapeIntegrationTest extends EmbeddedPostgresTest {
     @Autowired
     MailingMetrics mailingMetrics;
 
+    @Autowired
+    AutomationMetrics automationMetrics;
+
     @Test
     @DisplayName("7.3: HTTP histograms expose API and upload SLO boundaries, including slow uploads")
     void httpServerRequestsHistogramHasSloBuckets() throws Exception {
@@ -100,6 +104,7 @@ class PrometheusScrapeIntegrationTest extends EmbeddedPostgresTest {
         searchMetrics.query("ALL", "POSTGRES", false, true, 1_000_000);
         searchMetrics.queue(true, 0, 0);
         mailingMetrics.run("failed");
+        automationMetrics.run("failed", java.time.Duration.ofMillis(5));
 
         String scrape = get(managementPort, "/actuator/prometheus");
         Set<String> exported = scrape.lines()

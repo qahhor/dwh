@@ -227,6 +227,26 @@ final class ScopeByIdCases {
                     "a live form code: the lifecycle of a catalog definition under studio.forms.publish, no scoped"
                             + " record (StudioFormVersionsHttpTest)"),
             Map.entry(
+                    "StudioAutomationController#automation",
+                    "an automation id: the configuration of a live form kept under studio.automations, no scoped record;"
+                            + " each run reads the record as the automation's author (StudioAutomationHttpTest)"),
+            Map.entry(
+                    "StudioAutomationController#updateAutomation",
+                    "an automation id: the configuration of a live form kept under studio.automations, no scoped record;"
+                            + " each run reads the record as the automation's author (StudioAutomationHttpTest)"),
+            Map.entry(
+                    "StudioAutomationController#deleteAutomation",
+                    "an automation id: the configuration of a live form kept under studio.automations, no scoped record;"
+                            + " each run reads the record as the automation's author (StudioAutomationHttpTest)"),
+            Map.entry(
+                    "StudioAutomationController#automationRuns",
+                    "an automation id: the configuration of a live form kept under studio.automations, no scoped record;"
+                            + " each run reads the record as the automation's author (StudioAutomationHttpTest)"),
+            Map.entry(
+                    "StudioAutomationController#runAutomationNow",
+                    "an automation id: the configuration of a live form kept under studio.automations, no scoped record;"
+                            + " each run reads the record as the automation's author (StudioAutomationHttpTest)"),
+            Map.entry(
                     "ReportMailingController#reportMailing",
                     "a report mailing id: kept by who may read its saved report and holds report.mailings (MailingAccess);"
                             + " each run reads the report as each recipient (StudioReportMailingHttpTest)"),
