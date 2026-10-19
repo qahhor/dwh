@@ -417,6 +417,58 @@ class AutomationChecksTest {
                         "actions[6].body.ru:error.studio.automation_text",
                         "actions[7].title.ru:error.studio.automation_text",
                         "actions[7].body.ru:error.studio.automation_text");
+        Action blank = new Action(
+                "notify",
+                null,
+                null,
+                null,
+                null,
+                List.of("in_app"),
+                new Recipients(List.of(), false, List.of(), List.of(new Right("studio.orders", null))),
+                new Texts(null, null, null),
+                new Texts("ok", null, null));
+        assertThat(problems(request(
+                        new Trigger("deleted", null, null, null, null),
+                        null,
+                        List.of(
+                                action(null),
+                                blank,
+                                new Action("set_field", List.of(), null, null, null, null, null, null, null),
+                                new Action(
+                                        "set_field",
+                                        List.of(new FieldValue("review", null)),
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null)))))
+                .contains(
+                        "actions[0].type:error.studio.automation_deleted_action",
+                        "actions[1].recipients.rights[0]:error.studio.automation_right",
+                        "actions[1].title.ru:error.studio.automation_text",
+                        "actions[2].type:error.studio.automation_deleted_action");
+        assertThat(problems(request(
+                        new Trigger("saved", null, null, null, null),
+                        null,
+                        List.of(
+                                action(null),
+                                new Action("set_field", List.of(), null, null, null, null, null, null, null),
+                                new Action(
+                                        "set_field",
+                                        List.of(new FieldValue("review", null)),
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null)))))
+                .contains(
+                        "actions[0].type:error.studio.automation_action",
+                        "actions[1].values:error.studio.automation_values",
+                        "actions[2].values[0].formula:error.studio.automation_formula");
         List<String> lenient = problems(
                 request(new Trigger("saved", null, null, null, null), null, List.of(wrong)),
                 AutomationChecks.Context.run());
