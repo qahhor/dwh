@@ -37,6 +37,8 @@ describe('i18n: shared UI and kit', () => {
           ...COMPARE_PERIODS.map((period) => `ui.report.compare.${period}`),
           ...COMPARE_AGAINST.map((against) => `ui.report.compare.against_${against}`),
           ...PERIOD_PRESETS.map((preset) => `ui.report.preset.${preset}`),
+          // ADR-0046: the history labels the automation of a change with the key the server sends.
+          'ui.history.automation',
           // Section titles of entity forms come from the server (EntityDefinition layouts).
           ...serverLiteralKeys('entity.'),
           // The record page names an action's button and its confirmation by the action's code (ADR-0032 7.4):
