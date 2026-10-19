@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.api;
 import com.smartup24.cms.instance.common.web.Revisioned;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /** Wire format of {@code /api/v1/iam} roles and the form catalog. */
@@ -28,6 +29,12 @@ public final class MdRoleDtos {
     /** One pair of a role's permission matrix. */
     public record RolePermission(
             @NotBlank String formCode, @NotBlank String action) {}
+
+    /**
+     * A role that is not administrative and the rights it holds on some forms: what a solution package carries as a
+     * role placeholder (ADR-0047).
+     */
+    public record RoleGrants(long id, String name, List<RolePermission> permissions) {}
 
     /**
      * One pair of the permission catalog. Entities and the static form catalog name rights by dictionary keys

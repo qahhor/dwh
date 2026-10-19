@@ -50,7 +50,10 @@ class SchemaOrderTest {
             Map.entry("upl_sources.modified_by", "the actor name of the foundation as text (user id or system)"),
             Map.entry(
                     "studio_automation_runs.record_id",
-                    "the record a run acted on; the run log outlives a deleted record (ADR-0046)"));
+                    "the record a run acted on; the run log outlives a deleted record (ADR-0046)"),
+            Map.entry(
+                    "studio_package_objects.object_id",
+                    "polymorphic: a saved report, a mailing or an automation by kind (ADR-0047)"));
 
     /** Indexes made redundant by another index of the same table: same leading keys, order, predicate and method. */
     static final String REDUNDANT_INDEXES = """

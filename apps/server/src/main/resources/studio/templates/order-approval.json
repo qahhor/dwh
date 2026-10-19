@@ -1,0 +1,565 @@
+{
+  "formatVersion" : 1,
+  "kind" : "solution-package",
+  "code" : "order-approval",
+  "version" : "1.0.0",
+  "title" : {
+    "ru" : "Заказ со строками и согласованием",
+    "uz" : "Qatorli va tasdiqlanadigan buyurtma",
+    "en" : "Order with lines and approval"
+  },
+  "description" : {
+    "ru" : "Заказ клиента со строками товаров, номером и согласованием: торговый представитель отправляет заказ, согласующий согласует или отклоняет. Отчёт «Заказы по регионам» с еженедельной рассылкой и автоматизация согласования.",
+    "uz" : "Tovar qatorlari, raqam va tasdiqlash bilan mijoz buyurtmasi: savdo vakili buyurtmani yuboradi, tasdiqlovchi tasdiqlaydi yoki rad etadi. Haftalik tarqatmali «Hududlar bo'yicha buyurtmalar» hisoboti va tasdiqlash avtomatlashtiruvi.",
+    "en" : "A client's order with product lines, a number and approval: a sales representative sends the order, an approver approves or rejects it. The report «Orders by region» with a weekly mailing and an approval automation."
+  },
+  "requires" : {
+    "simpleFormFormat" : 6
+  },
+  "producedBy" : "template",
+  "placeholders" : [ {
+    "key" : "seller",
+    "kind" : "role",
+    "labels" : {
+      "ru" : "Торговый представитель",
+      "uz" : "Savdo vakili",
+      "en" : "Sales representative"
+    },
+    "required" : false
+  }, {
+    "key" : "approver",
+    "kind" : "role",
+    "labels" : {
+      "ru" : "Согласующий",
+      "uz" : "Tasdiqlovchi",
+      "en" : "Approver"
+    },
+    "required" : false
+  }, {
+    "key" : "mailing-recipients",
+    "kind" : "users",
+    "labels" : {
+      "ru" : "Получатели рассылки «Заказы по регионам»",
+      "uz" : "«Hududlar bo'yicha buyurtmalar» tarqatmasi oluvchilari",
+      "en" : "Recipients of the mailing «Orders by region»"
+    },
+    "required" : true
+  } ],
+  "lists" : [ {
+    "code" : "regions",
+    "name" : {
+      "ru" : "Регионы",
+      "uz" : "Hududlar",
+      "en" : "Regions"
+    },
+    "items" : [ {
+      "code" : "tashkent",
+      "name" : {
+        "ru" : "Ташкент",
+        "uz" : "Toshkent",
+        "en" : "Tashkent"
+      },
+      "sortOrder" : 10,
+      "active" : true
+    }, {
+      "code" : "samarkand",
+      "name" : {
+        "ru" : "Самарканд",
+        "uz" : "Samarqand",
+        "en" : "Samarkand"
+      },
+      "sortOrder" : 20,
+      "active" : true
+    }, {
+      "code" : "bukhara",
+      "name" : {
+        "ru" : "Бухара",
+        "uz" : "Buxoro",
+        "en" : "Bukhara"
+      },
+      "sortOrder" : 30,
+      "active" : true
+    }, {
+      "code" : "fergana",
+      "name" : {
+        "ru" : "Фергана",
+        "uz" : "Farg'ona",
+        "en" : "Fergana"
+      },
+      "sortOrder" : 40,
+      "active" : true
+    }, {
+      "code" : "andijan",
+      "name" : {
+        "ru" : "Андижан",
+        "uz" : "Andijon",
+        "en" : "Andijan"
+      },
+      "sortOrder" : 50,
+      "active" : true
+    } ]
+  }, {
+    "code" : "products",
+    "name" : {
+      "ru" : "Товары",
+      "uz" : "Tovarlar",
+      "en" : "Products"
+    },
+    "items" : [ {
+      "code" : "tea",
+      "name" : {
+        "ru" : "Чай",
+        "uz" : "Choy",
+        "en" : "Tea"
+      },
+      "sortOrder" : 10,
+      "active" : true
+    }, {
+      "code" : "coffee",
+      "name" : {
+        "ru" : "Кофе",
+        "uz" : "Qahva",
+        "en" : "Coffee"
+      },
+      "sortOrder" : 20,
+      "active" : true
+    }, {
+      "code" : "sugar",
+      "name" : {
+        "ru" : "Сахар",
+        "uz" : "Shakar",
+        "en" : "Sugar"
+      },
+      "sortOrder" : 30,
+      "active" : true
+    }, {
+      "code" : "water",
+      "name" : {
+        "ru" : "Вода",
+        "uz" : "Suv",
+        "en" : "Water"
+      },
+      "sortOrder" : 40,
+      "active" : true
+    } ]
+  } ],
+  "forms" : [ {
+    "formatVersion" : 1,
+    "kind" : "simple-form-package",
+    "declaration" : {
+      "formatVersion" : 4,
+      "kind" : "simple-form",
+      "module" : {
+        "code" : "studio",
+        "title" : {
+          "ru" : "Созданные формы",
+          "uz" : "Yaratilgan shakllar",
+          "en" : "Created forms"
+        }
+      },
+      "entity" : {
+        "name" : "clients",
+        "title" : {
+          "ru" : "Клиенты",
+          "uz" : "Mijozlar",
+          "en" : "Clients"
+        },
+        "menu" : {
+          "icon" : "storefront",
+          "section" : "workspace",
+          "order" : 10
+        },
+        "scope" : "all",
+        "titleField" : "title"
+      },
+      "fields" : [ {
+        "id" : "title",
+        "type" : "text",
+        "labels" : {
+          "ru" : "Название",
+          "uz" : "Nomi",
+          "en" : "Name"
+        },
+        "required" : true,
+        "listed" : true,
+        "maxLength" : 200
+      }, {
+        "id" : "region",
+        "type" : "ref",
+        "labels" : {
+          "ru" : "Регион",
+          "uz" : "Hudud",
+          "en" : "Region"
+        },
+        "required" : true,
+        "listed" : true,
+        "target" : {
+          "kind" : "list",
+          "code" : "regions"
+        }
+      }, {
+        "id" : "phone",
+        "type" : "phone",
+        "labels" : {
+          "ru" : "Телефон",
+          "uz" : "Telefon",
+          "en" : "Phone"
+        },
+        "required" : false,
+        "listed" : true
+      }, {
+        "id" : "address",
+        "type" : "text",
+        "labels" : {
+          "ru" : "Адрес",
+          "uz" : "Manzil",
+          "en" : "Address"
+        },
+        "required" : false,
+        "listed" : false,
+        "maxLength" : 300
+      } ]
+    },
+    "checksum" : "71ffb76b911b4d3ecfd23f79deea675cee3443a4e3990ec65db972b316f03448"
+  }, {
+    "formatVersion" : 1,
+    "kind" : "simple-form-package",
+    "declaration" : {
+      "formatVersion" : 6,
+      "kind" : "simple-form",
+      "module" : {
+        "code" : "studio",
+        "title" : {
+          "ru" : "Созданные формы",
+          "uz" : "Yaratilgan shakllar",
+          "en" : "Created forms"
+        }
+      },
+      "entity" : {
+        "name" : "orders",
+        "title" : {
+          "ru" : "Заказы",
+          "uz" : "Buyurtmalar",
+          "en" : "Orders"
+        },
+        "menu" : {
+          "icon" : "receipt_long",
+          "section" : "workspace",
+          "order" : 30
+        },
+        "scope" : "all",
+        "numbering" : {
+          "pattern" : "ORD-{YYYY}-{NNNNNN}",
+          "reset" : "year"
+        }
+      },
+      "fields" : [ {
+        "id" : "client",
+        "type" : "ref",
+        "labels" : {
+          "ru" : "Клиент",
+          "uz" : "Mijoz",
+          "en" : "Client"
+        },
+        "required" : true,
+        "listed" : true,
+        "target" : {
+          "kind" : "form",
+          "code" : "studio.clients"
+        }
+      }, {
+        "id" : "region",
+        "type" : "ref",
+        "labels" : {
+          "ru" : "Регион",
+          "uz" : "Hudud",
+          "en" : "Region"
+        },
+        "required" : true,
+        "listed" : true,
+        "target" : {
+          "kind" : "list",
+          "code" : "regions"
+        }
+      }, {
+        "id" : "total",
+        "type" : "number",
+        "labels" : {
+          "ru" : "Итого",
+          "uz" : "Jami",
+          "en" : "Total"
+        },
+        "required" : false,
+        "listed" : true,
+        "scale" : 2,
+        "formula" : "sum(lines.items.amount)"
+      }, {
+        "id" : "submitted",
+        "type" : "date",
+        "labels" : {
+          "ru" : "Отправлен на согласование",
+          "uz" : "Tasdiqlashga yuborilgan",
+          "en" : "Sent for approval"
+        },
+        "required" : false,
+        "listed" : true
+      }, {
+        "id" : "note",
+        "type" : "textarea",
+        "labels" : {
+          "ru" : "Примечание",
+          "uz" : "Izoh",
+          "en" : "Note"
+        },
+        "required" : false,
+        "listed" : false,
+        "maxLength" : 1000
+      } ],
+      "lines" : [ {
+        "key" : "items",
+        "labels" : {
+          "ru" : "Строки заказа",
+          "uz" : "Buyurtma qatorlari",
+          "en" : "Order lines"
+        },
+        "maxRows" : 50,
+        "fields" : [ {
+          "id" : "product",
+          "type" : "ref",
+          "labels" : {
+            "ru" : "Товар",
+            "uz" : "Tovar",
+            "en" : "Product"
+          },
+          "required" : true,
+          "target" : {
+            "kind" : "list",
+            "code" : "products"
+          }
+        }, {
+          "id" : "qty",
+          "type" : "number",
+          "labels" : {
+            "ru" : "Количество",
+            "uz" : "Miqdor",
+            "en" : "Quantity"
+          },
+          "required" : true,
+          "scale" : 3
+        }, {
+          "id" : "price",
+          "type" : "number",
+          "labels" : {
+            "ru" : "Цена",
+            "uz" : "Narx",
+            "en" : "Price"
+          },
+          "required" : true,
+          "scale" : 2
+        }, {
+          "id" : "amount",
+          "type" : "number",
+          "labels" : {
+            "ru" : "Сумма",
+            "uz" : "Summa",
+            "en" : "Amount"
+          },
+          "required" : false,
+          "scale" : 2,
+          "formula" : "round(qty * price, 2)"
+        } ]
+      } ],
+      "workflow" : {
+        "states" : [ {
+          "code" : "draft",
+          "labels" : {
+            "ru" : "Черновик",
+            "uz" : "Qoralama",
+            "en" : "Draft"
+          },
+          "color" : "gray"
+        }, {
+          "code" : "pending",
+          "labels" : {
+            "ru" : "На согласовании",
+            "uz" : "Tasdiqlashda",
+            "en" : "Pending approval"
+          },
+          "color" : "blue",
+          "locks" : [ "client", "region", "items" ]
+        }, {
+          "code" : "approved",
+          "labels" : {
+            "ru" : "Согласован",
+            "uz" : "Tasdiqlangan",
+            "en" : "Approved"
+          },
+          "color" : "green",
+          "terminal" : true
+        }, {
+          "code" : "rejected",
+          "labels" : {
+            "ru" : "Отклонён",
+            "uz" : "Rad etilgan",
+            "en" : "Rejected"
+          },
+          "color" : "red",
+          "terminal" : true
+        } ],
+        "transitions" : [ {
+          "code" : "submit",
+          "labels" : {
+            "ru" : "На согласование",
+            "uz" : "Tasdiqlashga",
+            "en" : "Send for approval"
+          },
+          "from" : [ "draft" ],
+          "to" : "pending",
+          "comment" : "none",
+          "condition" : "total > 0"
+        }, {
+          "code" : "approve",
+          "labels" : {
+            "ru" : "Согласовать",
+            "uz" : "Tasdiqlash",
+            "en" : "Approve"
+          },
+          "from" : [ "pending" ],
+          "to" : "approved",
+          "comment" : "optional",
+          "notAuthor" : true
+        }, {
+          "code" : "reject",
+          "labels" : {
+            "ru" : "Отклонить",
+            "uz" : "Rad etish",
+            "en" : "Reject"
+          },
+          "from" : [ "pending" ],
+          "to" : "rejected",
+          "comment" : "required",
+          "notAuthor" : true
+        } ]
+      }
+    },
+    "checksum" : "ec3be6420d297cb3d716dbf1808d4fc143770f0592066d8c28134b9beaddc972"
+  } ],
+  "datasets" : [ ],
+  "reports" : [ {
+    "key" : "orders-by-region",
+    "name" : "Заказы по регионам",
+    "list" : "studio.orders",
+    "state" : {
+      "groupBy" : [ {
+        "field" : "region"
+      } ],
+      "measures" : [ {
+        "op" : "count"
+      }, {
+        "op" : "sum",
+        "field" : "total"
+      } ],
+      "filter" : [ ],
+      "chart" : "table",
+      "sort" : {
+        "by" : "measure",
+        "measure" : 1,
+        "direction" : "desc"
+      }
+    },
+    "share" : [ "approver" ]
+  } ],
+  "mailings" : [ {
+    "key" : "orders-by-region-weekly",
+    "report" : "orders-by-region",
+    "name" : "Заказы по регионам — еженедельно",
+    "recipients" : "mailing-recipients",
+    "channels" : [ "email", "in_app" ],
+    "attachXlsx" : true,
+    "includeLink" : true,
+    "schedule" : {
+      "frequency" : "weekly",
+      "time" : "09:00",
+      "timeZone" : "Asia/Tashkent",
+      "weekday" : 1
+    },
+    "parameters" : { },
+    "condition" : {
+      "kind" : "has_rows"
+    }
+  } ],
+  "automations" : [ {
+    "key" : "order-approval",
+    "form" : "studio.orders",
+    "name" : "Согласование заказа",
+    "trigger" : {
+      "kind" : "transition",
+      "to" : [ "pending" ]
+    },
+    "actions" : [ {
+      "type" : "set_field",
+      "values" : [ {
+        "field" : "submitted",
+        "formula" : "today()"
+      } ]
+    }, {
+      "type" : "notify",
+      "channels" : [ "in_app" ],
+      "recipients" : {
+        "rights" : [ {
+          "form" : "studio.orders",
+          "action" : "approve"
+        } ]
+      },
+      "title" : {
+        "ru" : "Заказ {docNumber} ждёт согласования",
+        "uz" : "{docNumber} buyurtmasi tasdiqlashni kutmoqda",
+        "en" : "Order {docNumber} awaits approval"
+      },
+      "body" : {
+        "ru" : "Заказ {docNumber} на сумму {total} ждёт вашего решения.",
+        "uz" : "{total} summali {docNumber} buyurtmasi qaroringizni kutmoqda.",
+        "en" : "Order {docNumber} for {total} awaits your decision."
+      }
+    } ],
+    "timeZone" : "Asia/Tashkent"
+  } ],
+  "grants" : [ {
+    "role" : "seller",
+    "permissions" : [ {
+      "form" : "studio.orders",
+      "action" : "view"
+    }, {
+      "form" : "studio.orders",
+      "action" : "create"
+    }, {
+      "form" : "studio.orders",
+      "action" : "update"
+    }, {
+      "form" : "studio.orders",
+      "action" : "submit"
+    }, {
+      "form" : "studio.clients",
+      "action" : "view"
+    }, {
+      "form" : "studio.clients",
+      "action" : "create"
+    } ]
+  }, {
+    "role" : "approver",
+    "permissions" : [ {
+      "form" : "studio.orders",
+      "action" : "view"
+    }, {
+      "form" : "studio.orders",
+      "action" : "approve"
+    }, {
+      "form" : "studio.orders",
+      "action" : "reject"
+    }, {
+      "form" : "studio.clients",
+      "action" : "view"
+    } ]
+  } ],
+  "checksum" : "eb38fd5165ec6fdeca38c0ad94d97f31543c897f9e28abb63555fc0e3cee58b0"
+}

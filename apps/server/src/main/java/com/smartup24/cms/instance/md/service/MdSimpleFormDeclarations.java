@@ -42,6 +42,9 @@ import tools.jackson.databind.ObjectReader;
 @Component
 public class MdSimpleFormDeclarations {
     public static final int MAX_BYTES = 32 * 1024;
+    /** The newest simple-form format this installation reads (ADR-0041, ADR-0043). */
+    public static final int MAX_FORMAT = 7;
+
     static final Set<String> ROOT = Set.of("formatVersion", "kind", "module", "entity", "fields");
     /** Format 4 adds the layout of the form (ADR-0041). */
     static final Set<String> ROOT_V4 = Set.of("formatVersion", "kind", "module", "entity", "fields", "layout");
@@ -120,7 +123,7 @@ public class MdSimpleFormDeclarations {
 
     public DeliveryPackage prepare(byte[] body) {
         JsonNode root = parse(body);
-        int format = integer(root, "formatVersion", "formatVersion", 1, 7);
+        int format = integer(root, "formatVersion", "formatVersion", 1, MAX_FORMAT);
         known(root, format >= 6 ? ROOT_V6 : format == 5 ? ROOT_V5 : format == 4 ? ROOT_V4 : ROOT, "declaration");
         if (!"simple-form".equals(text(root, "kind", "kind"))) throw invalid("kind", "unsupported");
         JsonNode module = required(root, "module", "module");

@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
@@ -218,6 +219,18 @@ public class ReportMailingService {
                 .map(delivery -> MailingViews.delivery(delivery, outbox))
                 .toList();
         return new RunDetail(MailingViews.run(run), items);
+    }
+
+    /**
+     * The mailing, if it is still there: what a solution package looks for before it creates it again (ADR-0047). The
+     * current person must keep it, as for {@link #get(long)}.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Mailing> find(long id) {
+        return repo.find(id).map(row -> {
+            access.report(row.viewId());
+            return view(row);
+        });
     }
 
     /** The stored mailing the current person keeps. */

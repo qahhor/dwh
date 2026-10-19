@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.repository;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -153,6 +154,25 @@ public class MdRoleRepository {
                 """).param("roleId", roleId).query(String.class).set();
     }
 
+    /** The rights on the forms held by roles other than the administrative ones, by role name. */
+    public List<RoleGrant> grantsOn(Collection<String> forms) {
+        if (forms.isEmpty()) return List.of();
+        return jdbcClient
+                .sql("""
+                select r.id, r.name, p.form_code, p.action
+                from md_role_permissions p
+                join md_roles r on r.id = p.role_id
+                where p.form_code in (:forms) and coalesce(r.pcode, '') not in ('admin', 'chief_admin')
+                order by r.name, r.id, p.form_code, p.action
+                """)
+                .param("forms", forms)
+                .query((rs, n) -> new RoleGrant(
+                        rs.getLong("id"),
+                        rs.getString("name"),
+                        new PermissionPair(rs.getString("form_code"), rs.getString("action"))))
+                .list();
+    }
+
     public void replaceRolePermissions(Long roleId, List<PermissionPair> permissions) {
         jdbcClient
                 .sql("delete from md_role_permissions where role_id = :roleId")
@@ -250,4 +270,7 @@ public class MdRoleRepository {
             long revision) {}
 
     public record PermissionPair(String formCode, String action) {}
+
+    /** One right of a role, with the role's name. */
+    public record RoleGrant(long roleId, String roleName, PermissionPair permission) {}
 }

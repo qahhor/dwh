@@ -145,7 +145,11 @@
   }, {
     "name" : "studio-list-controller"
   }, {
+    "name" : "studio-package-controller"
+  }, {
     "name" : "studio-quarantine-controller"
+  }, {
+    "name" : "studio-template-controller"
   }, {
     "name" : "system-info-controller"
   }, {
@@ -9151,7 +9155,7 @@
     "/api/v1/i18n/admin/languages/{code}/export" : {
       "get" : {
         "description" : "The texts of an interface language as one key-to-text map.",
-        "operationId" : "export",
+        "operationId" : "export_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "code",
@@ -15465,6 +15469,275 @@
         "tags" : [ "studio-list-controller" ]
       }
     },
+    "/api/v1/studio/packages/export" : {
+      "post" : {
+        "description" : "Requires studio.packages.export. The package of the selection as a JSON file with its checksum (SHA-256 of its canonical JSON without the checksum). No record data, user id or secret goes in; roles and fixed users become placeholders.",
+        "operationId" : "export",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SolutionExportRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SolutionPackage"
+                }
+              }
+            },
+            "description" : "The package file"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Download a solution package",
+        "tags" : [ "studio-package-controller" ]
+      }
+    },
+    "/api/v1/studio/packages/export/preview" : {
+      "post" : {
+        "description" : "Requires studio.packages.export. Lists what a package of the selection would hold — the selected items and, as dependencies, the forms they stand on, the forms those refer to, the lists of the forms, the datasets of the reports and the reports of the mailings — what else uses its forms, and the placeholders its roles and users become. Each item is read with the right of its own screen; 422 when a filter or a parameter names a record of this installation.",
+        "operationId" : "plan",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SolutionExportRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SolutionExportPlan"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Plan a solution package",
+        "tags" : [ "studio-package-controller" ]
+      }
+    },
+    "/api/v1/studio/packages/imports" : {
+      "get" : {
+        "description" : "Requires studio.packages.import. Newest first; the default limit is 20, maximum 100.",
+        "operationId" : "imports",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KeysetPageSolutionImportSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List the imports of solution packages",
+        "tags" : [ "studio-package-controller" ]
+      },
+      "post" : {
+        "description" : "Requires studio.packages.import. The body is a package file of at most 2 MiB. It is verified — format, checksum, the simple-form format this installation reads, structure, every form as a simple-form package — and checked by applying it in a transaction that always rolls back: each item is to be created, upgraded (a new version of a form under the compatible change rules), left unchanged or skipped, or is refused with its reasons. A suffix copies the solution under other codes of its forms, lists and datasets. 201 with Location; nothing but the import is kept.",
+        "operationId" : "upload_1",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "suffix",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "^_[a-z0-9]{1,5}$"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SolutionPackage"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SolutionImport"
+                }
+              }
+            },
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Upload and check a solution package",
+        "tags" : [ "studio-package-controller" ]
+      }
+    },
+    "/api/v1/studio/packages/imports/{id}" : {
+      "get" : {
+        "description" : "Requires studio.packages.import. The items with their outcome at the last check or the application, the placeholders to map and the mapping given.",
+        "operationId" : "importOf",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SolutionImport"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Read an import of a solution package",
+        "tags" : [ "studio-package-controller" ]
+      }
+    },
+    "/api/v1/studio/packages/imports/{id}/apply" : {
+      "post" : {
+        "description" : "Requires studio.packages.import and the rights of each kind of item it creates. Takes the mapping of the placeholders (a role placeholder: one active role; a placeholder of users: active users; each required one mapped). Applies every item in one transaction: a refused item rolls everything back (422) and the import shows the reasons. Mailings and automations are created paused. With dryRun the mapping is only checked. 409 when already applied; applying the same package again creates nothing new.",
+        "operationId" : "apply_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SolutionApplyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SolutionImport"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Apply an import of a solution package",
+        "tags" : [ "studio-package-controller" ]
+      }
+    },
     "/api/v1/studio/quarantine" : {
       "post" : {
         "description" : "Requires studio.forms.publish. The form stops being served on every node at its next request and answers as an unknown entity; its declaration, records and rights stay. 404 for an unknown form, 409 when it is already quarantined. Audited.",
@@ -15587,6 +15860,93 @@
         },
         "summary" : "Read one quarantined live form",
         "tags" : [ "studio-quarantine-controller" ]
+      }
+    },
+    "/api/v1/studio/templates" : {
+      "get" : {
+        "description" : "Requires studio.packages.import. The packages the product ships, each verified like an upload, with its description and what it holds.",
+        "operationId" : "templates",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SolutionTemplate"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "List the templates of solutions",
+        "tags" : [ "studio-template-controller" ]
+      }
+    },
+    "/api/v1/studio/templates/{code}/imports" : {
+      "post" : {
+        "description" : "Requires studio.packages.import. Checks the template's package like an upload and keeps the import (201 with Location); applying it with the mapping creates the solution. A suffix creates a second copy under other codes.",
+        "operationId" : "fromTemplate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "suffix",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "^_[a-z0-9]{1,5}$"
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SolutionImport"
+                }
+              }
+            },
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Create a solution from a template",
+        "tags" : [ "studio-template-controller" ]
       }
     },
     "/api/v1/system/info" : {
@@ -20906,6 +21266,30 @@
           }
         }
       },
+      "KeysetPageSolutionImportSummary" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionImportSummary"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "KeysetPageSourceItem" : {
         "type" : "object",
         "properties" : {
@@ -24834,6 +25218,787 @@
           }
         },
         "required" : [ "states", "transitions" ]
+      },
+      "SolutionApplyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "dryRun" : {
+            "type" : "boolean",
+            "description" : "Check the mapping without applying; false by default"
+          },
+          "mapping" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "type" : "integer",
+                "format" : "int64"
+              }
+            }
+          }
+        },
+        "required" : [ "mapping" ]
+      },
+      "SolutionExportItem" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string",
+            "description" : "A code or an id"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "list", "form", "dataset", "report", "mailing", "automation" ]
+          },
+          "of" : {
+            "type" : "string",
+            "description" : "The item that needs it, as kind:key"
+          },
+          "reason" : {
+            "type" : "string",
+            "enum" : [ "selected", "dependency", "related" ]
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "key", "kind", "reason", "title" ]
+      },
+      "SolutionExportPlan" : {
+        "type" : "object",
+        "properties" : {
+          "included" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionExportItem"
+            }
+          },
+          "placeholders" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackagePlaceholder"
+            }
+          },
+          "related" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionExportItem"
+            }
+          }
+        },
+        "required" : [ "included", "placeholders", "related" ]
+      },
+      "SolutionExportRequest" : {
+        "type" : "object",
+        "properties" : {
+          "automations" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "maxItems" : 50
+          },
+          "code" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9-]{1,39}$"
+          },
+          "datasets" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            },
+            "maxItems" : 20
+          },
+          "description" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "forms" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "example" : "studio.orders"
+            },
+            "maxItems" : 20
+          },
+          "listItems" : {
+            "type" : "boolean"
+          },
+          "mailings" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "maxItems" : 20
+          },
+          "reports" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "maxItems" : 50
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "version" : {
+            "type" : "string",
+            "pattern" : "^[0-9]{1,4}\\.[0-9]{1,4}\\.[0-9]{1,6}$"
+          }
+        },
+        "required" : [ "code", "title", "version" ]
+      },
+      "SolutionImport" : {
+        "type" : "object",
+        "properties" : {
+          "appliedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "appliedBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "checkedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "checksum" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "counts" : {
+            "$ref" : "#/components/schemas/SolutionImportCounts"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdBy" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "description" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionImportItem"
+            }
+          },
+          "mapping" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "array",
+              "items" : {
+                "type" : "integer",
+                "format" : "int64"
+              }
+            },
+            "description" : "Placeholder key: role or user ids"
+          },
+          "placeholders" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackagePlaceholder"
+            }
+          },
+          "producedBy" : {
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string",
+            "enum" : [ "upload", "template" ]
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "preview", "applied" ]
+          },
+          "suffix" : {
+            "type" : "string"
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "checkedAt", "checksum", "code", "counts", "createdAt", "createdBy", "id", "items", "mapping", "placeholders", "producedBy", "source", "status", "title", "version" ]
+      },
+      "SolutionImportCounts" : {
+        "type" : "object",
+        "properties" : {
+          "create" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "refused" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skip" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "unchanged" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "upgrade" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "SolutionImportItem" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string",
+            "description" : "A code, or the key in the package"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "list", "form", "grant", "dataset", "report", "mailing", "automation" ]
+          },
+          "notes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "outcome" : {
+            "type" : "string",
+            "enum" : [ "create", "upgrade", "unchanged", "skip", "refused" ]
+          },
+          "problems" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionItemProblem"
+            }
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "key", "kind", "notes", "outcome", "problems", "title" ]
+      },
+      "SolutionImportSummary" : {
+        "type" : "object",
+        "properties" : {
+          "appliedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "counts" : {
+            "$ref" : "#/components/schemas/SolutionImportCounts"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "source" : {
+            "type" : "string",
+            "enum" : [ "upload", "template" ]
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "preview", "applied" ]
+          },
+          "suffix" : {
+            "type" : "string"
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "counts", "createdAt", "id", "source", "status", "title", "version" ]
+      },
+      "SolutionItemProblem" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "params" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          }
+        },
+        "required" : [ "message" ]
+      },
+      "SolutionPackage" : {
+        "type" : "object",
+        "properties" : {
+          "automations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackageAutomation"
+            },
+            "maxItems" : 50
+          },
+          "checksum" : {
+            "type" : "string",
+            "pattern" : "^[0-9a-f]{64}$"
+          },
+          "code" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9-]{1,39}$"
+          },
+          "datasets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackageDataset"
+            },
+            "maxItems" : 20
+          },
+          "description" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "formatVersion" : {
+            "type" : "integer",
+            "format" : "int32",
+            "enum" : [ "1" ]
+          },
+          "forms" : {
+            "type" : "array",
+            "description" : "Simple-form packages, a form after the forms it refers to",
+            "items" : {
+              "$ref" : "#/components/schemas/SimpleFormDeliveryPackage"
+            },
+            "maxItems" : 20
+          },
+          "grants" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackageGrant"
+            },
+            "maxItems" : 20
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "solution-package" ]
+          },
+          "lists" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackageList"
+            },
+            "maxItems" : 50
+          },
+          "mailings" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackageMailing"
+            },
+            "maxItems" : 20
+          },
+          "placeholders" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackagePlaceholder"
+            },
+            "maxItems" : 50
+          },
+          "producedBy" : {
+            "type" : "string",
+            "description" : "The version of the application"
+          },
+          "reports" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackageReport"
+            },
+            "maxItems" : 50
+          },
+          "requires" : {
+            "$ref" : "#/components/schemas/SolutionPackageRequires"
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "version" : {
+            "type" : "string",
+            "pattern" : "^[0-9]{1,4}\\.[0-9]{1,4}\\.[0-9]{1,6}$"
+          }
+        },
+        "required" : [ "automations", "checksum", "code", "datasets", "formatVersion", "forms", "grants", "kind", "lists", "mailings", "placeholders", "producedBy", "reports", "requires", "title", "version" ]
+      },
+      "SolutionPackageAction" : {
+        "type" : "object",
+        "properties" : {
+          "body" : {
+            "$ref" : "#/components/schemas/StudioAutomationTexts"
+          },
+          "channels" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "comment" : {
+            "type" : "string"
+          },
+          "form" : {
+            "type" : "string"
+          },
+          "recipients" : {
+            "$ref" : "#/components/schemas/SolutionPackageRecipients"
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/StudioAutomationTexts"
+          },
+          "transition" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "set_field", "create_record", "transition", "notify" ]
+          },
+          "values" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudioAutomationValue"
+            }
+          }
+        },
+        "required" : [ "type" ]
+      },
+      "SolutionPackageAutomation" : {
+        "type" : "object",
+        "properties" : {
+          "actions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackageAction"
+            },
+            "maxItems" : 10,
+            "minItems" : 1
+          },
+          "condition" : {
+            "type" : "string"
+          },
+          "form" : {
+            "type" : "string"
+          },
+          "key" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_-]{0,39}$"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 120
+          },
+          "timeZone" : {
+            "type" : "string"
+          },
+          "trigger" : {
+            "$ref" : "#/components/schemas/StudioAutomationTrigger"
+          }
+        },
+        "required" : [ "actions", "form", "key", "name", "timeZone", "trigger" ]
+      },
+      "SolutionPackageDataset" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "entity" : {
+            "type" : "string"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "filter" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "additionalProperties" : { },
+              "description" : "A condition of the list's filter DSL"
+            }
+          },
+          "lines" : {
+            "type" : "string"
+          },
+          "measures" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportDatasetMeasure"
+            }
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "code", "entity", "fields", "filter", "measures", "name" ]
+      },
+      "SolutionPackageGrant" : {
+        "type" : "object",
+        "properties" : {
+          "permissions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackagePermission"
+            },
+            "maxItems" : 100,
+            "minItems" : 1
+          },
+          "role" : {
+            "type" : "string",
+            "description" : "A role placeholder"
+          }
+        },
+        "required" : [ "permissions", "role" ]
+      },
+      "SolutionPackageList" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_]{0,39}$"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SolutionPackageListItem"
+            },
+            "maxItems" : 500
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          }
+        },
+        "required" : [ "code", "items", "name" ]
+      },
+      "SolutionPackageListItem" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "code" : {
+            "type" : "string",
+            "pattern" : "^[a-z0-9][a-z0-9_-]{0,63}$"
+          },
+          "name" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "sortOrder" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 9999,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "active", "code", "name", "sortOrder" ]
+      },
+      "SolutionPackageMailing" : {
+        "type" : "object",
+        "properties" : {
+          "attachXlsx" : {
+            "type" : "boolean"
+          },
+          "channels" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "email", "telegram", "in_app" ]
+            },
+            "maxItems" : 3,
+            "minItems" : 1
+          },
+          "condition" : {
+            "$ref" : "#/components/schemas/ReportMailingCondition"
+          },
+          "includeLink" : {
+            "type" : "boolean"
+          },
+          "key" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_-]{0,39}$"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 120
+          },
+          "parameters" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "recipients" : {
+            "type" : "string",
+            "description" : "A placeholder of users"
+          },
+          "report" : {
+            "type" : "string",
+            "description" : "The key of the report"
+          },
+          "schedule" : {
+            "$ref" : "#/components/schemas/ReportMailingSchedule"
+          }
+        },
+        "required" : [ "attachXlsx", "channels", "condition", "includeLink", "key", "name", "parameters", "recipients", "report", "schedule" ]
+      },
+      "SolutionPackagePermission" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "form" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "form" ]
+      },
+      "SolutionPackagePlaceholder" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_-]{0,39}$"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "role", "users" ]
+          },
+          "labels" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "required" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "key", "kind", "labels", "required" ]
+      },
+      "SolutionPackageRecipients" : {
+        "type" : "object",
+        "properties" : {
+          "author" : {
+            "type" : "boolean"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "rights" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudioAutomationRight"
+            }
+          },
+          "users" : {
+            "type" : "string",
+            "description" : "A placeholder of users"
+          }
+        }
+      },
+      "SolutionPackageReport" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string",
+            "pattern" : "^[a-z][a-z0-9_-]{0,39}$"
+          },
+          "list" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 80
+          },
+          "share" : {
+            "type" : "array",
+            "description" : "Role placeholders",
+            "items" : {
+              "type" : "string"
+            },
+            "maxItems" : 20
+          },
+          "state" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "key", "list", "name", "share", "state" ]
+      },
+      "SolutionPackageRequires" : {
+        "type" : "object",
+        "properties" : {
+          "simpleFormFormat" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 7,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "simpleFormFormat" ]
+      },
+      "SolutionTemplate" : {
+        "type" : "object",
+        "properties" : {
+          "automations" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "forms" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lists" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "mailings" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "reports" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "$ref" : "#/components/schemas/SimpleFormLabels"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "automations", "code", "description", "forms", "lists", "mailings", "reports", "title", "version" ]
       },
       "SourceFreshness" : {
         "type" : "object",

@@ -68,6 +68,7 @@ public final class MdFormCatalog {
         putAdministrationForms(forms);
         putUploadAndTaskForms(forms);
         putCommunicationForms(forms);
+        putStudioForms(forms);
         putPlatformForms(forms);
         return Map.copyOf(forms);
     }
@@ -212,8 +213,8 @@ public final class MdFormCatalog {
         forms.put("search", new FormMeta("search.rights.form", ordered("view", "search.rights.view")));
     }
 
-    /** Webhooks, analytics, modules and navigation. */
-    private static void putPlatformForms(Map<String, FormMeta> forms) {
+    /** The Studio of live forms: publishing, reference lists, automations and solution packages. */
+    private static void putStudioForms(Map<String, FormMeta> forms) {
         forms.put(
                 "studio.forms",
                 new FormMeta(
@@ -231,6 +232,15 @@ public final class MdFormCatalog {
                         ordered(
                                 "view", "studio.automations.rights.view",
                                 "manage", "studio.automations.rights.manage")));
+        forms.put(
+                "studio.packages",
+                new FormMeta(
+                        "studio.packages.rights.form",
+                        ordered("export", "studio.packages.rights.export", "import", "studio.packages.rights.import")));
+    }
+
+    /** Report datasets and mailings, webhooks, analytics, modules and navigation. */
+    private static void putPlatformForms(Map<String, FormMeta> forms) {
         forms.put(
                 "md.report_datasets",
                 new FormMeta(

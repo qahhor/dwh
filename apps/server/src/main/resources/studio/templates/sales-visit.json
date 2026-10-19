@@ -1,0 +1,308 @@
+{
+  "formatVersion" : 1,
+  "kind" : "solution-package",
+  "code" : "sales-visit",
+  "version" : "1.0.0",
+  "title" : {
+    "ru" : "Визит торгового представителя",
+    "uz" : "Savdo vakilining tashrifi",
+    "en" : "Sales representative's visit"
+  },
+  "description" : {
+    "ru" : "Визит к клиенту: клиент, дата, результат и комментарий. Торговый представитель видит визиты своего подразделения; отчёт показывает визиты по результатам.",
+    "uz" : "Mijozga tashrif: mijoz, sana, natija va izoh. Savdo vakili o'z bo'linmasining tashriflarini ko'radi; hisobot tashriflarni natijalar bo'yicha ko'rsatadi.",
+    "en" : "A visit to a client: the client, the date, the result and a comment. A sales representative sees the visits of their unit; a report counts the visits by result."
+  },
+  "requires" : {
+    "simpleFormFormat" : 5
+  },
+  "producedBy" : "template",
+  "placeholders" : [ {
+    "key" : "sales-rep",
+    "kind" : "role",
+    "labels" : {
+      "ru" : "Торговый представитель",
+      "uz" : "Savdo vakili",
+      "en" : "Sales representative"
+    },
+    "required" : false
+  } ],
+  "lists" : [ {
+    "code" : "regions",
+    "name" : {
+      "ru" : "Регионы",
+      "uz" : "Hududlar",
+      "en" : "Regions"
+    },
+    "items" : [ {
+      "code" : "tashkent",
+      "name" : {
+        "ru" : "Ташкент",
+        "uz" : "Toshkent",
+        "en" : "Tashkent"
+      },
+      "sortOrder" : 10,
+      "active" : true
+    }, {
+      "code" : "samarkand",
+      "name" : {
+        "ru" : "Самарканд",
+        "uz" : "Samarqand",
+        "en" : "Samarkand"
+      },
+      "sortOrder" : 20,
+      "active" : true
+    }, {
+      "code" : "bukhara",
+      "name" : {
+        "ru" : "Бухара",
+        "uz" : "Buxoro",
+        "en" : "Bukhara"
+      },
+      "sortOrder" : 30,
+      "active" : true
+    }, {
+      "code" : "fergana",
+      "name" : {
+        "ru" : "Фергана",
+        "uz" : "Farg'ona",
+        "en" : "Fergana"
+      },
+      "sortOrder" : 40,
+      "active" : true
+    }, {
+      "code" : "andijan",
+      "name" : {
+        "ru" : "Андижан",
+        "uz" : "Andijon",
+        "en" : "Andijan"
+      },
+      "sortOrder" : 50,
+      "active" : true
+    } ]
+  } ],
+  "forms" : [ {
+    "formatVersion" : 1,
+    "kind" : "simple-form-package",
+    "declaration" : {
+      "formatVersion" : 4,
+      "kind" : "simple-form",
+      "module" : {
+        "code" : "studio",
+        "title" : {
+          "ru" : "Созданные формы",
+          "uz" : "Yaratilgan shakllar",
+          "en" : "Created forms"
+        }
+      },
+      "entity" : {
+        "name" : "clients",
+        "title" : {
+          "ru" : "Клиенты",
+          "uz" : "Mijozlar",
+          "en" : "Clients"
+        },
+        "menu" : {
+          "icon" : "storefront",
+          "section" : "workspace",
+          "order" : 10
+        },
+        "scope" : "all",
+        "titleField" : "title"
+      },
+      "fields" : [ {
+        "id" : "title",
+        "type" : "text",
+        "labels" : {
+          "ru" : "Название",
+          "uz" : "Nomi",
+          "en" : "Name"
+        },
+        "required" : true,
+        "listed" : true,
+        "maxLength" : 200
+      }, {
+        "id" : "region",
+        "type" : "ref",
+        "labels" : {
+          "ru" : "Регион",
+          "uz" : "Hudud",
+          "en" : "Region"
+        },
+        "required" : true,
+        "listed" : true,
+        "target" : {
+          "kind" : "list",
+          "code" : "regions"
+        }
+      }, {
+        "id" : "phone",
+        "type" : "phone",
+        "labels" : {
+          "ru" : "Телефон",
+          "uz" : "Telefon",
+          "en" : "Phone"
+        },
+        "required" : false,
+        "listed" : true
+      }, {
+        "id" : "address",
+        "type" : "text",
+        "labels" : {
+          "ru" : "Адрес",
+          "uz" : "Manzil",
+          "en" : "Address"
+        },
+        "required" : false,
+        "listed" : false,
+        "maxLength" : 300
+      } ]
+    },
+    "checksum" : "71ffb76b911b4d3ecfd23f79deea675cee3443a4e3990ec65db972b316f03448"
+  }, {
+    "formatVersion" : 1,
+    "kind" : "simple-form-package",
+    "declaration" : {
+      "formatVersion" : 5,
+      "kind" : "simple-form",
+      "module" : {
+        "code" : "studio",
+        "title" : {
+          "ru" : "Созданные формы",
+          "uz" : "Yaratilgan shakllar",
+          "en" : "Created forms"
+        }
+      },
+      "entity" : {
+        "name" : "visits",
+        "title" : {
+          "ru" : "Визиты",
+          "uz" : "Tashriflar",
+          "en" : "Visits"
+        },
+        "menu" : {
+          "icon" : "event",
+          "section" : "workspace",
+          "order" : 20
+        },
+        "scope" : "org_unit"
+      },
+      "fields" : [ {
+        "id" : "client",
+        "type" : "ref",
+        "labels" : {
+          "ru" : "Клиент",
+          "uz" : "Mijoz",
+          "en" : "Client"
+        },
+        "required" : true,
+        "listed" : true,
+        "target" : {
+          "kind" : "form",
+          "code" : "studio.clients"
+        }
+      }, {
+        "id" : "visitdate",
+        "type" : "date",
+        "labels" : {
+          "ru" : "Дата визита",
+          "uz" : "Tashrif sanasi",
+          "en" : "Visit date"
+        },
+        "required" : true,
+        "listed" : true,
+        "defaultFormula" : "today()"
+      }, {
+        "id" : "result",
+        "type" : "select",
+        "labels" : {
+          "ru" : "Результат",
+          "uz" : "Natija",
+          "en" : "Result"
+        },
+        "required" : true,
+        "listed" : true,
+        "options" : [ {
+          "code" : "ordered",
+          "labels" : {
+            "ru" : "Получен заказ",
+            "uz" : "Buyurtma olindi",
+            "en" : "Order taken"
+          }
+        }, {
+          "code" : "no_need",
+          "labels" : {
+            "ru" : "Нет потребности",
+            "uz" : "Ehtiyoj yo'q",
+            "en" : "No need"
+          }
+        }, {
+          "code" : "closed",
+          "labels" : {
+            "ru" : "Точка закрыта",
+            "uz" : "Savdo nuqtasi yopiq",
+            "en" : "Outlet closed"
+          }
+        }, {
+          "code" : "postponed",
+          "labels" : {
+            "ru" : "Перенесён",
+            "uz" : "Ko'chirildi",
+            "en" : "Postponed"
+          }
+        } ]
+      }, {
+        "id" : "comment",
+        "type" : "textarea",
+        "labels" : {
+          "ru" : "Комментарий",
+          "uz" : "Izoh",
+          "en" : "Comment"
+        },
+        "required" : false,
+        "listed" : false,
+        "maxLength" : 1000
+      } ]
+    },
+    "checksum" : "ced43300752fdc2608fdad4802b4d1ed58aa10c2c557f8e552cd1274bfb824df"
+  } ],
+  "datasets" : [ ],
+  "reports" : [ {
+    "key" : "visits-by-result",
+    "name" : "Визиты по результатам",
+    "list" : "studio.visits",
+    "state" : {
+      "groupBy" : [ {
+        "field" : "result"
+      } ],
+      "measures" : [ {
+        "op" : "count"
+      } ],
+      "filter" : [ ],
+      "chart" : "bar"
+    },
+    "share" : [ "sales-rep" ]
+  } ],
+  "mailings" : [ ],
+  "automations" : [ ],
+  "grants" : [ {
+    "role" : "sales-rep",
+    "permissions" : [ {
+      "form" : "studio.visits",
+      "action" : "view"
+    }, {
+      "form" : "studio.visits",
+      "action" : "create"
+    }, {
+      "form" : "studio.visits",
+      "action" : "update"
+    }, {
+      "form" : "studio.clients",
+      "action" : "view"
+    }, {
+      "form" : "studio.clients",
+      "action" : "create"
+    } ]
+  } ],
+  "checksum" : "dc5e278aa9786559340ba061b1b0b52e1dd28b18ddcbf4904daa0b84b57eb26d"
+}

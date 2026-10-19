@@ -227,6 +227,18 @@ final class ScopeByIdCases {
                     "a live form code: the lifecycle of a catalog definition under studio.forms.publish, no scoped"
                             + " record (StudioFormVersionsHttpTest)"),
             Map.entry(
+                    "StudioPackageController#importOf",
+                    "an import of a solution package: the configuration of an installation kept under studio.packages.import, no"
+                            + " scoped record; every item it creates is checked with the importer's rights (StudioPackageHttpTest)"),
+            Map.entry(
+                    "StudioPackageController#apply",
+                    "an import of a solution package: the configuration of an installation kept under studio.packages.import, no"
+                            + " scoped record; every item it creates is checked with the importer's rights (StudioPackageHttpTest)"),
+            Map.entry(
+                    "StudioTemplateController#fromTemplate",
+                    "a template code: a package the product ships, checked under studio.packages.import, no scoped record"
+                            + " (StudioPackageHttpTest)"),
+            Map.entry(
                     "StudioAutomationController#automation",
                     "an automation id: the configuration of a live form kept under studio.automations, no scoped record;"
                             + " each run reads the record as the automation's author (StudioAutomationHttpTest)"),

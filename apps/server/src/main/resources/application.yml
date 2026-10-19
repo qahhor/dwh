@@ -195,6 +195,7 @@ smc:
       search-jobs: ${SMC_RETENTION_SEARCH_JOBS_DAYS:90}
       report-mailing-runs: ${SMC_RETENTION_REPORT_MAILING_RUNS_DAYS:180}
       automation-runs: ${SMC_RETENTION_AUTOMATION_RUNS_DAYS:90}
+      package-previews: ${SMC_RETENTION_PACKAGE_PREVIEWS_DAYS:30}
   report-mailings:
     # ADR-0045: the largest XLSX a report mailing attaches to a letter; a larger one is left out and the letter links
     # the report instead.

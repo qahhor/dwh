@@ -118,10 +118,17 @@ public class StudioActivationService {
 
     @Transactional
     public Outcome activate(byte[] body) {
-        if (!SecurityContext.hasPermission("studio.forms", "publish"))
-            throw ApiException.permissionDenied("studio.forms", "publish");
-        if (!availability().enabled()) throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.disabled");
-        var pack = packages.verify(body);
+        requirePublishing();
+        return activate(packages.verify(body));
+    }
+
+    /**
+     * Activates a form from a package already verified, with the same checks: what a solution package applies for each
+     * of its forms that this installation does not have (ADR-0047).
+     */
+    @Transactional
+    public Outcome activate(MdSimpleFormDtos.DeliveryPackage pack) {
+        requirePublishing();
         String code = "studio." + pack.declaration().entity().name();
         repository.lockCatalog();
         var existing = repository.checksum(code);
@@ -156,6 +163,12 @@ public class StudioActivationService {
                 Map.of("code", code, "checksum", pack.checksum()));
         if (definitions != null) definitions.changed();
         return new Outcome(new Activated(code, pack.checksum()), true);
+    }
+
+    private void requirePublishing() {
+        if (!SecurityContext.hasPermission("studio.forms", "publish"))
+            throw ApiException.permissionDenied("studio.forms", "publish");
+        if (!availability().enabled()) throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.disabled");
     }
 
     /**

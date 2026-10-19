@@ -209,6 +209,17 @@ public class StudioDefinitions implements EntityDefinitionSource {
     }
 
     /**
+     * The rest of this request reads the catalog as its own transaction sees it now: a solution package activates forms
+     * and then creates what refers to them in one transaction (ADR-0047). The copy is the request's alone; the shared
+     * one stays as it is until the change commits.
+     */
+    public void repin() {
+        Pin pin = pin();
+        pin.catalog = compile(repository.catalog());
+        pin.served = null;
+    }
+
+    /**
      * Why a new form would not load, checked by the activation before it stores the form: {@code declared_code} or
      * {@code translation_key}, or null when it would load (ADR-0038, decision 9).
      */

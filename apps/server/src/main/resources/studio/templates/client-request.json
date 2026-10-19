@@ -1,0 +1,326 @@
+{
+  "formatVersion" : 1,
+  "kind" : "solution-package",
+  "code" : "client-request",
+  "version" : "1.0.0",
+  "title" : {
+    "ru" : "Заявка клиента",
+    "uz" : "Mijoz arizasi",
+    "en" : "Client's request"
+  },
+  "description" : {
+    "ru" : "Заявка клиента: клиент, тип заявки из справочника, ответственный и описание. Отчёт показывает заявки по типам.",
+    "uz" : "Mijoz arizasi: mijoz, ma'lumotnomadan ariza turi, mas'ul va tavsif. Hisobot arizalarni turlar bo'yicha ko'rsatadi.",
+    "en" : "A client's request: the client, the type of request from a reference list, the person responsible and a description. A report counts the requests by type."
+  },
+  "requires" : {
+    "simpleFormFormat" : 4
+  },
+  "producedBy" : "template",
+  "placeholders" : [ {
+    "key" : "operator",
+    "kind" : "role",
+    "labels" : {
+      "ru" : "Оператор заявок",
+      "uz" : "Arizalar operatori",
+      "en" : "Request operator"
+    },
+    "required" : false
+  } ],
+  "lists" : [ {
+    "code" : "regions",
+    "name" : {
+      "ru" : "Регионы",
+      "uz" : "Hududlar",
+      "en" : "Regions"
+    },
+    "items" : [ {
+      "code" : "tashkent",
+      "name" : {
+        "ru" : "Ташкент",
+        "uz" : "Toshkent",
+        "en" : "Tashkent"
+      },
+      "sortOrder" : 10,
+      "active" : true
+    }, {
+      "code" : "samarkand",
+      "name" : {
+        "ru" : "Самарканд",
+        "uz" : "Samarqand",
+        "en" : "Samarkand"
+      },
+      "sortOrder" : 20,
+      "active" : true
+    }, {
+      "code" : "bukhara",
+      "name" : {
+        "ru" : "Бухара",
+        "uz" : "Buxoro",
+        "en" : "Bukhara"
+      },
+      "sortOrder" : 30,
+      "active" : true
+    }, {
+      "code" : "fergana",
+      "name" : {
+        "ru" : "Фергана",
+        "uz" : "Farg'ona",
+        "en" : "Fergana"
+      },
+      "sortOrder" : 40,
+      "active" : true
+    }, {
+      "code" : "andijan",
+      "name" : {
+        "ru" : "Андижан",
+        "uz" : "Andijon",
+        "en" : "Andijan"
+      },
+      "sortOrder" : 50,
+      "active" : true
+    } ]
+  }, {
+    "code" : "request_types",
+    "name" : {
+      "ru" : "Типы заявок",
+      "uz" : "Ariza turlari",
+      "en" : "Request types"
+    },
+    "items" : [ {
+      "code" : "delivery",
+      "name" : {
+        "ru" : "Доставка",
+        "uz" : "Yetkazib berish",
+        "en" : "Delivery"
+      },
+      "sortOrder" : 10,
+      "active" : true
+    }, {
+      "code" : "return",
+      "name" : {
+        "ru" : "Возврат",
+        "uz" : "Qaytarish",
+        "en" : "Return"
+      },
+      "sortOrder" : 20,
+      "active" : true
+    }, {
+      "code" : "claim",
+      "name" : {
+        "ru" : "Претензия",
+        "uz" : "E'tiroz",
+        "en" : "Claim"
+      },
+      "sortOrder" : 30,
+      "active" : true
+    }, {
+      "code" : "advice",
+      "name" : {
+        "ru" : "Консультация",
+        "uz" : "Maslahat",
+        "en" : "Advice"
+      },
+      "sortOrder" : 40,
+      "active" : true
+    } ]
+  } ],
+  "forms" : [ {
+    "formatVersion" : 1,
+    "kind" : "simple-form-package",
+    "declaration" : {
+      "formatVersion" : 4,
+      "kind" : "simple-form",
+      "module" : {
+        "code" : "studio",
+        "title" : {
+          "ru" : "Созданные формы",
+          "uz" : "Yaratilgan shakllar",
+          "en" : "Created forms"
+        }
+      },
+      "entity" : {
+        "name" : "clients",
+        "title" : {
+          "ru" : "Клиенты",
+          "uz" : "Mijozlar",
+          "en" : "Clients"
+        },
+        "menu" : {
+          "icon" : "storefront",
+          "section" : "workspace",
+          "order" : 10
+        },
+        "scope" : "all",
+        "titleField" : "title"
+      },
+      "fields" : [ {
+        "id" : "title",
+        "type" : "text",
+        "labels" : {
+          "ru" : "Название",
+          "uz" : "Nomi",
+          "en" : "Name"
+        },
+        "required" : true,
+        "listed" : true,
+        "maxLength" : 200
+      }, {
+        "id" : "region",
+        "type" : "ref",
+        "labels" : {
+          "ru" : "Регион",
+          "uz" : "Hudud",
+          "en" : "Region"
+        },
+        "required" : true,
+        "listed" : true,
+        "target" : {
+          "kind" : "list",
+          "code" : "regions"
+        }
+      }, {
+        "id" : "phone",
+        "type" : "phone",
+        "labels" : {
+          "ru" : "Телефон",
+          "uz" : "Telefon",
+          "en" : "Phone"
+        },
+        "required" : false,
+        "listed" : true
+      }, {
+        "id" : "address",
+        "type" : "text",
+        "labels" : {
+          "ru" : "Адрес",
+          "uz" : "Manzil",
+          "en" : "Address"
+        },
+        "required" : false,
+        "listed" : false,
+        "maxLength" : 300
+      } ]
+    },
+    "checksum" : "71ffb76b911b4d3ecfd23f79deea675cee3443a4e3990ec65db972b316f03448"
+  }, {
+    "formatVersion" : 1,
+    "kind" : "simple-form-package",
+    "declaration" : {
+      "formatVersion" : 4,
+      "kind" : "simple-form",
+      "module" : {
+        "code" : "studio",
+        "title" : {
+          "ru" : "Созданные формы",
+          "uz" : "Yaratilgan shakllar",
+          "en" : "Created forms"
+        }
+      },
+      "entity" : {
+        "name" : "requests",
+        "title" : {
+          "ru" : "Заявки клиентов",
+          "uz" : "Mijoz arizalari",
+          "en" : "Client requests"
+        },
+        "menu" : {
+          "icon" : "support_agent",
+          "section" : "workspace",
+          "order" : 40
+        },
+        "scope" : "all"
+      },
+      "fields" : [ {
+        "id" : "client",
+        "type" : "ref",
+        "labels" : {
+          "ru" : "Клиент",
+          "uz" : "Mijoz",
+          "en" : "Client"
+        },
+        "required" : true,
+        "listed" : true,
+        "target" : {
+          "kind" : "form",
+          "code" : "studio.clients"
+        }
+      }, {
+        "id" : "kind",
+        "type" : "ref",
+        "labels" : {
+          "ru" : "Тип заявки",
+          "uz" : "Ariza turi",
+          "en" : "Request type"
+        },
+        "required" : true,
+        "listed" : true,
+        "target" : {
+          "kind" : "list",
+          "code" : "request_types"
+        }
+      }, {
+        "id" : "responsible",
+        "type" : "user",
+        "labels" : {
+          "ru" : "Ответственный",
+          "uz" : "Mas'ul",
+          "en" : "Responsible"
+        },
+        "required" : false,
+        "listed" : true
+      }, {
+        "id" : "description",
+        "type" : "textarea",
+        "labels" : {
+          "ru" : "Описание",
+          "uz" : "Tavsif",
+          "en" : "Description"
+        },
+        "required" : true,
+        "listed" : false,
+        "maxLength" : 2000
+      } ]
+    },
+    "checksum" : "24958af230366f98a49e422bbb5d5bd2726260504328c0d0eacf487bf8bca720"
+  } ],
+  "datasets" : [ ],
+  "reports" : [ {
+    "key" : "requests-by-type",
+    "name" : "Заявки по типам",
+    "list" : "studio.requests",
+    "state" : {
+      "groupBy" : [ {
+        "field" : "kind"
+      } ],
+      "measures" : [ {
+        "op" : "count"
+      } ],
+      "filter" : [ ],
+      "chart" : "table"
+    },
+    "share" : [ "operator" ]
+  } ],
+  "mailings" : [ ],
+  "automations" : [ ],
+  "grants" : [ {
+    "role" : "operator",
+    "permissions" : [ {
+      "form" : "studio.requests",
+      "action" : "view"
+    }, {
+      "form" : "studio.requests",
+      "action" : "create"
+    }, {
+      "form" : "studio.requests",
+      "action" : "update"
+    }, {
+      "form" : "studio.clients",
+      "action" : "view"
+    }, {
+      "form" : "studio.clients",
+      "action" : "create"
+    } ]
+  } ],
+  "checksum" : "cf51f2dff95e20f774522a39e5ef1508b903f8ff93a9034f91b3dd61058ca79a"
+}

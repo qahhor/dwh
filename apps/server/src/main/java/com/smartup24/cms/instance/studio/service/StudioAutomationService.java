@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
@@ -186,6 +187,14 @@ public class StudioAutomationService {
             throw ApiException.rateLimited("error.studio.automation_rate_limited");
         }
         return scans.scan(id, "manual", UUID.randomUUID().toString());
+    }
+
+    /** The automation, if it is still there: what a solution package looks for before it creates it (ADR-0047). */
+    @Transactional(readOnly = true)
+    public Optional<Automation> find(long id) {
+        return automations
+                .find(id)
+                .map(row -> views.automation(row, runs.latest(List.of(id)).get(id)));
     }
 
     private AutomationRow row(long id) {

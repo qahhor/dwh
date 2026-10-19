@@ -115,6 +115,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_RETENTION_MAX_BATCHES` | `smc.retention.max-batches` | `200` |
 | `SMC_RETENTION_NOTIFICATION_OUTBOX_DAYS` | `smc.retention.days.notification-outbox` | `30` |
 | `SMC_RETENTION_OTP_CODES_DAYS` | `smc.retention.days.otp-codes` | `7` |
+| `SMC_RETENTION_PACKAGE_PREVIEWS_DAYS` | `smc.retention.days.package-previews` | `30` |
 | `SMC_RETENTION_PASSWORD_RESET_CODES_DAYS` | `smc.retention.days.password-reset-codes` | `7` |
 | `SMC_RETENTION_REPORT_MAILING_RUNS_DAYS` | `smc.retention.days.report-mailing-runs` | `180` |
 | `SMC_RETENTION_SEARCH_JOBS_DAYS` | `smc.retention.days.search-jobs` | `90` |

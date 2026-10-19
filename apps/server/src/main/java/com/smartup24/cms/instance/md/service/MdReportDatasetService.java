@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
@@ -88,6 +89,12 @@ public class MdReportDatasetService {
     @Transactional(readOnly = true)
     public Dataset get(String code) {
         return dataset(row(code));
+    }
+
+    /** The dataset of the code, if there is one: what a solution package looks for before it creates it (ADR-0047). */
+    @Transactional(readOnly = true)
+    public Optional<Dataset> find(String code) {
+        return CODE.matcher(code).matches() ? repo.find(code).map(this::dataset) : Optional.empty();
     }
 
     /** Every field a dataset over the entity may offer, as its administrator sees them; with lines, theirs too. */

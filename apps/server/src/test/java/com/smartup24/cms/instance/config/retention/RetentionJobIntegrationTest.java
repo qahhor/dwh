@@ -87,7 +87,8 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
                         "failed-jobs",
                         "search-jobs",
                         "report-mailing-runs",
-                        "automation-runs");
+                        "automation-runs",
+                        "package-previews");
         assertThat(policies)
                 .allSatisfy(policy -> assertThat(policy.defaultDays()).isPositive());
     }

@@ -77,8 +77,20 @@ public class StudioVersionService {
         if (!activation.availability().enabled())
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.disabled");
         long expected = Revisions.required(ifMatch);
+        views.head(entityCode);
+        return newVersion(entityCode, expected, packages.verify(body));
+    }
+
+    /**
+     * Activates a new version from a package already verified, from the revision named, with the same checks: what a
+     * solution package applies to a form this installation has with another declaration (ADR-0047).
+     */
+    @Transactional
+    public FormDetail newVersion(String entityCode, long expected, DeliveryPackage pack) {
+        StudioFormViews.requirePublisher();
+        if (!activation.availability().enabled())
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.disabled");
         Head head = views.head(entityCode);
-        DeliveryPackage pack = packages.verify(body);
         if (!entityCode.equals("studio." + pack.declaration().entity().name()))
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.code_mismatch");
         forms.lockCatalog();

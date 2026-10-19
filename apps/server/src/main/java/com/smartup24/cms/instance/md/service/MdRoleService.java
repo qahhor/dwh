@@ -3,10 +3,14 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.RoleGrants;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.RolePermission;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.RoleView;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -197,6 +201,57 @@ public class MdRoleService {
                         "affected_users",
                         userIds.size()));
         return revision;
+    }
+
+    /**
+     * The roles other than the administrative ones that hold rights on the forms, each with those rights: what a
+     * solution package names as role placeholders (ADR-0047).
+     */
+    @Transactional(readOnly = true)
+    public List<RoleGrants> grantsOn(Collection<String> forms) {
+        Map<Long, RoleGrants> roles = new LinkedHashMap<>();
+        for (var grant : roleRepository.grantsOn(forms)) {
+            roles.computeIfAbsent(grant.roleId(), id -> new RoleGrants(id, grant.roleName(), new ArrayList<>()))
+                    .permissions()
+                    .add(new RolePermission(
+                            grant.permission().formCode(), grant.permission().action()));
+        }
+        return roles.values().stream()
+                .map(role -> new RoleGrants(role.id(), role.name(), List.copyOf(role.permissions())))
+                .toList();
+    }
+
+    /** Whether the role exists and is active: a role a package's placeholder may be mapped to (ADR-0047). */
+    @Transactional(readOnly = true)
+    public boolean active(long roleId) {
+        return roleRepository
+                .findById(roleId)
+                .filter(role -> "A".equals(role.state()))
+                .isPresent();
+    }
+
+    /**
+     * Adds the rights to the role's matrix, keeping the others, with the role's current revision: the grant of a
+     * mapped role placeholder (ADR-0047). Audited like a change of the matrix; nothing happens when the role holds them.
+     *
+     * @return whether the role did not hold all of them
+     */
+    @Transactional
+    public boolean grant(long roleId, Collection<RolePermission> added) {
+        var role = getRoleById(roleId);
+        Set<String> held = roleRepository.getRolePermissions(roleId);
+        List<RolePermission> missing = added.stream()
+                .filter(pair -> !held.contains(pair.formCode() + "." + pair.action()))
+                .distinct()
+                .toList();
+        if (missing.isEmpty()) return false;
+        List<RolePermission> all = new ArrayList<>(missing);
+        for (String pair : held) {
+            int dot = pair.lastIndexOf('.');
+            all.add(new RolePermission(pair.substring(0, dot), pair.substring(dot + 1)));
+        }
+        setRolePermissions(roleId, all, role.revision());
+        return true;
     }
 
     /** What is in {@code from} and not in {@code to}: a readable diff for the audit screen. */
