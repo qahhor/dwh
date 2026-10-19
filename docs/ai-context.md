@@ -1,6 +1,6 @@
 # Контекст SmartupCMS для AI-ассистентов
 
-**Актуализировано:** 2026-10-18
+**Актуализировано:** 2026-10-19
 
 **Назначение:** краткий воспроизводимый handoff для следующей AI-сессии
 
@@ -174,6 +174,35 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   только он отчитался. JVM самого Maven ограничена `.mvn/jvm.config` (`-Xmx2g`).
 
 ## 7. Точка продолжения — 2026-10-19
+
+**Конструктор, этап 2, шаг 2.4 — рассылки отчётов (2026-10-19, прямо в `main` поверх `a0942057`, не запушено — пушит
+координатор); этап 2 сделан, ждёт приёмки владельца:** [ADR-0045](adr/ADR-0045-report-mailings.md), ADR-0041 «Этап 2,
+шаг 2.4». Модуль `report`, пакет `report.mailing`: V232 `report_mailings`, `report_mailing_recipients`,
+`report_mailing_runs` (уникальный слот `(mailing_id, slot) where kind = 'scheduled'`), `report_mailing_deliveries`
+(уникально запуск+пользователь+канал); V233 одно вложение письма в `ms_notification_outbox` (очищается после отправки);
+V234 права `report.mailings` `own`/`manage` и задание расписания `report.mailing_tick` (60 с). Права проверяет
+`MailingAccess` по отчёту (`MdReportCatalogService.find`), в каталог прав их объявляет `MailingPermissions`
+(`common.security.PermissionDeclarations`, читает `MdFormCatalogSynchronizer`). Тик `MailingScheduler` (запуск
+последнего наступившего слота, после простоя — один), `MailingSchedule` (слоты в зоне, переходы часов, число > длины
+месяца — последний день), запуск `MailingRunner` + `MailingDispatcher` (отчёт `EntityReports.executeSaved` от имени
+получателя через `ExportPrincipals.callAs`, `RequestZone` зоны рассылки, условие `MailingCondition`, XLSX
+`AggregateExportService.workbook`, до 5 МБ — `smc.report-mailings.max-attachment-bytes`), тексты `MailingMessages`
+(`channel.report_mailing.*`, `notify.report_mailing.*`, ссылка `/e/<сущность>?mode=report&report=<id>&parameters=` без
+токенов, абсолютная — из `smc.public-url`). Адреса — только подтверждённые каналы
+(`kauth.service.KauthDeliveryAddresses`); доставка — `MsNotificationService.enqueueExternalNotification(...,
+OutboxAttachment)`; тело письма outbox теперь текст (`body`), HTML — `html`. API `/api/v1/report-mailings` (options,
+CRUD по ревизии, `POST …/{id}/runs` `all`/`me`, история `…/runs`, `…/runs/{runId}`), `GET /api/v1/report-views/{id}`.
+Метрики `smc_report_mailing_runs_total`, `smc_report_mailing_deliveries_total`, алерт `SmartupcmsReportMailingsFailing`
++ RB-14, хранение запусков 180 дней. Веб: `features/reports/mailings` (страница `/reports/:id/mailings`, диалог,
+история), ссылка «Рассылки» в каталоге, `smt-report-parameters [embedded]`, параметры из ссылки — `openParameters`
+построителя. Тесты — `MailingScheduleTest`, `MailingConditionTest`, `MailingMessagesTest`,
+`StudioReportMailingHttpTest`, `MsOutboxWorkerTest`; e2e `studio-report-mailings.spec.ts` (Mailpit, XLSX каждого
+получателя), a11y `report-mailings.spec.ts`, promtool `tests/report-mailings.yml`. Дальше — этап 3 (автоматизации,
+перенос пакетов и шаблоны, витрины DWH как источник отчётов). Локальные проверки на итоговом коде: полный reactor verify
+(29 мин; сервер 3456 тестов, 0 пропусков), пороги покрытия (report 93,4/75,9 при пороге 90/72), diff-cover 93 %,
+совместимость Platform API, OpenAPI (openapi-diff — совместимо), веб — аудиты, forms audit 0, 2915 тестов, покрытие
+92,6/90,5/87,5/82,1 и сборка, a11y 169/169, promtool (44 алерта, 8 файлов тестов), E2E 41 + 40 и карантин,
+docs/hygiene/rulesets, gitleaks — без находок.
 
 **Конструктор, этап 2, шаг 2.3 — аналитика отчётов (2026-10-19, прямо в `main` поверх `866b7619`, не запушено — пушит
 координатор):** [ADR-0044](adr/ADR-0044-report-analytics.md), ADR-0041 «Этап 2, шаг 2.3». Один оператор агрегатора под
