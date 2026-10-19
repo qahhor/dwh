@@ -47,7 +47,10 @@ class SchemaOrderTest {
             Map.entry("search_projection_versions.entity_id", "polymorphic: entity_type + entity_id over three tables"),
             Map.entry("mf_record_files.record_id", "polymorphic: entity + record_id over the tables of every entity"),
             Map.entry("upl_sources.created_by", "the actor name of the foundation as text (user id or system)"),
-            Map.entry("upl_sources.modified_by", "the actor name of the foundation as text (user id or system)"));
+            Map.entry("upl_sources.modified_by", "the actor name of the foundation as text (user id or system)"),
+            Map.entry(
+                    "studio_automation_runs.record_id",
+                    "the record a run acted on; the run log outlives a deleted record (ADR-0046)"));
 
     /** Indexes made redundant by another index of the same table: same leading keys, order, predicate and method. */
     static final String REDUNDANT_INDEXES = """

@@ -101,7 +101,7 @@ public class EntityWrites {
         Map<String, Object> after = reads.visible(entity, id, false);
         List<String> changed = changes.audit(entity, id, "I", null, after, source(imported));
         changes.afterSave(save);
-        events.changed(entity, id, EntityReads.revision(after), EntityEventType.CREATED, null, changed, user);
+        events.changed(entity, id, EntityEventType.CREATED, null, changed, user, null, after);
         return reads.visible(entity, id, false);
     }
 
@@ -140,7 +140,7 @@ public class EntityWrites {
         Map<String, Object> after = reads.visible(entity, id, false);
         List<String> changed = changes.audit(entity, id, "U", before, after, source(imported));
         changes.afterSave(save);
-        events.changed(entity, id, EntityReads.revision(after), EntityEventType.UPDATED, null, changed, user);
+        events.changed(entity, id, EntityEventType.UPDATED, null, changed, user, before, after);
         return reads.visible(entity, id, false);
     }
 
@@ -166,7 +166,7 @@ public class EntityWrites {
         changes.detach(entity, id);
         changes.audit(entity, id, "D", before, null, null);
         changes.afterDelete(delete);
-        events.changed(entity, id, EntityReads.revision(before), EntityEventType.DELETED, null, List.of(), user);
+        events.changed(entity, id, EntityEventType.DELETED, null, List.of(), user, before, null);
     }
 
     /**
@@ -212,7 +212,7 @@ public class EntityWrites {
         Map<String, Object> after = reads.visible(entity, id, false);
         List<String> changed = changes.audit(entity, id, "U", before, after, code);
         changes.afterSave(call);
-        events.changed(entity, id, EntityReads.revision(after), EntityEventType.ACTION, code, changed, user);
+        events.changed(entity, id, EntityEventType.ACTION, code, changed, user, before, after);
         return reads.visible(entity, id, false);
     }
 
@@ -249,7 +249,7 @@ public class EntityWrites {
         Map<String, Object> after = reads.visible(entity, id, false);
         List<String> changed = changes.audit(entity, id, "U", before, after, code);
         changes.afterSave(save);
-        events.changed(entity, id, EntityReads.revision(after), EntityEventType.ACTION, code, changed, user);
+        events.changed(entity, id, EntityEventType.ACTION, code, changed, user, before, after);
         return reads.visible(entity, id, false);
     }
 

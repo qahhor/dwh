@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.DeliveryPackage;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.studio.api.StudioFormDtos.FormDetail;
 import com.smartup24.cms.instance.studio.api.StudioFormDtos.FormSummary;
+import com.smartup24.cms.instance.studio.automation.AutomationCompatibility;
 import com.smartup24.cms.instance.studio.repository.StudioFormRepository;
 import com.smartup24.cms.instance.studio.repository.StudioFormVersionRepository;
 import com.smartup24.cms.instance.studio.repository.StudioFormVersionRepository.Head;
@@ -42,6 +43,7 @@ public class StudioVersionService {
     private final MdPermissionService permissions;
     private final AuditLogService audit;
     private final StudioTargets targets;
+    private final AutomationCompatibility automations;
 
     public StudioVersionService(
             StudioPackages packages,
@@ -53,7 +55,8 @@ public class StudioVersionService {
             StudioActivationService activation,
             MdPermissionService permissions,
             AuditLogService audit,
-            StudioTargets targets) {
+            StudioTargets targets,
+            AutomationCompatibility automations) {
         this.packages = packages;
         this.forms = forms;
         this.versions = versions;
@@ -64,6 +67,7 @@ public class StudioVersionService {
         this.permissions = permissions;
         this.audit = audit;
         this.targets = targets;
+        this.automations = automations;
     }
 
     /** Activates a new version of {@code entityCode} from a simple-form package, from the revision named. */
@@ -93,6 +97,7 @@ public class StudioVersionService {
         if (refusal != null) throw new ApiException(ErrorCode.VALIDATION_FAILED, "error.studio.translation_key");
         StudioChangeRules.requireDefaults(next, compiled.entity());
         targets.require(entityCode, next);
+        automations.require(entityCode, next);
 
         int version = head.versions() + 1;
         long userId = SecurityContext.getCurrentUserId();

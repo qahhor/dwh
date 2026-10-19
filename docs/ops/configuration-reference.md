@@ -56,6 +56,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_AUDIT_PARTITION_CRON` | `smc.audit.partition-cron` | `0 30 3 * * *` |
 | `SMC_AUDIT_PARTITION_RUNWAY_DAYS` | `smc.audit.partition-runway-days` | `31` |
 | `SMC_AUDIT_RETENTION_MONTHS` | `smc.audit.retention-months` | `12` |
+| `SMC_AUTOMATIONS_MAX_RUNS_PER_MINUTE` | `smc.automations.max-runs-per-minute` | `600` |
 | `SMC_BACKUP_MAX_AGE` | `smc.backup.max-age` | `0s` |
 | `SMC_BACKUP_STATUS_FILE` | `smc.backup.status-file` | `/var/lib/smartupcms/backup/status.json` |
 | `SMC_DB_IDLE_IN_TRANSACTION_TIMEOUT` | `smc.database.idle-in-transaction-timeout` | `60s` |
@@ -103,6 +104,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_RATE_LIMIT_USER_PER_MINUTE` | `smc.rate-limit.user-per-minute` | `600` |
 | `SMC_REPORTS_EXPORT_MAX_ROWS` | `smc.reports.export.max-rows` | `50000` |
 | `SMC_REPORT_MAILINGS_MAX_ATTACHMENT_BYTES` | `smc.report-mailings.max-attachment-bytes` | `5242880` |
+| `SMC_RETENTION_AUTOMATION_RUNS_DAYS` | `smc.retention.days.automation-runs` | `90` |
 | `SMC_RETENTION_BATCH_SIZE` | `smc.retention.batch-size` | `5000` |
 | `SMC_RETENTION_CLOSED_SESSIONS_DAYS` | `smc.retention.days.closed-sessions` | `90` |
 | `SMC_RETENTION_CRON` | `smc.retention.cron` | `0 30 3 * * *` |

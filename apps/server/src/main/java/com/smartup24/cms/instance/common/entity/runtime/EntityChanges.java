@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.entity.runtime;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityAuditRow;
+import com.smartup24.cms.instance.common.entity.EntityChangeOrigin;
 import com.smartup24.cms.instance.common.entity.EntityFiles;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.store.EntityStoreRepository;
@@ -128,7 +129,8 @@ public class EntityChanges {
      *
      * @param before the record before, or null for a create
      * @param after  the record after, or null for a delete
-     * @param action the record action, written as {@value #ACTION} of the new row, or null
+     * @param action the record action, written as {@value #ACTION} of the new row, or null; the automation making the
+     *               change, if any, is written as {@code _automation} (ADR-0046)
      */
     List<String> audit(
             EntityDefinition entity,
@@ -145,6 +147,9 @@ public class EntityChanges {
                 : neu == null ? List.copyOf(old.keySet()) : EntityAuditRow.changed(old, neu);
         if (neu != null && action != null) {
             neu.put(ACTION, action);
+        }
+        if (neu != null) {
+            EntityChangeOrigin.current().ifPresent(origin -> neu.put(EntityChangeOrigin.AUDIT_KEY, origin.name()));
         }
         EntityAuditLog log = audit;
         String table = entity.auditTable();

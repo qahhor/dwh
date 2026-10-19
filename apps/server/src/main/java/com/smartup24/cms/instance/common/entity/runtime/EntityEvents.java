@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.entity.runtime;
 
+import com.smartup24.cms.instance.common.entity.EntityChangeImages;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.EntityRemoving;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
@@ -9,6 +10,8 @@ import com.smartup24.cms.platform.api.entity.hook.EntityCommitted;
 import com.smartup24.cms.platform.api.entity.hook.EntityHooks;
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -24,7 +27,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * Steps 13–14 of ADR-0032, 6.3: the event of a change is published in its transaction, so the listeners that write an
  * outbox — the webhooks — commit or roll back with it (ADR-0032, 6.9); after the commit the entity's
  * {@code afterCommit} hook runs, and its failure is logged without changing the answer (ADR-0032, 6.5). A transaction
- * of the idempotency filter is the one that commits: the hook waits for it (ADR-0032, 6.4).
+ * of the idempotency filter is the one that commits: the hook waits for it (ADR-0032, 6.4). The images of a change
+ * follow its event for the automations of live forms (ADR-0046).
  */
 @Component
 public class EntityEvents {
@@ -77,6 +81,25 @@ public class EntityEvents {
                 }
             });
         }
+        return change;
+    }
+
+    /**
+     * Publishes the change of a record with its images (ADR-0046): the {@link EntityChanged} event, then
+     * {@link EntityChangeImages} with the record before and after — the revision is the one of the record as it is now.
+     */
+    public EntityChanged changed(
+            EntityDefinition entity,
+            long id,
+            EntityEventType type,
+            @Nullable String action,
+            List<String> changedFields,
+            long actorId,
+            @Nullable Map<String, Object> before,
+            @Nullable Map<String, Object> after) {
+        long revision = EntityReads.revision(Objects.requireNonNull(after == null ? before : after));
+        EntityChanged change = changed(entity, id, revision, type, action, changedFields, actorId);
+        publisher.publishEvent(new EntityChangeImages(change, before, after));
         return change;
     }
 

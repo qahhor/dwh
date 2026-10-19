@@ -19,6 +19,7 @@ import com.smartup24.cms.instance.md.api.MdSimpleFormDtos.DeliveryPackage;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdSimpleFormDeclarations;
 import com.smartup24.cms.instance.studio.api.StudioFormDtos.Availability;
+import com.smartup24.cms.instance.studio.automation.AutomationCompatibility;
 import com.smartup24.cms.instance.studio.repository.StudioFormRepository;
 import com.smartup24.cms.instance.studio.repository.StudioFormVersionRepository;
 import com.smartup24.cms.instance.studio.repository.StudioFormVersionRepository.Head;
@@ -65,7 +66,8 @@ class StudioVersionServiceTest {
                 activation,
                 mock(MdPermissionService.class),
                 audit,
-                mock(StudioTargets.class));
+                mock(StudioTargets.class),
+                mock(AutomationCompatibility.class));
     }
 
     @AfterEach

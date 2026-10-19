@@ -41,6 +41,10 @@ public class RecordHistoryService {
 
     /** The record action of a change as the history reads it ({@code _action} in camelCase). */
     private static final String RECORD_ACTION = "action";
+    /** The automation that made a change ({@code _automation}, ADR-0046), read as {@code automation}. */
+    private static final String AUTOMATION = "automation";
+    /** The label of the automation of a change in the history. */
+    static final String AUTOMATION_LABEL = "ui.history.automation";
 
     static final int DEFAULT_LIMIT = 20;
     static final int MAX_LIMIT = 200;
@@ -93,13 +97,14 @@ public class RecordHistoryService {
 
         /**
          * Whether the field is left out of the history: technical, hidden or, for a named-only source, unnamed — the
-         * record action of a change ({@code _action}, read as {@code action}) always stays.
+         * record action of a change ({@code _action}, read as {@code action}) and its automation always stay.
          */
         boolean skips(String field) {
             return TECHNICAL_FIELDS.contains(field)
                     || hidden.contains(field)
                     || (namedOnly
                             && !RECORD_ACTION.equals(field)
+                            && !AUTOMATION.equals(field)
                             && !keys.containsKey(field)
                             && !names.containsKey(field));
         }
@@ -153,7 +158,8 @@ public class RecordHistoryService {
             Object after = newRow.get(field);
             // An update lists a field only when its value really changed.
             if ("U".equals(row.event()) && Objects.equals(before, after)) continue;
-            String labelKey = labels.keys().get(field);
+            String labelKey =
+                    AUTOMATION.equals(field) ? AUTOMATION_LABEL : labels.keys().get(field);
             changes.add(new FieldChange(
                     field,
                     labelKey == null || labelKey.isEmpty() ? null : labelKey,
