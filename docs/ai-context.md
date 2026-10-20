@@ -1,6 +1,6 @@
 # Контекст SmartupCMS для AI-ассистентов
 
-**Актуализировано:** 2026-10-19
+**Актуализировано:** 2026-10-20
 
 **Назначение:** краткий воспроизводимый handoff для следующей AI-сессии
 
@@ -173,7 +173,28 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   Testcontainers, профили `-P*-large`) идут по одной; агента останавливают, как
   только он отчитался. JVM самого Maven ограничена `.mvn/jvm.config` (`-Xmx2g`).
 
-## 7. Точка продолжения — 2026-10-19
+## 7. Точка продолжения — 2026-10-20
+
+**Конструктор, этап 3, шаг 3.2 — пакеты решений и шаблоны (2026-10-20, прямо в `main` поверх `2cbf63dc`, не
+запушено — пушит координатор):** [ADR-0047](adr/ADR-0047-solution-packages-and-templates.md), ADR-0041 «Этап 3, шаг 3.2».
+Модуль `studio`, пакет `studio.solution`: V237 `studio_package_imports` (код, версия, название, сумма, источник
+`upload`/`template`, суффикс, проверенный пакет, исходы элементов, статус `preview`/`applied`, сопоставление) и
+`studio_package_objects` (уникально `(package_code, kind, item_key)`), V238 права `studio.packages` `export`/`import`,
+хранение неприменённых проверок 30 дней (`package-previews`, `SolutionRetentionPolicies`). Формат `solution-package` v1
+(`SolutionFormat`): активные декларации живых форм как `simple-form-package`, справочники, наборы данных, отчёты,
+рассылки, автоматизации и права ролей с контрольной суммой SHA-256 канонического JSON; роли и фиксированные получатели —
+подстановки (`SolutionPlaceholders`), значения записей установки на выгрузке отклоняются (422
+`error.studio.solution_record_values`). Выгрузка (`SolutionExporter`, `SolutionSelection`, `SolutionSources`,
+`SolutionRelated`) сама подтягивает зависимости и предлагает связанное. Загрузка (`StudioPackageService`,
+`SolutionChecks`, `SolutionSuffix`, `SolutionInstaller`, `SolutionCatalogSteps`, `SolutionReportSteps`,
+`SolutionRunSteps`) проверяет пакет и применяет его в откатываемой транзакции (исходы `create`/`upgrade`/`unchanged`/
+`skip`/`refused` в точках сохранения); применение с `mapping` (`SolutionMapping`) идёт одной транзакцией всё-или-ничего,
+рассылки и автоматизации ставятся на паузу. Встроенные шаблоны (`SolutionTemplates`, `studio/templates/*.json`):
+`sales-visit`, `client-request`, `order-approval`. API `/api/v1/studio/packages` (`export/preview`, `export`, `imports`,
+`imports/{id}`, `imports/{id}/apply`) и `/api/v1/studio/templates`; рецепт [solution-packages.md](cookbook/solution-packages.md).
+Веб: `features/settings/form-studio/packages` (`/settings/form-studio/packages`, `…/imports/:id`). Тесты —
+`StudioPackageHttpTest`, `SolutionTemplateFilesTest` и модульные `Solution*Test`; e2e `studio-packages.spec.ts`, a11y
+`packages.spec.ts`. Дальше — шаг 3.3 (витрины хранилища как источник отчётов) и выгрузка живой формы в код (`cms form eject`).
 
 **Конструктор, этап 3, шаг 3.1 — автоматизации живых форм «если — то» (2026-10-19, прямо в `main` поверх `2aaef503`, не
 запушено — пушит координатор):** [ADR-0046](adr/ADR-0046-live-form-automations.md), ADR-0041 «Этап 3, шаг 3.1». Модуль
