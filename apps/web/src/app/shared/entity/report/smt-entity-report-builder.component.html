@@ -162,7 +162,7 @@
         [meta]="reportMeta()"
         [chart]="effectiveChart()"
         [caption]="caption()"
-        [drillCode]="sources.dataset() ? null : code()"
+        [drillCode]="sources.dataset() || code().startsWith('mart.') ? null : code()"
         [drillBase]="request().filter"
       />
     }

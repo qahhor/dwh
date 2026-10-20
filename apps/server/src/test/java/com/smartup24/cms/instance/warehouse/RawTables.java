@@ -29,6 +29,7 @@ public final class RawTables {
                         end
                         $$
                         """).update();
+        dwh.sql("delete from mart.rows").update();
     }
 
     /** Creates the attached partition of a load, for rows a test inserts with plain SQL. */

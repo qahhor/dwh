@@ -152,6 +152,16 @@ describe('SMTEntityReportBuilderComponent', () => {
     expect(builder.groupBy()).toEqual([]);
   });
 
+  it('offers warehouse dimension text fields as groupings (ADR-0048)', async () => {
+    const { builder } = await render(
+      queryMetaFixture('mart.sales', [
+        metaField('regionCode', '', 'text', { label: 'Регион', format: 'dimension' }),
+        metaField('amount', '', 'number', { label: 'Сумма' }),
+      ]),
+    );
+    expect(builder.groupOptions().map((option) => option.id)).toEqual(['regionCode']);
+  });
+
   it('measures a number field and keeps at most four measures', async () => {
     const { builder } = await render();
     const measures = measuresOf();

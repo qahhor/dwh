@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.entity.EntityRecordStore;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
+import com.smartup24.cms.instance.common.entity.report.EntityReportMartRunner;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.platform.api.entity.EntityDefinition;
@@ -63,7 +64,7 @@ public class EntityRuntime implements EntityRecordStore {
             @Nullable String filter,
             @Nullable String sort,
             @Nullable String search) {
-        EntityDefinition entity = gate.viewable(code);
+        EntityDefinition entity = viewableRecords(code);
         return read(() -> {
             KeysetPage<Map<String, Object>> page = reads.page(entity, limit, cursor, filter, sort, search);
             return reads.views(entity, page);
@@ -72,8 +73,15 @@ public class EntityRuntime implements EntityRecordStore {
 
     /** {@code GET /api/v1/entities/{code}/{id}}: the record in the viewer's scope, an archived one too. */
     public EntityRecordView get(String code, long id) {
-        EntityDefinition entity = gate.viewable(code);
+        EntityDefinition entity = viewableRecords(code);
         return read(() -> reads.view(entity, reads.visible(entity, id, false)));
+    }
+
+    private EntityDefinition viewableRecords(String code) {
+        if (code.startsWith(EntityReportMartRunner.MART_PREFIX)) {
+            throw EntityGate.unknownEntity();
+        }
+        return gate.viewable(code);
     }
 
     /** {@code POST /api/v1/entities/{code}}: creates a record. */

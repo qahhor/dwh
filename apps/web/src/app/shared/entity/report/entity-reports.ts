@@ -143,6 +143,9 @@ export function groupable(field: QueryFieldMeta): boolean {
   if (field.type === 'enum' || field.type === 'boolean' || field.type === 'date' || field.type === 'instant') {
     return true;
   }
+  if (field.type === 'text' && (field.format === 'dimension' || !!field.ref)) {
+    return true;
+  }
   return field.type === 'number' && !!field.ref;
 }
 

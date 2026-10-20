@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
+import com.smartup24.cms.instance.common.entity.report.EntityReportMartRunner;
+import com.smartup24.cms.instance.common.query.QueryAggregates;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
@@ -60,7 +62,15 @@ public class EntityLists implements QueryListSource {
         EntityModel model = Objects.requireNonNull(entity.model(), entity.code());
         String alias = model.alias();
         @Nullable String attributes = entity.customEntity() == null ? null : alias + "." + ATTRIBUTES;
-        List<QueryField> fields = new ArrayList<>(EntityListFields.listFields(model));
+        boolean mart = entity.code().startsWith(EntityReportMartRunner.MART_PREFIX);
+        List<QueryField> fields = new ArrayList<>();
+        for (QueryField field : EntityListFields.listFields(model)) {
+            if (mart && field.type() == QueryFieldType.TEXT && field.format() == null) {
+                fields.add(field.formatted(QueryAggregates.DIMENSION_FORMAT));
+            } else {
+                fields.add(field);
+            }
+        }
         fields.addAll(platformFields(entity));
         return new QueryList(
                 Objects.requireNonNull(entity.listCode(), entity.code()),

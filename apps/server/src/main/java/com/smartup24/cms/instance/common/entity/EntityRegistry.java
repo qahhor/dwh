@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.entity.report.EntityReportMartRunner;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.history.RecordHistorySource;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
@@ -156,6 +157,7 @@ public class EntityRegistry {
 
     public Optional<EntityRecords> records(String code) {
         if (entities.containsKey(code)) return Optional.ofNullable(records.get(code));
+        if (code.startsWith(EntityReportMartRunner.MART_PREFIX)) return Optional.empty();
         return live.get().find(code).map(runtimeStore::of);
     }
 

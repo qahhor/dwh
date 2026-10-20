@@ -111,9 +111,7 @@ public class MdI18nService {
         Map<String, String> added = live.messages(
                 language,
                 entity -> SecurityContext.hasPermission("md.roles", "view")
-                        || (entity.rights() != null
-                                && modules.active(entity.rights().module())
-                                && SecurityContext.hasPermission(entity.form(), "view")));
+                        || (liveModuleActive(entity) && SecurityContext.hasPermission(entity.form(), "view")));
         if (added.isEmpty()) return base;
         Map<String, String> result = new LinkedHashMap<>(base);
         added.forEach((key, value) -> {
@@ -123,6 +121,13 @@ public class MdI18nService {
                 log.warn("live_label_shadows_base_key key={}", key);
         });
         return Collections.unmodifiableMap(result);
+    }
+
+    private boolean liveModuleActive(com.smartup24.cms.platform.api.entity.EntityDefinition entity) {
+        if (entity.rights() != null) return modules.active(entity.rights().module());
+        return entity.code()
+                        .startsWith(com.smartup24.cms.instance.common.entity.report.EntityReportMartRunner.MART_PREFIX)
+                && modules.active("upl");
     }
 
     /** Whether the code names an active language; {@code false} for null or a malformed code. */

@@ -1,5 +1,5 @@
-<ui-page-header [title]="context.title()" [count]="pager.total()" countTestId="entity-count">
-  @if (listMeta()) {
+<ui-page-header [title]="context.title()" [count]="isMart() ? null : pager.total()" countTestId="entity-count">
+  @if (listMeta() && !isMart()) {
     <smt-radio-group
       smtAppearance="segmented"
       smtOrientation="horizontal"
@@ -10,7 +10,7 @@
       (valueChange)="setMode($event ?? 'list')"
     />
   }
-  @if (searchable() && mode() === 'list') {
+  @if (searchable() && effectiveMode() === 'list') {
     <smt-input
       class="entity-search"
       type="search"
@@ -34,7 +34,7 @@
 
 @if (listFailed()) {
   <smt-entity-page-state kind="failed" (retry)="load()" />
-} @else if (mode() === 'report' && listMeta(); as meta) {
+} @else if (effectiveMode() === 'report' && listMeta(); as meta) {
   <smt-entity-report-builder
     [code]="context.code()"
     [meta]="meta"

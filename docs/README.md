@@ -162,6 +162,10 @@ Current ADRs that are not superseded:
   their lists, datasets, reports, mailings and automations in one checksummed package; checked by applying it in a
   transaction that rolls back, applied with roles and users mapped to placeholders, mailings and automations paused;
   templates shipped in the product.
+- [ADR-0048 — warehouse marts as report sources](adr/ADR-0048-warehouse-mart-reports.md) — published `upl` file
+  sources exposed as read-only `mart.<slug>` entities backed by `mart.rows` in `pg-dwh` (accepted rows of active
+  loads, unit conversion via `Units.toBase`, ISO date normalization and key padding), queried by the same report
+  builder, datasets, exports, dashboard widgets and mailings.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

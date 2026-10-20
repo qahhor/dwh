@@ -4337,5 +4337,9 @@
   "studio.packages.outcome.upgrade": "Change",
   "studio.packages.outcome.unchanged": "Unchanged",
   "studio.packages.outcome.skip": "Skip",
-  "studio.packages.outcome.refused": "Refused"
+  "studio.packages.outcome.refused": "Refused",
+  "upl.mart.field.period_from": "Period start",
+  "upl.mart.field.period_to": "Period end",
+  "upl.mart.field.sheet": "Sheet",
+  "upl.sources.open_report": "Report"
 }

@@ -175,3 +175,16 @@ export class UplApiService {
     return this.api.get<UplUnit[]>('/upl/units', undefined, { notifyError: false });
   }
 }
+
+/** Converts a published file source code into its warehouse mart entity code (`mart.<slug>`). */
+export function martEntityCode(sourceCode: string): string {
+  const parts = sourceCode
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, '_')
+    .split('.')
+    .map((part) => part.replace(/[^a-z0-9_]/g, '_'))
+    .filter((part) => part.length > 0)
+    .map((part) => (/^[a-z]/.test(part) ? part : `s_${part}`));
+  return `mart.${parts.length > 0 ? parts.join('.') : 'source'}`;
+}

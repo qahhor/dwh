@@ -4337,5 +4337,9 @@
   "studio.packages.outcome.upgrade": "O'zgartirish",
   "studio.packages.outcome.unchanged": "O'zgarishsiz",
   "studio.packages.outcome.skip": "O'tkazib yuborish",
-  "studio.packages.outcome.refused": "Rad etilgan"
+  "studio.packages.outcome.refused": "Rad etilgan",
+  "upl.mart.field.period_from": "Davr boshi",
+  "upl.mart.field.period_to": "Davr oxiri",
+  "upl.mart.field.sheet": "Varaq",
+  "upl.sources.open_report": "Hisobot"
 }

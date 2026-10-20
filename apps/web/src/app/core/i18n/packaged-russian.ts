@@ -4339,5 +4339,9 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "studio.packages.outcome.upgrade": "Изменить",
   "studio.packages.outcome.unchanged": "Без изменений",
   "studio.packages.outcome.skip": "Пропустить",
-  "studio.packages.outcome.refused": "Отказано"
+  "studio.packages.outcome.refused": "Отказано",
+  "upl.mart.field.period_from": "Начало периода",
+  "upl.mart.field.period_to": "Конец периода",
+  "upl.mart.field.sheet": "Лист",
+  "upl.sources.open_report": "Отчёт"
 });

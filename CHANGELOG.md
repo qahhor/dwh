@@ -9,6 +9,21 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Warehouse marts as report sources (ADR-0048, stage 3, step 3 of the form and report builder): `db/dwh/V005__mart_rows.sql`
+  adds `mart.rows` and the view `public.mart_rows` in `pg-dwh`. Every `upl` file source with a published format
+  version is exposed through `UplMartSources` (`EntityDefinitionSource`) as a read-only entity `mart.<slug>`
+  (guarded by `upl.sources` `view`, with `saved_views`, `periodFrom`, `periodTo`, `sheetName` and the format's
+  columns; text dimensions marked `format: dimension` in `query-meta` so reports can group by them; row CRUD
+  endpoints `/api/v1/entities/mart.*` answer 404). `UplMartBuilder` and `WarehouseMarts` (`JdbcWarehouseMarts`)
+  materialize accepted rows of `APPLIED` loads into `mart.rows` — converting `INTEGER`/`NUMBER` columns from
+  `sourceUnit` to `baseUnit` via `Units.toBase`, normalizing dates to ISO `yyyy-MM-dd` and left-padding
+  `OBJECT_KEY` values — and prune `SUPERSEDED` loads, both after package application and on demand before a
+  report runs. `EntityReports` routes `mart.*` queries (ad hoc and saved reports, XLSX exports, dashboard widgets,
+  report mailings and administrator datasets `ds.*` over a mart) through `EntityReportMartRunner`
+  (`UplMartReportRunner`) against `pg-dwh`, translating database failures to `503 error.warehouse.dwh_unavailable`.
+  Web: published source cards offer «Построить отчёт» (`/e/mart.<slug>?mode=report`), and `/e/mart.<slug>` opens
+  directly in report mode without requesting row pages or offering row drill-down.
+
 - Solution packages and templates (ADR-0047, stage 3, step 2 of the form and report builder): a package of
   live forms with their active declarations (lines, numbering, statuses, files, formulas, layout) as
   simple-form packages, the reference lists they use (items optional), report datasets, saved reports,

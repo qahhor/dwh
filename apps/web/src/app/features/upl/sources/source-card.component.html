@@ -26,7 +26,20 @@
   <ui-page-header class="upl-head" [title]="s.name">
     <code pageHeaderAside class="upl-code">{{ s.code }}</code>
     @if (s.lastPublishedVersion !== null) {
-      <smt-badge pageHeaderAside smtSize="SM" smtVariant="success">{{ activeVersionLabel(s) }}</smt-badge>
+      <ng-container pageHeaderAside>
+        <smt-badge smtSize="SM" smtVariant="success">{{ activeVersionLabel(s) }}</smt-badge>
+        <a
+          smt-button
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="bar_chart"
+          data-testid="upl-open-report"
+          [routerLink]="['/e', martCode(s.code)]"
+          [queryParams]="{ mode: 'report' }"
+        >
+          {{ 'upl.sources.open_report' | t }}
+        </a>
+      </ng-container>
     }
     @if (s.hasDraft) {
       <smt-badge pageHeaderAside smtSize="SM" smtVariant="blue">{{ 'upl.list.has_draft' | t }}</smt-badge>

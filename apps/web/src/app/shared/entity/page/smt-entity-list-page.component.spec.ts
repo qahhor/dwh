@@ -172,4 +172,32 @@ describe('SMTEntityListPageComponent', () => {
       translateTest('ui.entity_page.empty_hint_view'),
     );
   });
+
+  it('opens a warehouse mart entity directly in report mode without requesting a page of rows (ADR-0048)', async () => {
+    const martCode = 'mart.sales';
+    const martMeta: FormMeta = {
+      ...META,
+      code: martCode,
+      listCode: martCode,
+      actions: [],
+    };
+    const martList = queryMetaFixture(martCode, [
+      metaField('regionCode', '', 'text', { label: 'Регион', format: 'dimension' }),
+      metaField('amount', '', 'number', { label: 'Сумма' }),
+    ]);
+    const { root, api, harness } = await renderEntityScreen(`/e/${martCode}`, {
+      meta: martMeta,
+      list: martList,
+      records: [],
+      answers: {
+        [`/entities/${martCode}/report`]: { groups: [], measures: [{ op: 'count' }], rows: [], truncated: false },
+      },
+    });
+    const page = harness.fixture.debugElement.query(By.css('smt-entity-list-page')).componentInstance;
+    expect(page.isMart()).toBe(true);
+    expect(page.effectiveMode()).toBe('report');
+    expect(root.querySelector('smt-entity-report-builder')).not.toBeNull();
+    expect(root.querySelector('[data-testid="entity-mode-list"]')).toBeNull();
+    expect(api.get.mock.calls.filter(([path]) => path === `/entities/${martCode}`)).toHaveLength(0);
+  });
 });

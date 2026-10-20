@@ -25,12 +25,12 @@ import tools.jackson.databind.json.JsonMapper;
  * {@link QueryCompiler} does a page:
  * <pre>groupBy  [{"field":"status"},{"field":"createdAt","trunc":"month"}]
  * measures [{"op":"count"},{"op":"sum","field":"total"}]</pre>
- * A report groups by a choice, an enumeration, a yes/no, a reference or a date bucket ({@code day}, {@code week},
- * {@code month}, {@code quarter}, {@code year}; a date without one is bucketed by month) and answers {@code count} or
- * {@code sum}/{@code avg}/{@code min}/{@code max} of a number or of an amount of money — money is grouped by its
- * currency as well, so different currencies are never added up. Only the fields the viewer may see take part (a
- * restricted field answers as an unknown one, ADR-0016), and the filter is the list's own. Any error is a 422 whose
- * fields point at the part to fix: {@code groupBy[1].trunc}, {@code measures[0].field}, {@code filter[2].op}.
+ * A report groups by a choice, an enumeration, a yes/no, a reference, a mart dimension or a date bucket ({@code day},
+ * {@code week}, {@code month}, {@code quarter}, {@code year}; a date without one is bucketed by month) and answers
+ * {@code count} or {@code sum}/{@code avg}/{@code min}/{@code max} of a number or of an amount of money — money is
+ * grouped by its currency as well, so different currencies are never added up. Only the fields the viewer may see take
+ * part (a restricted field answers as an unknown one, ADR-0016), and the filter is the list's own. Any error is a 422
+ * whose fields point at the part to fix: {@code groupBy[1].trunc}, {@code measures[0].field}, {@code filter[2].op}.
  * ADR-0044: {@code count_distinct}, a share of a count or a sum ({@code "share":"total"}) and the analytic shape of
  * {@link QueryAggregateShapes} — a pivot, totals, a period comparison ({@link QueryAggregateSpec}).
  */
@@ -48,6 +48,9 @@ public final class QueryAggregates {
 
     /** The format of the hidden list field that holds the currency of a money field. */
     public static final String CURRENCY_FORMAT = "currency";
+
+    /** The format of a text field that holds a warehouse mart dimension or object key (ADR-0048). */
+    public static final String DIMENSION_FORMAT = "dimension";
 
     /** The key suffix of that currency field: {@code total} has {@code totalCurrency}. */
     public static final String CURRENCY_SUFFIX = "Currency";
@@ -244,12 +247,13 @@ public final class QueryAggregates {
         return found;
     }
 
-    /** A field whose values make few groups: a choice, a yes/no, a reference or a date bucket. */
-    static boolean groupable(QueryField field) {
+    /** A field whose values make few groups: a choice, a yes/no, a reference, a mart dimension or a date bucket. */
+    public static boolean groupable(QueryField field) {
         return switch (field.type()) {
             case ENUM, BOOLEAN, DATE, INSTANT -> true;
             case NUMBER -> field.ref() != null;
-            case TEXT, TIME, REF_SET, OBJECT -> false;
+            case TEXT -> DIMENSION_FORMAT.equals(field.format()) || field.ref() != null;
+            case TIME, REF_SET, OBJECT -> false;
         };
     }
 

@@ -272,7 +272,14 @@ public class FormMetaController {
     /** The dictionary key of the entity's name: its menu label, else the name of its right; null without either. */
     public static @Nullable String titleKey(EntityDefinition entity) {
         if (entity.menu() != null) return entity.menu().labelKey();
-        return entity.rights() != null ? entity.rights().nameKey() : null;
+        if (entity.rights() != null) return entity.rights().nameKey();
+        return entity.code()
+                                .startsWith(
+                                        com.smartup24.cms.instance.common.entity.report.EntityReportMartRunner
+                                                .MART_PREFIX)
+                        && !entity.layout().isEmpty()
+                ? entity.layout().getFirst().labelKey()
+                : null;
     }
 
     /**

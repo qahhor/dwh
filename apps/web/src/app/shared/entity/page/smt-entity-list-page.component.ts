@@ -138,6 +138,8 @@ export class SMTEntityListPageComponent {
   readonly listFailed = computed(() => this.metaRead.status() === 'error');
 
   readonly meta = computed(() => this.context.formMeta());
+  readonly isMart = computed(() => this.context.code().startsWith('mart.'));
+  readonly effectiveMode = computed<'list' | 'report'>(() => (this.isMart() ? 'report' : this.mode()));
   readonly selectedIds = computed(() => this.selectedRows().map((row) => row.id));
 
   readonly canCreate = computed(() => canDo(this.meta(), 'create'));
@@ -258,7 +260,7 @@ export class SMTEntityListPageComponent {
     // A new query starts from the first page, once the default view is applied.
     effect(() => {
       this.query();
-      if (this.viewsReady()) untracked(() => this.pager.first());
+      if (this.viewsReady() && !this.isMart()) untracked(() => this.pager.first());
     });
     // A link to the same list — a drill-down from its report, a report of the catalog — changes only the query.
     this.route.queryParamMap.pipe(skip(1), takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
@@ -313,7 +315,7 @@ export class SMTEntityListPageComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.applyLinkedFilter(meta);
-        if (this.viewsReady()) this.pager.first();
+        if (this.viewsReady() && !this.isMart()) this.pager.first();
         this.viewsReady.set(true);
       });
   }

@@ -21,10 +21,11 @@ import java.util.LinkedHashMap;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Bounded aggregates of a current, authorized root or prepared dataset source (ADR-0032, ADR-0039). */
+/** Bounded aggregates of a current, authorized root or prepared dataset source (ADR-0032, ADR-0039, ADR-0048). */
 @Component
 public class EntityReports {
     private final EntityGate gate;
@@ -35,6 +36,7 @@ public class EntityReports {
     private final EntityReportDatasets datasets;
     private final EntityReportLabels labels;
     private final Clock clock;
+    private final @Nullable ObjectProvider<EntityReportMartRunner> marts;
 
     public EntityReports(
             EntityGate gate,
@@ -45,6 +47,20 @@ public class EntityReports {
             EntityReportDatasets datasets,
             EntityReportLabels labels,
             ObjectProvider<Clock> clock) {
+        this(gate, registry, scopes, aggregates, views, datasets, labels, clock, null);
+    }
+
+    @Autowired
+    public EntityReports(
+            EntityGate gate,
+            EntityRegistry registry,
+            EntityScopes scopes,
+            QueryAggregateRepository aggregates,
+            ObjectProvider<EntityReportViews> views,
+            EntityReportDatasets datasets,
+            EntityReportLabels labels,
+            ObjectProvider<Clock> clock,
+            @Nullable ObjectProvider<EntityReportMartRunner> marts) {
         this.gate = gate;
         this.registry = registry;
         this.scopes = scopes;
@@ -53,6 +69,7 @@ public class EntityReports {
         this.datasets = datasets;
         this.labels = labels;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
+        this.marts = marts;
     }
 
     /** Internal execution metadata stays with its result until export; controllers return data only. */
@@ -177,8 +194,11 @@ public class EntityReports {
         var scope = scopes.listPredicate(source.entity(), aggregate.filter(), EntityReads.userId());
         var params = new LinkedHashMap<>(source.params());
         params.putAll(scope.params());
-        QueryAggregateResult raw =
-                aggregates.run(aggregate, new QueryPlan.SqlFragment(scope.sql() + source.where(), params));
+        var extra = new QueryPlan.SqlFragment(scope.sql() + source.where(), params);
+        EntityReportMartRunner mart = marts != null ? marts.getIfAvailable() : null;
+        QueryAggregateResult raw = mart != null && mart.supports(source.entity().code())
+                ? mart.aggregate(source.entity().code(), aggregate, extra)
+                : aggregates.run(aggregate, extra);
         return new Execution(source.list(), QueryAggregateFinish.finish(aggregate, labels.label(aggregate, raw)));
     }
 }

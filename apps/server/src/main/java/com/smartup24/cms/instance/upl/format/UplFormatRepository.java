@@ -130,6 +130,15 @@ public class UplFormatRepository {
                 .optional();
     }
 
+    public List<SourceSummary> findPublishedSummaries() {
+        return jdbc.sql(SUMMARY_SELECT
+                        + " where exists (select 1 from upl_format_versions v"
+                        + " where v.source_id = s.id and v.status <> 'draft')"
+                        + " order by s.id")
+                .query(this::mapSummary)
+                .list();
+    }
+
     public List<FormatVersion> listVersions(long sourceId) {
         return jdbc.sql("select " + VERSION_COLUMNS + " from upl_format_versions where source_id = :s order by version")
                 .param("s", sourceId)

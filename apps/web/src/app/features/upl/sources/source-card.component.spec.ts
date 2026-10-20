@@ -7,7 +7,7 @@ import { ApiService } from '@core/services/api.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
-import { UplApiService, UplFormatVersion, UplSource, UplVersionItem } from '../upl.api';
+import { UplApiService, UplFormatVersion, UplSource, UplVersionItem, martEntityCode } from '../upl.api';
 import { SourceCardComponent } from './source-card.component';
 import { inScreen } from '@testing/in-screen';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
@@ -165,10 +165,15 @@ describe('SourceCardComponent', () => {
     fixture.detectChanges();
   }
 
-  it('loads source with versions and links to the version screen', async () => {
+  it('loads source with versions and links to the version screen and warehouse mart report', async () => {
     const { fixture, api } = await createFixture();
     expect(api.getSource).toHaveBeenCalledWith('7');
     expect(api.listVersions).toHaveBeenCalledWith('7');
+    const reportLink = el(fixture, 'upl-open-report') as HTMLAnchorElement;
+    expect(reportLink).not.toBeNull();
+    expect(reportLink.getAttribute('href')).toBe('/e/mart.sqb_output?mode=report');
+    expect(martEntityCode('fin.budget-2026')).toBe('mart.fin.budget_2026');
+    expect(martEntityCode('123.bad')).toBe('mart.s_123.bad');
     const rows = inScreen(fixture.nativeElement).querySelectorAll('[data-testid="upl-version-row"]');
     expect(rows.length).toBe(2);
     const link = rows[0] as HTMLAnchorElement;

@@ -22,6 +22,7 @@ import {
   UplStrictness,
   UplVersionItem,
   UplVersionStatus,
+  martEntityCode,
 } from '../upl.api';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
@@ -152,6 +153,10 @@ export class SourceCardComponent implements RecordNavigationPage {
 
   activeVersionLabel(source: UplSource): string {
     return this.i18n.translate('upl.card.active_version', { version: source.lastPublishedVersion ?? 0 });
+  }
+
+  martCode(sourceCode: string): string {
+    return martEntityCode(sourceCode);
   }
 
   statusKeyOf(version: UplVersionItem): string {

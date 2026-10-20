@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
+import com.smartup24.cms.instance.upl.mart.UplMartBuilder;
 import com.smartup24.cms.instance.upl.parse.UplParseResult;
 import com.smartup24.cms.instance.upl.parse.UplSpooledFile;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
@@ -59,6 +60,7 @@ public class UplApplyJob implements JobHandler {
     private final RawWriter raw;
     private final AuditActorContext actors;
     private final TransactionTemplate tx;
+    private final @org.jspecify.annotations.Nullable UplMartBuilder marts;
 
     public UplApplyJob(
             UplPackageRepository repo,
@@ -69,6 +71,20 @@ public class UplApplyJob implements JobHandler {
             RawWriter raw,
             AuditActorContext actors,
             TransactionTemplate tx) {
+        this(repo, sources, files, parser, loads, raw, actors, tx, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public UplApplyJob(
+            UplPackageRepository repo,
+            UplSourceService sources,
+            MfFileService files,
+            UplXlsxParser parser,
+            WarehouseLoads loads,
+            RawWriter raw,
+            AuditActorContext actors,
+            TransactionTemplate tx,
+            @org.jspecify.annotations.Nullable UplMartBuilder marts) {
         this.repo = repo;
         this.sources = sources;
         this.files = files;
@@ -77,6 +93,7 @@ public class UplApplyJob implements JobHandler {
         this.raw = raw;
         this.actors = actors;
         this.tx = tx;
+        this.marts = marts;
     }
 
     /** The arguments of the job for one package; the user is the one who asked, the actor of the load's audit. */
@@ -111,7 +128,10 @@ public class UplApplyJob implements JobHandler {
         }
         Long rawRows = writeRaw(row, attempt);
         AuditActor actor = actors.user(userId);
-        tx.executeWithoutResult(status -> finish(row.id(), rawRows, actor));
+        Boolean applied = tx.execute(status -> finish(row.id(), rawRows, actor));
+        if (Boolean.TRUE.equals(applied) && marts != null) {
+            marts.publishAfterApply(row);
+        }
     }
 
     private boolean loadOpen(PackageRow row) {
@@ -173,13 +193,13 @@ public class UplApplyJob implements JobHandler {
         }
     }
 
-    private void finish(long packageId, Long rawRows, AuditActor actor) {
+    private boolean finish(long packageId, Long rawRows, AuditActor actor) {
         PackageRow row = repo.lockById(packageId)
                 .orElseThrow(
                         () -> new IllegalStateException("Package " + packageId + " disappeared while being applied"));
         if (!UplPackageModel.APPLYING.equals(row.status())) {
             // The recovery job closed it, with its load, while the rows were being written
-            return;
+            return false;
         }
         actors.apply(actor);
         boolean reconciled = rawRows != null
@@ -196,9 +216,11 @@ public class UplApplyJob implements JobHandler {
                     actor,
                     null,
                     row.fileSha256());
+            return true;
         } else if (rawRows == null) {
             loads.fail(row.loadId(), UplApplyService.UPL_PKG_RAW_WRITE_FAILED, actor);
             requireOne(repo.markApplyRejected(row.id(), UplApplyService.UPL_PKG_RAW_WRITE_FAILED, Map.of(), null), row);
+            return false;
         } else {
             loads.fail(
                     row.loadId(),
@@ -211,6 +233,7 @@ public class UplApplyJob implements JobHandler {
                             Map.of("fileRows", row.rowsTotal(), "rawRows", rawRows.intValue()),
                             rawRows.intValue()),
                     row);
+            return false;
         }
     }
 
