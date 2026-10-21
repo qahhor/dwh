@@ -192,6 +192,7 @@ public class UplMartBuilder {
         try {
             return units.toBase(value, from, periodFrom).value().stripTrailingZeros();
         } catch (CoefficientMissingException missing) {
+            log.warn("upl_mart_coefficient_missing from={} base={} period={}", from, base, periodFrom);
             return value;
         }
     }

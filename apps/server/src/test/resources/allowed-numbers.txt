@@ -23,3 +23,5 @@ src/main/resources/db/migration/V187__entity_import_rights.sql:3600 # перио
 src/main/resources/db/migration/V197__example_products_requests.sql:2000 # предел длины решения заявки-эталона, не норматив
 src/main/resources/db/migration/V222__studio_lists.sql:9999 # верхняя граница порядка значения справочника, не норматив
 src/main/resources/db/migration/V227__studio_record_lines.sql:16384 # предел размера строки документа в байтах (16 КиБ), не норматив
+src/main/java/com/smartup24/cms/instance/upl/mart/UplMartBuilder.java:1899 # эпоха дат Excel (1899-12-30) для серийных номеров дат, не норматив
+src/main/resources/db/dwh/V005__mart_rows.sql:0048 # номер ADR-0048 в комментарии таблицы, не норматив
