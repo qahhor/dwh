@@ -269,6 +269,11 @@ legal and ownership decisions.
 - [AI project context](ai-context.md) — concise handoff for AI-assisted work;
   subordinate to this authority model and the canonical specification.
 - [План 10/10](plan-10-10.md) — фазы качества, критерии приёмки и статус; цель ссылок «plan 10/10, item N».
+- [Архив плана 10/10](history/plan-10-10-done.md) — выполненные фазы 0–7; сюда ведут ссылки «plan 10/10, item N» для фаз 0–7.
+- [Журнал точек продолжения](history/handoff-log.md) — архив истории handoff; не читать целиком, искать через `grep`.
+- [Памятка агенту](ai-agent-brief.md) — что читать, как работать и отчитываться; экономия токенов.
+- [Обзор системы на одной странице](architecture/overview.md) — продукт, модули, платформа, хранилища.
+- [План перестройки серверных модулей](architecture/module-restructuring-plan.md) — предложение, ждёт решения владельца.
 - [Contribution guide](../CONTRIBUTING.md)
 
 Dated audit reports and agent plans were removed from the tree; git history

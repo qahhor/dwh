@@ -108,6 +108,26 @@ management endpoints are not published by the production Compose topology.
 Database migrations are a separate, fail-closed step. See the
 [architecture overview](docs/ops/architecture-overview.md).
 
+## Repository layout (Структура репозитория)
+
+| Folder | Purpose |
+|---|---|
+| `apps/server` | Spring Boot modular monolith: business modules, platform runtime, Flyway migrations |
+| `apps/web` | Angular web client |
+| `libs` | Shared libraries: `platform-api` (public contract), `platform-common`, `core-types`, `provider-spi`, `platform-testkit` |
+| `tools` | `cms-cli` (module and entity generator), `api-types` (OpenAPI to TypeScript types) |
+| `e2e` | Playwright end-to-end and accessibility tests |
+| `examples` | `external-module`: a sample module built outside the monorepo |
+| `modules` | Mount point `/app/modules` for external module JARs (extension point, see its README) |
+| `deploy` | Tracked deployment assets: Compose files, Ansible, images, observability, acceptance |
+| `deployments` | Ignored, written by `scripts/prod/deploy.*` and `rollback.*` (`history.jsonl`); never commit |
+| `scripts` | Developer, CI and production scripts (`dev`, `quality`, `docs`, `api`, `prod`, ...) |
+| `config` | Static-analysis configuration (Checkstyle) |
+| `docs` | Documentation: specification, ADRs, architecture, cookbook, runbooks; start at `docs/README.md` |
+| `docs/history` | Archives of handoff entries and finished plan phases (read by grep only) |
+| `.github`, `.mvn`, `.devcontainer` | CI workflows and rulesets, Maven wrapper settings, dev container |
+| `.local`, `.tools`, `target`, `graphify-out`, `.superpowers` | Ignored local state: stand data and logs, optional JDK and tools, build output, knowledge graph, tool output |
+
 ## Quick start
 
 Prerequisites: JDK 25, Node.js from [`.node-version`](.node-version) with npm,

@@ -7,6 +7,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+
+- Documentation and repository layout restructured for people and AI assistants (2026-10-21): the handoff section 7 in
+  `docs/ai-context.md` is a short current point and its history moved to `docs/history/handoff-log.md`; finished phases 0-7
+  of `docs/plan-10-10.md` moved to `docs/history/plan-10-10-done.md`. New: `docs/ai-agent-brief.md`, a token-economy section
+  in `AGENTS.md`, `docs/architecture/overview.md`, the proposal `docs/architecture/module-restructuring-plan.md` (awaits the
+  owner's decision) and a repository layout table in `README.md`. No code, API or schema changes.
+
 ### Added
 
 - Warehouse marts as report sources (ADR-0048, stage 3, step 3 of the form and report builder): `db/dwh/V005__mart_rows.sql`
