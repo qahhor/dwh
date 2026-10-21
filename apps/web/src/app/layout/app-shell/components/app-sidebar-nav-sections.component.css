@@ -49,22 +49,20 @@
   transform: rotate(-90deg);
 }
 
-/* The groups sit in the scrolling .sidebar-nav column: a group with overflow: hidden would shrink there and clip
-   its last items instead of letting the column scroll, so it keeps its own height. */
+/* The groups sit in the scrolling .sidebar-nav column and keep the height of their items: a fixed max-height cap
+   clipped the last items of a long group (many declared and Studio entities), and overflow: hidden on an open group
+   would shrink it in the flex column. Only a collapsed group clips its items. */
 .nav-section-content {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   gap: 2px;
-  overflow: hidden;
-  transition:
-    max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.2s ease;
-  max-height: 1000px;
+  transition: opacity 0.2s ease;
   opacity: 1;
 }
 .nav-section-content.collapsed {
   max-height: 0;
+  overflow: hidden;
   opacity: 0;
   pointer-events: none;
 }
