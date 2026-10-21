@@ -98,8 +98,9 @@ test('the permission matrix names every area in words, never by its code', async
   await page.goto('/iam/roles');
   const chips = page.locator('.module-filter [role="radio"]');
   await expect(chips.first()).toBeVisible();
+  // "All sections" renders at once, the areas follow with the permission catalog: wait for them before reading names.
+  await expect.poll(() => chips.count()).toBeGreaterThan(3);
   const labels = await chips.allInnerTexts();
-  expect(labels.length).toBeGreaterThan(3);
   for (const label of labels) {
     // "Модуль: UPL" is the fallback of an area without a name; "(IAM)" the old code suffix.
     expect(label).not.toMatch(/Модуль:|\([A-Z]{2,}\)|\b[A-Z]{3,}\b/u);

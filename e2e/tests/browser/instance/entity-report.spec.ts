@@ -99,16 +99,18 @@ test("a report of the orders is built, saved as a widget and shown on the dashbo
     await dialog.getByTestId("form-submit").click();
     const savedResponse = await saved;
     expect(savedResponse.status()).toBe(201);
-    const view = (await savedResponse.json()) as {
-      id: number;
-      lockVersion: number;
-      kind: string;
-      state: { chart: string };
-    };
-    savedId = view.id;
-    savedRevision = view.lockVersion;
-    expect(view.kind).toBe("widget");
-    expect(view.state.chart).toBe("bar");
+    // The browser may evict the response body: the id and the revision come from its headers, the view from the server.
+    const headers = savedResponse.headers();
+    savedId = Number(/\/(\d+)$/u.exec(headers.location ?? "")?.[1]);
+    savedRevision = Number(/"(\d+)"/u.exec(headers.etag ?? "")?.[1]);
+    expect(savedId).toBeGreaterThan(0);
+    const widgets = await page.request.get("/api/v1/list-views/example.orders?kind=widget");
+    const views = (await widgets.json()) as { id: number; kind: string; state: { chart: string } }[];
+    await widgets.dispose();
+    const view = views.find((candidate) => candidate.id === savedId);
+    expect(view).toBeDefined();
+    expect(view?.kind).toBe("widget");
+    expect(view?.state.chart).toBe("bar");
 
     // The dashboard shows the viewer's widget, run under the orders' own rights.
     await page.goto("/analytics");
