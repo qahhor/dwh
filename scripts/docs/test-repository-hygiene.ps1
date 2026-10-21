@@ -151,7 +151,7 @@ $oldNameFiles = @(
     [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/config/env/(ConfigurationNamesTest|DefaultSecretsGuardTest)\.java$'; Reason = 'tests that the configuration names before ADR-0027 are not read' },
     [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/(config/security/SecurityConfigTest|kauth/AuthenticationGenerationHttpTest|kauth/security/KauthSessionCookiesTest|kauth/service/KauthApiTokenServiceTest)\.java$'; Reason = 'tests that the old session cookie and token prefix are not accepted' },
     # Documents that describe the history of the old names (the transition was cancelled on 2026-10-01).
-    [pscustomobject]@{ Path = '^docs/ops/configuration-reference\.md$|^docs/adr/ADR-0027-configuration-names\.md$|^docs/plan-10-10\.md$'; Reason = 'history of the old names and their replacements' },
+    [pscustomobject]@{ Path = '^docs/ops/configuration-reference\.md$|^docs/adr/ADR-0027-configuration-names\.md$|^docs/plan-10-10\.md$|^docs/history/'; Reason = 'history of the old names and their replacements' },
     # History that cannot change: the changelog and fingerprints of past commits.
     [pscustomobject]@{ Path = '^CHANGELOG\.md$|^\.gitleaksignore$'; Reason = 'history of past releases and commits' },
     [pscustomobject]@{ Path = '^\.gitleaks\.toml$'; Reason = 'allow-lists false positives of past commits that still hold the old environment names' },
