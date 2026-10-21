@@ -12,6 +12,11 @@ anything every assistant must know belongs in this file or in `docs/`.
    invariants, checks, where work stands; the server modules, their tables,
    permission areas and entry points are in
    [`docs/architecture/module-map.md`](docs/architecture/module-map.md).
+   Read only its §7 (the current point); older handoff entries are in
+   `docs/history/handoff-log.md`, searched by grep. The overview of the
+   system is [`docs/architecture/overview.md`](docs/architecture/overview.md);
+   what an agent reads, how it works and reports is
+   [`docs/ai-agent-brief.md`](docs/ai-agent-brief.md).
 2. [`docs/plan-10-10.md`](docs/plan-10-10.md) — the quality roadmap: phases,
    items, acceptance criteria, what is done and what is next.
 3. [`docs/README.md`](docs/README.md) — the documentation index and its
@@ -171,3 +176,24 @@ The graph lives in `graphify-out/` (not committed) and is built with
   it. After modifying code, run `graphify update .` (AST only, no API cost).
 - When the user types `/graphify`, use the installed graphify skill or
   instructions first.
+
+## 8. Token economy
+
+Facts: stage agents cost 660-870k tokens per task before this rule, the
+2026-10-21 Sonnet fix agents 140-170k; handoff section 7 alone was ~35k tokens
+read by every agent. Details: `docs/ai-agent-brief.md`.
+
+- Read budget: `AGENTS.md`, handoff section 7 and the brief. History files
+  (`docs/history/*`), ADRs and files over 100 KB are read by grep and line
+  ranges only; try `py -m graphify query` before opening many files.
+- Model routing in multi-agent tools: the strongest model for design and hard
+  code; a mid model for mechanical work (running gates, log triage, docs, e2e
+  fixes); a small model for searches and status checks.
+- Do not poll background work; wait for its completion notice.
+- Cap command output (`tail`, `head`, `grep -c`); never print whole logs or
+  transcripts. Gate runs write a short summary file; reports stay under 40 lines.
+- Compact or start a new session at stage boundaries; keep the handoff
+  section 7 under 3 KB and move finished entries to `docs/history/`.
+- Stop the demo stand during heavy checks (full verify, e2e, ZAP).
+- Disable tool connectors (MCP servers, plugins) the task does not use.
+
