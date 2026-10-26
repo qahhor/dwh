@@ -2,7 +2,7 @@
 # Собирается в ту же compose-группу, что и бэкенд (см. docker-compose.yml).
 
 # ---------------------------------------------------------------- build
-FROM node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS build
+FROM node:24.22.1-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS build
 WORKDIR /build
 
 # Слой зависимостей кэшируется отдельно от исходников
