@@ -45,7 +45,7 @@
         <palantir-java-format.version>2.99.0</palantir-java-format.version>
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <checkstyle.version>14.3.0</checkstyle.version>
-        <errorprone.version>2.50.0</errorprone.version>
+        <errorprone.version>2.51.0</errorprone.version>
         <nullaway.version>0.14.2</nullaway.version>
 
         <!-- The platform's public API (ADR-0033, 4): its own SemVer version, apart from the application's. The
