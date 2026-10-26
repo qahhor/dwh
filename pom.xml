@@ -18,14 +18,14 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Framework & Libraries Versions -->
-        <spring-boot.version>4.1.1</spring-boot.version>
+        <spring-boot.version>4.1.2</spring-boot.version>
         <!-- Boot 4.1.1 manages 11.0.24; 11.0.25 fixes the August 2026
              security-constraint and authentication vulnerabilities. -->
         <tomcat.version>11.0.27</tomcat.version>
         <!-- Override both Jackson baselines managed by Spring Boot.
              Jackson 2 reaches the server through springdoc (swagger-core). -->
-        <jackson.version>3.2.3</jackson.version>
-        <jackson-2.version>2.22.3</jackson-2.version>
+        <jackson.version>3.2.4</jackson.version>
+        <jackson-2.version>2.22.4</jackson-2.version>
         <postgresql.version>42.7.5</postgresql.version>
         <archunit.version>1.5.1</archunit.version>
         <testcontainers.version>2.0.5</testcontainers.version>
@@ -46,14 +46,14 @@
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <checkstyle.version>14.3.0</checkstyle.version>
         <errorprone.version>2.50.0</errorprone.version>
-        <nullaway.version>0.14.2</nullaway.version>
+        <nullaway.version>0.14.3</nullaway.version>
 
         <!-- The platform's public API (ADR-0033, 4): its own SemVer version, apart from the application's. The
              platform-api and provider-spi poms state the same value as their version; the baseline is the jar of the
              last released API version that japicmp compares them with (libs/<artifact>/baseline). -->
         <platform-api.version>2.0.0</platform-api.version>
         <platform-api.baseline.version>1.0.0</platform-api.baseline.version>
-        <japicmp.version>0.26.3</japicmp.version>
+        <japicmp.version>0.26.5</japicmp.version>
         <!-- The embedded PostgreSQL of the tests and of the test kit (ADR-0032, 11.3). -->
         <embedded-postgres.version>2.2.2</embedded-postgres.version>
 
