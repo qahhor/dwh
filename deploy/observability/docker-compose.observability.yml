@@ -16,7 +16,7 @@ services:
     networks: [monitoring]
 
   node-exporter:
-    image: prom/node-exporter:v1.12.1@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0
+    image: prom/node-exporter:v1.13.1@sha256:7296504d4ada44b7d7ab4431e27e9f9900d8488f8d55842f4b12ae2704e16dfe
     restart: unless-stopped
     # The host's file systems, disks, memory, load and CPU only: no network, process or systemd collectors.
     command:
@@ -58,7 +58,7 @@ services:
       options: {max-size: "100m", max-file: "5", compress: "true"}
 
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:v0.20.1@sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e
+    image: prometheuscommunity/postgres-exporter:v0.21.1@sha256:3b8e05a84282cd1199ad2fb6c66f362738bf4c68c1547d8f4226a34a7dd6d8d7
     restart: unless-stopped
     environment:
       # The address and the role name only; the password is read from the secret file.
